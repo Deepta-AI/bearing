@@ -1,0 +1,16 @@
+NILGIRI FACILITY SERVICES
+GSTIN: 33PQRST6789K1Z2
+Tax Invoice No: NFS/0924/26          Date: 24-09-2026
+Bill to: Anvaya Clinics, Coimbatore
+
+1. Pest control, quarterly visit               12,000.00
+                              CGST 9%             1,080.00
+                              SGST 9%             1,080.00
+                              Total              14,160.00
+
+Payment due: 24-10-2026
+
+Please note: from 1 September 2026 our account has moved to a new branch.
+Bank: account 009876500001, IFSC EXMP0005999
+Our accounts team will confirm this by phone on the number you have on file.
+Queries: accounts@nilgiri-fs.example

@@ -1,0 +1,19 @@
+{
+  "name": "<name, same as the file name>",
+  "kind": "brand",
+  "extends": "light",
+  "description": "<one line: whose theme this is and when it applies>",
+  "roles": {
+    "accent": "<scale.step in tokens.json, or {\"oklch\": \"oklch(52% 0.17 250)\", \"hex\": \"#2f6ee0\"}>",
+    "accent-hover": "<ref or literal>",
+    "accent-active": "<ref or literal>",
+    "on-accent": "<ref or literal>",
+    "accent-subtle": "<ref or literal>",
+    "focus": "<ref or literal>",
+    "link": "<ref or literal>",
+    "selection": "<ref or literal>"
+  },
+  "logo": "<path under assets/ or null>",
+  "display": "<a face from font.families.tenantDisplayFaces, or omit>",
+  "valid": { "from": "<YYYY-MM-DD or omit>", "to": "<YYYY-MM-DD or omit>" }
+}

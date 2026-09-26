@@ -1,0 +1,1697 @@
+#!/usr/bin/env bash
+BEARING_GUARD_VERSION="__VERSION__"
+# brg-guard: the harness-neutral guard logic behind every hook adapter.
+#
+#   brg-guard command "<shell command>"   exit 2 and a message when the command
+#                                         publishes, rewrites history, deploys
+#                                         or destroys; exit 2 when the command
+#                                         cannot be read (fail closed)
+#   brg-guard format <file>               format one file with the repo's formatter
+#   brg-guard task-id ["<prompt>"]        print "Task: <ID> ..." when the branch
+#                                         carries a ticket id the prompt lacks
+#   brg-guard session                     print branch, task, changes, handoff state
+#   brg-guard stop                        print a reminder when changes are unchecked
+#   brg-guard stop-gate --id <session> [--active]
+#                                         exit 2 (reason on stderr) when files
+#                                         changed in this session since make
+#                                         check last passed; --active (the
+#                                         harness already continued once) only
+#                                         reminds, so it never loops
+#   brg-guard check-file <file>           lint one edited file (make check-file
+#                                         when the Makefile has it); exit 2 and
+#                                         the problems on stderr
+#   brg-guard precompact [<transcript>]   write .bearing/state/<branch>.compact.md
+#   brg-guard session [--id <session>] [--source startup|resume|compact]
+#   brg-guard stats                       what the gates decided here, how often
+#                                         and at what cost (.bearing/state/gates.log)
+#   brg-guard readonly "<shell command>"  exit 2 unless every program in the
+#                                         command is a read-only tool (git
+#                                         diff|log|show|status|blame|ls-files,
+#                                         ls, cat, grep, rg, find without -exec,
+#                                         sed without -i, jq and similar);
+#                                         used by the read-only subagents
+#   brg-guard --verbs                     the blocked verb table (tool, pattern,
+#                                         label; tab-separated) for generators
+#   brg-guard --version                   the version stamp
+#
+# Claude Code hooks, Cursor hooks and any other harness adapter call these
+# subcommands and translate their own event JSON into arguments. One logic,
+# one behaviour on every harness. Runs on bash 3.2 (macOS) and needs no tool
+# beyond git for the session subcommands.
+set -u
+sub="${1:-}"; shift || true
+READONLY=0
+
+# --------------------------------------------------------------------------
+# The blocked verb table. One rule per line: tool|pattern|label.
+#   tool     argv[0] after wrappers are stripped and the path removed; a
+#            case glob (mkfs*)
+#   pattern  space-separated tokens, matched against argv[1..]:
+#              word      the next positional argument (flags in between are
+#                        skipped, and one argument after a flag may be that
+#                        flag's value); a case glob (publish*)
+#              *         any positional argument
+#              --x / -x  that flag anywhere (also --x=value)
+#              ~abc      one of the letters a, b, c inside a short-flag
+#                        cluster anywhere (-fd, -xf)
+#              @danger   any argument that leaves the repository: /, ~, ~user,
+#                        ., .., *, an absolute path, a relative path whose ..
+#                        climbs out, or a variable or substitution (it may
+#                        be anything, even empty)
+#              @remote   any argument of the form host:path or user@host:path
+#            an empty pattern blocks the tool outright
+#   label    what the block message names
+# The engineer pushes, merges and deploys; the agent prepares.
+# --------------------------------------------------------------------------
+verb_table() { verb_rows | tr '|' '\t'; }
+verb_rows() {
+  cat <<'EOF'
+git|push|git push
+git|commit --amend|git commit --amend
+git|rebase|git rebase
+git|reset --hard|git reset --hard
+git|filter-repo|git filter-repo
+git|filter-branch|git filter-branch
+git|clean ~f ~dx|git clean -fdx
+git|clean --force ~dx|git clean -fdx
+git|remote set-url|git remote set-url
+git|remote remove|git remote remove
+git|remote rm|git remote remove
+git|branch ~D|git branch -D
+git|branch ~d ~f|git branch -D
+git|branch --delete ~f|git branch -D
+git|branch ~d --force|git branch -D
+git|branch --delete --force|git branch -D
+git|stash drop|git stash drop
+git|stash clear|git stash clear
+git|worktree remove|git worktree remove
+git|reflog expire|git reflog expire
+git|gc --prune|git gc --prune
+git|update-ref ~d|git update-ref -d
+git|tag ~d|git tag -d
+git|tag --delete|git tag -d
+glab|mr create|glab mr create
+glab|mr merge|glab mr merge
+glab|mr approve|glab mr approve
+glab|release create|glab release create
+glab|release delete|glab release delete
+glab|repo delete|glab repo delete
+gh|pr create|gh pr create
+gh|pr merge|gh pr merge
+gh|pr review --approve|gh pr review --approve
+gh|pr review ~a|gh pr review --approve
+gh|release create|gh release create
+gh|release delete|gh release delete
+gh|repo delete|gh repo delete
+npm|publish|npm publish
+pnpm|publish|pnpm publish
+yarn|publish|yarn publish
+yarn|npm publish|yarn npm publish
+cargo|publish|cargo publish
+twine|upload|twine upload
+uv|publish|uv publish
+poetry|publish|poetry publish
+gem|push|gem push
+mvn|deploy|mvn deploy
+gradle|publish*|gradle publish
+gradlew|publish*|gradlew publish
+dotnet|nuget push|dotnet nuget push
+goreleaser|release|goreleaser release
+docker|push|docker push
+docker|image push|docker push
+docker|compose push|docker compose push
+docker|build --push|docker build --push
+docker|buildx build --push|docker buildx build --push
+podman|push|podman push
+terraform|apply|terraform apply
+terraform|destroy|terraform destroy
+terraform|import|terraform import
+terraform|taint|terraform taint
+terraform|state rm|terraform state rm
+terraform|state push|terraform state push
+tofu|apply|tofu apply
+tofu|destroy|tofu destroy
+terragrunt|apply|terragrunt apply
+terragrunt|destroy|terragrunt destroy
+terragrunt|run-all apply|terragrunt apply
+terragrunt|run-all destroy|terragrunt destroy
+pulumi|up|pulumi up
+pulumi|update|pulumi up
+pulumi|destroy|pulumi destroy
+kubectl|apply|kubectl apply
+kubectl|delete|kubectl delete
+kubectl|rollout|kubectl rollout
+kubectl|scale|kubectl scale
+kubectl|patch|kubectl patch
+kubectl|replace|kubectl replace
+kubectl|drain|kubectl drain
+kubectl|cordon|kubectl cordon
+helm|install|helm install
+helm|upgrade|helm upgrade
+helm|uninstall|helm uninstall
+helm|delete|helm uninstall
+helm|rollback|helm rollback
+flyctl|deploy|fly deploy
+fly|deploy|fly deploy
+vercel|--prod|vercel --prod
+vercel|deploy|vercel deploy
+netlify|deploy|netlify deploy
+railway|up|railway up
+serverless|deploy|serverless deploy
+sls|deploy|serverless deploy
+sam|deploy|sam deploy
+cdk|deploy|cdk deploy
+cdk|destroy|cdk destroy
+gcloud|run deploy|gcloud run deploy
+gcloud|app deploy|gcloud app deploy
+gcloud|functions deploy|gcloud functions deploy
+gcloud|compute instances delete|gcloud compute instances delete
+aws|deploy|aws deploy
+aws|s3 sync|aws s3 sync
+aws|s3 rm|aws s3 rm
+aws|s3 rb|aws s3 rb
+aws|cloudformation deploy|aws cloudformation deploy
+aws|cloudformation delete-stack|aws cloudformation delete-stack
+aws|lambda update-function-code|aws lambda update-function-code
+az|webapp deploy|az webapp deploy
+az|deployment|az deployment
+fastlane|*|fastlane
+eas|submit|eas submit
+eas|build|eas build
+eas|update|eas update
+firebase|deploy|firebase deploy
+ansible-playbook||ansible-playbook
+cap|deploy*|cap deploy
+cap|* deploy*|cap deploy
+capistrano||capistrano
+rm|~rR ~f @danger|rm -rf outside the repository
+rm|--recursive ~f @danger|rm -rf outside the repository
+rm|~rR --force @danger|rm -rf outside the repository
+rm|--recursive --force @danger|rm -rf outside the repository
+dd||dd
+mkfs*||mkfs
+chmod|~R 777|chmod -R 777
+chmod|--recursive 777|chmod -R 777
+chown|~R * /|chown -R /
+chown|--recursive * /|chown -R /
+shutdown||shutdown
+reboot||reboot
+killall||killall
+pkill|-f .|pkill -f .
+ssh||ssh
+scp|@remote|scp to a remote
+rsync|@remote|rsync to a remote
+EOF
+}
+
+# --------------------------------------------------------------------------
+# command: parse the shell command and refuse the blocked verbs. Fail closed:
+# anything that cannot be read is refused with a reason.
+#
+# The scanners run in the C locale and skip runs of ordinary characters with
+# one pattern match (${rest%%[specials]*}) instead of reading one character
+# at a time, so a 16 KB command parses in about 1.5 s (bash 5; about twice that on bash 3.2). Commands over
+# MAX_LEN bytes are refused before any parsing: the hook has a timeout, and a
+# timed-out PreToolUse hook lets the command run.
+# --------------------------------------------------------------------------
+SUBST='__BRG_SUBST__'      # stands in for a $(...) or `...` whose text was checked separately
+SENTINEL='__BRG_UNPARSED__' # the adapters pass this when the event JSON could not be read
+RD='__BRG_RD__'            # prefixes a redirection operator token from the tokenizer
+INPUT_VAR='$__BRG_INPUT'   # stands in for arguments only known at run time (xargs, parallel)
+MAX_DEPTH=5
+MAX_LEN=16384
+HEREDOC_CODE=''; HEREDOC_DATA=''
+NL="$(printf '\nx')"; NL="${NL%x}"
+TAB="$(printf '\t')"
+SQCH="'"
+ASSIGN="$NL"   # VAR=value assignments seen in this command, newline separated
+LENIENT=0      # inside an interpreter code string: variables are not refused
+CODE_TEXT=0    # inside the text of Python or JavaScript that runs no command
+WILDMODE=0     # match_rule: a variable or substitution argument may be anything
+STDIN_KIND=''; STDIN_TEXT=''
+# Bracket patterns for the scanners. A backslash is doubled for the matcher.
+PAT_U="[ ${TAB}${NL}'\"\\\\#&<>;|()\`]"   # tokenizer, unquoted
+PAT_DQ="[\"\\\\]"                          # tokenizer, inside "..."
+PAT_XU="[\\\\'\"#\`\$]"                    # substitutions, unquoted
+PAT_XD="[\\\\\"\`\$]"                      # substitutions, inside "..."
+PAT_XN="[\\\\\`\$]"                        # substitutions, heredoc body (quotes are text)
+PAT_BT="[\\\\\`]"                          # inside `...`
+PAT_CS="[()\\\\'\"]"                       # inside $(...)
+PAT_AR='[()]'                              # inside $((...))
+PAT_Q="['\"\`]"                            # code string, outside a literal
+PAT_Q1="[\\\\']"; PAT_Q2="[\\\\\"]"
+PAT_QP="['\"]"                              # python code string: backticks are text
+PAT_HC="[\\\\'\"()\`\$<#;&|]"              # heredoc line scan, command context
+# Text-printing programs: a table tool among their arguments is data, not a command.
+TEXT_PROGS=' echo printf grep egrep fgrep rg ag ack man info help whatis apropos which type whereis hash test [ true false : cat less more head tail wc file stat ls '
+GIT_BUILTINS=' add am annotate apply archive bisect blame branch bundle cat-file check-attr check-ignore check-mailmap check-ref-format checkout checkout-index cherry cherry-pick citool clean clone column commit commit-graph commit-tree config count-objects credential describe diff diff-files diff-index diff-tree difftool fast-export fast-import fetch fetch-pack filter-branch fmt-merge-msg for-each-ref format-patch fsck gc get-tar-commit-id grep gui hash-object help init instaweb interpret-trailers log ls-files ls-remote ls-tree mailinfo mailsplit maintenance merge merge-base merge-file merge-tree mergetool mktag mktree mv name-rev notes pack-objects pack-refs prune pull push range-diff read-tree rebase reflog remote repack replace request-pull rerere reset restore rev-list rev-parse revert rm send-email shortlog show show-branch show-ref sparse-checkout stash status submodule switch symbolic-ref tag update-index update-ref var verify-commit verify-pack verify-tag version whatchanged worktree write-tree lfs filter-repo '
+
+deny() { # deny <label>
+  echo "Bearing blocked '$1': the engineer pushes, merges and deploys; the agent prepares. Print the command for the engineer instead." >&2
+  gate_log "$(guard_gate)" refused "$1"
+  exit 2
+}
+refuse() { # refuse <reason>: the command could not be read
+  echo "brg-guard: $1; refusing (fail closed)" >&2
+  gate_log "$(guard_gate)" refused "unreadable: $1"
+  exit 2
+}
+
+# --- gate telemetry. In a Bearing repository (.bearing/ at the root) every
+# gate decision appends one tab-separated line to .bearing/state/gates.log:
+# time, gate, outcome, milliseconds, a short label. Never the command text.
+# brg-guard stats reads it back; BEARING_NO_GATE_LOG=1 turns it off. The log
+# rotates to gates.log.1 at 512 KB.
+now_ms() {
+  if [ -n "${EPOCHREALTIME:-}" ]; then local t="${EPOCHREALTIME/./}"; echo "${t:0:$((${#t}-3))}"
+  else local s; s="$(date +%s 2>/dev/null)"; echo "${s:-0}000"; fi # bash 3.2 has no EPOCHREALTIME; a bare PATH may lack date
+}
+GATE_T0="$(now_ms)"
+bearing_root() { # the nearest directory upward holding .bearing/, without spawning dirname
+  local d="$PWD"
+  while :; do
+    [ -d "${d:-/}/.bearing" ] && { echo "${d:-/}"; return 0; }
+    [ -n "$d" ] && [ "$d" != / ] || return 1
+    d="${d%/*}"
+  done
+}
+guard_gate() { if [ "${READONLY:-0}" -eq 1 ]; then echo readonly; else echo command; fi; }
+gate_log() { # gate_log <gate> <outcome> [label]
+  [ -z "${BEARING_NO_GATE_LOG:-}" ] || return 0
+  local root log
+  root="$(bearing_root)" || return 0
+  log="$root/.bearing/state/gates.log"
+  mkdir -p "$root/.bearing/state" 2>/dev/null || return 0
+  if [ -f "$log" ] && [ "$(wc -c < "$log" | tr -d ' ')" -gt 524288 ]; then mv -f "$log" "$log.1" 2>/dev/null; fi
+  local label="${3:-}"
+  label="${label//$'\t'/ }"; label="${label//$'\n'/ }"   # one line, no tabs; pure bash, so no tool can be missing
+  printf '%s\t%s\t%s\t%s\t%s\n' "$(date +%Y-%m-%dT%H:%M:%S 2>/dev/null)" "$1" "$2" "$(( $(now_ms) - GATE_T0 ))" \
+    "${label:0:120}" >> "$log" 2>/dev/null || true
+}
+
+load_rules() {
+  RULE_N=0
+  TOOLSET=' '
+  while IFS='|' read -r rtool rpat rlabel; do
+    [ -n "$rtool" ] || continue
+    RULE_TOOL[$RULE_N]="$rtool"; RULE_PAT[$RULE_N]="$rpat"; RULE_LABEL[$RULE_N]="$rlabel"
+    case "$TOOLSET" in *" $rtool "*) ;; *) TOOLSET="$TOOLSET$rtool ";; esac
+    RULE_N=$((RULE_N+1))
+  done <<EOF
+$(verb_rows)
+EOF
+  # First words of the multi-word patterns (gh pr, git remote ...): a verb
+  # under one of these that comes from a variable or a substitution is unreadable.
+  SUBVERBS=' '
+  local i first rest
+  i=0
+  while [ $i -lt $RULE_N ]; do
+    first="${RULE_PAT[$i]%% *}"; rest="${RULE_PAT[$i]#* }"
+    if [ "$first" != "${RULE_PAT[$i]}" ] && [ -n "$first" ]; then
+      case "$first" in -*|'~'*|'@'*|'*') ;; *) case "$rest" in -*|'~'*|'@'*) ;; *) SUBVERBS="$SUBVERBS${RULE_TOOL[$i]}:$first ";; esac;; esac
+    fi
+    i=$((i+1))
+  done
+}
+is_table_tool() { # is_table_tool <name>
+  case "$TOOLSET" in *" $1 "*) return 0;; esac
+  case "$1" in mkfs*) return 0;; esac
+  return 1
+}
+
+sq() { # sq <text>: SQ is the text single-quoted for the shell (no subshell)
+  local t="$1" o=''
+  while :; do
+    case "$t" in
+      *"$SQCH"*) o="$o${t%%"$SQCH"*}'\\''"; t="${t#*"$SQCH"}";;
+      *) o="$o$t"; break;;
+    esac
+  done
+  SQ="'$o'"
+}
+var_name_of() { # $NAME or ${NAME} exactly -> VN=NAME; anything else -> VN=''
+  local t="$1" n=''
+  case "$t" in '${'*'}') n="${t#\$\{}"; n="${n%\}}";; '$'*) n="${t#\$}";; esac
+  case "$n" in [A-Za-z_]*) case "$n" in *[!A-Za-z0-9_]*) n='';; esac;; *) n='';; esac
+  VN="$n"
+}
+assigned_value() { # assigned_value <name>: AV is the last value assigned in this command, rc 1 if none
+  local n="$1"
+  case "$ASSIGN" in *"${NL}${n}="*) AV="${ASSIGN##*"${NL}${n}="}"; AV="${AV%%"${NL}"*}"; return 0;; esac
+  return 1
+}
+record_assignment() { # NAME=value: remember it; a value that git or a pager runs is checked as a command
+  local nm="${1%%=*}" v="${1#*=}"
+  case "$nm" in
+    GIT_CONFIG_PARAMETERS|GIT_CONFIG_COUNT|GIT_CONFIG_KEY_*|GIT_CONFIG_VALUE_*|GIT_CONFIG|GIT_CONFIG_GLOBAL|GIT_CONFIG_SYSTEM|GIT_EXEC_PATH|BASH_ENV)
+      [ "$LENIENT" -gt 0 ] || refuse "setting $nm changes what git or bash runs, which cannot be read";;
+    GIT_PAGER|PAGER|GIT_EDITOR|EDITOR|VISUAL|GIT_SEQUENCE_EDITOR|GIT_SSH_COMMAND|GIT_SSH|GIT_ASKPASS|SSH_ASKPASS|GIT_EXTERNAL_DIFF|GIT_PROXY_COMMAND|LESSOPEN|LESSCLOSE|PROMPT_COMMAND)
+      [ -z "$v" ] || recurse "$v" $((${depth:-0}+1));;
+  esac
+  ASSIGN="$ASSIGN$nm=$v$NL"
+}
+quote_rest() { # quote_rest <from>: QREST is ARGV[from..] re-quoted as one shell string
+  local i="$1" out=''
+  while [ $i -lt "${#ARGV[@]}" ]; do sq "${ARGV[$i]}"; out="$out${out:+ }$SQ"; i=$((i+1)); done
+  QREST="$out"
+}
+argv_rest_plain() { # from index $1: the tokens joined with spaces, as eval does
+  local i="$1" out=''
+  while [ $i -lt "${#ARGV[@]}" ]; do out="$out${out:+ }${ARGV[$i]}"; i=$((i+1)); done
+  printf '%s' "$out"
+}
+resolve_vars_and_recurse() { # <depth>: re-check with every assigned $NAME replaced by its value; rc 1 when nothing resolved
+  local i=0 out='' t hit=0
+  while [ $i -lt "${#ARGV[@]}" ]; do
+    t="${ARGV[$i]}"
+    case "$t" in
+      '$'*) var_name_of "$t"
+            if [ -n "$VN" ] && assigned_value "$VN"; then out="$out${out:+ }$AV"; hit=1; i=$((i+1)); continue; fi;;
+    esac
+    sq "$t"; out="$out${out:+ }$SQ"; i=$((i+1))
+  done
+  [ $hit -eq 1 ] || return 1
+  recurse "$out" "$1"
+  return 0
+}
+check_verb_token() { # <index>: a verb from a substitution or an unresolved variable is unreadable
+  local t="${ARGV[$1]}"
+  case "$t" in
+    *"$SUBST"*) refuse "the verb after ${ARGV[0]} comes from a command substitution";;
+    '$'*) refuse "the verb after ${ARGV[0]} is a variable that cannot be read";;
+  esac
+  return 0
+}
+
+shift_argv() { # shift_argv [n]: drop the first n tokens of ARGV
+  local n="${1:-1}"
+  if [ "${#ARGV[@]}" -gt "$n" ]; then ARGV=("${ARGV[@]:$n}"); else ARGV=(); fi
+}
+skip_opts() { # skip_opts "<options that take a value>": drop leading flags of ARGV
+  local withval=" $1 "
+  while [ "${#ARGV[@]}" -gt 0 ]; do
+    case "${ARGV[0]}" in
+      --) shift_argv; return;;
+      -*) case "$withval" in *" ${ARGV[0]} "*) shift_argv 2;; *) shift_argv;; esac;;
+      *) return;;
+    esac
+  done
+}
+
+# extract_substitutions <string> <depth> [body]: check every $(...) and `...`
+# as its own command and replace it in the string with the SUBST marker. With
+# "body" the string is an unquoted heredoc body, where quotes are plain text.
+extract_substitutions() {
+  local s="$1" depth="$2" body="${3:-}" out='' i=0 j c q='' inner paren n from=0 rest run prev=' '
+  n=${#s}
+  # nothing to extract: the common case costs one pattern test
+  case "$s" in *'`'*|*'$('*) ;; *) EXTRACTED="$s"; return;; esac
+  while [ $i -lt $n ]; do
+    rest="${s:$i}"
+    if [ "$q" = "'" ]; then
+      run=${rest%%"$SQCH"*}; i=$((i+${#run}+1)); q=''; prev="'"; continue
+    fi
+    if [ -n "$body" ]; then run=${rest%%$PAT_XN*}
+    elif [ "$q" = '"' ]; then run=${rest%%$PAT_XD*}
+    else run=${rest%%$PAT_XU*}; fi
+    if [ -n "$run" ]; then i=$((i+${#run})); prev="${run#"${run%?}"}"; fi
+    [ $i -lt $n ] || break
+    c="${s:$i:1}"
+    case "$c" in
+      '\') i=$((i+2)); prev=x; continue;;
+      "'") [ "$q" = '"' ] || q="'"; i=$((i+1)); prev="$c"; continue;;
+      '"') if [ "$q" = '"' ]; then q=''; else q='"'; fi; i=$((i+1)); prev="$c"; continue;;
+      '#') # a comment runs to the end of the line; its quotes do not count
+        case "$prev" in ' '|"$TAB"|"$NL"|';'|'&'|'|'|'(')
+          rest="${s:$i}"; run=${rest%%"$NL"*}; i=$((i+${#run})); continue;; esac
+        i=$((i+1)); prev="$c"; continue;;
+      '`')
+        j=$((i+1))
+        while [ $j -lt $n ]; do
+          rest="${s:$j}"; run=${rest%%$PAT_BT*}; j=$((j+${#run}))
+          [ $j -lt $n ] || break
+          if [ "${s:$j:1}" = '\' ]; then j=$((j+2)); else break; fi
+        done
+        inner="${s:$((i+1)):$((j-i-1))}"
+        out="$out${s:$from:$((i-from))}$SUBST"; i=$((j+1)); from=$i; prev=x
+        check_string "$inner" $((depth+1)); continue;;
+      '$')
+        if [ "${s:$((i+1)):2}" = '((' ]; then
+          # arithmetic expansion $((...)): a number, never a command
+          j=$((i+3)); paren=2
+          while [ $j -lt $n ] && [ $paren -gt 0 ]; do
+            rest="${s:$j}"; run=${rest%%$PAT_AR*}; j=$((j+${#run}))
+            [ $j -lt $n ] || break
+            case "${s:$j:1}" in '(') paren=$((paren+1));; ')') paren=$((paren-1));; esac
+            j=$((j+1))
+          done
+          out="$out${s:$from:$((i-from))}0"; i=$j; from=$i; prev=x; continue
+        fi
+        if [ "${s:$((i+1)):1}" = '(' ]; then
+          j=$((i+2)); paren=1
+          while [ $j -lt $n ] && [ $paren -gt 0 ]; do
+            rest="${s:$j}"; run=${rest%%$PAT_CS*}; j=$((j+${#run}))
+            [ $j -lt $n ] || break
+            case "${s:$j:1}" in
+              '\') j=$((j+2));;
+              '(') paren=$((paren+1)); j=$((j+1));;
+              ')') paren=$((paren-1)); j=$((j+1));;
+              "'") rest="${s:$((j+1))}"; run=${rest%%"$SQCH"*}; j=$((j+${#run}+2));;
+              '"') j=$((j+1))
+                   while [ $j -lt $n ]; do
+                     rest="${s:$j}"; run=${rest%%$PAT_DQ*}; j=$((j+${#run}))
+                     [ $j -lt $n ] || break
+                     if [ "${s:$j:1}" = '\' ]; then j=$((j+2)); else j=$((j+1)); break; fi
+                   done;;
+            esac
+          done
+          if [ $paren -eq 0 ]; then inner="${s:$((i+2)):$((j-i-3))}"; else inner="${s:$((i+2))}"; j=$n; fi
+          out="$out${s:$from:$((i-from))}$SUBST"; i=$j; from=$i; prev=x
+          check_string "$inner" $((depth+1)); continue
+        fi
+        i=$((i+1)); prev="$c"; continue;;
+    esac
+    i=$((i+1))
+  done
+  EXTRACTED="$out${s:$from}"
+}
+
+# scan_segments <string> <depth>: split on ; & | newline ( ) and check each
+# segment's tokens (quotes and backslashes honoured, bash 3.2 tokenizer).
+# Redirection operators become their own tokens, prefixed with RD, even when
+# written without a space (echo hi>out.txt).
+st_end_token() { if [ $have -eq 1 ] || [ -n "$cur" ]; then TOK[${#TOK[@]}]="$cur"; fi; cur=''; have=0; }
+st_end_segment() { st_end_token; if [ "${#TOK[@]}" -gt 0 ]; then check_tokens "$depth"; fi; TOK=(); }
+scan_segments() {
+  local s="$1" depth="$2" i=0 c q='' cur='' have=0 n rest run op pre
+  n=${#s}
+  TOK=()
+  while [ $i -lt $n ]; do
+    if [ "$q" = "'" ]; then
+      rest="${s:$i}"; run=${rest%%"$SQCH"*}; cur="$cur$run"
+      if [ "${#run}" -eq "${#rest}" ]; then i=$n; else q=''; i=$((i+${#run}+1)); fi
+      continue
+    fi
+    if [ "$q" = '"' ]; then
+      rest="${s:$i}"; run=${rest%%$PAT_DQ*}; cur="$cur$run"; i=$((i+${#run}))
+      [ $i -lt $n ] || continue
+      if [ "${s:$i:1}" = '"' ]; then q=''; i=$((i+1))
+      else c="${s:$((i+1)):1}"; [ "$c" = "$NL" ] || cur="$cur$c"; i=$((i+2)); fi
+      continue
+    fi
+    c="${s:$i:1}"
+    case "$c" in
+      "'"|'"') q="$c"; have=1; i=$((i+1));;
+      '\') c="${s:$((i+1)):1}"; if [ "$c" != "$NL" ]; then cur="$cur$c"; have=1; fi; i=$((i+2));;
+      ' '|"$TAB") st_end_token; i=$((i+1));;
+      '#') if [ -z "$cur" ] && [ $have -eq 0 ]; then
+             rest="${s:$i}"; run=${rest%%"$NL"*}; i=$((i+${#run}))
+           else cur="$cur$c"; have=1; i=$((i+1)); fi;;
+      '&')
+        if [ "${s:$((i+1)):1}" = '>' ]; then
+          st_end_token
+          if [ "${s:$((i+2)):1}" = '>' ]; then op='&>>'; else op='&>'; fi
+          TOK[${#TOK[@]}]="$RD$op"; i=$((i+${#op}))
+        else st_end_segment; i=$((i+1)); fi;;
+      '<'|'>')
+        pre=''
+        case "$cur" in
+          '') st_end_token;;
+          *[!0-9]*) st_end_token;;
+          *) pre="$cur"; cur=''; have=0;;
+        esac
+        op="${s:$i:3}"
+        case "$op" in
+          '<<<'|'<<-') ;;
+          '<('*|'>('*) # process substitution: the parenthesis opens a segment
+            [ -z "$pre" ] || TOK[${#TOK[@]}]="$pre"
+            i=$((i+1)); continue;;
+          '<<'*|'<>'*|'<&'*|'>>'*|'>|'*|'>&'*) op="${op:0:2}";;
+          *) op="${op:0:1}";;
+        esac
+        TOK[${#TOK[@]}]="$RD$pre$op"; i=$((i+${#op}));;
+      "$NL"|';'|'|'|'('|')'|'`') st_end_segment; i=$((i+1));;
+      *) rest="${s:$i}"; run=${rest%%$PAT_U*}; [ -n "$run" ] || run="$c"
+         cur="$cur$run"; have=1; i=$((i+${#run}));;
+    esac
+  done
+  st_end_segment
+}
+
+climbs_out() { # a relative path whose .. components leave the directory it starts in
+  local p="$1" c d=0 IFS=/
+  for c in $p; do
+    case "$c" in ''|.) ;; ..) d=$((d-1)); [ $d -ge 0 ] || return 0;; *) d=$((d+1));; esac
+  done
+  return 1
+}
+is_danger_path() {
+  case "$1" in
+    /|/*|'~'|'~'*|.|..|./|'./*'|'../'*|'*'|'*/'|'.*'|'$HOME'|'${HOME}'|'$HOME/'*|'${HOME}/'*|'$PWD'|'$PWD/'*) return 0;;
+    *'$'*|*"$SUBST"*) return 0;;   # a variable or substitution may be anything, even empty
+  esac
+  case "$1" in *..*) climbs_out "$1" && return 0;; esac
+  return 1
+}
+is_remote_target() {
+  local t="$1" head
+  case "$t" in -*) return 1;; rsync://*|ssh://*) return 0;; esac
+  if [ "$WILDMODE" -eq 1 ] && is_wild "$t"; then return 0; fi
+  case "$t" in *:*) ;; *) return 1;; esac
+  head="${t%%:*}"
+  [ -n "$head" ] || return 1
+  case "$head" in */*|*[!A-Za-z0-9._@-]*) return 1;; esac
+  return 0
+}
+is_wild() { case "$1" in *'$'*|*"$SUBST"*) return 0;; esac; return 1; }
+wild_flag_at() { # ARGV[i] is a variable or substitution that could expand to a flag
+  local t="${ARGV[$1]}" p="${ARGV[$(($1-1))]}"
+  [ "$WILDMODE" -eq 1 ] || return 1
+  case "$t" in '$'*|"$SUBST"*) ;; *) return 1;; esac
+  case "$p" in -*=*) return 0;; -*) return 1;; esac   # after a bare flag it is that flag's value
+  return 0
+}
+
+# match_rule <pattern>: does the pattern match ARGV[1..]? With WILDMODE=1 a
+# variable or substitution argument matches whatever it could expand to.
+match_rule() {
+  local pat="$1" tok pos=1 n="${#ARGV[@]}" i t found after_flag letters cand
+  [ -n "$pat" ] || return 0
+  for tok in $pat; do
+    case "$tok" in
+      --*|-?)
+        found=0; i=1
+        while [ $i -lt "$n" ]; do
+          t="${ARGV[$i]}"; case "$t" in "$tok"|"$tok"=*) found=1; break;; esac
+          wild_flag_at $i && { found=1; break; }
+          i=$((i+1))
+        done
+        [ $found -eq 1 ] || return 1;;
+      '~'*)
+        letters="${tok#\~}"; found=0; i=1
+        while [ $i -lt "$n" ]; do
+          t="${ARGV[$i]}"
+          case "$t" in --*|-*[!A-Za-z]*) ;; -*[$letters]*) found=1; break;; esac
+          wild_flag_at $i && { found=1; break; }
+          i=$((i+1))
+        done
+        [ $found -eq 1 ] || return 1;;
+      '@danger')
+        found=0; i=1
+        while [ $i -lt "$n" ]; do t="${ARGV[$i]}"; case "$t" in -*) ;; *) is_danger_path "$t" && { found=1; break; };; esac; i=$((i+1)); done
+        [ $found -eq 1 ] || return 1;;
+      '@remote')
+        found=0; i=1
+        while [ $i -lt "$n" ]; do is_remote_target "${ARGV[$i]}" && { found=1; break; }; i=$((i+1)); done
+        [ $found -eq 1 ] || return 1;;
+      *)
+        found=0; after_flag=0; cand=0; i=$pos
+        while [ $i -lt "$n" ]; do
+          t="${ARGV[$i]}"
+          case "$t" in
+            -*) after_flag=1;;
+            *) # shellcheck disable=SC2254
+               case "$t" in $tok) found=1; pos=$((i+1)); break;; esac
+               if [ "$WILDMODE" -eq 1 ] && is_wild "$t"; then
+                 # a variable right after a flag may be that flag's value
+                 if [ $after_flag -eq 0 ]; then found=1; pos=$((i+1)); break; fi
+                 cand=$((i+1))
+               else
+                 [ $after_flag -eq 1 ] && [ $cand -eq 0 ] || return 1
+               fi
+               after_flag=0;;
+          esac
+          i=$((i+1))
+        done
+        if [ $found -eq 0 ] && [ $cand -gt 0 ]; then found=1; pos=$cand; fi
+        [ $found -eq 1 ] || return 1;;
+    esac
+  done
+  return 0
+}
+match_tool_rules() { # match_tool_rules <tool> [nonempty]: deny when a rule for the tool matches ARGV
+  local i=0
+  while [ $i -lt "$RULE_N" ]; do
+    # shellcheck disable=SC2254
+    case "$1" in ${RULE_TOOL[$i]})
+      if [ -z "${2:-}" ] || [ -n "${RULE_PAT[$i]}" ]; then match_rule "${RULE_PAT[$i]}" && deny "${RULE_LABEL[$i]}"; fi;;
+    esac
+    i=$((i+1))
+  done
+}
+wild_tool_rules() { # a variable or substitution argument could make a blocked verb: refuse
+  local i=0
+  WILDMODE=1
+  while [ $i -lt "$RULE_N" ]; do
+    # shellcheck disable=SC2254
+    case "$1" in ${RULE_TOOL[$i]})
+      if match_rule "${RULE_PAT[$i]}"; then WILDMODE=0; refuse "an argument of $1 comes from a variable or substitution that cannot be read and could make '${RULE_LABEL[$i]}'"; fi;;
+    esac
+    i=$((i+1))
+  done
+  WILDMODE=0
+}
+
+is_help_only() { # "<tool> <words> --help": help for a blocked verb is fine
+  local n="${#ARGV[@]}" i
+  [ "$n" -ge 2 ] && [ "$n" -le 4 ] || return 1
+  case "${ARGV[$((n-1))]}" in --help|-h) ;; *) return 1;; esac
+  i=1; while [ $i -lt $((n-1)) ]; do case "${ARGV[$i]}" in -*|"$SUBST"|'$'*) return 1;; esac; i=$((i+1)); done
+  return 0
+}
+
+# strip_wrappers: env, sudo, command, exec, nohup, setsid, flock, strace and
+# the other programs that run the rest of their arguments; VAR=val; shell
+# keywords. Matched on the basename, so /usr/bin/env is env. A wrapper that
+# takes a command string (env -S, flock -c) has the string checked here.
+strip_wrappers() {
+  local a0 name str shell
+  while [ "${#ARGV[@]}" -gt 0 ]; do
+    a0="${ARGV[0]}"
+    case "$a0" in
+      [A-Za-z_]*=*) name="${a0%%=*}"; case "$name" in *[!A-Za-z0-9_]*) return;; esac; record_assignment "$a0"; shift_argv; continue;;
+    esac
+    name="${a0##*/}"
+    case "$name" in
+      export|declare|typeset|local|readonly)
+        shift_argv
+        while [ "${#ARGV[@]}" -gt 0 ]; do case "${ARGV[0]}" in [A-Za-z_]*=*) record_assignment "${ARGV[0]}";; esac; shift_argv; done
+        return;;
+      '{'|'}'|'!'|if|then|else|elif|fi|do|done|while|until|'&&'|'||') shift_argv;;
+      env)
+        shift_argv
+        while [ "${#ARGV[@]}" -gt 0 ]; do
+          case "${ARGV[0]}" in
+            -S|--split-string|-S*|--split-string=*)
+              # env -S splits a string into a command: check the string with the rest
+              case "${ARGV[0]}" in -S|--split-string) str="${ARGV[1]:-}"; shift_argv 2;; -S*) str="${ARGV[0]#-S}"; shift_argv;; *) str="${ARGV[0]#*=}"; shift_argv;; esac
+              quote_rest 0; recurse "$str${QREST:+ }$QREST" $((depth+1)); ARGV=(); return;;
+            -u|-C|-P|--unset|--chdir) shift_argv 2;;
+            --) shift_argv; break;;
+            -*) shift_argv;;
+            *) break;;
+          esac
+        done;;
+      sudo|doas|pkexec|run0)
+        shift_argv; shell=0
+        while [ "${#ARGV[@]}" -gt 0 ]; do
+          case "${ARGV[0]}" in
+            --) shift_argv; break;;
+            -s|-i|--shell|--login) shell=1; shift_argv;;
+            -u|-g|-h|-p|-C|-D|-r|-t|-T|-U|--user|--group|--host|--prompt|--close-from|--chdir|--role|--type|--other-user|--unit|--property|--setenv|--nice|--machine|--slice) shift_argv 2;;
+            --*) shift_argv;;
+            -*[si]*) shell=1; shift_argv;;
+            -*) shift_argv;;
+            *) break;;
+          esac
+        done
+        if [ "${#ARGV[@]}" -eq 0 ] && [ $shell -eq 1 ] && [ "$LENIENT" -eq 0 ]; then refuse "$name -s/-i without a command starts a shell that reads stdin, which cannot be read"; fi;;
+      command)
+        shift_argv
+        # command -v/-V looks a name up and runs nothing.
+        case "${ARGV[0]:-}" in -v|-V|-vV|-Vv|-pv|-pV) ARGV=(); return;; esac
+        skip_opts "";;
+      exec) shift_argv; skip_opts "-a";;
+      nohup|builtin|caffeinate|chronic|unbuffer|setsid|catchsegv|dbus-run-session|torsocks|busybox|toybox) shift_argv; skip_opts "--config-file";;
+      time) shift_argv; skip_opts "-o -f --output --format";;
+      nice) shift_argv; skip_opts "-n --adjustment";;
+      ionice) shift_argv; skip_opts "-c -n -p";;
+      stdbuf) shift_argv; skip_opts "-i -o -e";;
+      strace|ltrace) shift_argv; skip_opts "-e -o -p -s -u -E -a -b -I -O -S -P -X -U -n -A -D -F -L -l --output --attach --user --env --string-limit --trace --signal --status";;
+      valgrind|proxychains|proxychains4|cpulimit|sshpass|xvfb-run|numactl|unshare|systemd-run)
+        shift_argv; skip_opts "-f -l -p -e -d -P -n -s -w -N -m -C -S -G -R -E -M -H -u --limit --pid --exe --server-num --server-args --auth-file --error-file --wait --setuid --setgid --wd --root --unit --property --setenv --uid --gid --machine --host --working-directory --description --slice";;
+      chroot) shift_argv; skip_opts "--userspec --groups"; shift_argv
+              [ "${#ARGV[@]}" -gt 0 ] || [ "$LENIENT" -gt 0 ] || refuse "chroot without a command starts a shell that cannot be read";;
+      taskset|chrt)
+        shift_argv
+        while [ "${#ARGV[@]}" -gt 0 ]; do case "${ARGV[0]}" in -p|--pid) ARGV=(); return;; -*) shift_argv;; *) break;; esac; done
+        shift_argv;;   # the mask or the priority
+      faketime) shift_argv; skip_opts "-p -m -f"; shift_argv;;
+      flock)
+        shift_argv
+        while [ "${#ARGV[@]}" -gt 0 ]; do
+          case "${ARGV[0]}" in
+            -c|--command) recurse "${ARGV[1]:-}" $((depth+1)); ARGV=(); return;;
+            --command=*) recurse "${ARGV[0]#*=}" $((depth+1)); ARGV=(); return;;
+            -w|-E|--timeout|--wait|--conflict-exit-code) shift_argv 2;;
+            -*) shift_argv;;
+            *) break;;
+          esac
+        done
+        shift_argv   # the lock file or descriptor
+        case "${ARGV[0]:-}" in -c|--command) recurse "${ARGV[1]:-}" $((depth+1)); ARGV=(); return;; esac;;
+      direnv) [ "${ARGV[1]:-}" = exec ] || return; shift_argv 3;;
+      *) return;;
+    esac
+  done
+}
+
+# git options: -C dir, -c key=value, --git-dir ... A -c or --config-env that
+# defines an alias or points git at code is refused; one whose value is a
+# command (core.pager, core.sshCommand ...) has the value checked.
+git_config_pair() { # git_config_pair <key=value>
+  local k="${1%%=*}" v="${1#*=}"
+  [ "$k" != "$1" ] || v=''
+  k="$(printf '%s' "$k" | tr '[:upper:]' '[:lower:]')"
+  case "$k" in
+    alias.*) refuse "git config $k defines an alias the guard cannot read";;
+    core.hookspath|include.path|includeif.*|init.templatedir|core.fsmonitor|protocol.*|remote.*.vcs)
+      refuse "git config $k points git at code the guard cannot read";;
+    core.pager|core.editor|core.sshcommand|core.askpass|core.gitproxy|sequence.editor|diff.external|pager.*|*.textconv|*.command|*.cmd|*.driver|*.clean|*.smudge|*.process|gpg.program|gpg.*.program|credential.helper|credential.*.helper|uploadpack.packobjectshook|remote.*.receivepack|remote.*.uploadpack)
+      [ -z "$v" ] || recurse "${v#!}" $((${depth:-0}+1));;
+  esac
+}
+strip_git_options() { # git -C dir -c k=v --git-dir x --work-tree x --no-pager -p -P <sub>
+  local rest=() i=0 t
+  GIT_CDIR=''
+  [ "${#ARGV[@]}" -gt 1 ] || return
+  rest=("${ARGV[@]:1}"); ARGV=(git)
+  while [ $i -lt "${#rest[@]}" ]; do
+    t="${rest[$i]}"
+    case "$t" in
+      -c) git_config_pair "${rest[$((i+1))]:-}"; i=$((i+2)); continue;;
+      --config-env) git_config_pair "${rest[$((i+1))]:-}"; i=$((i+2)); continue;;
+      --config-env=*) git_config_pair "${t#--config-env=}"; i=$((i+1)); continue;;
+      -C) GIT_CDIR="${rest[$((i+1))]:-}"; i=$((i+2)); continue;;
+      --exec-path=*) refuse "git --exec-path=<dir> runs git commands from that directory, which cannot be read";;
+      --git-dir|--work-tree|--namespace|--super-prefix|--list-cmds) i=$((i+2)); continue;;
+      -*) i=$((i+1)); continue;;
+    esac
+    break
+  done
+  while [ $i -lt "${#rest[@]}" ]; do ARGV[${#ARGV[@]}]="${rest[$i]}"; i=$((i+1)); done
+}
+git_checks() { # after strip_git_options: config writes of aliases, and aliases from the real config; rc 1 when re-checked
+  local sub="${ARGV[1]:-}" i a pos=() av
+  case "$sub" in
+    config)
+      i=2
+      while [ $i -lt "${#ARGV[@]}" ]; do
+        a="${ARGV[$i]}"
+        case "$a" in
+          -f|--file|--blob|--type|--default|--comment|--value|--url) i=$((i+2)); continue;;
+          -*) i=$((i+1)); continue;;
+        esac
+        pos[${#pos[@]}]="$a"; i=$((i+1))
+      done
+      [ "${#pos[@]}" -gt 0 ] || return 0
+      case "${pos[0]}" in
+        set) [ "${#pos[@]}" -lt 3 ] || git_config_pair "${pos[1]}=${pos[2]}";;
+        get|list|unset|edit|rename-section|remove-section) ;;
+        *) [ "${#pos[@]}" -lt 2 ] || git_config_pair "${pos[0]}=${pos[1]}";;
+      esac
+      return 0;;
+    ''|-*|*'$'*|*"$SUBST"*) return 0;;
+  esac
+  case "$GIT_BUILTINS" in *" $sub "*) return 0;; esac
+  # not a git command: it may be an alias in the real configuration
+  case "$GIT_CDIR" in *'$'*|*"$SUBST"*) GIT_CDIR='';; esac
+  if [ -n "$GIT_CDIR" ]; then av="$(git -C "$GIT_CDIR" config --get "alias.$sub" 2>/dev/null)"; else av="$(git config --get "alias.$sub" 2>/dev/null)"; fi
+  [ -n "$av" ] || return 0
+  quote_rest 2
+  case "$av" in
+    '!'*) recurse "${av#!}${QREST:+ }$QREST" $((depth+1));;
+    *) recurse "git $av${QREST:+ }$QREST" $((depth+1));;
+  esac
+  return 1
+}
+
+# drop_redirections: remove RD operators and their targets from ARGV. Sets
+# STDIN_KIND (heredoc, string, file) for a shell reading stdin. In read-only
+# mode an output redirection may only go to /dev/null or another descriptor.
+drop_redirections() {
+  local out=() i=0 t op pending='' target
+  STDIN_KIND=''; STDIN_TEXT=''
+  while [ $i -lt "${#ARGV[@]}" ]; do
+    t="${ARGV[$i]}"; i=$((i+1))
+    if [ -n "$pending" ]; then
+      target="$t"
+      case "$pending" in
+        '<<<') STDIN_TEXT="$t";;
+        '>&'|'<&') [ "$READONLY" -eq 0 ] || case "$target" in [0-9]|[0-9][0-9]|-) ;; *) [ "$pending" = '<&' ] || refuse "output redirection to $target writes a file";; esac;;
+        '>'|'>>'|'>|'|'&>'|'&>>'|'<>') [ "$READONLY" -eq 0 ] || case "$target" in /dev/null) ;; *) refuse "output redirection to $target writes a file";; esac;;
+      esac
+      pending=''; continue
+    fi
+    case "$t" in
+      "$RD"*)
+        op="${t#"$RD"}"; op="${op#"${op%%[!0-9]*}"}"
+        pending="$op"
+        case "$op" in
+          '<<'|'<<-') STDIN_KIND='heredoc';;
+          '<<<') STDIN_KIND='string';;
+          '<'|'<>'|'<&') case "${t#"$RD"}" in [1-9]*) ;; *) STDIN_KIND='file';; esac;;
+        esac
+        continue;;
+    esac
+    out[${#out[@]}]="$t"
+  done
+  # an output operator at the very end has no target; the shell rejects it
+  ARGV=()
+  [ "${#out[@]}" -eq 0 ] || ARGV=("${out[@]}")
+}
+
+# readonly_check: with `brg-guard readonly`, every program must be a read-only
+# tool. Wrappers are already stripped; nested shells are still recursed into
+# by check_tokens, so `sh -c 'rm x'` is judged on `rm`.
+readonly_check() {
+  local prog="${ARGV[0]##*/}" i a npos
+  case "$prog" in
+    git)
+      for a in "${ARGV[@]:1}"; do case "$a" in --output|--output=*|--open-files-in-pager*|--ext-diff) refuse "git $a writes a file or runs a program";; esac; done
+      [ "${ARGV[1]:-}" != grep ] || for a in "${ARGV[@]:2}"; do case "$a" in -O*) refuse "git grep $a runs a program";; esac; done
+      case "${ARGV[1]:-}" in
+        diff|log|show|status|blame|ls-files|ls-tree|rev-parse|rev-list|cat-file|describe|shortlog|grep|remote|config|check-ignore|name-rev|merge-base|for-each-ref|tag|stash|branch|worktree)
+          case "${ARGV[1]}" in
+            remote) for a in "${ARGV[@]:2}"; do case "$a" in -v|--verbose|show|get-url|"") ;; *) refuse "git remote $a is not read-only";; esac; done;;
+            config) for a in "${ARGV[@]:2}"; do case "$a" in --get*|--list|-l|--show-origin|--global|--local|--system|-*) ;; *=*) refuse "git config write is not read-only";; esac; done
+                    [ "${#ARGV[@]}" -le 3 ] || case "${ARGV[2]}" in --get*|--list|-l|--show-origin) ;; *) refuse "git config with a value is not read-only";; esac;;
+            tag) for a in "${ARGV[@]:2}"; do case "$a" in -l|--list|-n*|--sort=*|--contains|--points-at|--merged|--no-merged|-*) ;; *) refuse "git tag with a name is not read-only";; esac; done;;
+            stash) case "${ARGV[2]:-push}" in list|show) ;; *) refuse "git stash ${ARGV[2]:-push} is not read-only";; esac;;
+            branch) for a in "${ARGV[@]:2}"; do case "$a" in -a|-r|-l|--list|--show-current|--contains|--merged|--no-merged|-v|-vv|--format=*|--sort=*) ;; *) refuse "git branch $a is not read-only";; esac; done;;
+            worktree) case "${ARGV[2]:-list}" in list) ;; *) refuse "git worktree ${ARGV[2]} is not read-only";; esac;;
+          esac;;
+        *) refuse "git ${ARGV[1]:-} is not a read-only subcommand";;
+      esac;;
+    ls|cat|head|tail|wc|grep|egrep|fgrep|rg|ag|sort|uniq|cut|tr|awk|pwd|echo|printf|true|false|test|'['|jq|yq|diff|cmp|file|stat|tree|which|type|basename|dirname|realpath|readlink|date|less|more|column|comm|paste|join|fold|nl|od|xxd|strings|md5sum|sha256sum|shasum|du|df|uname|whoami|id|hostname|printenv|seq|expr|sleep|tee|cd|sh|bash|zsh|dash|xargs|timeout|env|eval|command|python3|python|node|go|cargo|make|npm|pnpm|uv|gradle|gradlew|xcodebuild|swift|mvn)
+      case "$prog" in
+        tee) refuse "tee writes files";;
+        sort) for a in "${ARGV[@]:1}"; do case "$a" in -o*|--output*) refuse "sort $a writes a file";; esac; done;;
+        uniq) npos=0; for a in "${ARGV[@]:1}"; do case "$a" in -*) ;; *) npos=$((npos+1));; esac; done
+              [ $npos -lt 2 ] || refuse "uniq with an output file writes it";;
+        tree) for a in "${ARGV[@]:1}"; do case "$a" in -o|-o*) refuse "tree -o writes a file";; esac; done;;
+        yq) for a in "${ARGV[@]:1}"; do case "$a" in -i|--inplace|-i*) refuse "yq -i writes files";; esac; done;;
+        rg) for a in "${ARGV[@]:1}"; do case "$a" in --pre|--pre=*) refuse "rg --pre runs a program on every file";; esac; done;;
+        date) i=1
+              while [ $i -lt "${#ARGV[@]}" ]; do
+                a="${ARGV[$i]}"
+                case "$a" in
+                  -s|-s*|--set|--set=*) refuse "date $a sets the clock";;
+                  -d|--date|-r|--reference|-f|--file) i=$((i+1));;
+                  -*|+*) ;;
+                  *) refuse "date with an argument sets the clock";;
+                esac
+                i=$((i+1))
+              done;;
+        awk) readonly_awk;;
+        go) case "${ARGV[1]:-}" in
+              list|vet|version|env|doc|mod|test)
+                for a in "${ARGV[@]:2}"; do case "$a" in -exec|-exec=*|-toolexec|-toolexec=*|-vettool*|-o|-o=*|-c|-w|-u|*profile*|-trace|-trace=*|-outputdir*) refuse "go ${ARGV[1]} $a runs a program or writes files";; esac; done
+                [ "${ARGV[1]}" != mod ] || [ "${ARGV[2]:-}" = graph ] || [ "${ARGV[2]:-}" = why ] || [ "${ARGV[2]:-}" = verify ] || refuse "go mod ${ARGV[2]:-} is not read-only";;
+              *) refuse "go ${ARGV[1]:-} is not read-only";;
+            esac;;
+        cargo) case "${ARGV[1]:-}" in metadata|tree|check|test|--version) ;; *) refuse "cargo ${ARGV[1]:-} is not read-only";; esac;;
+        make) for a in "${ARGV[@]:1}"; do case "$a" in -n|--dry-run|--just-print|--recon) return 0;; esac; done
+              for a in "${ARGV[@]:1}"; do case "$a" in -p|--print-data-base|help|-C|-f|-*|test|check|lint|typecheck|format-check|vet|doctor) ;; *) refuse "make $a may write";; esac; done;;
+        npm|pnpm) case "${ARGV[1]:-}" in
+                    ls|list|view|test|t|why|outdated|audit|--version|-v) ;;
+                    run|run-script) case "${ARGV[2]:-}" in test|test:*|lint|lint:*|typecheck|type-check|check|check:*|format:check|fmt:check) ;; *) refuse "$prog run ${ARGV[2]:-} may write";; esac;;
+                    *) refuse "$prog ${ARGV[1]:-} may write";;
+                  esac;;
+        uv) case "${ARGV[1]:-}" in run|tree|pip|--version) [ "${ARGV[1]}" != pip ] || [ "${ARGV[2]:-}" = list ] || [ "${ARGV[2]:-}" = show ] || refuse "uv pip ${ARGV[2]:-} may write";; *) refuse "uv ${ARGV[1]:-} may write";; esac;;
+        gradle|gradlew) for a in "${ARGV[@]:1}"; do case "$a" in test|check|lint|tasks|dependencies|-*|'') ;; *) refuse "gradle $a may write";; esac; done;;
+        xcodebuild) for a in "${ARGV[@]:1}"; do case "$a" in test|-list|-showsdks|-version|-*) ;; *) refuse "xcodebuild $a may write";; esac; done;;
+        swift) case "${ARGV[1]:-}" in test|package) [ "${ARGV[1]}" != package ] || [ "${ARGV[2]:-}" = describe ] || [ "${ARGV[2]:-}" = show-dependencies ] || refuse "swift package ${ARGV[2]:-} may write";; *) refuse "swift ${ARGV[1]:-} may write";; esac;;
+        mvn) for a in "${ARGV[@]:1}"; do case "$a" in test|verify|validate|dependency:tree|-*|'') ;; *) refuse "mvn $a may write";; esac; done;;
+        python3|python|node)
+          # one-liners are not read-only: their code cannot be judged by a string check
+          i=1
+          while [ $i -lt "${#ARGV[@]}" ]; do
+            case "${ARGV[$i]}" in
+              -m) case "${ARGV[$((i+1))]:-}" in pytest|json.tool|unittest) ;; *) refuse "$prog -m ${ARGV[$((i+1))]:-} may write";; esac; i=$((i+1));;
+              --version|-V) ;;
+              -c|-e|-p|--eval|--print) refuse "$prog ${ARGV[$i]} runs code the read-only agents may not run";;
+              -*) ;;
+              *) refuse "$prog running a script may write";;
+            esac
+            i=$((i+1))
+          done;;
+      esac;;
+    pytest|vitest|jest|mocha|tsc|mypy|golangci-lint|shellcheck|detekt|swiftlint|tflint|tfsec|checkov|hadolint|yamllint|markdownlint)
+      for a in "${ARGV[@]:1}"; do case "$a" in --fix|--write|-w|--in-place|--update-snapshot|-u) refuse "$prog $a writes files";; esac; done;;
+    ruff|prettier|black|eslint|gofmt|shfmt|swiftformat|ktlint|terraform)
+      case "$prog" in
+        ruff) [ "${ARGV[1]:-}" = check ] || [ "${ARGV[1]:-}" = --version ] || refuse "ruff ${ARGV[1]:-} may write"
+              for a in "${ARGV[@]:2}"; do case "$a" in --fix|--unsafe-fixes) refuse "ruff check $a writes files";; esac; done;;
+        prettier|black|eslint) case " ${ARGV[*]:1} " in *" --check "*|*" --list-different "*|*" -l "*|*" --diff "*) ;; *) [ "$prog" = eslint ] || refuse "$prog without --check writes files";; esac
+              for a in "${ARGV[@]:1}"; do case "$a" in --write|-w|--fix|--fix-dry-run) [ "$a" = --fix-dry-run ] || refuse "$prog $a writes files";; esac; done;;
+        gofmt|shfmt|swiftformat|ktlint) for a in "${ARGV[@]:1}"; do case "$a" in -w|-F|--format|-i) refuse "$prog $a writes files";; esac; done;;
+        terraform) case "${ARGV[1]:-}" in validate|fmt|show|output|providers|version|graph) [ "${ARGV[1]}" != fmt ] || case " ${ARGV[*]:2} " in *" -check "*|*" -diff "*) ;; *) refuse "terraform fmt without -check writes files";; esac;; *) refuse "terraform ${ARGV[1]:-} may change state";; esac;;
+      esac;;
+    find)
+      for a in "${ARGV[@]:1}"; do case "$a" in -exec|-execdir|-delete|-ok|-okdir|-fprint*|-fls) refuse "find $a may write";; esac; done;;
+    sed)
+      for a in "${ARGV[@]:1}"; do case "$a" in -i|-i*|--in-place*) refuse "sed -i writes files";; esac; done;;
+    *) refuse "'$prog' is not a read-only command (the read-only agents may only inspect)";;
+  esac
+  return 0
+}
+awk_program() { # AWKP: the program text of an awk command in ARGV, AWKF=1 when it comes from a file
+  local i=1 a
+  AWKP=''; AWKF=0
+  while [ $i -lt "${#ARGV[@]}" ]; do
+    a="${ARGV[$i]}"
+    case "$a" in
+      -f|--file|-E|--exec|-i|--include|-l|--load) AWKF=1; i=$((i+2)); continue;;
+      -f*|--file=*|-E*|--exec=*|-i*|--include=*) AWKF=1;;
+      -e|--source) AWKP="$AWKP${NL}${ARGV[$((i+1))]:-}"; i=$((i+2)); continue;;
+      --source=*) AWKP="$AWKP${NL}${a#*=}";;
+      -F|-v|--field-separator|--assign) i=$((i+2)); continue;;
+      --) i=$((i+1)); [ -n "$AWKP" ] || [ $AWKF -eq 1 ] || AWKP="${ARGV[$i]:-}"; return;;
+      -*) ;;
+      *) [ -n "$AWKP" ] || [ $AWKF -eq 1 ] || AWKP="$a"; return;;
+    esac
+    i=$((i+1))
+  done
+}
+awk_statements() { # AWKS: the awk program split into statements, one per line
+  AWKS="$1"; AWKS="${AWKS//;/$NL}"; AWKS="${AWKS//\{/$NL}"; AWKS="${AWKS//\}/$NL}"
+}
+readonly_awk() {
+  local st
+  awk_program
+  [ $AWKF -eq 0 ] || refuse "awk with a program file or an include cannot be read in read-only mode"
+  case "$AWKP" in *system*|*'|'*getline*|*'|&'*) refuse "awk runs a command";; esac
+  awk_statements "$AWKP"
+  while IFS= read -r st; do
+    case "$st" in *print*'>'*|*print*'|'*) refuse "awk print with a redirection writes a file or runs a command";; esac
+  done <<EOF
+$AWKS
+EOF
+}
+awk_pipes() { # command mode: an awk pipe to or from a command built at run time cannot be read
+  local st after before
+  awk_statements "$1"
+  while IFS= read -r st; do
+    case "$st" in
+      *'|&'*) refuse "awk |& runs a coprocess that cannot be read";;
+      *print*'|'*)
+        after="${st#*print}"; after="${after#*|}"
+        case "$after" in '|'*) continue;; esac
+        after="${after#"${after%%[! ]*}"}"
+        case "$after" in '"'*) CODE_EXEC=1;; *) refuse "awk print pipes to a command built at run time";; esac;;
+      *'|'*getline*)
+        before="${st%|*}"; before="${before%"${before##*[! ]}"}"
+        case "$before" in *'|') ;; *'"') CODE_EXEC=1;; *) refuse "awk getline reads from a command built at run time";; esac;;
+    esac
+  done <<EOF
+$AWKS
+EOF
+}
+
+# code_exec_check <code>: CODE_EXEC=1 when an interpreter one-liner runs a
+# command (system, exec, spawn, popen, subprocess, backticks); refuse when
+# the command is not a literal the guard can read.
+code_exec_check() {
+  local s="$1" lang="${2:-}" key rest pre a keys
+  CODE_EXEC=0
+  # backticks run a command in shell, Ruby, Perl and PHP; in Python they are
+  # text and in JavaScript a template string
+  case "$lang" in python|js) ;; *) case "$s" in *'`'*) CODE_EXEC=1;; esac;; esac
+  keys='system exec spawn popen Popen shell_exec passthru proc_open pcntl_exec subprocess. check_output check_call getoutput'
+  case "$s" in *subprocess*) keys="$keys run call";; esac
+  for key in $keys; do
+    rest="$s"
+    while :; do
+      case "$rest" in *"$key"*) ;; *) break;; esac
+      pre="${rest%%"$key"*}"; rest="${rest#*"$key"}"
+      case "$pre" in *[A-Za-z0-9_]) continue;; esac   # part of a longer word (ecosystem)
+      a="${rest#"${rest%%[!A-Za-z0-9_]*}"}"         # the rest of the name (execSync, spawnSync)
+      case "$key" in
+        *.) ;;                                          # subprocess.<method>: the method is the call
+        *) case "${rest%%[!A-Za-z0-9_]*}" in            # exec_module, system_prompt are other names
+             ''|Sync|File|FileSync|v|l|ve|le|vp|lp|vpe|lpe|_command) ;;
+             *) continue;;
+           esac;;
+      esac
+      case "$a" in ' '*|'('*|"$TAB"*) ;; *) continue;; esac  # not a call
+      CODE_EXEC=1
+      a="${a#"${a%%[! (${TAB}]*}"}"
+      case "$a" in \"*|"$SQCH"*|'`'*|'['*|'') ;; *) refuse "an interpreter one-liner runs a command built at run time ($key); it cannot be read";; esac
+    done
+  done
+}
+
+check_tokens() {
+  local depth="$1" t0 t i sub found first sk st a script info
+  local saved=() rest=() pcmd=() fx
+  ARGV=("${TOK[@]}")
+  drop_redirections; sk="$STDIN_KIND"; st="$STDIN_TEXT"
+  strip_wrappers
+  [ "${#ARGV[@]}" -gt 0 ] || return 0
+  t0="${ARGV[0]}"
+  if [ "$LENIENT" -eq 0 ]; then
+    # The program must be readable: not a substitution, and a bare variable
+    # only when this command assigned it ($VAR/path/prog is judged by its name).
+    case "$t0" in *"$SUBST"*) refuse "the program name comes from a command substitution";; esac
+    case "$t0" in
+      */*) case "${t0##*/}" in '$'*) refuse "the program name is a variable that cannot be read";; esac;;
+      '$'*)
+        var_name_of "$t0"
+        if [ -n "$VN" ] && resolve_vars_and_recurse $((depth+1)); then return 0; fi
+        refuse "the program name is a variable that cannot be read";;
+    esac
+  fi
+  t0="${t0##*/}"; ARGV[0]="$t0"
+  if [ "$t0" = git ]; then strip_git_options; git_checks || return 0; fi
+  if [ "$READONLY" -eq 1 ]; then readonly_check; fi
+  found=0; is_table_tool "$t0" && found=1
+  if [ $found -eq 1 ] && [ "$LENIENT" -eq 0 ] && [ "${#ARGV[@]}" -gt 1 ]; then
+    # A variable this command assigned is replaced by its value and re-checked.
+    resolve_vars_and_recurse $((depth+1)) && return 0
+    # A verb under a guarded tool must be readable too (git $X; gh pr $Y).
+    check_verb_token 1
+    if [ "${#ARGV[@]}" -gt 2 ]; then
+      case "$SUBVERBS" in *" $t0:${ARGV[1]} "*) check_verb_token 2;; esac
+    fi
+  fi
+  if [ $found -eq 1 ] && ! is_help_only; then
+    match_tool_rules "$t0"
+    # Any other variable or substitution argument: refuse when it could make a blocked verb.
+    if [ "$LENIENT" -eq 0 ]; then
+      i=1; while [ $i -lt "${#ARGV[@]}" ]; do is_wild "${ARGV[$i]}" && { wild_tool_rules "$t0"; break; }; i=$((i+1)); done
+    fi
+  fi
+  # A blocked verb among the arguments of a program that runs its arguments
+  # (setsid-like wrappers the list above does not name): refuse the same way.
+  # Not in the text of Python or JavaScript code that runs no command, where
+  # "the step runs helm upgrade" is prose, not a wrapper.
+  [ "$CODE_TEXT" -eq 0 ] && case "$TEXT_PROGS" in *" $t0 "*) ;; *)
+    i=1
+    while [ $i -lt "${#ARGV[@]}" ]; do
+      t="${ARGV[$i]##*/}"
+      if is_table_tool "$t"; then
+        saved=("${ARGV[@]}"); ARGV=("$t")
+        [ $((i+1)) -ge "${#saved[@]}" ] || ARGV=("$t" "${saved[@]:$((i+1))}")
+        is_help_only || match_tool_rules "$t" nonempty
+        ARGV=("${saved[@]}")
+      fi
+      i=$((i+1))
+    done;;
+  esac
+  # Wrappers that run another command: check what they run.
+  case "$t0" in
+    eval) sub="$(argv_rest_plain 1)"; recurse "$sub" $((depth+1));;
+    trap) case "${ARGV[1]:-}" in -*|'') ;; *) recurse "${ARGV[1]}" $((depth+1));; esac;;
+    alias) i=1; while [ $i -lt "${#ARGV[@]}" ]; do case "${ARGV[$i]}" in *=*) recurse "${ARGV[$i]#*=}" $((depth+1));; esac; i=$((i+1)); done;;
+    sh|bash|zsh|dash|ksh|mksh|fish|su|runuser|sg)
+      i=1; found=0; script=''; info=0
+      while [ $i -lt "${#ARGV[@]}" ]; do
+        a="${ARGV[$i]}"
+        case "$a" in
+          --version|--help) info=1;;
+          --command|--session-command) found=1; break;;
+          --command=*) found=2; break;;
+          -o|-O|+o|+O|--rcfile|--init-file) i=$((i+1));;
+          --*) ;;
+          -*c*) found=1; break;;
+          -*|+*) case "$t0:$a" in su:-s|su:-g|su:-G|runuser:-s|runuser:-g|runuser:-G|runuser:-u|runuser:-w) i=$((i+1));; esac;;
+          *) [ -n "$script" ] || script="$a"; case "$t0" in su|runuser|sg) ;; *) break;; esac;;
+        esac
+        i=$((i+1))
+      done
+      if [ $found -eq 1 ]; then
+        # "sh -c <string>" runs the string: check it.
+        [ $((i+1)) -lt "${#ARGV[@]}" ] || refuse "$t0 -c without a command string"
+        recurse "${ARGV[$((i+1))]}" $((depth+1))
+      elif [ $found -eq 2 ]; then
+        recurse "${ARGV[$i]#*=}" $((depth+1))
+      elif [ "$t0" = sg ] && [ "${#ARGV[@]}" -gt 2 ]; then
+        recurse "$(argv_rest_plain 2)" $((depth+1))
+      elif [ "$t0" = su ] || [ "$t0" = runuser ] || [ "$t0" = sg ]; then
+        [ "$LENIENT" -gt 0 ] || refuse "$t0 without -c starts a shell that cannot be read"
+      elif [ -n "$script" ]; then
+        # "bash file args" runs the same unread file as "./file args", so it
+        # gets the same check as that command. Refusing only the bash form
+        # would stop nothing and would break every kit helper called as
+        # bash "${CLAUDE_PLUGIN_ROOT}/bin/...". A shell reading a pipe or
+        # stdin (below) is different: those commands are built at run time.
+        recurse "$(argv_rest_plain "$i")" $((depth+1))
+      elif [ $info -eq 1 ] || [ "$LENIENT" -gt 0 ]; then :
+      elif [ "$sk" = heredoc ]; then :   # the heredoc body is checked as commands
+      elif [ "$sk" = string ]; then recurse "$st" $((depth+1))
+      else refuse "$t0 reading commands from a pipe or a file cannot be read"
+      fi;;
+    script)
+      i=1; found=0
+      while [ $i -lt "${#ARGV[@]}" ]; do
+        a="${ARGV[$i]}"
+        case "$a" in
+          --command) found=1; recurse "${ARGV[$((i+1))]:-}" $((depth+1)); break;;
+          --command=*) found=1; recurse "${a#*=}" $((depth+1)); break;;
+          --*) ;;
+          -*c*) found=1; t="${a#*c}"; if [ -n "$t" ]; then recurse "$t" $((depth+1)); else recurse "${ARGV[$((i+1))]:-}" $((depth+1)); fi; break;;
+        esac
+        i=$((i+1))
+      done
+      [ $found -eq 1 ] || [ "$LENIENT" -gt 0 ] || refuse "script without -c starts a shell that cannot be read";;
+    xargs)
+      shift_argv; sub=''
+      while [ "${#ARGV[@]}" -gt 0 ]; do
+        case "${ARGV[0]}" in
+          -I) sub="${ARGV[1]:-}"; shift_argv 2;;
+          -I*) sub="${ARGV[0]#-I}"; shift_argv;;
+          -i|--replace) sub='{}'; shift_argv;;
+          -i*|--replace=*) sub="${ARGV[0]#*[i=]}"; shift_argv;;
+          -n|-P|-d|-L|-s|-E|-a|--max-args|--max-procs|--delimiter|--max-lines|--max-chars|--eof|--arg-file) shift_argv 2;;
+          --) shift_argv; break;;
+          -*) shift_argv;;
+          *) break;;
+        esac
+      done
+      [ "${#ARGV[@]}" -gt 0 ] || return 0
+      # the arguments come from stdin at run time: they stand in as a variable
+      if [ -n "$sub" ]; then
+        i=0; while [ $i -lt "${#ARGV[@]}" ]; do ARGV[$i]="${ARGV[$i]//"$sub"/$INPUT_VAR}"; i=$((i+1)); done
+        quote_rest 0; recurse "$QREST" $((depth+1))
+      else
+        quote_rest 0; recurse "$QREST $INPUT_VAR" $((depth+1))
+      fi;;
+    parallel)
+      shift_argv
+      skip_opts "-j --jobs -S --sshlogin -N -n -I --delay --timeout --results --joblog -d --delimiter --colsep -C --tagstring --tmpdir --workdir --env --halt -E --max-args --max-replace-args --basefile --return --memfree --load"
+      pcmd=(); t=''
+      while [ "${#ARGV[@]}" -gt 0 ]; do
+        case "${ARGV[0]}" in ':::'|':::+') t=args; shift_argv; break;; '::::'|'::::+'|-a|--arg-file) t=files; break;; esac
+        pcmd[${#pcmd[@]}]="${ARGV[0]}"; shift_argv
+      done
+      if [ "${#pcmd[@]}" -eq 0 ]; then
+        [ "$t" = args ] || refuse "parallel reading its commands from stdin or a file cannot be read"
+        while [ "${#ARGV[@]}" -gt 0 ]; do case "${ARGV[0]}" in ':::'*) ;; *) recurse "${ARGV[0]}" $((depth+1));; esac; shift_argv; done
+      else
+        rest=(); [ "${#ARGV[@]}" -eq 0 ] || rest=("${ARGV[@]}")
+        ARGV=("${pcmd[@]}"); i=0
+        while [ $i -lt "${#ARGV[@]}" ]; do ARGV[$i]="${ARGV[$i]//\{\}/$INPUT_VAR}"; i=$((i+1)); done
+        quote_rest 0
+        case "$QREST" in *"$INPUT_VAR"*) recurse "$QREST" $((depth+1));; *) recurse "$QREST $INPUT_VAR" $((depth+1));; esac
+        ARGV=(); [ "${#rest[@]}" -eq 0 ] || ARGV=("${rest[@]}")
+      fi;;
+    npx)
+      shift_argv
+      if [ "${#ARGV[@]}" -gt 1 ]; then case "${ARGV[0]}" in -c|--call) recurse "${ARGV[1]}" $((depth+1));; esac; fi
+      skip_opts "-p --package -c --call"; [ "${#ARGV[@]}" -eq 0 ] || { quote_rest 0; recurse "$QREST" $((depth+1)); };;
+    pnpm|yarn|npm|bun|pipx|uv|poetry)
+      if [ "${#ARGV[@]}" -gt 1 ]; then
+        case "$t0:${ARGV[1]}" in
+          pnpm:dlx|pnpm:exec|yarn:dlx|yarn:exec|npm:exec|npm:x|bun:x|pipx:run|uv:run|uvx:*|poetry:run)
+            shift_argv 2; skip_opts "--filter -F -C --dir --directory --project -p --python --with --package --from --spec --workspace -w"
+            [ "${#ARGV[@]}" -eq 0 ] || { quote_rest 0; recurse "$QREST" $((depth+1)); };;
+        esac
+      fi;;
+    bunx|uvx) shift_argv; skip_opts "--from --with -p --python --bun"; [ "${#ARGV[@]}" -eq 0 ] || { quote_rest 0; recurse "$QREST" $((depth+1)); };;
+    timeout) shift_argv; skip_opts "-s --signal -k --kill-after"; shift_argv; [ "${#ARGV[@]}" -eq 0 ] || { quote_rest 0; recurse "$QREST" $((depth+1)); };;
+    watch) shift_argv; skip_opts "-n --interval"; [ "${#ARGV[@]}" -eq 0 ] || recurse "$(argv_rest_plain 0)" $((depth+1));;
+    make)
+      i=1; found=0
+      while [ $i -lt "${#ARGV[@]}" ]; do case "${ARGV[$i]}" in -C|-C*|--directory|--directory=*) found=1;; esac; i=$((i+1)); done
+      if [ $found -eq 1 ]; then shift_argv; skip_opts "-C -f --directory --file -j -l -o -W -I"; [ "${#ARGV[@]}" -eq 0 ] || { quote_rest 0; recurse "$QREST" $((depth+1)); }; fi;;
+    docker|podman|nerdctl)
+      first="${ARGV[1]:-}"
+      if [ "$first" = compose ] && [ "${#ARGV[@]}" -gt 2 ]; then
+        case "${ARGV[2]}" in exec|run) shift_argv 3; skip_opts "-e -u -w --env --user --workdir --entrypoint --name -p --publish -v --volume -l --label --env-file"; shift_argv; [ "${#ARGV[@]}" -eq 0 ] || { quote_rest 0; recurse "$QREST" $((depth+1)); };; esac
+      else
+        case "$first" in
+          exec|run) shift_argv 2; skip_opts "-e -u -w -v -p -m -h -l --env --user --workdir --entrypoint --name --network --mount --volume --publish --label --env-file --platform --pull --restart --add-host --cap-add --device --dns --ip --log-driver --memory --cpus --hostname --cidfile --cgroup-parent --detach-keys --gpus --runtime --security-opt --shm-size --stop-signal --tmpfs --ulimit --workdir"; shift_argv; [ "${#ARGV[@]}" -eq 0 ] || { quote_rest 0; recurse "$QREST" $((depth+1)); };;
+        esac
+      fi;;
+    find)
+      i=1
+      while [ $i -lt "${#ARGV[@]}" ]; do
+        case "${ARGV[$i]}" in
+          -exec|-execdir|-ok|-okdir)
+            fx=''; i=$((i+1))
+            while [ $i -lt "${#ARGV[@]}" ]; do case "${ARGV[$i]}" in ';'|'+') break;; esac; sq "${ARGV[$i]}"; fx="$fx${fx:+ }$SQ"; i=$((i+1)); done
+            [ -z "$fx" ] || recurse "$fx" $((depth+1));;
+        esac
+        i=$((i+1))
+      done;;
+    python|python2|python3|node|ruby|perl|php|deno)
+      i=1
+      while [ $i -lt "${#ARGV[@]}" ]; do
+        case "${ARGV[$i]}" in -c|-e|-E|-r|-p|--eval|--print) [ $((i+1)) -lt "${#ARGV[@]}" ] && [ "$READONLY" -eq 0 ] && check_code_string "${ARGV[$((i+1))]}" $((depth+1)) "$(code_lang "$t0")";; esac
+        i=$((i+1))
+      done;;
+    awk|gawk|mawk|nawk)
+      if [ "$READONLY" -eq 0 ]; then awk_program; [ -z "$AWKP" ] || check_code_string "$AWKP" $((depth+1)) awk; fi;;
+  esac
+  return 0
+}
+
+# check_code_string <code> <depth> [awk|python|js]: an interpreter one-liner (python -c,
+# node -e, awk). Every quoted literal is checked as a shell command, and so is
+# the code with quotes, commas and brackets flattened to spaces (["git",
+# "push"]). When the code runs commands, its literals are checked strictly
+# (a variable program is refused) and a command built at run time is refused.
+check_code_string() {
+  local s="$1" depth="$2" lang="${3:-}" i=0 n q='' lit='' rest run pat strict=0 bare='' from=0 k=0 qpat="$PAT_Q"
+  local lits=()
+  [ "$lang" != python ] || qpat="$PAT_QP"
+  n=${#s}
+  # one pass: the literals, and the code with each literal reduced to "L" (bare)
+  while [ $i -lt $n ]; do
+    rest="${s:$i}"
+    if [ -z "$q" ]; then
+      run=${rest%%$qpat*}; i=$((i+${#run})); [ $i -lt $n ] || break
+      q="${s:$i:1}"; bare="$bare${s:$from:$((i-from))}$q"
+      if [ "$lang" = python ] && [ "${s:$i:3}" = "$q$q$q" ]; then
+        # a triple-quoted string runs to the next triple quote, apostrophes and all
+        rest="${s:$((i+3))}"; run="${rest%%"$q$q$q"*}"
+        lits[${#lits[@]}]="$run"; bare="${bare}L$q"
+        i=$((i+6+${#run})); from=$i; q=''; continue
+      fi
+      i=$((i+1)); lit=''; continue
+    fi
+    case "$q" in "'") pat="$PAT_Q1";; '"') pat="$PAT_Q2";; *) pat="$PAT_BT";; esac
+    run=${rest%%$pat*}; lit="$lit$run"; i=$((i+${#run})); [ $i -lt $n ] || break
+    if [ "${s:$i:1}" = '\' ]; then lit="$lit${s:$((i+1)):1}"; i=$((i+2)); continue; fi
+    lits[${#lits[@]}]="$lit"; lit=''; bare="${bare}L$q"; q=''; i=$((i+1)); from=$i
+  done
+  if [ -z "$q" ]; then bare="$bare${s:$from}"; else [ -z "$lit" ] || lits[${#lits[@]}]="$lit"; bare="${bare}L"; fi
+  code_exec_check "$bare" "$lang"
+  [ "$lang" != awk ] || awk_pipes "$bare"
+  [ "$CODE_EXEC" -eq 1 ] && strict=1
+  [ $strict -eq 1 ] || LENIENT=$((LENIENT+1))
+  # A literal is checked as the command it could become. In Python or
+  # JavaScript code that runs no command, backticks in a string are text
+  # (a doc line "runs `helm upgrade` by hand"), so they are read as spaces;
+  # once the code runs commands, a string may reach a shell and they count.
+  local text=0
+  case "$lang:$strict" in python:0|js:0) text=1; CODE_TEXT=$((CODE_TEXT+1));; esac
+  while [ $k -lt "${#lits[@]}" ]; do
+    lit="${lits[$k]}"
+    [ $text -eq 0 ] || lit="$(printf '%s' "$lit" | tr '`' ' ')"
+    recurse "$lit" "$depth"; k=$((k+1))
+  done
+  [ $strict -eq 0 ] || LENIENT=$((LENIENT+1))
+  recurse "$(printf '%s' "$s" | tr '"'"'"'`,[]' '      ')" "$depth"
+  LENIENT=$((LENIENT-1))
+  [ $text -eq 0 ] || CODE_TEXT=$((CODE_TEXT-1))
+}
+
+code_lang() { # code_lang <program>: python, js or nothing (backticks execute)
+  case "${1##*/}" in python*) echo python;; node|nodejs|deno|bun) echo js;; esac
+}
+
+# recurse <string> <depth>: check a nested command and keep the caller's ARGV.
+recurse() {
+  local keep=()
+  [ "${#ARGV[@]}" -eq 0 ] || keep=("${ARGV[@]}")
+  check_string "$1" "$2"
+  ARGV=()
+  [ "${#keep[@]}" -eq 0 ] || ARGV=("${keep[@]}")
+}
+
+# check_string <string> <depth>: the entry point for a command string.
+check_string() {
+  local s="$1" depth="$2"
+  [ "$depth" -le "$MAX_DEPTH" ] || refuse "command nesting deeper than $MAX_DEPTH levels"
+  case "$s" in *[![:space:]]*) ;; *) return 0;; esac
+  extract_substitutions "$s" "$depth"
+  scan_segments "$EXTRACTED" "$depth"
+}
+
+# strip_data_heredocs <command>: a heredoc body fed to a data sink (cat, tee,
+# printf, a file) is text, not a command; scanning it produces false
+# refusals on prose that mentions git or holds backticks. A body fed to a
+# shell or an unknown program is still scanned as commands; one fed to an
+# interpreter is checked as code (HEREDOC_CODE). An unquoted delimiter means
+# the shell expands $(...) and `...` in the body, so those bodies are kept in
+# HEREDOC_DATA for their substitutions. The operator is found with a quote-
+# aware scan: << inside quotes, a <<< here-string and << inside $((...)) are
+# not heredocs. Bash 3.2 safe: line by line, no regex captures.
+hd_prog() { # HD_PROG: the first command word of a segment prefix
+  local w
+  HD_PROG=''
+  for w in $1; do
+    case "$w" in *=*|env|sudo|doas|command|exec|nohup|time|nice|builtin|'{'|'!'|then|do|else|if|while|until|'>'*|'<'*|[0-9]'>'*|-*) continue;; esac
+    HD_PROG="${w##*/}"; break
+  done
+}
+hd_scan_line() { # hd_scan_line <line>: track quote context in HS_STK; queue each heredoc operator
+  local l="$1" i=0 n c top rest run seg=0 prev=' ' d quoted t pos kind
+  n=${#l}
+  while [ $i -lt $n ]; do
+    if [ -n "$HS_STK" ]; then top="${HS_STK#"${HS_STK%?}"}"; else top=''; fi
+    rest="${l:$i}"
+    case "$top" in
+      "'") run=${rest%%"$SQCH"*}; i=$((i+${#run})); [ $i -lt $n ] || break
+           HS_STK="${HS_STK%?}"; i=$((i+1)); prev="'"; continue;;
+      '"') run=${rest%%$PAT_XD*}; i=$((i+${#run})); [ $i -lt $n ] || break
+           case "${l:$i:1}" in
+             '\') i=$((i+2));;
+             '"') HS_STK="${HS_STK%?}"; i=$((i+1)); prev='"';;
+             '`') HS_STK="$HS_STK\`"; i=$((i+1)); seg=$i;;
+             '$') case "${l:$((i+1)):2}" in '(('*) HS_STK="${HS_STK}AA"; i=$((i+3));; '('*) HS_STK="$HS_STK("; i=$((i+2)); seg=$i;; *) i=$((i+1));; esac;;
+           esac
+           continue;;
+      A) run=${rest%%$PAT_AR*}; i=$((i+${#run})); [ $i -lt $n ] || break
+         case "${l:$i:1}" in '(') HS_STK="${HS_STK}A";; *) HS_STK="${HS_STK%?}";; esac
+         i=$((i+1)); continue;;
+    esac
+    run=${rest%%$PAT_HC*}
+    if [ -n "$run" ]; then i=$((i+${#run})); prev="${run#"${run%?}"}"; fi
+    [ $i -lt $n ] || break
+    c="${l:$i:1}"
+    case "$c" in
+      '\') i=$((i+2)); prev=x; continue;;
+      "'"|'"') HS_STK="$HS_STK$c"; i=$((i+1));;
+      '(') if [ "${l:$((i+1)):1}" = '(' ]; then HS_STK="${HS_STK}AA"; i=$((i+2)); else HS_STK="$HS_STK("; i=$((i+1)); seg=$i; fi;;
+      ')') [ "$top" != '(' ] || HS_STK="${HS_STK%?}"; i=$((i+1));;
+      '`') if [ "$top" = '`' ]; then HS_STK="${HS_STK%?}"; else HS_STK="$HS_STK\`"; seg=$((i+1)); fi; i=$((i+1));;
+      '$') case "${l:$((i+1)):2}" in '(('*) HS_STK="${HS_STK}AA"; i=$((i+3));; '('*) HS_STK="$HS_STK("; i=$((i+2)); seg=$i;; *) i=$((i+1));; esac;;
+      '#') case "$prev" in ' '|"$TAB"|';'|'&'|'|'|'('|'`') break;; esac; i=$((i+1));;
+      ';'|'&'|'|') i=$((i+1)); seg=$i;;
+      '<')
+        if [ "${l:$((i+1)):1}" != '<' ]; then i=$((i+1)); prev="$c"; continue; fi
+        if [ "${l:$((i+2)):1}" = '<' ]; then i=$((i+3)); prev="$c"; continue; fi   # <<< here-string
+        pos=$i; i=$((i+2)); t=0
+        if [ "${l:$i:1}" = '-' ]; then t=1; i=$((i+1)); fi
+        while [ $i -lt $n ]; do case "${l:$i:1}" in ' '|"$TAB") i=$((i+1));; *) break;; esac; done
+        d=''; quoted=0
+        while [ $i -lt $n ]; do
+          c="${l:$i:1}"
+          case "$c" in
+            ' '|"$TAB"|';'|'&'|'|'|'<'|'>'|'('|')') break;;
+            "'") quoted=1; rest="${l:$((i+1))}"; run=${rest%%"$SQCH"*}; d="$d$run"; i=$((i+${#run}+2));;
+            '"') quoted=1; rest="${l:$((i+1))}"; run=${rest%%\"*}; d="$d$run"; i=$((i+${#run}+2));;
+            '\') quoted=1; d="$d${l:$((i+1)):1}"; i=$((i+2));;
+            *) d="$d$c"; i=$((i+1));;
+          esac
+        done
+        [ -n "$d" ] || continue
+        hd_prog "${l:$seg:$((pos-seg))}"
+        case "$HD_PROG" in
+          cat|tee|printf|echo|head|tail|grep|sort|wc|less|more|cut|tr|awk|sed|diff|cmp|base64|md5sum|sha256sum|shasum|jq|yq|xxd|od|column|fold|nl|paste|'')
+            if [ $quoted -eq 1 ]; then kind=data; else kind=datax; fi
+            HEREDOC_STRIPPED="$HEREDOC_STRIPPED$d ";;
+          python*|node|nodejs|ruby|perl|php|deno|bun) if [ $quoted -eq 1 ]; then kind=code; else kind=codex; fi
+            HEREDOC_LANG="$(code_lang "$HD_PROG")";;
+          git|gh|glab)
+            # a message read from stdin (commit -F -, tag -F -, --body-file -) is text
+            case " ${l:$seg:$((pos-seg))} " in
+              *' -F - '*|*' --file=- '*|*' --file - '*|*' --body-file - '*|*' --body-file=- '*|*' -F- '*)
+                if [ $quoted -eq 1 ]; then kind=data; else kind=datax; fi
+                HEREDOC_STRIPPED="$HEREDOC_STRIPPED$d ";;
+              *) kind=keep;;
+            esac;;
+          *) kind=keep;;
+        esac
+        HD_D[$HD_N]="$d"; HD_K[$HD_N]="$kind"; HD_T[$HD_N]="$t"; HD_N=$((HD_N+1))
+        prev=x; continue;;
+      *) i=$((i+1));;
+    esac
+    prev="$c"
+  done
+}
+strip_data_heredocs() {
+  local s="$1" hd_out='' line tw
+  HEREDOC_STRIPPED=''; HEREDOC_CODE=''; HEREDOC_DATA=''; HEREDOC_LANG=''
+  HS_STK=''; HD_N=0; HD_I=0; HD_D=(); HD_K=(); HD_T=()
+  while IFS= read -r line || [ -n "$line" ]; do
+    if [ $HD_I -lt $HD_N ]; then
+      # inside a body: a line equal to the delimiter (tabs allowed with <<-) ends it
+      tw="$line"
+      if [ "${HD_T[$HD_I]}" = 1 ]; then while [ "${tw#"$TAB"}" != "$tw" ]; do tw="${tw#"$TAB"}"; done; fi
+      if [ "$tw" = "${HD_D[$HD_I]}" ]; then
+        HD_I=$((HD_I+1)); [ $HD_I -lt $HD_N ] || { HD_I=0; HD_N=0; }
+        hd_out="$hd_out$NL"; continue
+      fi
+      case "${HD_K[$HD_I]}" in
+        keep) hd_out="$hd_out$line$NL";;
+        code) HEREDOC_CODE="$HEREDOC_CODE$line$NL"; hd_out="$hd_out$NL";;
+        codex) HEREDOC_CODE="$HEREDOC_CODE$line$NL"; HEREDOC_DATA="$HEREDOC_DATA$line$NL"; hd_out="$hd_out$NL";;
+        datax) HEREDOC_DATA="$HEREDOC_DATA$line$NL"; hd_out="$hd_out$NL";;
+        *) hd_out="$hd_out$NL";;
+      esac
+      continue
+    fi
+    hd_out="$hd_out$line$NL"
+    hd_scan_line "$line"
+  done <<EOF_GUARD
+$s
+EOF_GUARD
+  STRIPPED="$hd_out"
+}
+
+guard_command() {
+  local cmd="$1"
+  set -f
+  # bytes, not characters: lengths are byte counts and the scanners index in O(1)
+  LC_ALL=C; export LC_ALL
+  case "$cmd" in *[![:space:]]*) ;; *) refuse "could not read the command";; esac
+  case "$cmd" in *"$SENTINEL"*) refuse "could not read the command";; esac
+  case "$cmd" in *"$RD"*|*"$SUBST"*|*'__BRG_INPUT'*) refuse "the command holds a guard marker";; esac
+  [ "${#cmd}" -le "$MAX_LEN" ] || refuse "command too long to check (${#cmd} bytes, limit $MAX_LEN); run it yourself"
+  case "$cmd" in *':(){'*|*':() {'*) deny "fork bomb";; esac
+  load_rules
+  case "$cmd" in *'<<'*) strip_data_heredocs "$cmd"; cmd="$STRIPPED"; [ -z "${BEARING_GUARD_DEBUG:-}" ] || printf 'stripped: %s\n' "$cmd" >&2;; esac
+  check_string "$cmd" 0
+  # an unquoted heredoc body is expanded by the shell: its substitutions run
+  [ -z "${HEREDOC_DATA:-}" ] || extract_substitutions "$HEREDOC_DATA" 1 body
+  # a heredoc body fed to an interpreter is code: every quoted literal and the flattened text are checked
+  [ -z "${HEREDOC_CODE:-}" ] || check_code_string "$HEREDOC_CODE" 1 "${HEREDOC_LANG:-}"
+  gate_log "$(guard_gate)" allowed
+  exit 0
+}
+
+case "$sub" in
+  command)
+    guard_command "${1:-}";;
+  readonly)
+    READONLY=1; guard_command "${1:-}";;
+  --verbs)
+    verb_table; exit 0;;
+  --version)
+    v="$BEARING_GUARD_VERSION"
+    if [ "$v" = "__VERSION__" ] && [ -f "$(dirname "$0")/../VERSION" ]; then v="$(tr -d '[:space:]' < "$(dirname "$0")/../VERSION")"; fi
+    echo "brg-guard $v"; exit 0;;
+  format)
+    file="${1:-}"; [ -n "$file" ] && [ -f "$file" ] || exit 0
+    root="$(git rev-parse --show-toplevel 2>/dev/null || dirname "$file")"; cd "$root" || exit 0
+    note() { echo "bearing format: $*"; }
+    run() { if "$@" >/dev/null 2>&1; then note "$1 formatted ${file##*/}"; else note "$1 failed on ${file##*/} (left as written)"; fi; }
+    case "$file" in
+  *.go)
+    if command -v gofmt >/dev/null; then run gofmt -w "$file"; else note "gofmt not installed"; fi;;
+  *.ts|*.tsx|*.js|*.jsx|*.json|*.css|*.md|*.yml|*.yaml)
+    if [ -x node_modules/.bin/prettier ]; then run node_modules/.bin/prettier --log-level silent --write "$file";
+    elif command -v prettier >/dev/null; then run prettier --log-level silent --write "$file";
+    else note "prettier not installed"; fi;;
+  *.py)
+    if command -v ruff >/dev/null; then run ruff format --quiet "$file";
+    elif command -v uv >/dev/null && [ -f pyproject.toml ]; then run uv run --quiet ruff format --quiet "$file";
+    else note "ruff not installed"; fi;;
+  *.kt|*.kts)
+    if command -v ktlint >/dev/null; then run ktlint -F "$file"; else note "ktlint not installed"; fi;;
+  *.swift)
+    if command -v swiftformat >/dev/null; then run swiftformat --quiet "$file"; else note "swiftformat not installed"; fi;;
+  *.tf|*.tfvars)
+    if command -v terraform >/dev/null; then run terraform fmt "$file"; else note "terraform not installed"; fi;;
+  *.sh)
+    if command -v shfmt >/dev/null; then run shfmt -w -i 2 "$file"; else note "shfmt not installed"; fi;;
+esac
+    exit 0;;
+  task-id)
+    prompt="${1:-}"
+    [ "$prompt" != "$SENTINEL" ] || exit 0
+    task="$(git branch --show-current 2>/dev/null | grep -oE '[A-Z][A-Z0-9]*(-[0-9]+)+' | head -1)"
+    [ -n "$task" ] || exit 0
+    case "$prompt" in *"$task"*) exit 0;; esac
+    echo "Task: ${task} (from branch $(git branch --show-current)). Use it in commit messages as [${task}]."
+    exit 0;;
+  session)
+    sid=""; source=""
+    while [ $# -gt 0 ]; do
+      case "$1" in
+        --id) sid="${2:-}"; shift; [ $# -gt 0 ] && shift;;
+        --source) source="${2:-}"; shift; [ $# -gt 0 ] && shift;;
+        *) shift;;
+      esac
+    done
+    [ "$sid" != "$SENTINEL" ] || sid=""
+    root="$(git rev-parse --show-toplevel 2>/dev/null)" || { echo "bearing: not a git repository, nothing to report."; exit 0; }
+    # Mark when this session began, so stop-gate only holds a session to
+    # files it changed; resume and compact keep the first mark. Old marks go.
+    if [ -n "$sid" ] && [ -d "$root/.bearing" ]; then
+      mkdir -p "$root/.bearing/state"
+      find "$root/.bearing/state" -name '.session-*' -mtime +7 -exec rm -f {} + 2>/dev/null
+      [ -f "$root/.bearing/state/.session-$sid" ] || : > "$root/.bearing/state/.session-$sid"
+    fi
+    branch="$(git branch --show-current 2>/dev/null)"
+    task="$(printf '%s' "$branch" | grep -oE '[A-Z][A-Z0-9]*(-[0-9]+)+' | head -1)"
+    changed="$(git -C "$root" status --porcelain 2>/dev/null | wc -l | tr -d ' ')"
+    echo "bearing session: branch=${branch:-detached} task=${task:-none} changed_files=${changed}"
+    sf="$root/.bearing/state/$(printf '%s' "$branch" | tr '/' '_').md"
+    [ -f "$sf" ] && { echo "Handoff state from the previous session (${sf#"$root"/}):"; head -20 "$sf"; }
+    [ -f "$root/CLAUDE.md" ] && ! head -1 "$root/CLAUDE.md" | grep -q '^@AGENTS.md' && echo "note: CLAUDE.md does not start with @AGENTS.md; run onboard-repo to fix the import."
+    # The stack checklists, so any review in this session (gstack /review
+    # included) applies them; absent where the guard is vendored alone.
+    lists="$(dirname "$0")/brg-checklists"
+    if [ -x "$lists" ] && paths="$("$lists" --repo "$root" 2>/dev/null | grep '^/')" && [ -n "$paths" ]; then
+      echo "Review checklists for this repository; any code review (gstack /review, branch-review) applies every item and reports it as a finding or checked, none found:"
+      printf '%s\n' "$paths" | sed 's/^/  /'
+    fi
+    snap="$root/.bearing/state/$(printf '%s' "$branch" | tr '/' '_').compact.md"
+    if [ "$source" = "compact" ] && [ -f "$snap" ]; then
+      echo "The context was just summarised. What stood before it (${snap#"$root"/}):"
+      head -60 "$snap"
+    fi
+    exit 0;;
+  stop-gate)
+    sid=""; active=0
+    while [ $# -gt 0 ]; do
+      case "$1" in
+        --id) sid="${2:-}"; shift; [ $# -gt 0 ] && shift;;
+        --active) active=1; shift;;
+        *) shift;;
+      esac
+    done
+    [ "$sid" != "$SENTINEL" ] || sid=""
+    root="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 0
+    state="$root/.bearing/state"; marker="$state/.check-passed"; start="$state/.session-$sid"
+    # Hold the session only to files it changed after its own start and after
+    # the last passing check. Without a start mark, or in a repository whose
+    # Makefile never writes the marker, there is nothing fair to hold it to.
+    [ -n "$sid" ] && [ -f "$start" ] && grep -qs 'check-passed' "$root/Makefile" || { gate_log stop-gate reminder-only "no session mark or marker"; exec bash "$0" stop; }
+    fresh=0
+    while IFS= read -r f; do
+      [ -n "$f" ] || continue
+      p="$root/$f"; [ -e "$p" ] || continue
+      [ "$p" -nt "$start" ] || continue
+      [ -f "$marker" ] && ! [ "$p" -nt "$marker" ] && continue
+      fresh=$((fresh+1))
+    done <<EOF
+$(git -C "$root" status --porcelain 2>/dev/null | sed 's/^...//; s/.* -> //; s/^"//; s/"$//')
+EOF
+    [ "$fresh" -gt 0 ] || { gate_log stop-gate passed; exit 0; }
+    msg="bearing: ${fresh} file(s) changed in this session since make check last passed."
+    if [ "$active" -eq 1 ]; then
+      echo "$msg Not checked; say so under Not done in the report."
+      gate_log stop-gate reminded "$fresh file(s), second stop"
+      exit 0
+    fi
+    echo "$msg Run make check and fix what fails before finishing. If it cannot run here, say why under Not done in the report and stop." >&2
+    gate_log stop-gate blocked "$fresh file(s)"
+    exit 2;;
+  check-file)
+    file="${1:-}"
+    [ -n "$file" ] && [ "$file" != "$SENTINEL" ] && [ -f "$file" ] || exit 0
+    root="$(git rev-parse --show-toplevel 2>/dev/null || dirname "$file")"; cd "$root" || exit 0
+    case "$file" in /*) rel="${file#"$root"/}";; *) rel="$file";; esac
+    ! git check-ignore -q -- "$rel" 2>/dev/null || exit 0   # scratch the repository ignores
+    capped() { if command -v timeout >/dev/null 2>&1; then timeout 25 "$@"; else "$@"; fi; }
+    tool=""; st=0; found=""
+    if [ -f Makefile ] && grep -q '^check-file:' Makefile; then
+      tool="make check-file"; found="$(capped make -s check-file FILE="$rel" 2>&1)"; st=$?
+    else
+      case "$rel" in
+        *.go)
+          command -v go >/dev/null || exit 0
+          tool="go vet"; found="$(GOPROXY=off capped go vet "./$(dirname "$rel")" 2>&1)"; st=$?;;
+        *.ts|*.tsx|*.js|*.jsx|*.mjs|*.cjs)
+          [ -x node_modules/.bin/eslint ] || exit 0
+          tool="eslint"; found="$(capped node_modules/.bin/eslint --max-warnings 0 "$rel" 2>&1)"; st=$?;;
+        *.py)
+          command -v ruff >/dev/null || exit 0
+          tool="ruff"; found="$(capped ruff check --quiet --force-exclude "$rel" 2>&1)"; st=$?;;
+        *.sh|*.bash)
+          command -v shellcheck >/dev/null || exit 0
+          tool="shellcheck"; found="$(capped shellcheck -S warning "$rel" 2>&1)"; st=$?;;
+        *.kt|*.kts)
+          command -v ktlint >/dev/null || exit 0
+          tool="ktlint"; found="$(capped ktlint "$rel" 2>&1)"; st=$?;;
+        *.swift)
+          command -v swiftlint >/dev/null || exit 0
+          tool="swiftlint"; found="$(capped swiftlint lint --quiet "$rel" 2>&1)"; st=$?;;
+        tsconfig*.json|*/tsconfig*.json|jsconfig*.json|*/jsconfig*.json|.vscode/*|*/.devcontainer/*|.devcontainer/*) exit 0;;
+        *.json)
+          command -v jq >/dev/null || exit 0
+          tool="jq"; found="$(jq empty "$rel" 2>&1)"; st=$?;;
+        *) exit 0;;
+      esac
+    fi
+    [ "$st" -ne 0 ] || { gate_log check-file clean "$tool"; exit 0; }
+    if [ "$st" -eq 124 ]; then gate_log check-file not-checked "$tool timed out"; echo "bearing check: $tool on $rel timed out after 25 s; not checked"; exit 0; fi
+    # A tool that could not run (no config, no network, an ignored file) found
+    # nothing wrong with the edit; say so instead of blaming the file.
+    case "$found" in
+      *"find a configuration"*|*"No ESLint configuration"*|*"File ignored"*|*"GOPROXY=off"*|*"cannot find module"*|*"no Go files"*|*"go.mod file not found"*)
+        gate_log check-file not-checked "$tool could not run"
+        echo "bearing check: $tool could not check $rel here (see its message); not checked"; exit 0;;
+    esac
+    n="$(printf '%s\n' "$found" | wc -l | tr -d ' ')"
+    {
+      echo "bearing check: $tool found problems in $rel. Fix them before moving on:"
+      printf '%s\n' "$found" | head -40
+      [ "$n" -le 40 ] || echo "... $((n-40)) more line(s)"
+    } >&2
+    gate_log check-file problems "$tool"
+    exit 2;;
+  precompact)
+    transcript="${1:-}"; [ "$transcript" != "$SENTINEL" ] || transcript=""
+    root="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 0
+    [ -d "$root/.bearing" ] || exit 0
+    branch="$(git -C "$root" branch --show-current 2>/dev/null)"
+    task="$(printf '%s' "$branch" | grep -oE '[A-Z][A-Z0-9]*(-[0-9]+)+' | head -1)"
+    mkdir -p "$root/.bearing/state"
+    snap="$root/.bearing/state/$(printf '%s' "${branch:-detached}" | tr '/' '_').compact.md"
+    base="$(git -C "$root" rev-parse -q --verify origin/HEAD 2>/dev/null || git -C "$root" rev-parse -q --verify main 2>/dev/null || git -C "$root" rev-parse -q --verify master 2>/dev/null)"
+    marker="$root/.bearing/state/.check-passed"
+    {
+      echo "# Before compaction, $(date '+%Y-%m-%d %H:%M')"
+      echo "Branch: ${branch:-detached}   Task: ${task:-none}"
+      echo
+      echo "## Uncommitted changes"
+      st="$(git -C "$root" status --short 2>/dev/null | head -30)"
+      printf '%s\n' "${st:-none}"
+      if [ -n "$base" ]; then
+        echo
+        echo "## Commits on this branch"
+        lg="$(git -C "$root" log --oneline "$base..HEAD" 2>/dev/null | head -10)"
+        printf '%s\n' "${lg:-none}"
+      fi
+      echo
+      echo "## make check"
+      newest="$(git -C "$root" status --porcelain 2>/dev/null | sed 's/^...//; s/.* -> //' | while IFS= read -r f; do [ -e "$root/$f" ] && { [ -f "$marker" ] && ! [ "$root/$f" -nt "$marker" ] || echo x; }; done | wc -l | tr -d ' ')"
+      if [ "$newest" -eq 0 ]; then echo "passed after the last change (or nothing changed)"; else echo "not passed since ${newest} file(s) last changed"; fi
+      if [ -n "$transcript" ] && [ -f "$transcript" ] && command -v jq >/dev/null 2>&1; then
+        asks="$(tail -n 4000 "$transcript" | jq -c 'select(.type == "user" and ((.isMeta // false) | not) and ((.isCompactSummary // false) | not) and (.message.content | type) == "string") | .message.content | select(startswith("<") | not) | .[0:800]' 2>/dev/null | tail -3)"
+        if [ -n "$asks" ]; then
+          echo
+          echo "## The user's last requests, verbatim (oldest first)"
+          printf '%s\n' "$asks" | while IFS= read -r line; do printf -- '- %s\n' "$(printf '%s' "$line" | jq -r '.')"; done
+        fi
+      fi
+    } > "$snap.tmp" && mv "$snap.tmp" "$snap"
+    echo "bearing: compaction snapshot written to ${snap#"$root"/}"
+    gate_log precompact written
+    exit 0;;
+  stats)
+    root="$(bearing_root)" || { echo "brg-guard stats: not a Bearing repository (no .bearing/), nothing logged" >&2; exit 1; }
+    log="$root/.bearing/state/gates.log"
+    n="$(cat "$log.1" "$log" 2>/dev/null | wc -l | tr -d ' ')"
+    [ "$n" -gt 0 ] || { echo "brg-guard stats: 0 gate decisions logged in ${log#"$root"/}, nothing to report" >&2; exit 1; }
+    cat "$log.1" "$log" 2>/dev/null | awk -F'\t' 'NR==1{f=$1} {l=$1} END{printf "brg-guard stats: %d gate decisions, %s to %s\n", NR, f, l}'
+    cat "$log.1" "$log" 2>/dev/null | awk -F'\t' '{k=$2" "$3; c[k]++; s[k]+=$4; if ($4>m[k]) m[k]=$4}
+      END{for (k in c) printf "  %-28s %6d  avg %5d ms  max %6d ms\n", k, c[k], s[k]/c[k], m[k]}' | sort
+    r="$(cat "$log.1" "$log" 2>/dev/null | awk -F'\t' '$3=="refused"{c[$5]++} END{for (k in c) printf "%6d  %s\n", c[k], k}' | sort -rn | head -5)"
+    [ -z "$r" ] || { echo "  most refused:"; printf '%s\n' "$r" | sed 's/^/  /'; }
+    exit 0;;
+  stop)
+    root="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 0
+    changed="$(git -C "$root" status --porcelain 2>/dev/null | wc -l | tr -d ' ')"
+    [ "$changed" -gt 0 ] || exit 0
+    marker="$root/.bearing/state/.check-passed"
+    if [ -f "$marker" ]; then
+      newer="$(git -C "$root" status --porcelain | sed 's/^...//' | while read -r f; do [ "$root/$f" -nt "$marker" ] && echo x; done | wc -l | tr -d ' ')"
+      [ "$newer" -gt 0 ] || exit 0
+    fi
+    echo "bearing: ${changed} changed file(s) and make check has not passed since. Run make check (or definition-of-done) before calling this done."
+    # a Makefile whose check never records a pass is why this is only a reminder
+    if [ -f "$root/Makefile" ] && [ -d "$root/.bearing" ] && ! grep -qs 'check-passed' "$root/Makefile"; then
+      echo "bearing: make check here does not record a pass, so this is a reminder, not a gate; onboard-repo proposes the one line that makes it one."
+    fi
+    exit 0;;
+  -h|--help|"") sed -n '3,34p' "$0" | sed 's/^# \{0,1\}//'; exit 2;;
+  *) echo "brg-guard: unknown subcommand $sub" >&2; exit 2;;
+esac

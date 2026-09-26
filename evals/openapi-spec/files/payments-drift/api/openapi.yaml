@@ -1,0 +1,127 @@
+openapi: 3.1.0
+info:
+  title: payments-api
+  version: 1.2.0
+  description: Card and UPI payments for merchants. Amounts are integer paise.
+servers:
+  - url: https://api.payments.example.in
+security:
+  - bearerAuth: []
+paths:
+  /v1/payments:
+    get:
+      operationId: listPayments
+      summary: List payments, newest first
+      parameters:
+        - name: cursor
+          in: query
+          schema: { type: string }
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+      responses:
+        "200":
+          description: A page of payments
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PaymentList" }
+        "401": { $ref: "#/components/responses/Problem" }
+    post:
+      operationId: createPayment
+      summary: Create and capture a payment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreatePaymentRequest" }
+      responses:
+        "201":
+          description: Payment captured
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Payment" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+  /v1/payments/{id}:
+    get:
+      operationId: getPayment
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The payment
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Payment" }
+        "404": { $ref: "#/components/responses/Problem" }
+  /v1/payments/{id}/capture:
+    post:
+      operationId: capturePayment
+      summary: Capture an authorized payment
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Captured
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Payment" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+  responses:
+    Problem:
+      description: An error, as RFC 9457 problem details
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+  schemas:
+    Problem:
+      type: object
+      required: [type, title, status, code]
+      properties:
+        type: { type: string, format: uri }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
+        code: { type: string, description: Stable machine readable error code }
+      example:
+        type: https://docs.payments.example.in/problems/invalid_amount
+        title: Unprocessable Entity
+        status: 422
+        detail: amount_minor must be positive
+        code: invalid_amount
+    CreatePaymentRequest:
+      type: object
+      required: [amount_minor, currency]
+      properties:
+        amount_minor: { type: integer, minimum: 1 }
+        currency: { type: string, enum: [INR] }
+        description: { type: string }
+      example: { amount_minor: 49900, currency: INR, description: Order 1182 }
+    Payment:
+      type: object
+      required: [id, amount_minor, currency, status, created_at]
+      properties:
+        id: { type: string }
+        amount_minor: { type: integer }
+        currency: { type: string }
+        description: { type: string }
+        status: { type: string, enum: [authorized, captured, refunded, failed] }
+        created_at: { type: string, format: date-time }
+      example:
+        id: pay_000731
+        amount_minor: 49900
+        currency: INR
+        status: captured
+        created_at: "2026-08-02T10:15:00Z"
+    PaymentList:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items: { $ref: "#/components/schemas/Payment" }
+        next_cursor: { type: [string, "null"] }

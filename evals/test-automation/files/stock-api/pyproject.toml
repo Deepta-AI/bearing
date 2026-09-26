@@ -1,0 +1,17 @@
+[project]
+name = "stock-api"
+version = "0.4.0"
+requires-python = ">=3.12"
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[tool.setuptools]
+packages = ["stock"]
+
+[tool.setuptools.package-data]
+stock = ["schema.sql"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

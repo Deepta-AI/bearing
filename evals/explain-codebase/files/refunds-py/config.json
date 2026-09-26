@@ -1,0 +1,7 @@
+{
+ "db_path": "refunds.json",
+ "port": 8090,
+ "razorpay_base_url": "https://api.razorpay.com/v1",
+ "approval_threshold_paise": 500000,
+ "worker_poll_seconds": 15
+}

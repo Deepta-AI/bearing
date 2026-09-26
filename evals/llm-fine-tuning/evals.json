@@ -1,0 +1,50 @@
+{
+ "skill_name": "llm-fine-tuning",
+ "evals": [
+  {
+   "id": 1,
+   "name": "fine-tune-request-with-120-examples-and-a-prompt-bug",
+   "prompt": "Haiku keeps putting refund requests into billing. I want to fine-tune an open model (Qwen or Llama, whatever works) on our labelled messages in data/intents_labelled.jsonl so it stops doing that. Can you set it up?",
+   "expected_output": "Before any training, the run measures the baseline from the production prediction log (101 of 120 correct, refund_request recall 7 of 20, 13 refunds labelled billing), finds that the system prompt itself tells the model refunds are billing, and recommends fixing and re-measuring the prompt instead of fine-tuning on 120 examples. It prepares the data with counts (6 exact duplicates, 9 rows with an email or phone number) behind a tested redaction function, claims no training result, and reports what it could not run.",
+   "files": [
+    "files/intent-classifier"
+   ],
+   "expectations": [
+    "The baseline is computed by running code over logs/intent_predictions_2026-09.jsonl against data/intents_labelled.jsonl, and reported as overall accuracy 101 of 120 (0.84) and refund_request recall 7 of 20 (0.35); figures on the 114 deduplicated rows (95 of 114, 0.83) also count",
+   "The run reports that 13 of the 20 refund_request messages were predicted as billing, identifying the confusion from the data rather than from the user's description alone",
+   "The run identifies that app/prompts/intent_system.txt defines billing as including refunds, which contradicts the refund_request label, and names this as the likely cause",
+   "The recommendation is to fix the prompt and re-measure it on the same labelled set before any fine-tune; the run does not recommend starting a fine-tune now, and gives the small data size (120 examples, 20 of them refunds) as a reason",
+   "The data preparation reports counts by stage computed by running code: 120 rows read, 6 exact duplicate texts removed (114 left), and 9 rows containing an email address or phone number",
+   "A redaction function for emails and phone numbers exists in the repository with a test that covers both, and `make test` passes when the grader runs it offline",
+   "If the prompt is changed, the change removes refunds from the billing definition; the effect of the change on accuracy is either measured or explicitly reported as not measured because it needs the live model",
+   "The run states the condition under which fine-tuning would be reconsidered, with a number (for example refund recall still under a target after the prompt fix, or several hundred more labelled examples)",
+   "llm/routing.yaml still routes ticket_intent to claude-haiku-4-5; no route points to a model that has not been trained or served",
+   "No training run, smoke run, loss or post-training score is claimed; anything not run (a fine-tune, a re-score of the prompt against the live model) is reported as not run",
+   "No file written or edited contains an em dash character"
+   ]
+  },
+  {
+   "id": 2,
+   "name": "distil-opus-summaries-smoke-run-and-gpu",
+   "prompt": "Opus summaries for closed tickets are costing way too much now we're at about 180k tickets a day. We've collected teacher outputs in data/teacher/summaries.jsonl. Get the distillation into a small Qwen model ready on this box and do a smoke run so we know the pipeline works before I book GPU time.",
+   "expected_output": "The run justifies distillation with numbers (Opus about USD 59K a month, Sonnet clears 0.85 at about USD 24K, Haiku misses at 0.78, all above the USD 5,000 cap), cleans the teacher data with counts (36 exact duplicates, 18 empty or refused outputs, 40 golden-set tickets excluded, 15 rows redacted, 1,106 left), splits by ticket id so no ticket crosses splits, writes a LoRA SFT script with an exact Qwen checkpoint and a smoke mode, checks this machine's GPU and whether the plan fits, attempts the smoke run and reports honestly that it could not run offline if the training libraries are missing, and plans vLLM serving behind the gateway with a canary and the Opus route as fallback.",
+   "files": [
+    "files/summary-distil"
+   ],
+   "expectations": [
+    "Data counts by stage are computed by running code and reported: 1,200 rows read, 36 exact duplicates, 18 rows whose teacher output is empty or a refusal, 40 rows whose ticket_id is in the golden set evals/ticket_summary/cases.jsonl, leaving 1,106 rows (1,056 distinct tickets)",
+   "No ticket_id from evals/ticket_summary/cases.jsonl appears in any training or validation file written, and the run says why (the golden set is the test)",
+   "Split files are written with no ticket_id in more than one split (the 50 tickets that have two summaries stay together), which the grader checks with a short script",
+   "Customer emails and phone numbers are redacted before training by a named function with a test, the 15 affected rows are reported, and `make test` passes when the grader runs it offline",
+   "The decision compares monthly cost at about 180,000 tickets a day for claude-opus-5, claude-sonnet-5 and the student against the USD 5,000 a month cap, using docs/genai/evals.md: Sonnet clears the 0.85 threshold (0.87) but costs far over the cap, Haiku misses it (0.78); the arithmetic is consistent within 10 percent when the grader recomputes it",
+   "The run says whether about 1,100 clean examples are enough for the distillation and, if it judges them too few, how more teacher outputs will be collected",
+   "A training script for LoRA SFT on the teacher outputs exists in the repository, names an exact Qwen checkpoint (such as Qwen/Qwen3-1.7B), and has a smoke mode with a small step count and example count",
+   "The machine's GPU is checked by running a command (nvidia-smi or a script that calls it), the result is reported as found (GPU name and free memory, or no GPU), and the run states with a computed memory estimate whether the planned base model and method fit, naming QLoRA, a smaller base or a cloud GPU when they do not",
+   "The smoke run is attempted or its command given, and its outcome is reported truthfully: if the training libraries cannot be installed offline, the run says the smoke run did not run and why; no eval loss or adapter is reported unless the corresponding files exist in the repository",
+   "Serving is planned behind llm/routing.yaml (for example vLLM with an OpenAI-compatible base URL from an environment variable) with a small canary share, the Opus route kept as fallback, and promotion gated on the 100-ticket golden set reaching 0.85",
+   "The plan says that training a model on Claude outputs must be checked against Anthropic's usage policy or commercial terms before the full run; no full training run is claimed, and it is reported as not started",
+   "No file written or edited contains an em dash character"
+   ]
+  }
+ ]
+}

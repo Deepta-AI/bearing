@@ -1,0 +1,35 @@
+# __REPO_NAME__ swiftformat. `make format` applies, `make format-check` lints.
+# swiftformat decides layout; SwiftLint decides everything else.
+--swiftversion 6.0
+--exclude .build,DerivedData,build,**/*.xcodeproj,**/Package.resolved
+
+--indent 4
+--maxwidth 120
+--wraparguments before-first
+--wrapparameters before-first
+--wrapcollections before-first
+--closingparen balanced
+--commas always
+--semicolons inline
+--trimwhitespace always
+--stripunusedargs closure-only
+--self remove
+--selfrequired
+--importgrouping alpha
+--extensionacl on-extension
+--patternlet hoist
+--ifdef indent
+--header strip
+
+--enable isEmpty
+--enable wrapEnumCases
+--enable blankLinesBetweenScopes
+--enable redundantSelf
+--enable sortImports
+--enable duplicateImports
+--disable wrapMultilineStatementBraces
+--disable andOperator
+# 0.6x rules that fight readability in this codebase.
+--disable wrapFunctionBodies
+--disable wrapIfStatementBodies
+--disable opaqueGenericParameters

@@ -1,0 +1,2 @@
+# Batch host clock is UTC. 18:00Z is 23:30 IST, after the ledger closes the day.
+0 18 * * * cd /srv/payout-notify && python3 -m notify.batch /var/lib/payouts/today.json

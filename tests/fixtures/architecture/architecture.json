@@ -1,0 +1,79 @@
+{
+  "project": "orders-hub",
+  "version": 2,
+  "system_diagram": {
+    "tiers": [
+      {"name": "Client applications", "groups": [
+        {"name": "Web and mobile workspace", "kind": "client", "nodes": [
+          {"id": "web", "name": "Customer web app", "kind": "app", "tech": "React, TypeScript"},
+          {"id": "admin", "name": "Back office", "kind": "app", "tech": "Next.js"},
+          {"id": "mobile", "name": "Mobile app", "kind": "app", "tech": "React Native"}
+        ]}
+      ]},
+      {"name": "Edge", "groups": [
+        {"name": "Ingress", "kind": "gateway", "nodes": [
+          {"id": "gw", "name": "API gateway", "kind": "service", "tech": "nginx", "modules": ["TLS termination", "Rate limiting", "Static hosting"]}
+        ]}
+      ]},
+      {"name": "Services", "groups": [
+        {"name": "Orders service (Go)", "kind": "services", "nodes": [
+          {"id": "api", "name": "Orders API", "kind": "service", "tech": "Go, net/http", "owns_store": true,
+           "modules": ["Checkout", "Invoices", "Refunds", "Notifications", "Reporting"]},
+          {"id": "worker", "name": "Background worker", "kind": "job", "tech": "Go"}
+        ]}
+      ]},
+      {"name": "Data and third parties", "groups": [
+        {"name": "Data", "kind": "data", "nodes": [
+          {"id": "pg", "name": "PostgreSQL", "kind": "store", "owns_store": true, "tech": "PostgreSQL 16"},
+          {"id": "bus", "name": "Event bus", "kind": "queue", "tech": "NATS JetStream"}
+        ]},
+        {"name": "Third parties", "kind": "external", "nodes": [
+          {"id": "pay", "name": "Payment provider", "kind": "external", "tech": "card payments"},
+          {"id": "mail", "name": "Email provider", "kind": "external"}
+        ]}
+      ]}
+    ],
+    "links": [
+      {"from": "web", "to": "gw", "label": "REST over HTTPS", "kind": "sync"},
+      {"from": "admin", "to": "gw", "label": "REST over HTTPS", "kind": "sync"},
+      {"from": "mobile", "to": "gw", "label": "REST over HTTPS", "kind": "sync"},
+      {"from": "gw", "to": "api", "label": "proxies /api requests", "kind": "sync"},
+      {"from": "api", "to": "pg", "label": "SQL reads and writes", "kind": "sync"},
+      {"from": "api", "to": "bus", "label": "publishes order events", "kind": "async"},
+      {"from": "bus", "to": "worker", "label": "delivers order events", "kind": "async"},
+      {"from": "worker", "to": "mail", "label": "sends receipts", "kind": "sync"},
+      {"from": "api", "to": "pay", "label": "creates payment intents", "kind": "sync"},
+      {"from": "worker", "to": "pg", "label": "nightly ledger export", "kind": "bulk"},
+      {"from": "mobile", "to": "pay", "label": "card entry in the provider's sheet", "kind": "sync", "unconfirmed": true}
+    ]
+  },
+  "deployment_diagram": {
+    "tiers": [
+      {"name": "Internet", "groups": [
+        {"name": "Users", "kind": "client", "nodes": [
+          {"id": "browser", "name": "Browsers and phones", "kind": "app"}
+        ]}
+      ]},
+      {"name": "Production VPC", "groups": [
+        {"name": "Kubernetes cluster (3 nodes)", "kind": "services", "nodes": [
+          {"id": "ingress", "name": "Ingress controller", "kind": "service", "tech": "2 replicas"},
+          {"id": "api-pod", "name": "orders-api", "kind": "service", "tech": "Deployment, 3 to 10 replicas", "modules": ["HPA on CPU", "PodDisruptionBudget"]},
+          {"id": "worker-pod", "name": "orders-worker", "kind": "job", "tech": "Deployment, 2 replicas"}
+        ]}
+      ]},
+      {"name": "Managed services", "groups": [
+        {"name": "Cloud data", "kind": "data", "nodes": [
+          {"id": "sql", "name": "Managed PostgreSQL", "kind": "store", "owns_store": true, "tech": "HA, PITR 7 days"},
+          {"id": "nats", "name": "NATS cluster", "kind": "queue", "tech": "3 nodes"}
+        ]}
+      ]}
+    ],
+    "links": [
+      {"from": "browser", "to": "ingress", "label": "HTTPS 443", "kind": "sync"},
+      {"from": "ingress", "to": "api-pod", "label": "HTTP 8080", "kind": "sync"},
+      {"from": "api-pod", "to": "sql", "label": "private IP 5432", "kind": "sync"},
+      {"from": "api-pod", "to": "nats", "label": "4222", "kind": "async"},
+      {"from": "nats", "to": "worker-pod", "label": "4222", "kind": "async"}
+    ]
+  }
+}

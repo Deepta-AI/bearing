@@ -1,0 +1,69 @@
+{
+ "skill_name": "prd",
+ "evals": [
+  {
+   "id": 1,
+   "name": "first-prd-from-client-brief",
+   "prompt": "The cafe client's loyalty brief is in docs/briefs/loyalty-brief.md (their email plus our kickoff call notes). Turn it into the PRD so we can start writing stories on Monday.",
+   "expected_output": "docs/product/PRD.md written from the brief only, with every capability in the brief as its own identified, testable requirement traced to its passage; the 12 month versus never expiry contradiction, the free coffee every 5th visit claim that the brief's own numbers make every 6th, the birthday reward that needs a date of birth ADR-0003 forbids, and the refund events the POS already sends but the brief never covers are all raised as questions for the client rather than settled or turned into invented requirements; the budget and launch date are constraints, only the 40% by 31 March 2027 figure is a target, vague words like fast and premium are flagged for a measure, and behaviour the team would add but the client never asked for (idempotency, offline behaviour) is absent or marked as the team's proposal, nothing outside docs/ changes and nothing is committed.",
+   "files": [
+    "files/loyalty-brief"
+   ],
+   "expectations": [
+    "A PRD was written at docs/product/PRD.md, the location the repository README names, and docs/briefs/loyalty-brief.md is unchanged",
+    "Each requirement in the PRD carries its own id (the README's REQ-nnn convention or any other stable per-requirement id), and no id is used twice",
+    "Behaviour the brief and call notes never state but a team would add for a sound build (for example processing a repeated POS event only once, what the till does when the loyalty service is down, one member per phone number, the balance always equalling the history) is either left out of the PRD or visibly marked as the team's proposal or an inference awaiting the client, never written as a requirement in the client's voice with no mark",
+    "The outlet manager's daily count of member visits per outlet (brief, 'For our staff') is captured as a requirement, and the email report versus dashboard choice left open in the call notes is recorded as undecided rather than picked silently",
+    "Each requirement can be traced back to the passage of the brief or call notes it came from (a section, item number or quote per requirement)",
+    "The expiry contradiction is raised as a question for the client naming both passages: brief item 5 says points expire after 12 months and the call notes say the operations head wants them never to expire; neither rule is written as a settled, buildable requirement (a requirement row for either rule, if present, is visibly marked as blocked on that question)",
+    "The run works out that at an average bill of Rs 180 and 1 point per Rs 10 a member earns about 18 points a visit, so 100 points takes about 6 visits, not the 'every 5th visit' the brief claims (item 4), and raises that as a question or contradiction for the client; any alternative it offers is arithmetically right (for example 90 points for a 5th-visit reward, or about 20 points a visit) and is presented as an option for the client, not as the rule",
+    "The birthday free pastry (brief item 6) is not written as a plain buildable requirement: the run notices that asking for a date of birth conflicts with ADR-0003 (phone number and first name only; a new field needs the data protection officer's sign-off and a new ADR) and raises the conflict for the client",
+    "The run notices that the POS already sends sale.refunded events (src/loyalty/pos_webhook.py, and the tech lead's line in the call notes) while the brief never says what a refund does to points, and records that as an open question or gap rather than writing a refund rule the client never stated",
+    "The Rs 12 lakh budget and the 26 October 2026 launch date are recorded as constraints, not as business objectives or success targets",
+    "The 40% of weekly till customers scanning a member QR by 31 March 2027 is recorded as a target; 'coming back more often' and 'stop stamp-card fraud' are not given numeric targets the brief does not state (the 31% and 44% return figures may appear as the problem's evidence, not as a target someone set)",
+    "'Scanning must be fast' and 'the app should feel premium' are kept but flagged as not yet measurable, each with a question asking the client for a measure; any number the run proposes (for example a scan time in seconds) is marked as a proposal or assumption, not as the client's requirement",
+    "WhatsApp for the one time password is recorded as the client's stated choice or constraint, and the PRD introduces no technology, vendor or architecture the brief and repository do not name",
+    "The PRD adds no requirement the brief and call notes do not state (for example no fraud detection rules, admin console, push notifications or a points transfer feature); anything the run added to complete the picture is marked as inferred or as a question",
+    "The final message tells the user which points need the client's answer before stories are written, including at least the expiry rule and the birthday reward",
+    "The run does not write user stories, tickets or a backlog file; stories are the next step the user named",
+    "No tracked or unignored file outside docs/ was created or changed (no code, test, Makefile or README edit; the fixture's .gitignore already hides pytest caches), and the ADRs under docs/adr/ are unchanged",
+    "The run makes no git commit: the output repository's history still ends at the fixture commit",
+    "No file written or edited contains an em dash character"
+   ]
+  },
+  {
+   "id": 2,
+   "name": "update-prd-after-demo-email",
+   "prompt": "Client emailed changes after yesterday's demo, it's in docs/briefs/2026-09-26-after-demo.md. Update the PRD and the questions list. Stories are already being built off the current ids so be careful.",
+   "expected_output": "docs/product/PRD.md and docs/product/questions.md updated in place: every existing REQ id kept, REQ-009 still withdrawn, referral REQ-011 and REQ-012 kept and marked withdrawn or deferred, the expiry reversal recorded against REQ-010 and the confirmed Q-002 without deleting either, the per-item refund change not silently rewriting REQ-017 and the confirmed Q-005, and raised as a question because the POS only sends full refunds with no items (src/loyalty/pos_webhook.py), new statements numbered from REQ-019, gift cards raised as a conflict with ADR-0002 with every gift card detail left as a question, the Diwali dates questioned because Diwali 2026 is 8 November, the 3 second limit recognised as new client input settling Q-004, the affected stories US-00-002 (in progress), US-00-006 and US-00-007 named, untouched register entries unchanged, stories.md, code and ADRs untouched, and nothing committed.",
+   "files": [
+    "files/loyalty-change"
+   ],
+   "expectations": [
+    "docs/product/PRD.md was updated in place; no second PRD file was created",
+    "Every id from REQ-001 to REQ-018 is still present in docs/product/PRD.md with the same meaning; none was renumbered, reused or deleted",
+    "The statements the email does not touch keep their text: at least REQ-002, REQ-008, REQ-017 and REQ-018 read as in the fixture",
+    "REQ-009 (the birthday pastry) is still present and still marked withdrawn",
+    "New statements from the email (gift cards, Diwali double points) take ids above REQ-018, the highest existing id even though it sits in the middle of the requirements tables; no new statement reuses REQ-017 or REQ-018 or any other existing id",
+    "The referral statements REQ-011 and REQ-012 are kept and marked withdrawn or deferred for launch, citing the 26 September email, rather than deleted",
+    "The PRD no longer presents the 12 month expiry of REQ-010 as the current rule: it is withdrawn and replaced by a new never-expire statement, or amended with the change visibly recorded, citing the email",
+    "docs/product/questions.md still contains Q-002 and its earlier confirmed 12 month decision is not silently rewritten: the register shows that the client reversed it on 26 September (the entry updated with that history, or a new entry that refers to Q-002)",
+    "Existing Q ids Q-001 to Q-007 are all still present in docs/product/questions.md; any new entry takes an id above Q-007",
+    "Gift cards bought in the app with UPI are not recorded as buildable: the run notices that they conflict with ADR-0002 (the loyalty service and app take no payments; customers pay only at the till) and raises the conflict as a question for the client, and every gift card statement it writes is visibly marked as blocked on that question (a flag column reading none on any gift card row fails this)",
+    "docs/adr/0002-no-payments-in-loyalty.md is unchanged; the run does not decide on the client's behalf to supersede it",
+    "The gift card entries choose no details the email does not give (denominations, validity, refund rules, limits, whether the friend must be a member): each such detail stays an undecided question for the client, not an assumption the run has already decided",
+    "Diwali double points is captured as a statement covering every bill from 26 October to 1 November (2026)",
+    "The run notices that the PRD holds no 3 second limit (REQ-007 is flagged ambiguous and Q-004 is open with a 2 second assumption) and records the email's 3 seconds as the client's stated limit, citing the email and saying the PRD did not already hold it; whether Q-004 is then closed or left awaiting a final confirmation, the 3 seconds is not presented as a limit that was already in the PRD",
+    "The run names the stories in docs/product/stories.md that the changes affect, with their state: at least US-00-007 (referral, REQ-011 and REQ-012), US-00-006 (expiry, REQ-010) and US-00-002 (refunds, REQ-017, already in progress), and points out that code already cites REQ-017 (src/loyalty/pos_webhook.py)",
+    "docs/product/stories.md, docs/briefs/, docs/adr/ and every tracked or unignored file outside docs/product/ (code, tests, README, Makefile) are unchanged; the fixture's .gitignore already hides pytest caches",
+    "The final message says what changed by id (withdrawn, changed and new REQ ids) and what needs the client's answer, including the gift card conflict with ADR-0002 and the partial refund question, and does not claim that stories, tests or code were updated",
+    "REQ-017's whole-bill refund rule does not silently take the email's per-item meaning under the same id: it is withdrawn and replaced by a new statement with an id above REQ-018, or amended with the old rule and the change both visibly recorded, citing the email (item 6), and the confirmed Q-005 decision is not rewritten without that history",
+    "The run notices from the repository that the per-item refund rule needs data the system does not receive: src/loyalty/pos_webhook.py says the POS sends sale.refunded only when a bill is refunded in full and the event carries no items or amount, so the rule is raised as a question (for the client or the till vendor) rather than written as a plain buildable requirement",
+    "The run notices that Diwali 2026 falls on 8 November, so the email's 'Diwali week, 26 October to 1 November' is not the week of Diwali, keeps the client's stated dates and asks the client which they mean rather than moving the dates on its own",
+    "Register entries the email does not touch (at least Q-001, Q-003, Q-006 and Q-007) keep their question, decision and status text as in the fixture",
+    "The run makes no git commit: the output repository's history still ends at the fixture commit",
+    "No file written or edited contains an em dash character"
+   ]
+  }
+ ]
+}

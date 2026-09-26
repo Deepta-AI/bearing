@@ -1,0 +1,22 @@
+groups:
+  - name: payhook
+    rules:
+      - alert: WebhookBacklogHigh
+        expr: max(payhook_queue_oldest_pending_seconds) > 600
+        for: 5m
+        labels:
+          severity: page
+          team: payments
+        annotations:
+          summary: "Oldest pending payment event is {{ $value | humanizeDuration }} old"
+          dashboard: https://grafana.example/d/payhook/payhook-queue
+
+      - alert: WebhookDeadLettersGrowing
+        expr: sum(increase(payhook_dead_letters_total[15m])) > 20
+        labels:
+          severity: page
+          team: payments
+        annotations:
+          summary: "{{ $value }} payment events dead-lettered in 15 minutes"
+          dashboard: https://grafana.example/d/payhook/payhook-queue
+          runbook_url: https://git.example/payments/payhook/-/blob/main/docs/runbooks/WebhookDeadLettersGrowing.md

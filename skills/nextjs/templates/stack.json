@@ -1,0 +1,12 @@
+{
+  "id": "next-app",
+  "display": "Next.js app",
+  "type": "Client/Web (server-rendered)",
+  "stack": "Next.js 16 App Router + React 19 + Cache Components + TypeScript + Tailwind v4 + shadcn/ui + Zod + vitest + Playwright + pnpm",
+  "databases": "none (talks to the API)",
+  "entrypoint": "src/app/layout.tsx",
+  "rules_file": "nextjs.md",
+  "check_command": "make check",
+  "install": "pnpm install",
+  "tool": "pnpm"
+}

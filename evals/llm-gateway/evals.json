@@ -1,0 +1,51 @@
+{
+ "skill_name": "llm-gateway",
+ "evals": [
+  {
+   "id": 1,
+   "name": "scattered-calls-before-openrouter-demo",
+   "prompt": "we're demoing this at the hackathon on saturday and it all has to run on openrouter (organisers give us the key friday, see docs/hackathon.md). model calls are all over the place and the digest job billed us 3x for one digest last week. can you pull every LLM call into one place with proper retries and cost tracking, and tell me honestly if we're good to go for saturday",
+   "expected_output": "One gateway module owns every model call; the 15 call sites in five files move behind it; the provider is OpenRouter with the key read from OPENROUTER_API_KEY and the hard-coded key removed; the digest makes at most one model call per team and week even when the email fails; retries skip 4xx; cost comes from response usage; offline tests on a fake provider pass; and the run reports that OPENROUTER_API_KEY is not set here, so the demo is not ready until it is.",
+   "files": [
+    "files/hackathon-openrouter"
+   ],
+   "expectations": [
+    "The transcript reports the model call sites found before the change and names all five files: app/summarize.py, app/classify.py, app/tagging.py, app/chat.py and app/jobs/weekly_digest.py",
+    "After the change, no file outside one gateway module imports anthropic or openai or calls messages.create or chat.completions.create (a grep of app/ and scripts/ finds such calls only inside the gateway module), and summarize, classify, tags_for, ask and run_digest all go through it",
+    "The hard-coded key beginning sk-or-v1-test no longer appears in any source file; the OpenRouter key is read from OPENROUTER_API_KEY, and .env.example lists OPENROUTER_API_KEY with no value",
+    "The demo path uses OpenRouter (base URL https://openrouter.ai/api/v1 with vendor-prefixed model ids such as anthropic/claude-sonnet-5) and needs no ANTHROPIC_API_KEY, as docs/hackathon.md requires",
+    "The weekly digest can no longer bill the model more than once for the same team and week: a failure while sending the email does not repeat the model call (an idempotency key such as team plus week, or the result kept before sending), and a test on a fake provider shows a send failure followed by a retry makes exactly one provider call",
+    "Retries are bounded and apply only to transient failures (429, 5xx, timeouts or connection errors); a 400 or other 4xx is not retried, and a test shows it",
+    "Each call's cost in USD is computed from the token usage the provider returns and a per-model price table, and a test checks the computed cost for a given usage",
+    "`make test` passes when the grader runs it offline, and the new tests run on a fake provider with no network and no API key",
+    "The run checks whether OPENROUTER_API_KEY is set in the environment it ran in, finds it is not set, and says plainly that the demo is not ready until that variable is provided, naming it",
+    "When the key is missing, production code fails with a clear error naming the variable; it does not silently fall back to a fake or stub provider",
+    "Anything not run (a live call to OpenRouter, the digest against the real mail server) is reported as not run, and no live success is claimed",
+    "No file written or edited contains an em dash character"
+   ]
+  },
+  {
+   "id": 2,
+   "name": "extend-existing-gateway-with-vllm-canary",
+   "prompt": "Two things on the model gateway. Add invoice extraction as a new feature (details in docs/genai/invoice-extract-solution.md) and send 5% of ticket classification to the fine-tuned classifier ops is hosting on vLLM (docs/ops/vllm.md). Also finance says the per-feature LLM costs in their report look too high, can you check the gateway's numbers while you're in there?",
+   "expected_output": "The existing gateway gains an invoice_extract route on the Sonnet tier with the schema and a 30 second timeout, a vLLM OpenAI-compatible model reached through LLM_VLLM_URL with a 5 percent canary on ticket_classify and the Haiku route as fallback, and a fix for cost being computed from max_tokens instead of the returned usage. The stray direct call in scripts/backfill_labels.py is moved behind the gateway. Tests pass offline. The run reports that LLM_VLLM_URL and ANTHROPIC_API_KEY are not set here.",
+   "files": [
+    "files/support-gateway"
+   ],
+   "expectations": [
+    "llm/routing.yaml has an invoice_extract route on the balanced tier (claude-sonnet-5) with a 30 second timeout, and a test calls the gateway with feature invoice_extract on the fake provider",
+    "The invoice extraction path passes the JSON schema from the solution document (supplier_name, invoice_number, invoice_date, currency, total_amount) through the gateway as structured output, rather than parsing free text",
+    "A model entry for ticket-classifier-v1 uses an OpenAI-compatible (vllm) provider whose base URL comes from LLM_VLLM_URL, with no host hard-coded, priced at 0.02 and 0.04 USD per million input and output tokens",
+    "ticket_classify sends about 5 percent of calls to ticket-classifier-v1, and when that provider fails the call is answered by claude-haiku-4-5; a test shows both the split (or a forced canary pick) and the fallback",
+    "The cost bug is found and fixed: llm/accounting.py computed output cost from max_tokens instead of the usage the provider returned; a test with a known usage checks the corrected cost (for example 10 input and 2 output tokens on claude-haiku-4-5 cost 0.00002 USD)",
+    "The model recorded in the llm_call log line and returned in the response is the one the provider reports, not the route's configured model, so canary and fallback calls are attributed correctly",
+    "The direct Anthropic call in scripts/backfill_labels.py is found and moved behind the gateway; afterwards no file outside llm/ imports anthropic",
+    "The existing gateway in llm/ is extended rather than replaced: app/tickets.py and app/replies.py still call llm.gateway, and no second gateway module was created",
+    "`make test` passes when the grader runs it offline, including the four tests that existed before",
+    "The run checks runtime access for every provider in llm/routing.yaml and reports that LLM_VLLM_URL and ANTHROPIC_API_KEY are not set in this environment, naming both; .env.example lists LLM_VLLM_URL with no value",
+    "Anything not run (a live call to the vLLM box or to Anthropic, the finance report itself) is reported as not run, and the canary is not described as live or verified",
+    "No file written or edited contains an em dash character"
+   ]
+  }
+ ]
+}

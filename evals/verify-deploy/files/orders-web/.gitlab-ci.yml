@@ -1,0 +1,33 @@
+stages: [check, build, deploy]
+
+check:
+  stage: check
+  script: [make check]
+
+build:
+  stage: build
+  script:
+    - docker build -t "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA" .
+    - docker push "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA"
+
+deploy-qa:
+  stage: deploy
+  rules:
+    - if: $CI_COMMIT_BRANCH == "develop"
+      when: manual
+  environment:
+    name: qa
+    url: $QA_URL
+  script:
+    - kubectl --context "$KUBE_CONTEXT_QA" -n orders-qa set image deploy/orders-web web="$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA" api="$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA"
+
+deploy-prod:
+  stage: deploy
+  rules:
+    - if: $CI_COMMIT_TAG
+      when: manual
+  environment:
+    name: prod
+    url: $PROD_URL
+  script:
+    - kubectl --context "$KUBE_CONTEXT_PROD" -n orders-prod set image deploy/orders-web web="$CI_REGISTRY_IMAGE:$CI_COMMIT_TAG" api="$CI_REGISTRY_IMAGE:$CI_COMMIT_TAG"

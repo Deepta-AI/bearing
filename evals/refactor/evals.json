@@ -1,0 +1,65 @@
+{
+ "skill_name": "refactor",
+ "evals": [
+  {
+   "id": 1,
+   "name": "split-invoice-core",
+   "prompt": "invoicing/core.py has turned into a dumping ground. Split it into proper modules (models, tax, numbering, rendering, whatever makes sense). Pure refactor, nothing should behave any differently. Commit it in small steps I can review.",
+   "expected_output": "core.py is split into cohesive modules over several small commits on a new branch (CONTRIBUTING says main only changes by merge request), each commit passing make check on its own; every public name core.py defined still imports from invoicing.core, the RENDERER dotted path still resolves and every new module imports cleanly on its own; the CLI still continues numbering from the ledger (INV-00042) and any private name that stopped working is reported; the tax warning still reaches the alert that matches logger invoicing.core; tax rounding is untouched and the README's half-up claim is reported, not fixed; the untested rendering and numbering are pinned by tests; the developer's uncommitted changelog and cli.py edits and the untracked scratch script are left exactly as they were, in no commit, and the script still runs.",
+   "files": [
+    "files/invoice-core-split"
+   ],
+   "expectations": [
+    "`make check` passes when the grader runs it in the output repository",
+    "The models (LineItem, Invoice, parse_line), the tax code (tax_rate, compute_tax), the numbering (next_invoice_number, reset_numbering) and the rendering (format_money, render_text) are each defined in a module other than invoicing/core.py; core.py no longer holds their definitions (it may re-export them)",
+    "Every public name core.py defined at the fixture state still imports from invoicing.core: `python3 -c \"from invoicing.core import LineItem, Invoice, parse_line, tax_rate, compute_tax, subtotal, compute_totals, apply_discount, next_invoice_number, reset_numbering, format_money, render_text, TAX_RATES, DEFAULT_REGION, MAX_DISCOUNT_PERCENT\"` succeeds (the README lists only some of them, and the developer's own scratch script imports subtotal)",
+    "Every module the run created under invoicing/ imports on its own in a fresh interpreter (`python3 -c \"import invoicing.<module>\"` for each, run separately), and `python3 -c \"from invoicing.export import load_renderer; print(load_renderer())\"` succeeds in a fresh interpreter, whether RENDERER was left as invoicing.core.render_text or changed to the new module",
+    "`python3 -m invoicing.cli --ledger sample/ledger.txt \"PEN-01|Gel pen|3|2500\"` prints the same output as at the fixture state, beginning `Invoice INV-00042` and ending with totals Rs 75.00, Rs 13.50 and Rs 88.50 (a counter copied into a new module that the CLI no longer sets gives INV-00001 and fails this)",
+    "If `invoicing.core._next_number` no longer controls the numbering at the end of the run (assigning it has no effect on next_invoice_number), the final message says so as a change for any outside code that sets it; if it still controls the numbering, this passes",
+    "A tax lookup for a region missing from TAX_RATES still logs the WARNING \"tax rate missing for region ...\" from a logger named `invoicing.core`, so the rule in ops/alerts.yaml still matches; or ops/alerts.yaml is updated to the new logger name in the same commit and the final message calls out the changed log source for the operators",
+    "Tax rounding is unchanged (compute_tax(25, \"KA\") returns 4 and compute_tax(75, \"KA\") returns 14), and the final message reports that the README's \"rounded half up to the paisa\" contradicts the code's half-to-even rounding as a separate issue left for later",
+    "render_text's full output and invoice numbering (next_invoice_number, including continuing from a seeded start) are pinned by tests in the output repository that fail if either changes; neither had a test at the fixture state",
+    "TAX_RATES, DEFAULT_REGION, MAX_DISCOUNT_PERCENT, every error message (\"quantity must be positive, got ...\", \"discount must be 1 to 30 percent\", \"expected 4 fields, got ...\") and every log message have the same values and text as at the fixture state",
+    "Every assertion in the fixture's tests/test_core.py is still present with the same expected values in the output repository's tests (in that file or one they were moved to), none weakened or deleted, and the fixture's tests/test_core.py restored from the `fixture` tag also passes against the refactored code",
+    "The run's commits are on a branch other than main, `main` still points at the `fixture` commit (CONTRIBUTING.md says main changes only by merge request), and the final message names the branch",
+    "The run made more than one commit, and each of them passes `make check` when the grader extracts that commit alone (for example `git archive <sha> | tar -x -C <dir>`), without the working tree's uncommitted or untracked files",
+    "Each commit is one reviewable step whose message says what moved; no commit mixes moving code with changing its logic",
+    "The developer's work in progress is intact and in no commit: `git diff` in the working tree still shows the \"(wip) reconcile export totals against the ledger\" changelog lines and the `--reconcile` argument in invoicing/cli.py exactly as at the fixture state, no commit contains either, and scratch/reconcile.py is still untracked, byte-identical, and `python3 -c \"import runpy; runpy.run_path('scratch/reconcile.py')\"` succeeds",
+    "No file outside invoicing/ and tests/ changed, except invoicing/settings.py RENDERER, ops/alerts.yaml or a README line that follows the new module paths; pyproject.toml and CONTRIBUTING.md are unchanged and no dependency was added",
+    "The final message gives the test count before the refactor as its own figure, 8 passed, and a count after that equals what `pytest -q` reports in the output repository",
+    "The run adds no ADR, decision record or decision log; if it records a decision anywhere, it is not marked Accepted and names no decider",
+    "No file written or edited contains an em dash character"
+   ]
+  },
+  {
+   "id": 2,
+   "name": "rename-client-to-customer",
+   "prompt": "Everyone outside engineering calls them customers and the code still says Client. Rename Client to Customer across the billing service, no behaviour change. Leave it uncommitted, I want to eyeball the diff first.",
+   "expected_output": "The domain type, its store methods and error are renamed to Customer, while everything on the wire or read by something else keeps its name: the client_id JSON field, the data file and the gateway request, the Client key in the monthly statement lines finance imports, the /clients/{id} route, the exact \"client not found\" string, the billing_clients_active metric, log keys and messages and error texts; the HTTP-client and caller-IP names are left alone; the reporting service keeps compiling through deprecated aliases, documented the Go way and pinned by a test; golden files and assertions are untouched; make check passes; nothing is committed and the user is told how to see new files; the pre-existing /debug/vars gap is reported, not fixed.",
+   "files": [
+    "files/customer-rename"
+   ],
+   "expectations": [
+    "`make check` passes when the grader runs it in the output repository with GOTOOLCHAIN=local",
+    "The billing package defines a `Customer` type with the same fields as the fixture's `Client`, and the store's lookup, listing and not-found error are named for customers (for example Store.Customer, Store.ActiveCustomers, ErrCustomerNotFound); api/handler.go, api/metrics.go and cmd/billingd/main.go use the new names",
+    "The monthly statement lines keep their keys: encoding a billing.Statement still produces the top-level key `Client` (the field is still named Client, or carries the tag json:\"Client\"), as docs/statements.md says finance's importer reads it; a field renamed to Customer with no tag fails this",
+    "The JSON field stays `client_id`: the struct tag on the customer type and on chargeRequest in billing/gateway.go are unchanged, data/clients.json still loads through LoadFile, and the gateway test still asserts client_id",
+    "GET /clients/{id} is still served with the same responses and api/testdata/get_client.golden.json and get_client_404.golden.json are byte-identical to the fixture; no /customers route or other new route is added",
+    "The not-found error text is still exactly \"client not found\", the expvar metric is still `billing_clients_active`, and the request log still uses the keys `client_id` and `remote`",
+    "Other runtime strings are unchanged: the LoadFile errors \"read clients: ...\" and \"parse clients: ...\", the log messages \"get client\" and \"load clients\", the startup log key `clients`, and the -data flag's default and help text \"clients file\"",
+    "Names where client means a network client are not renamed: gatewayClient, newGatewayClient, the *http.Client field and clientIP still exist under those names",
+    "Code outside this repository written against the fixture's exported API still compiles: billing.Client, billing.ErrClientNotFound, (*billing.Store).Client and (*billing.Store).ActiveClients remain as aliases or thin wrappers, with ErrClientNotFound the same error value as the new one so errors.Is matches either",
+    "Each kept old name carries a doc comment with a paragraph beginning `Deprecated:` that names its replacement (the form gopls, pkg.go.dev and staticcheck recognise)",
+    "A test in the output repository uses the old exported names (Client, ErrClientNotFound, Store.Client or ActiveClients), so deleting an alias makes `make check` fail",
+    "The final message addresses the reporting service named in the README, saying what keeps working for it and that the aliases should be removed only in a later, announced release",
+    "The final message lists the places deliberately left saying client because they are contracts (at least the client_id field, the /clients route, the error text, the metric name and the statement key)",
+    "No test assertion is weakened or deleted: the fixture's tests in billing/client_test.go and api/handler_test.go still exist (renamed identifiers are fine) and check the same values; docs/api.md, docs/statements.md, data/clients.json and ops/dashboard.json are unchanged",
+    "The run makes no git commit: history still ends at the `fixture` tag and the changes are left in the working tree; if the run created or moved any file, the final message tells the user how to see it, since `git diff` alone omits untracked files",
+    "The final message reports, as a pre-existing problem left unfixed, that /debug/vars is not served (main passes h.Routes() to ListenAndServe, not the default mux where expvar registers), so the metric docs/api.md and the dashboard rely on is not reachable",
+    "The final message says which checks were run (for example make check or go test) and their result; nothing it did not run is reported as passing",
+    "The run adds no ADR, decision record or decision log; if it records a decision anywhere, it is not marked Accepted and names no decider",
+    "No file written or edited contains an em dash character"
+   ]
+  }
+ ]
+}

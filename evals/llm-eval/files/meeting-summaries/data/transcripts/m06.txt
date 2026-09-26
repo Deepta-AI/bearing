@@ -1,0 +1,9 @@
+Meeting: Data retention, 2026-09-08
+Attendees: Neha, Joseph, Sana
+
+Joseph: We keep chat transcripts forever right now. Legal says 18 months is enough.
+Neha: Deleting is easy; the archive job already exists.
+Sana: Decision: chat transcripts older than 18 months are deleted monthly.
+Neha: I'll switch the job on by 15 September.
+Joseph: Do customers need to be told? I think yes, but legal should confirm.
+Sana: Open question for legal.

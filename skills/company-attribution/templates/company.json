@@ -1,0 +1,16 @@
+{
+  "name": "Example Co",
+  "legal_name": "Example Co Private Limited",
+  "id": "example",
+  "domain": "example.com",
+  "org_id": "com.example",
+  "git": { "host": "gitlab.example.com", "group": "example", "ssh_host": "gitlab.example.com" },
+  "tracker": { "name": "rest", "key_shape": "PP-N", "url": "https://tracker.example.com" },
+  "security_contact": "security@example.com",
+  "copyright": { "holder": "Example Co Private Limited", "since": 2026 },
+  "license": "proprietary",
+  "delivering_entity": "Example Co Private Limited",
+  "entities": ["Example Co Private Limited"],
+  "codeowners": { "lead": "@lead-handle", "group": "@engineering-group" },
+  "headers": false
+}

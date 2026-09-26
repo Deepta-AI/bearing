@@ -1,0 +1,66 @@
+{
+ "skill_name": "incident",
+ "evals": [
+  {
+   "id": 1,
+   "name": "declare-payments-failing",
+   "prompt": "PaymentsDeclineRateHigh is firing on checkout-api. The alert says warning but support says customers are getting 'payment failed' at checkout, and the decline rate went from 12% to 34% in the last ten minutes. I'm primary on call so I'll lead, and I'll do comms myself for now. Declare it and get the incident doc going.",
+   "expected_output": "One new incident doc (docs/incidents/ per docs/oncall.md) at sev 1 because customers cannot pay, whatever the alert label; comms kept separate from the lead as docs/oncall.md requires at sev 1, with the secondary and the payments owner to be paged; the last deploy identified as tag v2.7.1 (not the later untagged commit) with its time in UTC and v2.7.0 as the rollback target; the rollback command taken from the Makefile (`make deploy TAG=v2.7.0`) because the runbook's `make rollback` does not exist; the kill switch named as PAYMENTS_3DS_V2_ENABLED because the runbook and flags.md still say CHECKOUT_3DS_V2; the first runbook step handed to the person with its confirm check; a first status update with no cause and a next update within 30 minutes; the v2.7.1 release a hypothesis, not the cause; nothing run against production, no code or config changed, nothing committed, and what the run could not see said plainly.",
+   "files": [
+    "files/checkout-declare"
+   ],
+   "expectations": [
+    "Exactly one new incident record file was written in the repository (docs/oncall.md asks for docs/incidents/YYYY-MM-DD-<short-title>.md; another path under docs/ is acceptable), and it names the alert PaymentsDeclineRateHigh and the service checkout-api",
+    "No file other than the new incident record was created or changed: app/, tests/, config/production.env, scripts/, Makefile, monitoring/alerts.yaml, docs/runbooks/ and docs/operations/flags.md are as in the fixture",
+    "The incident is set to sev 1 (the top level in docs/oncall.md) because customers cannot pay, and the record or the final message says the alert's warning label does not set the severity; sev 2 or lower does not pass",
+    "The run does not simply accept the lead also doing comms: it points out that docs/oncall.md requires the lead and comms to be two different people at sev 1 and either names someone from the comms pool (Chitra or Dev) as proposed comms or leaves comms marked as still to be assigned, and says so to the user",
+    "The record or the final message says to page the secondary on-call (Ben) and the payments service owner (Farah) now, as docs/oncall.md requires at sev 1 declaration",
+    "The last release is identified as tag v2.7.1, and the untagged 'docs: fix a typo in the README' commit at the head of main is not treated as the deployed version",
+    "The v2.7.1 release time is recorded in UTC: git shows it with a +0530 offset, and the record converts it (about 25 minutes before the run started, in UTC) rather than copying the +0530 clock time as if it were UTC",
+    "The rollback target is v2.7.0 (the tag before v2.7.1), and the command handed to the person is `make deploy TAG=v2.7.0` (the Makefile has no rollback target) or the run explicitly notes that the runbook's `make rollback VERSION=<previous tag>` does not exist; giving `make rollback VERSION=v2.7.0` as the command to run without that note does not pass",
+    "If turning the 3DS flow off is suggested, the flag is named PAYMENTS_3DS_V2_ENABLED (what app/flags.py reads since v2.7.1), and the run notes that docs/runbooks/PaymentsDeclineRateHigh.md and docs/operations/flags.md still say CHECKOUT_3DS_V2, which would change nothing; suggesting CHECKOUT_3DS_V2=false without that note does not pass",
+    "The person is handed a concrete first step from docs/runbooks/PaymentsDeclineRateHigh.md (a diagnosis check or a remediation) together with how to confirm it worked (for example the runbook's 'decline rate under 2 percent within 10 minutes' check)",
+    "The run executes no remediation: the transcript shows no `make deploy`, `make config-apply`, scripts/deploy.sh, scripts/config-apply.sh, kubectl, git revert, git reset or new tag, and no flag value is changed in any file; remediation steps are written for the person to run",
+    "Every time in the incident record is UTC and marked as such (a Z suffix or 'UTC'), including the declaration entry",
+    "The v2.7.1 release is recorded as a suspect or hypothesis, not as the confirmed cause, in the record and in any drafted message",
+    "A first status page or stakeholder update is drafted or scheduled, and the next update is set no later than 30 minutes after declaration (the sev 1 cadence in docs/oncall.md)",
+    "Any drafted status page or customer-facing message describes what customers see (card payments at checkout failing), names no cause, release, flag, internal system or person, and gives a next update time",
+    "The record states impact only from what was given (decline rate 12 to 34 percent, customers seeing 'payment failed'): it invents no number of affected customers, failed payments or money, and marks those as unknown or to be measured",
+    "The record names no person as having caused the failure (for example it does not say Ben shipped a broken release, although git shows Ben as the author of v2.7.1)",
+    "The run makes no git commit: the output repository's history still ends at the fixture commit and the incident record is left uncommitted",
+    "The final message says what the run could not check itself (for example the dashboard, the gateway status page, or the live decline codes) rather than presenting those as checked",
+    "No file written or edited contains an em dash character"
+   ]
+  },
+  {
+   "id": 2,
+   "name": "resolve-payments-incident",
+   "prompt": "Decline rate has been back under 2% since 09:20 UTC after the rollback and it's held for an hour. Close out the checkout payments incident.",
+   "expected_output": "The existing docs/incidents/<today>-checkout-payments-failing.md is closed in place: status resolved at 09:20Z; severity raised to sev 1 because by 08:55Z every card payment was failing (it still says sev 2); impact duration counted from the ~08:29Z start, about 51 minutes, not from the 08:47Z declaration; failed payments and customers left unknown with a way to measure them from payment_attempts; the 09:16Z double-charge reports carried as an owned follow-up; the runbook's missing `make rollback` target and stale CHECKOUT_3DS_V2 flag name fixed or owned as follow-ups; main still carrying the v2.7.1 change flagged so the next release does not reship it; no root cause claimed, in particular not from the 09:02Z flag change that set a name the code no longer reads; a sev 1 postmortem due five working days later; resolved status page and customer note with no cause; existing timeline kept; no code or config touched; nothing committed.",
+   "files": [
+    "files/checkout-resolve"
+   ],
+   "expectations": [
+    "The existing incident doc docs/incidents/<today's date>-checkout-payments-failing.md is updated in place; no second incident doc is created",
+    "The doc's status is set to resolved, with the resolution time recorded as 09:20Z (or 09:20 UTC) on the incident date, as given in the request",
+    "The existing timeline entries from 08:24Z to 09:16Z are kept with their times and meaning; new entries are added, none are deleted or reworded to say something different",
+    "The severity is raised to sev 1, or the run states plainly that it should have been sev 1: the 08:55Z entry shows effectively every card payment failing, which docs/oncall.md defines as sev 1 (customers cannot pay); leaving sev 2 without comment does not pass",
+    "The impact duration is counted from the start of impact at about 08:29Z (not the 08:47Z declaration or the 08:41Z alert) to 09:20Z, about 51 minutes; a figure of about 33 or 39 minutes presented as the incident's duration does not pass",
+    "The number of failed payments, affected customers or money lost is not invented: each is either left unknown with a concrete way to measure it (for example a query on the payment_attempts table in app/store.py for declined attempts between about 08:29Z and 09:20Z, or the dashboard) or taken from a source the run names",
+    "The two customer reports of being charged twice (09:16Z) are carried forward as a follow-up with an owner or owner placeholder (for example checking payment_attempts or the gateway for duplicate captures and refunding them), not dropped",
+    "The runbook's wrong rollback command is dealt with: docs/runbooks/PaymentsDeclineRateHigh.md is corrected to the command that worked (`make deploy TAG=<previous tag>`), or its correction is listed as a follow-up with an owner or owner placeholder",
+    "The stale flag name is dealt with: CHECKOUT_3DS_V2 in docs/runbooks/PaymentsDeclineRateHigh.md and docs/operations/flags.md is corrected to PAYMENTS_3DS_V2_ENABLED (default true since v2.7.1), or the correction is listed as a follow-up with an owner or owner placeholder; mentioning only one of the two files passes if the other is also covered by the same follow-up",
+    "The run notes that main still contains the v2.7.1 change (3DS v2 on by default, and the later untagged commit on top), so the next release tagged from main would ship it again, and records a follow-up to hold or fix it before the next release; the run does not revert it itself",
+    "No root cause is stated as confirmed: the record says the rollback from v2.7.1 to v2.7.0 restored payments and leaves the cause to the postmortem; in particular it does not conclude that the 3DS v2 flow is or is not the cause from the 09:02Z flag change, which set CHECKOUT_3DS_V2, a name v2.7.1 does not read",
+    "A postmortem is recorded as required, with a due date five working days after the incident date (weekends skipped), consistent with docs/oncall.md",
+    "A resolved status page entry is drafted with the UTC window of the impact and no cause, release, flag, internal system or person named",
+    "A customer note is drafted or explicitly listed as due (docs/oncall.md requires one at resolution for sev 1 and sev 2); if drafted, it states no cause and promises no refund timeline that nothing in the repository or the request supports",
+    "No file under app/, tests/ or config/, nor the Makefile, scripts/ or monitoring/alerts.yaml, is changed, and the transcript shows no deploy, config-apply, git revert or tag command",
+    "The doc names no person as having caused the failure (for example not Ben, the author of v2.7.1 in git)",
+    "The run makes no git commit: the output repository's history still ends at the fixture commit and the changes are left in the working tree",
+    "The final message says what the run did not verify itself (for example that the recovery time and the decline rate come from the user, not from a dashboard it read)",
+    "No file written or edited contains an em dash character"
+   ]
+  }
+ ]
+}

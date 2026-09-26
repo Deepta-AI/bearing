@@ -1,0 +1,151 @@
+ticket_id,received,employee_id,country,topic,question,hr_answer,policy_cited
+HRD-2607000,2026-08-05,E-10398,UK,payroll,When is salary credited this month?,Salary is credited on the last working day.,
+HRD-2607007,2026-08-26,E-11190,IN,leave-policy,Do I need a medical certificate for 3 days of sick leave?,"Yes, in India a certificate is needed for more than 2 consecutive days.",leave.md 2
+HRD-2607014,2026-08-10,E-13602,UK,notice-period,What is my notice period? I am grade G4.,1 month after probation.,notice-period.md
+HRD-2607021,2026-08-14,E-14585,UK,expenses,What is the meal limit in Mumbai?,"INR 1,200 a day in Bengaluru and Mumbai.",expenses.md 2.1
+HRD-2607028,2026-08-17,E-11323,IN,expenses,What is the meal limit in Mumbai?,"INR 1,200 a day in Bengaluru and Mumbai.",expenses.md 2.1
+HRD-2607035,2026-07-28,E-14695,IN,leave-policy,Do I need a medical certificate for 3 days of sick leave?,"Yes, in India a certificate is needed for more than 2 consecutive days.",leave.md 2
+HRD-2607042,2026-08-23,E-14698,UK,leave-balance,How many earned leave days do I have left this year?,Please check your balance in the HR system under Leave.,leave.md 4
+HRD-2607049,2026-08-03,E-12020,IN,leave-policy,Do I need a medical certificate for 3 days of sick leave?,"Yes, in India a certificate is needed for more than 2 consecutive days.",leave.md 2
+HRD-2607056,2026-07-04,E-12305,IN,leave-policy,How many optional holidays do we get?,India: 2 optional holidays from the regional list. UK has no optional holidays.,leave.md 3.1
+HRD-2607063,2026-07-20,E-12462,UK,expenses,Do I need a receipt for a 300 rupee taxi?,"No, receipts are required above INR 500.",expenses.md 1.1
+HRD-2607070,2026-07-26,E-18249,IN,leave-balance,Do I still have carry-over days from last year?,Carried-over days show as a separate line in your balance in the HR system.,leave.md 4
+HRD-2607077,2026-07-06,E-18983,IN,payroll,When is salary credited this month?,Salary is credited on the last working day.,
+HRD-2607084,2026-08-08,E-16595,UK,expenses,"I forgot to submit a claim from 6 weeks ago, can I still?","Yes, with your manager's written approval, as it is past 30 days.",expenses.md 3.1
+HRD-2607091,2026-07-22,E-12368,IN,payroll,When is salary credited this month?,Salary is credited on the last working day.,
+HRD-2607098,2026-08-15,E-19327,UK,leave-policy,How many days can I carry over to next year? I am in the UK.,"UK: up to 8 days, to be used by 31 March.",leave.md 1.3
+HRD-2607105,2026-08-23,E-15344,IN,notice-period,What is my notice period? I am grade G5.,90 days.,notice-period.md
+HRD-2607112,2026-07-27,E-14123,UK,leave-balance,Do I still have carry-over days from last year?,Carried-over days show as a separate line in your balance in the HR system.,leave.md 4
+HRD-2607119,2026-07-10,E-17084,IN,leave-balance,How many optional holidays have I used?,The HR system shows optional holidays used and remaining.,leave.md 4
+HRD-2607126,2026-08-07,E-12775,IN,payroll,When is salary credited this month?,Salary is credited on the last working day.,
+HRD-2607133,2026-07-20,E-15816,IN,parental-leave,Can my partner and I share parental leave?,"UK only: shared parental leave up to 50 weeks, topped up to full pay for the first 6 shared weeks.",parental-leave.md 2.3
+HRD-2607140,2026-08-10,E-11540,IN,leave-balance,Do I still have carry-over days from last year?,Carried-over days show as a separate line in your balance in the HR system.,leave.md 4
+HRD-2607147,2026-08-12,E-16797,IN,leave-balance,Do I still have carry-over days from last year?,Carried-over days show as a separate line in your balance in the HR system.,leave.md 4
+HRD-2607154,2026-08-11,E-10657,IN,payroll,When is salary credited this month?,Salary is credited on the last working day.,
+HRD-2607161,2026-08-18,E-18680,UK,notice-period,Can I buy out my notice?,India: only with the business head's approval.,notice-period.md 1.3
+HRD-2607168,2026-07-10,E-19163,IN,notice-period,Can I buy out my notice?,India: only with the business head's approval.,notice-period.md 1.3
+HRD-2607175,2026-08-05,E-10943,IN,leave-policy,How many optional holidays do we get?,India: 2 optional holidays from the regional list. UK has no optional holidays.,leave.md 3.1
+HRD-2607182,2026-08-08,E-18935,IN,expenses,What is the meal limit in Mumbai?,"INR 1,200 a day in Bengaluru and Mumbai.",expenses.md 2.1
+HRD-2607189,2026-07-04,E-11431,IN,parental-leave,Can my partner and I share parental leave?,"UK only: shared parental leave up to 50 weeks, topped up to full pay for the first 6 shared weeks.",parental-leave.md 2.3
+HRD-2607196,2026-07-20,E-12873,IN,remote-work,Can I work from Portugal for 3 weeks?,"Up to 20 working days a year with manager approval and a People team check. 3 weeks is 15 days, so it is within the limit.",remote-work.md 2.1
+HRD-2607203,2026-08-27,E-15578,IN,notice-period,What is my notice period? I am grade G5.,90 days.,notice-period.md
+HRD-2607210,2026-08-25,E-10737,IN,parental-leave,How long is paternity leave?,"15 working days, within 6 months.",parental-leave.md
+HRD-2607217,2026-08-08,E-16124,IN,leave-balance,Do I still have carry-over days from last year?,Carried-over days show as a separate line in your balance in the HR system.,leave.md 4
+HRD-2607224,2026-08-11,E-10843,UK,leave-policy,How many days can I carry over to next year? I am in the UK.,"UK: up to 8 days, to be used by 31 March.",leave.md 1.3
+HRD-2607231,2026-08-22,E-17864,IN,expenses,What is the meal limit in Mumbai?,"INR 1,200 a day in Bengaluru and Mumbai.",expenses.md 2.1
+HRD-2607238,2026-07-28,E-13593,IN,leave-policy,How many days can I carry over to next year? I am in India.,India: up to 15 days.,leave.md 1.3
+HRD-2607245,2026-07-27,E-11539,UK,notice-period,Can I buy out my notice?,India: only with the business head's approval.,notice-period.md 1.3
+HRD-2607252,2026-08-16,E-12686,IN,expenses,"I forgot to submit a claim from 6 weeks ago, can I still?","Yes, with your manager's written approval, as it is past 30 days.",expenses.md 3.1
+HRD-2607259,2026-07-22,E-17666,IN,parental-leave,How long is paternity leave?,"15 working days, within 6 months.",parental-leave.md
+HRD-2607266,2026-08-23,E-15508,IN,expenses,Do I need a receipt for a 300 rupee taxi?,"No, receipts are required above INR 500.",expenses.md 1.1
+HRD-2607273,2026-07-28,E-12208,UK,remote-work,Can I work from Portugal for 3 weeks?,"Up to 20 working days a year with manager approval and a People team check. 3 weeks is 15 days, so it is within the limit.",remote-work.md 2.1
+HRD-2607280,2026-07-17,E-17726,IN,payroll,When is salary credited this month?,Salary is credited on the last working day.,
+HRD-2607287,2026-08-05,E-11878,IN,leave-policy,How many optional holidays do we get?,India: 2 optional holidays from the regional list. UK has no optional holidays.,leave.md 3.1
+HRD-2607294,2026-07-21,E-16739,IN,payroll,My payslip shows the wrong tax code.,Forwarded to payroll.,
+HRD-2607301,2026-07-06,E-14200,UK,leave-balance,How many earned leave days do I have left this year?,Please check your balance in the HR system under Leave.,leave.md 4
+HRD-2607308,2026-07-11,E-17695,IN,travel,Can I fly premium economy to Singapore?,"Premium economy is allowed above 6 hours with the business head's approval; Chennai to Singapore is under 6 hours, so economy.",travel.md 1.1
+HRD-2607315,2026-08-17,E-11484,UK,leave-balance,Do I still have carry-over days from last year?,Carried-over days show as a separate line in your balance in the HR system.,leave.md 4
+HRD-2607322,2026-08-21,E-16416,IN,leave-balance,How many optional holidays have I used?,The HR system shows optional holidays used and remaining.,leave.md 4
+HRD-2607329,2026-07-06,E-19352,IN,leave-balance,Can you tell me my sick leave balance?,Your balance is in the HR system; HR does not send balances by email.,leave.md 4
+HRD-2607336,2026-07-21,E-19456,IN,notice-period,Can I buy out my notice?,India: only with the business head's approval.,notice-period.md 1.3
+HRD-2607343,2026-07-03,E-18871,IN,leave-balance,How many earned leave days do I have left this year?,Please check your balance in the HR system under Leave.,leave.md 4
+HRD-2607350,2026-07-24,E-15313,IN,leave-balance,Can you tell me my sick leave balance?,Your balance is in the HR system; HR does not send balances by email.,leave.md 4
+HRD-2607357,2026-07-02,E-13819,IN,expenses,"I forgot to submit a claim from 6 weeks ago, can I still?","Yes, with your manager's written approval, as it is past 30 days.",expenses.md 3.1
+HRD-2607364,2026-08-24,E-17942,IN,expenses,"I forgot to submit a claim from 6 weeks ago, can I still?","Yes, with your manager's written approval, as it is past 30 days.",expenses.md 3.1
+HRD-2607371,2026-07-06,E-11450,IN,parental-leave,Can my partner and I share parental leave?,"UK only: shared parental leave up to 50 weeks, topped up to full pay for the first 6 shared weeks.",parental-leave.md 2.3
+HRD-2607378,2026-08-20,E-19207,IN,parental-leave,Can my partner and I share parental leave?,"UK only: shared parental leave up to 50 weeks, topped up to full pay for the first 6 shared weeks.",parental-leave.md 2.3
+HRD-2607385,2026-07-05,E-18118,IN,parental-leave,How long is paternity leave?,"15 working days, within 6 months.",parental-leave.md
+HRD-2607392,2026-07-09,E-18463,UK,leave-balance,How many optional holidays have I used?,The HR system shows optional holidays used and remaining.,leave.md 4
+HRD-2607399,2026-07-17,E-14271,UK,travel,Can I fly premium economy to Singapore?,"Premium economy is allowed above 6 hours with the business head's approval; Chennai to Singapore is under 6 hours, so economy.",travel.md 1.1
+HRD-2607406,2026-08-03,E-16436,IN,expenses,What is the meal limit in Mumbai?,"INR 1,200 a day in Bengaluru and Mumbai.",expenses.md 2.1
+HRD-2607413,2026-07-18,E-14453,UK,parental-leave,How long is paternity leave?,2 weeks at full pay.,parental-leave.md
+HRD-2607420,2026-07-14,E-19835,UK,leave-policy,How many optional holidays do we get?,India: 2 optional holidays from the regional list. UK has no optional holidays.,leave.md 3.1
+HRD-2607427,2026-07-15,E-18526,UK,leave-balance,Can you tell me my sick leave balance?,Your balance is in the HR system; HR does not send balances by email.,leave.md 4
+HRD-2607434,2026-07-07,E-17128,UK,leave-balance,Can you tell me my sick leave balance?,Your balance is in the HR system; HR does not send balances by email.,leave.md 4
+HRD-2607441,2026-07-22,E-11023,IN,leave-policy,How many days can I carry over to next year? I am in India.,India: up to 15 days.,leave.md 1.3
+HRD-2607448,2026-07-01,E-12002,IN,travel,Can I fly premium economy to Singapore?,"Premium economy is allowed above 6 hours with the business head's approval; Chennai to Singapore is under 6 hours, so economy.",travel.md 1.1
+HRD-2607455,2026-07-13,E-14898,IN,leave-balance,Can you tell me my sick leave balance?,Your balance is in the HR system; HR does not send balances by email.,leave.md 4
+HRD-2607462,2026-07-03,E-17190,UK,payroll,When is salary credited this month?,Salary is credited on the last working day.,
+HRD-2607469,2026-07-17,E-12878,IN,leave-policy,How many days can I carry over to next year? I am in India.,India: up to 15 days.,leave.md 1.3
+HRD-2607476,2026-08-03,E-12677,IN,leave-balance,Do I still have carry-over days from last year?,Carried-over days show as a separate line in your balance in the HR system.,leave.md 4
+HRD-2607483,2026-08-01,E-15476,IN,leave-balance,How many optional holidays have I used?,The HR system shows optional holidays used and remaining.,leave.md 4
+HRD-2607490,2026-07-05,E-11760,UK,leave-balance,How many earned leave days do I have left this year?,Please check your balance in the HR system under Leave.,leave.md 4
+HRD-2607497,2026-07-01,E-14355,IN,leave-policy,How many optional holidays do we get?,India: 2 optional holidays from the regional list. UK has no optional holidays.,leave.md 3.1
+HRD-2607504,2026-08-09,E-14990,IN,leave-policy,Do I need a medical certificate for 3 days of sick leave?,"Yes, in India a certificate is needed for more than 2 consecutive days.",leave.md 2
+HRD-2607511,2026-08-04,E-19581,UK,leave-balance,How many optional holidays have I used?,The HR system shows optional holidays used and remaining.,leave.md 4
+HRD-2607518,2026-07-15,E-19748,UK,expenses,Do I need a receipt for a 300 rupee taxi?,"No, receipts are required above INR 500.",expenses.md 1.1
+HRD-2607525,2026-07-23,E-17144,IN,parental-leave,How long is paternity leave?,"15 working days, within 6 months.",parental-leave.md
+HRD-2607532,2026-08-12,E-14588,UK,notice-period,Can I buy out my notice?,India: only with the business head's approval.,notice-period.md 1.3
+HRD-2607539,2026-08-04,E-11734,UK,leave-balance,How many earned leave days do I have left this year?,Please check your balance in the HR system under Leave.,leave.md 4
+HRD-2607546,2026-08-09,E-13773,IN,leave-balance,How many earned leave days do I have left this year?,Please check your balance in the HR system under Leave.,leave.md 4
+HRD-2607553,2026-08-09,E-17848,UK,leave-balance,Do I still have carry-over days from last year?,Carried-over days show as a separate line in your balance in the HR system.,leave.md 4
+HRD-2607560,2026-08-11,E-10065,IN,leave-balance,Do I still have carry-over days from last year?,Carried-over days show as a separate line in your balance in the HR system.,leave.md 4
+HRD-2607567,2026-07-03,E-16556,IN,expenses,Do I need a receipt for a 300 rupee taxi?,"No, receipts are required above INR 500.",expenses.md 1.1
+HRD-2607574,2026-07-06,E-13744,UK,leave-policy,Do I need a medical certificate for 3 days of sick leave?,UK: self-certify for up to 7 days.,leave.md 2
+HRD-2607581,2026-08-16,E-18801,IN,leave-policy,How many optional holidays do we get?,India: 2 optional holidays from the regional list. UK has no optional holidays.,leave.md 3.1
+HRD-2607588,2026-08-23,E-16334,UK,leave-policy,How many days can I carry over to next year? I am in the UK.,"UK: up to 8 days, to be used by 31 March.",leave.md 1.3
+HRD-2607595,2026-07-03,E-12572,UK,parental-leave,Can my partner and I share parental leave?,"UK only: shared parental leave up to 50 weeks, topped up to full pay for the first 6 shared weeks.",parental-leave.md 2.3
+HRD-2607602,2026-08-06,E-17357,IN,notice-period,Can I buy out my notice?,India: only with the business head's approval.,notice-period.md 1.3
+HRD-2607609,2026-08-18,E-14882,IN,travel,Can I fly premium economy to Singapore?,"Premium economy is allowed above 6 hours with the business head's approval; Chennai to Singapore is under 6 hours, so economy.",travel.md 1.1
+HRD-2607616,2026-07-02,E-10039,IN,remote-work,Can I work from Portugal for 3 weeks?,"Up to 20 working days a year with manager approval and a People team check. 3 weeks is 15 days, so it is within the limit.",remote-work.md 2.1
+HRD-2607623,2026-07-11,E-18086,UK,leave-policy,How many optional holidays do we get?,India: 2 optional holidays from the regional list. UK has no optional holidays.,leave.md 3.1
+HRD-2607630,2026-08-18,E-15126,UK,leave-policy,How many optional holidays do we get?,India: 2 optional holidays from the regional list. UK has no optional holidays.,leave.md 3.1
+HRD-2607637,2026-07-05,E-11084,UK,expenses,Do I need a receipt for a 300 rupee taxi?,"No, receipts are required above INR 500.",expenses.md 1.1
+HRD-2607644,2026-08-05,E-11293,IN,leave-balance,How many optional holidays have I used?,The HR system shows optional holidays used and remaining.,leave.md 4
+HRD-2607651,2026-08-13,E-10096,UK,expenses,What is the meal limit in Mumbai?,"INR 1,200 a day in Bengaluru and Mumbai.",expenses.md 2.1
+HRD-2607658,2026-08-15,E-14519,IN,notice-period,Can I buy out my notice?,India: only with the business head's approval.,notice-period.md 1.3
+HRD-2607665,2026-08-03,E-15078,UK,leave-balance,Do I still have carry-over days from last year?,Carried-over days show as a separate line in your balance in the HR system.,leave.md 4
+HRD-2607672,2026-08-11,E-10338,IN,leave-policy,How many optional holidays do we get?,India: 2 optional holidays from the regional list. UK has no optional holidays.,leave.md 3.1
+HRD-2607679,2026-07-11,E-16943,IN,leave-policy,Do I need a medical certificate for 3 days of sick leave?,"Yes, in India a certificate is needed for more than 2 consecutive days.",leave.md 2
+HRD-2607686,2026-07-09,E-13194,IN,leave-policy,How many optional holidays do we get?,India: 2 optional holidays from the regional list. UK has no optional holidays.,leave.md 3.1
+HRD-2607693,2026-07-14,E-12209,UK,expenses,What is the meal limit in Mumbai?,"INR 1,200 a day in Bengaluru and Mumbai.",expenses.md 2.1
+HRD-2607700,2026-07-25,E-10163,UK,leave-policy,How many days can I carry over to next year? I am in the UK.,"UK: up to 8 days, to be used by 31 March.",leave.md 1.3
+HRD-2607707,2026-07-10,E-11783,UK,expenses,Do I need a receipt for a 300 rupee taxi?,"No, receipts are required above INR 500.",expenses.md 1.1
+HRD-2607714,2026-07-26,E-12351,UK,leave-balance,Do I still have carry-over days from last year?,Carried-over days show as a separate line in your balance in the HR system.,leave.md 4
+HRD-2607721,2026-07-26,E-16045,UK,leave-policy,How many days can I carry over to next year? I am in the UK.,"UK: up to 8 days, to be used by 31 March.",leave.md 1.3
+HRD-2607728,2026-07-12,E-13446,IN,remote-work,Can I work from Portugal for 3 weeks?,"Up to 20 working days a year with manager approval and a People team check. 3 weeks is 15 days, so it is within the limit.",remote-work.md 2.1
+HRD-2607735,2026-07-14,E-11922,IN,notice-period,Can I buy out my notice?,India: only with the business head's approval.,notice-period.md 1.3
+HRD-2607742,2026-07-28,E-11326,UK,leave-policy,How many days can I carry over to next year? I am in the UK.,"UK: up to 8 days, to be used by 31 March.",leave.md 1.3
+HRD-2607749,2026-08-27,E-17831,IN,remote-work,Can I work from Portugal for 3 weeks?,"Up to 20 working days a year with manager approval and a People team check. 3 weeks is 15 days, so it is within the limit.",remote-work.md 2.1
+HRD-2607756,2026-07-05,E-12919,IN,travel,Can I fly premium economy to Singapore?,"Premium economy is allowed above 6 hours with the business head's approval; Chennai to Singapore is under 6 hours, so economy.",travel.md 1.1
+HRD-2607763,2026-08-11,E-17002,IN,leave-balance,Can you tell me my sick leave balance?,Your balance is in the HR system; HR does not send balances by email.,leave.md 4
+HRD-2607770,2026-07-06,E-12466,UK,expenses,What is the meal limit in Mumbai?,"INR 1,200 a day in Bengaluru and Mumbai.",expenses.md 2.1
+HRD-2607777,2026-08-15,E-11858,UK,leave-balance,How many earned leave days do I have left this year?,Please check your balance in the HR system under Leave.,leave.md 4
+HRD-2607784,2026-07-01,E-17758,IN,parental-leave,Can my partner and I share parental leave?,"UK only: shared parental leave up to 50 weeks, topped up to full pay for the first 6 shared weeks.",parental-leave.md 2.3
+HRD-2607791,2026-07-02,E-18415,IN,leave-balance,Do I still have carry-over days from last year?,Carried-over days show as a separate line in your balance in the HR system.,leave.md 4
+HRD-2607798,2026-07-25,E-15184,UK,remote-work,Can I work from Portugal for 3 weeks?,"Up to 20 working days a year with manager approval and a People team check. 3 weeks is 15 days, so it is within the limit.",remote-work.md 2.1
+HRD-2607805,2026-07-10,E-12715,IN,leave-balance,Do I still have carry-over days from last year?,Carried-over days show as a separate line in your balance in the HR system.,leave.md 4
+HRD-2607812,2026-08-21,E-16796,IN,expenses,Do I need a receipt for a 300 rupee taxi?,"No, receipts are required above INR 500.",expenses.md 1.1
+HRD-2607819,2026-07-11,E-12038,UK,notice-period,What is my notice period? I am grade G2.,1 month after probation.,notice-period.md
+HRD-2607826,2026-07-16,E-11639,IN,expenses,What is the meal limit in Mumbai?,"INR 1,200 a day in Bengaluru and Mumbai.",expenses.md 2.1
+HRD-2607833,2026-07-16,E-16916,UK,leave-balance,How many optional holidays have I used?,The HR system shows optional holidays used and remaining.,leave.md 4
+HRD-2607840,2026-08-21,E-18662,IN,payroll,When is salary credited this month?,Salary is credited on the last working day.,
+HRD-2607847,2026-08-16,E-17009,IN,leave-balance,How many optional holidays have I used?,The HR system shows optional holidays used and remaining.,leave.md 4
+HRD-2607854,2026-07-18,E-17800,IN,leave-policy,How many optional holidays do we get?,India: 2 optional holidays from the regional list. UK has no optional holidays.,leave.md 3.1
+HRD-2607861,2026-08-05,E-13220,IN,travel,Can I fly premium economy to Singapore?,"Premium economy is allowed above 6 hours with the business head's approval; Chennai to Singapore is under 6 hours, so economy.",travel.md 1.1
+HRD-2607868,2026-07-15,E-15404,IN,leave-balance,How many optional holidays have I used?,The HR system shows optional holidays used and remaining.,leave.md 4
+HRD-2607875,2026-07-24,E-13828,IN,leave-balance,How many earned leave days do I have left this year?,Please check your balance in the HR system under Leave.,leave.md 4
+HRD-2607882,2026-08-09,E-18618,UK,travel,Can I fly premium economy to Singapore?,"Premium economy is allowed above 6 hours with the business head's approval; Chennai to Singapore is under 6 hours, so economy.",travel.md 1.1
+HRD-2607889,2026-07-07,E-12401,UK,leave-balance,Can you tell me my sick leave balance?,Your balance is in the HR system; HR does not send balances by email.,leave.md 4
+HRD-2607896,2026-07-27,E-10361,IN,expenses,What is the meal limit in Mumbai?,"INR 1,200 a day in Bengaluru and Mumbai.",expenses.md 2.1
+HRD-2607903,2026-07-16,E-19169,UK,leave-policy,How many optional holidays do we get?,India: 2 optional holidays from the regional list. UK has no optional holidays.,leave.md 3.1
+HRD-2607910,2026-08-28,E-13662,IN,leave-policy,How many optional holidays do we get?,India: 2 optional holidays from the regional list. UK has no optional holidays.,leave.md 3.1
+HRD-2607917,2026-08-22,E-17157,UK,leave-balance,How many earned leave days do I have left this year?,Please check your balance in the HR system under Leave.,leave.md 4
+HRD-2607924,2026-07-06,E-15652,IN,payroll,My payslip shows the wrong tax code.,Forwarded to payroll.,
+HRD-2607931,2026-08-11,E-12816,IN,parental-leave,Can my partner and I share parental leave?,"UK only: shared parental leave up to 50 weeks, topped up to full pay for the first 6 shared weeks.",parental-leave.md 2.3
+HRD-2607938,2026-08-06,E-10348,IN,remote-work,Can I work from Portugal for 3 weeks?,"Up to 20 working days a year with manager approval and a People team check. 3 weeks is 15 days, so it is within the limit.",remote-work.md 2.1
+HRD-2607945,2026-07-28,E-14044,UK,leave-balance,Can you tell me my sick leave balance?,Your balance is in the HR system; HR does not send balances by email.,leave.md 4
+HRD-2607952,2026-08-23,E-16733,IN,expenses,Do I need a receipt for a 300 rupee taxi?,"No, receipts are required above INR 500.",expenses.md 1.1
+HRD-2607959,2026-08-15,E-15505,UK,notice-period,What is my notice period? I am grade G5.,1 month after probation.,notice-period.md
+HRD-2607966,2026-08-14,E-11084,IN,notice-period,What is my notice period? I am grade G3.,30 days.,notice-period.md
+HRD-2607973,2026-07-04,E-18567,IN,parental-leave,How long is paternity leave?,"15 working days, within 6 months.",parental-leave.md
+HRD-2607980,2026-07-18,E-18193,IN,leave-balance,Can you tell me my sick leave balance?,Your balance is in the HR system; HR does not send balances by email.,leave.md 4
+HRD-2607987,2026-07-05,E-13207,UK,notice-period,Can I buy out my notice?,India: only with the business head's approval.,notice-period.md 1.3
+HRD-2607994,2026-07-01,E-12025,IN,notice-period,What is my notice period? I am grade G4.,90 days.,notice-period.md
+HRD-2608001,2026-08-13,E-17168,UK,parental-leave,Can my partner and I share parental leave?,"UK only: shared parental leave up to 50 weeks, topped up to full pay for the first 6 shared weeks.",parental-leave.md 2.3
+HRD-2608008,2026-07-20,E-17323,UK,leave-policy,How many days can I carry over to next year? I am in the UK.,"UK: up to 8 days, to be used by 31 March.",leave.md 1.3
+HRD-2608015,2026-08-02,E-12881,IN,expenses,Do I need a receipt for a 300 rupee taxi?,"No, receipts are required above INR 500.",expenses.md 1.1
+HRD-2608022,2026-08-02,E-13268,UK,leave-policy,How many optional holidays do we get?,India: 2 optional holidays from the regional list. UK has no optional holidays.,leave.md 3.1
+HRD-2608029,2026-08-04,E-14414,UK,leave-balance,How many earned leave days do I have left this year?,Please check your balance in the HR system under Leave.,leave.md 4
+HRD-2608036,2026-08-13,E-19139,UK,expenses,Do I need a receipt for a 300 rupee taxi?,"No, receipts are required above INR 500.",expenses.md 1.1
+HRD-2608043,2026-07-22,E-16421,IN,remote-work,Can I work from Portugal for 3 weeks?,"Up to 20 working days a year with manager approval and a People team check. 3 weeks is 15 days, so it is within the limit.",remote-work.md 2.1

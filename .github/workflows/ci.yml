@@ -1,0 +1,103 @@
+# Bearing CI on GitHub Actions: the twin of .gitlab-ci.yml.
+#
+#   check      everything `make check` runs except validate (`claude plugin
+#              validate` needs the Claude CLI; run `make validate` locally
+#              before tagging).
+#   scaffold   each stack template scaffolded with bin/brg-scaffold, then
+#              `make setup && make check` inside the result with that stack's
+#              toolchain. Every stack blocks. A daily schedule runs the
+#              whole workflow, so a bad upstream release fails here the
+#              next morning (the scaffold resolves dependencies fresh).
+#   bash32     bin/brg-guard, the CLI --help paths and the unit tests under
+#              bash 3.2 (the macOS default) in the bash:3.2 image.
+#   macos      the shell lint, the whole test suite and a scaffold on
+#              macos-latest: BSD sed, BSD stat and the stock bash 3.2.
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "30 0 * * *" # 06:00 IST
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq --no-install-recommends shellcheck jq
+      # make check minus validate (needs the Claude CLI; see the header).
+      - run: make lint-skills lint-tools lint-evals lint-json lint-shell lint-prose lint-neutral lint-version lint-budget lint-templates lint-docs test
+
+  scaffold:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { stack: go-api, name: CiGoApi, lang: go }
+          - { stack: go-cli, name: CiGoCli, lang: go }
+          - { stack: python-api, name: CiPythonApi, lang: python }
+          - { stack: python-cli, name: CiPythonCli, lang: python }
+          - { stack: react-web, name: CiReactWeb, lang: node }
+          - { stack: node-api, name: CiNodeApi, lang: node }
+          - { stack: next-app, name: CiNextApp, lang: node }
+          - { stack: data-pipeline, name: CiDataPipeline, lang: python }
+    steps:
+      - uses: actions/checkout@v4
+      - if: matrix.lang == 'go'
+        uses: actions/setup-go@v5
+        with: { go-version: "1.26" }
+      - if: matrix.lang == 'python'
+        uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - if: matrix.lang == 'python'
+        uses: astral-sh/setup-uv@v5
+      - if: matrix.lang == 'node'
+        uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - if: matrix.lang == 'node'
+        uses: pnpm/action-setup@v4
+        with: { version: 10 }
+      - run: bash bin/brg-scaffold "${{ matrix.stack }}" "${{ matrix.name }}" --dir /tmp/x --host both
+      - run: cd /tmp/x && make setup && make check
+
+  bash32:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: guard, help paths and unit tests under bash 3.2
+        run: |
+          docker run --rm -v "$PWD:/kit" -w /kit bash:3.2 bash -c '
+            set -e
+            apk add --no-cache git make jq python3 curl grep sed coreutils findutils diffutils >/dev/null
+            git config --global --add safe.directory "*"
+            bash --version | head -1
+            bash bin/brg-guard --version
+            bash bin/brg-guard command "git status"
+            bash bin/brg-scaffold --help >/dev/null
+            bash bin/brg-adopt --help >/dev/null
+            bash bin/brg-jira --help >/dev/null
+            n=0; for t in tests/unit/*.sh; do bash "$t" || exit 1; n=$((n+1)); done
+            [ "$n" -gt 0 ] || exit 1
+            echo "bash32: $n unit test files passed under $(bash --version | head -1)"
+          '
+
+  macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - run: brew install --quiet shellcheck jq
+      - run: sw_vers && bash --version | head -1
+      - run: make lint-shell test
+      - run: bash bin/brg-scaffold go-api McProbe --dir /tmp/x

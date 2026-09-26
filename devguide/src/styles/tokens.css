@@ -1,0 +1,87 @@
+/* Bearing internals. A chart and its instrument: cool chart paper by day,
+   a navy night chart after dark. Colour always means something:
+     jade    allowed, passed, written (Bearing's own colour, as in the handbook)
+     signal  refused, blocked, failed
+     brass   a gate or a checkpoint: where the kit stops to look
+     sea     the reader's position: links, focus, the current step */
+
+:root {
+  --paper: oklch(0.978 0.006 225);
+  --paper-2: oklch(0.955 0.01 225);
+  --surface: oklch(0.995 0.002 225);
+  --ink: oklch(0.24 0.045 250);
+  --ink-2: oklch(0.4 0.04 250);
+  --muted: oklch(0.53 0.03 245);
+  --rule: oklch(0.88 0.018 235);
+  --rule-2: oklch(0.8 0.025 235);
+  --grid: oklch(0.9 0.02 225 / 0.55);
+
+  --sea: oklch(0.47 0.12 245);
+  --sea-wash: oklch(0.94 0.03 240);
+  --jade: oklch(0.52 0.1 172);
+  --jade-wash: oklch(0.94 0.035 172);
+  --signal: oklch(0.55 0.19 27);
+  --signal-wash: oklch(0.95 0.035 27);
+  --brass: oklch(0.68 0.13 75);
+  --brass-ink: oklch(0.5 0.1 70);
+  --brass-wash: oklch(0.95 0.045 85);
+
+  --term-bg: oklch(0.2 0.035 250);
+  --term-ink: oklch(0.92 0.015 230);
+  --term-dim: oklch(0.66 0.03 240);
+  --code-bg: oklch(0.945 0.012 235);
+
+  --shadow: 0 1px 1px oklch(0.3 0.05 250 / 0.05), 0 12px 32px -18px oklch(0.3 0.05 250 / 0.35);
+
+  --serif: "Newsreader", "Iowan Old Style", Georgia, serif;
+  --sans: "Hanken Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --s1: 0.25rem; --s2: 0.5rem; --s3: 0.75rem; --s4: 1rem; --s5: 1.5rem; --s6: 2rem; --s7: 3rem; --s8: 4.5rem;
+  --r1: 3px; --r2: 7px; --r3: 12px;
+  --nav: 264px; --aside: 250px; --top: 58px; --measure: 70ch;
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  --paper: oklch(0.2 0.035 252);
+  --paper-2: oklch(0.235 0.04 252);
+  --surface: oklch(0.245 0.04 252);
+  --ink: oklch(0.94 0.012 230);
+  --ink-2: oklch(0.82 0.02 235);
+  --muted: oklch(0.68 0.03 240);
+  --rule: oklch(0.33 0.04 250);
+  --rule-2: oklch(0.4 0.045 250);
+  --grid: oklch(0.36 0.045 250 / 0.5);
+  --sea: oklch(0.76 0.1 235);
+  --sea-wash: oklch(0.3 0.06 245);
+  --jade: oklch(0.76 0.11 172);
+  --jade-wash: oklch(0.3 0.05 172);
+  --signal: oklch(0.72 0.16 28);
+  --signal-wash: oklch(0.31 0.06 28);
+  --brass: oklch(0.8 0.12 80);
+  --brass-ink: oklch(0.84 0.11 82);
+  --brass-wash: oklch(0.32 0.05 80);
+  --term-bg: oklch(0.155 0.03 252);
+  --term-ink: oklch(0.92 0.015 230);
+  --term-dim: oklch(0.64 0.03 240);
+  --code-bg: oklch(0.29 0.04 252);
+  --shadow: 0 1px 1px oklch(0 0 0 / 0.25), 0 14px 36px -18px oklch(0 0 0 / 0.7);
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: oklch(0.2 0.035 252); --paper-2: oklch(0.235 0.04 252); --surface: oklch(0.245 0.04 252);
+    --ink: oklch(0.94 0.012 230); --ink-2: oklch(0.82 0.02 235); --muted: oklch(0.68 0.03 240);
+    --rule: oklch(0.33 0.04 250); --rule-2: oklch(0.4 0.045 250); --grid: oklch(0.36 0.045 250 / 0.5);
+    --sea: oklch(0.76 0.1 235); --sea-wash: oklch(0.3 0.06 245);
+    --jade: oklch(0.76 0.11 172); --jade-wash: oklch(0.3 0.05 172);
+    --signal: oklch(0.72 0.16 28); --signal-wash: oklch(0.31 0.06 28);
+    --brass: oklch(0.8 0.12 80); --brass-ink: oklch(0.84 0.11 82); --brass-wash: oklch(0.32 0.05 80);
+    --term-bg: oklch(0.155 0.03 252); --term-ink: oklch(0.92 0.015 230); --term-dim: oklch(0.64 0.03 240);
+    --code-bg: oklch(0.29 0.04 252);
+    --shadow: 0 1px 1px oklch(0 0 0 / 0.25), 0 14px 36px -18px oklch(0 0 0 / 0.7);
+    color-scheme: dark;
+  }
+}

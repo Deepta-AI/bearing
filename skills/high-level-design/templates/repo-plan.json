@@ -1,0 +1,31 @@
+{
+  "project": "Shop",
+  "group": "Shop",
+  "repos": [
+    {
+      "name": "ShopClient",
+      "git_path": "Shop/Client/ShopClient",
+      "stack": "react-web",
+      "tech": "pnpm workspace: React, TypeScript, TanStack Query (web, admin); Expo (mobile)",
+      "responsibility": "Every client surface over one shared API client and error-code list",
+      "apps": [
+        {"path": "apps/web", "name": "Storefront", "for": "customers placing and tracking orders in a browser"},
+        {"path": "apps/admin", "name": "Admin", "for": "store staff managing catalogue, orders and refunds"}
+      ]
+    },
+    {
+      "name": "ShopApi",
+      "git_path": "Shop/Server/ShopApi",
+      "stack": "go-api",
+      "tech": "Go, net/http, pgx, sqlc, goose",
+      "responsibility": "The one backend service: auth, orders, invoices and the outbox worker; owns the database"
+    },
+    {
+      "name": "ShopInfra",
+      "git_path": "Shop/Infrastructure/ShopInfra",
+      "stack": "infra",
+      "tech": "Terraform, GitLab CI",
+      "responsibility": "Environments, pipelines and runtime configuration for every component"
+    }
+  ]
+}

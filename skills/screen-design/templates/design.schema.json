@@ -1,0 +1,120 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://bearing/design/design.schema.json",
+  "title": "Design bundle manifest",
+  "description": "docs/design/design.json: one manifest for the whole product's design bundle. screen-design writes it and updates it per feature; bundle.py audit fills the audit block from the files, and bundle.py gallery renders index.html from it. Screen keys are <feature>/<screen id> so ids from different flows files never collide.",
+  "type": "object",
+  "required": ["product", "version", "brief", "directions", "sitemap", "navigation", "screens", "concerns", "audit"],
+  "properties": {
+    "product": { "type": "string", "description": "Product name, as in tokens.json meta.name." },
+    "version": { "type": "integer", "minimum": 1, "description": "Bumped on every round that changes a screen, the sitemap or the navigation." },
+    "brief": {
+      "type": "object",
+      "required": ["surface", "audience", "must_feel", "avoid"],
+      "properties": {
+        "surface": { "type": "string", "description": "web app, mobile app, or both." },
+        "audience": { "type": "string", "description": "Who uses it, in one or two sentences; personas by role, not by name." },
+        "must_feel": { "type": "string" },
+        "avoid": { "type": "string" },
+        "references": { "type": "string" },
+        "notes": { "type": "string" }
+      }
+    },
+    "directions": {
+      "type": "array",
+      "minItems": 1,
+      "description": "The visual directions considered. Exactly one has chosen true; the others say why they lost.",
+      "items": {
+        "type": "object",
+        "required": ["name", "rationale", "chosen"],
+        "properties": {
+          "name": { "type": "string" },
+          "rationale": { "type": "string" },
+          "chosen": { "type": "boolean" },
+          "source": { "type": "string", "description": "variants/<feature>/approved.json, DESIGN.md or brief." }
+        }
+      }
+    },
+    "stories": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Every story id the bundle must serve. bundle.py adds the ids in each flows file's Serves column."
+    },
+    "sitemap": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/node" },
+      "description": "The information architecture as a tree: sections hold children, leaves name a screen key."
+    },
+    "navigation": {
+      "type": "object",
+      "required": ["desktop", "mobile", "why"],
+      "properties": {
+        "desktop": { "type": "string", "description": "The desktop chrome: side nav, top bar, what each holds." },
+        "mobile": { "type": "string", "description": "The 375 px chrome: bottom tab bar items, back behaviour." },
+        "why": { "type": "string", "description": "Why this navigation fits this product's depth and frequency of use." },
+        "source": { "type": "string", "description": "The flows files whose navigation maps it was generated from." }
+      }
+    },
+    "screens": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["key", "name", "purpose", "platform", "serves", "states", "path"],
+        "properties": {
+          "key": { "type": "string", "description": "<feature>/<screen id>, for example orders/S-01." },
+          "name": { "type": "string" },
+          "purpose": { "type": "string", "description": "One sentence: what the person gets done here." },
+          "platform": { "enum": ["web", "mobile", "both"] },
+          "serves": { "type": "array", "items": { "type": "string" } },
+          "states": { "type": "array", "minItems": 1, "items": { "type": "string" } },
+          "path": { "type": "string", "description": "Relative to docs/design: screens/<feature>/<id>-<name>.html." },
+          "notes": { "type": "string" }
+        }
+      }
+    },
+    "concerns": {
+      "type": "array",
+      "description": "What was raised while designing. A story no screen serves must appear here by id.",
+      "items": {
+        "type": "object",
+        "required": ["kind", "detail"],
+        "properties": {
+          "kind": { "enum": ["ambiguity", "missing-screen", "undefined-state", "dead-end", "risk"] },
+          "detail": { "type": "string" },
+          "screen": { "type": "string" }
+        }
+      }
+    },
+    "audit": {
+      "type": ["object", "null"],
+      "description": "Written by bundle.py audit, never by hand. null means the audit never ran, and bundle.py check fails on it.",
+      "properties": {
+        "ran_on": { "type": "string" },
+        "checked": { "type": "object" },
+        "missing_screens": { "type": "array" },
+        "missing_states": { "type": "array" },
+        "missing_chrome": { "type": "array" },
+        "unannotated_states": { "type": "array" },
+        "dead_links": { "type": "array" },
+        "missing_nav_links": { "type": "array" },
+        "external_refs": { "type": "array" },
+        "hardcoded_colours": { "type": "array" },
+        "unlinked_tokens": { "type": "array" },
+        "uncovered_stories": { "type": "array" }
+      }
+    }
+  },
+  "$defs": {
+    "node": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": { "type": "string" },
+        "screen": { "type": "string", "description": "A screen key from screens[]." },
+        "children": { "type": "array", "items": { "$ref": "#/$defs/node" } }
+      }
+    }
+  }
+}

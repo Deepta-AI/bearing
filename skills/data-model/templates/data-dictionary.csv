@@ -1,0 +1,16 @@
+Table,Column,Type,Nullable,Key,Default,References,On Delete,Personal Data,Description,Why
+customers,id,uuid,No,PK,gen_random_uuid(),,,No,Surrogate key; the id every invoice references.,"US-01-002 AC1: an invoice names its customer, and a random id leaves nothing to guess in a URL."
+customers,tenant_id,uuid,No,,,,,No,The tenant that owns this customer; every query filters on it.,Rule: tenant isolation. A customer is visible only inside its tenant (US-01-001 AC3).
+customers,display_name,text,No,,,,,Yes,Name printed on the invoice.,US-01-001 AC1: the add-customer form requires a name; US-01-002 AC2 prints it on the invoice.
+customers,email,text,No,UK,,,,Yes,Address the invoice is sent to.,"US-01-002 AC4: sending an invoice emails the customer; US-01-001 AC2: a duplicate email in one tenant is refused."
+customers,created_at,timestamptz,No,,now(),,,No,When the customer was added.,Rule: every table carries timestamptz audit columns (database postgres reference).
+customers,updated_at,timestamptz,No,,now(),,,No,Last change to this row.,Rule: every table carries timestamptz audit columns (database postgres reference).
+invoices,id,uuid,No,PK,gen_random_uuid(),,,No,Surrogate key; the id in the invoice URL.,US-01-003 AC1: the invoice page is addressed by id.
+invoices,tenant_id,uuid,No,,,,,No,The tenant that issued the invoice; leads every list index.,"Rule: tenant isolation, and tenant_id first in composite keys (US-01-003 AC2)."
+invoices,customer_id,uuid,No,FK,,customers.id,RESTRICT,No,The customer billed.,US-01-002 AC1: every invoice has exactly one customer. RESTRICT so a customer with invoices cannot vanish.
+invoices,status,invoice_status,No,,'draft',,,No,"Lifecycle: draft, sent, paid or void.",US-01-003 AC3: the list filters by status; US-01-002 AC4: sending moves draft to sent.
+invoices,amount_minor,bigint,No,,,,,No,"Total in minor units of currency (cents, paise).",US-01-002 AC2: the invoice shows a total; rule: money is an integer in minor units.
+invoices,currency,char(3),No,,,,,No,ISO 4217 code of amount_minor.,US-01-002 AC2: the total is shown with its currency; an amount without one is ambiguous.
+invoices,due_on,date,No,,,,,No,"Calendar date payment is due, in the tenant's time zone.",US-01-003 AC4: overdue invoices are flagged after the due date.
+invoices,created_at,timestamptz,No,,now(),,,No,When the invoice was drafted.,US-01-003 AC2: the list is ordered newest first.
+invoices,updated_at,timestamptz,No,,now(),,,No,Last change to this row.,Rule: every table carries timestamptz audit columns (database postgres reference).

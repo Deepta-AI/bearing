@@ -1,0 +1,23 @@
+version: 2
+
+# Seeds stand in for the raw source while the pipeline is proved. Replace
+# them with a `sources:` block naming the ingested tables, and keep the
+# column types explicit either way.
+seeds:
+  - name: raw_customers
+    description: Raw customers as ingested. Example rows; replace with a source.
+    config:
+      column_types:
+        id: integer
+        email: text
+        country: char(2)
+        created_at: date
+  - name: raw_orders
+    description: Raw orders as ingested. Example rows; replace with a source.
+    config:
+      column_types:
+        id: integer
+        customer_id: integer
+        order_date: date
+        status: text
+        amount_cents: integer

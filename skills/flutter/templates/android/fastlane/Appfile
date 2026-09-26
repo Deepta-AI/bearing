@@ -1,0 +1,2 @@
+# The application id `flutter create --org` produced; override per environment.
+package_name(ENV.fetch("ANDROID_PACKAGE_NAME", "__ORG_ID__.app"))

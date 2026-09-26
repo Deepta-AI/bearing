@@ -1,0 +1,31 @@
+# ktlint reads this file. The shared repo templates ship no .editorconfig, so
+# the Android stack owns it.
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+
+# ktlint (org.jlleitschuh.gradle.ktlint, version in libs.versions.toml) reads
+# every ktlint_* key from here; there is no other ktlint config file.
+[*.{kt,kts}]
+ktlint_code_style = android_studio
+max_line_length = 120
+ij_kotlin_allow_trailing_comma = true
+ij_kotlin_allow_trailing_comma_on_call_site = true
+ij_kotlin_imports_layout = *,java.**,javax.**,kotlin.**,^
+ij_kotlin_packages_to_use_import_on_demand = unset
+ktlint_function_naming_ignore_when_annotated_with = Composable, Preview
+ktlint_standard_property-naming = enabled
+ktlint_standard_no-wildcard-imports = enabled
+ktlint_standard_max-line-length = enabled
+
+[*.{yml,yaml,toml,json,xml}]
+indent_size = 2
+
+[Makefile]
+indent_style = tab

@@ -1,0 +1,50 @@
+{
+ "skill_name": "test-cases",
+ "evals": [
+  {
+   "id": 1,
+   "name": "derive-from-backlog-with-a-vague-ac",
+   "prompt": "Write the test cases for the wallet backlog (docs/product/backlog.md). QA starts on it Monday.",
+   "expected_output": "A test case table under docs/ with numbered cases for every acceptance criterion, valid, negative and boundary rows with literal data, lockout and balance limits covered at their edges, and the vague 'works correctly' criterion flagged for rewording instead of given invented cases.",
+   "files": [
+    "files/wallet-backlog"
+   ],
+   "expectations": [
+    "A test case document was written under docs/ with a stable numbered id per case",
+    "Every acceptance criterion except AC-US-02-001-3 has at least one case that names it by its AC id",
+    "AC-US-02-001-3 ('The transfer screen works correctly') is flagged as untestable or needing rewording, and no invented expected result is presented as covering it",
+    "The lockout criterion has cases at the boundary: 4 wrong codes do not lock and the 5th does, with the exact message text",
+    "The amount criterion has boundary cases at 1.00, just below 1.00 (0.99 or 0), exactly the balance, and just above the balance, with the exact refusal message",
+    "The display name criterion has cases for 0, 1, 30 and 31 characters and for a disallowed character",
+    "The 5 minute code validity is tested on both sides: a code used just before 5 minutes works and one used just after is refused",
+    "Test data is literal values, not phrases like 'some invalid input'",
+    "Each case states how a test proves it (the exact text, value or state to check), including at least one case that states what must not happen (for example no session is created, or no balance changes on a refused move)",
+    "A case checks that a refused or failed move leaves both balances unchanged (money is never lost or created)",
+    "Each case has a type (unit, integration, e2e or manual) and a priority, with the sign-in and money cases at the highest priority",
+    "The 30 minute lockout is tested on both sides: still locked just before 30 minutes, unlocked just after",
+    "No file written or edited contains an em dash character"
+   ]
+  },
+  {
+   "id": 2,
+   "name": "extend-an-existing-table",
+   "prompt": "We added the monthly statement story (US-04-001) to the backlog. Update docs/testing/test-cases.md so it covers it, and fix up anything else missing in there while you're at it.",
+   "expected_output": "The existing table keeps TC-0001 to TC-0004 unchanged in id and meaning, new cases continue from TC-0005, the statement story gets valid, empty-month and boundary cases, and the gaps in the existing rows (no negative or boundary cases for sign-in and moves, no display name cases) are filled.",
+   "files": [
+    "files/wallet-existing-table"
+   ],
+   "expectations": [
+    "TC-0001 to TC-0004 still exist with the same id, and their steps, test data and expected result cells are unchanged; no existing case was renumbered or deleted",
+    "New cases start at TC-0005 and ids are unique",
+    "Both statement criteria (AC-US-04-001-1 and AC-US-04-001-2) have cases, including the empty month with the exact message 'No transactions in <Month YYYY>.'",
+    "There is a boundary case for the 12 month window (the oldest allowed month and the 13th month back)",
+    "There is a case that transactions in the PDF are in date order",
+    "Missing coverage in the old stories was added: at least a negative or boundary case for the amount limits and at least one case for the display name story",
+    "AC-US-02-001-3 is flagged as needing rewording rather than covered with an invented expected result",
+    "The existing cases gained a statement of how a test proves them (an oracle or check), without other columns of those rows being changed",
+    "The ambiguity in 'the last 12' months (whether the current month counts) is written down as an assumption or a question",
+    "No file written or edited contains an em dash character"
+   ]
+  }
+ ]
+}

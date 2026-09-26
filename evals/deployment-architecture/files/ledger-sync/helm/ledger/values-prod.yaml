@@ -1,0 +1,16 @@
+replicaCount: 4
+autoscaling:
+  enabled: true
+  minReplicas: 4
+  maxReplicas: 12
+  targetCPUUtilizationPercentage: 70
+resources:
+  requests: { cpu: 500m, memory: 512Mi }
+  limits: { cpu: "1", memory: 1Gi }
+ingress:
+  host: ledger.acme.example.com
+  tls: true
+env:
+  DB_MAX_CONNS: "20"
+reconcile:
+  schedule: "30 1 * * *"

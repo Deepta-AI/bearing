@@ -1,0 +1,34 @@
+# fastlane lanes for the Play Store. A person runs these; CI never uploads.
+# Needs: `bundle install` (a Gemfile with fastlane), a Play service-account
+# JSON kept outside the repository (SUPPLY_JSON_KEY), and signing set up in
+# android/key.properties (git-ignored). `make release-android` prints the
+# command.
+default_platform(:android)
+
+platform :android do
+  desc "Build the release bundle from config/prod.json and upload it to the internal track"
+  lane :internal do
+    sh("cd ../.. && flutter build appbundle --release --dart-define-from-file=config/prod.json --build-number=#{ENV.fetch('BUILD_NUMBER', '1')}")
+    upload_to_play_store(
+      track: "internal",
+      aab: "../build/app/outputs/bundle/release/app-release.aab",
+      json_key: ENV.fetch("SUPPLY_JSON_KEY"),
+      skip_upload_metadata: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true
+    )
+  end
+
+  desc "Promote the internal build to production (a person decides, after the release checklist)"
+  lane :production do
+    upload_to_play_store(
+      track: "internal",
+      track_promote_to: "production",
+      json_key: ENV.fetch("SUPPLY_JSON_KEY"),
+      skip_upload_aab: true,
+      skip_upload_metadata: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true
+    )
+  end
+end

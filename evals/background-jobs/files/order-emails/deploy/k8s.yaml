@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shop-web
+spec:
+  replicas: 2
+  template:
+    spec:
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: web
+          image: registry.example.com/shop-web:latest
+          command: ["node", "--no-warnings", "src/server.js"]
+          volumeMounts:
+            - name: data
+              mountPath: /data
+          env:
+            - name: SHOP_DB
+              value: /data/shop.db
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: shop-data

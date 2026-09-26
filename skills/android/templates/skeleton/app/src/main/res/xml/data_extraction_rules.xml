@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Backup and device-transfer rules for API 31+. Mirrors backup_rules.xml. -->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="sharedpref" path="tink_keyset.xml" />
+        <exclude domain="file" path="datastore/" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="sharedpref" path="tink_keyset.xml" />
+        <exclude domain="file" path="datastore/" />
+    </device-transfer>
+</data-extraction-rules>

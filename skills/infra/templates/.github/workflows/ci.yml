@@ -1,0 +1,191 @@
+# __REPO_NAME__ CI on GitHub Actions: the twin of .gitlab-ci.yml. Same stages
+# (validate, security, plan, then apply on request and verify) and every
+# gate is `make <target>`, so the Makefile stays the single source of what a
+# gate does. GitHub sets CI=true, so a gate whose tool is missing fails here
+# instead of printing SKIPPED. No job in this file applies automatically.
+#
+# Environments: `dev`, `qa` and `prod` hold the plan-time secrets
+# (TF_BACKEND_BUCKET, TF_VAR_project, TF_VAR_region, GOOGLE_CREDENTIALS or
+# the workload identity settings) and stay unprotected so every PR gets a
+# plan. `dev-apply`, `qa-apply` and `prod-apply` hold the same secrets and
+# carry the required-reviewers rule: an apply waits there for a person.
+#
+# The two-approval rule (one peer, one lead, from CODEOWNERS) is a branch
+# protection setting, not something a workflow can enforce: Settings >
+# Branches > main and develop: require a pull request, 2 approving reviews,
+# review from Code Owners, dismiss stale approvals, and the status checks
+# validate, security and plan.
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [develop, main]
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: "Apply the plan of this ref to an environment (a person approves in <env>-apply)"
+        type: choice
+        options: [dev, qa, prod]
+        default: dev
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+  id-token: write # workload identity federation, when used instead of a key
+
+env:
+  TF_IN_AUTOMATION: "1"
+  TF_INPUT: "0"
+  TF_PLUGIN_CACHE_DIR: ${{ github.workspace }}/.terraform.d/plugin-cache
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        gate: [fmt-check, validate, lint, kustomize, shell]
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - name: branch-name
+        if: github.event_name == 'pull_request' && matrix.gate == 'fmt-check'
+        env: { BRANCH: "${{ github.head_ref }}" }
+        run: |
+          echo "$BRANCH" | grep -Eq '^(feature|bugfix|hotfix|chore|docs)/[A-Z][A-Z0-9]*(-[0-9]+)+-[A-Za-z0-9]+$|^release/v[0-9]+\.[0-9]+\.[0-9]+$'
+          echo "branch-name: 1 branch checked"
+      - name: commits
+        if: github.event_name == 'pull_request' && matrix.gate == 'fmt-check'
+        env: { BASE: "${{ github.base_ref }}" }
+        run: |
+          git fetch origin "$BASE" --depth=200
+          range="origin/$BASE..HEAD"
+          subjects=$(mktemp)
+          git log --no-merges --format=%s "$range" > "$subjects"
+          n=$(wc -l < "$subjects" | tr -d ' ')
+          [ "$n" -gt 0 ] || { echo "commits: 0 commits in range $range"; exit 1; }
+          bad=0
+          while IFS= read -r subj; do
+            echo "$subj" | grep -Eq '^(feat|fix|refactor|test|docs|chore|perf|build|ci|revert)(\([a-z0-9._/-]+\))?!?: .{1,72}( \[[A-Z][A-Z0-9]*(-[0-9]+)+\])?$' || { echo "bad subject: $subj"; bad=$((bad+1)); }
+          done < "$subjects"
+          if git log --no-merges --format=%B "$range" | grep -Eiq 'co-authored-by: .*(claude|anthropic|copilot|chatgpt|gemini)|generated with'; then echo "AI attribution trailer found"; exit 1; fi
+          echo "commits: $n commits checked, $bad bad"
+          [ "$bad" -eq 0 ]
+      - id: tf
+        run: echo "version=$(cat .terraform-version)" >> "$GITHUB_OUTPUT"
+      - uses: hashicorp/setup-terraform@v3
+        with: { terraform_version: "${{ steps.tf.outputs.version }}", terraform_wrapper: false }
+      - uses: terraform-linters/setup-tflint@v4
+        if: matrix.gate == 'lint'
+        with: { tflint_version: v0.53.0 }
+      - uses: imranismail/setup-kustomize@v2
+        if: matrix.gate == 'kustomize'
+      - uses: actions/cache@v4
+        with:
+          path: ${{ env.TF_PLUGIN_CACHE_DIR }}
+          key: tf-${{ runner.os }}-${{ hashFiles('**/versions.tf', '**/backend.tf') }}
+      - run: mkdir -p "$TF_PLUGIN_CACHE_DIR"
+      - run: make ${{ matrix.gate }}
+
+  security:
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - id: tf
+        run: echo "version=$(cat .terraform-version)" >> "$GITHUB_OUTPUT"
+      - uses: hashicorp/setup-terraform@v3
+        with: { terraform_version: "${{ steps.tf.outputs.version }}", terraform_wrapper: false }
+      - name: trivy and checkov
+        env: { TRIVY_VERSION: "0.74.0" }
+        run: |
+          # The release tarball, verified against the release's checksums
+          # file; no install script piped from a branch.
+          base="https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}"
+          tgz="trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz"
+          curl -fsSLO "$base/$tgz" && curl -fsSLO "$base/trivy_${TRIVY_VERSION}_checksums.txt"
+          grep " $tgz\$" "trivy_${TRIVY_VERSION}_checksums.txt" | sha256sum -c -
+          tar -xzf "$tgz" trivy && sudo install -m 755 trivy /usr/local/bin/trivy
+          pipx install checkov
+          trivy --version; checkov --version
+      - run: make sec
+
+  # One plan per environment, posted as an artifact; the apply job of the
+  # same ref consumes exactly that plan file, so nothing unreviewed applies.
+  plan:
+    needs: security
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        env: [dev, qa, prod]
+    environment: { name: "${{ matrix.env }}" }
+    env:
+      TF_BACKEND_BUCKET: ${{ secrets.TF_BACKEND_BUCKET }}
+      TF_VAR_project: ${{ secrets.TF_VAR_project }}
+      TF_VAR_region: ${{ secrets.TF_VAR_region }}
+      GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: tf
+        run: echo "version=$(cat .terraform-version)" >> "$GITHUB_OUTPUT"
+      - uses: hashicorp/setup-terraform@v3
+        with: { terraform_version: "${{ steps.tf.outputs.version }}", terraform_wrapper: false }
+      - run: mkdir -p "$TF_PLUGIN_CACHE_DIR"
+      - run: bash scripts/plan.sh ${{ matrix.env }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: plan-${{ matrix.env }}-${{ github.sha }}
+          path: |
+            .plans/${{ matrix.env }}.tfplan
+            .plans/${{ matrix.env }}.txt
+            .plans/${{ matrix.env }}.json
+          retention-days: 7
+
+  # Apply: workflow_dispatch only, stops at the <env>-apply environment's
+  # required-reviewers rule, and applies the plan artifact this ref produced.
+  # Terraform refuses a plan whose state has moved on, so a stale plan fails
+  # instead of applying something nobody reviewed. The concurrency group
+  # serialises applies per environment.
+  apply:
+    if: github.event_name == 'workflow_dispatch'
+    needs: plan
+    runs-on: ubuntu-latest
+    environment: { name: "${{ inputs.apply }}-apply" }
+    concurrency: { group: "terraform-${{ inputs.apply }}", cancel-in-progress: false }
+    env:
+      ENV: ${{ inputs.apply }}
+      TF_BACKEND_BUCKET: ${{ secrets.TF_BACKEND_BUCKET }}
+      TF_VAR_project: ${{ secrets.TF_VAR_project }}
+      TF_VAR_region: ${{ secrets.TF_VAR_region }}
+      GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: tf
+        run: echo "version=$(cat .terraform-version)" >> "$GITHUB_OUTPUT"
+      - uses: hashicorp/setup-terraform@v3
+        with: { terraform_version: "${{ steps.tf.outputs.version }}", terraform_wrapper: false }
+      - uses: actions/download-artifact@v4
+        with: { name: "plan-${{ inputs.apply }}-${{ github.sha }}", path: .plans }
+      - name: guard
+        run: |
+          test -f ".plans/$ENV.tfplan" || { echo "no plan artifact for $ENV on this ref"; exit 1; }
+          case "$ENV" in
+            prod) case "$GITHUB_REF" in refs/tags/v*) ;; *) echo "prod applies only from a v* tag"; exit 1;; esac;;
+            qa) [ "$GITHUB_REF" = "refs/heads/main" ] || { echo "qa applies only from main"; exit 1; };;
+            dev) [ "$GITHUB_REF" = "refs/heads/develop" ] || { echo "dev applies only from develop"; exit 1; };;
+          esac
+      - run: terraform -chdir="envs/$ENV" init -input=false -reconfigure -backend-config="bucket=$TF_BACKEND_BUCKET"
+      - run: terraform -chdir="envs/$ENV" apply -input=false -lock-timeout=5m "$GITHUB_WORKSPACE/.plans/$ENV.tfplan"
+      - run: 'echo "apply: $ENV applied by $GITHUB_ACTOR from run $GITHUB_RUN_ID"'
+      - name: verify
+        run: |
+          n=$(terraform -chdir="envs/$ENV" state list | wc -l | tr -d ' ')
+          [ "$n" -gt 0 ] || { echo "verify: $ENV state is empty after apply"; exit 1; }
+          echo "verify: $ENV has $n resources in state"

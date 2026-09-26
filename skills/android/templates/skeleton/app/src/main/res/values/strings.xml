@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">__REPO_NAME__</string>
+    <string name="health_title">API health</string>
+    <string name="health_loading">Checking the API</string>
+    <string name="health_ready">Status %1$s, version %2$s</string>
+    <string name="health_error">Could not reach the API: %1$s</string>
+    <string name="health_refresh">Refresh</string>
+</resources>

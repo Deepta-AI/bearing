@@ -1,0 +1,76 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":semanticCommits",
+    ":dependencyDashboard",
+    "group:monorepos"
+  ],
+  "timezone": "Asia/Kolkata",
+  "schedule": ["before 6am on monday"],
+  "labels": ["dependencies"],
+  "commitMessagePrefix": "build(deps):",
+  "commitMessageAction": "bump",
+  "commitMessageTopic": "{{depName}}",
+  "commitMessageExtra": "to {{newVersion}} [DEPS]",
+  "rangeStrategy": "bump",
+  "prConcurrentLimit": 4,
+  "prHourlyLimit": 2,
+  "minimumReleaseAge": "3 days",
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["before 6am on the first day of the month"]
+  },
+  "vulnerabilityAlerts": {
+    "enabled": true,
+    "labels": ["security"],
+    "schedule": ["at any time"],
+    "minimumReleaseAge": null
+  },
+  "osvVulnerabilityAlerts": true,
+  "packageRules": [
+    {
+      "description": "Patch and minor updates travel together in one weekly MR",
+      "matchUpdateTypes": ["patch", "minor"],
+      "groupName": "weekly patch and minor updates",
+      "automerge": false
+    },
+    {
+      "description": "Majors are one MR each and wait for the release notes to be read",
+      "matchUpdateTypes": ["major"],
+      "dependencyDashboardApproval": true,
+      "labels": ["dependencies", "major"]
+    },
+    {
+      "description": "Pinned tool versions in .tool-versions and Dockerfiles need a person",
+      "matchManagers": ["asdf", "dockerfile"],
+      "dependencyDashboardApproval": true
+    },
+    {
+      "description": "Terraform providers: constraint bumps only, a person reads the plan",
+      "matchManagers": ["terraform"],
+      "matchDepTypes": ["provider", "required_provider"],
+      "rangeStrategy": "widen",
+      "dependencyDashboardApproval": true
+    },
+    {
+      "description": "React Native and Expo SDK move as a set; never bump one alone",
+      "matchPackageNames": ["react-native", "expo"],
+      "matchPackagePrefixes": ["expo-", "@expo/", "@react-native/"],
+      "groupName": "expo sdk",
+      "dependencyDashboardApproval": true
+    },
+    {
+      "description": "Android Gradle plugin, Kotlin and Compose compiler move as a set",
+      "matchPackagePrefixes": ["com.android.tools.build", "org.jetbrains.kotlin", "androidx.compose.compiler"],
+      "groupName": "android toolchain",
+      "dependencyDashboardApproval": true
+    }
+  ],
+  "npm": { "minimumReleaseAge": "3 days" },
+  "gomod": { "postUpdateOptions": ["gomodTidy"] },
+  "pep621": { "enabled": true },
+  "gradle": { "enabled": true },
+  "swift": { "enabled": true },
+  "terraform": { "enabled": true }
+}

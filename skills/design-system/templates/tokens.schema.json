@@ -1,0 +1,215 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://bearing/design/tokens.schema.json",
+  "title": "Design tokens",
+  "description": "The source of truth for a product's design system. Every stack binding (CSS, theme.ts, Theme.kt, Theme.swift) is generated from this file and never edited by hand. Colours are oklch with a hex fallback. Roles reference primitives; themes override roles only.",
+  "type": "object",
+  "required": ["meta", "color", "font", "space", "radius", "elevation", "motion", "breakpoint", "z", "focus"],
+  "additionalProperties": false,
+  "properties": {
+    "meta": {
+      "type": "object",
+      "required": ["name", "version", "source"],
+      "properties": {
+        "name": { "type": "string", "description": "Product name." },
+        "version": { "type": "integer", "minimum": 1, "description": "Bump on every breaking change to a role or scale." },
+        "source": { "type": "string", "description": "Where the direction came from: DESIGN.md, a variant path, a CSS file, or 'brief'." },
+        "memorable": { "type": "string", "description": "The one thing a first-time user should remember. Every token serves it." }
+      }
+    },
+    "color": {
+      "type": "object",
+      "required": ["primitives", "roles"],
+      "properties": {
+        "primitives": {
+          "type": "object",
+          "description": "Named scales. Each step is an oklch value with a hex fallback. Steps run 0 (lightest) to 1000 (darkest) in 50 or 100 increments; a scale needs at least 0, 100, 300, 500, 700, 900, 1000. Derive the neutral from the accent hue at low chroma, never a plain grey.",
+          "minProperties": 3,
+          "propertyNames": { "pattern": "^(neutral|accent|secondary|success|warning|danger|info|[a-z][a-z0-9-]*)$" },
+          "additionalProperties": {
+            "type": "object",
+            "minProperties": 7,
+            "propertyNames": { "pattern": "^(0|50|[1-9]00|[1-9]50|1000)$" },
+            "additionalProperties": { "$ref": "#/$defs/colorValue" }
+          }
+        },
+        "roles": {
+          "type": "object",
+          "required": ["light", "dark"],
+          "description": "Semantic roles per mode. Dark is designed, not inverted: surfaces lift with lightness, chroma drops 10 to 20 percent, the accent shifts a step lighter.",
+          "properties": {
+            "light": { "$ref": "#/$defs/roleSet" },
+            "dark": { "$ref": "#/$defs/roleSet" }
+          },
+          "additionalProperties": false
+        }
+      }
+    },
+    "font": {
+      "type": "object",
+      "required": ["families", "sizes", "weights", "lineHeights", "letterSpacing", "roles"],
+      "properties": {
+        "families": {
+          "type": "object",
+          "required": ["display", "body", "mono"],
+          "description": "Full font-family stacks. Display and body are named faces chosen for this product; neither is Inter, Space Grotesk, Roboto, Arial, Helvetica, Open Sans, Lato, Montserrat or Poppins. system-ui appears only as a fallback.",
+          "properties": {
+            "display": { "type": "string" },
+            "body": { "type": "string" },
+            "mono": { "type": "string" },
+            "tenantDisplayFaces": { "type": "array", "items": { "type": "string" }, "description": "Display faces a tenant theme may choose from. Empty means tenants cannot change the face." }
+          }
+        },
+        "sizes": {
+          "type": "object",
+          "description": "One scale in px. Three to five sizes carry the product UI (label, body, title, display); marketing pages may add one hero size. Line-height and tracking come from the role, not the size.",
+          "minProperties": 3,
+          "maxProperties": 7,
+          "additionalProperties": { "type": "number" }
+        },
+        "weights": {
+          "type": "object",
+          "description": "Two weights for UI (regular and one emphasis). A third is allowed only for the display face.",
+          "minProperties": 2,
+          "maxProperties": 3,
+          "additionalProperties": { "type": "integer", "minimum": 100, "maximum": 900 }
+        },
+        "lineHeights": { "type": "object", "minProperties": 2, "additionalProperties": { "type": "number" } },
+        "letterSpacing": { "type": "object", "minProperties": 1, "additionalProperties": { "type": "string" } },
+        "roles": {
+          "type": "object",
+          "required": ["display", "title", "body", "label", "code"],
+          "description": "Each role names a family, a size, a weight, a line height and a tracking key from the maps above.",
+          "additionalProperties": {
+            "type": "object",
+            "required": ["family", "size", "weight", "lineHeight", "tracking"],
+            "properties": {
+              "family": { "enum": ["display", "body", "mono"] },
+              "size": { "type": "string" },
+              "weight": { "type": "string" },
+              "lineHeight": { "type": "string" },
+              "tracking": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "space": {
+      "type": "object",
+      "required": ["base", "half", "scale"],
+      "properties": {
+        "base": { "const": 8 },
+        "half": { "const": 4 },
+        "scale": {
+          "type": "object",
+          "description": "Every value is a multiple of 8, plus the single 4 half step. Named by index so a later change of base does not rename classes.",
+          "additionalProperties": { "type": "integer", "minimum": 0 }
+        }
+      }
+    },
+    "radius": {
+      "type": "object",
+      "description": "A hierarchy, not one value: controls, containers, overlays, full. Never the same radius on every block.",
+      "required": ["control", "container", "overlay", "full"],
+      "additionalProperties": { "type": "number" }
+    },
+    "elevation": {
+      "type": "object",
+      "required": ["rule", "levels"],
+      "properties": {
+        "rule": { "const": "Elevation above 0 means the element is pressable or it overlays the page. A static block never carries a shadow." },
+        "levels": {
+          "type": "object",
+          "required": ["0", "1", "2", "3"],
+          "description": "0 flat, 1 pressable at rest, 2 pressable hovered or lifted, 3 overlay (dialog, sheet, popover, toast). Each level gives a shadow per mode; dark mode uses lighter surface plus a thinner shadow, never the light shadow inverted.",
+          "additionalProperties": {
+            "type": "object",
+            "required": ["light", "dark"],
+            "properties": { "light": { "type": "string" }, "dark": { "type": "string" } }
+          }
+        }
+      }
+    },
+    "motion": {
+      "type": "object",
+      "required": ["duration", "easing", "stagger"],
+      "properties": {
+        "duration": {
+          "type": "object",
+          "required": ["instant", "fast", "base", "slow", "deliberate"],
+          "description": "Milliseconds. instant 80, fast 150, base 240, slow 400, deliberate 700.",
+          "additionalProperties": { "type": "integer", "minimum": 0, "maximum": 1000 }
+        },
+        "easing": {
+          "type": "object",
+          "required": ["standard", "enter", "exit", "spring"],
+          "properties": {
+            "standard": { "type": "string" },
+            "enter": { "type": "string" },
+            "exit": { "type": "string" },
+            "spring": {
+              "type": "object",
+              "required": ["stiffness", "damping", "mass"],
+              "properties": { "stiffness": { "type": "number" }, "damping": { "type": "number" }, "mass": { "type": "number" } }
+            }
+          }
+        },
+        "stagger": { "type": "integer", "description": "Milliseconds between siblings in an orchestrated entrance." }
+      }
+    },
+    "breakpoint": {
+      "type": "object",
+      "required": ["sm", "md", "lg", "xl"],
+      "description": "Pixels. Above md the layout fills the width: paired columns or a grid, never a half-width column beside empty space.",
+      "additionalProperties": { "type": "integer" }
+    },
+    "z": {
+      "type": "object",
+      "required": ["base", "raised", "sticky", "overlay", "modal", "toast"],
+      "additionalProperties": { "type": "integer" }
+    },
+    "focus": {
+      "type": "object",
+      "required": ["width", "offset", "role"],
+      "description": "The visible focus ring. Drawn with outline, never removed, contrast 3:1 against every surface.",
+      "properties": {
+        "width": { "type": "integer", "minimum": 2 },
+        "offset": { "type": "integer", "minimum": 0 },
+        "role": { "const": "focus" }
+      }
+    }
+  },
+  "$defs": {
+    "colorValue": {
+      "type": "object",
+      "required": ["oklch", "hex"],
+      "properties": {
+        "oklch": { "type": "string", "pattern": "^oklch\\(" },
+        "hex": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" }
+      },
+      "additionalProperties": false
+    },
+    "roleRef": {
+      "description": "Either a primitive reference 'scale.step' or a literal colour value.",
+      "oneOf": [
+        { "type": "string", "pattern": "^[a-z][a-z0-9-]*\\.(0|50|[1-9]00|[1-9]50|1000)$" },
+        { "$ref": "#/$defs/colorValue" }
+      ]
+    },
+    "roleSet": {
+      "type": "object",
+      "required": [
+        "bg", "bg-subtle", "surface", "surface-raised", "overlay",
+        "text", "text-muted", "text-disabled", "link",
+        "border", "border-strong",
+        "accent", "accent-hover", "accent-active", "on-accent", "accent-subtle",
+        "success", "on-success", "success-subtle",
+        "warning", "on-warning", "warning-subtle",
+        "danger", "on-danger", "danger-subtle",
+        "info", "on-info", "info-subtle",
+        "focus", "selection"
+      ],
+      "additionalProperties": { "$ref": "#/$defs/roleRef" }
+    }
+  }
+}

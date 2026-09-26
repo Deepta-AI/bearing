@@ -1,0 +1,22 @@
+groups:
+  - name: checkout-api
+    rules:
+      - alert: PaymentsDeclineRateHigh
+        expr: |
+          sum(rate(payment_attempts_total{status="declined"}[5m]))
+            / sum(rate(payment_attempts_total[5m])) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          service: checkout-api
+        annotations:
+          summary: Card decline rate above 5 percent for 5 minutes
+          runbook: docs/runbooks/PaymentsDeclineRateHigh.md
+      - alert: CheckoutLatencyHigh
+        expr: histogram_quantile(0.95, sum by (le) (rate(http_request_seconds_bucket{route="/pay"}[5m]))) > 3
+        for: 10m
+        labels:
+          severity: warning
+          service: checkout-api
+        annotations:
+          summary: p95 of /pay above 3 s for 10 minutes

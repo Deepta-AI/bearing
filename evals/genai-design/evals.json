@@ -1,0 +1,51 @@
+{
+ "skill_name": "genai-design",
+ "evals": [
+  {
+   "id": 1,
+   "name": "agent-requested-for-classification",
+   "prompt": "Product wants an AI agent for ticket routing, the PRD is in docs/product/PRD.md. Before anyone writes code, can you work out how we should actually build this with an LLM, costs included, and put the design in the repo so the team can review it? Finance has been very clear about the budget.",
+   "expected_output": "A design document in the repository that treats routing as a six-label classification rather than an agent, keeps the CRM tier as a deterministic lookup, weighs the existing keyword rules (71 percent right in the March audit) as the cheaper option, computes cost per 1,000 emails and per month at 38,000 a day against the USD 500 cap, shows the agent the PRD asks for costs orders of magnitude more, sets a numeric metric, and plans a golden set from the real audit tickets.",
+   "files": [
+    "files/helpdesk-triage"
+   ],
+   "expectations": [
+    "The chosen approach for picking the queue is not an agent loop with tools: it is a single model call with a fixed six-label set (structured or constrained output), possibly behind the keyword rules as a first pass, and the document states why an agent is not needed for routing",
+    "The CRM tier (REQ-003, enterprise priority lane) is handled as a deterministic lookup in code such as app/crm.py, not as a tool the model calls",
+    "The existing keyword rules are weighed as the cheaper option using a number from docs/ops/triage-baseline.md (71 percent right, 18 percent unmatched or 11 percent misrouted), and the design either keeps them as a first pass or rejects them naming that failure",
+    "Cost per 1,000 emails and a monthly cost at about 38,000 emails a day are computed from stated token counts and stated per-million-token prices, and the arithmetic is consistent within 10 percent when the grader recomputes it",
+    "The monthly model cost of the chosen design is compared with the USD 500 a month cap in REQ-006, and the document either shows it fits or says plainly that it does not and what changes to make it fit",
+    "The cost of the agent the PRD asks for (REQ-002) is estimated with several model calls per email multiplied in, and the document shows it is at least ten times over the USD 500 cap",
+    "The success metric has a number and a measurement method (for example routing accuracy on a labelled set); because the PRD gives no number, the proposed number is marked as an assumption or an open question with an owner",
+    "The evaluation plan uses at least 50 real tickets (such as the March audit tickets in data/audit_march.jsonl, or the 400 audited tickets), not invented examples, graded by exact match against the correct queue, with a threshold tied to the metric",
+    "Customer email addresses and phone numbers in ticket text, and prompt injection through the email body, are both listed as risks, each with a concrete mitigation",
+    "The design keeps to the provider in docs/adr/0002-llm-provider.md (Anthropic API) or raises any other provider as a question needing legal review, and every decision it records is marked Proposed or awaiting the team, not Accepted",
+    "No accuracy, latency or cost figure is presented as measured unless the run computed it; estimates are labelled as assumptions, and anything not run is reported as not run",
+    "No file written or edited contains an em dash character"
+   ]
+  },
+  {
+   "id": 2,
+   "name": "fine-tune-request-for-changing-policies",
+   "prompt": "Leadership wants us to fine-tune a model on our HR policies so people can ask it questions in Slack instead of emailing the helpdesk. I'm not convinced that's the right call. Can you figure out the right way to build it and write it up? The CFO will want a monthly number.",
+   "expected_output": "A written design that rejects fine-tuning with reasons from the repository (policies revised about monthly, 150 examples, clause citations required), chooses retrieval with citations on the approved pgvector store, splits out leave-balance questions (41 of 150) as a lookup in the HR system, conditions answers on country, computes cost per 1,000 questions and a monthly figure at 350 a day, checks latency against 10 seconds, and plans a golden set of at least 100 real helpdesk questions.",
+   "files": [
+    "files/policy-assistant"
+   ],
+   "expectations": [
+    "Fine-tuning is rejected with at least one reason taken from the repository: the policies were revised ten times between March and September (docs/policies/CHANGELOG.md) so a trained model goes stale, only 150 helpdesk examples exist, or answers must cite the policy and section",
+    "The chosen approach for policy questions is retrieval over docs/policies/ with the answer citing the policy file and section",
+    "The design uses the accepted Postgres pgvector store from docs/adr/0003 for embeddings (or lexical search in the same database) rather than introducing a new vector database, or raises a change explicitly as a question",
+    "Questions about an employee's own leave balance are identified as needing a lookup in the HR system (app/hris_client.py leave_balance) rather than an answer from policy text, handled as a separate component or explicitly scoped out, and their share is given from the data as 41 of 150 (about 27 percent)",
+    "India and UK differences are handled: the employee's country (from the HR system) conditions retrieval or the prompt, or the risk of answering with the wrong country's rule is listed with that mitigation",
+    "Cost per 1,000 questions and a monthly cost at about 350 questions a working day (about 7,700 a month) are computed from stated token counts and stated prices, and the arithmetic is consistent within 10 percent when the grader recomputes it",
+    "A latency estimate is compared with the 10 second target in the brief and is labelled as an estimate or assumption, not as measured",
+    "The evaluation plan draws its golden set from the real questions in data/helpdesk_questions.csv (at least 100 items, or all 99 policy questions with the shortfall and a plan to collect more stated), with employee ids removed or treated as PII, graded against the HR answer or the cited clause, with a numeric threshold",
+    "The success metric has a number (for example correct and cited answers on the golden set, or share of questions answered without a helpdesk ticket); since the brief only says 'fewer tickets', the number is marked as an assumption or an open question with an owner",
+    "A wrong answer about entitlement or notice period is treated as a risk with a mitigation such as refusing or handing over to the HR helpdesk when no clause is retrieved",
+    "No accuracy, deflection or latency figure is presented as measured unless the run computed it, and anything not run is reported as not run",
+    "No file written or edited contains an em dash character"
+   ]
+  }
+ ]
+}

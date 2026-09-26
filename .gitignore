@@ -1,0 +1,9 @@
+.scratch/
+.bearing/state/
+.claude/settings.local.json
+node_modules/
+*.log
+.DS_Store
+.ruff_cache/
+__pycache__/
+.gstack/

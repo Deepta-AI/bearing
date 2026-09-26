@@ -1,0 +1,47 @@
+version: 2
+
+models:
+  - name: stg_customers
+    description: One row per customer, typed and normalised.
+    columns:
+      - name: customer_id
+        description: Customer primary key.
+        data_tests: [unique, not_null]
+      - name: email
+        description: Lower-cased email address.
+        data_tests: [not_null]
+      - name: country
+        description: ISO 3166-1 alpha-2 country code, upper-cased.
+        data_tests: [not_null]
+      - name: created_at
+        description: Date the customer record was created.
+        data_tests: [not_null]
+
+  - name: stg_orders
+    description: One row per order, typed and normalised.
+    columns:
+      - name: order_id
+        description: Order primary key.
+        data_tests: [unique, not_null]
+      - name: customer_id
+        description: The ordering customer.
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('stg_customers')
+              field: customer_id
+      - name: order_date
+        description: The day the order was placed; the partition key downstream.
+        data_tests: [not_null]
+      - name: status
+        description: Order lifecycle state.
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: ["pending", "completed", "refunded", "cancelled"]
+      - name: amount_cents
+        description: Order value in minor units.
+        data_tests:
+          - not_null
+          - expect_column_values_to_be_between:
+              min_value: 0

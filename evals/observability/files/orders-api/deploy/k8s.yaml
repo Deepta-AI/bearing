@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: orders-api
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: orders-api
+  template:
+    metadata:
+      labels:
+        app: orders-api
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+    spec:
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: orders-api
+          image: registry.example.internal/shop/orders-api:latest
+          ports:
+            - containerPort: 8080
+          env:
+            - name: PAYMENTS_URL
+              value: http://payments.payments.svc:9090
+            - name: OTEL_SERVICE_NAME
+              value: orders-api
+            - name: OTEL_TRACES_SAMPLER
+              value: traceidratio
+            - name: OTEL_TRACES_SAMPLER_ARG
+              value: "0.1"
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            periodSeconds: 2

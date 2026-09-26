@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+# commit-msg: Conventional Commit subject, task id present on task branches,
+# no AI attribution trailer, no em dash, body wrapped.
+HOOK_NAME=commit-msg
+# shellcheck source=lib.sh
+. "$(dirname "$0")/lib.sh"
+
+msg_file="$1"
+subject="$(sed -n '1p' "$msg_file")"
+[ -n "$subject" ] || hook_fail "empty commit message"
+
+case "$subject" in
+  Merge\ *|Revert\ *|fixup!\ *|squash!\ *) hook_note "1 message checked (git-generated subject, rules not applied)"; exit 0 ;;
+esac
+
+printf '%s' "$subject" | grep -Eq "$COMMIT_RE" \
+  || hook_fail "subject must be Conventional: 'type(scope): imperative summary [TASK-1]'. Got: $subject"
+
+branch="$(git branch --show-current 2>/dev/null)"
+task="$(printf '%s' "$branch" | grep -oE "$TASK_ID_RE" | head -1)"
+if [ -n "$task" ] && ! printf '%s' "$subject" | grep -q "\[$task\]"; then
+  hook_fail "branch carries $task; the subject must end with [$task]"
+fi
+
+grep -Eq "$AI_TRAILER_RE" "$msg_file" && hook_fail "AI attribution trailer found; a commit names a person who answers for it"
+grep -q '—' "$msg_file" && hook_fail "em dash in commit message; rewrite the sentence"
+
+long="$(sed -n '3,$p' "$msg_file" | grep -v '^#' | awk 'length > 100' | wc -l | tr -d ' ')"
+[ "$long" -eq 0 ] || hook_fail "$long body line(s) over 100 characters; wrap the body"
+hook_note "1 message checked"
+exit 0

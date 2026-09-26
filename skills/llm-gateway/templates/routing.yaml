@@ -1,0 +1,109 @@
+# llm/routing.yaml. Validated at startup against llm/routing_schema.
+# A feature not listed here fails its call with UnknownFeature.
+# Prices are USD per million tokens; the gateway derives cost from the
+# usage in each response, never from the request.
+
+version: 1
+
+models:
+  claude-opus-5:
+    provider: anthropic
+    input_per_m: 5.00
+    output_per_m: 25.00
+    cache_write_multiplier: 1.25
+    cache_read_multiplier: 0.10
+    context_window: 1000000
+  claude-sonnet-5:
+    provider: anthropic
+    input_per_m: 2.00
+    output_per_m: 10.00
+    cache_write_multiplier: 1.25
+    cache_read_multiplier: 0.10
+    context_window: 1000000
+  claude-haiku-4-5:
+    provider: anthropic
+    input_per_m: 1.00
+    output_per_m: 5.00
+    cache_write_multiplier: 1.25
+    cache_read_multiplier: 0.10
+    context_window: 200000
+  # OpenRouter: one key (OPENROUTER_API_KEY) with a spend limit, many vendors.
+  # Model ids are vendor/model; prices are OpenRouter's, per million tokens.
+  # or-sonnet:
+  #   provider: openrouter
+  #   id: anthropic/claude-sonnet-5
+  #   input_per_m: 2.00
+  #   output_per_m: 10.00
+  # A trained open model served by vLLM (llm-fine-tuning) joins here.
+  # support-classifier-v1:
+  #   provider: vllm
+  #   base_url: ${LLM_VLLM_URL}
+  #   input_per_m: 0.05
+  #   output_per_m: 0.10
+
+tiers:
+  fast:
+    model: claude-haiku-4-5        # classification, routing, short extraction
+    effort: null                   # Haiku 4.5 has no effort parameter
+    max_tokens: 1024
+    timeout_s: 20
+  balanced:
+    model: claude-sonnet-5         # bulk generation, RAG answers, short-output judges
+    effort: medium
+    max_tokens: 4096
+    timeout_s: 60
+  deep:
+    model: claude-opus-5           # the default: reasoning, planning, anything a user reads
+    effort: high
+    max_tokens: 16000
+    timeout_s: 300
+
+defaults:
+  tier: deep
+  cacheable: false
+  enabled: true
+  canary: 0
+  fallback: null
+  rate_limit:
+    per_tenant_per_minute: 60
+    burst: 20
+
+routes:
+  support_classify:
+    tier: fast
+    cacheable: true                # closed label set, no tools, no time
+    fallback: null
+    rate_limit: { per_tenant_per_minute: 600, burst: 100 }
+
+  rag_answer:
+    tier: balanced
+    max_tokens: 2048
+    cacheable: false               # retrieved context changes
+    fallback: { tier: fast }       # answer with Haiku when Sonnet is unavailable
+    prompt_cache: true             # long grounding system prompt
+
+  rag_rerank:
+    tier: fast
+    max_tokens: 256
+    cacheable: true
+
+  plan_generation:
+    tier: deep
+    effort: xhigh
+    max_tokens: 32000
+    stream: true
+    fallback: { tier: balanced }
+    prompt_cache: true
+
+  eval_judge:
+    tier: deep                     # judge stronger than the model under test
+    max_tokens: 4096
+    cacheable: true
+    enabled: true
+
+  # Canary for a trained model: 5 percent of traffic, the API model stays
+  # the fallback until the eval on sampled traffic clears the bar.
+  # support_classify_v2:
+  #   model: support-classifier-v1
+  #   canary: 5
+  #   fallback: { route: support_classify }

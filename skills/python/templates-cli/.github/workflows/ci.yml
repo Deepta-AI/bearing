@@ -1,0 +1,132 @@
+# __REPO_NAME__ CI on GitHub Actions: the twin of .gitlab-ci.yml. Same stages
+# (validate, lint, test, security, build) and every gate is `make <target>`,
+# so the Makefile stays the single source of what a gate does. GitHub sets
+# CI=true, so a gate whose tool is missing fails here instead of printing
+# SKIPPED. The build job uploads the wheel; publishing it to a package index
+# is a release step a person runs, not a job here.
+#
+# The two-approval rule (one peer, one lead, from CODEOWNERS) is a branch
+# protection setting, not something a workflow can enforce: Settings >
+# Branches > main and develop: require a pull request, 2 approving reviews,
+# review from Code Owners, dismiss stale approvals, and the status checks
+# lint, unit, dependency-scan and build.
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [develop, main]
+    tags: ["v*"]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+env:
+  PYTHON_VERSION: "3.14"
+  UV_VERSION: "0.11.30"
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - name: branch-name
+        if: github.event_name == 'pull_request'
+        env: { BRANCH: "${{ github.head_ref }}" }
+        run: |
+          echo "$BRANCH" | grep -Eq '^(feature|bugfix|hotfix|chore|docs)/[A-Z][A-Z0-9]*(-[0-9]+)+-[A-Za-z0-9]+$|^release/v[0-9]+\.[0-9]+\.[0-9]+$'
+          echo "branch-name: 1 branch checked"
+      - name: commits
+        if: github.event_name == 'pull_request'
+        env: { BASE: "${{ github.base_ref }}" }
+        run: |
+          git fetch origin "$BASE" --depth=200
+          range="origin/$BASE..HEAD"
+          subjects=$(mktemp)
+          git log --no-merges --format=%s "$range" > "$subjects"
+          n=$(wc -l < "$subjects" | tr -d ' ')
+          [ "$n" -gt 0 ] || { echo "commits: 0 commits in range $range"; exit 1; }
+          bad=0
+          while IFS= read -r subj; do
+            echo "$subj" | grep -Eq '^(feat|fix|refactor|test|docs|chore|perf|build|ci|revert)(\([a-z0-9._/-]+\))?!?: .{1,72}( \[[A-Z][A-Z0-9]*(-[0-9]+)+\])?$' || { echo "bad subject: $subj"; bad=$((bad+1)); }
+          done < "$subjects"
+          if git log --no-merges --format=%B "$range" | grep -Eiq 'co-authored-by: .*(claude|anthropic|copilot|chatgpt|gemini)|generated with'; then echo "AI attribution trailer found"; exit 1; fi
+          echo "commits: $n commits checked, $bad bad"
+          [ "$bad" -eq 0 ]
+
+  lint:
+    needs: validate
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        gate: [format-check, lint, typecheck]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: ${{ env.UV_VERSION }}
+          python-version: ${{ env.PYTHON_VERSION }}
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+      - name: install
+        run: if [ -f uv.lock ]; then uv sync --locked --all-groups; else echo "lockfile:none committed, resolving now (run uv lock and commit uv.lock)"; uv sync --all-groups; fi
+      - run: make ${{ matrix.gate }}
+
+  unit:
+    needs: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: ${{ env.UV_VERSION }}
+          python-version: ${{ env.PYTHON_VERSION }}
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+      - name: install
+        run: if [ -f uv.lock ]; then uv sync --locked --all-groups; else echo "lockfile:none committed, resolving now (run uv lock and commit uv.lock)"; uv sync --all-groups; fi
+      - run: make test
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: unit-reports
+          path: |
+            junit.xml
+            coverage.xml
+          retention-days: 7
+
+  dependency-scan:
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: ${{ env.UV_VERSION }}
+          python-version: ${{ env.PYTHON_VERSION }}
+      - run: make vuln
+
+  # The wheel and sdist, kept for a week. Installing the wheel proves the
+  # console script is wired before anyone depends on it.
+  build:
+    needs: [unit, dependency-scan]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: ${{ env.UV_VERSION }}
+          python-version: ${{ env.PYTHON_VERSION }}
+      - run: make build
+      - run: uv tool run --from "$(ls dist/*.whl)" __REPO_SLUG__ --version
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          retention-days: 7

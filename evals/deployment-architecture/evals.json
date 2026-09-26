@@ -1,0 +1,66 @@
+{
+ "skill_name": "deployment-architecture",
+ "evals": [
+  {
+   "id": 1,
+   "name": "helm-terraform-ci-first-write",
+   "prompt": "On-call keeps asking how ledger-sync is deployed. Write up what runs where in qa and prod, how big it is and how to roll it back, from what's in the repo.",
+   "expected_output": "One deployment document under docs/ built from the Helm values, the chart templates, .gitlab-ci.yml and terraform/prod/rds.tf, covering qa and prod: prod HPA 4 to 12 at 70% CPU, qa 2 fixed replicas, Postgres 15.5 not 16, the 20 x 12 plus 40 connections against max_connections 200, the Ingress pointing at a Service the chart does not define, the manual deploy-prod job with no rollout wait or probes, a Helm rollback or short sha redeploy, no down migrations, 7 day backups with RPO, RTO and restore tests left unconfirmed, and the single-AZ database risk. No other file changed, no commit, no decision records.",
+   "files": [
+    "files/ledger-sync"
+   ],
+   "expectations": [
+    "A deployment document describing ledger-sync exists under docs/",
+    "No file outside docs/ was created, modified or deleted (for example README.md is unchanged; a stale README line may be flagged in the new document instead)",
+    "No git commit was made; the new work is left uncommitted on the fixture branch",
+    "No architecture decision record or decision log entry was written, and no document records a decision as Accepted or attributes a decision to a person, since the request asked only to describe the current deployment",
+    "Prod API scaling is given as HPA min 4, max 12, target 70% CPU from helm/ledger/values-prod.yaml, and the README's '3 replicas' is either not repeated as current or is flagged as contradicting the values file",
+    "QA is described as 2 fixed API replicas with no autoscaler and DB_MAX_CONNS 10, as set in helm/ledger/values-qa.yaml",
+    "The qa database is marked as not defined in the repository (terraform/ covers prod only) rather than given an invented engine version, size or host",
+    "The prod database is described as PostgreSQL 15.5 on db.r6g.large from terraform/prod/rds.tf; version 16 from docker-compose.yml is not given as the prod version",
+    "The document works out that at 12 API replicas with DB_MAX_CONNS 20 (240 connections), plus the reconcile CronJob's 40, the pods can exceed max_connections 200 set in terraform/prod/rds.tf, and names this as a scaling limit or risk",
+    "It notes that the Ingress routes to a Service named ledger-api on port 8080 but the chart has no Service template, so where that Service comes from is a gap or unconfirmed",
+    "The CI flow is described from .gitlab-ci.yml: test, build pushing an image tagged with the commit short sha, deploy-qa automatic on main, and deploy-prod as a manual job",
+    "It notes that a successful deploy job does not prove a healthy rollout, citing at least one of: the helm command runs without --wait or --atomic, or the Deployment defines no readiness probe",
+    "Rolling back the API or CronJob gives a concrete command or procedure (a Helm rollback of release ledger in namespace ledger-prod, or redeploying a previous short sha image tag)",
+    "The document states that the migrations have no Down section and the Makefile has only migrate-up, so a schema change has no tested rollback path; it does not offer a migrate-down command as if it existed",
+    "Backups are given as 7 day retention with the 20:00-21:00 window from terraform/prod/rds.tf",
+    "RPO, RTO and the last restore test are each mentioned and marked as unknown or unconfirmed, not given invented values",
+    "It notes that multi_az is false, so losing the database's availability zone takes prod down until a restore or failover, as a disaster recovery gap",
+    "The nightly reconcile CronJob (schedule 30 1 * * *, concurrencyPolicy Forbid) appears as a workload",
+    "Where the Secret ledger-secrets is created or populated is marked as unconfirmed or not in the repository",
+    "Given the deployment document exists: nothing absent from the repository is stated as fact; the cluster name, node sizes, cost and the Secret's contents are either marked unconfirmed or left out, and prod is not said to run Redis (Redis appears only in the local docker-compose.yml)",
+    "Given the deployment document exists: every hostname in it appears in the repository files, apart from localhost used for the local compose setup",
+    "Given at least one file was written: no file written or edited contains an em dash character"
+   ]
+  },
+  {
+   "id": 2,
+   "name": "sparse-repo-with-hearsay",
+   "prompt": "can you document how parcel-notify is deployed? there isn't much in the repo. from memory prod is a single Hetzner CX32 VM running the compose file, Priya set it up last year, and there's a nightly pg_dump going to object storage. ops need something to go on.",
+   "expected_output": "A deployment document under docs/ that separates what the repository shows (Procfile processes, compose services, CI that only builds and pushes to ghcr.io, sha and latest tags, env vars) from what the user remembers (Hetzner CX32, running compose, nightly pg_dump), marks the latter unconfirmed, catches that compose runs no worker and no migrations, marks rollback and RPO/RTO as undefined or unconfirmed, invents no hostnames or buckets, and lists what to confirm and with whom. No other file changed, no commit, and the recollection is not recorded as a decision.",
+   "files": [
+    "files/parcel-notify"
+   ],
+   "expectations": [
+    "A deployment document describing parcel-notify exists under docs/",
+    "No file outside docs/ was created, modified or deleted (for example README.md is unchanged, including its 'Ask in #ops' line)",
+    "No git commit was made and no branch was created; the new work is left uncommitted on the fixture branch",
+    "No architecture decision record or decision log entry was written, and the user's recollection (Hetzner CX32, compose in prod, nightly pg_dump) is not recorded as an Accepted decision or as a decision made by Priya",
+    "The Hetzner VM, the CX32 size and the nightly pg_dump to object storage are each marked as unconfirmed or as reported by the user, not presented as facts found in the repository",
+    "The prod topology is not described from docker-compose.yml as confirmed fact; where the compose file is used, the document says it is the local setup or that prod running it is unconfirmed",
+    "It identifies from the Procfile that there is a worker process and a release step that runs migrations, and notes that docker-compose.yml runs neither, so whether prod runs the worker and how migrations are applied is unknown",
+    "It states that .github/workflows/ci.yml only tests, builds and pushes an image to ghcr.io (tagged with the commit sha and latest), with no deploy job, so deploying to prod is a manual step not described in the repository",
+    "Rollback is marked as unconfirmed or undefined whatever mechanism is suggested (for example redeploying a previous sha tagged ghcr.io image, or rebuilding a previous commit); it is not presented as a known, tested procedure",
+    "It notes that the migrations have no Down section, so a schema change cannot be rolled back by a down migration",
+    "RPO, RTO and backup restore testing are each marked unknown or unconfirmed; any data loss figure is tied to the unconfirmed nightly dump rather than stated as a fact",
+    "The prod database version is marked unknown or unconfirmed; version 16 from docker-compose.yml is not given as the prod version without such a marker",
+    "Given the deployment document exists: no production hostname, IP address, bucket name, region or Hetzner location appears that is not in the request or the repository",
+    "The secrets the app needs (WEBHOOK_SECRET, WHATSAPP_API_TOKEN, SMTP_URL, DATABASE_URL from .env.example) are listed",
+    "How those secrets reach prod is marked unconfirmed; the compose env_file .env is not stated as the prod mechanism without such a marker",
+    "The document lists the open items ops must confirm, each saying with whom or where (for example Priya, the VM itself, the Hetzner console or #ops, which the README names for deploying)",
+    "Given at least one file was written: no file written or edited contains an em dash character"
+   ]
+  }
+ ]
+}

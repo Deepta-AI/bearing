@@ -1,0 +1,64 @@
+{
+ "skill_name": "observability",
+ "evals": [
+  {
+   "id": 1,
+   "name": "trace-checkout-to-payments",
+   "prompt": "When checkout is slow we can't tell if it's us or the payments provider. Add tracing to orders-api so I can jump from a log line straight to its trace. Needs to work on my laptop too.",
+   "expected_output": "orders-api gets server spans named by route pattern, a child client span for the payments call with traceparent propagated through the custom retrying transport and a context-taking Charge, trace_id and span_id on the access log line and on the handler's own log lines, with the tracing middleware outermost so r.Pattern still reaches the access log and the http_route label. Export is OTLP over HTTP to the collector named in ADR-0003, the traceidratio 0.1 sampler in .env.example and deploy/k8s.yaml is removed or flagged against ADR-0003, the tracer provider flushes on SIGTERM, nothing needs a running collector, no email reaches telemetry and the existing customer_email log field is flagged, a laptop path to see traces exists, make check passes with new tests, the alert rules are untouched, nothing is committed and unverified steps are named.",
+   "files": [
+    "files/orders-api"
+   ],
+   "expectations": [
+    "`make check` passes when the grader runs it in the output repository (with the local Go module cache available), and it runs new or changed tests that exercise the tracing, beyond the fixture's tests",
+    "Every request to POST /checkout and GET /orders/{id} produces a server span set up in the process wiring (cmd/orders-api/main.go or a package it calls), and the span name or its http.route attribute uses the route pattern (for example `GET /orders/{id}`), never a concrete order id",
+    "The access log line written by the middleware in internal/logging/logging.go carries the trace_id (and span_id) of the request's server span, and a test proves it (the logged trace_id equals the span's trace id, or is a non-empty 32 hex character id read from the active span); the fixture's middleware logs after the handler returns using its own r.Context(), so this needs the span to start outside that middleware or an equivalent fix",
+    "The route is not lost for the access log and the metrics: after the change the access log `route` field and the `http_route` metric label still carry the route pattern for routed requests. The fixture reads r.Pattern after calling the next handler, and any middleware between it and the mux that passes on a copy of the request (r.WithContext, as otelhttp does) leaves that field empty; the run either keeps the tracing middleware outside internal/logging and internal/metrics in cmd/orders-api/main.go, or passes the route another way, or a test shows the route is still set",
+    "The log lines written inside the checkout handler (\"checkout failed\" and \"checkout declined\" in internal/orders/handler.go) also carry trace_id: they are emitted with the request context (for example ErrorContext, InfoContext or LogAttrs with r.Context()) and the slog handler reads the span from that context; a context-reading slog handler alone, with the fixture's context-free calls left in place, does not satisfy this",
+    "The payments call is a client span that is a child of the checkout server span, and the outbound request carries a W3C traceparent header: payments.Client.Charge (and the Charger interface) takes a context and builds the request with it instead of http.NewRequest, and the client's own transport (the custom retryTransport, not http.DefaultTransport) is instrumented; a test with an httptest payments server asserts the traceparent header or the parent-child relation",
+    "Traces are exported with OTLP over HTTP to the collector as ADR-0003 requires (port 4318, endpoint from OTEL_EXPORTER_OTLP_ENDPOINT or the OTLP HTTP exporter's defaults), not over gRPC to port 4317, and nothing exports straight to Tempo, Jaeger or another tracing backend",
+    "No head sampler is left in force: the ratio sampler (OTEL_TRACES_SAMPLER=traceidratio with OTEL_TRACES_SAMPLER_ARG=0.1) in .env.example and deploy/k8s.yaml is removed, or the final message flags it as contradicting ADR-0003 and dropping about nine in ten error traces and recommends removing it; the code configures no ratio sampler",
+    "Spans carry service.name orders-api (from OTEL_SERVICE_NAME or the SDK resource), the same name the log lines carry in their service field",
+    "On SIGTERM the tracer provider is shut down or flushed after the HTTP server drains, inside the existing shutdown budget (20 s in main.go, 30 s terminationGracePeriodSeconds), so the spans of the last requests are not dropped",
+    "Nothing needs a running collector: the service still starts and serves requests when the collector is unreachable (export errors are logged or ignored, not fatal), and the tests use an in-memory or no-op exporter rather than the network",
+    "No span attribute, span event or log field added by the run carries the customer email, and the run removes, or flags in its final message, the existing customer_email field on the \"checkout failed\" log line in internal/orders/handler.go as breaking the README's data rule",
+    "There is a runnable, documented way to see traces on a laptop (for example a compose file with a collector and a trace backend, or an exact command in the README or the final message) in which the service sends to a local collector over the same OTLP HTTP path it uses in the cluster",
+    "The final message says which checks ran and which did not (for example that no local stack was started, or no trace was looked at in a backend) and does not claim the log-to-trace jump was seen working end to end unless the transcript shows it",
+    "monitoring/alerts/orders-api.yaml is unchanged: the request was about tracing, so the existing alert rules are not replaced, rewritten or deleted",
+    "The text of docs/adr/0003-telemetry-through-the-collector.md and docs/adr/0004-orders-availability-target.md is unchanged; any new decision record is marked Proposed (or equivalent) and names no person, role or team as having decided it",
+    "The run makes no git commit: the output repository's history still ends at the fixture commit and the changes are left in the working tree",
+    "No file written or edited contains an em dash character"
+   ]
+  },
+  {
+   "id": 2,
+   "name": "slos-and-paging-rework",
+   "prompt": "On-call is getting paged for junk and nobody got paged for the checkout outage on the 15th. Set up proper SLOs for orders-api and rework the alerts so we only page on what customers actually feel.",
+   "expected_output": "An SLO document takes ADR-0004's accepted targets (99.5 percent over 30 days for checkout and order lookup, 95 percent of checkouts within 1.5 s), states the 0.5 percent budget (about 216 minutes), excludes /healthz and /metrics (half of all requests), and the rules page on multi-window burn rates computed from 0.005, checked against the 15 September incident with the long window counted (8 percent of user requests failing only crosses a service-wide 7.2 percent 1 h threshold after about 54 minutes, so a checkout-scoped rule or an honest statement is needed). The run explains that OrdersHigh5xx never fired because it filters on a `code` label the metric does not have, stops CPU and the one-minute p99 from paging, notices the histogram buckets stop at 1 s so 1.5 s cannot be counted and fixes or flags it, links a runbook for every paging rule, keeps make check passing, adds no tracing, commits nothing, and says promtool and test fires were not run.",
+   "files": [
+    "files/orders-api"
+   ],
+   "expectations": [
+    "A document in the repository sets the orders-api SLOs from ADR-0004: availability 99.5 percent of POST /checkout and GET /orders/{id} requests over a rolling 30 days, and 95 percent of POST /checkout requests within 1.5 s; it cites ADR-0004 and does not substitute other targets (for example 99.9 percent, or 300 or 800 ms)",
+    "The error budget is stated consistently with 99.5 percent: 0.5 percent of requests, or about 216 minutes of full outage per 30 days (43 minutes, the 99.9 percent figure, fails this)",
+    "The availability SLI counts 5xx responses as failures and 4xx as successes, and excludes /healthz and /metrics from both numerator and denominator (in the PromQL, a recording rule or by not recording them); the fixture's metrics middleware records /healthz, which the README's numbers make half of all requests (1.5 of 3.0 a second)",
+    "The alert rules page on the availability SLO with a multi-window burn-rate rule whose error-ratio threshold is the stated burn rate times 0.005 (for example 14.4 x 0.005 = 7.2 percent for the fast burn, 6 x 0.005 = 3 percent for the slow one); thresholds built on 0.001 fail this",
+    "The run checks its paging rules against the 15 September incident with numbers from the repository, including the long window: 30 percent of 0.4 checkouts a second failing is about 0.12 errors a second, 8 percent of the 1.5 user requests a second, so a service-wide 14.4x rule with a 1 h long window (threshold 7.2 percent) would only cross after about 54 minutes and would not have paged during the 38 minute incident. The run either adds a paging rule that does cross within the 38 minutes and shows the arithmetic (for example a checkout-scoped SLI, where 30 percent crosses 7.2 percent in the 1 h window after about 15 minutes), or states plainly that its rules would not have paged for that incident; a claim that the rules would have paged with no computation, or one that ignores the long window, fails this",
+    "The run explains why OrdersHigh5xx never fired: its expression filters on a label `code` that the metric does not have (the status label is http_response_status_code in internal/metrics/metrics.go), so it matched no series; the new rules use http_response_status_code",
+    "OrdersHighCPU no longer pages (removed, or changed to a non-paging severity), with the reason tied to ADR-0004 or the August page record in the README",
+    "The one-minute p99 over 500 ms rule (OrdersLatencyHigh) no longer pages as it stands; any latency rule that pages is tied to the POST /checkout 1.5 s objective and evaluated over at least 5 minutes or as a burn rate",
+    "The run notices that the histogram buckets in internal/metrics/metrics.go stop at 1 s with no 1.5 s boundary, so requests within 1.5 s cannot be counted from the histogram, and either adds a 1.5 s bucket (and larger ones) with the metrics test still passing, or states that the latency SLI and any rule built on it cannot be computed until the buckets change; a latency SLI or rule that reads le=\"1.5\" without that bucket existing fails this",
+    "The latency objective and any rule built on it select POST /checkout only (http_route=\"/checkout\" or equivalent), not every route",
+    "Every rule that pages carries a runbook link, and each link points to a runbook file that exists in the repository or is listed in the final message as still to be written",
+    "The rule files are valid YAML and their expressions use only metric and label names the fixture produces (http_server_request_duration_seconds_count, _bucket and _sum, http_route, http_request_method, http_response_status_code, le, and the scrape job label)",
+    "The final message says that the rules were not checked with promtool or evaluated by a running Prometheus, and that no alert was test-fired, unless the transcript shows the run did so",
+    "`make check` passes when the grader runs it in the output repository",
+    "No OpenTelemetry SDK, tracing or new dependency is added, and nothing under cmd/ or internal/ changes except the histogram buckets or keeping probes out of the metrics (and their tests)",
+    "The text of the ADRs under docs/adr/ and of docs/incidents/2026-09-15-checkout-502.md is unchanged, except that adding a note to the incident's open follow-up is acceptable",
+    "Any new decision record is marked Proposed (or equivalent) and names no person, role or team as having decided it",
+    "The run makes no git commit: the output repository's history still ends at the fixture commit and the changes are left in the working tree",
+    "No file written or edited contains an em dash character"
+   ]
+  }
+ ]
+}

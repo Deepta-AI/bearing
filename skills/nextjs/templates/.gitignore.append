@@ -1,0 +1,17 @@
+
+
+# next
+node_modules/
+.next/
+out/
+coverage/
+playwright-report/
+.lighthouseci/
+test-results/
+next-env.d.ts
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store

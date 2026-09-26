@@ -1,0 +1,19 @@
+# pre-commit configuration: `uv run pre-commit run --all-files` runs ruff,
+# ruff-format and mypy over the tree, the same checks as make check. The
+# committed .githooks own the commit hooks (git core.hooksPath), so this is
+# not installed as a hook; it is the whole-tree runner and the config an IDE
+# plugin reads. Versions track the dev group in pyproject.toml; bump both.
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.16.0
+    hooks:
+      - id: ruff
+        args: [--fix]
+      - id: ruff-format
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v2.3.0
+    hooks:
+      - id: mypy
+        additional_dependencies: [pydantic, pydantic-settings, structlog, fastapi, sqlalchemy]
+        args: [--config-file=pyproject.toml]
+        files: ^(app|tests)/

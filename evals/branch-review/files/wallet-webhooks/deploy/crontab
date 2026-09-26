@@ -1,0 +1,2 @@
+# m h dom mon dow  command
+0 * * * *  cd /srv/wallet && python3 scripts/purge_events.py

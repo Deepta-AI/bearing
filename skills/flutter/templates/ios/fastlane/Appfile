@@ -1,0 +1,4 @@
+# The bundle id `flutter create --org` produced; override per environment.
+app_identifier(ENV.fetch("IOS_BUNDLE_ID", "__ORG_ID__.app"))
+apple_id(ENV["FASTLANE_APPLE_ID"])
+team_id(ENV["FASTLANE_TEAM_ID"])

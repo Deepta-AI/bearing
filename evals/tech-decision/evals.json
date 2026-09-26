@@ -1,0 +1,73 @@
+{
+ "skill_name": "tech-decision",
+ "evals": [
+  {
+   "id": 1,
+   "name": "kafka-proposed-for-notifications",
+   "prompt": "Checkout is blocking on MSG91 (see INC-231). Rahul wants to bring in Kafka for the SMS and email notifications. Is that the right call or is there something better for us? Someone also asked whether we should move to GKE while we're at it. I want this settled and written down.",
+   "expected_output": "The messaging choice is laid out with Kafka shown next to lighter options, one recommendation that fits the repository's facts (about 300 checkouts a minute at peak, three developers and no ops engineer, Postgres and Cloud Run already decided) with the condition that would flip it, and a design an expert would sign: the notification is enqueued atomically with the order, the worker runs in a way Cloud Run supports, a timed-out MSG91 send is not blindly retried into a duplicate SMS (the vendor notes say there is no idempotency key), and a message past the 6 hour window has a defined end. The GKE question is answered from ADR 0002 without reopening or re-recording it, and one new adr-tools style ADR 0003 in docs/adr/ has status Proposed, since nobody answered; the final message says the choice still awaits the user. Nothing is recorded for what the repository already settles, no code is changed and nothing is committed.",
+   "files": [
+    "files/checkout-notify"
+   ],
+   "expectations": [
+    "The reply or ADR 0003 compares Kafka with at least two other ways to take notifications out of the request (for example a Postgres outbox table with a worker, Cloud Pub/Sub or Cloud Tasks, RabbitMQ), giving each at least one strength and one cost",
+    "Exactly one option is recommended for the notification queue, and it is not Kafka",
+    "The reasons for the recommendation cite at least two facts from the repository: the peak of 300 checkouts a minute (docs/product/PRD.md 7.1), the three developers with no operations engineer (PRD 7.2 or ADR 0002), PostgreSQL already in use (ADR 0001), or GCP and Cloud Run already chosen (ADR 0002 or .bearing/company.json)",
+    "It states a concrete condition under which Kafka or another option would become the better choice (for example replay, several independent consumers, or a much higher message volume)",
+    "It recognises that retrying an MSG91 send that timed out can deliver a second SMS, because the send API has no idempotency key and a timed-out request may already have been delivered (docs/vendors/msg91.md), and says how the design handles that case against PRD 4.2 (for example keeping MSG91's request_id and checking the delivery report before resending, not resending an ambiguous timeout automatically, or stating the residual risk and who accepts it); a dedupe key on the queue alone does not pass",
+    "The final message names the messaging option it recommends",
+    "The final message says, in any wording, that the messaging choice has not been made by the user yet and still awaits their decision (for example that it is recorded as Proposed or pending their answer); it does not present the choice as settled",
+    "No record written by the run (ADR, log, or other file) says the user, Rahul, the team or any named person chose or accepted the messaging option, since nobody answered",
+    "The GKE question is answered by citing ADR 0002 (Cloud Run) and naming what new fact would justify revisiting it",
+    "docs/adr/0002-run-on-cloud-run.md is unchanged, and no ADR or decision-log entry records a decision about GKE or Cloud Run (superseding, amending or reaffirming ADR 0002). A one-line cross-reference to ADR 0002 inside ADR 0003 is acceptable; a GKE section, a GKE option list or a separate GKE record is not",
+    "Exactly one new ADR file exists, at docs/adr/0003-<kebab title>.md, in the existing adr-tools shape: a '# 3. <title>' heading, a Date line, and Status, Context, Decision and Consequences sections",
+    "If ADR 0003 exists, its Status section says Proposed, not Accepted",
+    "No other ADR directory or numbering scheme was created, and no ADR or decision-log entry was written for PostgreSQL or anything else the repository already settles",
+    "If ADR 0003 exists, it records Kafka among the options with the reason it was not chosen",
+    "If ADR 0003 exists, it names at least one cost or piece of new work the chosen option brings (for example a worker to run, a retry schedule for the 6 hour window in PRD 4.3, or a table to purge)",
+    "The recommendation says where the notification work runs on Cloud Run in a way consistent with ADR 0002's note that long-running background work does not fit a request-scoped instance (for example Cloud Tasks pushing to an HTTP handler, a separate worker service with CPU always allocated, or a scheduled Cloud Run job draining an outbox); a goroutine started by the checkout request and left running after the response does not pass",
+    "The design says what happens to a confirmation still undelivered when PRD 4.3's 6 hour retry window ends (for example marked failed, alerted or reported to support), not only that it is retried",
+    "No Go source file or go.mod was changed: the run records a decision and does not implement it",
+    "No file was created or changed outside docs/ (for example no planning scaffold, notes directory, migration or config file)",
+    "The run made no git commit and did not push: the branch head is the same commit it started on",
+    "The design says how a confirmation is kept from being lost when the order commits but the enqueue fails, or the reverse: the notification is written in the same database transaction as the order (store.PlaceOrder), or the run names this gap and how it is closed; enqueueing after the commit with no answer for a failed enqueue does not pass",
+    "No file written or edited contains an em dash character"
+   ]
+  },
+  {
+   "id": 2,
+   "name": "search-change-against-recorded-decisions",
+   "prompt": "Search is killing us, almost a quarter of searches come back empty (numbers are in docs/metrics). I'm thinking we move to Elasticsearch. And should we put Redis in front of the catalogue page while we're at it? Decide and record it please.",
+   "expected_output": "Elasticsearch is weighed against lighter typo-tolerant options using the repository's numbers (180,000 products, 71% of zero-result queries are misspellings, which is about 16% of all searches, two developers, AWS managed-first), one recommendation with its flip condition, the database load of a Postgres-based fix weighed against the load test, and a missing fact raised as a question with the assumption stated. The Redis question is answered from ADR-003 and the 140 ms production p95, reading the 320 ms load-test figure as staging rather than the ADR's trigger and naming the connection opened per request as the cheaper fix, without adding a cache or editing ADR-003. The decision is recorded as ADR-005 in docs/decisions/ in the repository's own format with status Proposed, since nobody answered, and ADR-004 is not marked superseded while ADR-005 is only proposed. No code is changed and nothing is committed.",
+   "files": [
+    "files/catalogue-search"
+   ],
+   "expectations": [
+    "The run identifies from docs/metrics/search-2026-09.md that most empty results are misspellings (71% of the hand-checked sample) and treats typo tolerance as the problem to solve",
+    "The run works out from docs/metrics/search-2026-09.md that typo tolerance can at best remove about 16% of all searches from the zero-result set (23% x 71%), so the zero-result rate would still be around 7% after a perfect fix, and uses this for the expected outcome or the flip condition rather than promising to fix the 23%",
+    "Elasticsearch (or OpenSearch) is compared with at least one lighter option that handles typos (pg_trgm or fuzzy matching in the existing Postgres, Meilisearch, Typesense, or a hosted service such as Algolia), each with a strength and a cost",
+    "Exactly one search option is recommended",
+    "The reasons for the search recommendation cite at least one of: the 180,000 product catalogue size, the two-developer team, or ADR-002's managed-first rule",
+    "A concrete condition that would flip the search recommendation is stated (for example a zero-result rate that stays high after the change, a latency limit, or a need such as synonyms or facets)",
+    "The run names at least one fact the repository does not give that would change the search recommendation (for example budget for a hosted service, who would operate a new search service, or whether catalogue data may leave AWS) and either asks it or states the assumption it made about it",
+    "If the search recommendation keeps search in the existing Postgres (pg_trgm or similar), it addresses the extra load on the same database given the load test's 85% RDS CPU (for example running the fuzzy query only when full-text returns nothing, measuring it before release, or naming database load as a flip condition)",
+    "The Redis answer treats the 320 ms in docs/metrics/loadtest-2026-08.md as a staging load test at 5x traffic on smaller hardware, not the production week ADR-003's trigger names, so it does not by itself reopen ADR-003",
+    "The Redis answer names a cheaper cause visible in the repository to address before any cache: api.py opens a new Postgres connection on every request (the load test shows 410 new connections a second), so connection pooling comes before a cache",
+    "The Redis question is answered from ADR-003's trigger (production p95 of GET /catalogue above 300 ms for a week) and the measured production p95 of 140 ms, and the answer is not to add a cache now",
+    "docs/decisions/ADR-003-no-cache-until-measured.md is unchanged (no appended review or revisit note), and no ADR or decision-log entry records a decision on the cache. A one-line cross-reference to ADR-003 inside ADR-005 is acceptable; a cache section, cache options or a separate cache record is not",
+    "Exactly one new ADR file exists, at docs/decisions/ADR-005-<kebab title>.md, matching the existing ADRs: a title line 'ADR-005: ...', a 'Status:' line, and Context, Decision and Consequences sections",
+    "If ADR-005 exists, its Status line says Proposed, not Accepted",
+    "Nothing was created under docs/adr/ or any other new directory",
+    "No record written by the run (ADR, log, or other file) says the user or any named person chose or accepted the search option, since nobody answered",
+    "The final message names the recommended search option and says, in any wording, that it still awaits the user's decision; it does not present the choice as settled",
+    "ADR-004 is unchanged: its Status line is not changed to superseded or amended and its Decision section is not edited while ADR-005 is only Proposed; if the chosen option replaces Postgres full-text search, ADR-005 says it would supersede ADR-004 once accepted",
+    "If ADR-005 exists, it records Elasticsearch among the alternatives with the reason for accepting or rejecting it",
+    "No Python source file, pyproject.toml or migration was changed, and no Redis, cache code, dependency or infrastructure was added anywhere",
+    "No file was created or changed outside docs/ (for example no planning scaffold, notes directory or config file)",
+    "The run made no git commit and did not push: the branch head is the same commit it started on",
+    "No number about search or the catalogue is stated as measured unless it appears in the repository",
+    "No file written or edited contains an em dash character"
+   ]
+  }
+ ]
+}

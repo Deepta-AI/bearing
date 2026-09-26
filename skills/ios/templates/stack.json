@@ -1,0 +1,12 @@
+{
+  "id": "ios",
+  "display": "iOS app",
+  "type": "Client/Mobile",
+  "stack": "Swift 6 (language mode) + SwiftUI + Observation + Swift Concurrency + SwiftPM + XcodeGen + SwiftData + Swift Testing",
+  "databases": "SwiftData local; talks to the API",
+  "entrypoint": "App/__REPO_NAME__App.swift",
+  "rules_file": "ios.md",
+  "check_command": "make check",
+  "install": "",
+  "tool": "xcodebuild"
+}

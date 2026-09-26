@@ -1,0 +1,157 @@
+#!/usr/bin/env bash
+# brg-runbook-check: every Prometheus alert rule links to a runbook that
+# exists, counted from the rule files, never from what the skill wrote.
+#
+#   brg-runbook-check [--root DIR] [--paging] [rules file or dir]...
+#
+# Reads each rule file (a directory: every *.yml and *.yaml under it; no
+# argument: monitoring/alerts under the root). A line parser, no PyYAML:
+# "- alert: <Name>" opens a rule; "- record:" and "- name:" close it; the
+# rule's "runbook_url:" and "severity:" are read from block or flow style
+# ("labels: { severity: page }"). Commented lines are skipped, so the
+# commented sketch in a template counts nothing.
+#
+# A runbook_url resolves when:
+#   - it is a path (no "://") naming a file that exists relative to the
+#     root or to the rule file's directory; or
+#   - its last path segment (query and fragment dropped, ".md" added when
+#     absent) names docs/runbooks/<segment> under the root.
+# So https://host/group/repo/-/blob/main/docs/runbooks/ApiDown.md and
+# __RUNBOOK_BASE__/ApiDown.md both resolve to docs/runbooks/ApiDown.md.
+#
+# --paging: only rules whose severity is page, critical, sev1 or sev2 (or
+# 1, 2) must have a runbook; every rule must carry a severity label, and
+# one without it is unroutable, a problem.
+#
+# Prints one "problem:" line per missing runbook (with the runbook
+# command) and per unroutable rule, then
+#   runbook-check: N alerts, R with runbooks, M missing
+# (with --paging a second line: "runbook-check: T rules read from F files,
+# U unroutable"). Exits 1 on any missing runbook, any unroutable rule under
+# --paging, a named path that does not exist, or when zero rule files or
+# zero alerts were read. bash 3.2 safe.
+set -u
+root="."; paging=0; inputs=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --root) root="${2:-}"; shift 2 || { echo "runbook-check: --root needs a directory" >&2; exit 2; };;
+    --paging) paging=1; shift;;
+    -h|--help) sed -n '2,32p' "$0" | sed 's/^# \{0,1\}//'; exit 0;;
+    *) inputs="$inputs
+$1"; shift;;
+  esac
+done
+[ -d "$root" ] || { echo "runbook-check: root $root is not a directory" >&2; exit 2; }
+[ -n "$inputs" ] || inputs="$root/monitoring/alerts"
+
+files=""
+nfiles=0; badpath=0
+while IFS= read -r arg; do
+  [ -n "$arg" ] || continue
+  if [ -d "$arg" ]; then
+    found="$(find "$arg" -type f \( -name '*.yml' -o -name '*.yaml' \) | sort)"
+  elif [ -f "$arg" ]; then
+    found="$arg"
+  else
+    echo "problem: $arg: no such rule file or directory"
+    badpath=$((badpath+1))
+    found=""
+  fi
+  while IFS= read -r f; do
+    [ -n "$f" ] || continue
+    files="$files
+$f"; nfiles=$((nfiles+1))
+  done <<EOF
+$found
+EOF
+done <<EOF
+$inputs
+EOF
+if [ "$nfiles" -eq 0 ]; then
+  echo "runbook-check: 0 alerts, 0 with runbooks, 0 missing"
+  echo "runbook-check: 0 rule files read, nothing checked" >&2
+  exit 1
+fi
+
+# rules <file>: one "alert US severity US runbook_url" line per alert rule
+# (US, the 0x1f unit separator, because tab IFS would collapse an empty field).
+rules() {
+  awk '
+    function unq(v) { sub(/^[ \t]+/, "", v); sub(/[ \t]+$/, "", v); sub(/[ \t]+#.*$/, "", v); gsub(/^["\047]|["\047]$/, "", v); return v }
+    function flush() { if (name != "") printf "%s\037%s\037%s\n", name, sev, url; name = ""; sev = ""; url = "" }
+    function field(line, key,   i, v) {
+      i = index(line, key ":"); if (i == 0) return "";
+      v = substr(line, i + length(key) + 1)
+      sub(/[,}].*$/, "", v)
+      return unq(v)
+    }
+    /^[ \t]*#/ { next }
+    /^[ \t]*-[ \t]*alert:/ { flush(); v = $0; sub(/^[ \t]*-[ \t]*alert:/, "", v); name = unq(v); if (name == "") name = "(unnamed)"; next }
+    /^[ \t]*-[ \t]*(record|name):/ { flush(); next }
+    name != "" && /(^|[ \t{,])severity:/ { s = field($0, "severity"); if (s != "") sev = s }
+    name != "" && /(^|[ \t{,])runbook_url:/ { u = field($0, "runbook_url"); if (u != "") url = u }
+    END { flush() }
+  ' "$1"
+}
+
+# resolve <url> <rule file>: prints the runbook path that exists, or nothing.
+resolve() {
+  local url="$1" dir seg
+  dir="$(dirname "$2")"
+  case "$url" in
+    *://*) ;;
+    *) for cand in "$root/$url" "$dir/$url"; do
+         [ -f "$cand" ] && { printf '%s' "$cand"; return 0; }
+       done;;
+  esac
+  seg="${url%%\?*}"; seg="${seg%%#*}"; seg="${seg%/}"; seg="${seg##*/}"
+  [ -n "$seg" ] || return 0
+  case "$seg" in *.md) ;; *) seg="$seg.md";; esac
+  [ -f "$root/docs/runbooks/$seg" ] && printf '%s' "$root/docs/runbooks/$seg"
+  return 0
+}
+
+total=0; checked=0; with=0; missing=0; unroutable=0
+us="$(printf '\037')"
+while IFS= read -r f; do
+  [ -n "$f" ] || continue
+  while IFS="$us" read -r alert sev url; do
+    [ -n "$alert" ] || continue
+    total=$((total+1))
+    lsev="$(printf '%s' "$sev" | tr '[:upper:]' '[:lower:]')"
+    if [ "$paging" -eq 1 ]; then
+      if [ -z "$sev" ]; then
+        unroutable=$((unroutable+1))
+        echo "problem: $f: $alert: no severity label, unroutable"
+      fi
+      case "$lsev" in page|critical|sev1|sev2|sev-1|sev-2|1|2) ;; *) continue;; esac
+    fi
+    checked=$((checked+1))
+    if [ -z "$url" ]; then
+      missing=$((missing+1))
+      echo "problem: $f: $alert: no runbook_url annotation (runbook $alert)"
+      continue
+    fi
+    hit="$(resolve "$url" "$f")"
+    if [ -n "$hit" ]; then
+      with=$((with+1))
+    else
+      missing=$((missing+1))
+      echo "problem: $f: $alert: runbook_url $url resolves to no file under $root/docs/runbooks/ (runbook $alert)"
+    fi
+  done <<EOF
+$(rules "$f")
+EOF
+done <<EOF
+$files
+EOF
+
+echo "runbook-check: $checked alerts, $with with runbooks, $missing missing"
+[ "$paging" -eq 1 ] && echo "runbook-check: $total rules read from $nfiles files, $unroutable unroutable"
+if [ "$checked" -eq 0 ]; then
+  if [ "$paging" -eq 1 ]; then what="paging alerts"; else what="alerts"; fi
+  echo "runbook-check: 0 $what in $nfiles rule files, nothing checked" >&2
+  exit 1
+fi
+[ "$missing" -eq 0 ] && [ "$unroutable" -eq 0 ] && [ "$badpath" -eq 0 ] || exit 1
+exit 0

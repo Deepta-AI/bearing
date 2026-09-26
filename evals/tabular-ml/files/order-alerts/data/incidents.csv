@@ -1,0 +1,5 @@
+id,start,end,description
+INC-101,2026-09-16T13:00,2026-09-16T15:00,"payment gateway timeout, checkout failing"
+INC-114,2026-10-28T19:00,2026-10-28T21:00,app release 7.4 crashed on cart screen for Android
+INC-118,2026-11-04T03:00,2026-11-04T06:00,"order service stuck after a night deploy, orders queued"
+INC-121,2026-11-12T12:00,2026-11-12T13:00,one city's store catalogue failed to load

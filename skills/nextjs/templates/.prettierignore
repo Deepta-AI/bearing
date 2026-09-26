@@ -1,0 +1,16 @@
+# Build and test output
+.next
+coverage
+playwright-report
+.lighthouseci
+test-results
+pnpm-lock.yaml
+next-env.d.ts
+# Shared repo prose and settings come from Bearing templates/repo; this stack does not own their formatting
+AGENTS.md
+CLAUDE.md
+CONTRIBUTING.md
+SECURITY.md
+docs/
+.claude/
+.gitlab/

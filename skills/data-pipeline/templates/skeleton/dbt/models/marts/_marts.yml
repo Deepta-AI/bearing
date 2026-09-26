@@ -1,0 +1,48 @@
+version: 2
+
+# Every mart has tests; a mart without a yml entry fails tests/test_dbt_layout.py.
+models:
+  - name: dim_customers
+    description: One row per customer with first order date and order count.
+    columns:
+      - name: customer_id
+        description: Customer primary key.
+        data_tests: [unique, not_null]
+      - name: country
+        description: ISO 3166-1 alpha-2 country code.
+        data_tests: [not_null]
+      - name: order_count
+        description: Orders placed by the customer, any status.
+        data_tests:
+          - not_null
+          - expect_column_values_to_be_between:
+              min_value: 0
+
+  - name: fct_orders_daily
+    description: Orders, revenue and refunds per day and country. Incremental by day.
+    columns:
+      - name: order_date
+        description: Partition key.
+        data_tests: [not_null]
+      - name: country
+        description: Customer country at order time.
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('dim_customers')
+              field: country
+      - name: order_count
+        description: Orders on the day in the country.
+        data_tests:
+          - not_null
+          - expect_column_values_to_be_between:
+              min_value: 1
+      - name: revenue_cents
+        description: Completed order value in minor units.
+        data_tests:
+          - not_null
+          - expect_column_values_to_be_between:
+              min_value: 0
+      - name: refunded_count
+        description: Refunded orders on the day.
+        data_tests: [not_null]

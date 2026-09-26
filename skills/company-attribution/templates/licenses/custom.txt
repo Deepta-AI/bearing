@@ -1,0 +1,3 @@
+Copyright (c) __YEAR__ __HOLDER__
+
+__CUSTOM_LICENSE_TEXT__

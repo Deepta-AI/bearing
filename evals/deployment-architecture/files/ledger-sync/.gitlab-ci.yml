@@ -1,0 +1,48 @@
+stages:
+  - test
+  - build
+  - deploy-qa
+  - deploy-prod
+
+variables:
+  IMAGE: registry.acme.example.com/finance/ledger-sync
+
+test:
+  stage: test
+  image: golang:1.25
+  script:
+    - go vet ./...
+    - go test ./...
+
+build:
+  stage: build
+  image: docker:27
+  services: [docker:27-dind]
+  script:
+    - docker build -t $IMAGE:$CI_COMMIT_SHORT_SHA .
+    - docker push $IMAGE:$CI_COMMIT_SHORT_SHA
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+
+deploy-qa:
+  stage: deploy-qa
+  image: alpine/helm:3.15
+  environment:
+    name: qa
+  script:
+    - helm upgrade --install ledger helm/ledger -n ledger-qa
+        -f helm/ledger/values-qa.yaml --set image.tag=$CI_COMMIT_SHORT_SHA
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+
+deploy-prod:
+  stage: deploy-prod
+  image: alpine/helm:3.15
+  environment:
+    name: production
+  script:
+    - helm upgrade --install ledger helm/ledger -n ledger-prod
+        -f helm/ledger/values-prod.yaml --set image.tag=$CI_COMMIT_SHORT_SHA
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      when: manual

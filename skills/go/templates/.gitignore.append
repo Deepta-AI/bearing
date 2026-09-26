@@ -1,0 +1,6 @@
+# Go: build output and the pinned tools make tools installs.
+bin/
+# make dev reads .env, copied from .env.example; the copy holds real keys.
+.env
+.env.*
+!.env.example

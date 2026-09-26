@@ -1,0 +1,69 @@
+[project]
+name = "__REPO_SLUG__"
+version = "0.1.0"
+description = "__REPO_NAME__: __STACK__"
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+# The warehouse adapter is a tech-decision choice (key: analytics store).
+# Postgres is the default; swap dbt-postgres for dbt-bigquery, dbt-snowflake
+# or dbt-clickhouse and change `type:` in profiles.yml.example.
+dependencies = [
+  "dbt-core>=1.10,<2",
+  "dbt-postgres>=1.9,<2",
+  "apache-airflow>=3.1,<4",
+  "apache-airflow-providers-standard>=1,<2",
+]
+
+[dependency-groups]
+dev = [
+  "ruff>=0.16,<1",
+  "pytest>=9.1,<10",
+  "sqlfluff>=3.4,<5",
+  "sqlfluff-templater-dbt>=3.4,<5",
+  "pyyaml>=6,<7",
+]
+
+[tool.uv]
+# The repository is run from its root, not installed as a distribution.
+package = false
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["dags", "tests"]
+extend-exclude = [".venv", ".airflow", "dbt/target", "dbt/dbt_packages"]
+
+[tool.ruff.lint]
+select = [
+  "E", "W",     # pycodestyle
+  "F",          # pyflakes
+  "I",          # isort
+  "N",          # pep8-naming
+  "UP",         # pyupgrade
+  "B",          # bugbear
+  "A",          # builtins shadowed
+  "C4",         # comprehensions
+  "DTZ",        # naive datetimes
+  "T20",        # print left behind
+  "PT",         # pytest style
+  "RET",        # return consistency
+  "SIM",        # simplify
+  "S",          # bandit
+  "G",          # logging format
+  "ERA",        # commented-out code
+  "RUF",        # ruff's own, including mutable defaults
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101"]
+# The import check is a command-line tool; print is its output.
+"tests/dag_import_check.py" = ["T201"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["dags"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-q --strict-markers --junitxml=junit.xml"
+markers = ["warehouse: needs a warehouse on the DBT_* variables (run with make dbt-test)"]

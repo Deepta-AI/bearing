@@ -1,0 +1,212 @@
+# __REPO_NAME__ pipeline (React web app). Stages follow the kit vocabulary.
+# make check is the gate; CI runs the same targets the engineer runs, one
+# job per gate so a failure names itself. GitLab sets CI=true, so a gate
+# whose tool is missing fails here instead of printing SKIPPED.
+
+stages: [validate, lint, test, security, build, publish, deploy, verify]
+
+include:
+  - template: Security/Secret-Detection.gitlab-ci.yml
+  - template: Security/SAST.gitlab-ci.yml
+
+variables:
+  NODE_VERSION: "24"
+  PLAYWRIGHT_VERSION: "1.63.0"
+  PNPM_STORE: "$CI_PROJECT_DIR/.pnpm-store"
+  IMAGE: "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA"
+
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "develop"
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_TAG
+
+default:
+  image: node:${NODE_VERSION}
+  cache:
+    key: pnpm-$CI_COMMIT_REF_SLUG
+    paths: [.pnpm-store]
+  before_script:
+    - node --version
+    - corepack enable && corepack prepare --activate
+    - pnpm --version
+    - pnpm config set store-dir "$PNPM_STORE"
+    - if [ -f pnpm-lock.yaml ]; then pnpm install --frozen-lockfile; else echo "lockfile:none committed, installing unfrozen (run pnpm install and commit pnpm-lock.yaml)"; pnpm install; fi
+
+branch-name:
+  stage: validate
+  image: alpine:3.20
+  before_script: []
+  cache: []
+  rules: [{ if: $CI_PIPELINE_SOURCE == "merge_request_event" }]
+  script:
+    - echo "$CI_MERGE_REQUEST_SOURCE_BRANCH_NAME" | grep -Eq '^(feature|bugfix|hotfix|chore|docs)/[A-Z][A-Z0-9]*(-[0-9]+)+-[A-Za-z0-9]+$|^release/v[0-9]+\.[0-9]+\.[0-9]+$'
+    - echo "branch-name: 1 branch checked"
+
+# POSIX sh: alpine/git runs busybox ash, which has no process substitution.
+commits:
+  stage: validate
+  image: alpine/git:2.45.2
+  before_script: []
+  cache: []
+  rules: [{ if: $CI_PIPELINE_SOURCE == "merge_request_event" }]
+  script:
+    - git fetch origin "$CI_MERGE_REQUEST_TARGET_BRANCH_NAME" --depth=200
+    - |
+      range="origin/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME..HEAD"
+      subjects=$(mktemp)
+      git log --no-merges --format=%s "$range" > "$subjects"
+      n=$(wc -l < "$subjects" | tr -d ' ')
+      [ "$n" -gt 0 ] || { echo "commits: 0 commits in range $range"; exit 1; }
+      bad=0
+      while IFS= read -r subj; do
+        echo "$subj" | grep -Eq '^(feat|fix|refactor|test|docs|chore|perf|build|ci|revert)(\([a-z0-9._/-]+\))?!?: .{1,72}( \[[A-Z][A-Z0-9]*(-[0-9]+)+\])?$' || { echo "bad subject: $subj"; bad=$((bad+1)); }
+      done < "$subjects"
+      if git log --no-merges --format=%B "$range" | grep -Eiq 'co-authored-by: .*(claude|anthropic|copilot|chatgpt|gemini)|generated with'; then echo "AI attribution trailer found"; exit 1; fi
+      echo "commits: $n commits checked, $bad bad"
+      [ "$bad" -eq 0 ]
+
+format:
+  stage: lint
+  script: [make format-check]
+
+lint:
+  stage: lint
+  script: [make lint]
+
+typecheck:
+  stage: lint
+  script: [make typecheck]
+
+unit:
+  stage: test
+  script: [make test]
+  coverage: '/All files\s*\|\s*(\d+\.?\d*)/'
+  artifacts:
+    when: always
+    paths: [coverage]
+    expire_in: 1 week
+
+# Needs a browser, so it is a job here and not part of make check.
+e2e:
+  stage: test
+  image: mcr.microsoft.com/playwright:v${PLAYWRIGHT_VERSION}-noble
+  allow_failure: false
+  script:
+    - command -v make >/dev/null || (apt-get update -qq && apt-get install -y -qq --no-install-recommends make >/dev/null)
+    - make test-e2e
+  artifacts:
+    when: on_failure
+    paths: [playwright-report, test-results]
+    expire_in: 1 week
+
+# The browser and device matrix: every e2e spec on chromium, firefox, webkit
+# and two phones. It runs after merge to develop and main, and on demand in an
+# MR (Run the job); every change still runs chromium in e2e above.
+e2e-matrix:
+  stage: test
+  image: mcr.microsoft.com/playwright:v${PLAYWRIGHT_VERSION}-noble
+  rules:
+    - if: $CI_COMMIT_BRANCH == "develop"
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      when: manual
+      allow_failure: true
+  script:
+    - command -v make >/dev/null || (apt-get update -qq && apt-get install -y -qq --no-install-recommends make >/dev/null)
+    - make test-e2e-matrix
+  artifacts:
+    when: on_failure
+    paths: [playwright-report, test-results]
+    expire_in: 1 week
+
+# Screenshot comparison against the baselines committed under
+# e2e/__screenshots__/. The image is the one make test-visual-update uses, so
+# fonts and rendering match. The job exists once e2e/visual/ has a spec.
+visual:
+  stage: test
+  image: mcr.microsoft.com/playwright:v${PLAYWRIGHT_VERSION}-noble
+  rules:
+    - exists: [e2e/visual/**/*.spec.ts]
+  script:
+    - command -v make >/dev/null || (apt-get update -qq && apt-get install -y -qq --no-install-recommends make >/dev/null)
+    - make test-visual
+  artifacts:
+    when: on_failure
+    paths: [playwright-report, test-results]
+    expire_in: 1 week
+
+# Page budgets on the production build: gzipped JavaScript under
+# BUNDLE_BUDGET_KB, then Lighthouse CI against lighthouserc.json (LCP, CLS,
+# total blocking time, performance score). A miss fails the pipeline.
+perf-budget:
+  stage: build
+  image: mcr.microsoft.com/playwright:v${PLAYWRIGHT_VERSION}-noble
+  needs: [build]
+  script:
+    - command -v make >/dev/null || (apt-get update -qq && apt-get install -y -qq --no-install-recommends make >/dev/null)
+    - make bundle-budget
+    - make lighthouse
+  artifacts:
+    when: always
+    paths: [.lighthouseci]
+    expire_in: 1 week
+
+dependency-scan:
+  stage: security
+  script: [make vuln]
+  allow_failure: false
+
+build:
+  stage: build
+  script: [make build]
+  artifacts: { paths: [dist], expire_in: 1 day }
+
+publish:
+  stage: publish
+  image: { name: gcr.io/kaniko-project/executor:v1.23.2-debug, entrypoint: [""] }
+  before_script: []
+  cache: []
+  rules:
+    - if: $CI_COMMIT_BRANCH == "develop"
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_TAG
+  script:
+    - mkdir -p /kaniko/.docker
+    - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
+    - /kaniko/executor --context "$CI_PROJECT_DIR" --dockerfile "$CI_PROJECT_DIR/Dockerfile" --build-arg "VITE_API_URL=${VITE_API_URL:-/api}" --destination "$IMAGE" ${CI_COMMIT_TAG:+--destination "$CI_REGISTRY_IMAGE:$CI_COMMIT_TAG"}
+
+deploy-qa:
+  stage: deploy
+  image: alpine:3.20
+  before_script: []
+  cache: []
+  environment: { name: qa, url: https://qa.__REPO_SLUG__.example.com }
+  rules: [{ if: $CI_COMMIT_BRANCH == "develop", when: manual }]
+  script:
+    - echo "deploy $IMAGE to qa: wire this job to your GitOps repo or deploy script"
+    - exit 1
+
+deploy-production:
+  stage: deploy
+  image: alpine:3.20
+  before_script: []
+  cache: []
+  environment: { name: production, url: https://__REPO_SLUG__.example.com }
+  rules: [{ if: $CI_COMMIT_TAG, when: manual }]
+  script:
+    - echo "deploy $IMAGE to production: wire this job to your GitOps repo or deploy script"
+    - exit 1
+
+smoke:
+  stage: verify
+  image: curlimages/curl:8.8.0
+  before_script: []
+  cache: []
+  rules: [{ if: $CI_COMMIT_TAG, when: on_success }]
+  needs: [deploy-production]
+  script:
+    - curl -fsS "https://__REPO_SLUG__.example.com/healthz" | tee /dev/stderr | grep -q '"ok"'
+    - curl -fsS "https://__REPO_SLUG__.example.com/" | grep -q '<div id="root">'
+    - echo "smoke: 2 endpoints checked"

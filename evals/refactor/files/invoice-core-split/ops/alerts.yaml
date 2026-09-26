@@ -1,0 +1,9 @@
+# Loaded by the log pipeline. Matches are exact on logger name.
+alerts:
+  - name: invoice-tax-rate-missing
+    match:
+      logger: invoicing.core
+      level: WARNING
+      message_prefix: "tax rate missing for region"
+    notify: billing-oncall
+    for: 5m

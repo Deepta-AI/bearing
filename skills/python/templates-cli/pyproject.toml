@@ -1,0 +1,87 @@
+[project]
+name = "__REPO_SLUG__"
+version = "0.1.0"
+description = "__REPO_NAME__: __STACK__"
+readme = "README.md"
+requires-python = ">=3.14,<3.15"
+# Standard library only. A runtime dependency added here is installed by
+# everyone who installs the tool; prefer the standard library while it serves.
+dependencies = []
+
+[project.scripts]
+__REPO_SLUG__ = "app.cli:main"
+
+[dependency-groups]
+dev = [
+  "ruff>=0.16,<1",
+  "mypy>=2.3,<3",
+  "pytest>=9.1,<10",
+  "pytest-cov>=7.1,<8",
+  "pre-commit>=4.3,<5",
+]
+
+# A CLI is installed, so unlike the service it is a package with a build
+# backend: uv_build, uv's own, pinned to the uv minor CI runs. `uv sync`
+# installs it editable, which puts the console script on the venv's PATH.
+[build-system]
+requires = ["uv_build>=0.11,<0.12"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+# The import package is `app` whatever the repository is called; the
+# distribution and the console script carry the repository slug.
+module-name = "app"
+
+[tool.ruff]
+line-length = 100
+target-version = "py314"
+src = ["src", "tests"]
+extend-exclude = [".venv"]
+
+[tool.ruff.lint]
+select = [
+  "E", "W",     # pycodestyle
+  "F",          # pyflakes
+  "I",          # isort
+  "N",          # pep8-naming
+  "UP",         # pyupgrade
+  "B",          # bugbear
+  "A",          # builtins shadowed
+  "C4",         # comprehensions
+  "DTZ",        # naive datetimes
+  "T20",        # print left behind: write to sys.stdout or sys.stderr on purpose
+  "PT",         # pytest style
+  "RET",        # return consistency
+  "SIM",        # simplify
+  "S",          # bandit
+  "G",          # logging format
+  "ERA",        # commented-out code
+  "RUF",        # ruff's own, including mutable defaults
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "S106"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app"]
+
+[tool.mypy]
+python_version = "3.14"
+strict = true
+warn_unreachable = true
+mypy_path = "src"
+files = ["src", "tests"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q --strict-markers --cov=app --cov-report=term-missing --cov-report=xml --junitxml=junit.xml"
+filterwarnings = ["error"]
+
+[tool.coverage.run]
+branch = true
+source = ["app"]
+
+[tool.coverage.report]
+fail_under = 80
+show_missing = true
+skip_covered = false

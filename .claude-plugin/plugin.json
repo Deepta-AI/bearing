@@ -1,0 +1,22 @@
+{
+  "name": "bearing",
+  "version": "0.6.0",
+  "description": "A developer workflow for coding agents: skills for every stage from brief to runbook, review subagents, one guard behind every hook, and repository templates for thirteen stacks. Installs as a Claude Code plugin and into other harnesses.",
+  "author": {
+    "name": "Ravi Teja Akella"
+  },
+  "keywords": [
+    "workflow",
+    "company",
+    "gitlab",
+    "github",
+    "react",
+    "go",
+    "python",
+    "react-native",
+    "android",
+    "ios",
+    "terraform"
+  ],
+  "license": "MIT"
+}

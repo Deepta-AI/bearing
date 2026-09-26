@@ -1,0 +1,15 @@
+version: 1
+models:
+  claude-haiku-4-5:
+    provider: anthropic
+    input_per_m: 1.00
+    output_per_m: 5.00
+tiers:
+  fast:
+    model: claude-haiku-4-5
+    max_tokens: 16
+    timeout_s: 20
+routes:
+  ticket_intent:
+    tier: fast
+    cacheable: true

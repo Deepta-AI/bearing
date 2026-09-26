@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "crm": {
+      "command": "python3",
+      "args": ["-m", "mcp_server.server"],
+      "env": {
+        "CRM_BASE_URL": "",
+        "CRM_API_TOKEN": "crm-live-token-000-fake"
+      }
+    }
+  }
+}

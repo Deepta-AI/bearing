@@ -1,0 +1,11 @@
+# checkov for __REPO_NAME__. make sec runs it after trivy over envs/ and
+# modules/. A skipped check needs a task id and a reason on the same line,
+# and expires: put the date in the reason.
+framework:
+  - terraform
+compact: true
+quiet: true
+download-external-modules: false
+skip-check: []
+# skip-check:
+#   - CKV_GCP_26   # __TRACKER__: flow logs off in dev until 2026-12-31, see ADR 0004

@@ -1,0 +1,297 @@
+# Bearing pipeline.
+#
+#   kit:check        everything `make check` runs except validate: `claude
+#                    plugin validate` needs the Claude CLI, which the shared
+#                    runners do not have. Run `make validate` locally before
+#                    tagging a release.
+#   kit:scaffold:*   each stack template scaffolded with bin/brg-scaffold,
+#                    then `make setup && make check` inside the result, in
+#                    that stack's own image. This is the full gate the
+#                    tests skip (tests/integration/scaffold_each_stack.sh
+#                    proves the templates; this proves the toolchains).
+#   kit:bash32       bin/brg-guard, the CLI --help paths and the unit tests
+#                    under bash 3.2, the macOS default, in the bash:3.2 image.
+#   kit:macos        BSD sed, BSD stat and the stock bash on a real Mac. It
+#                    cannot run on the shared Linux runners: it needs a
+#                    runner tagged macos, so it is gated on BEARING_MACOS_RUNNER
+#                    (set it to "true" once one is registered). Until then
+#                    the GitHub workflow's macos-latest job covers the same
+#                    ground.
+#   site:build       the handbook site builds (merge requests that touch it)
+#   pages            the handbook site on GitLab Pages, where the host serves
+#                    Pages (a self-managed GitLab may not).
+#   handbook:vercel  the same site on Vercel, public by link and never
+#                    indexed (robots.txt, a noindex meta tag and header).
+#                    Runs on main only when VERCEL_TOKEN, VERCEL_ORG_ID and
+#                    VERCEL_PROJECT_ID are set as masked CI/CD variables.
+#   devguide:build   the developer guide (devguide/, how Bearing works
+#                    inside) builds (merge requests that touch it)
+#   devguide:vercel  the developer guide on its own Vercel project, public by
+#                    link and never indexed, like the handbook. Runs on main
+#                    only when VERCEL_TOKEN, VERCEL_ORG_ID and
+#                    VERCEL_DEVGUIDE_PROJECT_ID are set. DEVGUIDE_REPO_URL
+#                    (optional) is the repository's web URL; when set, the
+#                    guide links every source file it names.
+#
+# A daily pipeline schedule on main (Build > Pipeline schedules) runs
+# kit:check, kit:bash32 and every kit:scaffold job, and nothing that
+# deploys. The scaffold resolves each stack's dependencies fresh, so a bad
+# upstream release (SQLAlchemy 2.1.0 on 24 Sep 2026, an sdist uv could not
+# parse) fails here the next morning instead of in the next new repository.
+
+stages: [validate, scaffold, deploy]
+
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+
+kit:check:
+  stage: validate
+  image: python:3.12-slim
+  before_script:
+    - apt-get update -qq && apt-get install -y -qq --no-install-recommends shellcheck jq make git curl ca-certificates >/dev/null
+  script:
+    # make check minus validate (needs the Claude CLI; see the header).
+    - make lint-skills lint-tools lint-evals lint-json lint-shell lint-prose lint-neutral lint-version lint-budget lint-templates lint-docs test
+
+# One scaffold job per stack, every one blocking. node-api, next-app and
+# data-pipeline were allow_failure until they went green on 25 Sep 2026.
+.kit:scaffold:
+  stage: scaffold
+  needs: []
+  variables:
+    GIT_DEPTH: "1"
+  script:
+    - bash bin/brg-scaffold "$STACK" "$NAME" --dir /tmp/x --host both
+    - cd /tmp/x && make setup && make check
+
+kit:scaffold:go-api:
+  extends: .kit:scaffold
+  image: golang:1.26
+  variables: { STACK: go-api, NAME: CiGoApi }
+  before_script:
+    - apt-get update -qq && apt-get install -y -qq --no-install-recommends python3 >/dev/null
+
+kit:scaffold:go-cli:
+  extends: .kit:scaffold
+  image: golang:1.26
+  variables: { STACK: go-cli, NAME: CiGoCli }
+  before_script:
+    - apt-get update -qq && apt-get install -y -qq --no-install-recommends python3 >/dev/null
+
+kit:scaffold:python-api:
+  extends: .kit:scaffold
+  image: python:3.12
+  variables: { STACK: python-api, NAME: CiPythonApi }
+  before_script:
+    - pip install --quiet uv
+
+kit:scaffold:python-cli:
+  extends: .kit:scaffold
+  image: python:3.12
+  variables: { STACK: python-cli, NAME: CiPythonCli }
+  before_script:
+    - pip install --quiet uv
+
+kit:scaffold:react-web:
+  extends: .kit:scaffold
+  image: node:22
+  variables: { STACK: react-web, NAME: CiReactWeb }
+  before_script:
+    - apt-get update -qq && apt-get install -y -qq --no-install-recommends python3 >/dev/null
+    - npm install -g --silent pnpm@10
+
+kit:scaffold:node-api:
+  extends: .kit:scaffold
+  image: node:22
+  variables: { STACK: node-api, NAME: CiNodeApi }
+  before_script:
+    - apt-get update -qq && apt-get install -y -qq --no-install-recommends python3 >/dev/null
+    - npm install -g --silent pnpm@10
+
+kit:scaffold:next-app:
+  extends: .kit:scaffold
+  image: node:22
+  variables: { STACK: next-app, NAME: CiNextApp }
+  before_script:
+    - apt-get update -qq && apt-get install -y -qq --no-install-recommends python3 >/dev/null
+    - npm install -g --silent pnpm@10
+
+kit:scaffold:data-pipeline:
+  extends: .kit:scaffold
+  image: python:3.12
+  variables: { STACK: data-pipeline, NAME: CiDataPipeline }
+  before_script:
+    - pip install --quiet uv
+
+kit:bash32:
+  stage: validate
+  image: bash:3.2
+  needs: []
+  before_script:
+    - apk add --no-cache git make jq python3 curl grep sed coreutils findutils diffutils >/dev/null
+    - git config --global --add safe.directory '*'
+    - bash --version | head -1
+  script:
+    - bash bin/brg-guard --version
+    - bash bin/brg-guard command "git status"
+    - bash bin/brg-scaffold --help >/dev/null
+    - bash bin/brg-adopt --help >/dev/null
+    - bash bin/brg-jira --help >/dev/null
+    - n=0; for t in tests/unit/*.sh; do bash "$t" || exit 1; n=$((n+1)); done; [ "$n" -gt 0 ] || exit 1; echo "bash32:" "$n" "unit test files passed under $(bash --version | head -1)"
+
+kit:macos:
+  stage: validate
+  needs: []
+  tags: [macos]
+  rules:
+    - if: $BEARING_MACOS_RUNNER == "true"
+  before_script:
+    - sw_vers
+    - bash --version | head -1
+    - command -v shellcheck >/dev/null || brew install shellcheck
+    - command -v jq >/dev/null || brew install jq
+  script:
+    - make lint-shell test
+    - bash bin/brg-scaffold go-api McProbe --dir /tmp/x
+
+site:build:
+  stage: validate
+  image: node:22
+  needs: []
+  before_script:
+    - corepack enable
+  script:
+    - make site
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes: [site/**/*, docs/flows.json, docs/comparisons.json, bin/gen-guide.py, skills/**/SKILL.md]
+
+pages:
+  stage: deploy
+  image: node:22
+  needs: [kit:check]
+  before_script:
+    - corepack enable
+  script:
+    # The site is served under /<project>/ unless the project uses a unique
+    # Pages domain; CI_PAGES_URL says which, and the router takes it as its base.
+    - |
+      export HANDBOOK_BASE="$(printf '%s' "$CI_PAGES_URL" | sed -E 's#^https?://[^/]+##')/"
+      make site
+      rm -rf public && cp -r site/dist public
+      n=$(ls public/assets/*.js 2>/dev/null | wc -l)
+      [ "$n" -gt 0 ] || { echo "pages: 0 script bundles in public, nothing to publish"; exit 1; }
+      echo "pages: handbook site with $n script bundles, base $HANDBOOK_BASE"
+  artifacts:
+    paths: [public]
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+      when: never
+    - if: $CI_COMMIT_BRANCH == "main"
+
+handbook:vercel:
+  stage: deploy
+  image: node:22
+  needs: [kit:check]
+  variables:
+    VERCEL_CLI: vercel@59.26.0
+    VERCEL_TELEMETRY_DISABLED: "1"
+  before_script:
+    - corepack enable
+  script:
+    # Preflight: each variable must hold the value itself. A variable saved
+    # as type File holds a path, and a pasted value can carry a line break;
+    # either way Vercel only says "Could not retrieve Project Settings".
+    - |
+      bad=0
+      for v in VERCEL_TOKEN VERCEL_ORG_ID VERCEL_PROJECT_ID; do
+        val="${!v}"
+        case "$val" in
+          /*) echo "handbook:vercel: $v holds a file path; set its type to Variable, not File"; bad=$((bad+1));;
+          *[[:space:]]*) echo "handbook:vercel: $v contains whitespace or a line break; paste it again"; bad=$((bad+1));;
+        esac
+      done
+      case "$VERCEL_ORG_ID" in team_*) ;; *) echo "handbook:vercel: VERCEL_ORG_ID should start with team_ (the orgId in .vercel/project.json)"; bad=$((bad+1));; esac
+      case "$VERCEL_PROJECT_ID" in prj_*) ;; *) echo "handbook:vercel: VERCEL_PROJECT_ID should start with prj_"; bad=$((bad+1));; esac
+      [ "$bad" -eq 0 ] || { echo "handbook:vercel: 3 variables checked, $bad wrong; nothing deployed"; exit 1; }
+      echo "handbook:vercel: 3 variables checked, 0 wrong"
+      npx --yes "$VERCEL_CLI" whoami --token "$VERCEL_TOKEN"
+    # The site is served at the root of its Vercel domain, so no base path.
+    # site/public/vercel.json lands in dist and makes Vercel serve the folder
+    # as it is: no build there, every path rewritten to the app, noindex.
+    - |
+      export HANDBOOK_BASE=/
+      make site
+      for f in index.html 404.html robots.txt vercel.json; do
+        [ -f "site/dist/$f" ] || { echo "handbook:vercel: site/dist/$f missing, nothing deployed"; exit 1; }
+      done
+      n=$(ls site/dist/assets/*.js 2>/dev/null | wc -l)
+      [ "$n" -gt 0 ] || { echo "handbook:vercel: 0 script bundles in site/dist, nothing deployed"; exit 1; }
+      # Link the folder first (the step that works from a workstation), then
+      # deploy it from inside, so the CLI reads the link it just wrote.
+      cd site/dist
+      npx --yes "$VERCEL_CLI" pull --yes --environment=production --token "$VERCEL_TOKEN"
+      url="$(npx --yes "$VERCEL_CLI" deploy --prod --yes --token "$VERCEL_TOKEN")"
+      echo "handbook:vercel: $n script bundles deployed to $url"
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+      when: never
+    - if: $CI_COMMIT_BRANCH == "main" && $VERCEL_TOKEN && $VERCEL_ORG_ID && $VERCEL_PROJECT_ID
+
+devguide:build:
+  stage: validate
+  image: node:22
+  needs: []
+  before_script:
+    - corepack enable
+  script:
+    - make devguide
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes: [devguide/**/*, bin/gen-devguide.py, bin/gen-guide.py, bin/brg-guard, bin/brg-autopilot, skills/**/SKILL.md, agents/*.md, hooks/**/*, Makefile]
+
+devguide:vercel:
+  stage: deploy
+  image: node:22
+  needs: [kit:check]
+  variables:
+    VERCEL_CLI: vercel@59.26.0
+    VERCEL_TELEMETRY_DISABLED: "1"
+  before_script:
+    - corepack enable
+  script:
+    # The Vercel CLI reads VERCEL_PROJECT_ID. A project variable outranks a
+    # job variable in GitLab, so the guide's own project id is exported here
+    # rather than set under variables:, or the handbook's id would win.
+    - |
+      export VERCEL_PROJECT_ID="$VERCEL_DEVGUIDE_PROJECT_ID"
+      bad=0
+      for v in VERCEL_TOKEN VERCEL_ORG_ID VERCEL_PROJECT_ID; do
+        val="${!v}"
+        case "$val" in
+          /*) echo "devguide:vercel: $v holds a file path; set its type to Variable, not File"; bad=$((bad+1));;
+          *[[:space:]]*) echo "devguide:vercel: $v contains whitespace or a line break; paste it again"; bad=$((bad+1));;
+        esac
+      done
+      case "$VERCEL_ORG_ID" in team_*) ;; *) echo "devguide:vercel: VERCEL_ORG_ID should start with team_"; bad=$((bad+1));; esac
+      case "$VERCEL_PROJECT_ID" in prj_*) ;; *) echo "devguide:vercel: VERCEL_DEVGUIDE_PROJECT_ID should start with prj_"; bad=$((bad+1));; esac
+      [ "$bad" -eq 0 ] || { echo "devguide:vercel: 3 variables checked, $bad wrong; nothing deployed"; exit 1; }
+      echo "devguide:vercel: 3 variables checked, 0 wrong"
+      export DEVGUIDE_BASE=/ VITE_REPO_URL="${DEVGUIDE_REPO_URL:-}"
+      make devguide
+      for f in index.html 404.html robots.txt vercel.json; do
+        [ -f "devguide/dist/$f" ] || { echo "devguide:vercel: devguide/dist/$f missing, nothing deployed"; exit 1; }
+      done
+      n=$(ls devguide/dist/assets/*.js 2>/dev/null | wc -l)
+      [ "$n" -gt 0 ] || { echo "devguide:vercel: 0 script bundles in devguide/dist, nothing deployed"; exit 1; }
+      cd devguide/dist
+      npx --yes "$VERCEL_CLI" pull --yes --environment=production --token "$VERCEL_TOKEN"
+      url="$(npx --yes "$VERCEL_CLI" deploy --prod --yes --token "$VERCEL_TOKEN")"
+      echo "devguide:vercel: $n script bundles deployed to $url"
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+      when: never
+    - if: $CI_COMMIT_BRANCH == "main" && $VERCEL_TOKEN && $VERCEL_ORG_ID && $VERCEL_DEVGUIDE_PROJECT_ID

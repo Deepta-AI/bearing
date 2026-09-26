@@ -1,0 +1,31 @@
+# fastlane lanes for TestFlight and the App Store. A person runs these on
+# macOS; CI never uploads. Needs: `bundle install` (a Gemfile with fastlane),
+# `match` set up for signing (its git repository holds the certificates),
+# App Store Connect API credentials in the environment, and an
+# ios/ExportOptions.plist exported once from Xcode. `make release-ios`
+# prints the command.
+default_platform(:ios)
+
+platform :ios do
+  desc "Build the release IPA from config/prod.json with match signing and upload it to TestFlight"
+  lane :beta do
+    setup_ci if ENV["CI"]
+    match(type: "appstore", readonly: true)
+    sh("cd ../.. && flutter build ipa --release --dart-define-from-file=config/prod.json --build-number=#{ENV.fetch('BUILD_NUMBER', '1')} --export-options-plist=ios/ExportOptions.plist")
+    upload_to_testflight(
+      ipa: "../build/ios/ipa/app.ipa",
+      skip_waiting_for_build_processing: true
+    )
+  end
+
+  desc "Submit the TestFlight build for App Store review (a person decides, after the release checklist)"
+  lane :release do
+    deliver(
+      submit_for_review: true,
+      automatic_release: false,
+      skip_binary_upload: true,
+      skip_screenshots: true,
+      skip_metadata: true
+    )
+  end
+end

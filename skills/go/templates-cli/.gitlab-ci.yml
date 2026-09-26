@@ -1,0 +1,129 @@
+# __REPO_NAME__ pipeline (Go command-line tool). Stages follow the kit
+# vocabulary; a CLI has no image and no environment, so it stops at build
+# and, on a tag, a release that links the binaries. make check is the gate;
+# CI runs the same targets the engineer runs, one job per gate so a failure
+# names itself. GitLab sets CI=true, so a gate whose tool is missing fails
+# here instead of printing SKIPPED.
+
+stages: [validate, lint, test, security, build, release]
+
+include:
+  - template: Security/Secret-Detection.gitlab-ci.yml
+  - template: Security/SAST.gitlab-ci.yml
+
+variables:
+  GO_VERSION: "1.26"
+  GOFLAGS: "-mod=mod"
+  GOPATH: "$CI_PROJECT_DIR/.go"
+  GOCACHE: "$CI_PROJECT_DIR/.gocache"
+  # The platforms the build job cross-compiles, GOOS/GOARCH pairs.
+  PLATFORMS: "linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 windows/amd64"
+
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "develop"
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_TAG
+
+default:
+  image: golang:${GO_VERSION}
+  cache:
+    key: go-$CI_COMMIT_REF_SLUG
+    paths: [.go/pkg/mod, .gocache]
+  before_script:
+    - go version
+    - make tools
+
+branch-name:
+  stage: validate
+  image: alpine:3.20
+  before_script: []
+  cache: []
+  rules: [{ if: $CI_PIPELINE_SOURCE == "merge_request_event" }]
+  script:
+    - echo "$CI_MERGE_REQUEST_SOURCE_BRANCH_NAME" | grep -Eq '^(feature|bugfix|hotfix|chore|docs)/[A-Z][A-Z0-9]*(-[0-9]+)+-[A-Za-z0-9]+$|^release/v[0-9]+\.[0-9]+\.[0-9]+$'
+    - echo "branch-name: 1 branch checked"
+
+# POSIX sh: alpine/git runs busybox ash, which has no process substitution.
+commits:
+  stage: validate
+  image: alpine/git:2.45.2
+  before_script: []
+  cache: []
+  rules: [{ if: $CI_PIPELINE_SOURCE == "merge_request_event" }]
+  script:
+    - git fetch origin "$CI_MERGE_REQUEST_TARGET_BRANCH_NAME" --depth=200
+    - |
+      range="origin/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME..HEAD"
+      subjects=$(mktemp)
+      git log --no-merges --format=%s "$range" > "$subjects"
+      n=$(wc -l < "$subjects" | tr -d ' ')
+      [ "$n" -gt 0 ] || { echo "commits: 0 commits in range $range"; exit 1; }
+      bad=0
+      while IFS= read -r subj; do
+        echo "$subj" | grep -Eq '^(feat|fix|refactor|test|docs|chore|perf|build|ci|revert)(\([a-z0-9._/-]+\))?!?: .{1,72}( \[[A-Z][A-Z0-9]*(-[0-9]+)+\])?$' || { echo "bad subject: $subj"; bad=$((bad+1)); }
+      done < "$subjects"
+      if git log --no-merges --format=%B "$range" | grep -Eiq 'co-authored-by: .*(claude|anthropic|copilot|chatgpt|gemini)|generated with'; then echo "AI attribution trailer found"; exit 1; fi
+      echo "commits: $n commits checked, $bad bad"
+      [ "$bad" -eq 0 ]
+
+fmt:
+  stage: lint
+  script: [make fmt-check]
+
+vet:
+  stage: lint
+  script: [make vet]
+
+lint:
+  stage: lint
+  script: [make lint]
+
+unit:
+  stage: test
+  script: [make test]
+  coverage: '/coverage: \d+\.\d+% of statements/'
+
+vuln:
+  stage: security
+  script: [make vuln]
+  allow_failure: false
+
+# One binary per platform, named <tool>-<os>-<arch>[.exe], kept as job
+# artifacts. The version is the tag, or git describe on a branch.
+build:
+  stage: build
+  before_script: [go version]
+  script:
+    - |
+      n=0
+      for p in $PLATFORMS; do
+        os="${p%/*}"; arch="${p#*/}"; ext=""; [ "$os" = windows ] && ext=".exe"
+        GOOS="$os" GOARCH="$arch" make build BIN="dist/__REPO_SLUG__-$os-$arch$ext"
+        n=$((n+1))
+      done
+      [ "$n" -gt 0 ] || { echo "build: 0 platforms in PLATFORMS, nothing built"; exit 1; }
+      (cd dist && sha256sum * > SHA256SUMS)
+      echo "build: $n binaries built"
+  artifacts: { paths: [dist/], expire_in: 30 days }
+
+# A tag becomes a GitLab release whose asset links the build job's
+# artifacts. Nothing is deployed; people download the binary.
+release:
+  stage: release
+  image: registry.gitlab.com/gitlab-org/release-cli:v0.18.0
+  before_script: []
+  cache: []
+  needs: [build]
+  rules: [{ if: $CI_COMMIT_TAG }]
+  script:
+    - echo "release: $CI_COMMIT_TAG from the build job's artifacts"
+  release:
+    tag_name: $CI_COMMIT_TAG
+    name: $CI_COMMIT_TAG
+    description: "__REPO_NAME__ $CI_COMMIT_TAG. Binaries and SHA256SUMS are in the build job's artifacts."
+    assets:
+      links:
+        - name: binaries
+          url: "$CI_PROJECT_URL/-/jobs/artifacts/$CI_COMMIT_TAG/browse/dist?job=build"

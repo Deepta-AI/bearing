@@ -1,0 +1,67 @@
+{
+ "skill_name": "ci-pipeline",
+ "evals": [
+  {
+   "id": 1,
+   "name": "ledger-api-first-pipeline",
+   "prompt": "ledger-api has no CI at all. Can you set up the pipeline? I want MRs blocked when tests or lint fail.",
+   "expected_output": "A GitLab pipeline only (the repository is on the team's self-hosted GitLab at code.example.internal, default branch trunk), whose jobs call make targets that exist: unit tests, a lint target the run adds for ruff (the Makefile had none), and the integration tests against a Postgres 16 service with a psycopg DATABASE_URL and the plain SQL migrations applied by scripts/migrate.py; the image is Python 3.12 or newer as pyproject.toml requires, not the README's 3.11; the dev extra is installed; the run runs ruff locally and deals with the unused import in ledger/accounts.py; no failure is masked; any deploy job is manual, production only and on trunk, with DEPLOY_TOKEN left to a masked protected variable per ADR 0002; the final message says blocking needs the Pipelines must succeed setting and that the pipeline itself was not run.",
+   "files": [
+    "files/ledger-api"
+   ],
+   "expectations": [
+    "A .gitlab-ci.yml exists at the repository root, parses as YAML, and has a job that runs the unit tests through `make test`",
+    "The run adds no GitHub Actions workflow and no .github/ directory: the README says the repository is on the team's GitLab (code.example.internal/finance/ledger-api), even though the origin host name does not contain the word gitlab",
+    "The output Makefile has a lint target that runs ruff over the repository with the configuration in pyproject.toml (the fixture Makefile had no lint target), and a pipeline job calls it",
+    "The run runs ruff (or the new lint target) locally, where ruff is installed, and it reports F401 for the unused `import os` at ledger/accounts.py line 3; the run either removes that one import or says plainly that the new lint job will fail on trunk until it is removed",
+    "Neither the test jobs nor the lint job is marked allow_failure: true, and no command in them hides a failure (for example `|| true`, or a pipe into tee without pipefail)",
+    "The pipeline's Python is 3.12 or newer (pyproject.toml has requires-python >=3.12 and ledger/money.py uses the 3.12 `type` statement), not the 3.11 the README states; the final message points out that the README's 'Python 3.11 or newer' is stale, or the run corrects that README line",
+    "The jobs that run tests or lint install the project with its dev extra (make install, or pip or uv installing '.[dev]') so pytest, ruff and psycopg are present; an install command that skips optional dependencies (for example `uv sync --all-groups` alone, which ignores [project.optional-dependencies]) does not count",
+    "The pipeline runs the integration tests in tests/test_ledger_pg.py (`make test-integration`) in a job with a Postgres service (16, as the README and ADR 0001 use) and DATABASE_URL set, so they run instead of skipping on the missing variable",
+    "DATABASE_URL in the pipeline has a scheme psycopg.connect accepts (postgresql:// or postgres://, not a SQLAlchemy form such as postgresql+asyncpg://), and its host is the Postgres service's name or alias",
+    "The integration job applies the migrations with scripts/migrate.py (make migrate) before the tests, and the pipeline invokes no migration tool the repository does not have (alembic or similar)",
+    "Every make target named in .gitlab-ci.yml exists in the output Makefile (`make -n <target>` succeeds for each), and no job builds a container image from a Dockerfile, which the repository does not have",
+    "If the pipeline has workflow rules or job rules that name branches, trunk (or $CI_DEFAULT_BRANCH) is among them and no rule relies on a main or develop branch, which this repository does not have; merge request pipelines run the test and lint jobs",
+    "Following docs/adr/0002-deploys.md: either there is no deploy job, or every deploy job is `when: manual`, deploys only production, and is offered only on trunk pipelines (not on merge requests, not on tags); there is no staging or qa deploy job",
+    "No secret value appears in .gitlab-ci.yml; DEPLOY_TOKEN, if the pipeline uses it, is read from a CI/CD variable, and the final message says it must be set as a masked, protected variable in GitLab",
+    "The final message says that blocking a merge on a failed pipeline is a GitLab project setting (Pipelines must succeed, in the merge checks) that the YAML alone does not enforce",
+    "The final message says what was run locally and its result (at least `make test`: 15 passed, 2 deselected at the fixture state) and says the pipeline was not run on GitLab; it does not claim the integration or lint jobs pass in CI",
+    "The run changes no application behaviour: ledger/*.py (apart from removing the unused import), tests/, migrations/ and scripts/ are unchanged",
+    "The run makes no git commit: the output repository's history still ends at the fixture commit and the changes are left in the working tree",
+    "If the run records a decision anywhere in the repository (an ADR, a decision log or a section listing choices), it is not marked Accepted or approved and names no decider (a person, role or team) who did not make the decision in this conversation",
+    "No file written or edited contains an em dash character"
+   ]
+  },
+  {
+   "id": 2,
+   "name": "pricing-api-green-but-broken",
+   "prompt": "CI on pricing-api has been green for weeks, but TestApplyDiscount fails on main when I run it locally. Fix the pipeline so a failing test actually fails CI.",
+   "expected_output": "The run finds that the Makefile's test target pipes go test into tee, so make test exits 0 on failure, and fixes it; it also finds that the workflow runs fork code under pull_request_target with CODECOV_TOKEN and a write token (a pwn request), switches to pull_request with read-only permissions and a Codecov step that tolerates a missing token, points the push trigger at main instead of master, and makes lint blocking again after checking make lint is clean, as ADR 0001 asks; it leaves the failing test alone, reports the rounding bug, says the checks must be required in branch protection, adds no policy checks that would fail fork PRs, and says what was and was not run.",
+   "files": [
+    "files/pricing-api"
+   ],
+   "expectations": [
+    "The final message names the cause of the green runs: the Makefile's test target pipes `go test` into `tee`, so the recipe's exit status is tee's and `make test` exits 0 when tests fail",
+    "In the output Makefile a failing `go test` makes `make test` exit non-zero (no pipe, or `set -o pipefail` under a shell that supports it, such as SHELL := /bin/bash); if TestApplyDiscount still fails in the output repository, `make test` run by the grader exits non-zero",
+    "The run shows the corrected behaviour: it ran `make test` after its change and reports the non-zero exit (or, if it also fixed the rounding, reports the failing run before that fix and the passing run after)",
+    "PR runs no longer execute fork code under pull_request_target: the workflow uses pull_request for pull requests, or no pull_request_target job checks out github.event.pull_request.head.sha and runs make, so contributor code never runs with CODECOV_TOKEN or a write-capable GITHUB_TOKEN",
+    "The final message explains that the pull_request_target setup let any fork pull request run its own Makefile and tests with the repository's secrets and a write token, and that this is why it was changed",
+    "The workflow restricts the GITHUB_TOKEN to read access (permissions: contents: read, at workflow or job level)",
+    "Fork pull requests do not fail because CODECOV_TOKEN is absent after the switch: the Codecov step is skipped for forks or cannot fail the job, or the final message says fork PRs will no longer upload coverage",
+    "The push trigger covers main, the default branch (the fixture's `branches: [master]` never matched, so pushes and merges to main ran no CI), and the run says so",
+    "The lint job is blocking again (no continue-on-error), and the run checked first that `make lint` passes at the fixture state (go vet and gofmt are clean), as the July amendment in docs/adr/0001-ci-gates.md asks",
+    "internal/pricing/discount_test.go is unchanged: TestApplyDiscount is not deleted, skipped or changed to expect 895",
+    "The final message reports that TestApplyDiscount/10%_of_995_rounds_half_up fails because Apply truncates (995 * 90 / 100 gives 895, the test wants 896) and that CI on main will be red until it is fixed; if the run fixed Apply to round half up instead, it says it changed internal/pricing/discount.go and all tests pass",
+    "The final message says a workflow cannot block a merge by itself: the ci jobs must be required status checks in main's branch protection (as ADR 0001 states), naming the check names to require if the run renamed any job",
+    "The run adds no check that would fail an ordinary fork pull request for reasons unrelated to the code, such as a branch-name pattern or a commit-message rule requiring ticket keys (contributor branches like patch-1 would fail)",
+    "The run adds no deploy, publish or release job and no AI review job",
+    "The upload of test-output.txt as an artifact still works with the changed Makefile (the file is still written), or the run removes or adjusts that step consistently",
+    "Files other than .github/workflows/ci.yml, Makefile, and optionally internal/pricing/discount.go, docs/adr/0001-ci-gates.md and README.md are unchanged",
+    "The final message says the workflow itself was not run on GitHub and lists the local commands it ran with their results",
+    "The run makes no git commit: the output repository's history still ends at the fixture commit and the changes are left in the working tree",
+    "If the run records a decision anywhere in the repository (an ADR, a decision log or a section listing choices), it is not marked Accepted or approved and names no decider (a person, role or team) who did not make the decision in this conversation",
+    "No file written or edited contains an em dash character"
+   ]
+  }
+ ]
+}

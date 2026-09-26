@@ -1,0 +1,337 @@
+#!/usr/bin/env bash
+# brg-github: GitHub issues adapter for brg-tracker (REST API through a token,
+# or through `gh api` when gh is installed and no token is configured).
+#
+#   brg-github me                           -> login, name
+#   brg-github resolve <KEY>                -> the issue number
+#   brg-github get <KEY>                    -> compact JSON for one issue
+#   brg-github list [--type t] [--status s] [--q text] [--limit n]
+#   brg-github create --type <epic|story|task|bug|testcase> --title <s>
+#              [--description-file f] [--parent KEY] [--priority p]
+#   brg-github update <KEY> [--status name] [--assignee me|login|email] [--title s]
+#              [--description-file f] [--priority p]
+#   brg-github comment <KEY> (<text> | --file f)
+#   brg-github link <KEY> <relates|blocks> <KEY2>   -> a cross-reference comment
+#   brg-github trace <KEY> [--branch b] [--mr url] [--commits a,b] [--tests TC-..,..]
+#              [--adr ADR-nnnn] [--docs path,..]
+#   brg-github close <KEY>                  -> status BEARING_TRACKER_DONE_STATUS (Done) and closed
+#
+# Configuration: environment, then ~/.config/bearing/bearing.env (KEY=value):
+#   BEARING_TRACKER_URL      https://github.com (default) or the GitHub Enterprise host
+#   BEARING_TRACKER_PROJECT  owner/repo
+#   BEARING_TRACKER_TOKEN    token with scope repo; empty means gh (gh auth login)
+#   BEARING_TRACKER_DONE_STATUS  status label close applies (default Done)
+# Keys are GH-<number>. Type and status are labels (type:story,
+# status:in-review) created on first use; a status of done or closed also
+# closes the issue. GitHub has no issue links, so link and parent are
+# cross-reference comments and a "Parent:" line. The token is never
+# printed. Every call has a 30 s budget. A 429 is retried once; a 5xx is
+# retried once for GET and PATCH, and for a create, a comment or a label
+# only after a search for it (issues and comments carry a marker in an HTML
+# comment) finds nothing, so a retry never duplicates. list follows every
+# page (Link rel="next") up to BEARING_TRACKER_MAX_PAGES (default 20), says when
+# it stops early, and prints the count on stderr.
+set -euo pipefail
+
+ENV_FILE="${BEARING_ENV:-${XDG_CONFIG_HOME:-$HOME/.config}/bearing/bearing.env}"
+usage() { sed -n '2,33p' "$0" | sed 's/^# \{0,1\}//'; exit "${1:-2}"; }
+die() { echo "brg-github: $*" >&2; exit 1; }
+need() { command -v "$1" >/dev/null || die "$1 is required"; }
+need jq
+
+load_env() {
+  [ -f "$ENV_FILE" ] || return 0
+  local line key val
+  while IFS= read -r line || [ -n "$line" ]; do
+    case "${line#"${line%%[![:space:]]*}"}" in ''|'#'*) continue;; esac
+    case "$line" in *=*) ;; *) continue;; esac
+    key="${line%%=*}"; key="${key//[[:space:]]/}"; val="${line#*=}"
+    printf '%s' "$key" | grep -Eq '^[A-Z_][A-Z0-9_]*$' || continue
+    val="${val#"${val%%[![:space:]]*}"}"
+    case "$val" in
+      \"*) val="${val#\"}"; val="${val%%\"*}";;
+      \'*) val="${val#\'}"; val="${val%%\'*}";;
+      *) val="${val%%[[:space:]]#*}"; val="${val%"${val##*[![:space:]]}"}";;
+    esac
+    [ -n "${!key+x}" ] && continue
+    export "$key=$val"
+  done < "$ENV_FILE"
+}
+load_env
+
+cmd="${1:-}"; [ -n "$cmd" ] || usage; shift
+case "$cmd" in -h|--help|help) usage 0;; esac
+
+URL="${BEARING_TRACKER_URL:-https://github.com}"; URL="${URL%/}"
+HOST="${URL#*://}"; HOST="${HOST%%/*}"
+if [ "$HOST" = github.com ]; then API="https://api.github.com"; else API="$URL/api/v3"; fi
+REPO="${BEARING_TRACKER_PROJECT:-}"
+TOKEN="${BEARING_TRACKER_TOKEN:-}"
+DONE_STATUS="${BEARING_TRACKER_DONE_STATUS:-Done}"
+printf '%s' "$REPO" | grep -Eq '^[^/[:space:]]+/[^/[:space:]]+$' || die "set BEARING_TRACKER_PROJECT to owner/repo in $ENV_FILE"
+transport=""
+if [ -n "$TOKEN" ]; then need curl; transport=curl
+elif command -v gh >/dev/null; then transport=gh
+else die "set BEARING_TRACKER_TOKEN in $ENV_FILE or install gh (gh auth login)"; fi
+
+MAX_PAGES="${BEARING_TRACKER_MAX_PAGES:-20}"
+case "$MAX_PAGES" in ''|*[!0-9]*|0) die "BEARING_TRACKER_MAX_PAGES must be a whole number above 0 (got '$MAX_PAGES')";; esac
+case "$TOKEN" in *$'\n'*|*$'\r'*) die "BEARING_TRACKER_TOKEN contains a line break";; esac
+WORK="$(mktemp -d "${TMPDIR:-/tmp}/brg-github.XXXXXX")"
+trap 'rm -rf "$WORK"' EXIT
+
+# Credentials go to curl through a config file on a pipe, never on the command
+# line. Inside a double-quoted config value curl reads \ and " as escapes, so
+# both are backslash-escaped and a token holding either arrives intact.
+cfg_quote() { printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'; }
+auth_cfg() { printf 'header = "Authorization: Bearer %s"\n' "$(cfg_quote "$TOKEN")"; }
+
+# new_mark -> a random marker. A create or a comment carries it in an HTML
+# comment (invisible once rendered) so a retry can find what a failed POST
+# already made.
+new_mark() { printf 'bearing-op-%s' "$(od -An -N8 -tx1 /dev/urandom | tr -d ' \n')"; }
+# iso_ago SECONDS -> that long ago in ISO 8601 UTC (GNU date, then BSD date).
+iso_ago() { local t=$(( $(date +%s) - $1 )); date -u -d "@$t" +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || date -u -r "$t" +%Y-%m-%dT%H:%M:%SZ; }
+
+# api METHOD PATH [JSON] [RECOVER] -> body on stdout; sets STATUS; response
+# headers in $WORK/headers. PATH is relative to the API root. The body travels
+# on stdin. A 429 is retried once after 2 seconds for every method (the server
+# refused it unapplied); a 5xx is retried once for GET, PUT and PATCH, which
+# set absolute values. A POST answered 5xx may have been applied, so it is
+# sent again only after the RECOVER function (which prints what the POST would
+# have made, or nothing) finds nothing; without one it is not retried at all.
+STATUS=""
+api() {
+  local method="$1" path="$2" data="${3:-}" recover="${4:-}" out err msg attempt found
+  local dargs=()
+  err="$(mktemp "$WORK/err.XXXXXX")"
+  if [ "$transport" = curl ]; then
+    [ -z "$data" ] || dargs=(--data-binary @-)
+    for attempt in 1 2; do
+      : > "$WORK/headers"
+      out="$(printf '%s' "$data" | curl -sS --max-time 30 --connect-timeout 10 -w '\n%{http_code}' -D "$WORK/headers" -X "$method" "$API$path" -K <(auth_cfg) \
+        -H 'Accept: application/vnd.github+json' -H 'X-GitHub-Api-Version: 2022-11-28' ${dargs[@]+"${dargs[@]}"} 2>"$err")" \
+        || { msg="$(head -c 200 "$err")"; rm -f "$err"; die "cannot reach $API: ${msg:-curl failed}"; }
+      STATUS="${out##*$'\n'}"
+      [ "$attempt" = 1 ] || break
+      case "$STATUS" in
+        429) sleep 2; continue;;
+        5*) case "$method" in
+              GET|PUT|PATCH) sleep 2; continue;;
+              POST) [ -n "$recover" ] || break
+                sleep 2
+                found="$("$recover")" || die "$method $path -> $STATUS, and the check for an already-applied request failed"
+                [ -n "$found" ] || continue
+                echo "brg-github: $method $path answered $STATUS but had been applied; not sent again" >&2
+                out="$found"$'\n'"200"; STATUS=200;;
+            esac;;
+      esac
+      break
+    done
+    rm -f "$err"
+    out="${out%$'\n'*}"
+    case "$STATUS" in
+      2*) printf '%s' "$out";;
+      404) [ "${ALLOW_404:-0}" = 1 ] && return 0; die "$method $path -> 404: not found (check BEARING_TRACKER_PROJECT and the token's access)";;
+      401|403) die "$method $path -> $STATUS: check BEARING_TRACKER_TOKEN (scope repo)";;
+      *) msg="$(printf '%s' "$out" | jq -r '.message // empty' 2>/dev/null || true)"
+         case "$method:$STATUS:$recover" in POST:5*:) msg="${msg:-server error}; not retried, a POST may already have been applied";; esac
+         die "$method $path -> $STATUS: ${msg:-$(printf '%s' "$out" | head -c 300)}";;
+    esac
+  else
+    STATUS=200
+    if [ -n "$data" ]; then
+      out="$(printf '%s' "$data" | gh api --hostname "$HOST" -X "$method" --input - "${path#/}" 2>"$err")" || { STATUS=0; msg="$(head -c 300 "$err")"; }
+    else
+      out="$(gh api --hostname "$HOST" -X "$method" "${path#/}" 2>"$err")" || { STATUS=0; msg="$(head -c 300 "$err")"; }
+    fi
+    rm -f "$err"
+    if [ "$STATUS" = 0 ]; then
+      case "$msg" in *"HTTP 404"*) STATUS=404; [ "${ALLOW_404:-0}" = 1 ] && return 0;; esac
+      die "gh api $method $path failed: ${msg:-see gh auth status}"
+    fi
+    printf '%s' "$out"
+  fi
+}
+
+# next_page PATH PAGE COUNT PER -> the next page's PATH, or nothing after the
+# last page. Through curl that is the Link rel="next" header, followed only
+# while it stays under the API root so the token never travels to another
+# host (a link elsewhere falls back to page numbers). Through gh a full page
+# means ask for the next number.
+next_page() {
+  local path="$1" page="$2" count="$3" per="$4" link=""
+  if [ "$transport" = curl ]; then
+    link="$(tr -d '\r' < "$WORK/headers" | grep -i '^link:' | tr ',' '\n' | grep 'rel="next"' | sed -E 's/.*<([^>]*)>.*/\1/' | head -1 || true)"
+    [ -n "$link" ] || return 0
+    case "$link" in "$API"/*) printf '%s' "${link#"$API"}"; return 0;; esac
+  fi
+  [ "$count" -ge "$per" ] || return 0
+  printf '%s&page=%s' "$(printf '%s' "$path" | sed -E 's/&page=[0-9]+//')" "$((page + 1))"
+}
+
+# paged PATH ITEMS PER LIMIT FILTER NOUN: every item of every page of PATH
+# (ITEMS is . for an array answer, .items for search) through jq FILTER, one
+# line each. Stops at LIMIT items (0 means no limit) or at
+# BEARING_TRACKER_MAX_PAGES pages (default 20) and says so when more exist;
+# always ends with the count on stderr, zero included.
+paged() {
+  local path="$1" items="$2" per="$3" limit="$4" filter="$5" noun="$6" page=1 body n rows k got=0 next
+  while :; do
+    body="$(api GET "$path")"
+    n="$(printf '%s' "$body" | jq "$items | length")"
+    rows="$(printf '%s' "$body" | jq -c "${items}[] | $filter")"
+    k=0; [ -z "$rows" ] || k="$(printf '%s\n' "$rows" | wc -l | tr -d ' ')"
+    next="$(next_page "$path" "$page" "$n" "$per")"
+    if [ "$limit" -gt 0 ] && [ $((got + k)) -ge "$limit" ]; then
+      printf '%s\n' "$rows" | sed -n "1,$((limit - got))p"
+      if [ $((got + k)) -gt "$limit" ] || [ -n "$next" ]; then echo "brg-github: stopped at --limit $limit; more $noun exist" >&2; fi
+      got="$limit"; break
+    fi
+    [ -z "$rows" ] || printf '%s\n' "$rows"
+    got=$((got + k))
+    [ -n "$next" ] || break
+    if [ "$page" -ge "$MAX_PAGES" ]; then
+      echo "brg-github: stopped after $page page(s) at BEARING_TRACKER_MAX_PAGES=$MAX_PAGES; more $noun exist, narrow the query or raise the cap" >&2
+      break
+    fi
+    path="$next"; page=$((page + 1))
+  done
+  echo "brg-github: $got $noun listed from $page page(s)" >&2
+}
+
+urlenc() { printf '%s' "$1" | jq -sRr @uri; }
+num_of() { # GH-12 | #12 | 12 -> 12
+  local k="${1#GH-}"; k="${k#\#}"
+  printf '%s' "$k" | grep -Eq '^[0-9]+$' || die "'$1' is not a key like GH-12"
+  printf '%s' "$k"
+}
+slug() { printf '%s' "$1" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9]+/-/g; s/^-+|-+$//g'; }
+check_type() { case "$1" in epic|story|task|bug|testcase) ;; *) die "type must be epic|story|task|bug|testcase (got '$1')";; esac; }
+
+compact='{key:("GH-"+(.number|tostring)), number:.number, type:((.labels[]? | .name | select(startswith("type:")) | .[5:]) // null), title:.title, status:((.labels[]? | .name | select(startswith("status:")) | .[7:]) // .state), assignee:(.assignee.login // null), priority:((.labels[]? | .name | select(startswith("priority:")) | .[9:]) // null), url:.html_url}'
+show() { api GET "/repos/$REPO/issues/$1" | jq -c "$compact"; }
+
+ensure_label() { # name -> creates it when missing, colour by kind
+  local name="$1" colour="ededed"
+  case "$name" in type:*) colour="0e8a16";; status:*) colour="1d76db";; priority:*) colour="d93f0b";; esac
+  ALLOW_404=1 api GET "/repos/$REPO/labels/$(urlenc "$name")" >/dev/null
+  REC_LABEL="$name"
+  [ "$STATUS" != 404 ] || api POST "/repos/$REPO/labels" "$(jq -nc --arg n "$name" --arg c "$colour" '{name:$n,color:$c}')" rec_label >/dev/null
+}
+
+login_of() { # me | login | email
+  case "$1" in
+    me) api GET /user | jq -r .login;;
+    *@*) api GET "/search/users?q=$(urlenc "$1 in:email")" | jq -r '.items[0].login // empty';;
+    *) printf '%s' "$1";;
+  esac
+}
+
+# Recovery for a POST answered 5xx: print what it made, or nothing.
+rec_label() { ALLOW_404=1 api GET "/repos/$REPO/labels/$(urlenc "$REC_LABEL")"; }
+rec_issue() { # the issue carrying $REC_MARK among the 50 newest
+  api GET "/repos/$REPO/issues?state=all&sort=created&direction=desc&per_page=50" \
+    | jq -c --arg m "$REC_MARK" '[.[] | select((.body // "") | contains($m))][0] // empty'
+}
+rec_comment() { # the comment carrying $REC_MARK on $REC_NUM, from the last ten minutes
+  api GET "/repos/$REPO/issues/$REC_NUM/comments?per_page=100&since=$(iso_ago 600)" \
+    | jq -c --arg m "$REC_MARK" '[.[] | select((.body // "") | contains($m))][0] // empty'
+}
+
+comment_on() { # number text -> comment id; the text gains an invisible marker line
+  REC_NUM="$1"; REC_MARK="$(new_mark)"
+  api POST "/repos/$REPO/issues/$1/comments" "$(jq -nc --arg b "$2"$'\n\n'"<!-- $REC_MARK -->" '{body:$b}')" rec_comment | jq -r .id
+}
+
+case "$cmd" in
+  me) api GET /user | jq -c '{login,name}' ;;
+  resolve) [ $# -eq 1 ] || usage; n="$(num_of "$1")"; echo "$n" ;;
+  get) [ $# -eq 1 ] || usage; n="$(num_of "$1")"; show "$n" ;;
+  list)
+    labels=""; state="open"; text=""; limit=0
+    while [ $# -gt 0 ]; do case "$1" in
+      --type) check_type "$2"; labels="$labels,type:$2"; shift 2;;
+      --status) s="$(slug "$2")"; case "$s" in closed) state=closed;; done) state=all; labels="$labels,status:done";; *) labels="$labels,status:$s";; esac; shift 2;;
+      --q) text="$2"; shift 2;;
+      --limit) limit="$2"; shift 2;;
+      *) usage;; esac; done
+    case "$limit" in ''|*[!0-9]*) die "--limit must be a whole number (got '$limit')";; esac
+    per=100; [ "$limit" = 0 ] || [ "$limit" -ge 100 ] || per="$limit"
+    labels="${labels#,}"
+    if [ -n "$text" ]; then
+      q="repo:$REPO is:issue \"${text//\"/}\""; [ "$state" = all ] || q="$q state:$state"
+      for l in ${labels//,/ }; do q="$q label:\"$l\""; done
+      paged "/search/issues?q=$(urlenc "$q")&per_page=$per" .items "$per" "$limit" "$compact" "issue(s)"
+    else
+      paged "/repos/$REPO/issues?state=$state&per_page=$per&labels=$(urlenc "$labels")" . "$per" "$limit" "select(.pull_request == null) | $compact" "issue(s)"
+    fi ;;
+  create)
+    typ=task; title=""; desc=""; parent=""; prio=""
+    while [ $# -gt 0 ]; do case "$1" in
+      --type) typ="$2"; shift 2;; --title) title="$2"; shift 2;; --description-file) desc="$(cat "$2")"; shift 2;;
+      --parent) parent="$2"; shift 2;; --priority) prio="$2"; shift 2;; *) usage;; esac; done
+    [ -n "$title" ] || die "--title is required"; check_type "$typ"
+    labels="[\"type:$typ\"]"; ensure_label "type:$typ"
+    if [ -n "$prio" ]; then ensure_label "priority:$(slug "$prio")"; labels="$(printf '%s' "$labels" | jq -c --arg p "priority:$(slug "$prio")" '. + [$p]')"; fi
+    [ -z "$parent" ] || desc="Parent: #$(num_of "$parent")"$'\n\n'"$desc"
+    REC_MARK="$(new_mark)"; [ -z "$desc" ] || desc="$desc"$'\n\n'; desc="$desc<!-- $REC_MARK -->"
+    n="$(api POST "/repos/$REPO/issues" "$(jq -nc --arg t "$title" --arg b "$desc" --argjson l "$labels" '{title:$t,body:$b,labels:$l}')" rec_issue | jq -r .number)"
+    [ -n "$n" ] || die "create returned no number"
+    show "$n" ;;
+  update|close)
+    [ $# -ge 1 ] || usage; n="$(num_of "$1")"; shift; patch='{}'; status=""; prio=""; force_close=0
+    if [ "$cmd" = close ]; then [ $# -eq 0 ] || usage; force_close=1; set -- --status "$DONE_STATUS"; fi
+    while [ $# -gt 0 ]; do case "$1" in
+      --status) status="$2"; shift 2;;
+      --assignee) login="$(login_of "$2")"; [ -n "$login" ] || die "no GitHub user matches '$2'"; patch="$(printf '%s' "$patch" | jq -c --arg u "$login" '. + {assignees:[$u]}')"; shift 2;;
+      --title) patch="$(printf '%s' "$patch" | jq -c --arg v "$2" '. + {title:$v}')"; shift 2;;
+      --description-file) patch="$(printf '%s' "$patch" | jq -c --arg v "$(cat "$2")" '. + {body:$v}')"; shift 2;;
+      --priority) prio="$(slug "$2")"; shift 2;;
+      *) usage;; esac; done
+    if [ -n "$status$prio" ]; then
+      cur="$(api GET "/repos/$REPO/issues/$n")"
+      labels="$(printf '%s' "$cur" | jq -c '[.labels[].name]')"
+      if [ -n "$status" ]; then
+        s="$(slug "$status")"; ensure_label "status:$s"
+        labels="$(printf '%s' "$labels" | jq -c --arg s "status:$s" '[.[] | select(startswith("status:") | not)] + [$s]')"
+        if [ "$force_close" = 1 ]; then patch="$(printf '%s' "$patch" | jq -c '. + {state:"closed"}')"; else
+          case "$s" in done|closed) patch="$(printf '%s' "$patch" | jq -c '. + {state:"closed"}')";; *) patch="$(printf '%s' "$patch" | jq -c '. + {state:"open"}')";; esac
+        fi
+      fi
+      if [ -n "$prio" ]; then
+        ensure_label "priority:$prio"
+        labels="$(printf '%s' "$labels" | jq -c --arg p "priority:$prio" '[.[] | select(startswith("priority:") | not)] + [$p]')"
+      fi
+      patch="$(printf '%s' "$patch" | jq -c --argjson l "$labels" '. + {labels:$l}')"
+    fi
+    [ "$patch" != "{}" ] || die "nothing to update"
+    api PATCH "/repos/$REPO/issues/$n" "$patch" >/dev/null
+    show "$n" ;;
+  comment)
+    [ $# -ge 2 ] || usage; n="$(num_of "$1")"; shift
+    if [ "$1" = "--file" ]; then text="$(cat "$2")"; else text="$*"; fi
+    [ -n "$text" ] || die "empty comment"
+    cid="$(comment_on "$n" "$text")"; echo "brg-github: comment $cid posted on GH-$n" ;;
+  link)
+    [ $# -eq 3 ] || usage; a="$(num_of "$1")"; b="$(num_of "$3")"
+    case "$2" in relates) comment_on "$a" "Relates to #$b" >/dev/null; comment_on "$b" "Relates to #$a" >/dev/null;;
+      blocks) comment_on "$a" "Blocks #$b" >/dev/null; comment_on "$b" "Blocked by #$a" >/dev/null;;
+      *) die "link type must be relates|blocks";; esac
+    echo "brg-github: GH-$a $2 GH-$b (cross-reference comments; GitHub has no issue links)"; echo "link: comment" ;;
+  trace)
+    [ $# -ge 1 ] || usage; n="$(num_of "$1")"; shift
+    branch="$(git branch --show-current 2>/dev/null || true)"; mr=""; commits=""; tests=""; adr=""; docs=""
+    while [ $# -gt 0 ]; do case "$1" in --branch) branch="$2"; shift 2;; --mr) mr="$2"; shift 2;; --commits) commits="$2"; shift 2;; --tests) tests="$2"; shift 2;; --adr) adr="$2"; shift 2;; --docs) docs="$2"; shift 2;; *) usage;; esac; done
+    [ -n "$branch$mr$commits$tests$adr$docs" ] || die "nothing to trace; give --branch, --mr, --commits, --tests, --adr or --docs"
+    body="### Traceability (Bearing, $(date -u +%Y-%m-%dT%H:%MZ))"
+    [ -z "$branch" ] || body="$body"$'\n'"- Branch: $branch"
+    [ -z "$mr" ] || body="$body"$'\n'"- MR: $mr"
+    [ -z "$commits" ] || body="$body"$'\n'"- Commits: $commits"
+    [ -z "$tests" ] || body="$body"$'\n'"- Tests: $tests"
+    [ -z "$adr" ] || body="$body"$'\n'"- ADR: $adr"
+    [ -z "$docs" ] || body="$body"$'\n'"- Docs: $docs"
+    comment_on "$n" "$body" >/dev/null
+    echo "brg-github: trace comment posted on GH-$n" ;;
+  *) usage ;;
+esac

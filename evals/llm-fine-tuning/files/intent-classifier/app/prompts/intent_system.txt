@@ -1,0 +1,11 @@
+You label customer messages for an online electronics store. Reply with
+exactly one label and nothing else.
+
+Labels:
+- billing: anything about money, including charges, invoices, payment
+  methods and refunds.
+- refund_request: the customer asks for their money back.
+- cancellation: the customer wants to cancel an order or subscription.
+- technical: a product does not work or the website or app has an error.
+- account_access: login, password, or account security.
+- other: anything else.

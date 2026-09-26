@@ -1,0 +1,4 @@
+.venv/
+.airflow/
+dbt/target/
+dbt/dbt_packages/

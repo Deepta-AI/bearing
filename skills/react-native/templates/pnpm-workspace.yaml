@@ -1,0 +1,2 @@
+# Expo, Metro and jest-expo expect a flat node_modules; pnpm's default isolated layout breaks them.
+nodeLinker: hoisted

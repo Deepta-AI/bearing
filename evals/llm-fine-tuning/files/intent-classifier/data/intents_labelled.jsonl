@@ -1,0 +1,120 @@
+{"id": "msg-0001", "text": "How do I change the saved card on my account? Order EL-496054 failed.", "label": "billing", "labelled_by": "cx-lead-2"}
+{"id": "msg-0002", "text": "How do I cancel the power bank I ordered yesterday? Order EL-499512.", "label": "cancellation", "labelled_by": "cx-lead-1"}
+{"id": "msg-0003", "text": "Cancel order EL-447209 before it ships please.", "label": "cancellation", "labelled_by": "cx-lead-1"}
+{"id": "msg-0004", "text": "The power bank firmware update failed halfway.", "label": "technical", "labelled_by": "cx-lead-2"}
+{"id": "msg-0005", "text": "Can you send a GST invoice for order EL-402241? I need it for my company.", "label": "billing", "labelled_by": "cx-lead-2"}
+{"id": "msg-0006", "text": "My card was declined for the power bank but the amount was debited. Order EL-442912.", "label": "billing", "labelled_by": "cx-lead-2"}
+{"id": "msg-0007", "text": "Please refund order EL-484747, the HDMI cable is not what was shown on the site.", "label": "refund_request", "labelled_by": "cx-lead-2"}
+{"id": "msg-0008", "text": "The laptop stand won't pair with my phone.", "label": "technical", "labelled_by": "cx-lead-1"}
+{"id": "msg-0009", "text": "How do I cancel the keyboard I ordered yesterday? Order EL-443683.", "label": "cancellation", "labelled_by": "cx-lead-2"}
+{"id": "msg-0010", "text": "The tablet cover gets very hot while charging.", "label": "technical", "labelled_by": "cx-lead-2"}
+{"id": "msg-0011", "text": "The phone case from order EL-460874 arrived broken. I don't want a replacement, please refund me.", "label": "refund_request", "labelled_by": "cx-lead-1"}
+{"id": "msg-0012", "text": "Can you send a GST invoice for order EL-446294? I need it for my company.", "label": "billing", "labelled_by": "cx-lead-2"}
+{"id": "msg-0013", "text": "The laptop stand from order EL-401960 arrived broken. I don't want a replacement, please refund me.", "label": "refund_request", "labelled_by": "cx-lead-2"}
+{"id": "msg-0014", "text": "I can't log in, the OTP never arrives. (ref 5316)", "label": "account_access", "labelled_by": "cx-lead-2"}
+{"id": "msg-0015", "text": "Can I get my money back for the bluetooth speaker? It stopped working after two days. Order EL-461859.", "label": "refund_request", "labelled_by": "cx-lead-2"}
+{"id": "msg-0016", "text": "How do I change the saved card on my account? Order EL-417856 failed.", "label": "billing", "labelled_by": "cx-lead-1"}
+{"id": "msg-0017", "text": "My account is locked after too many attempts. (ref 9071)", "label": "account_access", "labelled_by": "cx-lead-1"}
+{"id": "msg-0018", "text": "How do I cancel the power bank I ordered yesterday? Order EL-490463.", "label": "cancellation", "labelled_by": "cx-lead-1"}
+{"id": "msg-0019", "text": "The invoice for order EL-411789 shows the wrong billing address.", "label": "billing", "labelled_by": "cx-lead-1"}
+{"id": "msg-0020", "text": "Your app crashes when I open my orders page.", "label": "technical", "labelled_by": "cx-lead-2"}
+{"id": "msg-0021", "text": "Why was I charged twice for order EL-413625?", "label": "billing", "labelled_by": "cx-lead-1"}
+{"id": "msg-0022", "text": "Someone changed my account password, I did not do it. (ref 4480)", "label": "account_access", "labelled_by": "cx-lead-2"}
+{"id": "msg-0023", "text": "I want to cancel my extended warranty subscription on the fitness band.", "label": "cancellation", "labelled_by": "cx-lead-2"}
+{"id": "msg-0024", "text": "Is the tablet cover available in black?", "label": "other", "labelled_by": "cx-lead-1"}
+{"id": "msg-0025", "text": "The webcam won't pair with my phone.", "label": "technical", "labelled_by": "cx-lead-1"}
+{"id": "msg-0026", "text": "The phone case gets very hot while charging.", "label": "technical", "labelled_by": "cx-lead-1"}
+{"id": "msg-0027", "text": "How do I change the saved card on my account? Order EL-445459 failed. My email is cust602@mailbox.example", "label": "billing", "labelled_by": "cx-lead-2"}
+{"id": "msg-0028", "text": "I cancelled order EL-403281 before it shipped but still haven't received the refund.", "label": "refund_request", "labelled_by": "cx-lead-2"}
+{"id": "msg-0029", "text": "Cancel order EL-442530 before it ships please.", "label": "cancellation", "labelled_by": "cx-lead-2"}
+{"id": "msg-0030", "text": "Someone changed my account password, I did not do it. (ref 6052)", "label": "account_access", "labelled_by": "cx-lead-1"}
+{"id": "msg-0031", "text": "I can't log in, the OTP never arrives. (ref 8198)", "label": "account_access", "labelled_by": "cx-lead-1"}
+{"id": "msg-0032", "text": "The invoice for order EL-479535 shows the wrong billing address.", "label": "billing", "labelled_by": "cx-lead-2"}
+{"id": "msg-0033", "text": "The USB-C charger gets very hot while charging.", "label": "technical", "labelled_by": "cx-lead-2"}
+{"id": "msg-0034", "text": "I can't log in, the OTP never arrives. (ref 8198)", "label": "account_access", "labelled_by": "cx-lead-2"}
+{"id": "msg-0035", "text": "I can't log in, the OTP never arrives. (ref 6638)", "label": "account_access", "labelled_by": "cx-lead-2"}
+{"id": "msg-0036", "text": "Checkout page shows error 502 when I try to pay for the phone case.", "label": "technical", "labelled_by": "cx-lead-2"}
+{"id": "msg-0037", "text": "The USB-C charger firmware update failed halfway.", "label": "technical", "labelled_by": "cx-lead-1"}
+{"id": "msg-0038", "text": "How do I cancel the laptop stand I ordered yesterday? Order EL-440791.", "label": "cancellation", "labelled_by": "cx-lead-1"}
+{"id": "msg-0039", "text": "The bluetooth speaker gets very hot while charging.", "label": "technical", "labelled_by": "cx-lead-1"}
+{"id": "msg-0040", "text": "Checkout page shows error 502 when I try to pay for the wireless earbuds.", "label": "technical", "labelled_by": "cx-lead-1"}
+{"id": "msg-0041", "text": "Checkout page shows error 502 when I try to pay for the USB-C charger.", "label": "technical", "labelled_by": "cx-lead-2"}
+{"id": "msg-0042", "text": "Can you send a GST invoice for order EL-490398? I need it for my company.", "label": "billing", "labelled_by": "cx-lead-2"}
+{"id": "msg-0043", "text": "The wireless earbuds firmware update failed halfway. Call me on 9827057310", "label": "technical", "labelled_by": "cx-lead-2"}
+{"id": "msg-0044", "text": "My card was declined for the phone case but the amount was debited. Order EL-472767.", "label": "billing", "labelled_by": "cx-lead-2"}
+{"id": "msg-0045", "text": "Do you have a student discount on the fitness band?", "label": "other", "labelled_by": "cx-lead-2"}
+{"id": "msg-0046", "text": "The laptop stand firmware update failed halfway.", "label": "technical", "labelled_by": "cx-lead-1"}
+{"id": "msg-0047", "text": "I cancelled order EL-442425 before it shipped but still haven't received the refund.", "label": "refund_request", "labelled_by": "cx-lead-2"}
+{"id": "msg-0048", "text": "Do you have a student discount on the smart bulb?", "label": "other", "labelled_by": "cx-lead-1"}
+{"id": "msg-0049", "text": "Cancel order EL-402219 before it ships please.", "label": "cancellation", "labelled_by": "cx-lead-1"}
+{"id": "msg-0050", "text": "How do I turn on two-factor authentication? (ref 4480)", "label": "account_access", "labelled_by": "cx-lead-2"}
+{"id": "msg-0051", "text": "The bluetooth speaker from order EL-401791 arrived broken. I don't want a replacement, please refund me.", "label": "refund_request", "labelled_by": "cx-lead-2"}
+{"id": "msg-0052", "text": "How do I cancel the smart bulb I ordered yesterday? Order EL-402246. My email is cust845@mailbox.example", "label": "cancellation", "labelled_by": "cx-lead-2"}
+{"id": "msg-0053", "text": "Someone changed my account password, I did not do it. (ref 8322) Call me on 9851569250", "label": "account_access", "labelled_by": "cx-lead-2"}
+{"id": "msg-0054", "text": "The power bank from order EL-422717 arrived broken. I don't want a replacement, please refund me.", "label": "refund_request", "labelled_by": "cx-lead-1"}
+{"id": "msg-0055", "text": "How do I change the saved card on my account? Order EL-435161 failed.", "label": "billing", "labelled_by": "cx-lead-2"}
+{"id": "msg-0056", "text": "My account is locked after too many attempts. (ref 3180)", "label": "account_access", "labelled_by": "cx-lead-1"}
+{"id": "msg-0057", "text": "Please cancel order EL-447967, I ordered the USB-C charger by mistake. My email is cust703@mailbox.example", "label": "cancellation", "labelled_by": "cx-lead-1"}
+{"id": "msg-0058", "text": "How do I cancel the laptop stand I ordered yesterday? Order EL-462680.", "label": "cancellation", "labelled_by": "cx-lead-1"}
+{"id": "msg-0059", "text": "The webcam from order EL-426074 arrived broken. I don't want a replacement, please refund me.", "label": "refund_request", "labelled_by": "cx-lead-2"}
+{"id": "msg-0060", "text": "Why was I charged twice for order EL-431575?", "label": "billing", "labelled_by": "cx-lead-1"}
+{"id": "msg-0061", "text": "The invoice for order EL-491236 shows the wrong billing address. Call me on 9853537084", "label": "billing", "labelled_by": "cx-lead-2"}
+{"id": "msg-0062", "text": "The invoice for order EL-443995 shows the wrong billing address.", "label": "billing", "labelled_by": "cx-lead-1"}
+{"id": "msg-0063", "text": "My account is locked after too many attempts. (ref 8601)", "label": "account_access", "labelled_by": "cx-lead-1"}
+{"id": "msg-0064", "text": "How do I cancel the keyboard I ordered yesterday? Order EL-496383.", "label": "cancellation", "labelled_by": "cx-lead-1"}
+{"id": "msg-0065", "text": "How do I change the saved card on my account? Order EL-444236 failed.", "label": "billing", "labelled_by": "cx-lead-2"}
+{"id": "msg-0066", "text": "Is the phone case available in black?", "label": "other", "labelled_by": "cx-lead-2"}
+{"id": "msg-0067", "text": "My card was declined for the tablet cover but the amount was debited. Order EL-480577.", "label": "billing", "labelled_by": "cx-lead-2"}
+{"id": "msg-0068", "text": "I cancelled order EL-443621 before it shipped but still haven't received the refund.", "label": "refund_request", "labelled_by": "cx-lead-1"}
+{"id": "msg-0069", "text": "The smart bulb firmware update failed halfway.", "label": "technical", "labelled_by": "cx-lead-1"}
+{"id": "msg-0070", "text": "Please refund order EL-420022, the wireless earbuds is not what was shown on the site.", "label": "refund_request", "labelled_by": "cx-lead-1"}
+{"id": "msg-0071", "text": "Is the webcam available in black?", "label": "other", "labelled_by": "cx-lead-2"}
+{"id": "msg-0072", "text": "How do I cancel the bluetooth speaker I ordered yesterday? Order EL-488689.", "label": "cancellation", "labelled_by": "cx-lead-2"}
+{"id": "msg-0073", "text": "Is the HDMI cable available in black?", "label": "other", "labelled_by": "cx-lead-1"}
+{"id": "msg-0074", "text": "I cancelled order EL-440042 before it shipped but still haven't received the refund.", "label": "refund_request", "labelled_by": "cx-lead-1"}
+{"id": "msg-0075", "text": "Is the wireless earbuds available in black? My email is cust733@mailbox.example", "label": "other", "labelled_by": "cx-lead-1"}
+{"id": "msg-0076", "text": "How do I cancel the smart bulb I ordered yesterday? Order EL-489844.", "label": "cancellation", "labelled_by": "cx-lead-2"}
+{"id": "msg-0077", "text": "Someone changed my account password, I did not do it. (ref 4742)", "label": "account_access", "labelled_by": "cx-lead-2"}
+{"id": "msg-0078", "text": "Someone changed my account password, I did not do it. (ref 6321)", "label": "account_access", "labelled_by": "cx-lead-1"}
+{"id": "msg-0079", "text": "Can I get my money back for the phone case? It stopped working after two days. Order EL-464342.", "label": "refund_request", "labelled_by": "cx-lead-2"}
+{"id": "msg-0080", "text": "The HDMI cable won't pair with my phone. Call me on 9844549793", "label": "technical", "labelled_by": "cx-lead-2"}
+{"id": "msg-0081", "text": "The invoice for order EL-490132 shows the wrong billing address.", "label": "billing", "labelled_by": "cx-lead-1"}
+{"id": "msg-0082", "text": "The bluetooth speaker won't pair with my phone.", "label": "technical", "labelled_by": "cx-lead-2"}
+{"id": "msg-0083", "text": "Your app crashes when I open my orders page.", "label": "technical", "labelled_by": "cx-lead-2"}
+{"id": "msg-0084", "text": "The tablet cover from order EL-401888 arrived broken. I don't want a replacement, please refund me.", "label": "refund_request", "labelled_by": "cx-lead-1"}
+{"id": "msg-0085", "text": "The tablet cover from order EL-468675 arrived broken. I don't want a replacement, please refund me.", "label": "refund_request", "labelled_by": "cx-lead-2"}
+{"id": "msg-0086", "text": "I cancelled order EL-449547 before it shipped but still haven't received the refund.", "label": "refund_request", "labelled_by": "cx-lead-2"}
+{"id": "msg-0087", "text": "How do I turn on two-factor authentication? (ref 5922) My email is cust147@mailbox.example", "label": "account_access", "labelled_by": "cx-lead-1"}
+{"id": "msg-0088", "text": "The fitness band firmware update failed halfway.", "label": "technical", "labelled_by": "cx-lead-1"}
+{"id": "msg-0089", "text": "Why was I charged twice for order EL-413625?", "label": "billing", "labelled_by": "cx-lead-2"}
+{"id": "msg-0090", "text": "Can you send a GST invoice for order EL-463293? I need it for my company.", "label": "billing", "labelled_by": "cx-lead-2"}
+{"id": "msg-0091", "text": "I want to cancel my extended warranty subscription on the phone case.", "label": "cancellation", "labelled_by": "cx-lead-2"}
+{"id": "msg-0092", "text": "Do you have a student discount on the laptop stand?", "label": "other", "labelled_by": "cx-lead-1"}
+{"id": "msg-0093", "text": "Checkout page shows error 502 when I try to pay for the bluetooth speaker.", "label": "technical", "labelled_by": "cx-lead-1"}
+{"id": "msg-0094", "text": "The fitness band gets very hot while charging.", "label": "technical", "labelled_by": "cx-lead-2"}
+{"id": "msg-0095", "text": "The HDMI cable gets very hot while charging.", "label": "technical", "labelled_by": "cx-lead-1"}
+{"id": "msg-0096", "text": "What are your store hours in Pune?", "label": "other", "labelled_by": "cx-lead-1"}
+{"id": "msg-0097", "text": "The smart bulb won't pair with my phone.", "label": "technical", "labelled_by": "cx-lead-1"}
+{"id": "msg-0098", "text": "Can I get my money back for the HDMI cable? It stopped working after two days. Order EL-401024.", "label": "refund_request", "labelled_by": "cx-lead-2"}
+{"id": "msg-0099", "text": "Cancel order EL-451440 before it ships please.", "label": "cancellation", "labelled_by": "cx-lead-1"}
+{"id": "msg-0100", "text": "My card was declined for the tablet cover but the amount was debited. Order EL-456294.", "label": "billing", "labelled_by": "cx-lead-2"}
+{"id": "msg-0101", "text": "Please refund order EL-460814, the tablet cover is not what was shown on the site.", "label": "refund_request", "labelled_by": "cx-lead-2"}
+{"id": "msg-0102", "text": "How do I change the saved card on my account? Order EL-404516 failed.", "label": "billing", "labelled_by": "cx-lead-2"}
+{"id": "msg-0103", "text": "My card was declined for the keyboard but the amount was debited. Order EL-473775.", "label": "billing", "labelled_by": "cx-lead-2"}
+{"id": "msg-0104", "text": "Why was I charged twice for order EL-440673?", "label": "billing", "labelled_by": "cx-lead-2"}
+{"id": "msg-0105", "text": "How do I turn on two-factor authentication? (ref 7618)", "label": "account_access", "labelled_by": "cx-lead-1"}
+{"id": "msg-0106", "text": "Is the keyboard available in black?", "label": "other", "labelled_by": "cx-lead-2"}
+{"id": "msg-0107", "text": "My card was declined for the bluetooth speaker but the amount was debited. Order EL-429274.", "label": "billing", "labelled_by": "cx-lead-1"}
+{"id": "msg-0108", "text": "Is the webcam available in black?", "label": "other", "labelled_by": "cx-lead-1"}
+{"id": "msg-0109", "text": "The invoice for order EL-460897 shows the wrong billing address.", "label": "billing", "labelled_by": "cx-lead-2"}
+{"id": "msg-0110", "text": "The webcam firmware update failed halfway.", "label": "technical", "labelled_by": "cx-lead-1"}
+{"id": "msg-0111", "text": "How do I change the saved card on my account? Order EL-444236 failed.", "label": "billing", "labelled_by": "cx-lead-1"}
+{"id": "msg-0112", "text": "Why was I charged twice for order EL-442729?", "label": "billing", "labelled_by": "cx-lead-2"}
+{"id": "msg-0113", "text": "The invoice for order EL-499255 shows the wrong billing address.", "label": "billing", "labelled_by": "cx-lead-1"}
+{"id": "msg-0114", "text": "The smart bulb from order EL-416039 arrived broken. I don't want a replacement, please refund me.", "label": "refund_request", "labelled_by": "cx-lead-2"}
+{"id": "msg-0115", "text": "How do I cancel the power bank I ordered yesterday? Order EL-499512.", "label": "cancellation", "labelled_by": "cx-lead-1"}
+{"id": "msg-0116", "text": "I can't log in, the OTP never arrives. (ref 4995)", "label": "account_access", "labelled_by": "cx-lead-2"}
+{"id": "msg-0117", "text": "How do I change the saved card on my account? Order EL-405825 failed.", "label": "billing", "labelled_by": "cx-lead-1"}
+{"id": "msg-0118", "text": "Cancel order EL-442170 before it ships please.", "label": "cancellation", "labelled_by": "cx-lead-2"}
+{"id": "msg-0119", "text": "The laptop stand from order EL-456155 arrived broken. I don't want a replacement, please refund me.", "label": "refund_request", "labelled_by": "cx-lead-2"}
+{"id": "msg-0120", "text": "Do you have a student discount on the webcam?", "label": "other", "labelled_by": "cx-lead-2"}

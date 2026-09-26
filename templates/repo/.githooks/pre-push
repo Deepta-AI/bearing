@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+# pre-push: a person confirms on the terminal, branch name convention, no
+# push to protected branches, and the full gate (make check) once before
+# anything leaves the machine.
+HOOK_NAME=pre-push
+# shellcheck source=lib.sh
+. "$(dirname "$0")/lib.sh"
+
+remote="${1:-origin}"
+branch="$(git branch --show-current)"
+
+# Count the commits this push carries. git feeds one line per ref on stdin:
+#   <local ref> <local sha> <remote ref> <remote sha>
+# A remote sha of all zeros means the branch is new on the remote, so the
+# count is every commit not already reachable from the remote's branches.
+zero='0000000000000000000000000000000000000000'
+refs=0; commits=0
+while read -r local_ref local_sha remote_ref remote_sha; do
+  [ -n "$local_ref" ] || continue
+  refs=$((refs+1))
+  if [ "$local_sha" = "$zero" ]; then
+    continue # a delete carries no commits
+  elif [ "$remote_sha" = "$zero" ]; then
+    n="$(git rev-list --count "$local_sha" --not --remotes="$remote" 2>/dev/null || echo 0)"
+  else
+    n="$(git rev-list --count "$remote_sha..$local_sha" 2>/dev/null || echo 0)"
+  fi
+  commits=$((commits+n))
+  hook_note "$local_ref -> ${remote_ref:-?}: $n commit(s)"
+done
+[ "$refs" -gt 0 ] || hook_fail "git handed the hook 0 refs; nothing to push"
+[ "$commits" -gt 0 ] || hook_fail "0 commits to push; the remote already has everything on this ref"
+
+# The engineer pushes; agents do not. A push must be confirmed by a person on
+# the terminal within 60 seconds. A coding agent (any harness) runs without a
+# controlling TTY, so the read fails and the push is refused. The bypass is
+# for pipelines only and needs both a CI marker and an explicit opt-in.
+in_ci=0
+if [ "${CI:-}" = "true" ] || [ "${CI:-}" = "1" ] || [ -n "${GITLAB_CI:-}" ] || [ -n "${GITHUB_ACTIONS:-}" ]; then in_ci=1; fi
+if [ "$in_ci" -eq 1 ] && [ "${BEARING_PUSH_CONFIRMED:-0}" = "1" ]; then
+  hook_note "push confirmed by CI (BEARING_PUSH_CONFIRMED=1)"
+elif { exec 3<>/dev/tty; } 2>/dev/null; then
+  # fd 3 is the controlling terminal; opening it fails where there is none.
+  printf 'Push %s to %s (%s commits)? Type the branch name to confirm (60 s): ' "$branch" "$remote" "$commits" >&3
+  read -r -t 60 typed <&3 || typed=""
+  exec 3>&-
+  [ "$typed" = "$branch" ] || hook_fail "push not confirmed"
+else
+  hook_fail "no terminal to confirm the push; a person runs git push (CI sets CI=true and BEARING_PUSH_CONFIRMED=1)"
+fi
+
+case "$branch" in
+  main|develop) hook_fail "direct push to $branch is not allowed; open a Merge Request" ;;
+esac
+printf '%s' "$branch" | grep -Eq "$BRANCH_RE" \
+  || hook_fail "branch '$branch' does not match feature|bugfix|hotfix|chore|docs/<TASK-ID>-<PascalName> or release/vX.Y.Z"
+
+# The gate. A repository on this standard has a Makefile with a check target;
+# a missing one is a failure, not a note.
+makefile=""
+for m in Makefile makefile GNUmakefile; do [ -f "$m" ] && { makefile="$m"; break; }; done
+[ -n "$makefile" ] || hook_fail "no Makefile; add a check target or run onboard-repo"
+grep -qE '^check:' "$makefile" || hook_fail "no check target in $makefile; add a check target or run onboard-repo"
+hook_note "running make check"
+make check || hook_fail "make check failed; nothing was pushed"
+hook_note "$commits commit(s) on $branch checked, gate passed"
+exit 0

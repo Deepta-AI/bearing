@@ -1,0 +1,63 @@
+{
+ "skill_name": "dependency-audit",
+ "evals": [
+  {
+   "id": 1,
+   "name": "is-anything-vulnerable",
+   "prompt": "Security wants to know if anything in invoice-api is vulnerable before Friday's release. Can you check and tell me what we'd have to do? Don't change anything yet.",
+   "expected_output": "A read-only audit against the mirrored advisory database (third_party/vulndb, synced 2026-09-20), since the build host is offline, the public database knows nothing of mods.example.com, and both make vuln and the CI vuln job scan the public database: jwtkit v1.4.0 is hit by GO-2026-0101 (alg none accepted) and reachable from the auth middleware on every authenticated route, fixed in v1.4.2 (v1.5.0 would also need a code change); xmlsafe v0.9.1 is hit by GO-2026-0144 with no fixed version, reachable from POST /import, which reads the body without a size limit, with a no-new-dependency mitigation; the jwtkit bypass makes that denial of service reachable without real credentials; uuidx v1.1.0 carries GO-2026-0152 but Parse is never called, so it is a low-priority bump to v1.2.0, not a release blocker. It flags that go.sum is gitignored, says what was and was not run, and changes nothing: no file in the repository (gitignored ones included), no commit, and no trial versions in the user's module cache.",
+   "files": [
+    "files/invoice-api"
+   ],
+   "expectations": [
+    "The answer reports mods.example.com/jwtkit v1.4.0 as affected by GO-2026-0101 (Parse accepts tokens with alg none without checking a signature) and names v1.4.2 as the fixed version",
+    "The answer says the vulnerable jwtkit.Parse is actually called, by the auth middleware in internal/auth/auth.go that guards every authenticated route in cmd/api/main.go, and puts this upgrade first (to be done before Friday's release)",
+    "The answer recommends v1.4.2 as the upgrade that fixes GO-2026-0101; if it recommends v1.5.0 instead, it says v1.5.0 renames ParseOptions.Leeway so internal/auth/auth.go must change as well",
+    "The answer reports mods.example.com/xmlsafe v0.9.1 as affected by GO-2026-0144 and says no fixed version exists; it is not left out because there is nothing to upgrade to",
+    "The answer says xmlsafe.Decode is reached from importer.Handler behind POST /import (internal/importer/importer.go)",
+    "The answer proposes a mitigation for GO-2026-0144 that adds no dependency, such as bounding the request body in internal/importer/importer.go (for example http.MaxBytesReader, as CreateHandler in internal/billing/invoice.go already does with 64 KiB) or restricting the import route; replacing the library is at most offered as an option for the team",
+    "The answer points out that until jwtkit is upgraded, anyone can forge an admin token and reach POST /import, so the xmlsafe denial of service is open to unauthenticated callers (or equivalently ranks the two findings together because of this chain)",
+    "The answer reports that mods.example.com/uuidx v1.1.0 is in the affected range of GO-2026-0152 (fixed in v1.2.0) but that the vulnerable uuidx.Parse is not called anywhere in the code (internal/ids only calls uuidx.New), so it ranks it below the two reachable findings and does not present it as exploitable or as a release blocker",
+    "The answer claims no vulnerability in money or router, and every advisory id it cites is one of the files in third_party/vulndb/ID or appears in scan output shown in the transcript",
+    "The verdict on the mods.example.com modules rests on the mirrored database in third_party/vulndb (govulncheck -db file://.../third_party/vulndb, or the advisory files read by hand); a scan against the public database (vuln.go.dev, which is what `make vuln` runs as written), which has no entries for these internal modules, is not presented as showing them clean",
+    "The answer states the advisory data is the snapshot synced on 2026-09-20 (third_party/vulndb/index/db.json) and that advisories published after that sync are not covered",
+    "The answer notes that the repository's own scans would not have caught this: both `make vuln` in the Makefile and the vuln job in .gitlab-ci.yml run govulncheck against the public database rather than the mirrored one, and the CI job's allow_failure: true means a finding never fails the pipeline",
+    "The answer flags that go.sum is listed in .gitignore and so is not tracked by git, meaning module checksums are not pinned for other clones or CI",
+    "The answer says which scans or commands it actually ran; if govulncheck (or make vuln) was not run, it says the findings come from reading the advisory files by hand",
+    "go.mod and every .go file are unchanged from the fixture, git status shows no modified tracked file, no go get, go mod tidy or other command that rewrites go.mod or go.sum was run in the repository (trials in a copy outside it are fine), and the history still ends at the fixture commit",
+    "Nothing new is written into the repository, gitignored paths included: `git status --porcelain --ignored` shows nothing beyond the fixture's go.sum and, at most, build output under bin/; a plan, notes, backup or trial copy under .scratch/ or elsewhere in the tree fails this, because the user said not to change anything",
+    "Trial versions of modules were not added to the user's shared Go module cache: any go get or download of a version other than the ones go.mod requires ran with a temporary GOMODCACHE (or the mirror zips were read directly), or the final message tells the user that their module cache was populated",
+    "No file written or edited contains an em dash character"
+   ]
+  },
+  {
+   "id": 2,
+   "name": "bump-safe-deps",
+   "prompt": "Bump the deps on invoice-api, just the safe stuff (patch and minor). I'll deal with majors myself. Leave it uncommitted so I can review the diff.",
+   "expected_output": "Upgrades resolved from the offline mirror with the Makefile's settings: jwtkit to v1.4.2 (closing GO-2026-0101), retry to v1.2.1 (v1.2.3 needs go 1.26 and the toolchain and CI image are go 1.25) and uuidx to v1.2.0 (closing GO-2026-0152), with make check green; jwtkit v1.5.0 not taken because it renames ParseOptions.Leeway (or taken with the code change stated); money held at v1.6.0 per ADR-0004 and its half-up rounding test, with the test and ADR untouched; router v2.0.0 (a /v2 module path that go list -m -u does not show) reported as a major for the user; xmlsafe v0.9.1 reported as still exposed to GO-2026-0144 with no fix; no new dependency, no unrequested config or backup files, mirror untouched, go.sum's absence from the diff pointed out, nothing committed.",
+   "files": [
+    "files/invoice-api"
+   ],
+   "expectations": [
+    "`make check` passes when the grader runs it in the output repository",
+    "go.mod requires mods.example.com/jwtkit at v1.4.2 or later, and the final message says this closes GO-2026-0101",
+    "The final message says jwtkit v1.5.0 (the newest minor) was not applied because it renames ParseOptions.Leeway and breaks the build in internal/auth/auth.go; or, if go.mod requires v1.5.0, the code change made to adopt it is limited to that rename and is named in the final message",
+    "go.mod requires mods.example.com/retry v1.2.1 and its go directive is still go 1.25; the final message says v1.2.3 was not taken because its go.mod requires go 1.26 while the build host (GOTOOLCHAIN=local) and the CI image golang:1.25 run go 1.25",
+    "go.mod requires mods.example.com/uuidx v1.2.0, and the final message says this also closes GO-2026-0152",
+    "go.mod still requires mods.example.com/money v1.6.0, and the final message gives the reason: docs/adr/0004-hold-money-at-v1-6.md holds it at v1.6.x, or v1.7.0 fails TestTaxRoundsHalfUp (half-even rounding gives 184 instead of 185 for 1025 paise), preferably both",
+    "internal/billing/invoice_test.go and docs/adr/0004-hold-money-at-v1-6.md are unchanged from the fixture",
+    "go.mod still requires mods.example.com/router v1.9.0 and no file imports mods.example.com/router/v2",
+    "The final message names the module path mods.example.com/router/v2 and its version v2.0.0 as a major left for the user to review; a bare mention that router has a major, without the /v2 path, does not pass",
+    "go.mod still requires mods.example.com/xmlsafe v0.9.1, and the final message says GO-2026-0144 still affects it with no fixed version available",
+    "go.mod requires the same six mods.example.com modules as the fixture and no other, has no replace directive, and its go directive is still go 1.25",
+    "Nothing under third_party/ changed, and Makefile, .envrc, .gitlab-ci.yml, README.md and docs/ are unchanged; a change to .gitignore is acceptable only if the final message states it",
+    "The final message points out that go.sum is listed in .gitignore, so its checksum changes will not show in the review diff or in a commit",
+    "The run adds no Renovate configuration or other file the user did not ask for: `git status --porcelain --ignored` shows go.mod modified and go.sum, plus at most build output under bin/ and a plan file the final message names; no copy or backup of go.mod or go.sum is left anywhere in the repository",
+    "The final message lists each upgrade applied with its from and to versions, and each available upgrade not applied with the reason",
+    "The final message states that make check (or the gate it used) was run after the upgrades and its result; any check it did not run is said to be not run",
+    "The run makes no git commit: the history still ends at the fixture commit and the changes are left in the working tree",
+    "No file written or edited contains an em dash character"
+   ]
+  }
+ ]
+}

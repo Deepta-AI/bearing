@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Backup rules for API 26 to 30. The Tink keyset (SharedPreferences file
+     "tink_keyset", wrapped by an Android Keystore key that is never backed
+     up) and the DataStore directory holding the token ciphertext never leave
+     the device. -->
+<full-backup-content>
+    <exclude domain="sharedpref" path="tink_keyset.xml" />
+    <exclude domain="file" path="datastore/" />
+</full-backup-content>

@@ -1,0 +1,262 @@
+# __REPO_NAME__ pipeline (infrastructure). The stages differ from the service
+# vocabulary (build, publish, deploy) because nothing here is built or
+# published: validate checks the code, security scans it, plan computes and
+# posts the change, deliver is where a PERSON applies a reviewed plan, and
+# verify reads the state back. make check is the gate; CI runs the same
+# targets the engineer runs. No job in this file applies automatically.
+# GitLab sets CI=true, so a gate whose tool is missing fails here instead of
+# printing SKIPPED.
+
+stages: [validate, security, plan, deliver, verify]
+
+include:
+  - template: Security/Secret-Detection.gitlab-ci.yml
+
+variables:
+  TF_VERSION: "1.9.8"
+  TF_IN_AUTOMATION: "1"
+  TF_INPUT: "0"
+  TF_PLUGIN_CACHE_DIR: "$CI_PROJECT_DIR/.terraform.d/plugin-cache"
+  # TF_BACKEND_BUCKET, TF_VAR_project, TF_VAR_region and the cloud credential
+  # (GOOGLE_CREDENTIALS or workload identity federation) are GitLab CI
+  # variables scoped per environment, never values in this file.
+
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "develop"
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_TAG
+
+default:
+  image: { name: "hashicorp/terraform:${TF_VERSION}", entrypoint: [""] }
+  cache:
+    key: tf-$CI_COMMIT_REF_SLUG
+    paths: [.terraform.d/plugin-cache]
+  before_script:
+    - apk add --no-cache bash make git jq >/dev/null
+    - mkdir -p "$TF_PLUGIN_CACHE_DIR"
+    - terraform version
+
+branch-name:
+  stage: validate
+  image: alpine:3.20
+  before_script: []
+  cache: []
+  rules: [{ if: $CI_PIPELINE_SOURCE == "merge_request_event" }]
+  script:
+    - echo "$CI_MERGE_REQUEST_SOURCE_BRANCH_NAME" | grep -Eq '^(feature|bugfix|hotfix|chore|docs)/[A-Z][A-Z0-9]*(-[0-9]+)+-[A-Za-z0-9]+$|^release/v[0-9]+\.[0-9]+\.[0-9]+$'
+    - echo "branch-name: 1 branch checked"
+
+# POSIX sh: alpine/git runs busybox ash, which has no process substitution.
+commits:
+  stage: validate
+  image: alpine/git:2.45.2
+  before_script: []
+  cache: []
+  rules: [{ if: $CI_PIPELINE_SOURCE == "merge_request_event" }]
+  script:
+    - git fetch origin "$CI_MERGE_REQUEST_TARGET_BRANCH_NAME" --depth=200
+    - |
+      range="origin/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME..HEAD"
+      subjects=$(mktemp)
+      git log --no-merges --format=%s "$range" > "$subjects"
+      n=$(wc -l < "$subjects" | tr -d ' ')
+      [ "$n" -gt 0 ] || { echo "commits: 0 commits in range $range"; exit 1; }
+      bad=0
+      while IFS= read -r subj; do
+        echo "$subj" | grep -Eq '^(feat|fix|refactor|test|docs|chore|perf|build|ci|revert)(\([a-z0-9._/-]+\))?!?: .{1,72}( \[[A-Z][A-Z0-9]*(-[0-9]+)+\])?$' || { echo "bad subject: $subj"; bad=$((bad+1)); }
+      done < "$subjects"
+      if git log --no-merges --format=%B "$range" | grep -Eiq 'co-authored-by: .*(claude|anthropic|copilot|chatgpt|gemini)|generated with'; then echo "AI attribution trailer found"; exit 1; fi
+      echo "commits: $n commits checked, $bad bad"
+      [ "$bad" -eq 0 ]
+
+fmt:
+  stage: validate
+  script: [make fmt-check]
+
+validate:
+  stage: validate
+  parallel:
+    matrix:
+      - ENV: [dev, qa, prod]
+  script:
+    - terraform -chdir="envs/$ENV" init -backend=false -input=false
+    - terraform -chdir="envs/$ENV" validate
+    - echo "validate: 1 environment checked (envs/$ENV and its modules)"
+
+tflint:
+  stage: validate
+  image: { name: ghcr.io/terraform-linters/tflint:v0.53.0, entrypoint: [""] }
+  before_script: []
+  cache: []
+  script:
+    - n=$(find envs modules -name '*.tf' | wc -l); [ "$n" -gt 0 ] || { echo "tflint: 0 tf files"; exit 1; }
+    - tflint --init --config "$CI_PROJECT_DIR/.tflint.hcl"
+    - tflint --recursive --config "$CI_PROJECT_DIR/.tflint.hcl"
+    - echo "tflint: $n tf files checked"
+
+alerts:
+  stage: validate
+  image: alpine:3.20
+  before_script: []
+  cache: []
+  script:
+    - alerts=$(cat monitoring/alerts/*.yaml | grep -c '^ *- alert:' || true)
+    - runbooks=$(cat monitoring/alerts/*.yaml | grep -c '^ *runbook_url:' || true)
+    - '[ "$alerts" -gt 0 ] || { echo "0 alert rules"; exit 1; }'
+    - '[ "$alerts" -eq "$runbooks" ] || { echo "$alerts alerts, $runbooks runbook_url annotations"; exit 1; }'
+    - echo "alerts: $alerts rules checked, $runbooks runbook links"
+
+kustomize:
+  stage: validate
+  image: alpine/k8s:1.30.2
+  before_script: []
+  cache: []
+  script:
+    - |
+      n=0; total=0
+      for o in k8s/overlays/*; do
+        c=$(kustomize build "$o" | grep -c '^kind:')
+        [ "$c" -gt 0 ] || { echo "kustomize: $o built 0 resources"; exit 1; }
+        echo "  $o: $c resources"; n=$((n+1)); total=$((total+c))
+      done
+      [ "$n" -gt 0 ] || { echo "kustomize: 0 overlays"; exit 1; }
+      echo "kustomize: $n overlays checked, $total resources"
+
+shellcheck:
+  stage: validate
+  image: koalaman/shellcheck-alpine:v0.10.0
+  before_script: []
+  cache: []
+  script:
+    - n=$(ls scripts/*.sh | wc -l); [ "$n" -gt 0 ] || { echo "0 scripts"; exit 1; }
+    - shellcheck -x scripts/*.sh
+    - echo "shellcheck: $n scripts checked"
+
+# trivy config is the IaC scanner (tfsec's rules now live in trivy). Pinned
+# to a release tag, never latest: a scanner that changes under the pipeline
+# changes what passes.
+trivy:
+  stage: security
+  image: { name: aquasec/trivy:0.74.0, entrypoint: [""] }
+  before_script: []
+  cache: []
+  script:
+    - n=$(find envs modules -name '*.tf' -not -path '*/.terraform/*' | wc -l); [ "$n" -gt 0 ] || { echo "trivy: 0 tf files"; exit 1; }
+    - for d in envs modules; do trivy config --quiet --exit-code 1 --severity MEDIUM,HIGH,CRITICAL --ignorefile .trivyignore --skip-dirs '**/.terraform' "$d" || exit 1; done
+    - echo "trivy: $n tf files checked"
+  allow_failure: false
+
+checkov:
+  stage: security
+  image: { name: bridgecrew/checkov:3, entrypoint: [""] }
+  before_script: []
+  cache: []
+  script:
+    - n=$(find envs modules -name '*.tf' | wc -l); [ "$n" -gt 0 ] || { echo "checkov: 0 tf files"; exit 1; }
+    - checkov --directory envs --directory modules --framework terraform --quiet --compact --config-file .checkov.yaml
+    - echo "checkov: $n tf files checked"
+  allow_failure: false
+
+# Plan: one job per environment so the apply jobs can name the plan they
+# depend on. The environment (action: prepare) makes the environment-scoped
+# CI variables available without creating a deployment. The text plan is
+# exposed on the MR; the JSON report feeds the MR terraform widget.
+.plan:
+  stage: plan
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "develop"
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_TAG
+  script:
+    - bash scripts/plan.sh "$ENV"
+
+plan-dev:
+  extends: .plan
+  variables: { ENV: dev }
+  environment: { name: dev, action: prepare }
+  artifacts: { expose_as: "plan dev", paths: [.plans/dev.tfplan, .plans/dev.txt], reports: { terraform: .plans/dev.json }, expire_in: 1 week, when: always }
+
+plan-qa:
+  extends: .plan
+  variables: { ENV: qa }
+  environment: { name: qa, action: prepare }
+  artifacts: { expose_as: "plan qa", paths: [.plans/qa.tfplan, .plans/qa.txt], reports: { terraform: .plans/qa.json }, expire_in: 1 week, when: always }
+
+plan-prod:
+  extends: .plan
+  variables: { ENV: prod }
+  environment: { name: prod, action: prepare }
+  artifacts: { expose_as: "plan prod", paths: [.plans/prod.tfplan, .plans/prod.txt], reports: { terraform: .plans/prod.json }, expire_in: 1 week, when: always }
+
+# Apply: manual, run by a person, gated on the plan artifact of THIS
+# pipeline (needs + artifacts). Terraform refuses a plan file whose state
+# has moved on, so a stale plan fails instead of applying something nobody
+# reviewed. resource_group serialises applies per environment.
+# allow_failure: true keeps a pipeline green when nobody applies it.
+.apply:
+  stage: deliver
+  when: manual
+  allow_failure: true
+  script:
+    - test -f ".plans/$ENV.tfplan" || { echo "no plan artifact for $ENV in this pipeline"; exit 1; }
+    - terraform -chdir="envs/$ENV" init -input=false -reconfigure -backend-config="bucket=$TF_BACKEND_BUCKET"
+    - terraform -chdir="envs/$ENV" apply -input=false -lock-timeout=5m "$CI_PROJECT_DIR/.plans/$ENV.tfplan"
+    - echo "apply: $ENV applied by $GITLAB_USER_LOGIN from pipeline $CI_PIPELINE_ID"
+
+apply-dev:
+  extends: .apply
+  variables: { ENV: dev }
+  needs: [{ job: plan-dev, artifacts: true }]
+  resource_group: terraform-dev
+  environment: { name: dev, deployment_tier: development }
+  rules: [{ if: $CI_COMMIT_BRANCH == "develop", when: manual }]
+
+apply-qa:
+  extends: .apply
+  variables: { ENV: qa }
+  needs: [{ job: plan-qa, artifacts: true }]
+  resource_group: terraform-qa
+  environment: { name: qa, deployment_tier: testing }
+  rules: [{ if: $CI_COMMIT_BRANCH == "main", when: manual }]
+
+apply-prod:
+  extends: .apply
+  variables: { ENV: prod }
+  needs: [{ job: plan-prod, artifacts: true }]
+  resource_group: terraform-prod
+  environment: { name: prod, deployment_tier: production }
+  # Only a protected tag reaches prod. Protect v* tags in the project settings.
+  rules: [{ if: $CI_COMMIT_TAG && $CI_COMMIT_REF_PROTECTED == "true", when: manual }]
+
+# Verify: after an apply, the state must list at least one resource.
+.verify:
+  stage: verify
+  script:
+    - terraform -chdir="envs/$ENV" init -input=false -reconfigure -backend-config="bucket=$TF_BACKEND_BUCKET"
+    - n=$(terraform -chdir="envs/$ENV" state list | wc -l | tr -d ' ')
+    - '[ "$n" -gt 0 ] || { echo "verify: $ENV state is empty after apply"; exit 1; }'
+    - echo "verify: $ENV has $n resources in state"
+
+verify-dev:
+  extends: .verify
+  variables: { ENV: dev }
+  needs: [apply-dev]
+  environment: { name: dev, action: verify }
+  rules: [{ if: $CI_COMMIT_BRANCH == "develop" }]
+
+verify-qa:
+  extends: .verify
+  variables: { ENV: qa }
+  needs: [apply-qa]
+  environment: { name: qa, action: verify }
+  rules: [{ if: $CI_COMMIT_BRANCH == "main" }]
+
+verify-prod:
+  extends: .verify
+  variables: { ENV: prod }
+  needs: [apply-prod]
+  environment: { name: prod, action: verify }
+  rules: [{ if: $CI_COMMIT_TAG && $CI_COMMIT_REF_PROTECTED == "true" }]

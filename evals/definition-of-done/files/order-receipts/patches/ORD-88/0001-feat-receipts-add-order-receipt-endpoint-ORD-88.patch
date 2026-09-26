@@ -1,0 +1,117 @@
+From b6a1bbbc8ab5bf8197099f066def4f25be0d526d Mon Sep 17 00:00:00 2001
+From: Meera Iyer <meera.iyer@example.com>
+Date: Sat, 26 Sep 2026 02:46:20 +0530
+Subject: [PATCH 1/2] feat(receipts): add order receipt endpoint [ORD-88]
+
+The storefront prints a receipt from GET /v1/orders/{id}/receipt:
+the lines with their amounts, the total and a footer set per
+environment.
+---
+ cmd/api/main.go              |  1 +
+ internal/api/receipt.go      | 40 ++++++++++++++++++++++++++++++++++++
+ internal/api/receipt_test.go | 34 ++++++++++++++++++++++++++++++
+ 3 files changed, 75 insertions(+)
+ create mode 100644 internal/api/receipt.go
+ create mode 100644 internal/api/receipt_test.go
+
+diff --git a/cmd/api/main.go b/cmd/api/main.go
+index 4374a97..bcfbadc 100644
+--- a/cmd/api/main.go
++++ b/cmd/api/main.go
+@@ -20,6 +20,7 @@ func main() {
+ 	mux.HandleFunc("GET /healthz", api.Healthz)
+ 	mux.HandleFunc("GET /v1/orders/{id}", api.GetOrder(s))
+ 	mux.HandleFunc("GET /v1/orders/export/{format}", api.ExportOrders(s))
++	mux.HandleFunc("GET /v1/orders/{id}/receipt", api.GetReceipt(s))
+ 	slog.Info("listening", "addr", addr)
+ 	if err := http.ListenAndServe(addr, api.RequestID(mux)); err != nil {
+ 		slog.Error("server stopped", "err", err)
+diff --git a/internal/api/receipt.go b/internal/api/receipt.go
+new file mode 100644
+index 0000000..2d67850
+--- /dev/null
++++ b/internal/api/receipt.go
+@@ -0,0 +1,40 @@
++package api
++
++import (
++	"net/http"
++	"os"
++
++	"example.com/orders/internal/analytics"
++)
++
++// ReceiptLine is one line of a receipt.
++type ReceiptLine struct {
++	Name        string `json:"name"`
++	Qty         int    `json:"qty"`
++	AmountPaise int64  `json:"amount_paise"`
++}
++
++// Receipt is what the storefront prints for a customer.
++type Receipt struct {
++	OrderID    string        `json:"order_id"`
++	Lines      []ReceiptLine `json:"lines"`
++	TotalPaise int64         `json:"total_paise"`
++	Footer     string        `json:"footer"`
++}
++
++// GetReceipt serves GET /v1/orders/{id}/receipt.
++func GetReceipt(s Store) http.HandlerFunc {
++	return func(w http.ResponseWriter, r *http.Request) {
++		o, err := s.Get(r.Context(), r.PathValue("id"))
++		if err != nil {
++			http.Error(w, err.Error(), http.StatusInternalServerError)
++			return
++		}
++		rc := Receipt{OrderID: o.ID, TotalPaise: o.TotalPaise, Footer: os.Getenv("RECEIPT_FOOTER")}
++		for _, l := range o.Lines {
++			rc.Lines = append(rc.Lines, ReceiptLine{Name: l.Name, Qty: l.Qty, AmountPaise: int64(l.Qty) * l.PricePaise})
++		}
++		analytics.Track(r.Context(), "receipt_viewed", map[string]string{"order_id": o.ID})
++		writeJSON(w, http.StatusOK, rc)
++	}
++}
+diff --git a/internal/api/receipt_test.go b/internal/api/receipt_test.go
+new file mode 100644
+index 0000000..ea80c4a
+--- /dev/null
++++ b/internal/api/receipt_test.go
+@@ -0,0 +1,34 @@
++package api
++
++import (
++	"encoding/json"
++	"net/http"
++	"net/http/httptest"
++	"testing"
++
++	"example.com/orders/internal/store"
++)
++
++func TestGetReceipt(t *testing.T) {
++	t.Setenv("RECEIPT_FOOTER", "Thank you for shopping with us")
++	r := httptest.NewRequest(http.MethodGet, "/v1/orders/ord_1001/receipt", nil)
++	r.SetPathValue("id", "ord_1001")
++	w := httptest.NewRecorder()
++	GetReceipt(store.Demo())(w, r)
++	if w.Code != http.StatusOK {
++		t.Fatalf("status %d, want 200", w.Code)
++	}
++	var rc Receipt
++	if err := json.Unmarshal(w.Body.Bytes(), &rc); err != nil {
++		t.Fatal(err)
++	}
++	if len(rc.Lines) != 2 || rc.Lines[0].AmountPaise != 99900 {
++		t.Fatalf("lines %+v", rc.Lines)
++	}
++	if rc.TotalPaise != 149900 {
++		t.Fatalf("total %d, want 149900", rc.TotalPaise)
++	}
++	if rc.Footer != "Thank you for shopping with us" {
++		t.Fatalf("footer %q", rc.Footer)
++	}
++}
+-- 
+2.43.0
+

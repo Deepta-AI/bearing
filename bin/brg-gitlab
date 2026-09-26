@@ -1,0 +1,311 @@
+#!/usr/bin/env bash
+# brg-gitlab: GitLab issues adapter for brg-tracker (REST API v4 through a
+# personal token, or through `glab api` when glab is installed and no token
+# is configured).
+#
+#   brg-gitlab me                           -> id, username, name
+#   brg-gitlab resolve <KEY>                -> the issue iid
+#   brg-gitlab get <KEY>                    -> compact JSON for one issue
+#   brg-gitlab list [--type t] [--status s] [--q text] [--limit n]
+#   brg-gitlab create --type <epic|story|task|bug|testcase> --title <s>
+#              [--description-file f] [--parent KEY] [--priority p]
+#   brg-gitlab update <KEY> [--status name] [--assignee me|login|email] [--title s]
+#              [--description-file f] [--priority p]
+#   brg-gitlab comment <KEY> (<text> | --file f)
+#   brg-gitlab link <KEY> <relates|blocks> <KEY2>
+#   brg-gitlab trace <KEY> [--branch b] [--mr url] [--commits a,b] [--tests TC-..,..]
+#              [--adr ADR-nnnn] [--docs path,..]
+#   brg-gitlab close <KEY>                  -> status BEARING_TRACKER_DONE_STATUS (Done) and closed
+#
+# Configuration: environment, then ~/.config/bearing/bearing.env (KEY=value):
+#   BEARING_TRACKER_URL      https://gitlab.example.com (default https://gitlab.com)
+#   BEARING_TRACKER_PROJECT  project path, e.g. group/repo
+#   BEARING_TRACKER_TOKEN    personal access token with scope api; empty means glab
+#   BEARING_TRACKER_DONE_STATUS  status label close applies (default Done)
+# Keys are GL-<iid>. Type and status are scoped labels (type::story,
+# status::in-review); a status of done or closed also closes the issue.
+# Parents are a relates_to link plus a "Parent:" line. The token is never
+# printed. Every call has a 30 s budget. A 429 is retried once; a 5xx is
+# retried once for GET and PUT, and for a create or a note only after a
+# search for its marker (an HTML comment it carries) finds nothing, so a
+# retry never duplicates. list follows every page (Link rel="next") up to
+# BEARING_TRACKER_MAX_PAGES (default 20), says when it stops early, and prints
+# the count on stderr.
+set -euo pipefail
+
+ENV_FILE="${BEARING_ENV:-${XDG_CONFIG_HOME:-$HOME/.config}/bearing/bearing.env}"
+usage() { sed -n '2,33p' "$0" | sed 's/^# \{0,1\}//'; exit "${1:-2}"; }
+die() { echo "brg-gitlab: $*" >&2; exit 1; }
+need() { command -v "$1" >/dev/null || die "$1 is required"; }
+need jq
+
+load_env() {
+  [ -f "$ENV_FILE" ] || return 0
+  local line key val
+  while IFS= read -r line || [ -n "$line" ]; do
+    case "${line#"${line%%[![:space:]]*}"}" in ''|'#'*) continue;; esac
+    case "$line" in *=*) ;; *) continue;; esac
+    key="${line%%=*}"; key="${key//[[:space:]]/}"; val="${line#*=}"
+    printf '%s' "$key" | grep -Eq '^[A-Z_][A-Z0-9_]*$' || continue
+    val="${val#"${val%%[![:space:]]*}"}"
+    case "$val" in
+      \"*) val="${val#\"}"; val="${val%%\"*}";;
+      \'*) val="${val#\'}"; val="${val%%\'*}";;
+      *) val="${val%%[[:space:]]#*}"; val="${val%"${val##*[![:space:]]}"}";;
+    esac
+    [ -n "${!key+x}" ] && continue
+    export "$key=$val"
+  done < "$ENV_FILE"
+}
+load_env
+
+cmd="${1:-}"; [ -n "$cmd" ] || usage; shift
+case "$cmd" in -h|--help|help) usage 0;; esac
+
+URL="${BEARING_TRACKER_URL:-https://gitlab.com}"; URL="${URL%/}"
+HOST="${URL#*://}"; HOST="${HOST%%/*}"
+PROJECT="${BEARING_TRACKER_PROJECT:-}"
+TOKEN="${BEARING_TRACKER_TOKEN:-}"
+DONE_STATUS="${BEARING_TRACKER_DONE_STATUS:-Done}"
+[ -n "$PROJECT" ] || die "set BEARING_TRACKER_PROJECT (group/repo) in $ENV_FILE"
+transport=""
+if [ -n "$TOKEN" ]; then need curl; transport=curl
+elif command -v glab >/dev/null; then transport=glab
+else die "set BEARING_TRACKER_TOKEN in $ENV_FILE or install glab (glab auth login)"; fi
+P="$(printf '%s' "$PROJECT" | jq -sRr @uri)"
+
+MAX_PAGES="${BEARING_TRACKER_MAX_PAGES:-20}"
+case "$MAX_PAGES" in ''|*[!0-9]*|0) die "BEARING_TRACKER_MAX_PAGES must be a whole number above 0 (got '$MAX_PAGES')";; esac
+case "$TOKEN" in *$'\n'*|*$'\r'*) die "BEARING_TRACKER_TOKEN contains a line break";; esac
+WORK="$(mktemp -d "${TMPDIR:-/tmp}/brg-gitlab.XXXXXX")"
+trap 'rm -rf "$WORK"' EXIT
+
+# Credentials go to curl through a config file on a pipe, never on the command
+# line. Inside a double-quoted config value curl reads \ and " as escapes, so
+# both are backslash-escaped and a token holding either arrives intact.
+cfg_quote() { printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'; }
+auth_cfg() { printf 'header = "PRIVATE-TOKEN: %s"\n' "$(cfg_quote "$TOKEN")"; }
+
+# new_mark -> a random marker. A create or a note carries it in an HTML
+# comment (invisible once rendered) so a retry can find what a failed POST
+# already made.
+new_mark() { printf 'bearing-op-%s' "$(od -An -N8 -tx1 /dev/urandom | tr -d ' \n')"; }
+
+# api METHOD PATH [JSON] [RECOVER] -> body on stdout, response headers in
+# $WORK/headers. PATH is relative to /api/v4. The body travels on stdin. A 429
+# is retried once after 2 seconds for every method (the server refused it
+# unapplied); a 5xx is retried once for GET and PUT, which are idempotent. A
+# POST answered 5xx may have been applied, so it is sent again only after the
+# RECOVER function (which prints what the POST would have made, or nothing)
+# finds nothing; without one it is not retried at all.
+api() {
+  local method="$1" path="$2" data="${3:-}" recover="${4:-}" out err msg status attempt found
+  local dargs=()
+  err="$(mktemp "$WORK/err.XXXXXX")"
+  if [ "$transport" = curl ]; then
+    [ -z "$data" ] || dargs=(-H 'Content-Type: application/json' --data-binary @-)
+    for attempt in 1 2; do
+      : > "$WORK/headers"
+      out="$(printf '%s' "$data" | curl -sS --max-time 30 --connect-timeout 10 -w '\n%{http_code}' -D "$WORK/headers" -X "$method" "$URL/api/v4$path" \
+        -K <(auth_cfg) ${dargs[@]+"${dargs[@]}"} 2>"$err")" \
+        || { msg="$(head -c 200 "$err")"; rm -f "$err"; die "cannot reach $URL: ${msg:-curl failed}"; }
+      status="${out##*$'\n'}"
+      [ "$attempt" = 1 ] || break
+      case "$status" in
+        429) sleep 2; continue;;
+        5*) case "$method" in
+              GET|PUT) sleep 2; continue;;
+              POST) [ -n "$recover" ] || break
+                sleep 2
+                found="$("$recover")" || die "$method $path -> $status, and the check for an already-applied request failed"
+                [ -n "$found" ] || continue
+                echo "brg-gitlab: $method $path answered $status but had been applied; not sent again" >&2
+                out="$found"$'\n'"200"; status=200;;
+            esac;;
+      esac
+      break
+    done
+    rm -f "$err"
+    out="${out%$'\n'*}"
+    case "$status" in
+      2*) printf '%s' "$out";;
+      401|403) die "$method $path -> $status: check BEARING_TRACKER_TOKEN (scope api)";;
+      *) msg="$(printf '%s' "$out" | jq -r '.message // .error // empty | tostring' 2>/dev/null || true)"
+         case "$method:$status:$recover" in POST:5*:) msg="${msg:-server error}; not retried, a POST may already have been applied";; esac
+         die "$method $path -> $status: ${msg:-$(printf '%s' "$out" | head -c 300)}";;
+    esac
+  else
+    if [ -n "$data" ]; then
+      out="$(printf '%s' "$data" | glab api --hostname "$HOST" -X "$method" -H 'Content-Type: application/json' --input - "${path#/}" 2>"$err")" \
+        || { msg="$(head -c 300 "$err")"; rm -f "$err"; die "glab api $method $path failed: ${msg:-see glab auth status}"; }
+    else
+      out="$(glab api --hostname "$HOST" -X "$method" "${path#/}" 2>"$err")" \
+        || { msg="$(head -c 300 "$err")"; rm -f "$err"; die "glab api $method $path failed: ${msg:-see glab auth status}"; }
+    fi
+    rm -f "$err"; printf '%s' "$out"
+  fi
+}
+
+# next_page PATH PAGE COUNT PER -> the next page's PATH, or nothing after the
+# last page. Through curl that is the Link rel="next" header, followed only
+# while it stays under $URL/api/v4 so the token never travels to another
+# host (a link elsewhere, as behind a proxy that rewrites the host, falls back
+# to page numbers). Through glab a full page means ask for the next number.
+next_page() {
+  local path="$1" page="$2" count="$3" per="$4" link="" base="$URL/api/v4"
+  if [ "$transport" = curl ]; then
+    link="$(tr -d '\r' < "$WORK/headers" | grep -i '^link:' | tr ',' '\n' | grep 'rel="next"' | sed -E 's/.*<([^>]*)>.*/\1/' | head -1 || true)"
+    [ -n "$link" ] || return 0
+    case "$link" in "$base"/*) printf '%s' "${link#"$base"}"; return 0;; esac
+  fi
+  [ "$count" -ge "$per" ] || return 0
+  printf '%s&page=%s' "$(printf '%s' "$path" | sed -E 's/&page=[0-9]+//')" "$((page + 1))"
+}
+
+# paged PATH PER LIMIT FILTER NOUN: every item of every page of PATH through
+# jq FILTER, one line each. Stops at LIMIT items (0 means no limit) or at
+# BEARING_TRACKER_MAX_PAGES pages (default 20) and says so when more exist; always
+# ends with the count on stderr, zero included.
+paged() {
+  local path="$1" per="$2" limit="$3" filter="$4" noun="$5" page=1 body n rows k got=0 next
+  while :; do
+    body="$(api GET "$path")"
+    n="$(printf '%s' "$body" | jq 'length')"
+    rows="$(printf '%s' "$body" | jq -c ".[] | $filter")"
+    k=0; [ -z "$rows" ] || k="$(printf '%s\n' "$rows" | wc -l | tr -d ' ')"
+    next="$(next_page "$path" "$page" "$n" "$per")"
+    if [ "$limit" -gt 0 ] && [ $((got + k)) -ge "$limit" ]; then
+      printf '%s\n' "$rows" | sed -n "1,$((limit - got))p"
+      if [ $((got + k)) -gt "$limit" ] || [ -n "$next" ]; then echo "brg-gitlab: stopped at --limit $limit; more $noun exist" >&2; fi
+      got="$limit"; break
+    fi
+    [ -z "$rows" ] || printf '%s\n' "$rows"
+    got=$((got + k))
+    [ -n "$next" ] || break
+    if [ "$page" -ge "$MAX_PAGES" ]; then
+      echo "brg-gitlab: stopped after $page page(s) at BEARING_TRACKER_MAX_PAGES=$MAX_PAGES; more $noun exist, narrow the query or raise the cap" >&2
+      break
+    fi
+    path="$next"; page=$((page + 1))
+  done
+  echo "brg-gitlab: $got $noun listed from $page page(s)" >&2
+}
+
+urlenc() { printf '%s' "$1" | jq -sRr @uri; }
+iid_of() { # GL-12 | #12 | 12 -> 12
+  local k="${1#GL-}"; k="${k#\#}"
+  printf '%s' "$k" | grep -Eq '^[0-9]+$' || die "'$1' is not a key like GL-12"
+  printf '%s' "$k"
+}
+slug() { printf '%s' "$1" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9]+/-/g; s/^-+|-+$//g'; }
+check_type() { case "$1" in epic|story|task|bug|testcase) ;; *) die "type must be epic|story|task|bug|testcase (got '$1')";; esac; }
+
+compact='{key:("GL-"+(.iid|tostring)), iid:.iid, type:((.labels[]? | select(startswith("type::")) | .[6:]) // null), title:.title, status:((.labels[]? | select(startswith("status::")) | .[8:]) // .state), assignee:(.assignee.username // null), priority:((.labels[]? | select(startswith("priority::")) | .[10:]) // null), url:.web_url}'
+show() { api GET "/projects/$P/issues/$1" | jq -c "$compact"; }
+
+user_id() { # me | login | email
+  case "$1" in
+    me) api GET /user | jq -r .id;;
+    *@*) api GET "/users?search=$(urlenc "$1")" | jq -r '.[0].id // empty';;
+    *) api GET "/users?username=$(urlenc "$1")" | jq -r '.[0].id // empty';;
+  esac
+}
+
+# Recovery for a POST answered 5xx: print what it made, found by the marker.
+rec_issue() { # the issue carrying $REC_MARK among my 50 newest
+  api GET "/projects/$P/issues?scope=created_by_me&state=all&order_by=created_at&sort=desc&per_page=50" \
+    | jq -c --arg m "$REC_MARK" '[.[] | select((.description // "") | contains($m))][0] // empty'
+}
+rec_note() { # the note carrying $REC_MARK among the 50 newest on $REC_IID
+  api GET "/projects/$P/issues/$REC_IID/notes?sort=desc&order_by=created_at&per_page=50" \
+    | jq -c --arg m "$REC_MARK" '[.[] | select((.body // "") | contains($m))][0] // empty'
+}
+
+note() { # iid text -> note id; the text gains an invisible marker line
+  REC_IID="$1"; REC_MARK="$(new_mark)"
+  api POST "/projects/$P/issues/$1/notes" "$(jq -nc --arg b "$2"$'\n\n'"<!-- $REC_MARK -->" '{body:$b}')" rec_note | jq -r .id
+}
+link_issues() { # iid relates|blocks iid2
+  local t; case "$2" in relates) t=relates_to;; blocks) t=blocks;; *) die "link type must be relates|blocks";; esac
+  api POST "/projects/$P/issues/$1/links" "$(jq -nc --arg p "$PROJECT" --argjson i "$3" --arg t "$t" '{target_project_id:$p,target_issue_iid:$i,link_type:$t}')" >/dev/null
+}
+
+case "$cmd" in
+  me) api GET /user | jq -c '{id,username,name}' ;;
+  resolve) [ $# -eq 1 ] || usage; iid="$(iid_of "$1")"; echo "$iid" ;;
+  get) [ $# -eq 1 ] || usage; iid="$(iid_of "$1")"; show "$iid" ;;
+  list)
+    state="opened"; q=""; labels=""; limit=0
+    while [ $# -gt 0 ]; do case "$1" in
+      --type) check_type "$2"; labels="$labels,type::$2"; shift 2;;
+      --status) s="$(slug "$2")"; case "$s" in closed) state=closed;; done) state=all; labels="$labels,status::done";; *) labels="$labels,status::$s";; esac; shift 2;;
+      --q) q="$q&search=$(urlenc "$2")"; shift 2;;
+      --limit) limit="$2"; shift 2;;
+      *) usage;; esac; done
+    case "$limit" in ''|*[!0-9]*) die "--limit must be a whole number (got '$limit')";; esac
+    per=100; [ "$limit" = 0 ] || [ "$limit" -ge 100 ] || per="$limit"
+    q="per_page=$per&state=$state$q"
+    [ -z "$labels" ] || q="$q&labels=$(urlenc "${labels#,}")"
+    paged "/projects/$P/issues?$q" "$per" "$limit" "$compact" "issue(s)" ;;
+  create)
+    typ=task; title=""; desc=""; parent=""; prio=""
+    while [ $# -gt 0 ]; do case "$1" in
+      --type) typ="$2"; shift 2;; --title) title="$2"; shift 2;; --description-file) desc="$(cat "$2")"; shift 2;;
+      --parent) parent="$2"; shift 2;; --priority) prio="$2"; shift 2;; *) usage;; esac; done
+    [ -n "$title" ] || die "--title is required"; check_type "$typ"
+    labels="type::$typ"; [ -z "$prio" ] || labels="$labels,priority::$(slug "$prio")"
+    pid=""; if [ -n "$parent" ]; then pid="$(iid_of "$parent")"; desc="Parent: #$pid"$'\n\n'"$desc"; fi
+    REC_MARK="$(new_mark)"; [ -z "$desc" ] || desc="$desc"$'\n\n'; desc="$desc<!-- $REC_MARK -->"
+    iid="$(api POST "/projects/$P/issues" "$(jq -nc --arg t "$title" --arg d "$desc" --arg l "$labels" '{title:$t,description:$d,labels:$l}')" rec_issue | jq -r .iid)"
+    [ -n "$iid" ] || die "create returned no iid"
+    [ -z "$pid" ] || link_issues "$iid" relates "$pid" || true
+    show "$iid" ;;
+  update|close)
+    [ $# -ge 1 ] || usage; iid="$(iid_of "$1")"; shift; patch='{}'; status=""; force_close=0
+    if [ "$cmd" = close ]; then [ $# -eq 0 ] || usage; force_close=1; set -- --status "$DONE_STATUS"; fi
+    while [ $# -gt 0 ]; do case "$1" in
+      --status) status="$2"; shift 2;;
+      --assignee) uid="$(user_id "$2")"; [ -n "$uid" ] || die "no GitLab user matches '$2'"; patch="$(printf '%s' "$patch" | jq -c --argjson u "$uid" '. + {assignee_ids:[$u]}')"; shift 2;;
+      --title) patch="$(printf '%s' "$patch" | jq -c --arg v "$2" '. + {title:$v}')"; shift 2;;
+      --description-file) patch="$(printf '%s' "$patch" | jq -c --arg v "$(cat "$2")" '. + {description:$v}')"; shift 2;;
+      --priority) patch="$(printf '%s' "$patch" | jq -c --arg v "priority::$(slug "$2")" '. + {add_labels:$v}')"; shift 2;;
+      *) usage;; esac; done
+    if [ -n "$status" ]; then
+      s="$(slug "$status")"; cur="$(api GET "/projects/$P/issues/$iid")"
+      old="$(printf '%s' "$cur" | jq -r '[.labels[] | select(startswith("status::"))] | join(",")')"
+      patch="$(printf '%s' "$patch" | jq -c --arg a "status::$s" --arg r "$old" '.add_labels = ((.add_labels // "") + "," + $a | ltrimstr(",")) | if $r != "" then . + {remove_labels:$r} else . end')"
+      if [ "$force_close" = 1 ]; then patch="$(printf '%s' "$patch" | jq -c '. + {state_event:"close"}')"; else
+        case "$s" in done|closed) patch="$(printf '%s' "$patch" | jq -c '. + {state_event:"close"}')";;
+          *) [ "$(printf '%s' "$cur" | jq -r .state)" != closed ] || patch="$(printf '%s' "$patch" | jq -c '. + {state_event:"reopen"}')";; esac
+      fi
+    fi
+    [ "$patch" != "{}" ] || die "nothing to update"
+    api PUT "/projects/$P/issues/$iid" "$patch" >/dev/null
+    show "$iid" ;;
+  comment)
+    [ $# -ge 2 ] || usage; iid="$(iid_of "$1")"; shift
+    if [ "$1" = "--file" ]; then text="$(cat "$2")"; else text="$*"; fi
+    [ -n "$text" ] || die "empty comment"
+    nid="$(note "$iid" "$text")"; echo "brg-gitlab: note $nid posted on GL-$iid" ;;
+  link)
+    [ $# -eq 3 ] || usage; a="$(iid_of "$1")"; b="$(iid_of "$3")"; link_issues "$a" "$2" "$b"; echo "brg-gitlab: GL-$a $2 GL-$b"; echo "link: issue-link" ;;
+  trace)
+    [ $# -ge 1 ] || usage; iid="$(iid_of "$1")"; shift
+    branch="$(git branch --show-current 2>/dev/null || true)"; mr=""; commits=""; tests=""; adr=""; docs=""
+    while [ $# -gt 0 ]; do case "$1" in --branch) branch="$2"; shift 2;; --mr) mr="$2"; shift 2;; --commits) commits="$2"; shift 2;; --tests) tests="$2"; shift 2;; --adr) adr="$2"; shift 2;; --docs) docs="$2"; shift 2;; *) usage;; esac; done
+    [ -n "$branch$mr$commits$tests$adr$docs" ] || die "nothing to trace; give --branch, --mr, --commits, --tests, --adr or --docs"
+    body="### Traceability (Bearing, $(date -u +%Y-%m-%dT%H:%MZ))"
+    [ -z "$branch" ] || body="$body"$'\n'"- Branch: $branch"
+    [ -z "$mr" ] || body="$body"$'\n'"- MR: $mr"
+    [ -z "$commits" ] || body="$body"$'\n'"- Commits: $commits"
+    [ -z "$tests" ] || body="$body"$'\n'"- Tests: $tests"
+    [ -z "$adr" ] || body="$body"$'\n'"- ADR: $adr"
+    [ -z "$docs" ] || body="$body"$'\n'"- Docs: $docs"
+    note "$iid" "$body" >/dev/null
+    linked=0
+    for t in $(printf '%s' "$tests" | tr ',' ' '); do
+      if printf '%s' "$t" | grep -Eq '^GL-[0-9]+$'; then link_issues "$iid" relates "${t#GL-}" 2>/dev/null && linked=$((linked+1)) || true; fi
+    done
+    echo "brg-gitlab: trace note posted on GL-$iid, $linked test issue link(s) added" ;;
+  *) usage ;;
+esac

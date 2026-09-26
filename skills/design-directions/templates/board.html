@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>{{FEATURE}}: variants, round {{ROUND}}</title>
+<style>
+  :root {
+    --surface: oklch(0.98 0.005 80); --surface-2: oklch(0.94 0.008 80);
+    --ink: oklch(0.22 0.01 80); --ink-muted: oklch(0.45 0.01 80);
+    --line: oklch(0.85 0.01 80); --accent: oklch(0.48 0.12 250); --accent-ink: oklch(0.99 0 0);
+    --focus: oklch(0.55 0.18 250);
+    --space-2: 8px; --space-3: 12px; --space-4: 16px; --space-5: 24px; --space-6: 32px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --surface: oklch(0.2 0.01 250); --surface-2: oklch(0.26 0.012 250);
+      --ink: oklch(0.92 0.005 80); --ink-muted: oklch(0.7 0.008 80);
+      --line: oklch(0.36 0.012 250); --accent: oklch(0.72 0.1 250); --accent-ink: oklch(0.18 0.02 250);
+      --focus: oklch(0.8 0.14 250);
+    }
+  }
+  :root[data-theme="dark"] {
+    --surface: oklch(0.2 0.01 250); --surface-2: oklch(0.26 0.012 250);
+    --ink: oklch(0.92 0.005 80); --ink-muted: oklch(0.7 0.008 80);
+    --line: oklch(0.36 0.012 250); --accent: oklch(0.72 0.1 250); --accent-ink: oklch(0.18 0.02 250);
+    --focus: oklch(0.8 0.14 250);
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--surface); color: var(--ink);
+    font: 400 16px/1.5 Georgia, "Times New Roman", serif; padding: var(--space-5) var(--space-4); }
+  h1 { font-size: 1.5rem; margin: 0 0 var(--space-2); text-wrap: balance; }
+  h2 { font-size: 1.125rem; margin: 0 0 var(--space-2); }
+  p { margin: 0 0 var(--space-3); max-width: 66ch; }
+  .muted { color: var(--ink-muted); }
+  :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  .board { display: grid; gap: var(--space-5); grid-template-columns: 1fr; margin-top: var(--space-5); }
+  @media (min-width: 1100px) { .board { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  .variant { border-top: 2px solid var(--line); padding-top: var(--space-4); }
+  .shots { display: grid; grid-template-columns: 3fr 1fr; gap: var(--space-3); align-items: start; }
+  .shots img, .shots iframe { width: 100%; border: 1px solid var(--line); background: var(--surface-2); display: block; }
+  .shots iframe { aspect-ratio: 16 / 10; }
+  .shots .phone iframe { aspect-ratio: 375 / 812; }
+  .open { display: inline-block; margin: var(--space-2) 0 var(--space-4); min-height: 44px; line-height: 44px; }
+  fieldset { border: 0; padding: 0; margin: 0 0 var(--space-3); }
+  legend { font-weight: 600; margin-bottom: var(--space-2); }
+  .rating label { display: inline-block; min-width: 44px; min-height: 44px; line-height: 44px; text-align: center;
+    border: 1px solid var(--line); margin-right: var(--space-2); cursor: pointer; }
+  .rating input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+  .rating input:checked + label { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  .rating input:focus-visible + label { outline: 2px solid var(--focus); outline-offset: 2px; }
+  label.block { display: block; margin-bottom: var(--space-2); }
+  textarea, input[type="text"] { width: 100%; font: inherit; padding: var(--space-2); min-height: 44px;
+    background: var(--surface-2); color: var(--ink); border: 1px solid var(--line); }
+  .chosen { display: flex; gap: var(--space-2); align-items: center; min-height: 44px; }
+  .actions { margin-top: var(--space-6); border-top: 2px solid var(--line); padding-top: var(--space-4); }
+  button { font: inherit; min-height: 44px; padding: 0 var(--space-4); cursor: pointer;
+    background: var(--accent); color: var(--accent-ink); border: 0; }
+  button.quiet { background: var(--surface-2); color: var(--ink); border: 1px solid var(--line); }
+  #out { font-family: ui-monospace, "JetBrains Mono", monospace; min-height: 12rem; }
+</style>
+</head>
+<body>
+<h1>{{FEATURE}}: three directions, round {{ROUND}}</h1>
+<p class="muted">Rate each 1 to 5, add a comment, name any remix ("layout of 2, type of 3"), pick one.
+Then press Copy feedback and paste the JSON back into the session. This page sends nothing.</p>
+<p class="muted">Screenshots: {{SCREENSHOT_STATUS}}</p>
+
+<form id="board" class="board">
+  <!-- One block per variant. The skill fills N, NAME, FILE and INTENT; SHOT_1440 and SHOT_375 are png paths or empty. -->
+  {{#VARIANTS}}
+  <section class="variant" data-n="{{N}}">
+    <h2>{{N}}. {{NAME}}</h2>
+    <p>{{INTENT_ONE_LINE}}</p>
+    <div class="shots">
+      <div>
+        <img src="{{SHOT_1440}}" alt="{{NAME}} at 1440 px" onerror="this.replaceWith(Object.assign(document.createElement('iframe'),{src:'{{FILE}}',title:'{{NAME}} at desktop width',loading:'lazy'}))">
+      </div>
+      <div class="phone">
+        <img src="{{SHOT_375}}" alt="{{NAME}} at 375 px" onerror="this.replaceWith(Object.assign(document.createElement('iframe'),{src:'{{FILE}}',title:'{{NAME}} at phone width',loading:'lazy'}))">
+      </div>
+    </div>
+    <a class="open" href="{{FILE}}" target="_blank" rel="noopener">Open {{N}}-{{NAME}} full size</a>
+    <fieldset class="rating">
+      <legend>Rating</legend>
+      <input type="radio" name="r{{N}}" id="r{{N}}-1" value="1"><label for="r{{N}}-1">1</label>
+      <input type="radio" name="r{{N}}" id="r{{N}}-2" value="2"><label for="r{{N}}-2">2</label>
+      <input type="radio" name="r{{N}}" id="r{{N}}-3" value="3"><label for="r{{N}}-3">3</label>
+      <input type="radio" name="r{{N}}" id="r{{N}}-4" value="4"><label for="r{{N}}-4">4</label>
+      <input type="radio" name="r{{N}}" id="r{{N}}-5" value="5"><label for="r{{N}}-5">5</label>
+    </fieldset>
+    <label class="block" for="c{{N}}">Comment</label>
+    <textarea id="c{{N}}" name="c{{N}}" rows="3"></textarea>
+    <div class="chosen">
+      <input type="radio" name="chosen" id="ch{{N}}" value="{{N}}">
+      <label for="ch{{N}}">Choose {{N}}</label>
+    </div>
+  </section>
+  {{/VARIANTS}}
+
+  <div class="actions" style="grid-column: 1 / -1;">
+    <label class="block" for="remix">Remix (optional): which trait from which variant</label>
+    <input type="text" id="remix" name="remix" placeholder="">
+    <label class="block" for="notes" style="margin-top: var(--space-3);">Overall notes</label>
+    <textarea id="notes" name="notes" rows="3"></textarea>
+    <p style="margin-top: var(--space-4);">
+      <button type="button" id="copy">Copy feedback</button>
+      <button type="button" id="reset" class="quiet">Clear form</button>
+    </p>
+    <label class="block" for="out">Paste this back into the session</label>
+    <textarea id="out" readonly aria-live="polite"></textarea>
+  </div>
+</form>
+
+<script>
+  // Assembles the feedback JSON in the textarea. Nothing leaves the page.
+  (function () {
+    var form = document.getElementById('board'), out = document.getElementById('out');
+    function build() {
+      var fb = { feature: '{{FEATURE}}', round: {{ROUND}}, chosen: null, ratings: {}, comments: {}, remix: '', notes: '' };
+      form.querySelectorAll('.variant').forEach(function (v) {
+        var n = v.dataset.n, r = form.querySelector('input[name="r' + n + '"]:checked');
+        fb.ratings[n] = r ? Number(r.value) : null;
+        var c = form.querySelector('#c' + n).value.trim(); if (c) fb.comments[n] = c;
+      });
+      var ch = form.querySelector('input[name="chosen"]:checked'); fb.chosen = ch ? Number(ch.value) : null;
+      fb.remix = form.querySelector('#remix').value.trim();
+      fb.notes = form.querySelector('#notes').value.trim();
+      return JSON.stringify(fb, null, 2);
+    }
+    document.getElementById('copy').addEventListener('click', function () {
+      out.value = build(); out.focus(); out.select();
+      try { navigator.clipboard.writeText(out.value); } catch (e) {}
+    });
+    document.getElementById('reset').addEventListener('click', function () { form.reset(); out.value = ''; });
+  })();
+</script>
+</body>
+</html>

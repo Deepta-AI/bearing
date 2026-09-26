@@ -1,0 +1,9 @@
+[project]
+name = "meeting-summaries"
+version = "0.2.0"
+requires-python = ">=3.11"
+dependencies = []
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

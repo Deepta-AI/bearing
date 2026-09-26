@@ -1,0 +1,38 @@
+# dev overlay: namespace, replicas, image and nothing base already states.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: __REPO_SLUG__-dev
+
+resources:
+  - ../../base
+
+labels:
+  - pairs:
+      app.kubernetes.io/env: dev
+
+# Tag set by the pipeline: kustomize edit set image registry.example.com/__REPO_SLUG__:<sha>
+images:
+  - name: registry.example.com/__REPO_SLUG__
+    newTag: "0.0.0-dev"
+
+replicas:
+  - name: __REPO_SLUG__
+    count: 1
+
+patches:
+  # One replica in dev, so the HPA floor and the budget follow. Patches apply
+  # in list order; each targets a field base already declares.
+  - target: { kind: HorizontalPodAutoscaler, name: __REPO_SLUG__ }
+    patch: |-
+      - op: replace
+        path: /spec/minReplicas
+        value: 1
+      - op: replace
+        path: /spec/maxReplicas
+        value: 2
+  - target: { kind: PodDisruptionBudget, name: __REPO_SLUG__ }
+    patch: |-
+      - op: replace
+        path: /spec/minAvailable
+        value: 0

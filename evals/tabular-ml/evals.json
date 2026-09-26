@@ -1,0 +1,51 @@
+{
+ "skill_name": "tabular-ml",
+ "evals": [
+  {
+   "id": 1,
+   "name": "churn-leaky-features-rule-baseline",
+   "prompt": "The retention team wants a list every Monday of the 50 active subscribers most likely to stop using the app in the next 30 days, so they can call them. There's a first cut in train.py that gets a test AUC of 0.98, so we'd like to turn it into something we can run each week. Can you get it there? Data is in data/.",
+   "expected_output": "The run finds that train.py leaks: days_since_seen uses last_seen from the 30 June profile export, which lies after most snapshots, and total_sessions, days_active and tickets count the whole history; the random row split also puts 101 of the 113 test users in train. With features built as of each snapshot and a split by time, the model's AUC falls to about 0.88 to 0.94 and the recency rule (days since the last session before the snapshot) scores the same within about 0.02, with similar precision in the top 50. The run says the model does not beat the rule and recommends running the rule (or does not ship the model), with as-of feature code and a test that no event after the snapshot is used.",
+   "files": [
+    "files/churn-first-cut"
+   ],
+   "expectations": [
+    "It identifies that days_since_seen is computed from users.csv last_seen, taken from the 2026-06-30 export, so it holds information from after the snapshot and gives the label away (negative for users who came back)",
+    "It identifies that total_sessions, days_active and tickets are counted over the whole history, including the 30-day label window after the snapshot",
+    "It identifies that the random row split puts the same users in train and test (101 of the 113 test users, or 133 of 145 test rows) and mixes later snapshots into training",
+    "It rebuilds the features from events strictly before each snapshot date (an as-of date), with no use of last_seen from the export",
+    "It evaluates with a split by time (every training snapshot earlier than every test snapshot), optionally also by user, and the honest model AUC it reports is between 0.85 and 0.95, clearly below the 0.98 of the first cut",
+    "It scores a recency rule baseline (days since the last session before the snapshot, or an equivalent simple rule) on the same test rows, with an AUC between 0.85 and 0.95",
+    "It compares model and baseline on the same test rows and finds the model does not beat the rule by a meaningful margin (the difference is within about 0.02 AUC, inside the noise); it does not claim the model is better",
+    "Because the model does not beat the rule, it recommends running the rule for the Monday list (or states the model should not ship yet) instead of shipping the model",
+    "It reports a measure that matches the action, such as precision (or churners found) in the top 50 per snapshot, for both the rule and the model",
+    "A test exists that fails if a feature uses an event on or after the as-of date, and it passes when run (`make test` or the command the run documents)",
+    "Numbers not measured (for example the weekly snapshot numbers if only monthly snapshots were scored, or any real campaign effect) are stated as not measured; nothing claims calling these users will reduce churn",
+    "No file written or edited contains an em dash character"
+   ]
+  },
+  {
+   "id": 2,
+   "name": "seasonal-metric-alert-festival-spike",
+   "prompt": "the order-volume alert pages on-call every single night and went off all through the Diwali rush. make it useful. data and the real incidents are in data/",
+   "expected_output": "The run measures the current fixed-range alert on the evaluation weeks (26 October to 15 November): about 167 paged hours that are not incidents, one episode every night, 9 pages on the Diwali shopping days, and only 1 of the 3 real incidents caught (INC-118, by coincidence of the nightly page). It replaces it with a one-sided seasonal rule (same hour of the week over previous weeks, median, with a band that allows for low night counts), tuned on the earlier weeks, which catches 2 or 3 of the 3 incidents with at most a few false pages a week and none on the festival days. Tests cover a quiet night, a real drop and a festival spike, and the rule refuses empty or too-short input.",
+   "files": [
+    "files/order-alerts"
+   ],
+   "expectations": [
+    "It measures the current alert against the incident data: over the three weeks from 26 October it pages in about 170 hours, all but 3 of them false alarms (about 55 false hours, or about 8 separate false episodes, a week; the same rate over another stated window is accepted), with the counts reported next to the new rule's, and it catches only 1 of the 3 incidents in those weeks (INC-118 at night, because nights always page), missing INC-114 and INC-121",
+    "It shows the current alert paged on the Diwali shopping days (9 hours above 2000 orders on 6 and 7 November)",
+    "It builds a seasonal expectation (same hour of the week from previous weeks, or hour-of-day by weekday) instead of a fixed range",
+    "The new rule does not page during the Diwali spike, through one-sided drop detection, the festival calendar in data/calendar.csv or an equivalent, and the run says which",
+    "The new rule is tuned on the weeks before the evaluation window (or on a stated earlier period) and evaluated on later weeks, and the run says which weeks were used for each",
+    "On the evaluation weeks the new rule detects at least 2 of the 3 incidents INC-114, INC-118 and INC-121 and raises fewer than 3 false pages per week, with the counts reported",
+    "It handles the low counts at night (for example a minimum absolute drop or a count-aware band) so quiet night hours alone do not page",
+    "Consecutive anomalous hours of one incident are counted or paged once, not once per hour, or the run reports pages per incident",
+    "Tests exist for a normal night that stays quiet, a real drop that pages and a festival spike that does not page, and they pass with the existing tests when `make test` is run",
+    "The alert refuses empty input or too little history for its seasonal baseline (raises or exits non-zero) instead of reporting no alerts",
+    "What was not measured (for example behaviour on live traffic or on incidents outside this data) is stated as not measured rather than presented as a result",
+    "No file written or edited contains an em dash character"
+   ]
+  }
+ ]
+}

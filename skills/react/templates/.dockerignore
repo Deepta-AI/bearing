@@ -1,0 +1,11 @@
+node_modules
+dist
+coverage
+playwright-report
+.lighthouseci
+test-results
+.git
+.env
+.env.*
+!.env.example
+.bearing/state

@@ -1,0 +1,8 @@
+Meeting: Partner integrations, 2026-09-12
+Attendees: Joseph, Meera
+
+Joseph: Two partners asked for a webhook when an invoice is paid.
+Meera: That is small. Decision: we add an invoice.paid webhook.
+Joseph: I'll write the spec.
+Meera: I'll tell both partners it is coming, no date promised.
+Joseph: Do we version webhooks? We never have. Open.

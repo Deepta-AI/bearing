@@ -1,0 +1,76 @@
+{
+ "skill_name": "high-level-design",
+ "evals": [
+  {
+   "id": 1,
+   "name": "first-hld-from-prd",
+   "prompt": "Need an HLD for the appointment reminders feature, the PRD is in docs/product. I want it reviewed Thursday before anyone starts building.",
+   "expected_output": "One new HLD under docs/ that serves REQ-201 to REQ-206, keeps the PRD's out-of-scope items as non-goals, reuses the Postgres jobs table (ADR-0002) instead of choosing a new broker, computes the 07:00 burst against the worker's 10 jobs a second and MSG91's 20 requests a second (shared with OTP logins) and shows REQ-203 is missed at the current rate, covers the provider 429 path in the failure modes, treats the phone as personal data and keeps appointments.reason out of messages, surfaces the repository gaps (no clinic phone column, opt-out stored per clinic patient row), marks anything not in the repo or PRD as an assumption, and leaves any new decision Proposed and nothing committed. It also flags that the volume passes ADR-0002's revisit condition, does not add parallel pollers without row claiming, states the duplicate or lost reminder guarantee on a crash, keeps REQ-204 safe against cancel and reschedule races, covers late bookings, and notes that the API has no auth for the REQ-206 admin switch.",
+   "files": [
+    "files/reminders-prd"
+   ],
+   "expectations": [
+    "Exactly one new design document for the reminders feature was written, somewhere under docs/ (any path or file name there is acceptable)",
+    "No file outside docs/ was created or changed (for example no TODOS.md or code at the repository root)",
+    "No git commit was made; the work is left uncommitted for the Thursday review",
+    "The document notices that the reminder volume passes ADR-0002's own revisit condition ('more than a few jobs a second sustained'), so continuing on the jobs table, or moving to any other table or transport, is shown as needing a new or superseding decision record (written as Proposed, or listed as still needed) rather than as already settled by ADR-0002; any decision record the run wrote is Proposed and names no person or role as having decided it",
+    "The document ties the design to the PRD's requirements by id (REQ-201 to REQ-206 from docs/product/PRD.md) and to the existing decisions it relies on (at least ADR-0002 for the jobs table and ADR-0003 for MSG91)",
+    "The non-goals include the PRD's out-of-scope items: WhatsApp or email reminders, and confirming or rescheduling by replying to the SMS",
+    "The design does not introduce a new queue, broker, cache or store (for example Kafka, SQS, RabbitMQ or Redis) as a settled choice; it either uses Postgres (the jobs table from ADR-0002 or another Postgres table) or marks the new choice as needing a decision record",
+    "The scaling section uses numbers from the repository: about 180,000 reminders a day (90,000 appointments, two reminders each) and the burst of about 12,000 reminders due at 07:00 for the 09:00 appointments",
+    "The scaling section names the first bottleneck with its number: the worker's 10 jobs a second (50 jobs every 5 seconds in internal/jobs/worker.go) or MSG91's 20 requests a second (internal/sms/client.go, ADR-0003); 'scales horizontally' without a number does not count",
+    "It states that at the current worker rate the 07:00 burst takes about 20 minutes and so misses REQ-203's 10 minute window, or gives an equivalent number at which the design stops meeting REQ-203",
+    "It notes that the 20 requests a second MSG91 plan is shared with the existing OTP login traffic (README, ADR-0003), so reminders cannot count on the whole 20 a second, or states the share reminders may use as an assumption",
+    "The failure analysis covers MSG91 rate limiting or being down (the client returns ErrRateLimited on 429 and never retries) and says how the affected reminders recover, or states that recovery is not yet decided",
+    "For MSG91 rate limiting or an outage, the document says what the patient or clinic experiences (for example a late reminder, or no reminder once it is past its useful time)",
+    "The document treats the patient phone number as personal data, either by naming it so or by stating concrete protections for it (for example kept out of logs, or only sent to MSG91)",
+    "The document states that the appointment reason (appointments.reason) is kept out of the message",
+    "The document says how reminders are switched off both globally and per clinic (REQ-206) and, for each, what happens to reminders already scheduled or queued when the switch is turned off (for example skipped at send time, cancelled, or expired); the section it appears in does not matter",
+    "It notices that opt-out is stored on the per-clinic patients row (patients.sms_opt_out, with patients keyed by clinic_id) while REQ-205 asks for STOP to apply across every clinic, and either designs for that (for example opt-out keyed by phone number) or raises it as an open question",
+    "It notices that the clinics table has no phone column although the PRD's message must carry the clinic phone number, and either adds it to the design or raises it as an open question",
+    "The document does not describe delivery receipts, a retry policy, DLT template registration or an inbound STOP webhook as already existing in the code; anything not in the repository or the PRD is marked as an assumption or open question",
+    "If the design raises sending throughput by running more than one worker process, or several pollers or goroutines over the jobs table, it notes that the current poll in internal/jobs/worker.go does not claim rows (a plain SELECT with no FOR UPDATE SKIP LOCKED and no status change before the handler runs), so parallel pollers would send the same reminder twice, and says how rows are claimed; a design that keeps one sequential poller passes only if it shows that poller meets REQ-203 for the 12,000 reminder burst",
+    "It states the delivery guarantee for a reminder when the worker crashes, or MSG91 times out, after the request may have reached MSG91 but before the row is marked done (a possible duplicate SMS or a possible lost reminder), and which of the two the design accepts",
+    "REQ-204 holds against races: a reminder for a cancelled appointment or for the old time of a rescheduled one is not sent, either because the send re-checks the appointment's current status and starts_at, or because the reminder rows are changed in the same transaction as the appointment update; a design that updates reminders in a separate step with no send-time check does not pass",
+    "It says what happens to an appointment booked or rescheduled less than 24 hours (or less than 2 hours) before it starts, whose reminder due time has already passed (for example sent at once, skipped, or only the 2 hour one), rather than leaving it unstated",
+    "It notes that the API has no authentication or clinic admin role today (cmd/api/main.go and internal/appointments/handler.go register open routes), so the clinic admin switch in REQ-206 depends on an auth model that is marked as an assumption, an open question or a decision still needed, not described as existing",
+    "No file written or edited contains an em dash character"
+   ]
+  },
+  {
+   "id": 2,
+   "name": "revise-hld-for-kafka-dispatch",
+   "prompt": "Platform team gave us a topic on their shared Kafka cluster (reminders.dispatch, 6 partitions) and wants reminder sends to go through it instead of our jobs table. They say it does ~300 msg/s. We agreed to this in Tuesday's arch sync. Please update the reminders HLD.",
+   "expected_output": "docs/design/appointment-reminders-hld.md revised in place: what changed and why is recorded, the status no longer reads as approved, the goal and non-goals are untouched, the move off the jobs table is tied to a decision record without rewriting ADR-0002, reminders are not parked on the topic until due, MSG91's 20 requests a second (shared with OTP, limited per process) stays the bottleneck, the non-atomic Postgres write plus Kafka publish is addressed, Kafka failure rows and a back-out path are added, the rollout reflects that v1 was designed but never built (cmd/worker registers only invoice.email, so no reminder jobs are pending), and the reminder-dispatch LLD is named as stale. It re-derives the send budget net of OTP instead of carrying v1's exact-10-minute claim, keeps the pilot off the clinic admins' default-true switch, retries failed publishes somewhere named, and bounds consumer retries without silently blocking a partition.",
+   "files": [
+    "files/reminders-hld-v1"
+   ],
+   "expectations": [
+    "docs/design/appointment-reminders-hld.md was updated in place; no second HLD was created",
+    "No file outside docs/ was created or changed",
+    "No git commit was made",
+    "The document or the final message records what changed in this update and why, naming the move to the reminders.dispatch topic and the platform team's request",
+    "The HLD no longer presents itself as approved as it stands: its status or header shows the revision needs review again (for example Draft, In review, or approval pending), rather than keeping the v1 'Approved' status unqualified",
+    "The goal in section 1 is not reworded and none of the fixture's three non-goals is removed or changed; added lines that only scope the transport change are acceptable",
+    "The architecture and interfaces now show reminders flowing through the reminders.dispatch topic (the scheduler or API producing, the worker or dispatcher consuming), and the jobs table is no longer described as the reminder transport",
+    "The decision is tied to a record without rewriting ADR-0002: either a new ADR that references ADR-0002 and marks it superseded or narrowed for reminders, or an explicit item saying a decision record is needed; the Decision text of docs/adr/0002-background-jobs-in-postgres.md is unchanged",
+    "Any decision record the run created for the Kafka move attributes the decision only to what the request gives (the platform team's request and Tuesday's arch sync) and invents no named decider; any other new decision it records is marked Proposed or equivalent, not Accepted",
+    "The design does not rely on Kafka to hold a reminder until its due time (Kafka has no per-message delay); reminders are published when due, or the design states where the 24 hour and 2 hour wait is held",
+    "The scaling section still names MSG91's 20 requests a second (internal/sms/client.go) as the limit on sending, so the 12,000 reminders due at 07:00 still take at least 10 minutes; the 300 messages a second Kafka figure is not presented as the send rate",
+    "It notes that the 20 a second limiter in internal/sms/client.go is per process (one ticker per Client), so several consumers across the 6 partitions, or the API and worker together, could exceed 20 a second unless the rate is shared or divided",
+    "It does not carry forward v1's conclusion that 12,000 reminders at 20 a second meet REQ-203 exactly: it notes that the MSG91 plan is shared with OTP logins (README, ADR-0003), so reminders get less than 20 a second and the 07:00 burst takes more than 10 minutes, or it states the share reminders may use as an assumption and gives the resulting time",
+    "It addresses that the appointment write to Postgres and the publish to Kafka are not atomic (for example an outbox table, or a stated risk of lost or orphaned reminders on create, reschedule and cancel)",
+    "The failure analysis covers Kafka being unavailable on the producing side and says what happens to the reminders not yet published",
+    "The failure analysis covers Kafka being unavailable on the consuming side (reminders already published but not yet consumed) and says what happens to them, or states that this is not yet decided",
+    "The document or the final message states that v1 was designed but never built (cmd/worker registers only invoice.email and no reminder code exists), so there are no reminder jobs or data to migrate at cutover; it does not describe reminder jobs as already pending in production",
+    "Rollout and rollback give an explicit way to back out of the Kafka route (for example a switch that stops reminders, or a fallback dispatch path); a jobs-table fallback is acceptable but not required",
+    "docs/design/reminder-dispatch-lld.md is named (in the document or the transcript) as now out of date and needing revision",
+    "The document does not state facts about the platform Kafka cluster beyond what the request gives (for example broker count, authentication mechanism, retention, replication, or the cluster's own delivery guarantee); those are marked as assumptions or open questions. Delivery semantics that follow from the run's own consumer design (such as at least once because offsets are committed after sending) are allowed",
+    "The pilot of the Kafka route is not controlled through the clinic admins' own switch from v1 (clinics.reminders_enabled, which defaults to true and serves REQ-206): the rollout uses a separate operator-controlled flag or clinic list, or names the conflict and its default-true problem as an open question",
+    "A reminder whose publish to Kafka fails is retried rather than lost, and the document names where that retry happens (for example an outbox relay that republishes unsent rows); the current jobs worker marks a failed handler run 'failed' and never retries, so reusing it unchanged does not count",
+    "If the consumer retries a failed or rate-limited send, the document says whether the retry holds up the rest of its partition or goes to a separate retry path, and bounds retries so no reminder is sent after it is useful (for example not after the appointment starts, or not later than a stated cutoff)",
+    "No file written or edited contains an em dash character"
+   ]
+  }
+ ]
+}

@@ -1,0 +1,98 @@
+# XcodeGen spec for __REPO_NAME__. `make generate` turns this into
+# __REPO_NAME__.xcodeproj, which is git-ignored: the spec is the source of
+# truth, so project-file merge conflicts do not exist. Change targets,
+# settings and Info.plist keys here, never in Xcode's project editor.
+name: __REPO_NAME__
+
+options:
+  # Bundle ids allow letters, digits, hyphens and dots; underscores are not
+  # allowed. The slug is hyphenated (probe-ios), which is legal. The id must
+  # match App Store Connect and the match profiles exactly once created.
+  bundleIdPrefix: com.example
+  deploymentTarget:
+    iOS: "17.0"
+  xcodeVersion: "26.6"
+  createIntermediateGroups: true
+  generateEmptyDirectories: true
+  groupSortPosition: top
+
+configs:
+  Debug: debug
+  Release: release
+
+configFiles:
+  Debug: Config/Debug.xcconfig
+  Release: Config/Release.xcconfig
+
+packages:
+  __REPO_NAME__Kit:
+    path: Packages/__REPO_NAME__Kit
+
+settings:
+  base:
+    # Swift 6 language mode (complete strict concurrency, data races are
+    # errors), matching swiftLanguageModes in Package.swift.
+    SWIFT_VERSION: "6.0"
+    SWIFT_TREAT_WARNINGS_AS_ERRORS: NO
+    ENABLE_USER_SCRIPT_SANDBOXING: YES
+    CODE_SIGN_STYLE: Automatic
+    # Set DEVELOPMENT_TEAM in Config/Local.xcconfig (ignored) or through
+    # fastlane match in CI; never hard-code it here.
+    TARGETED_DEVICE_FAMILY: "1"
+    IPHONEOS_DEPLOYMENT_TARGET: "17.0"
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+    ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+    LOCALIZATION_PREFERS_STRING_CATALOGS: YES
+    SWIFT_EMIT_LOC_STRINGS: YES
+  configs:
+    Debug:
+      SWIFT_ACTIVE_COMPILATION_CONDITIONS: DEBUG
+      ONLY_ACTIVE_ARCH: YES
+    Release:
+      SWIFT_COMPILATION_MODE: wholemodule
+
+targets:
+  __REPO_NAME__:
+    type: application
+    platform: iOS
+    sources:
+      - path: App
+        excludes: ["Info.plist"]
+    dependencies:
+      - package: __REPO_NAME__Kit
+        product: __REPO_NAME__Kit
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: __ORG_ID__.__REPO_SLUG__
+        PRODUCT_NAME: __REPO_NAME__
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+    info:
+      # Generated into App/Info.plist on every `make generate`. The file is
+      # git-ignored and excluded from the sources glob above; it is never
+      # committed and never hand-edited, and `make clean` leaves it alone
+      # because generate rewrites it anyway.
+      path: App/Info.plist
+      properties:
+        CFBundleDisplayName: __REPO_NAME__
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+        UIApplicationSupportsIndirectInputEvents: true
+        ITSAppUsesNonExemptEncryption: false
+        # From Config/*.xcconfig; read by AppContainer.live().
+        API_BASE_URL: $(API_BASE_URL)
+        # Usage strings. Add one for every permission the app requests, or
+        # the app crashes at the request and App Review rejects the build.
+        # NSCameraUsageDescription: "Used to photograph receipts."
+        # NSPhotoLibraryUsageDescription: "Used to attach a photo."
+        # NSLocationWhenInUseUsageDescription: "Used to find nearby branches."
+        # NSFaceIDUsageDescription: "Used to unlock the app."
+    # PrivacyInfo.xcprivacy is under App/ and ships as a resource with the
+    # sources glob above; App Store Connect reads it from the bundle root.
+    scheme:
+      testTargets: []
+      gatherCoverageData: true
+      configVariants: []

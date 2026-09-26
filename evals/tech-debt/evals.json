@@ -1,0 +1,63 @@
+{
+ "skill_name": "tech-debt",
+ "evals": [
+  {
+   "id": 1,
+   "name": "seed-register-from-scratch",
+   "prompt": "Can you set up a tech debt register for this repo? Everyone keeps saying we should clean up the TODOs but nobody knows what's actually in there or what's costing us. Put it in the repo with an owner per item so we can go through it monthly.",
+   "expected_output": "One new register in the repository with a row for each of the five first-party TODO/FIXME/HACK markers, the three lint and type suppressions and the two skipped tests, each with file and line, a weekly cost and a one-time fix effort marked as estimates, and the owning team from CODEOWNERS. The vendored barcode128 encoder is kept out of the team's debt or listed apart as upstream code. The SHIP-88 TODO is recognised as stale (carriers.py already reads config/surcharges.json and the changelog closes SHIP-88). The skipped 'flaky' test test_repeated_quotes_same_price is found to fail every time because build_quote's mutable default surcharges=[] (hidden by noqa: B006) accumulates surcharges across calls, a live pricing bug that is ranked first and called out in the final message. No code, test or config changes, no commit, make check still passes.",
+   "files": [
+    "files/shipping-rates"
+   ],
+   "expectations": [
+    "Exactly one new register file was added to the repository (any name, under docs/ or at the root), and it lists the debt items as rows or entries a team can review",
+    "The register has an entry for each of the five first-party markers, each with its file path: the multi-parcel TODO in src/rates/quote.py, the SHIP-88 TODO in src/rates/carriers.py, the north-east ranges FIXME and the unknown PIN code HACK in src/rates/zones.py, and the 4x6 printer TODO in src/labels/render.py",
+    "The register has an entry for each of the three suppressions: noqa B006 on build_quote in src/rates/quote.py, noqa C901 on resolve_zone in src/rates/zones.py, and type: ignore on the barcode128 import in src/labels/render.py",
+    "The register has an entry for each of the two skipped tests: test_repeated_quotes_same_price in tests/test_quote.py and test_barcode_checksum_matches_scanner in tests/test_labels.py",
+    "The TODO and XXX inside vendor/barcode128/__init__.py are not entered as the team's own debt items: they are excluded or listed separately as upstream code to be handled by replacing the vendored release (the vendor README says it is not edited in place)",
+    "Every entry points at something that exists in the repository; no item, ticket, incident or measured number is invented",
+    "Each entry carries a weekly cost (time lost per week, or an equivalent recurring cost) and a one-time effort to fix, and numbers the user did not give are visibly marked as estimates",
+    "Owners are the teams from CODEOWNERS (@logistics/labels-team for src/labels/render.py and tests/test_labels.py, @logistics/rates-team for the src/rates items and tests/test_quote.py), not the author of the fixture commit taken from git blame",
+    "The run notices that the SHIP-88 TODO in src/rates/carriers.py is stale: fuel_surcharge_pct already reads config/surcharges.json and docs/CHANGELOG.md records SHIP-88 as closed; the entry is marked paid, stale or near-zero cost (the remaining work is deleting the comment) rather than ranked as live debt",
+    "The run finds that test_repeated_quotes_same_price is not flaky: it fails on every run because build_quote's mutable default argument surcharges=[] (suppressed with noqa: B006) keeps growing across calls, so repeated quotes in the long-running worker get more expensive (for example 44.8 then 49.6 for 1 kg to 560001), and says whether it ran the test or reasoned from the code",
+    "The B006 suppression and the skipped quote test are ranked at or near the top of the register (above cosmetic items such as the 4x6 label TODO and the C901 complexity suppression), or are linked as one high-cost item",
+    "The final message tells the user about the quote pricing bug as something to fix now, not only as a row in the register",
+    "The register says how it is kept current: when it is next reviewed or that it is reviewed monthly, as the user asked",
+    "No file under src/, tests/, vendor/ or config/ was changed, and no TODO, noqa, type: ignore or skip marker was removed",
+    "`make check` passes when the grader runs it in the output repository",
+    "The run makes no git commit: the history still ends at the fixture commit and the register is left in the working tree",
+    "The final message does not claim the pricing bug was fixed, and says which numbers are estimates rather than measurements",
+    "No file written or edited contains an em dash character"
+   ]
+  },
+  {
+   "id": 2,
+   "name": "pick-cleanup-sprint-from-register",
+   "prompt": "We've got a cleanup sprint next week, two of us, roughly 20 hours between us. What should we pull from the debt register?",
+   "expected_output": "A recommendation from docs/DEBT.md that fits 20 hours of principal and puts first the rows whose triggers have fired: DEBT-004 (tax.py was changed on 2026-07-20, after the row was added on 2026-06-03, without paying the HACK) and DEBT-005 (quarantine deadline 2026-08-31 has passed). DEBT-006, the register's own top item, is recognised as already paid by the 2026-08-10 gateway retry commit and not spent on. DEBT-001 follows by interest over principal; DEBT-008 at 16 hours does not fit beside them; DEBT-002 costs nothing weekly; DEBT-007 needs an interest estimate. Any total weekly interest is computed from the rows, not the stale 9.5 in the header, and the overdue review (last one 2026-06-03) is noted. No source change, no row deleted, no commit.",
+   "files": [
+    "files/invoicing"
+   ],
+   "expectations": [
+    "The answer recommends a specific set of register rows by id (DEBT-nnn) for the sprint, and the principal hours of the recommended set add up to no more than 20 (for example DEBT-004, DEBT-005, DEBT-001 and DEBT-003 at 3 + 3 + 4 + 10 = 20)",
+    "The run notices that DEBT-004's trigger ('when tax.py is next changed') has fired: src/invoicing/tax.py was changed on 2026-07-20 (the reverse-charge commit), after the row was added on 2026-06-03, and the hard-coded 18% is still there; it recommends DEBT-004 or explains why not",
+    "The run notices that DEBT-005's quarantine deadline of 2026-08-31 (docs/testing/quarantine.md) has passed, so the tampered-body webhook signature test is overdue to be fixed or deleted; it recommends DEBT-005 or explains why not",
+    "DEBT-006 is not recommended as sprint work: the run finds that the TODO is gone and src/invoicing/gateway.py already retries 503 (commit of 2026-08-10, with tests), and says the row is paid or should move to Paid, even though the register's own review log names DEBT-006 as the top item",
+    "DEBT-001 (interest 3 h a week for 4 h of work, the best remaining ratio) is recommended",
+    "DEBT-008 (16 h) is not recommended together with the other items in a way that exceeds 20 hours; if it is included, the answer drops enough other items to stay within 20 hours and says what that trades away",
+    "DEBT-002 is not recommended as debt paydown, or is explicitly noted as costing nothing per week (interest 0)",
+    "DEBT-007 is reported as lacking an interest estimate and is not ranked as if a guessed interest were a known number",
+    "The ranking of the items without a fired trigger follows weekly interest relative to principal (DEBT-001 before DEBT-008 before DEBT-003 before DEBT-002), or the answer states a different reason for any departure",
+    "If the answer states the register's total weekly interest, the number is computed from the rows (13.5 h a week for all open rows with a number, or 11.5 once DEBT-006 is treated as paid), not the 9.5 in the header; or the answer notes that the header total is stale",
+    "The answer states how much weekly interest the recommended set removes, consistent with the rows' interest numbers (7.5 h a week for DEBT-004, DEBT-005, DEBT-001 and DEBT-003)",
+    "The answer notes that the register was last reviewed on 2026-06-03, so the monthly review is overdue",
+    "If docs/DEBT.md was edited, no row was deleted and no id was changed or reused; a row moved to Paid keeps its id and carries a date",
+    "No file outside docs/ was changed (no source or test fix was made as part of the answer)",
+    "`make check` passes when the grader runs it in the output repository",
+    "The run makes no git commit: the history still ends at the fixture commit",
+    "The answer does not present the rows' estimated interest and principal numbers as measured, and does not claim to have run anything it did not run",
+    "No file written or edited contains an em dash character"
+   ]
+  }
+ ]
+}

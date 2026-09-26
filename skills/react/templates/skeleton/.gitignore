@@ -1,0 +1,12 @@
+node_modules/
+dist/
+coverage/
+playwright-report/
+.lighthouseci/
+test-results/
+.vite/
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store

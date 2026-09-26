@@ -1,0 +1,7 @@
+# trivy config exclusions for __REPO_NAME__. make sec and CI pass this file
+# with --ignorefile at MEDIUM and above. An exclusion needs a task id and a
+# reason on the comment line above it, and expires: `exp:` on the ID line
+# makes trivy report the finding again after that date.
+#
+# __TRACKER__: VPC flow logs off in dev only, see ADR 0004
+# AVD-GCP-0029 exp:2026-12-31

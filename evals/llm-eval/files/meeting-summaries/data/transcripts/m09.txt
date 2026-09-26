@@ -1,0 +1,9 @@
+Meeting: Incident review, 2026-09-11
+Attendees: Karthik, Farhan, Neha
+
+Farhan: The outage on Tuesday was 42 minutes. A config change removed the database connection limit.
+Neha: The change had no review because the config repo has no approval rule.
+Karthik: Decision: config repo requires one approval from now on.
+Farhan: I'll add the approval rule today.
+Neha: I'll write the incident report by 16 September.
+Karthik: Do we need an alert on connection count? Probably, but who owns it is open.

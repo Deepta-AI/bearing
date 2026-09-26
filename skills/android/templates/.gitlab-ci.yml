@@ -1,0 +1,207 @@
+# __REPO_NAME__ pipeline (Android app). Stages follow the kit vocabulary.
+# make check is the gate; CI runs the same targets the engineer runs, one
+# job per gate so a failure names itself. GitLab sets CI=true, so a gate
+# whose tool is missing fails here instead of printing SKIPPED.
+#
+# Image: cimg/android:2026.08.1 (CircleCI's convenience image). Chosen because
+# it is rebuilt monthly, ships JDK 17 and the Android command-line tools with
+# the licences already accepted; Gradle downloads platform 36 on first use if
+# the image lacks it (android.builder.sdkDownload is on by default). The alternative,
+# mobiledevops/android-sdk-image:34.0.0, is smaller but updated less often.
+
+stages: [validate, lint, test, security, build, publish, deploy, verify]
+
+include:
+  - template: Security/Secret-Detection.gitlab-ci.yml
+  - template: Security/SAST.gitlab-ci.yml
+
+variables:
+  ANDROID_IMAGE: "cimg/android:2026.08.1"
+  GRADLE_USER_HOME: "$CI_PROJECT_DIR/.gradle-home"
+  GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.console=plain"
+  JAVA_TOOL_OPTIONS: "-Dfile.encoding=UTF-8"
+  # Set DEPENDENCY_SCAN to "1" (and NVD_API_KEY) in the project's CI variables
+  # to turn the OWASP dependency-check job on. It is slow on the first run.
+  DEPENDENCY_SCAN: "0"
+
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "develop"
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_TAG
+
+default:
+  image: $ANDROID_IMAGE
+  cache:
+    key:
+      files: [gradle/libs.versions.toml, gradle/wrapper/gradle-wrapper.properties]
+      prefix: android
+    paths: [.gradle-home/caches, .gradle-home/wrapper, .gradle/configuration-cache]
+  before_script:
+    - java -version
+    - '[ -f gradle/wrapper/gradle-wrapper.jar ] || { echo "gradle-wrapper.jar is not committed; run make bootstrap locally and commit it"; exit 1; }'
+    - chmod +x gradlew
+
+branch-name:
+  stage: validate
+  image: alpine:3.20
+  before_script: []
+  cache: []
+  rules: [{ if: $CI_PIPELINE_SOURCE == "merge_request_event" }]
+  script:
+    - echo "$CI_MERGE_REQUEST_SOURCE_BRANCH_NAME" | grep -Eq '^(feature|bugfix|hotfix|chore|docs)/[A-Z][A-Z0-9]*(-[0-9]+)+-[A-Za-z0-9]+$|^release/v[0-9]+\.[0-9]+\.[0-9]+$'
+    - echo "branch-name: 1 branch checked"
+
+# POSIX sh: alpine/git runs busybox ash, which has no process substitution.
+commits:
+  stage: validate
+  image: alpine/git:2.45.2
+  before_script: []
+  cache: []
+  rules: [{ if: $CI_PIPELINE_SOURCE == "merge_request_event" }]
+  script:
+    - git fetch origin "$CI_MERGE_REQUEST_TARGET_BRANCH_NAME" --depth=200
+    - |
+      range="origin/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME..HEAD"
+      subjects=$(mktemp)
+      git log --no-merges --format=%s "$range" > "$subjects"
+      n=$(wc -l < "$subjects" | tr -d ' ')
+      [ "$n" -gt 0 ] || { echo "commits: 0 commits in range $range"; exit 1; }
+      bad=0
+      while IFS= read -r subj; do
+        echo "$subj" | grep -Eq '^(feat|fix|refactor|test|docs|chore|perf|build|ci|revert)(\([a-z0-9._/-]+\))?!?: .{1,72}( \[[A-Z][A-Z0-9]*(-[0-9]+)+\])?$' || { echo "bad subject: $subj"; bad=$((bad+1)); }
+      done < "$subjects"
+      if git log --no-merges --format=%B "$range" | grep -Eiq 'co-authored-by: .*(claude|anthropic|copilot|chatgpt|gemini)|generated with'; then echo "AI attribution trailer found"; exit 1; fi
+      echo "commits: $n commits checked, $bad bad"
+      [ "$bad" -eq 0 ]
+
+# The committed wrapper jar must be the one Gradle published for its version.
+wrapper:
+  stage: validate
+  image: alpine:3.20
+  before_script: []
+  cache: []
+  script:
+    - apk add --no-cache curl >/dev/null
+    - v=$(sed -n 's#.*/gradle-\([0-9.]*\)-.*#\1#p' gradle/wrapper/gradle-wrapper.properties)
+    - want=$(curl -fsSL "https://services.gradle.org/distributions/gradle-$v-wrapper.jar.sha256")
+    - have=$(sha256sum gradle/wrapper/gradle-wrapper.jar | cut -d' ' -f1)
+    - '[ "$have" = "$want" ] || { echo "wrapper: gradle-wrapper.jar sha256 $have does not match the published $want for gradle $v"; exit 1; }'
+    - echo "wrapper: 1 jar checked (gradle $v)"
+
+ktlint:
+  stage: lint
+  script: [make ktlint]
+
+detekt:
+  stage: lint
+  script: [make detekt]
+  artifacts:
+    when: always
+    paths: [app/build/reports/detekt]
+    expire_in: 1 week
+
+lint:
+  stage: lint
+  script: [make lint]
+  artifacts:
+    when: always
+    paths: [app/build/reports/lint-results-debug.html, app/build/reports/lint-results-debug.xml]
+    expire_in: 1 week
+
+unit:
+  stage: test
+  script: [make test]
+  artifacts:
+    when: always
+    paths: [app/build/reports/tests/testDebugUnitTest]
+    reports:
+      junit: app/build/test-results/testDebugUnitTest/*.xml
+    expire_in: 1 week
+
+# Instrumented tests need an emulator, so this job is manual and needs a
+# runner with one (tag it android-emulator, KVM enabled). Not part of check.
+ui-test:
+  stage: test
+  tags: [android-emulator]
+  allow_failure: true # no emulator runner registered yet; set to false when one exists
+  rules: [{ if: $CI_PIPELINE_SOURCE == "merge_request_event", when: manual }]
+  script: [make test-ui]
+  artifacts:
+    when: always
+    paths: [app/build/reports/androidTests]
+    expire_in: 1 week
+
+dependency-scan:
+  stage: security
+  rules: [{ if: $DEPENDENCY_SCAN == "1" }]
+  script:
+    - ./gradlew dependencyCheckAnalyze --no-configuration-cache
+    - echo "dependency-scan: report at build/reports/dependency-check-report.html (plugin applied at the root project)"
+  artifacts:
+    when: always
+    paths: [build/reports/dependency-check-report.html]
+    expire_in: 1 week
+
+build:
+  stage: build
+  script: [make build]
+  artifacts:
+    paths: [app/build/outputs/apk/debug/app-debug.apk]
+    expire_in: 1 day
+
+publish:
+  stage: publish
+  rules:
+    - if: $CI_COMMIT_BRANCH == "develop"
+      when: manual
+    - if: $CI_COMMIT_BRANCH == "main"
+      when: manual
+    - if: $CI_COMMIT_TAG
+      when: manual
+  # Signing material comes only from masked, protected CI variables:
+  #   ANDROID_KEYSTORE_BASE64  the .jks file, base64 encoded
+  #   ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD
+  # The keystore is written outside the checkout and removed after the job.
+  script:
+    - for v in ANDROID_KEYSTORE_BASE64 ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD; do [ -n "${!v}" ] || { echo "publish: $v is not set in CI variables"; exit 1; }; done
+    - export ANDROID_KEYSTORE_PATH="$(mktemp -d)/release.jks"
+    - echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > "$ANDROID_KEYSTORE_PATH"
+    - make bundle
+    - rm -f "$ANDROID_KEYSTORE_PATH"
+  artifacts:
+    paths: [app/build/outputs/bundle/release/app-release.aab]
+    expire_in: 1 week
+
+deploy-internal:
+  stage: deploy
+  image: alpine:3.20
+  before_script: []
+  cache: []
+  environment: { name: play-internal }
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      when: manual
+    - if: $CI_COMMIT_TAG
+      when: manual
+  needs: [publish]
+  script:
+    - echo "deploy-internal: wire this job to the Play internal track."
+    - echo "  1. Create a Play service account with Release manager on this app; store its JSON as PLAY_SERVICE_ACCOUNT_JSON (file variable)."
+    - echo "  2. Add fastlane (bundle exec fastlane supply init) and a lane that runs:"
+    - echo "     supply --aab app/build/outputs/bundle/release/app-release.aab --track internal --json_key \$PLAY_SERVICE_ACCOUNT_JSON --package_name com.example.app"
+    - echo "  3. Replace this script with that lane and remove the exit 1."
+    - exit 1
+
+smoke:
+  stage: verify
+  image: alpine:3.20
+  before_script: []
+  cache: []
+  needs: [build]
+  script:
+    - apk="app/build/outputs/apk/debug/app-debug.apk"
+    - '[ -f "$apk" ] || { echo "smoke: $apk missing from the build artifact"; exit 1; }'
+    - size=$(wc -c < "$apk"); [ "$size" -gt 100000 ] || { echo "smoke: apk is only $size bytes"; exit 1; }
+    - echo "smoke: 1 apk checked, $size bytes"

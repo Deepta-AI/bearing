@@ -1,0 +1,14 @@
+replicaCount: 3
+
+image:
+  repository: registry.example.com/partner-api
+  tag: latest
+
+ingress:
+  className: alb
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+
+env:
+  REDIS_URL: redis://partner-cache.internal:6379/0

@@ -1,0 +1,54 @@
+{
+ "skill_name": "logging",
+ "evals": [
+  {
+   "id": 1,
+   "name": "structured-logs-api-and-worker",
+   "prompt": "Our logs are useless when something goes wrong in orders: I can't tell which lines belong to which request, and I'm pretty sure we're leaking customer emails. Sort out the logging in this repo (API and worker).",
+   "expected_output": "One slog JSON logger for API and worker; a validated request id bound in middleware that sits outside the API key check, so rejected requests, the confirmation goroutine and recovered panics all carry it; no customer email, phone or presented API key in any line, including inside logged error values; client mistakes logged once below error; one completion line per request; make check passing with a test that proves the email stays out.",
+   "files": [
+    "files/orders-go"
+   ],
+   "expectations": [
+    "`make check` (go vet and go test) passes in the final repository",
+    "There is one logger set up in one place using log/slog with a JSON handler, used by both cmd/api and cmd/worker, and output from the standard library log package (including net/http's own server errors) also comes out as JSON through it, for example via slog.SetDefault or http.Server.ErrorLog",
+    "No fmt.Print*, log.Print* or log.Fatal* calls remain in internal/ or cmd/ outside that logger setup",
+    "A request id is taken from X-Request-Id when it is well formed (length and character set checked) and generated otherwise, set in HTTP middleware, and present on log lines inside the request without handlers passing it by hand",
+    "The request id middleware runs outside the API key check, so a request rejected with 401 still produces a log line carrying a request id",
+    "Lines written by the order-confirmation goroutine started in Handler.Create carry the request id of the request that started it (the goroutine gets the request's logger or a context derived from it, not a bare context.Background or the global logger)",
+    "Running the code paths shows no customer email or phone in any log line, including where they travel inside error values: the blocked-customer error from Service.Create, the mailbox-full error from the notifier logged by the handler or the worker, and the sent-confirmation line. The fix removes the address from the error or the line; replacing the whole error with a constant so the cause is lost does not count",
+    "The API key check no longer logs the key the caller presented, in whole or in part",
+    "Lines from the API and from the worker can be told apart by a field (such as entry_point or a component field), not only by the message text",
+    "The bad-quantity and blocked-customer failures are each logged once per request (not in both Service.Create and the handler) and at warn or info rather than error, since they are client mistakes",
+    "A panic inside a route handler is recovered by middleware and logged as one JSON error line carrying the request id, and the client gets a 500; fixing a particular bug instead of adding recovery does not satisfy this",
+    "Every request produces one completion line with method, route or path, HTTP status and a duration in milliseconds",
+    "A test captures log output while driving a request or worker run that fails with a customer email in play, and fails if that email appears in the captured output",
+    "No file written or edited contains an em dash character"
+   ]
+  },
+  {
+   "id": 2,
+   "name": "http-logging-behind-a-toggle",
+   "prompt": "add request logging to the orders API. ops want to be able to turn it off in prod without a code change, and we must never log request bodies by default (they contain customer details)",
+   "expected_output": "Request logging as middleware wrapping the whole chain (401s logged too), behind an env toggle whose production value the README states; no bodies by default and bounded if offered; no query string or customer email in the request line; status 200 recorded when the handler never calls WriteHeader; the NDJSON export still streams; health checks quiet; the new variables added to the existing .env.example and README configuration table; the handler's existing body-dumping line removed; make check passing.",
+   "files": [
+    "files/orders-go"
+   ],
+   "expectations": [
+    "`make check` passes in the final repository",
+    "Request logging is HTTP middleware that wraps the whole handler chain including the API key check, so requests rejected with 401 are logged too; it is not log calls pasted into each handler",
+    "An environment variable turns request logging on or off without a code change, and the README states explicitly which value is in effect in production when the variable is unset",
+    "Request bodies are never logged by default; if the run offers a setting to log them, it is off by default and bounds what is logged (truncated or omitted over a size limit). A run with no body logging at all passes",
+    "The request line never contains the query string or a customer email: a request to GET /orders?email=asha@example.com is logged without the address (route pattern, path only, or the query redacted)",
+    "If request headers are logged, Authorization, Cookie and X-Api-Key values are redacted; a run that logs no headers passes",
+    "Each request log line has method, route or path, status and a duration in milliseconds, and a request whose handler never calls WriteHeader (GET /orders/{id} for an existing order) is logged with status 200, not 0",
+    "GET /orders/export still streams through the logging middleware: the response writer wrapper keeps http.Flusher working (a Flush method or Unwrap for http.ResponseController), so the handler does not answer 500 streaming unsupported",
+    "If the middleware reads the body, the handler still receives the full body afterwards",
+    "GET /healthz (called every 2 s) is excluded or sampled so it does not flood the logs, and any sampling never drops the line for a 5xx response",
+    "Every new variable the code reads is added to the existing .env.example with a comment and to the README's configuration table, alongside PORT and API_KEY rather than in a second, conflicting list",
+    "The handler's existing line that logs the decoded order request (email, phone and the whole struct) is removed or reduced to ids, since it writes the body's customer details regardless of the new toggle",
+    "No file written or edited contains an em dash character"
+   ]
+  }
+ ]
+}

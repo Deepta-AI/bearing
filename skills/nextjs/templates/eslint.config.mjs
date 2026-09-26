@@ -1,0 +1,50 @@
+import nextVitals from "eslint-config-next/core-web-vitals";
+import nextTs from "eslint-config-next/typescript";
+import prettier from "eslint-config-prettier";
+import globals from "globals";
+import tseslint from "typescript-eslint";
+
+// Flat config. eslint-config-next 16 exports flat configs directly
+// (core-web-vitals and typescript); `next lint` is gone, so ESLint runs as
+// itself. Strict type-checked TypeScript rules sit on top; Prettier owns
+// formatting. src/components/ui is shadcn output, not linted.
+export default tseslint.config(
+  {
+    ignores: [
+      ".next/**",
+      "coverage/**",
+      "playwright-report/**",
+      ".lighthouseci/**",
+      "test-results/**",
+      "node_modules/**",
+      "next-env.d.ts",
+      "src/components/ui/**",
+    ],
+  },
+  ...nextVitals,
+  ...nextTs,
+  ...tseslint.configs.strictTypeChecked,
+  ...tseslint.configs.stylisticTypeChecked,
+  {
+    files: ["**/*.{ts,tsx}"],
+    languageOptions: {
+      parserOptions: { projectService: true, tsconfigRootDir: import.meta.dirname },
+      globals: { ...globals.browser, ...globals.node },
+    },
+    rules: {
+      "@typescript-eslint/consistent-type-imports": ["error", { fixStyle: "inline-type-imports" }],
+      "@typescript-eslint/no-unnecessary-condition": [
+        "error",
+        { allowConstantLoopConditions: true },
+      ],
+      "@typescript-eslint/restrict-template-expressions": ["error", { allowNumber: true }],
+      "no-console": ["error", { allow: ["warn", "error"] }],
+    },
+  },
+  {
+    files: ["**/*.test.{ts,tsx}", "e2e/**/*.ts", "*.config.{ts,mjs}"],
+    rules: { "@typescript-eslint/no-non-null-assertion": "off" },
+  },
+  { files: ["**/*.mjs"], ...tseslint.configs.disableTypeChecked },
+  prettier,
+);

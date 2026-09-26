@@ -1,0 +1,141 @@
+# __REPO_NAME__ pipeline (Flutter app). Stages follow the kit vocabulary.
+# make check is the gate; CI runs the same targets the engineer runs, one
+# job per gate so a failure names itself. GitLab sets CI=true, so a gate
+# whose tool is missing fails here instead of printing SKIPPED.
+#
+# Linux runners run the gate and build the Android APK. iOS needs a macOS
+# runner with Xcode (tag it `macos`); that job is manual and allowed to
+# fail until one exists. Store uploads are fastlane lanes a person runs.
+
+stages: [validate, lint, test, security, build, deploy]
+
+include:
+  - template: Security/Secret-Detection.gitlab-ci.yml
+
+variables:
+  FLUTTER_VERSION: "3.47.5"
+  PUB_CACHE: "$CI_PROJECT_DIR/.pub-cache"
+  BUILD_NUMBER: "$CI_PIPELINE_IID"
+
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "develop"
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_TAG
+
+default:
+  image: ghcr.io/cirruslabs/flutter:${FLUTTER_VERSION}
+  cache:
+    key: pub-$CI_COMMIT_REF_SLUG
+    paths: [.pub-cache]
+  before_script:
+    - flutter --version
+    - '[ -f pubspec.lock ] || echo "lockfile: no pubspec.lock committed; pub get resolves now (run make setup and commit pubspec.lock)"'
+    - flutter pub get
+    - make gen
+
+branch-name:
+  stage: validate
+  image: alpine:3.20
+  before_script: []
+  cache: []
+  rules: [{ if: $CI_PIPELINE_SOURCE == "merge_request_event" }]
+  script:
+    - echo "$CI_MERGE_REQUEST_SOURCE_BRANCH_NAME" | grep -Eq '^(feature|bugfix|hotfix|chore|docs)/[A-Z][A-Z0-9]*(-[0-9]+)+-[A-Za-z0-9]+$|^release/v[0-9]+\.[0-9]+\.[0-9]+$'
+    - echo "branch-name: 1 branch checked"
+
+# POSIX sh: alpine/git runs busybox ash, which has no process substitution.
+commits:
+  stage: validate
+  image: alpine/git:2.45.2
+  before_script: []
+  cache: []
+  rules: [{ if: $CI_PIPELINE_SOURCE == "merge_request_event" }]
+  script:
+    - git fetch origin "$CI_MERGE_REQUEST_TARGET_BRANCH_NAME" --depth=200
+    - |
+      range="origin/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME..HEAD"
+      subjects=$(mktemp)
+      git log --no-merges --format=%s "$range" > "$subjects"
+      n=$(wc -l < "$subjects" | tr -d ' ')
+      [ "$n" -gt 0 ] || { echo "commits: 0 commits in range $range"; exit 1; }
+      bad=0
+      while IFS= read -r subj; do
+        echo "$subj" | grep -Eq '^(feat|fix|refactor|test|docs|chore|perf|build|ci|revert)(\([a-z0-9._/-]+\))?!?: .{1,72}( \[[A-Z][A-Z0-9]*(-[0-9]+)+\])?$' || { echo "bad subject: $subj"; bad=$((bad+1)); }
+      done < "$subjects"
+      if git log --no-merges --format=%B "$range" | grep -Eiq 'co-authored-by: .*(claude|anthropic|copilot|chatgpt|gemini)|generated with'; then echo "AI attribution trailer found"; exit 1; fi
+      echo "commits: $n commits checked, $bad bad"
+      [ "$bad" -eq 0 ]
+
+format:
+  stage: lint
+  script: [make format-check]
+
+analyze:
+  stage: lint
+  script: [make analyze]
+
+unit:
+  stage: test
+  script: [make test]
+  artifacts:
+    when: always
+    paths: [coverage/lcov.info]
+    expire_in: 1 week
+
+dependency-scan:
+  stage: security
+  image: { name: ghcr.io/google/osv-scanner:latest, entrypoint: [""] }
+  before_script: []
+  cache: []
+  script:
+    - osv-scanner scan --lockfile=pubspec.lock
+    - |
+      echo "dependency-scan: $(grep -cE '^  [a-z0-9_]+:$' pubspec.lock) packages checked"
+
+build-android:
+  stage: build
+  script: [make build-android FLAVOR=prod]
+  artifacts:
+    paths: [build/app/outputs/flutter-apk/app-release.apk]
+    expire_in: 1 week
+
+# Needs macOS with Xcode. Give a runner the `macos` tag and drop
+# allow_failure once it exists.
+build-ios:
+  stage: build
+  tags: [macos]
+  image: ""
+  before_script: []
+  cache: []
+  rules: [{ when: manual }]
+  allow_failure: true
+  script:
+    - flutter pub get && make gen
+    - flutter build ipa --release --no-codesign --dart-define-from-file=config/prod.json --build-number="$BUILD_NUMBER"
+    - echo "build-ios: 1 archive built (unsigned; fastlane match signs on release)"
+
+# Store uploads are fastlane lanes a person runs after the release
+# checklist; these jobs print the command and stop.
+deploy-internal:
+  stage: deploy
+  image: alpine:3.20
+  before_script: []
+  cache: []
+  environment: { name: internal }
+  rules: [{ if: $CI_COMMIT_BRANCH == "develop", when: manual }]
+  script:
+    - echo "release: cd android && BUILD_NUMBER=$BUILD_NUMBER bundle exec fastlane internal (and cd ios && bundle exec fastlane beta on macOS)"
+    - exit 1
+
+deploy-production:
+  stage: deploy
+  image: alpine:3.20
+  before_script: []
+  cache: []
+  environment: { name: production }
+  rules: [{ if: $CI_COMMIT_TAG, when: manual }]
+  script:
+    - echo "release: cd android && bundle exec fastlane production (and cd ios && bundle exec fastlane release on macOS)"
+    - exit 1

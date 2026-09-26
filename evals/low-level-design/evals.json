@@ -1,0 +1,66 @@
+{
+ "skill_name": "low-level-design",
+ "evals": [
+  {
+   "id": 1,
+   "name": "dispatcher-lld-from-approved-hld",
+   "prompt": "The reminders HLD got approved. Can you do the detailed design for the reminder dispatcher before we cut tickets for it?",
+   "expected_output": "One LLD under docs/design/ for the dispatcher only, keeping the jobs table from ADR-0002, naming existing files as existing and new ones under internal/, with each query's index (jobs_due_idx) and new migrations numbered from 0005, a stated claim transaction and where the SMS call sits, send-time checks of appointments.status and patients.sms_opt_out, defined or marked 429 and 5xx branches, the duplicate-send risk, the 07:00 burst checked against REQ-203, config including SMS_SENDER_ID missing from .env.example, named tests for the REQ-204 and REQ-205 paths, any departure from the approved HLD called out, and an ordered, ticket-sized work breakdown with no forward dependencies.",
+   "files": [
+    "files/reminders-approved-hld"
+   ],
+   "expectations": [
+    "Exactly one new design document for the dispatcher was written, and it is under docs/design/ beside the HLD; no other new document (such as a separate implementation plan) was created elsewhere",
+    "The HLD, the ADRs, the PRD, .env.example and all code and migrations are unchanged at the end of the run",
+    "No git commit was made during the run",
+    "The design covers the dispatcher only: it does not design the scheduler or the inbound reply webhook, and it keeps the Postgres jobs table (ADR-0002) rather than proposing another queue",
+    "Existing files (internal/jobs/worker.go, internal/sms/client.go, cmd/worker/main.go) are named as existing, and new code is placed under internal/ in the repository's package style, with no new top-level pkg/ or src/ directory",
+    "The design says which index serves the due-job or claim query (jobs_due_idx on (status, run_at) from migrations/0002_jobs.sql, or a new index it defines for a changed claim query)",
+    "Every other query the design adds (for example a lease or stuck-job recovery query, a backlog or lag query, the send-time lookup) names the index that serves it or is explicitly noted as a full scan or as acceptable without one",
+    "Any new column, table or index is placed in new migrations numbered from 0005 upward, with no number that collides with the existing 0001 to 0004",
+    "It states the transaction boundary for claiming a job and says whether the SMS call happens inside or outside that transaction, with the reason",
+    "It says how two worker processes avoid claiming the same job (for example FOR UPDATE SKIP LOCKED or an equivalent conditional update)",
+    "At send time the dispatcher re-checks that the appointment is still booked at the same starts_at (appointments.status) and that the patient has not opted out (patients.sms_opt_out), not only when the job was written",
+    "The MSG91 429 case (ErrRateLimited in internal/sms/client.go) and the 5xx or timeout case each have a defined behaviour or are explicitly marked undefined; neither is silently left out",
+    "It addresses the duplicate-send risk when the worker crashes after MSG91 accepted the SMS but before the job is marked done, either with a mechanism or as an explicitly accepted risk; covering only a provider timeout does not count",
+    "It checks whether the 07:00 burst of about 12,000 reminders (HLD section 7) can be sent within REQ-203's 10 minutes, taking into account at least the MSG91 limit of 20 requests a second and how many jobs the worker actually processes per second, and states the result or what happens when the window cannot be met",
+    "It lists the configuration the dispatcher depends on and points out that SMS_SENDER_ID is read by internal/sms/client.go but missing from .env.example; adding it in a work item without saying it is missing today does not count",
+    "It identifies each test specifically (a test function name, a TC-style id, or a named table row), covering at least a cancelled or rescheduled appointment (REQ-204), an opted-out patient (REQ-205) and a message that leaves out the appointment reason; a blanket 'one test per row' without the rows named does not count",
+    "It breaks the work into an ordered list of items small enough to become separate tickets, each naming the files it touches",
+    "No work item depends on a later item to compile or pass make check: the grader checks each item's files against the types, functions and signature changes it uses or makes (for example a changed jobs.Handler signature must update its callers in cmd/worker/main.go in the same or an earlier item, and a type must be defined in the same or an earlier item than its first use)",
+    "Any departure from the approved HLD (for example a different default for clinics.reminders_enabled, or a table or column that HLD section 4 does not list) is called out as a departure for the HLD owner to agree, not adopted silently",
+    "No file written or edited contains an em dash character"
+   ]
+  },
+  {
+   "id": 2,
+   "name": "revise-lld-retry-and-boundary",
+   "prompt": "Two things for the reminder dispatcher LLD. MSG91 support told us their 429s come with a Retry-After header (seconds) and we should retry, max 3 attempts total. And while you're in there, have the dispatcher also handle STOP replies from patients so they stop getting reminders. Update the design.",
+   "expected_output": "docs/design/reminder-dispatch-lld.md revised in place with the change recorded, the UNDEFINED 429 branch replaced by Retry-After backoff capped at 3 attempts using the existing jobs.attempts and run_at, a missing or unusable Retry-After handled, the worst-case delay stated against REQ-203, tests added including one where the retried attempt sends, TC-0014 flagged as stale, the approved HLD's component boundaries left alone, and the STOP reply handling pushed back as belonging to the HLD's inbound reply webhook component rather than folded into the dispatcher.",
+   "files": [
+    "files/reminders-lld-v1"
+   ],
+   "expectations": [
+    "docs/design/reminder-dispatch-lld.md was updated in place; no second LLD and no other new document (such as a separate implementation plan) was created",
+    "No file outside docs/ was written or edited at any point in the run, including edits later reverted (check the transcript as well as the final tree)",
+    "No git commit was made during the run",
+    "The document or the final message records what changed in this update and why, naming the Retry-After retry",
+    "The 429 branch that v1 marked UNDEFINED now has defined behaviour: wait for Retry-After, at most 3 attempts in total, and a stated outcome after the third failure",
+    "It defines what happens when a 429 arrives with no Retry-After header or with a value that cannot be parsed as seconds",
+    "The retry reuses the existing jobs.attempts and jobs.run_at columns from migrations/0002_jobs.sql instead of adding a new attempts column or a migration for one",
+    "It states how Retry-After backoff interacts with REQ-203's 10 minute delivery window (for example that a reminder retried past the window is dropped, or sent late with the reason recorded)",
+    "The worst-case delay the design allows across all three attempts matches what it says about REQ-203: either the total delay is bounded within the 10 minute window, or the document states that a reminder can go out later than the window and by roughly how much; a design whose caps allow about 20 minutes in total while implying it meets the window does not pass",
+    "Handling STOP replies is not designed into the dispatcher; the run says it belongs to the inbound reply webhook component in docs/design/appointment-reminders-hld.md (or needs an HLD change) and tells the user so",
+    "Section 1 (Scope) still describes only the dispatcher: any edit to it only adds the retry as part of the dispatcher's own work or records STOP handling as out of scope, and it does not bring STOP handling or another component into scope",
+    "The approved HLD's component boundaries are unchanged (STOP handling stays with the inbound reply webhook); if the run edited the HLD at all, the final message tells the user that an approved document was changed",
+    "The HLD's now-stale 429 row in section 6 and its open question on retry policy in section 11 are either updated or pointed out to the user as needing an update",
+    "The document says whether the retry limits (the 3 attempt cap and any default or maximum wait) are code constants or configuration; any that are configuration are listed with a default and whether they are in .env.example",
+    "At least one named test (a Go test name or a TC-style id both count) covers a 429 followed by a retried attempt that actually sends the SMS and marks the job done; a test that only checks the job was rescheduled does not count",
+    "At least one named test covers giving up after the third attempt",
+    "TC-0014 in docs/testing/test-cases.md (which says a 429 is not retried) is identified as now wrong and needing an update; updating it in the same run is also acceptable",
+    "The work breakdown gains an item for the retry change naming the files it touches",
+    "No file written or edited contains an em dash character"
+   ]
+  }
+ ]
+}

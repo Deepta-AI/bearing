@@ -1,0 +1,62 @@
+{
+ "skill_name": "architecture-diagram",
+ "evals": [
+  {
+   "id": 1,
+   "name": "draw-from-code-not-readme",
+   "prompt": "Can you draw up the architecture for this repo? I need it for onboarding two new devs next week: what the services are, how they talk to each other, and what happens when a customer places an order. Put it in docs.",
+   "expected_output": "A diagram document under docs/ drawn from k8s/, docker-compose.yml and the Go sources: web, api, worker and postgres, Razorpay and Postmark as external systems, api and worker linked only through the outbox table, no Redis and no api to worker HTTP call (the README is stale on both, and is reported rather than rewritten), mailhog kept out of the production picture, the inventory edge unconfirmed because internal/inventory is never constructed by any binary, the order.refunded topic shown or stated as having no consumer, web's production hosting not invented (k8s/ has no web manifest), customer and staff users, a POST /api/orders sequence naming the handler and service with its 400 and 502 branches, the worker side of the order (claim order.created, send mail, mark done or release), sources named by file path, every mermaid block parsing, and nothing committed.",
+   "files": [
+    "files/shop-compose"
+   ],
+   "expectations": [
+    "New architecture documentation containing at least one diagram was written under docs/ in the repository (a mermaid or other text diagram, or a rendered or editable diagram file such as .excalidraw, .svg or .png with its source); any format the grader can read counts",
+    "The diagrams show web, api, worker and postgres as parts of the system, and Razorpay as an external system called by the api (internal/payments/client.go, PAYMENTS_BASE_URL)",
+    "The diagram document exists, and in its production diagram the worker's email goes to Postmark (smtp.postmarkapp.com from k8s/worker.yaml); mailhog is either left out of that diagram or labelled in the diagram itself as local development only (a node such as 'MailHog / Postmark' with no environment on it fails, even if a table elsewhere explains it)",
+    "The diagram document exists and has no direct edge from api to worker; the api and worker are connected through the outbox table in Postgres (api inserts order.created, worker claims it; internal/outbox/outbox.go)",
+    "The diagram document exists, Redis does not appear in it as a component of the system (or appears only flagged as claimed by the README and absent from docker-compose.yml, k8s/ and the code), and the document or the final message names both places the README disagrees with the code: the Redis cart cache and the api calling the worker over HTTP",
+    "The diagram document exists, and the inventory service behind INVENTORY_URL is either not drawn or drawn as unconfirmed (dashed, labelled or listed as such), with the reason that nothing running calls it: the internal/inventory client package exists but no binary under cmd/ imports or constructs it. Drawing api to inventory as an ordinary confirmed call, or justifying it by the existence of internal/inventory/client.go, fails",
+    "The documentation shows or states that the api also writes order.refunded outbox rows (staff refund, POST /api/admin/orders/{id}/refund in cmd/api/main.go and Service.Refund in internal/orders/service.go) and that no process in the repository claims that topic: the worker in cmd/worker/main.go claims only order.created. Drawing the worker as consuming refunds, or leaving the topic out with no mention, fails",
+    "The documentation does not invent how web runs in production: k8s/ has no manifest for web and nothing in the repository (no nginx config, no Ingress) routes /api to the api. The web container and its route to the api in production are marked unconfirmed or the gap is stated; drawing web as a k8s workload beside api and worker, or stating that nginx proxies /api to the api, fails",
+    "Two kinds of user are shown, customer and staff, matching the roles in cmd/api/main.go and internal/auth/auth.go",
+    "A sequence diagram for POST /api/orders names the orders handler and the orders service as participants (one participant named for both, such as 'orders.Handler/Service', counts; a generic 'api' participant does not), shows the Razorpay capture, and then the transaction that writes the order row and the outbox row",
+    "The POST /api/orders sequence diagram itself (not only surrounding prose) shows the 400 invalid body outcome from internal/orders/handler.go, as an alt branch, a message or a note",
+    "The POST /api/orders sequence diagram itself (not only surrounding prose) shows the 502 payment not captured outcome from internal/orders/handler.go",
+    "The documentation shows what the worker does with an order after the api returns: it claims order.created rows from the outbox, sends the confirmation email over SMTP, and marks the row done or releases it on failure (cmd/worker/main.go, internal/outbox/outbox.go)",
+    "For both external calls, the documentation names a file path in the repository where each is configured or made: for Razorpay internal/payments/client.go or k8s/api.yaml, for the SMTP host k8s/worker.yaml or internal/mail/mail.go (an env var name or package name alone does not count)",
+    "Every mermaid block in the documentation written by the run would parse as mermaid: for example no ';' and no bare '#' inside sequence diagram message or note text, balanced brackets and quotes in node and edge labels, and a valid diagram type on the first line (the grader may run a mermaid parser if one is available; otherwise judge by the mermaid syntax rules). A run that wrote no mermaid, only another diagram format, passes this check only if that format opens",
+    "The diagram document exists and draws no invented facts: every service, store, external system, route, port and file it names can be found in the fixture (k8s/, docker-compose.yml, the Go sources, web/src, or the README when flagged as the README's claim)",
+    "The diagram document exists, and no file outside docs/ was created or changed (in particular README.md is unchanged; its errors are reported, not rewritten); rendered or editable copies of the diagrams under docs/ count as documentation",
+    "No git commit was made (the run leaves its changes uncommitted; printing a suggested commit command is fine), and no file written or edited contains an em dash character"
+   ]
+  },
+  {
+   "id": 2,
+   "name": "revise-after-indexer-and-redis-removal",
+   "prompt": "We shipped the search indexer and ripped out Redis last sprint (carts live in Postgres now). docs/architecture/shop-architecture.md is out of date, can you bring it up to date?",
+   "expected_output": "docs/architecture/shop-architecture.md revised in place with targeted edits: indexer and Meilisearch added with edges taken from the code (indexer claims product.updated from the outbox and upserts into Meilisearch; the api queries Meilisearch for GET /api/search and queues product.updated), sources rows added for them, Redis and its sources row removed while the leftover k8s/redis.yaml is flagged, the document stating that k8s/api.yaml still deploys api 1.8.0, the order sequence left unchanged with its drift from the new carts schema reported, Notes kept, the inventory edge still unconfirmed, a record of what changed, every mermaid block parsing, and the now-contradicted Redis ADR 0002 and stale HLD flagged without being rewritten or superseded by a new ADR nobody asked for. Nothing committed.",
+   "files": [
+    "files/shop-revision"
+   ],
+   "expectations": [
+    "docs/architecture/shop-architecture.md was updated in place and no second architecture document was created (rendered or editable copies of its diagrams, or a diagram model they are generated from, under docs/ are not a second document)",
+    "An indexer container is added, reading product.updated rows from the outbox in Postgres and writing to Meilisearch (cmd/indexer/main.go, internal/search/client.go)",
+    "Meilisearch is shown as a store or container of the system, and the api's own call to it for GET /api/search (internal/products/handler.go) is drawn",
+    "The api writing product.updated into the outbox when a product is saved (Handler.Update in internal/products/handler.go) is drawn or stated, so the reader can see where the indexer's work comes from",
+    "Redis, the api to redis edge and the redis row of the sources table are gone from the document (or remain only in a record of what was removed), and the run flags that k8s/redis.yaml still deploys a Redis that no code in the repository uses (a leftover to remove), instead of either keeping Redis in the diagram because of that manifest or ignoring the manifest",
+    "The document itself (not only the final message) says that production has not caught up: k8s/api.yaml still deploys registry.example.com/shop/api:1.8.0, a release that predates search and Postgres carts (internal/cart/store.go: 'Until 1.9.0'), while k8s/indexer.yaml runs 1.9.0; the document's 'Last updated ... (release 1.8.0)' line is not left claiming the old state, nor rewritten to claim production runs 1.9.0 everywhere",
+    "The Sources table gains rows for the indexer and Meilisearch that name the files they come from (for example k8s/indexer.yaml, cmd/indexer/main.go, k8s/meilisearch.yaml, internal/search/client.go)",
+    "The document or the final message says what changed in this update: at least the indexer, Meilisearch and the removal of Redis are named",
+    "The POST /api/orders sequence diagram is unchanged from the fixture (same participants, same messages, the same 400 and 502 branches, whitespace aside), and the run reports, in the document or the final message, that its cart read no longer matches the code: orders.Service.Place still selects total_paise from carts by id while internal/cart/store.go now keys carts by session_id with an items column",
+    "The revision is proportionate: the containers diagram keeps its existing nodes, labels and edges other than redis (extending an existing label to name a new flow, such as products on the api to postgres edge, is fine), the Notes section is kept, and the document is not restructured into a new layout or set of views; additive sections such as a change record are fine",
+    "The inventory edge (INVENTORY_URL) is still shown as unconfirmed, not promoted to a confirmed call, and mailhog is still kept out of the production picture",
+    "Every mermaid block in the documentation after the revision would parse as mermaid: for example no ';' and no bare '#' inside sequence diagram message or note text, balanced brackets and quotes in node and edge labels, and a valid diagram type on the first line (the grader may run a mermaid parser if one is available; otherwise judge by the mermaid syntax rules). A run that wrote no mermaid, only another diagram format, passes this check only if that format opens",
+    "No new node, edge or source is invented: every element added to the document can be found in the fixture's code, k8s/ or docker-compose.yml",
+    "The run points out at least one other document the change has made stale (docs/adr/0002-cache-carts-in-redis.md is still Accepted though Redis is gone, or docs/design/shop-hld.md section 4 still lists the Redis cart cache)",
+    "docs/design/shop-hld.md is unchanged, and no ADR was created or changed: docs/adr/ holds only 0001 and 0002, both identical to the fixture including ADR 0002's Status line; a superseding ADR may be proposed in the final message but is not written or recorded as Accepted",
+    "No file was changed other than docs/architecture/shop-architecture.md and, optionally, generated or editable copies of its diagrams (and a diagram model they are drawn from) under docs/; a new folder outside docs/, such as diagrams/ at the repository root, fails; no Go, compose, k8s or README file was changed",
+    "No git commit was made (the run leaves its changes uncommitted; printing a suggested commit command is fine), and no file written or edited contains an em dash character"
+   ]
+  }
+ ]
+}

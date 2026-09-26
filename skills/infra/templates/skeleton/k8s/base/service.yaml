@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: __REPO_SLUG__
+spec:
+  # ClusterIP only. Public exposure goes through an Ingress or Gateway with
+  # TLS, reviewed as its own change.
+  type: ClusterIP
+  selector: {}
+  ports:
+    - name: http
+      port: 80
+      targetPort: http

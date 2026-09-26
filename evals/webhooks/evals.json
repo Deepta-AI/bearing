@@ -1,0 +1,66 @@
+{
+ "skill_name": "webhooks",
+ "evals": [
+  {
+   "id": 1,
+   "name": "harden-dispatchly-inbound",
+   "prompt": "Customers are getting two or three 'your parcel was delivered' emails, see docs/incidents/2026-09-18-duplicate-delivered-emails.md. Security also flagged the Dispatchly webhook handler in the last review. Fix it properly.",
+   "expected_output": "The root cause named (a 6 s email inside the request against Dispatchly's 5 s timeout, so retries, with nothing deduplicating them), and internal/webhooks/dispatchly.go rebuilt: HMAC over the raw body with a constant-time compare and no detail in the 401, every v1 signature tried during a secret roll, an empty secret failing closed, a timestamp window, deduplication on the event id with a new numbered migration kept past the 30 day resend window (and an honest statement about what is still in memory), the email moved off the request path after a fast 2xx, a failed email send retried rather than dropped, an event for a not-yet-known shipment retried rather than permanently rejected, a late in_transit unable to reopen a delivered shipment, and tests for each, with make check passing and nothing committed.",
+   "files": [
+    "files/dispatchly-inbound"
+   ],
+   "expectations": [
+    "The transcript identifies the root cause from the incident note and docs/integrations/dispatchly-webhooks.md: the handler sends the email before responding, about 6 s against Dispatchly's 5 s limit, so Dispatchly retries the same event and nothing deduplicates it",
+    "Signature handling is fixed together: the HMAC is computed over `<t>.<raw request bytes>` before any JSON decoding (the json.Marshal re-encoding at internal/webhooks/dispatchly.go line 37 is gone), compared with a constant-time function instead of the `!=` at line 51, and a mismatch returns 401 with no expected signature or other detail in the body",
+    "A header carrying two v1 signatures, as Dispatchly sends for 24 hours after a secret roll (`t=...,v1=<new>,v1=<old>`), is accepted when either one matches the configured secret, and a test proves it with the matching signature in the first position (the fixture's parser keeps only the last v1, so a run that leaves that loop in place fails this)",
+    "A request whose `t` is older than a stated tolerance (5 minutes or similar) is rejected with a non-2xx status and does no work (401 or 400 expected; a deliberate 5xx also passes if the transcript gives the reason), and a test proves it",
+    "With DISPATCHLY_WEBHOOK_SECRET empty or unset, requests are rejected (or the service refuses to start); a signature computed with an empty key is never accepted",
+    "Duplicates are detected by the Dispatchly event `id`, not by a hash of the payload and not only by per-shipment state such as an 'email already sent' flag",
+    "A test sends the same event `id` twice, the second request signed with a different `t` from the first (as a dashboard resend has; a different `t` is required even if the run's deduplication ignores `t`, because that is the case the provider notes describe), and asserts that the second request is recognised as a duplicate and does no work (no second job, no second notifier call); a test whose assertion would still pass with event-id deduplication removed, because a per-shipment guard alone suppresses the email, fails this",
+    "A new SQL migration numbered after 0002 in migrations/ adds a table or column with a unique constraint on the event id (optionally with the provider)",
+    "Nothing expires the deduplication record sooner than the 30 day dashboard resend window in the provider notes (a fixed 24 hour or 72 hour retention fails this)",
+    "The final message is honest about what is still in memory: it does not claim that deduplication, or any duplicate-email guard, survives a restart when the state behind it (the event-id record or the shipments.Service map, which main.go builds empty) is held only in memory; a run that wires a durable store for the state it relies on passes",
+    "The handler returns 2xx without waiting for the email: the email or the delivery processing is handed to the existing internal/jobs queue (or another async path), and a test shows the response does not wait for a slow notifier",
+    "A failed email send is retried, inside the job or by leaving the event unacknowledged so Dispatchly resends it; a send failure that is only logged, after which Dispatchly's retry is acknowledged as a duplicate, fails this",
+    "An event for a shipment the service does not know yet (the provider notes say the first event can arrive before the booking is committed) is not lost: it is not answered with a 4xx that Dispatchly treats as permanent (the fixture maps shipments.ErrNotFound to 400) and not acknowledged and then dropped with its event id marked as seen; it gets a retryable status (5xx, 408 or 429) or is retried by the job, and a test covers it",
+    "A shipment.in_transit event whose data.occurred_at is earlier than the shipment's delivered time, arriving after the delivered event, does not move the shipment back out of delivered (the provider notes say events arrive out of order); a test covers it",
+    "`make check` passes when the grader runs it in the output repository",
+    "The run makes no git commit; the prompt did not ask for one",
+    "The run adds no file the task did not need: no tool reports, scratch directories or .gitignore edits inside the repository, no test-case catalogue or checklist that restates the tests, and no second webhook document beside docs/integrations/dispatchly-webhooks.md (updating that file or the README is fine; a new partner-facing or integration document where none existed is fine)",
+    "No file written or edited contains an em dash character"
+   ]
+  },
+  {
+   "id": 2,
+   "name": "outbound-order-events-to-partners",
+   "prompt": "Partners want us to push order.shipped and order.cancelled to their endpoints instead of polling GET /orders. Build the sending side. Notes from the partner calls are in docs/integrations/partners.md.",
+   "expected_output": "Delivery driven from the existing outbox by the worker, the outbox event marked processed only once its deliveries are recorded, each event routed only to the partner that owns the order and skipped for orders with no partner or partners still polling, each request signed per partner (never with an empty key) with a stable event id header, retries on 5xx and timeouts spanning Acme's 4 hour Sunday window then a dead letter, no retry on BlueCart's 400s, events for one order delivered to its partner in order, a delivery log in a new migration with a list and resend that reaches the real sender and is scoped to the partner, a client timeout, partner-entered URLs refused when they point at internal addresses, one slow partner not delaying another, partner-facing docs with an example body for each event and verification and deduplication steps, and tests, with make check passing and nothing committed.",
+   "files": [
+    "files/partner-outbound"
+   ],
+   "expectations": [
+    "Deliveries are driven from the existing internal/outbox events by the worker; orders.Service.Ship and Cancel make no HTTP call to partners",
+    "The worker marks an outbox event processed only after the delivery record for it is stored (or in the same transaction); code that calls MarkProcessed before the delivery is recorded, or that relies on an in-flight goroutine to record it later, fails this because a crash in between loses the event",
+    "Each event is sent only to the partner named by the order's partner_id: a test gives two partners separate endpoints (two httptest servers or equivalent) and shows the second receives zero requests for the first partner's order; and no request is made for an order with no partner_id, or for a partner whose WebhookURL is empty (still polling) or who is inactive",
+    "Each request is signed with HMAC-SHA256 using that partner's own secret (read from the env var named in Partner.SecretEnv) over a timestamp and the raw body, the timestamp is sent in a header, and a test recomputes the signature from the received request",
+    "If the env var named by a partner's SecretEnv is empty or unset, nothing is sent to that partner, neither unsigned nor signed with an empty key; the delivery is held or failed with a recorded reason",
+    "A header carries the outbox event id (evt_...), and it is the same on every retry of that event, so a partner can deduplicate; a per-attempt id alone fails this, and a test shows the same id on two separate attempts of one event",
+    "Failed deliveries (5xx, timeout, connection error) are retried on an increasing delay schedule whose total span is at least 4 hours, covering Acme's 02:00 to 06:00 IST Sunday maintenance in partners.md, and are bounded: after the last attempt the delivery is marked failed or dead-lettered and no further attempts are scheduled",
+    "A 4xx response such as BlueCart's 400 is not retried (408 and 429 may be), and a test covers both the retried and the not-retried case",
+    "Events for the same order reach its partner in the order they were written to the outbox: while order.shipped for an order is awaiting a retry, order.cancelled for that order is not delivered to that partner ahead of it (partners.md: Acme applies events in arrival order and re-ships a recalled order otherwise), and a test shows it; payload timestamps or documentation alone fail this",
+    "The HTTP client used for delivery has an explicit timeout; http.DefaultClient or a client with no timeout is not used",
+    "A new migration numbered after 0003 in migrations/ stores a record of each delivery attempt with at least the partner, the event id, the outcome (response status or error) and when it happened; partner and event id may sit on a parent delivery row that each attempt references",
+    "BlueCart's request is met or explicitly deferred: there is a way (endpoint, function or command) to list a partner's deliveries with their outcome and to resend one, or the final message lists it as not done",
+    "If a resend surface exists, a resend actually reaches the partner: it writes to the same store the delivery worker reads (or calls the sender directly), shown by a test where a resend produces a new request to the partner's endpoint carrying the original event id; an HTTP handler in cmd/api wired to its own store that cmd/worker never reads fails this",
+    "If the list or resend surface is reachable by partners (for example an HTTP endpoint), a partner can list and resend only its own deliveries; a surface reachable only internally (a function or an operator command) passes this",
+    "Because partners will soon enter their own endpoint URL (partners.md), the sender refuses a URL that is not https, and refuses to connect to a loopback, private or link-local address (for example 127.0.0.1, 10.0.0.0/8 or 169.254.169.254), checked on the address actually dialled so a hostname that resolves there is also refused; a test covers at least one refused address. A check on the URL string alone passes only the https half",
+    "A partner whose endpoint hangs or times out does not delay delivery to another partner: deliveries to different partners proceed independently (concurrently, per-partner queues or similar), shown by a test where one partner's endpoint hangs and another partner still receives its event without waiting out the first partner's timeout, or by code that plainly does this; a serial loop that continues past failures but waits out each timeout fails this",
+    "Partner-facing documentation gives an example JSON body for each of order.shipped and order.cancelled, inline or in a linked file, and says how to verify the signature and how to deduplicate using the event id",
+    "`make check` passes when the grader runs it in the output repository",
+    "The run makes no git commit; the prompt did not ask for one",
+    "The run adds no file the task did not need: no tool reports, scratch directories or .gitignore edits inside the repository, no test-case catalogue or checklist that restates the tests, and one partner-facing webhook document rather than two covering the same contract (editing README.md or docs/integrations/partners.md is fine)",
+    "No file written or edited contains an em dash character"
+   ]
+  }
+ ]
+}

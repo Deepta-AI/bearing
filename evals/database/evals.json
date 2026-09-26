@@ -1,0 +1,63 @@
+{
+ "skill_name": "database",
+ "evals": [
+  {
+   "id": 1,
+   "name": "unique-invoice-number-per-tenant",
+   "prompt": "Finance found invoices sharing the same number within a tenant. Put a unique constraint on invoices (tenant_id, number) so it can't happen again, and make invoice create cope with the conflict.",
+   "expected_output": "A new goose migration 0011 builds a unique index on invoices (tenant_id, number) concurrently in a NO TRANSACTION file (38.4M rows), covering soft-deleted and voided rows because ADR 0002 forbids reusing a number; the run finds both causes of the duplicates (next_number ignores deleted drafts, and the max+1 read races), fixes the first, makes create retry the whole transaction on the unique violation (or allocate atomically) without a sequence, says the 212 existing duplicate pairs will make the build fail and leave an INVALID index until finance resolves them, touches no existing invoice row, and says the migration was not applied to a database.",
+   "files": [
+    "files/invoice-service"
+   ],
+   "expectations": [
+    "`make check` passes when the grader runs it in the output repository, and the tests include at least one new test for the create path's handling of a duplicate number",
+    "The new migration is db/migrations/0011_<name>.sql (the next number after 0010; docs/schema.md saying the latest is 0009 is stale), with a non-empty goose Up and Down, and no existing migration file is edited",
+    "The unique index on invoices (tenant_id, number) is built with CREATE UNIQUE INDEX CONCURRENTLY in a file marked `-- +goose NO TRANSACTION`, because invoices holds 38.4M rows (docs/ops/table-sizes.md) and goose runs while the old release serves traffic (ADR 0001); a plain CREATE UNIQUE INDEX or ALTER TABLE ... ADD CONSTRAINT ... UNIQUE (tenant_id, number), which builds the index under a write-blocking lock, fails this",
+    "If the run turns the index into a named constraint, it does so with ALTER TABLE invoices ADD CONSTRAINT ... UNIQUE USING INDEX after the concurrent build, and that ALTER TABLE is preceded by SET lock_timeout",
+    "The uniqueness covers every row, including soft-deleted drafts and voided invoices: the index has no WHERE deleted_at IS NULL (or voided_at, or status) predicate, because ADR 0002 says a number is never issued again whatever happened to the invoice that first had it",
+    "The run identifies that InvoiceRepo.next_number in app/db/invoice_repo.py filters `deleted_at IS NULL`, so deleting the newest draft lets its number be issued again (this matches the 171 duplicate pairs involving a deleted draft in docs/ops/2026-09-duplicate-invoice-numbers.md), and changes it so deleted rows count",
+    "The run identifies the second cause: two concurrent creates for one tenant read the same max(number) + 1 (the 41 live pairs created within the same second)",
+    "Create no longer produces a duplicate or an unhandled error on that race: either it retries a bounded number of times on a unique violation of the new index, or it allocates the number atomically per tenant (for example a locked per-tenant counter row updated in the same transaction)",
+    "A retry after a unique violation starts a new transaction (or rolls back to a savepoint) before trying again; retrying the next_number query and the insert inside the same Postgres transaction that raised the violation, which Postgres has aborted, fails this",
+    "The fix does not use a Postgres sequence, identity column or any allocator that can leave a gap on rollback, which ADR 0002 rejects",
+    "The run states that the 212 existing duplicate (tenant_id, number) pairs will make the unique index build fail on production, and either gates the migration on their resolution (a precheck query or a documented order of steps) or adds an interim that blocks new duplicates without touching existing rows, rather than presenting the migration as ready to apply",
+    "The run warns that a failed CREATE INDEX CONCURRENTLY leaves an INVALID index behind that must be found and dropped before the next attempt, and the migration does not rely on CREATE ... IF NOT EXISTS to recover (IF NOT EXISTS skips an existing INVALID index silently)",
+    "No migration, script or code the run adds updates, renumbers or deletes existing invoice rows (finance's note forbids it until the auditors sign off)",
+    "The Down removes what the Up created (for example DROP INDEX CONCURRENTLY IF EXISTS in a NO TRANSACTION file, or dropping the constraint)",
+    "Scope: the invoice list query, its indexes and the pagination are unchanged; no column of invoices is added, dropped or retyped unless the run uses a per-tenant counter table or column for allocation and says so",
+    "The final message says the migration was not applied to a Postgres database (none is available in the repository's checks) and names what was run, without claiming the index build or the Down was tested against Postgres",
+    "The run makes no git commit: the output repository's history still ends at the fixture commit",
+    "If the run records a decision anywhere in the repository, it is not marked Accepted or approved and names no decider",
+    "No file written or edited contains an em dash character"
+   ]
+  },
+  {
+   "id": 2,
+   "name": "slow-invoice-list-index",
+   "prompt": "The invoice list is crawling for our biggest tenants, the ticket and a query plan are in docs/perf. Can you add whatever index it needs?",
+   "expected_output": "A new goose migration 0011 builds, concurrently and outside a transaction, an index leading with tenant_id and then issued_at and id in the ORDER BY's direction and NULL placement (partial on deleted_at IS NULL at most), without status in front of the sort key since 94% of calls have no status filter; no existing index is dropped (idx_invoices_tenant_created serves the export); the run corrects or reports the stale claim in docs/schema.md, explains that deep OFFSET pages (page 400, the nightly sync to page 24,000) stay slow and keyset pagination is the fix, handles or flags NULL issued_at for keyset, and says the plan after the change was not measured, giving the EXPLAIN to run.",
+   "files": [
+    "files/invoice-service"
+   ],
+   "expectations": [
+    "`make check` passes when the grader runs it in the output repository",
+    "The new migration is db/migrations/0011_<name>.sql (the next number after 0010), with a non-empty goose Up and Down, and no existing migration file is edited",
+    "The index is built with CREATE INDEX CONCURRENTLY in a file marked `-- +goose NO TRANSACTION` (invoices holds 38.4M rows and goose runs while the old release serves traffic, ADR 0001); the Down drops it with DROP INDEX CONCURRENTLY",
+    "The index key starts with tenant_id followed directly by issued_at and then id, in directions a forward or backward scan can use for ORDER BY issued_at DESC, id DESC: (tenant_id, issued_at DESC, id DESC) or (tenant_id, issued_at, id)",
+    "The index's NULL ordering matches the query: issued_at is NULL for drafts, and a key such as issued_at DESC NULLS LAST cannot serve ORDER BY issued_at DESC (NULLS FIRST by default) unless the query is changed to match and the run says so",
+    "status is not placed between tenant_id and issued_at in the new index: 94% of list calls have no status filter (docs/perf/2026-09-invoice-list-slow.md), and a (tenant_id, status, issued_at) index cannot return those rows in issued_at order",
+    "If the index is partial, its predicate is exactly deleted_at IS NULL (implied by every list query); a predicate on status or on issued_at IS NOT NULL fails this",
+    "No existing index is dropped in this change; in particular idx_invoices_tenant_created stays, because InvoiceRepo.export_created_between filters and orders by created_at. Proposing to drop idx_invoices_tenant later, once pg_stat_user_indexes shows it unused, is fine",
+    "The run notices that docs/schema.md claims the list is served by idx_invoices_tenant_created while the query orders by issued_at, and either corrects that line or reports it",
+    "The final message explains that the index fixes page 1 but deep OFFSET pages still walk and discard every earlier row (page 400 is offset 19,950; tenant 42's nightly sync reaches page 24,000, about 1.2M rows), and names keyset (cursor) pagination on (issued_at, id) as the fix",
+    "If the run implements keyset pagination, the existing ?page= behaviour keeps working for current callers, and drafts with NULL issued_at are neither skipped nor repeated across pages (a row comparison such as (issued_at, id) < ($1, $2) drops them), with a test covering a NULL issued_at row; if it does not implement it, it names NULL issued_at as something the keyset design must handle",
+    "The run does not claim a measured speedup: it says the plan after the change was not captured (no database available) and gives the EXPLAIN (ANALYZE, BUFFERS) statement to run on a replica to confirm the new index is used and the Sort is gone",
+    "The run warns that a failed CREATE INDEX CONCURRENTLY leaves an INVALID index that must be dropped before a retry, and the migration does not rely on CREATE INDEX CONCURRENTLY IF NOT EXISTS to recover (it silently skips an existing INVALID index)",
+    "Scope: invoice numbering, InvoiceRepo.next_number, the create path and the invoices columns are unchanged, and no index is added for a query shape the request did not name",
+    "The run makes no git commit: the output repository's history still ends at the fixture commit",
+    "If the run records a decision anywhere in the repository, it is not marked Accepted or approved and names no decider",
+    "No file written or edited contains an em dash character"
+   ]
+  }
+ ]
+}

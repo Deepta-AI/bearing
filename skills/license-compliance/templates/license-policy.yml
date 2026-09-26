@@ -1,0 +1,38 @@
+# Licence policy read by scripts/license-gate.py. Two flat lists of
+# SPDX identifiers plus exceptions. An expression like "MIT OR GPL-2.0"
+# passes when any OR branch is allowed; "A AND B" fails when any
+# AND branch is denied. Anything not listed is unknown and fails.
+allow:
+  - MIT
+  - ISC
+  - BSD-2-Clause
+  - BSD-3-Clause
+  - Apache-2.0
+  - 0BSD
+  - Unlicense
+  - CC0-1.0
+  - Zlib
+  - PostgreSQL
+  - Python-2.0
+  - PSF-2.0
+  - MPL-2.0
+  - BlueOak-1.0.0
+  - CC-BY-4.0
+deny:
+  - GPL-2.0-only
+  - GPL-2.0-or-later
+  - GPL-3.0-only
+  - GPL-3.0-or-later
+  - AGPL-3.0-only
+  - AGPL-3.0-or-later
+  - LGPL-2.1-only
+  - LGPL-2.1-or-later
+  - LGPL-3.0-only
+  - LGPL-3.0-or-later
+  - SSPL-1.0
+  - BUSL-1.1
+  - CC-BY-NC-4.0
+  - EUPL-1.2
+# Exceptions: one line per package, "name@version: reason (owner, date)".
+exceptions:
+  # some-package@1.2.3: dev-only tool, never shipped (a.person, 2026-01-01)

@@ -1,0 +1,185 @@
+# __REPO_NAME__ CI on GitHub Actions: the twin of .gitlab-ci.yml. Same stages
+# (validate, lint, test, build, then publish and deploy on request) and
+# every gate is `make <target>`, so the Makefile stays the single source of
+# what a gate does. GitHub sets CI=true, so a gate whose tool is missing
+# fails here instead of printing SKIPPED.
+#
+# Runners: format, lint and the package tests run on ubuntu-latest in the
+# swift and swiftlint containers (no Mac). Everything that needs Xcode
+# (xcodegen, the app build, the simulator tests, TestFlight) runs on
+# macos-latest with the Xcode release named in .xcode-version; those jobs
+# cost macOS minutes, so build runs on every ref and ui-test, publish and
+# deploy only on request.
+#
+# The two-approval rule (one peer, one lead, from CODEOWNERS) is a branch
+# protection setting, not something a workflow can enforce: Settings >
+# Branches > main and develop: require a pull request, 2 approving reviews,
+# review from Code Owners, dismiss stale approvals, and the status checks
+# format, lint, unit and build.
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [develop, main]
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "Xcode action for this ref (a person approves in the environment)"
+        type: choice
+        options: [ui-test, publish, deploy-production]
+        default: ui-test
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+env:
+  SWIFTFORMAT_VERSION: "0.63.0"
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - name: branch-name
+        if: github.event_name == 'pull_request'
+        env: { BRANCH: "${{ github.head_ref }}" }
+        run: |
+          echo "$BRANCH" | grep -Eq '^(feature|bugfix|hotfix|chore|docs)/[A-Z][A-Z0-9]*(-[0-9]+)+-[A-Za-z0-9]+$|^release/v[0-9]+\.[0-9]+\.[0-9]+$'
+          echo "branch-name: 1 branch checked"
+      - name: commits
+        if: github.event_name == 'pull_request'
+        env: { BASE: "${{ github.base_ref }}" }
+        run: |
+          git fetch origin "$BASE" --depth=200
+          range="origin/$BASE..HEAD"
+          subjects=$(mktemp)
+          git log --no-merges --format=%s "$range" > "$subjects"
+          n=$(wc -l < "$subjects" | tr -d ' ')
+          [ "$n" -gt 0 ] || { echo "commits: 0 commits in range $range"; exit 1; }
+          bad=0
+          while IFS= read -r subj; do
+            echo "$subj" | grep -Eq '^(feat|fix|refactor|test|docs|chore|perf|build|ci|revert)(\([a-z0-9._/-]+\))?!?: .{1,72}( \[[A-Z][A-Z0-9]*(-[0-9]+)+\])?$' || { echo "bad subject: $subj"; bad=$((bad+1)); }
+          done < "$subjects"
+          if git log --no-merges --format=%B "$range" | grep -Eiq 'co-authored-by: .*(claude|anthropic|copilot|chatgpt|gemini)|generated with'; then echo "AI attribution trailer found"; exit 1; fi
+          echo "commits: $n commits checked, $bad bad"
+          [ "$bad" -eq 0 ]
+
+  format:
+    needs: validate
+    runs-on: ubuntu-latest
+    container: swift:6.3.3
+    steps:
+      - uses: actions/checkout@v4
+      - name: swiftformat
+        run: |
+          apt-get update -qq && apt-get install -y -qq --no-install-recommends make curl unzip ca-certificates >/dev/null
+          curl -fsSL -o /tmp/swiftformat.zip "https://github.com/nicklockwood/SwiftFormat/releases/download/${SWIFTFORMAT_VERSION}/swiftformat_linux.zip"
+          unzip -q -o /tmp/swiftformat.zip -d /tmp/swiftformat && install -m 755 "$(find /tmp/swiftformat -type f | head -1)" /usr/local/bin/swiftformat
+          swiftformat --version
+      - run: make format-check
+
+  lint:
+    needs: validate
+    runs-on: ubuntu-latest
+    container: { image: ghcr.io/realm/swiftlint:0.57.1 }
+    steps:
+      - uses: actions/checkout@v4
+      - name: swiftlint
+        run: |
+          n=$(find App Packages -name '*.swift' | wc -l); [ "$n" -gt 0 ] || { echo "lint: 0 swift files, nothing checked"; exit 1; }
+          swiftlint lint --strict
+          echo "lint: $n files checked"
+
+  unit:
+    needs: [format, lint]
+    runs-on: ubuntu-latest
+    container: swift:6.3.3
+    steps:
+      - uses: actions/checkout@v4
+      - run: apt-get update -qq && apt-get install -y -qq --no-install-recommends make git >/dev/null
+      - uses: actions/cache@v4
+        with:
+          path: Packages/__REPO_NAME__Kit/.build
+          key: spm-${{ runner.os }}-${{ hashFiles('Packages/**/Package.swift') }}
+      - run: swift --version
+      - run: make test
+
+  build:
+    needs: unit
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - id: xcode
+        run: echo "version=$(cat .xcode-version)" >> "$GITHUB_OUTPUT"
+      - uses: maxim-lobanov/setup-xcode@v1
+        with: { xcode-version: "${{ steps.xcode.outputs.version }}" }
+      - run: brew install xcodegen
+      - uses: actions/cache@v4
+        with:
+          path: |
+            Packages/__REPO_NAME__Kit/.build
+            build/DerivedData/SourcePackages
+          key: spm-macos-${{ hashFiles('Packages/**/Package.swift') }}
+      - run: make generate
+      - run: make build
+
+  # Simulator tests, TestFlight and the App Store step run only from
+  # workflow_dispatch and stop at the environment's protection rule: a
+  # person approves in the GitHub UI. Signing comes from environment secrets
+  # (ASC_KEY_ID, ASC_ISSUER_ID, ASC_KEY_CONTENT base64; MATCH_GIT_URL and
+  # MATCH_PASSWORD when match is used) and never from the tree.
+  xcode:
+    if: github.event_name == 'workflow_dispatch'
+    needs: validate
+    runs-on: macos-latest
+    environment:
+      name: ${{ inputs.action == 'deploy-production' && 'production' || 'testflight' }}
+    env:
+      ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+      ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+      ASC_KEY_CONTENT: ${{ secrets.ASC_KEY_CONTENT }}
+      MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
+      MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: xcode
+        run: echo "version=$(cat .xcode-version)" >> "$GITHUB_OUTPUT"
+      - uses: maxim-lobanov/setup-xcode@v1
+        with: { xcode-version: "${{ steps.xcode.outputs.version }}" }
+      - run: brew install xcodegen
+      - run: make generate
+      - name: ui-test
+        if: inputs.action == 'ui-test'
+        run: make test-ui
+      - uses: actions/upload-artifact@v4
+        if: inputs.action == 'ui-test' && always()
+        with: { name: TestResults, path: build/TestResults.xcresult, retention-days: 7 }
+      - name: publish (TestFlight)
+        if: inputs.action == 'publish'
+        run: |
+          [ -n "$ASC_KEY_ID" ] && [ -n "$ASC_ISSUER_ID" ] && [ -n "$ASC_KEY_CONTENT" ] || { echo "publish: ASC_KEY_ID, ASC_ISSUER_ID and ASC_KEY_CONTENT must be set as environment secrets"; exit 1; }
+          command -v fastlane >/dev/null || brew install fastlane
+          fastlane beta
+          ipas=$(find build -maxdepth 1 -name '*.ipa' | wc -l); [ "$ipas" -gt 0 ] || { echo "smoke: no .ipa from fastlane beta"; exit 1; }
+          echo "smoke: $ipas ipa(s) checked"
+      - uses: actions/upload-artifact@v4
+        if: inputs.action == 'publish'
+        with:
+          name: ipa
+          path: |
+            build/*.ipa
+            build/*.xcarchive
+            build/*.dSYM.zip
+          retention-days: 7
+      - name: deploy-production
+        if: inputs.action == 'deploy-production'
+        run: |
+          echo "deploy: submit the TestFlight build ${GITHUB_REF#refs/tags/} for App Store review (fastlane deliver or App Store Connect); wire this step when the release process is decided"
+          exit 1

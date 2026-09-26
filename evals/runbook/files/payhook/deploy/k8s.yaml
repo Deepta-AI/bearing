@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: payhook-api
+  namespace: payments
+spec:
+  replicas: 2
+  selector:
+    matchLabels: {app: payhook-api}
+  template:
+    metadata:
+      labels: {app: payhook-api}
+    spec:
+      containers:
+        - name: api
+          image: registry.example/payhook:1.8.0
+          command: ["python3", "-m", "app.server"]
+          ports: [{containerPort: 8080}]
+          env:
+            - {name: DB_POOL_SIZE, value: "4"}
+            - name: DATABASE_URL
+              valueFrom: {secretKeyRef: {name: payhook-db, key: url}}
+            - name: WEBHOOK_SIGNING_SECRET
+              valueFrom: {secretKeyRef: {name: payhook-provider, key: signing-secret}}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: payhook-worker
+  namespace: payments
+spec:
+  replicas: 3
+  selector:
+    matchLabels: {app: payhook-worker}
+  template:
+    metadata:
+      labels: {app: payhook-worker}
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9102"
+    spec:
+      containers:
+        - name: worker
+          image: registry.example/payhook:1.8.0
+          command: ["python3", "-m", "app.worker"]
+          env:
+            - {name: DB_POOL_SIZE, value: "4"}
+            - {name: BATCH_SIZE, value: "20"}
+            - {name: POLL_INTERVAL_SECONDS, value: "2"}
+            - {name: ORDERS_API_URL, value: "http://orders-api.orders.svc:9000"}
+            - {name: ORDERS_API_TIMEOUT_SECONDS, value: "30"}
+            - name: DATABASE_URL
+              valueFrom: {secretKeyRef: {name: payhook-db, key: url}}

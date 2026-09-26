@@ -1,0 +1,13 @@
+Copyright (c) __YEAR__ __HOLDER__. All rights reserved.
+
+This software and its source code are the confidential and proprietary
+property of __HOLDER__ ("the Owner"). No licence, express or implied, is
+granted by this file. You may not copy, modify, distribute, sublicense,
+publish, reverse engineer or use this software, in whole or in part,
+except as expressly permitted in a written agreement signed by the Owner.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+OWNER BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY ARISING FROM THE
+USE OF THE SOFTWARE.

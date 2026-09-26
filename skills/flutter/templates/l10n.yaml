@@ -1,0 +1,7 @@
+# Strings live in lib/l10n/*.arb; `flutter gen-l10n` (run by make gen and
+# on build) writes AppLocalizations into lib/l10n/generated, git-ignored.
+arb-dir: lib/l10n
+template-arb-file: app_en.arb
+output-dir: lib/l10n/generated
+output-localization-file: app_localizations.dart
+nullable-getter: false

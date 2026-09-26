@@ -1,0 +1,48 @@
+openapi: 3.1.0
+info:
+  title: customers-api
+  version: 2.1.0
+paths:
+  /v1/customers/{id}/addresses:
+    get:
+      operationId: listAddressesV1
+      deprecated: true
+      x-sunset: "2026-08-15"
+      description: Deprecated on 2026-05-17. Use GET /v2/customers/{id}/addresses.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The customer's addresses
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Address" }
+  /v2/customers/{id}/addresses:
+    get:
+      operationId: listAddresses
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+        - { name: cursor, in: query, schema: { type: string } }
+      responses:
+        "200":
+          description: A page of the customer's addresses
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/Address" }
+                  next_cursor: { type: [string, "null"] }
+components:
+  schemas:
+    Address:
+      type: object
+      properties:
+        id: { type: string }
+        line1: { type: string }
+        city: { type: string }
+        pincode: { type: string }

@@ -1,0 +1,73 @@
+{
+ "skill_name": "feature-patterns",
+ "evals": [
+  {
+   "id": 1,
+   "name": "partner-rate-limits-plan",
+   "prompt": "We need rate limiting on the partner API before launch. Can you plan it out? Don't write any code yet, I want to review the approach first.",
+   "expected_output": "A written plan in a reviewable place, with no code changed and nothing committed, that builds on the existing token-endpoint limiter and notices its flaws (client address behind the ALB, per replica, fixed window, the empty partner id stub), uses the HLD's per-partner, Gold tier and export numbers as separate limits keyed by partner, adds a service-wide export cap because the per-partner export rate alone can exceed the read replica's 20 concurrent queries, shares counters across the 3 replicas in Redis as ADR 0004 already decides, names headers, failure handling and tests, and marks any number not in the repository as an assumption.",
+   "files": [
+    "files/partner-api"
+   ],
+   "expectations": [
+    "The plan is in a place a reviewer can find it: a new file under the repository's docs (or another tracked, non-scratch path) or given in full in the final message. A plan that exists only in an untracked scratch, temp or working folder, or only as a summary, does not meet this",
+    "No .go file, go.mod or existing document was changed",
+    "The plan finds the existing limiter in internal/httpapi/ratelimit.go (applied to POST /v1/auth/token at internal/httpapi/routes.go line 10) and says whether it is replaced or extended, rather than planning a second, unrelated limiter next to it",
+    "The plan notices that the existing limiter keys on r.RemoteAddr (ratelimit.go line 30), which behind the ALB is the balancer's address rather than the client's, so callers share one bucket",
+    "The plan notices that an in-process limit is enforced per replica, so with replicaCount 3 in deploy/helm/values.yaml a partner could get about three times its contracted rate",
+    "The plan notices that the existing limiter is a fixed window reset on the minute (time.Now().Truncate(time.Minute)), so a caller can get up to about twice the limit across a window boundary, and the planned algorithm does not have that flaw",
+    "Counters are shared in the existing Redis (partner-cache), citing ADR 0004 as already deciding the store, without asking the user to choose a store or proposing a new one",
+    "The limits are separate and use the HLD's numbers: 600 requests per minute with bursts of 50 per partner key, 1,500 per minute for Gold partners, and 5 exports per minute per partner for POST /v1/reports/export",
+    "Authenticated limits are keyed by partner id or API key, not by IP; any IP-based limit is kept to the anonymous token endpoint",
+    "The plan notices that lookupKey in internal/httpapi/handlers.go returns an empty partner id for every key, so a limit keyed on that id would put all partners in one bucket, and says it must be fixed (or the limit keyed on something else) before the limiter is relied on",
+    "The plan shows that 5 exports per minute per partner does not by itself protect the read replica (35 partners at up to 8 s per export can put about 23 queries in flight against the 20 the replica can serve, per the HLD) and adds a service-wide cap on concurrent or total exports, or an equivalent control, for US-07-003",
+    "Remaining-quota and reset information is returned on successful responses as well as refusals, for US-07-002; any header names are acceptable",
+    "A refused request gets status 429 with a Retry-After header",
+    "The plan states what happens when Redis is unavailable (fail open, fall back to a local limit, or fail closed) and why",
+    "Every number in the plan either comes from the HLD, the existing code or the request, is derived from them with the arithmetic shown, or is marked as an assumption or open question; a number with none of these (for example a new token-endpoint limit or a fallback cap picked without reasoning) fails this",
+    "GET /healthz and GET /readyz are left unlimited",
+    "If the plan lists tests, they include a burst at the boundary (for example the 50th request in a burst passes and the 51st is refused); a plan with no test list fails this",
+    "If the plan lists tests, they include one showing that two instances sharing Redis enforce a single limit rather than one each; a plan with no test list fails this",
+    "No commit was made and nothing was pushed",
+    "No new ADR file or decision-log row was written, and the plan does not record any of its own choices as Accepted or as approved by a named person; choices that need the user are left as proposals or open questions",
+    "No file written or edited contains an em dash character"
+   ]
+  },
+  {
+   "id": 2,
+   "name": "booking-payments-plan-with-idempotency",
+   "prompt": "We're adding in-app payment for bookings (Razorpay). Plan the design before anyone writes code. The Android team is also asking what they should send as the idempotency key, answer that in the plan.",
+   "expected_output": "A plan in a reviewable place, with no code changed and nothing committed, that takes the provider and checkout from ADR 0006, answers the Android team with a key made once per payment intent and reused on retries while flagging the per-attempt UUID, moves amount and confirmation to the server and the verified webhook, extends the existing webhook with event de-duplication while keeping subscription.charged working, sends one receipt per payment, keeps keys through every retry and replay window and payment records past the 120 day chargeback window, and plans refunds and tests from the backlog.",
+   "files": [
+    "files/booking-payments"
+   ],
+   "expectations": [
+    "The plan is in a place a reviewer can find it: a new file under the repository's docs (or another tracked, non-scratch path) or given in full in the final message. A plan that exists only in an untracked scratch, temp or working folder, or only as a summary, does not meet this",
+    "No .go or .kt file or existing document was changed",
+    "Provider and checkout come from ADR 0006 (Razorpay Standard Checkout through the Android SDK), cited, without the provider choice being asked again or left open",
+    "The answer to the Android team: the key is created once per payment intent (or derived from the booking id) and reused on every retry of that payment, never regenerated per attempt",
+    "The plan flags that PaymentApi.kt (clients/android/.../PaymentApi.kt line 23) creates a new UUID inside the retry loop, so a retry after a lost response creates a duplicate order or payment (saying it can charge the patient twice also counts)",
+    "The server takes the amount from its own booking record, not from the app's request (the amountRupees field in PaymentApi.kt)",
+    "Money is held in integer minor units (paise), and the float64 PriceRupees in internal/bookings/model.go line 17 is flagged as a problem",
+    "The plan flags that POST /bookings/{id}/confirm-payment marks a booking paid on the app's word (internal/bookings/handlers.go line 29), and makes the signature-verified webhook (or a server-side fetch from Razorpay) the only thing that marks a booking paid",
+    "The plan extends the existing handler in internal/payments/webhook.go, reusing its signature check, rather than adding a second webhook endpoint",
+    "The plan notices that the existing webhook does not de-duplicate redelivered events and adds de-duplication by event id (or an equivalent unique key)",
+    "The existing subscription.charged handling on the shared webhook keeps working, and the plan says so or covers it with a test",
+    "The server claims the idempotency key atomically (a unique constraint or equivalent) before calling Razorpay, so two concurrent requests with one key make one order",
+    "A reused key with a different booking or amount is rejected rather than answered with the first request's result",
+    "The plan states how long idempotency keys are kept, the period covers every window in which the same request can still be retried or replayed (at least the 14 day dead-letter replay in docs/operations/JOBS.md), and the payment record a key resolves to is kept past the 120 day chargeback window in ADR 0006",
+    "The plan states how long processed webhook event ids are kept, and the period is at least the 14 day dead-letter replay window in docs/operations/JOBS.md",
+    "The receipt for US-09-003 is sent once per payment even when the webhook and any client confirmation race or the webhook is redelivered (for example a job keyed on the Razorpay payment id, as the existing jobs are keyed in JOBS.md)",
+    "Refunds follow US-09-002 (clinic admin only, full or partial, up to 7 days after the appointment)",
+    "The plan prevents the total refunded on a booking from exceeding the amount paid, including when two refunds are requested at once",
+    "If the plan lists tests, they include the same idempotency key sent twice producing one Razorpay order; a plan with no test list fails this",
+    "If the plan lists tests, they include a replayed (redelivered) webhook event changing nothing; a plan with no test list fails this",
+    "If the plan lists tests, they include a webhook with a missing or wrong signature being rejected; a plan with no test list fails this",
+    "If the plan lists tests, they include a refund above the amount still refundable being refused; a plan with no test list fails this",
+    "No commit was made and nothing was pushed",
+    "No new ADR file or decision-log row was written, and the plan does not record any of its own choices as Accepted or as approved by a named person; choices that need the user are left as proposals or open questions",
+    "No file written or edited contains an em dash character"
+   ]
+  }
+ ]
+}

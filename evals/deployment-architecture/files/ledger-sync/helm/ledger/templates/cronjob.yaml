@@ -1,0 +1,21 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: ledger-reconcile
+spec:
+  schedule: {{ .Values.reconcile.schedule | quote }}
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: reconcile
+              image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+              args: ["reconcile"]
+              env:
+                - name: DB_MAX_CONNS
+                  value: "40"
+              envFrom:
+                - secretRef: { name: ledger-secrets }

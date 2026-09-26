@@ -1,0 +1,47 @@
+services:
+  web:
+    image: nginx:1.27
+    volumes:
+      - ./web/dist:/usr/share/nginx/html:ro
+    ports:
+      - "8080:80"
+    depends_on:
+      - api
+
+  api:
+    build:
+      context: .
+      args:
+        CMD: api
+    environment:
+      DATABASE_URL: postgres://shop:shop@postgres:5432/shop?sslmode=disable
+      PAYMENTS_BASE_URL: https://api.razorpay.com/v1
+      INVENTORY_URL: http://inventory:8081
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres
+
+  worker:
+    build:
+      context: .
+      args:
+        CMD: worker
+    environment:
+      DATABASE_URL: postgres://shop:shop@postgres:5432/shop?sslmode=disable
+      SMTP_HOST: mailhog:1025
+    depends_on:
+      - postgres
+      - mailhog
+
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: shop
+      POSTGRES_PASSWORD: shop
+      POSTGRES_DB: shop
+
+  mailhog:
+    image: mailhog/mailhog:v1.0.1
+    ports:
+      - "8025:8025"

@@ -1,0 +1,4 @@
+*                       @logistics/rates-team
+/src/labels/            @logistics/labels-team
+/tests/test_labels.py   @logistics/labels-team
+/vendor/                @logistics/labels-team

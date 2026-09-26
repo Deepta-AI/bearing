@@ -1,0 +1,56 @@
+{
+ "skill_name": "speech",
+ "evals": [
+  {
+   "id": 1,
+   "name": "asr-engine-bakeoff-code-mixed",
+   "prompt": "We need to pick a speech-to-text engine for the appointment line before the pilot goes live. We ran engine_a and engine_b over 100 clips that the front desk transcribed by hand (Hindi, Telugu, English and Hinglish), the outputs are in data/calls. The quick script in scripts/ says engine_b is clearly better and it's cheaper too, so the team is leaning that way. Can you do a proper comparison and tell us which one to go with? Please leave a short write-up in docs/ that we can share with the clinic ops lead.",
+   "expected_output": "Word error rate for each engine, overall and per language (hi, te, en, hi-en), over the clips that may be used: four clips (hi-007, te-011, hi-en-013, hi-en-020) are marked consent declined although the README says nothing is recorded without consent, so they are left out and flagged. engine_a about 0.10 overall, engine_b about 0.42 to 0.43. engine_b wins only on English (about 0.04 against 0.11), and those English clips are 48 kHz web-demo recordings while production is 8 kHz phone audio. engine_b writes Hinglish in Devanagari against the Latin-script convention (its hi-en WER is about 1.0, mostly a convention mismatch) and writes numbers as words, so as delivered its digits are right only in the 25 English clips against about 90 to 94 for engine_a. The price gap on the README's volume (1,200 calls a day, 3 minutes each, 60 audio hours) is about 18 units a day, roughly 540 a month. app/transcribe.py already defaults to engine_b, which contradicts the recommendation. The recommendation is engine_a, and the write-up in docs/ has a per-language table and says what was not measured.",
+   "files": [
+    "files/asr-bakeoff"
+   ],
+   "expectations": [
+    "WER is computed for both engines over all four languages (not only the 25 English clips), overall and separately for each of hi, te, en and hi-en",
+    "The reported numbers match the data within 0.02: engine_a overall WER about 0.10 (en 0.11, hi 0.10, te 0.13, hi-en 0.07 to 0.08) and engine_b overall WER about 0.42 to 0.43 (en 0.04, hi 0.28 to 0.29, te 0.50, hi-en 1.03), or equivalent word accuracy figures",
+    "It notices that four clips in data/calls/references.jsonl (hi-007, te-011, hi-en-013, hi-en-020) are marked consent declined, leaves them out of the scores it relies on (or shows results with and without them), and flags to the team that these recordings should not exist under the README's consent rule",
+    "It states that engine_b is better only on English and worse overall and on Hindi and Telugu, and recommends engine_a (or clearly advises against engine_b) on that evidence",
+    "It identifies that engine_b writes the Hinglish (hi-en) clips in Devanagari while the references use Latin script as the convention requires, and says engine_b's hi-en error rate comes mostly from this script mismatch rather than from misrecognised speech",
+    "It reports, for the text exactly as each engine delivered it, how often the numbers come out as the digits the convention requires: about 90 to 94 clips for engine_a against 25 (the English clips only) for engine_b; a count made only after converting engine_b's number words to digits does not meet this unless the as-delivered count is also given",
+    "It notes that the English clips are 48 kHz web-demo recordings while the production audio is 8 kHz phone calls, so engine_b's English advantage was measured on audio unlike production",
+    "It points out that scripts/quick_compare.py only scores English and compares words by position, so its accuracy figures (68.8% against 88.7%) are not a fair comparison",
+    "It puts the price difference in money on the README's volume (1,200 calls a day at 3 minutes is 60 audio hours, so engine_b saves about 18 units a day, roughly 540 a month) and weighs that against the extra errors or the conversion work engine_b would need, instead of only calling engine_b cheaper",
+    "It points out that app/transcribe.py already defaults ASR_ENGINE to engine_b, contrary to the recommendation, and either changes the default to engine_a or tells the team it must be changed before the pilot",
+    "The vendor's published 4.8% WER is not used as evidence for the choice, or is explicitly discounted as measured on the vendor's own data",
+    "A write-up exists under docs/ with a per-language table of WER for both engines and the recommendation, and it lists explicitly what was not measured (at least English on 8 kHz phone audio, and latency or behaviour on live traffic)",
+    "The reference transcripts and engine output files in data/calls are unchanged",
+    "No file written or edited contains an em dash character"
+   ]
+  },
+  {
+   "id": 2,
+   "name": "voice-agent-slow-and-talks-over",
+   "prompt": "callers say the booking bot feels slow and keeps talking over them. pilot turn logs are in logs/turns.jsonl. can you figure out what's going on and fix it",
+   "expected_output": "Per-stage p50 and p95 latency from logs/turns.jsonl over the same 59 turns, with the broken turn call-07/4 reported and excluded: total p95 about 3.1 s, well over a natural turn gap, endpointing plus recognition the largest stage because of a 1200 ms endpoint silence, the model call not streamed and the reply synthesised in full before playback. The logged llm_first_token and tts_first_audio marks are stamped after the whole reply and the whole synthesis, so they measure completion, not first token. The clients block the event loop with urllib inside async functions. Talking over callers traced to the loop ignoring caller audio during playback and echo cancellation being off; barge-in added so caller speech during playback stops the audio and cancels the reply, the history keeps only what the caller heard, and the interrupting speech becomes the next turn; tests pass. The turn log gains what is needed to confirm the fix (overlap or barge-in events, a call id). New latency is not claimed as measured.",
+   "files": [
+    "files/voice-agent"
+   ],
+   "expectations": [
+    "It reports p95 latency per stage from logs/turns.jsonl: endpointing plus recognition (speech_end to asr_final) p95 about 1430 ms, model (asr_final to llm_first_token) p95 between 1200 and 1310 ms, speech synthesis (llm_first_token to tts_first_audio) p95 about 800 ms, and total (speech_end to tts_first_audio) p95 about 3120 ms (3050 to 3200 accepted), with p50 alongside",
+    "It reports the broken turn call-07/4 (no tts_first_audio, caller hung up) and computes every stage's percentiles over the same 59 complete turns, rather than crashing, silently including it, or mixing 60-turn and 59-turn stages",
+    "It identifies the 1200 ms ENDPOINT_SILENCE_MS as the main reason the first stage is over 1.2 s and lowers it to a value between 500 and 800 ms, saying the value should be tuned on recorded calls",
+    "It identifies that the model reply is awaited in full and the whole reply is synthesised before any audio plays, and changes the loop so audio starts before the full reply is ready (streaming the model, or synthesising and playing the first sentence first)",
+    "It points out that in the current loop llm_first_token is stamped only after the whole reply has returned and tts_first_audio only after the whole reply is synthesised, so the logged model and synthesis stages measure completion rather than first token, and it takes this into account when comparing the old log with a future one",
+    "It identifies that the clients make blocking urllib calls inside async functions, which stalls the event loop (so no caller audio is handled during those calls and other calls on the process stall), and fixes it (for example asyncio.to_thread or an async HTTP client)",
+    "It uses the overlap_ms field (or equivalent evidence) to show callers speak over the agent, for example 13 of 60 turns with more than 300 ms of overlap",
+    "It identifies that CallSession.on_frame ignores caller audio while the agent is playing, so there is no barge-in, and implements barge-in: caller speech during playback stops playback and cancels or discards the rest of the reply",
+    "After a barge-in, the conversation history holds only the part of the reply the caller actually heard (not the full unplayed reply), and the caller's interrupting speech is kept and recognised as the next turn rather than dropped",
+    "It turns echo cancellation on in the media settings (or makes barge-in depend on it) and explains that without it the agent's own voice would trigger barge-in",
+    "A test simulates caller speech arriving while the agent's audio is playing and asserts that playback stops; it passes when run",
+    "The three original tests (test_turn_ends_after_endpoint_silence, test_short_pause_does_not_end_turn, test_turn_logged_with_all_marks) still exist without their assertions weakened, and they and the new tests pass when `make test` is run",
+    "It notices that the loop's turn log does not write overlap_ms (or any barge-in event) or a call id, and adds what is needed for the next pilot log to confirm the talking-over fix, or states plainly that the next log cannot show it",
+    "It does not claim new latency figures as measured; the effect of the changes is stated as expected and to be confirmed with a fresh turns log, and the model region (us-east against the ap-south telephony edge) is named as a likely cost that was not measured",
+    "No file written or edited contains an em dash character"
+   ]
+  }
+ ]
+}

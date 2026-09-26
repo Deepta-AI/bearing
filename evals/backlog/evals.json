@@ -1,0 +1,73 @@
+{
+ "skill_name": "backlog",
+ "evals": [
+  {
+   "id": 1,
+   "name": "first-backlog-from-claims-prd",
+   "prompt": "PRD for expense claims v1 is in docs/product. Can you break it into user stories with acceptance criteria so we can plan sprint 1 on Monday?",
+   "expected_output": "A backlog under docs/ whose stories each trace to the PRD's REQ ids and carry concrete, testable acceptance criteria. The 16 live statements are judged and combined rather than turned into one story each: REQ-004 and REQ-005 are one platform question, REQ-003, REQ-008 and REQ-015 are criteria of the receipt and decision stories, REQ-006 is split into status tracking and the monthly PDF, REQ-014 is a constraint on every screen, and withdrawn REQ-013 gets no story. It raises the conflicts the repository holds: native apps against ADR-0002, the INR 2,000 auto-approval against config.py's 500 and FP-12, REQ-017 against the PRD's own out-of-scope list, and the missing manager link on User that REQ-007, REQ-012 and REQ-016 assume. It notices that decide() does not enforce REQ-008's reason, raises the finance notes' conflict over the PDF statement and their unconfirmed 60-day rule without attributing it to the PRD, flags the PRD-silent decisions its criteria take, and keeps its files consistent. Code, tests and the PRD are untouched and nothing is committed.",
+   "files": [
+    "files/claims-prd"
+   ],
+   "expectations": [
+    "The run notices that decide() in claimdesk/claims.py stores a rejection with no reason (reason defaults to None and is never checked), so REQ-008 is not enforced by the service today, and its rejection criterion or a task says the service itself must refuse a rejection without a reason, not only the screen",
+    "Every live statement REQ-001 to REQ-017 except REQ-013 is cited by id in the backlog, either by at least one story or acceptance criterion that covers it, or with a stated reason it is not planned (out of scope, deferred or awaiting a decision)",
+    "The statements are judged and combined, not turned into one story per line: the backlog has fewer stories than the 16 live statements, and each story says which REQ ids it covers",
+    "REQ-004 (iOS) and REQ-005 (Android) are not two separate stories that repeat the same submit capability; they are handled together as one platform question or one story",
+    "REQ-003 (10 MB receipt limit), REQ-008 (reason required on rejection) and REQ-015 (receipt shown beside the claim when deciding) are acceptance criteria of the story that attaches receipts or the story that approves or rejects, not stories of their own; the receipt criterion names 10 MB and a message that states the limit",
+    "REQ-006 is recognised as two capabilities, seeing each claim's status and downloading a monthly PDF statement: either two stories, or one story whose acceptance criteria cover both with the split stated; a story whose criteria cover only the status list does not pass",
+    "No story plans Slack notifications: REQ-013 is marked withdrawn in the PRD and the backlog either skips it or names it as withdrawn",
+    "REQ-014 (WCAG 2.1 AA) is carried as a criterion on the stories that have screens, or as a stated definition of done that applies to all of them, not only as one standalone accessibility story",
+    "The run notices that REQ-004 and REQ-005 ask for iOS and Android apps while docs/adr/0002-web-first-no-native-apps.md (Accepted) rules out native apps in 2026, and does not plan native app work as settled: it raises the conflict as a question or states the assumption it took (for example, mobile web)",
+    "The run notices that REQ-009's INR 2,000 auto-approval threshold contradicts AUTO_APPROVE_BELOW_INR = 500 in claimdesk/config.py and the README's finance policy FP-12, and raises it as an open question or contradiction for finance or product rather than silently adopting either number",
+    "The run notices that REQ-017 (monthly CSV export for the accounting system) contradicts the PRD's own out-of-scope list ('Any export or integration with the accounting system'), and raises it rather than planning the export as settled work",
+    "The run notices that the code has no link from an employee to their manager (User in claimdesk/models.py has only the roles employee and finance_admin, and decide() in claimdesk/claims.py lets any finance admin decide, per its TODO), so the manager approval in REQ-007, REQ-012 and REQ-016 depends on work that does not exist yet; a story, task or open question covers creating that link",
+    "The run reads docs/product/notes/2026-09-14-finance-sync.md and notices that finance there sees no need for the monthly PDF statement in REQ-006 while the PRD still asks for it; it neither drops the PDF silently nor plans it as settled without mentioning the notes, and raises the conflict for product to decide",
+    "The 60-day submission limit from the same notes is not in the PRD: the run mentions it and either raises it as a pending PRD change or carries it as a criterion clearly sourced to the notes and marked unconfirmed; it is never cited under a PRD REQ id",
+    "Each acceptance criterion states an outcome a tester can observe (a status, a message, a refusal, a listed value); criteria such as 'the feature works' or 'the page is user friendly' are not acceptable, and no more than a few criteria in the whole backlog are of that kind",
+    "No story or epic is a technical layer on its own (for example 'database schema', 'API endpoints' or 'set up the backend'); stories are slices a user or admin can observe. An enabler such as the manager link passes when at least one of its criteria is an outcome a user or admin can observe (for example who can decide a claim), not only a data field",
+    "Where the run took a decision the PRD leaves open, it records it as an assumption or open question for the user (in the backlog or the final message), not as a settled fact. At least these, wherever a criterion depends on them: what happens to a claim from an employee with no manager set, which date places a claim in a monthly statement (spent, submitted or paid), and when the manager email in REQ-012 is sent. A criterion that settles one of them with no assumption or question fails this",
+    "Nothing is attributed to the PRD that it does not say: any story or requirement the run added on its own (for example the manager link) is marked as the run's own inference, no REQ id beyond REQ-017 is cited as coming from the PRD, and no capability is cited under a REQ id whose statement does not contain it (for example submitting a claim cited only as REQ-001, which says create)",
+    "The generated files agree with each other: a statement's disposition (covered, merged, out of scope, waiting on a question), a question's id and a count are the same wherever they appear across the backlog, any supporting files and the final message",
+    "Any number of stories, criteria or statements the final message reports matches what the written backlog files contain",
+    "No file outside docs/ was created or changed, and docs/product/PRD.md and the two ADRs are unchanged",
+    "The run makes no git commit: the output repository's history still ends at the fixture commit",
+    "No file written or edited contains an em dash character"
+   ]
+  },
+  {
+   "id": 2,
+   "name": "refresh-backlog-for-prd-v1-1",
+   "prompt": "Product bumped the claims PRD to v1.1 after the client review. Please bring the backlog in line with it; sprint 2 is already running so don't break anything we're tracking.",
+   "expected_output": "docs/product/backlog.md updated in place with every existing CLM id kept as it was, new stories numbered from CLM-12 (never reusing the withdrawn CLM-6 or colliding with CLM-11), CLM-5 marked withdrawn in place with the code and tests that still name it flagged, the 25 MB change raised as new work against the Done CLM-1 rather than rewriting its shipped criterion, REQ-022 folded into CLM-9, new stories for REQ-018, REQ-019 and REQ-021, REQ-020 held against ADR-0001, the missing working-day calendar raised, the 25 MB change raised against ADR-0001's storage-cost note, the effect of REQ-018 and REQ-021 on the in-progress CLM-10 raised without rewriting it, new stories kept out of the running sprint, untouched stories left alone, and a change summary given. No code, tests or PRD changed and nothing committed.",
+   "files": [
+    "files/claims-backlog-v1-1"
+   ],
+   "expectations": [
+    "The run notices that raising the receipt limit to 25 MB (REQ-003) cuts against docs/adr/0001-receipts-in-own-storage.md, whose consequences say the 10 MB limit was set with storage cost in mind, and raises it (a question, a note that the ADR needs revisiting, or an assumption) rather than treating 25 MB as free",
+    "Every existing story id CLM-1 to CLM-11 is still present in docs/product/backlog.md with the same meaning (title and subject), none renumbered or reused for different work; CLM-6 stays marked withdrawn. The CLM keys stay the backlog's story ids: a second id scheme introduced as the primary story id, with the CLM key demoted to a ticket field or an id map, fails this",
+    "Every new story gets an id not used before in the backlog: new ids start at CLM-12 or later, and none reuses CLM-6 or any other existing id",
+    "CLM-5 (employee emails, REQ-011) is not deleted and not left as ordinary live work: it is either marked withdrawn, or its withdrawal is proposed with a decision asked for, and either way the reason is given (PRD v1.1 withdrew REQ-011 in favour of REQ-019)",
+    "The run points out that CLM-5 was in progress and that code and tests already exist for it (email_employee in claimdesk/notify.py and tests/test_notify.py, which names CLM-5), so someone must decide what happens to that work; it does not itself delete or edit that code or those tests",
+    "The run does not treat all email as withdrawn: CLM-10 (manager emails, REQ-012) stays live, and any suggestion to remove email code is limited to the employee emails",
+    "The receipt limit change in REQ-003 (10 MB to 25 MB) is handled as new or reopened work against the Done story CLM-1, not by silently rewriting CLM-1's shipped criterion as if 25 MB had been delivered in sprint 1; the run notes that claimdesk/config.py still has MAX_RECEIPT_MB = 10 (and the existing test and CLM-1 AC-3 message say 10 MB)",
+    "REQ-022 (select several approved claims and mark them paid) is recognised as the same capability as REQ-010 and folded into CLM-9 (for example by adding REQ-022 to its covers line or criteria), not written as a new story",
+    "REQ-019 (in-app notification when a claim is approved, rejected or paid) has a story with acceptance criteria covering all three events",
+    "REQ-018 (a manager on leave hands approvals to another manager for a set period) has a story with acceptance criteria that include what happens when the period ends",
+    "The run notices that REQ-018 overlaps CLM-11 (finance decides for an absent manager, REQ-016) and says how the two relate (kept both with the difference stated, combined, or raised as a question)",
+    "REQ-021 (escalate after 3 working days to the manager's own manager) has a story that depends on the manager link from CLM-8, and the run notes that nothing in the repository defines working days or holidays, raising it as a question or stating the assumption it took",
+    "The run notices that the in-progress CLM-10 (manager emails) is affected by REQ-018 and REQ-021, which change who must be emailed (the delegate during leave, the manager's own manager after escalation), and handles it without silently rewriting CLM-10's sprint 2 criteria: the new routing lives in the new stories, or the change to CLM-10 is raised for the team",
+    "The run notices that REQ-020 (attach receipts straight from Google Drive) conflicts with docs/adr/0001-receipts-in-own-storage.md ('We do not link to or fetch from third-party file storage') and does not plan it as settled work: it raises the conflict as an open question or blocks the story on a decision",
+    "Every live statement in PRD v1.1 (REQ-001 to REQ-022, except the withdrawn REQ-011 and REQ-013) is cited by id in docs/product/backlog.md or in a coverage or question file beside it under docs/product/, by a story or criterion or with a stated reason it is not planned",
+    "Stories the v1.1 changes do not touch (for example CLM-2, CLM-4, CLM-7 and CLM-8) keep their existing text and acceptance criteria; git diff fixture shows no rewrite of them beyond at most a status or cross-reference note",
+    "New stories are not placed into the running sprint 2 as settled: they are left unscheduled or To do, or any proposal to pull one into sprint 2 is stated as a proposal for the team",
+    "Any number of stories, criteria or statements the final message reports matches what the written files contain",
+    "The final message summarises what changed in the backlog: the stories added (with ids), the stories changed or reopened, and the stories withdrawn",
+    "Any assumption the run made in place of asking (for example on REQ-020 or on working days) is stated as an assumption or open question for the user, not as a decision already taken",
+    "No source file outside docs/ was created or changed (claimdesk/ and tests/ are untouched; ignored caches such as __pycache__ do not count), and docs/product/PRD.md and the ADRs are unchanged",
+    "The run makes no git commit: the output repository's history still ends at the fixture commit",
+    "No file written or edited contains an em dash character"
+   ]
+  }
+ ]
+}

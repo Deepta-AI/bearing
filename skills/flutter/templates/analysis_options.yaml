@@ -1,0 +1,45 @@
+# flutter_lints plus the strict analyzer modes. The stricter optional set:
+# add very_good_analysis to dev_dependencies and replace the include with
+# package:very_good_analysis/analysis_options.yaml.
+include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  language:
+    strict-casts: true
+    strict-inference: true
+    strict-raw-types: true
+  exclude:
+    - "**/*.g.dart"
+    - "**/*.freezed.dart"
+    - "lib/l10n/generated/**"
+    - "build/**"
+    - "android/**"
+    - "ios/**"
+  errors:
+    todo: ignore
+
+# The tall-style formatter adds and removes trailing commas by itself;
+# preserve keeps the ones require_trailing_commas asks for, so format and
+# analyze agree.
+formatter:
+  trailing_commas: preserve
+
+linter:
+  rules:
+    - always_declare_return_types
+    - avoid_catches_without_on_clauses
+    - avoid_dynamic_calls
+    - avoid_print
+    - cancel_subscriptions
+    - close_sinks
+    - directives_ordering
+    - prefer_const_constructors
+    - prefer_const_constructors_in_immutables
+    - prefer_const_declarations
+    - prefer_const_literals_to_create_immutables
+    - prefer_final_locals
+    - prefer_single_quotes
+    - require_trailing_commas
+    - sort_pub_dependencies
+    - unawaited_futures
+    - use_build_context_synchronously

@@ -1,0 +1,23 @@
+version: 1
+models:
+  claude-opus-5:
+    provider: anthropic
+    input_per_m: 5.00
+    output_per_m: 25.00
+  claude-sonnet-5:
+    provider: anthropic
+    input_per_m: 2.00
+    output_per_m: 10.00
+  claude-haiku-4-5:
+    provider: anthropic
+    input_per_m: 1.00
+    output_per_m: 5.00
+tiers:
+  deep:
+    model: claude-opus-5
+    max_tokens: 400
+    timeout_s: 60
+routes:
+  ticket_summary:
+    tier: deep
+    effort: low

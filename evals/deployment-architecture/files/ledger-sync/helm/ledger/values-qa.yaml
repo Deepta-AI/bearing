@@ -1,0 +1,5 @@
+replicaCount: 2
+ingress:
+  host: ledger.qa.acme.example.com
+env:
+  DB_MAX_CONNS: "10"

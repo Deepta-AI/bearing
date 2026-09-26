@@ -1,0 +1,325 @@
+#!/usr/bin/env bash
+# brg-jira: Jira Cloud adapter for brg-tracker (REST API v3, basic auth with
+# the login email and an API token).
+#
+#   brg-jira me                             -> accountId, name, email
+#   brg-jira resolve <KEY>                  -> the issue's numeric id
+#   brg-jira get <KEY>                      -> compact JSON for one issue
+#   brg-jira list [--type t] [--status s] [--q text] [--limit n]
+#   brg-jira create --type <epic|story|task|bug|testcase> --title <s>
+#            [--description-file f] [--parent KEY] [--priority p]
+#   brg-jira update <KEY> [--status name] [--assignee me|email|accountId] [--title s]
+#            [--description-file f] [--priority p]
+#   brg-jira comment <KEY> (<text> | --file f)
+#   brg-jira link <KEY> <relates|blocks> <KEY2>
+#   brg-jira trace <KEY> [--branch b] [--mr url] [--commits a,b] [--tests TC-..,..]
+#            [--adr ADR-nnnn] [--docs path,..]
+#   brg-jira close <KEY>                    -> transition to BEARING_TRACKER_DONE_STATUS (Done)
+#   brg-jira transitions <KEY>              -> transitions available right now
+#   brg-jira types                          -> the effective issue type mapping
+#
+# Configuration: environment, then ~/.config/bearing/bearing.env (KEY=value):
+#   BEARING_TRACKER_URL      https://you.atlassian.net
+#   BEARING_TRACKER_PROJECT  project key, e.g. PROJ
+#   BEARING_TRACKER_EMAIL    login email
+#   BEARING_TRACKER_TOKEN    API token (id.atlassian.com, Security, API tokens)
+#   BEARING_TRACKER_DONE_STATUS  status close transitions to (default Done)
+#   BEARING_JIRA_TYPES       epic=Epic,story=Story,task=Task,bug=Bug,testcase=Test
+# Keys are PROJ-123. Status names match transitions case-insensitively. The
+# token is never printed. Every call has a 30 s budget. A 429 is retried
+# once; a 5xx is retried once for GET and PUT, and for a create, a comment or
+# a transition only after a search for it (creates and comments carry the
+# entity property bearing-op) finds nothing, so a retry never duplicates.
+# list follows nextPageToken up to BEARING_TRACKER_MAX_PAGES (default 20) pages,
+# says when it stops early, and prints the count on stderr.
+set -euo pipefail
+
+ENV_FILE="${BEARING_ENV:-${XDG_CONFIG_HOME:-$HOME/.config}/bearing/bearing.env}"
+usage() { sed -n '2,34p' "$0" | sed 's/^# \{0,1\}//'; exit "${1:-2}"; }
+die() { echo "brg-jira: $*" >&2; exit 1; }
+need() { command -v "$1" >/dev/null || die "$1 is required"; }
+need curl; need jq
+
+load_env() {
+  [ -f "$ENV_FILE" ] || return 0
+  local line key val
+  while IFS= read -r line || [ -n "$line" ]; do
+    case "${line#"${line%%[![:space:]]*}"}" in ''|'#'*) continue;; esac
+    case "$line" in *=*) ;; *) continue;; esac
+    key="${line%%=*}"; key="${key//[[:space:]]/}"; val="${line#*=}"
+    printf '%s' "$key" | grep -Eq '^[A-Z_][A-Z0-9_]*$' || continue
+    val="${val#"${val%%[![:space:]]*}"}"
+    case "$val" in
+      \"*) val="${val#\"}"; val="${val%%\"*}";;
+      \'*) val="${val#\'}"; val="${val%%\'*}";;
+      *) val="${val%%[[:space:]]#*}"; val="${val%"${val##*[![:space:]]}"}";;
+    esac
+    [ -n "${!key+x}" ] && continue
+    export "$key=$val"
+  done < "$ENV_FILE"
+}
+load_env
+
+cmd="${1:-}"; [ -n "$cmd" ] || usage; shift
+case "$cmd" in -h|--help|help) usage 0;; esac
+
+URL="${BEARING_TRACKER_URL:-}"; URL="${URL%/}"
+PROJECT="${BEARING_TRACKER_PROJECT:-}"
+EMAIL="${BEARING_TRACKER_EMAIL:-}"
+TOKEN="${BEARING_TRACKER_TOKEN:-}"
+[ -n "$URL" ] || die "set BEARING_TRACKER_URL (https://you.atlassian.net) in $ENV_FILE"
+[ -n "$EMAIL" ] && [ -n "$TOKEN" ] || die "set BEARING_TRACKER_EMAIL and BEARING_TRACKER_TOKEN (a Jira API token) in $ENV_FILE"
+DONE_STATUS="${BEARING_TRACKER_DONE_STATUS:-Done}"
+KEY_RE='^[A-Z][A-Z0-9_]*-[0-9]+$'
+
+MAX_PAGES="${BEARING_TRACKER_MAX_PAGES:-20}"
+case "$MAX_PAGES" in ''|*[!0-9]*|0) die "BEARING_TRACKER_MAX_PAGES must be a whole number above 0 (got '$MAX_PAGES')";; esac
+case "$EMAIL$TOKEN" in *$'\n'*|*$'\r'*) die "BEARING_TRACKER_EMAIL or BEARING_TRACKER_TOKEN contains a line break";; esac
+WORK="$(mktemp -d "${TMPDIR:-/tmp}/brg-jira.XXXXXX")"
+trap 'rm -rf "$WORK"' EXIT
+
+# Credentials go to curl through a config file on a pipe, never on the command
+# line. Inside a double-quoted config value curl reads \ and " as escapes, so
+# both are backslash-escaped and a token holding either arrives intact.
+cfg_quote() { printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'; }
+auth_cfg() { printf 'user = "%s"\n' "$(cfg_quote "$EMAIL:$TOKEN")"; }
+# cap WORD -> Word (bash 3.2 has no ${x^}).
+cap() { printf '%s%s' "$(printf '%s' "${1:0:1}" | tr '[:lower:]' '[:upper:]')" "${1:1}"; }
+# new_mark -> a random marker. A create or a comment carries it as the
+# entity property bearing-op (invisible in the UI) so a retry can find what a
+# failed POST already made.
+new_mark() { printf 'bearing-op-%s' "$(od -An -N8 -tx1 /dev/urandom | tr -d ' \n')"; }
+mark_prop() { jq -nc --arg m "$1" '[{key:"bearing-op",value:{mark:$m}}]'; }
+
+# api METHOD PATH [JSON] [RECOVER] -> body on stdout; sets STATUS. The body
+# travels on stdin. A 429 is retried once after 2 seconds for every method
+# (the server refused it unapplied); a 5xx is retried once for GET and PUT,
+# which are idempotent. A POST answered 5xx may have been applied, so it is
+# sent again only after the RECOVER function (which prints what the POST
+# would have made, or nothing) finds nothing; without one it is not retried
+# at all. Non-2xx dies with the server's message; a transport failure dies
+# with curl's one line.
+STATUS=""
+api() {
+  local method="$1" path="$2" data="${3:-}" recover="${4:-}" out err msg attempt found
+  local dargs=()
+  [ -z "$data" ] || dargs=(-H 'Content-Type: application/json' --data-binary @-)
+  err="$(mktemp "$WORK/err.XXXXXX")"
+  for attempt in 1 2; do
+    out="$(printf '%s' "$data" | curl -sS --max-time 30 --connect-timeout 10 -w '\n%{http_code}' -X "$method" "$URL/rest/api/3$path" \
+      -K <(auth_cfg) -H 'Accept: application/json' ${dargs[@]+"${dargs[@]}"} 2>"$err")" \
+      || { msg="$(head -c 200 "$err")"; rm -f "$err"; die "cannot reach $URL: ${msg:-curl failed}"; }
+    STATUS="${out##*$'\n'}"
+    [ "$attempt" = 1 ] || break
+    case "$STATUS" in
+      429) sleep 2; continue;;
+      5*) case "$method" in
+            GET|PUT) sleep 2; continue;;
+            POST) [ -n "$recover" ] || break
+              sleep 2
+              found="$("$recover")" || die "$method $path -> $STATUS, and the check for an already-applied request failed"
+              [ -n "$found" ] || continue
+              echo "brg-jira: $method $path answered $STATUS but had been applied; not sent again" >&2
+              out="$found"$'\n'"200"; STATUS=200;;
+          esac;;
+    esac
+    break
+  done
+  rm -f "$err"
+  local body="${out%$'\n'*}"
+  case "$STATUS" in
+    2*) printf '%s' "$body";;
+    401|403) die "$method $path -> $STATUS: check BEARING_TRACKER_EMAIL and BEARING_TRACKER_TOKEN";;
+    *) msg="$(printf '%s' "$body" | jq -r '[.errorMessages[]?, (.errors // {} | to_entries[] | "\(.key): \(.value)")] | join("; ")' 2>/dev/null || true)"
+       case "$method:$STATUS:$recover" in POST:5*:) msg="${msg:-server error}; not retried, a POST may already have been applied";; esac
+       die "$method $path -> $STATUS: ${msg:-$(printf '%s' "$body" | head -c 300)}";;
+  esac
+}
+
+# search JQL LIMIT FILTER: every issue the JQL matches through jq FILTER, one
+# line each, page by page on nextPageToken until isLast. Stops at LIMIT
+# issues (0 means no limit) or at BEARING_TRACKER_MAX_PAGES pages (default 20)
+# and says so when more exist; always ends with the count on stderr, zero
+# included.
+search() {
+  local jql="$1" limit="$2" filter="$3" per=100 page=1 token="" body rows k got=0 last
+  [ "$limit" = 0 ] || [ "$limit" -ge 100 ] || per="$limit"
+  while :; do
+    body="$(api GET "/search/jql?jql=$(urlenc "$jql")&maxResults=$per&fields=$FIELDS${token:+&nextPageToken=$(urlenc "$token")}")"
+    rows="$(printf '%s' "$body" | jq -c ".issues[] | $filter")"
+    k=0; [ -z "$rows" ] || k="$(printf '%s\n' "$rows" | wc -l | tr -d ' ')"
+    token="$(printf '%s' "$body" | jq -r '.nextPageToken // empty')"
+    last="$(printf '%s' "$body" | jq -r 'if .isLast == false then "no" else "yes" end')"
+    [ -n "$token" ] || last=yes
+    if [ "$limit" -gt 0 ] && [ $((got + k)) -ge "$limit" ]; then
+      printf '%s\n' "$rows" | sed -n "1,$((limit - got))p"
+      if [ $((got + k)) -gt "$limit" ] || [ "$last" = no ]; then echo "brg-jira: stopped at --limit $limit; more issue(s) exist" >&2; fi
+      got="$limit"; break
+    fi
+    [ -z "$rows" ] || printf '%s\n' "$rows"
+    got=$((got + k))
+    [ "$last" = no ] || break
+    if [ "$page" -ge "$MAX_PAGES" ]; then
+      echo "brg-jira: stopped after $page page(s) at BEARING_TRACKER_MAX_PAGES=$MAX_PAGES; more issue(s) exist, narrow the query or raise the cap" >&2
+      break
+    fi
+    page=$((page + 1))
+  done
+  echo "brg-jira: $got issue(s) listed from $page page(s)" >&2
+}
+
+urlenc() { printf '%s' "$1" | jq -sRr @uri; }
+check_key() { printf '%s' "$1" | grep -Eq "$KEY_RE" || die "'$1' is not a Jira key like PROJ-123"; }
+
+# Issue type mapping: defaults, then BEARING_JIRA_TYPES overrides entry by entry.
+jira_type() {
+  local want="$1" map="epic=Epic,story=Story,task=Task,bug=Bug,testcase=Test,${BEARING_JIRA_TYPES:-}" pair found="" IFS=','
+  for pair in $map; do [ "${pair%%=*}" = "$want" ] && found="${pair#*=}"; done
+  [ -n "$found" ] || die "type must be epic|story|task|bug|testcase (got '$want')"
+  printf '%s' "$found"
+}
+
+# adf TEXT -> Atlassian document: "### " lines are headings, "- " lines bullet
+# items, every other non-empty line a paragraph.
+adf() {
+  jq -nc --arg t "$1" '
+    def para: {type:"paragraph",content:[{type:"text",text:.}]};
+    def item: {type:"listItem",content:[(.|para)]};
+    ($t | split("\n") | map(select(length>0))) as $lines
+    | (reduce $lines[] as $l ([];
+        if ($l|startswith("- ")) then
+          (if (length>0 and .[-1].type=="bulletList")
+           then .[:-1] + [(.[-1] | .content += [($l[2:]|item)])]
+           else . + [{type:"bulletList",content:[($l[2:]|item)]}] end)
+        elif ($l|startswith("### ")) then . + [{type:"heading",attrs:{level:3},content:[{type:"text",text:$l[4:]}]}]
+        else . + [($l|para)] end)) as $c
+    | {type:"doc",version:1,content:(if ($c|length)==0 then [("(empty)"|para)] else $c end)}'
+}
+
+compact='{key:.key, id:.id, type:.fields.issuetype.name, title:.fields.summary, status:.fields.status.name, assignee:(.fields.assignee.displayName // null), priority:(.fields.priority.name // null), parent:(.fields.parent.key // null)}'
+FIELDS="summary,status,issuetype,assignee,priority,parent"
+show() { api GET "/issue/$1?fields=$FIELDS" | jq -c "$compact"; }
+
+account_id() { # me | email | accountId
+  case "$1" in
+    me) api GET /myself | jq -r .accountId;;
+    *@*) api GET "/user/search?query=$(urlenc "$1")" | jq -r '.[0].accountId // empty';;
+    *) printf '%s' "$1";;
+  esac
+}
+
+# Recovery for a POST answered 5xx: print what it made, or nothing.
+rec_issue() { # my issue from the last 15 minutes whose bearing-op property is $REC_MARK
+  api GET "/search/jql?jql=$(urlenc "project = \"$PROJECT\" AND reporter = currentUser() AND created >= \"-15m\" ORDER BY created DESC")&maxResults=50&fields=summary&properties=bearing-op" \
+    | jq -c --arg m "$REC_MARK" '[.issues[] | select(.properties["bearing-op"].mark? == $m) | {id,key}][0] // empty'
+}
+rec_comment() { # the comment on $REC_KEY whose bearing-op property is $REC_MARK
+  api GET "/issue/$REC_KEY/comment?orderBy=-created&maxResults=50&expand=properties" \
+    | jq -c --arg m "$REC_MARK" '[.comments[] | select(any(.properties[]?; .key == "bearing-op" and .value.mark == $m)) | {id}][0] // empty'
+}
+rec_transition() { # $REC_KEY already stands in $REC_STATUS
+  [ -n "$REC_STATUS" ] || return 0
+  api GET "/issue/$REC_KEY?fields=status" | jq -c --arg s "$REC_STATUS" 'select((.fields.status.name | ascii_downcase) == ($s | ascii_downcase)) | {status:.fields.status.name}'
+}
+comment_post() { # KEY text -> comment id
+  REC_KEY="$1"; REC_MARK="$(new_mark)"
+  api POST "/issue/$1/comment" "$(jq -nc --argjson b "$(adf "$2")" --argjson p "$(mark_prop "$REC_MARK")" '{body:$b,properties:$p}')" rec_comment | jq -r .id
+}
+
+transition_to() { # KEY status-name
+  local key="$1" want tr tid names
+  want="$(printf '%s' "$2" | tr '[:upper:]' '[:lower:]')"
+  tr="$(api GET "/issue/$key/transitions")"
+  tid="$(printf '%s' "$tr" | jq -r --arg n "$want" '[.transitions[] | select((.to.name|ascii_downcase)==$n or (.name|ascii_downcase)==$n)][0].id // empty')"
+  if [ -z "$tid" ]; then
+    names="$(printf '%s' "$tr" | jq -r '[.transitions[].to.name] | join(", ")')"
+    die "no transition to '$2' from the current status of $key (available: $names)"
+  fi
+  REC_KEY="$key"; REC_STATUS="$(printf '%s' "$tr" | jq -r --arg t "$tid" '[.transitions[] | select(.id == $t)][0].to.name // empty')"
+  api POST "/issue/$key/transitions" "$(jq -nc --arg t "$tid" '{transition:{id:$t}}')" rec_transition >/dev/null
+}
+
+case "$cmd" in
+  me) api GET /myself | jq -c '{accountId,name:.displayName,email:(.emailAddress // null)}' ;;
+  types) for t in epic story task bug testcase; do echo "$t=$(jira_type "$t")"; done ;;
+  resolve) [ $# -eq 1 ] || usage; check_key "$1"; api GET "/issue/$1?fields=id" | jq -r .id ;;
+  get) [ $# -eq 1 ] || usage; check_key "$1"; show "$1" ;;
+  transitions) [ $# -eq 1 ] || usage; check_key "$1"; api GET "/issue/$1/transitions" | jq -c '.transitions[] | {id,name,to:.to.name}' ;;
+  list)
+    [ -n "$PROJECT" ] || die "set BEARING_TRACKER_PROJECT (the Jira project key)"
+    jql="project = \"$PROJECT\""; limit=0
+    while [ $# -gt 0 ]; do case "$1" in
+      --type) jql="$jql AND issuetype = \"$(jira_type "$2")\""; shift 2;;
+      --status) jql="$jql AND status = \"${2//\"/\\\"}\""; shift 2;;
+      --q) jql="$jql AND text ~ \"${2//\"/\\\"}\""; shift 2;;
+      --limit) limit="$2"; shift 2;;
+      *) usage;; esac; done
+    case "$limit" in ''|*[!0-9]*) die "--limit must be a whole number (got '$limit')";; esac
+    search "$jql ORDER BY created DESC" "$limit" "$compact" ;;
+  create)
+    [ -n "$PROJECT" ] || die "set BEARING_TRACKER_PROJECT (the Jira project key)"
+    typ=task; title=""; desc=""; parent=""; prio=""
+    while [ $# -gt 0 ]; do case "$1" in
+      --type) typ="$2"; shift 2;; --title) title="$2"; shift 2;; --description-file) desc="$(cat "$2")"; shift 2;;
+      --parent) parent="$2"; shift 2;; --priority) prio="$2"; shift 2;; *) usage;; esac; done
+    [ -n "$title" ] || die "--title is required"
+    jtype="$(jira_type "$typ")"
+    fields="$(jq -nc --arg p "$PROJECT" --arg t "$jtype" --arg s "$title" '{project:{key:$p},issuetype:{name:$t},summary:$s}')"
+    [ -z "$desc" ] || fields="$(printf '%s' "$fields" | jq -c --argjson d "$(adf "$desc")" '. + {description:$d}')"
+    if [ -n "$parent" ]; then check_key "$parent"; fields="$(printf '%s' "$fields" | jq -c --arg k "$parent" '. + {parent:{key:$k}}')"; fi
+    [ -z "$prio" ] || fields="$(printf '%s' "$fields" | jq -c --arg p "$(cap "$prio")" '. + {priority:{name:$p}}')"
+    REC_MARK="$(new_mark)"
+    key="$(api POST /issue "$(jq -nc --argjson f "$fields" --argjson p "$(mark_prop "$REC_MARK")" '{fields:$f,properties:$p}')" rec_issue | jq -r .key)"
+    [ -n "$key" ] || die "create returned no key"
+    show "$key" ;;
+  update)
+    [ $# -ge 1 ] || usage; key="$1"; check_key "$key"; shift; fields='{}'; status=""; assignee=""
+    while [ $# -gt 0 ]; do case "$1" in
+      --status) status="$2"; shift 2;;
+      --assignee) assignee="$2"; shift 2;;
+      --title) fields="$(printf '%s' "$fields" | jq -c --arg v "$2" '. + {summary:$v}')"; shift 2;;
+      --description-file) fields="$(printf '%s' "$fields" | jq -c --argjson d "$(adf "$(cat "$2")")" '. + {description:$d}')"; shift 2;;
+      --priority) fields="$(printf '%s' "$fields" | jq -c --arg p "$(cap "$2")" '. + {priority:{name:$p}}')"; shift 2;;
+      *) usage;; esac; done
+    [ "$fields$status$assignee" != "{}" ] || die "nothing to update"
+    [ "$fields" = "{}" ] || api PUT "/issue/$key" "$(jq -nc --argjson f "$fields" '{fields:$f}')" >/dev/null
+    if [ -n "$assignee" ]; then
+      aid="$(account_id "$assignee")"; [ -n "$aid" ] || die "no Jira user matches '$assignee'"
+      api PUT "/issue/$key/assignee" "$(jq -nc --arg a "$aid" '{accountId:$a}')" >/dev/null
+    fi
+    [ -z "$status" ] || transition_to "$key" "$status"
+    show "$key" ;;
+  close) [ $# -eq 1 ] || usage; check_key "$1"; transition_to "$1" "$DONE_STATUS"; show "$1" ;;
+  comment)
+    [ $# -ge 2 ] || usage; key="$1"; check_key "$key"; shift
+    if [ "$1" = "--file" ]; then text="$(cat "$2")"; else text="$*"; fi
+    [ -n "$text" ] || die "empty comment"
+    cid="$(comment_post "$key" "$text")"
+    echo "brg-jira: comment $cid posted on $key" ;;
+  link)
+    [ $# -eq 3 ] || usage; check_key "$1"; check_key "$3"
+    case "$2" in relates) name="Relates";; blocks) name="Blocks";; *) die "link type must be relates|blocks";; esac
+    api POST /issueLink "$(jq -nc --arg n "$name" --arg a "$1" --arg b "$3" '{type:{name:$n},outwardIssue:{key:$a},inwardIssue:{key:$b}}')" >/dev/null
+    echo "brg-jira: $1 $2 $3"; echo "link: issue-link" ;;
+  trace)
+    [ $# -ge 1 ] || usage; key="$1"; check_key "$key"; shift
+    branch="$(git branch --show-current 2>/dev/null || true)"; mr=""; commits=""; tests=""; adr=""; docs=""
+    while [ $# -gt 0 ]; do case "$1" in --branch) branch="$2"; shift 2;; --mr) mr="$2"; shift 2;; --commits) commits="$2"; shift 2;; --tests) tests="$2"; shift 2;; --adr) adr="$2"; shift 2;; --docs) docs="$2"; shift 2;; *) usage;; esac; done
+    [ -n "$branch$mr$commits$tests$adr$docs" ] || die "nothing to trace; give --branch, --mr, --commits, --tests, --adr or --docs"
+    body="### Traceability (Bearing, $(date -u +%Y-%m-%dT%H:%MZ))"
+    [ -z "$branch" ] || body="$body"$'\n'"- Branch: $branch"
+    [ -z "$mr" ] || body="$body"$'\n'"- MR: $mr"
+    [ -z "$commits" ] || body="$body"$'\n'"- Commits: $commits"
+    [ -z "$tests" ] || body="$body"$'\n'"- Tests: $tests"
+    [ -z "$adr" ] || body="$body"$'\n'"- ADR: $adr"
+    [ -z "$docs" ] || body="$body"$'\n'"- Docs: $docs"
+    comment_post "$key" "$body" >/dev/null
+    linked=0
+    for t in $(printf '%s' "$tests" | tr ',' ' '); do
+      if printf '%s' "$t" | grep -Eq "$KEY_RE"; then
+        api POST /issueLink "$(jq -nc --arg a "$key" --arg b "$t" '{type:{name:"Relates"},outwardIssue:{key:$a},inwardIssue:{key:$b}}')" >/dev/null 2>&1 && linked=$((linked+1)) || true
+      fi
+    done
+    echo "brg-jira: trace comment posted on $key, $linked test issue link(s) added" ;;
+  *) usage ;;
+esac

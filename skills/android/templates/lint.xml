@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android lint configuration. app/build.gradle.kts sets abortOnError, so any
+     issue listed as error here fails make lint and the pipeline. Promote a
+     warning to error when the team decides it matters; never demote one to
+     make a build pass. A baseline file is not used: fix or suppress inline
+     with the task id. -->
+<lint>
+    <!-- Correctness that must never ship. -->
+    <issue id="HardcodedText" severity="error" />
+    <issue id="MissingTranslation" severity="error" />
+    <issue id="ExportedReceiver" severity="error" />
+    <issue id="ExportedService" severity="error" />
+    <issue id="ExportedContentProvider" severity="error" />
+    <issue id="AllowBackup" severity="error" />
+    <issue id="TrustAllX509TrustManager" severity="error" />
+    <issue id="BadHostnameVerifier" severity="error" />
+    <issue id="UnsafeIntentLaunch" severity="error" />
+    <issue id="CoroutineCreationDuringComposition" severity="error" />
+    <issue id="FrequentlyChangedStateReadInComposition" severity="error" />
+
+    <!-- Warnings worth reading in the report but not blocking. -->
+    <issue id="ObsoleteLintCustomCheck" severity="ignore" />
+    <issue id="GradleDependency" severity="warning" />
+    <issue id="NewerVersionAvailable" severity="ignore" />
+
+    <!-- Generated code is not ours to lint. -->
+    <issue id="all">
+        <ignore path="build" />
+        <ignore path="**/generated/**" />
+    </issue>
+</lint>

@@ -1,0 +1,146 @@
+# __REPO_NAME__ CI on GitHub Actions: the twin of .gitlab-ci.yml. Same stages
+# (validate, lint, test, security, build, then a release on a tag) and every
+# gate is `make <target>`, so the Makefile stays the single source of what a
+# gate does. A CLI has no image and no environment, so nothing deploys.
+# GitHub sets CI=true, so a gate whose tool is missing fails here instead of
+# printing SKIPPED.
+#
+# The two-approval rule (one peer, one lead, from CODEOWNERS) is a branch
+# protection setting, not something a workflow can enforce: Settings >
+# Branches > main and develop: require a pull request, 2 approving reviews,
+# review from Code Owners, dismiss stale approvals, and the status checks
+# lint, unit, vuln and build.
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [develop, main]
+    tags: ["v*"]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - name: branch-name
+        if: github.event_name == 'pull_request'
+        env: { BRANCH: "${{ github.head_ref }}" }
+        run: |
+          echo "$BRANCH" | grep -Eq '^(feature|bugfix|hotfix|chore|docs)/[A-Z][A-Z0-9]*(-[0-9]+)+-[A-Za-z0-9]+$|^release/v[0-9]+\.[0-9]+\.[0-9]+$'
+          echo "branch-name: 1 branch checked"
+      - name: commits
+        if: github.event_name == 'pull_request'
+        env: { BASE: "${{ github.base_ref }}" }
+        run: |
+          git fetch origin "$BASE" --depth=200
+          range="origin/$BASE..HEAD"
+          subjects=$(mktemp)
+          git log --no-merges --format=%s "$range" > "$subjects"
+          n=$(wc -l < "$subjects" | tr -d ' ')
+          [ "$n" -gt 0 ] || { echo "commits: 0 commits in range $range"; exit 1; }
+          bad=0
+          while IFS= read -r subj; do
+            echo "$subj" | grep -Eq '^(feat|fix|refactor|test|docs|chore|perf|build|ci|revert)(\([a-z0-9._/-]+\))?!?: .{1,72}( \[[A-Z][A-Z0-9]*(-[0-9]+)+\])?$' || { echo "bad subject: $subj"; bad=$((bad+1)); }
+          done < "$subjects"
+          if git log --no-merges --format=%B "$range" | grep -Eiq 'co-authored-by: .*(claude|anthropic|copilot|chatgpt|gemini)|generated with'; then echo "AI attribution trailer found"; exit 1; fi
+          echo "commits: $n commits checked, $bad bad"
+          [ "$bad" -eq 0 ]
+
+  lint:
+    needs: validate
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        gate: [fmt-check, vet, lint]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: tools/go.sum
+          cache: ${{ hashFiles('tools/go.sum') != '' }}
+      - name: tools
+        if: matrix.gate == 'lint'
+        run: make tools
+      - run: make ${{ matrix.gate }}
+
+  unit:
+    needs: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: tools/go.sum
+          cache: ${{ hashFiles('tools/go.sum') != '' }}
+      - run: make test
+
+  vuln:
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: tools/go.sum
+          cache: ${{ hashFiles('tools/go.sum') != '' }}
+      - run: make tools
+      - run: make vuln
+
+  # One binary per platform, named <tool>-<os>-<arch>[.exe], uploaded as a
+  # workflow artifact. fetch-depth 0 so git describe sees the tags.
+  build:
+    needs: [unit, vuln]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: tools/go.sum
+          cache: ${{ hashFiles('tools/go.sum') != '' }}
+      - name: build
+        env: { PLATFORMS: "linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 windows/amd64" }
+        run: |
+          n=0
+          for p in $PLATFORMS; do
+            os="${p%/*}"; arch="${p#*/}"; ext=""; [ "$os" = windows ] && ext=".exe"
+            GOOS="$os" GOARCH="$arch" make build BIN="dist/__REPO_SLUG__-$os-$arch$ext"
+            n=$((n+1))
+          done
+          [ "$n" -gt 0 ] || { echo "build: 0 platforms in PLATFORMS, nothing built"; exit 1; }
+          (cd dist && sha256sum * > SHA256SUMS)
+          echo "build: $n binaries built"
+      - uses: actions/upload-artifact@v4
+        with: { name: dist, path: dist/, retention-days: 30 }
+
+  # A v* tag becomes a GitHub release carrying the binaries and SHA256SUMS.
+  # Nothing is deployed; people download the binary.
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with: { name: dist, path: dist }
+      - env: { GH_TOKEN: "${{ github.token }}", TAG: "${{ github.ref_name }}" }
+        run: |
+          n=$(ls dist | wc -l | tr -d ' ')
+          [ "$n" -gt 0 ] || { echo "release: 0 files in dist, nothing released"; exit 1; }
+          gh release create "$TAG" dist/* --repo "$GITHUB_REPOSITORY" --title "$TAG" --generate-notes
+          echo "release: $n files attached to $TAG"

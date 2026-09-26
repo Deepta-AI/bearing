@@ -1,0 +1,41 @@
+# Templates that are code or generated scaffolding, not documents a person fills
+# section by section. One per line: path|reason.
+skills/llm-agent/templates/agent-python.md|agent loop code for the Python stack
+skills/llm-agent/templates/agent-typescript.md|agent loop code for the TypeScript stack
+skills/llm-agent/templates/tool-registry.md|tool registry code and its tests
+skills/llm-gateway/templates/gateway-python.md|gateway module code
+skills/llm-gateway/templates/gateway-typescript.md|gateway module code
+skills/mcp-server/templates/server-python.md|MCP server code
+skills/mcp-server/templates/server-typescript.md|MCP server code
+skills/mcp-server/templates/client.md|MCP client code
+skills/prompt-registry/templates/prompts-module.md|prompt registry code
+skills/prompt-registry/templates/prompt.md|a prompt file in the registry's format, filled by code
+skills/rag/templates/ingest.md|ingestion code
+skills/rag/templates/retriever.md|retriever code
+skills/llm-eval/templates/graders.md|grader code
+skills/llm-guardrails/templates/test-guardrails.md|guardrail test code
+skills/test-automation/templates/screen-object.md|test helper code
+skills/test-automation/templates/test-data-builder.md|test helper code
+skills/logging/templates/http-logging/go.md|middleware code
+skills/logging/templates/http-logging/python.md|middleware code
+skills/logging/templates/http-logging/react.md|interceptor code
+skills/logging/templates/http-logging/react-native.md|interceptor code
+skills/logging/templates/http-logging/android.md|interceptor code
+skills/logging/templates/http-logging/ios.md|interceptor code
+skills/health-checks/templates/readyz/go.md|readiness handler code
+skills/health-checks/templates/readyz/python.md|readiness handler code
+skills/new-skill/templates/SKILL.template.md|a SKILL.md skeleton whose sections are the skill format, checked by lint-skills
+skills/android/templates/README.md|the scaffold writes this README with its content already filled; guidance comments would land in every new repository
+skills/data-pipeline/templates/README.md|the scaffold writes this README with its content already filled; guidance comments would land in every new repository
+skills/flutter/templates/README.md|the scaffold writes this README with its content already filled; guidance comments would land in every new repository
+skills/go/templates/README.md|the scaffold writes this README with its content already filled; guidance comments would land in every new repository
+skills/go/templates-cli/README.md|the scaffold writes this README with its content already filled; guidance comments would land in every new repository
+skills/infra/templates/README.md|the scaffold writes this README with its content already filled; guidance comments would land in every new repository
+skills/ios/templates/README.md|the scaffold writes this README with its content already filled; guidance comments would land in every new repository
+skills/nextjs/templates/README.md|the scaffold writes this README with its content already filled; guidance comments would land in every new repository
+skills/node/templates/README.md|the scaffold writes this README with its content already filled; guidance comments would land in every new repository
+skills/python/templates/README.md|the scaffold writes this README with its content already filled; guidance comments would land in every new repository
+skills/python/templates-cli/README.md|the scaffold writes this README with its content already filled; guidance comments would land in every new repository
+skills/react/templates/README.md|the scaffold writes this README with its content already filled; guidance comments would land in every new repository
+skills/react-native/templates/README.md|the scaffold writes this README with its content already filled; guidance comments would land in every new repository
+skills/llm-fine-tuning/templates/serve-vllm.md|vLLM serving commands and the gateway entry, copied as is

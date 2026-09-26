@@ -1,0 +1,18 @@
+question,article_the_lead_would_send,collected_by,notes
+"what does E-4012 mean on the bank file",errors/error-codes.md,support-lead-south,from chat 2026-08-29
+"Payroll wont start, says attendance not locked",payroll/running-payroll.md,support-lead-south,
+"How many admin users do we get on Growth?",billing/plans-and-limits.md,support-lead-north,
+"we cancelled annual plan after 3 weeks, do we get money back",billing/refunds.md,support-lead-north,customer bought in July 2026
+"annual plan bought in March, want to cancel now, what do we get back",billing/refunds-2024.md,support-lead-south,customer bought 2026-03-10; asked 2026-09-02
+"our invoice doesn't have our GSTIN on it, can you fix",billing/gst-invoices.md,support-lead-south,
+"Why is IGST charged instead of CGST SGST",billing/gst-invoices.md,support-lead-north,customer in Maharashtra
+"ESI employer contribution percentage?",payroll/pf-and-esi.md,support-lead-south,
+"can we pay PF on full basic not 15000",payroll/pf-and-esi.md,support-lead-south,
+"employees didn't get payslip email after approval",payroll/running-payroll.md,support-lead-north,
+"auto debit failed what happens now",billing/payment-failures.md,support-lead-north,
+"SSO login error E-1010",account/sso-setup.md,support-lead-south,also errors/error-codes.md
+"can HR viewer see salaries",account/user-roles.md,support-lead-north,
+"Form 16 not generating",payroll/tds-on-salary.md,support-lead-south,
+"how long is data kept after we cancel",billing/refunds.md,support-lead-north,
+"Do you support payroll for our Singapore entity?",none,support-lead-north,not covered in the help centre
+"can I get a refund of the GST charged last year",none,support-lead-south,not covered; goes to billing team

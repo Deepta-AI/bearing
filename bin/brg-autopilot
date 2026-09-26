@@ -1,0 +1,1090 @@
+#!/usr/bin/env python3
+"""brg-autopilot: the state, the gates and the report of an unattended run from
+one requirement statement to a prepared merge request.
+
+The autopilot skill drives the stages; this script is the part that cannot
+be talked around: which stage is next, whether its gate holds (checked on
+disk, never taken from the model's word), how many attempts are left, the
+digest of every decision taken on the user's behalf, and the report. Nothing
+here pushes, merges or deploys; the run stops at a prepared merge request.
+
+  brg-autopilot start "<statement>" [--dir D]   begin a run (refuses when one is open)
+  brg-autopilot next [--dir D]                  the next stage, its skill and its gate
+  brg-autopilot done <stage> [--dir D]          check the gate; mark done or say what is missing
+  brg-autopilot fail <stage> "<why>" [--dir D]  count a failed attempt (3 and the stage is blocked)
+  brg-autopilot decision <key> <choice> <alternatives> <why> [--adr PATH] [--dir D]
+                                                one row of the decision digest
+  brg-autopilot report [--dir D]                write docs/autopilot/<run>.md (the MR carries it)
+  brg-autopilot status [--dir D]                the stages, attempts and decisions so far
+  brg-autopilot profile --ui|--data|--api|--deploy yes|no --why W [--dir D]
+                                                what the product has; decides which stages apply
+  brg-autopilot stages                          the stage names, in order
+  brg-autopilot launch "<statement>" [--dir D] [--print]
+                                                run it headless: claude -p with autopilot,
+                                                then any smoke it asked for, outside the sandbox
+  brg-autopilot smoke-request [--id ID] [--dir D]
+                                                headless dod: ask the launcher to run the smoke
+
+State lives in <dir>/.bearing/state/autopilot.json. Every command prints what it
+checked and exits 1 when a gate fails or there is nothing to act on.
+"""
+
+import argparse
+import datetime
+import glob
+import json
+import os
+import re
+import shutil
+import subprocess
+import sys
+import time
+import urllib.error
+import urllib.request
+
+MAX_ATTEMPTS = 3
+MAX_SMOKE_ROUNDS = 3
+TRUNKS = ("main", "master", "develop", "trunk")
+
+# stage, the skill that does it, and the gate in words; the gate functions below
+# check the same thing on disk
+STAGES = [
+    ("repo", "new-repo (empty directory); an existing repository gets only what this gate reads, "
+     "never a full onboard-repo",
+     "a git repository whose Makefile check target records a pass (.check-passed)"),
+    ("prd", "prd",
+     "docs/product/PRD.md with at least one REQ-nnn statement"),
+    ("stories", "backlog",
+     "docs/product/backlog.md with at least one US- story and docs/product/coverage.md"),
+    ("decide", "tech-decision (auto: the recommendation, recorded Proposed), then brg-autopilot profile",
+     "every decision this run took is in the digest, no ADR this run wrote says Accepted, and the "
+     "product profile (ui, data, api, deploy) is recorded"),
+    ("architecture", "architecture-diagram",
+     "at least one docs/architecture/*-c4.md with a mermaid diagram"),
+    ("design", "high-level-design, then data-model (profile data), openapi-spec (profile api), "
+     "deployment-architecture (profile deploy), then low-level-design",
+     "docs/design/*-hld.md and *-lld.md; by profile, docs/design/data-model.md, api/openapi.yaml and "
+     "docs/architecture/deployment.md with a mermaid diagram"),
+    ("ux", "profile ui: ux-flows, design-directions --unattended, design-system, motion-design, "
+     "then screen-design",
+     "profile ui: flows passing flows_check and tokens passing contrast; on react-shadcn (the default) "
+     "a direction chosen from 3 scored variants, docs/design/motion.md, every screen in the design "
+     "gallery passing gallery_check, and design-lint; on another stack HTML screens passing states_check"),
+    ("test_cases", "test-cases",
+     "docs/testing/risks.md and docs/testing/test-cases.md passing cases_check against "
+     "docs/product/backlog.md and the threat models"),
+    ("branch", "start-task",
+     "a working branch that is not the trunk"),
+    ("build", "test-first implementation, story by story (superpowers:test-driven-development), "
+     "the stack skill (go, react, ...) and the design system for UI",
+     "tests added on the branch, and make check passed after the last change"),
+    ("test_automation", "test-automation",
+     "every case in docs/testing/test-cases.md not manual-only or retired is named by its TC id in a "
+     "test file, and make check passed after the last change"),
+    ("design_review", "profile ui: design-critique on the design gallery of the running app",
+     "profile ui: a review scoring overall 8.0 with no category below 7 and every screenshot present; "
+     "otherwise nothing"),
+    ("review", "branch-review",
+     "a review folder under .scratch/review/ for this branch"),
+    ("dod", "definition-of-done",
+     "make check passed after the last change, every change committed on the branch, and, when the "
+     "repository ships something runnable, a .scratch/smoke-*.md newer than the last commit with "
+     "'smoke: N requests checked, 0 failed' (N > 0)"),
+    ("mr", "merge-request, then brg-autopilot report",
+     "a merge request description in .scratch/, docs/autopilot/<run>.md committed, nothing pushed"),
+]
+NAMES = [s[0] for s in STAGES]
+
+
+def sh(args, cwd):
+    return subprocess.run(args, cwd=cwd, capture_output=True, text=True)
+
+
+def git(d, *args):
+    return sh(["git", *args], d).stdout.strip()
+
+
+def porcelain(d):
+    """git status --porcelain, unstripped: the first line's leading space is the
+    status column, and git() would strip it, turning " M e2e/a.ts" into a
+    path that does not exist, so an unstaged change went unseen."""
+    return sh(["git", "status", "--porcelain", "--untracked-files=all"], d).stdout.rstrip("\n")
+
+
+def state_path(d):
+    return os.path.join(d, ".bearing", "state", "autopilot.json")
+
+
+def load(d):
+    p = state_path(d)
+    if not os.path.isfile(p):
+        print("brg-autopilot: no run here; start one with: brg-autopilot start \"<statement>\"", file=sys.stderr)
+        sys.exit(1)
+    return json.load(open(p))
+
+
+def save(d, st):
+    os.makedirs(os.path.dirname(state_path(d)), exist_ok=True)
+    with open(state_path(d), "w") as f:
+        json.dump(st, f, indent=1)
+        f.write("\n")
+
+
+def slug(s):
+    return re.sub(r"[^a-z0-9]+", "-", s.lower()).strip("-")[:40] or "run"
+
+
+def read(d, rel):
+    try:
+        return open(os.path.join(d, rel), encoding="utf-8").read()
+    except OSError:
+        return ""
+
+
+# The Claude Code sandbox holds empty placeholders for protected paths in
+# whichever directory a command runs (the root, or a subdirectory such as web/);
+# they are not work, and neither is this run's own report folder before the
+# mr stage commits it. Emptiness is the test: a real one of these has content.
+PLACEHOLDERS = {".vscode", ".idea", ".mcp.json", ".gitmodules", ".githooks", ".ripgreprc", ".bashrc",
+                ".bash_profile", ".zshrc", ".zprofile", ".profile", ".gitconfig", ".claude"}
+# ...and these inside a .claude directory
+CLAUDE_PLACEHOLDERS = {"agents", "commands", "hooks", "launch.json", "loop.md", "output-styles", "routines",
+                       "scheduled_tasks.json", "skills", "workflows", "agent-memory", ".cc-writes"}
+
+
+def holds_nothing(p):
+    if os.path.isfile(p):
+        return os.path.getsize(p) == 0
+    if os.path.isdir(p):
+        return all(os.path.getsize(os.path.join(r, f)) == 0 for r, _, fs in os.walk(p) for f in fs)
+    return False
+
+
+def not_work(d, rel):
+    rel = rel.rstrip("/")
+    if rel == "docs/autopilot" or rel.startswith("docs/autopilot/"):
+        return True
+    parts = rel.split("/")
+    named = parts[-1] in PLACEHOLDERS or (parts[-1] in CLAUDE_PLACEHOLDERS and ".claude" in parts[:-1])
+    return named and holds_nothing(os.path.join(d, rel))
+
+
+def changed_since_check(d):
+    """Files changed (tracked or new) that are newer than the last passing make check."""
+    marker = os.path.join(d, ".bearing", "state", ".check-passed")
+    out = porcelain(d)
+    files = [l[3:].split(" -> ")[-1].strip('"') for l in out.splitlines() if l.strip()]
+    files = [f for f in files if not not_work(d, f)]
+    if not os.path.isfile(marker):
+        return files or ["(make check has never passed)"]
+    m = os.path.getmtime(marker)
+    return [f for f in files if os.path.exists(os.path.join(d, f)) and os.path.getmtime(os.path.join(d, f)) > m]
+
+
+def base_ref(d):
+    for b in TRUNKS:
+        if git(d, "rev-parse", "-q", "--verify", b):
+            return b
+    return ""
+
+
+# --- the gates: each returns (ok, what was checked or what is missing)
+def g_repo(d, st):
+    if not os.path.isdir(os.path.join(d, ".git")):
+        return False, "not a git repository"
+    mk = read(d, "Makefile")
+    if not re.search(r"^check\s*:", mk, re.M):
+        return False, "no Makefile check target"
+    if "check-passed" not in mk:
+        return False, ("make check does not record a pass; add one last recipe line to check: "
+                       "@mkdir -p .bearing/state && touch .bearing/state/.check-passed")
+    return True, "git repository; make check records a pass"
+
+
+def g_prd(d, st):
+    n = len(set(re.findall(r"\bREQ-\d{3}\b", read(d, "docs/product/PRD.md"))))
+    return (n > 0, f"docs/product/PRD.md: {n} REQ statements")
+
+
+def g_stories(d, st):
+    # story ids only: US-01-001, not an acceptance criterion's AC-US-01-001-2
+    n = len(set(re.findall(r"(?<![\w-])US-\d+-\d+(?![\w-])", read(d, "docs/product/backlog.md"))))
+    cov = os.path.isfile(os.path.join(d, "docs/product/coverage.md"))
+    return (n > 0 and cov, f"backlog: {n} stories; coverage.md: {'present' if cov else 'missing'}")
+
+
+def g_decide(d, st):
+    started = st["started_epoch"]
+    accepted = []
+    for p in glob.glob(os.path.join(d, "docs", "**", "*.md"), recursive=True):
+        if "/adr/" not in p.replace(os.sep, "/") and "/decisions/" not in p.replace(os.sep, "/"):
+            continue
+        if os.path.getmtime(p) < started:
+            continue
+        if re.search(r"^\s*(\*\*)?status(\*\*)?\s*:?\s*(\*\*)?\s*accepted", read(d, os.path.relpath(p, d)), re.I | re.M):
+            accepted.append(os.path.relpath(p, d))
+    n = len(st["decisions"])
+    if accepted:
+        return False, f"ADRs written this run say Accepted (the user decided nothing): {', '.join(accepted)}"
+    if n == 0 and not st.get("no_open_decisions"):
+        return False, "0 decisions in the digest; record each with brg-autopilot decision, or none-open with a reason"
+    if not st.get("profile"):
+        return False, ("no product profile: record it with brg-autopilot profile --ui yes|no --data yes|no "
+                       "--api yes|no --deploy yes|no --why \"<reason>\"; later gates require what it names")
+    return True, f"{n} decisions in the digest, none recorded as Accepted; profile: {profile_text(st)}"
+
+
+KIT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+PROFILE_KEYS = ("ui", "data", "api", "deploy")
+MERMAID = re.compile(r"^```mermaid\s*$", re.M)
+
+
+DEFAULT_UI_STACK = "react-shadcn"
+
+
+def profile_text(st):
+    pr = st.get("profile") or {}
+    return " ".join(f"{k}={pr.get(k, '?')}" for k in PROFILE_KEYS) + f" ui_stack={ui_stack(st)}"
+
+
+def ui_stack(st):
+    """React with shadcn/ui and Tailwind unless the run chose another stack."""
+    return (st.get("profile") or {}).get("ui_stack") or DEFAULT_UI_STACK
+
+
+def wants(st, key):
+    return (st.get("profile") or {}).get(key) == "yes"
+
+
+def diagrams(d, rel):
+    return len(MERMAID.findall(read(d, rel)))
+
+
+def checker(d, script, *args):
+    """Run a skill's own checker script; (passed, its last non-empty line)."""
+    r = sh(["python3", os.path.join(KIT, "skills", script), *args], d)
+    lines = [l_ for l_ in (r.stdout + r.stderr).splitlines() if l_.strip()]
+    return r.returncode == 0, (lines[-1].strip() if lines else f"{script}: no output")
+
+
+def rels(d, pattern):
+    return sorted(os.path.relpath(p, d) for p in glob.glob(os.path.join(d, pattern), recursive=True))
+
+
+def g_architecture(d, st):
+    files = rels(d, "docs/architecture/*-c4.md")
+    if not files:
+        return False, "no docs/architecture/*-c4.md (architecture-diagram)"
+    n = sum(diagrams(d, f) for f in files)
+    if n == 0:
+        return False, f"{len(files)} C4 file(s) but 0 mermaid diagrams"
+    model = os.path.join(d, "docs/architecture/architecture.json")
+    if not os.path.isfile(model):
+        return False, "no docs/architecture/architecture.json (architecture-diagram step 9)"
+    ok, last = checker(d, "architecture-diagram/scripts/diagram_check.py",
+                       "--model", model, "--dir", os.path.join(d, "docs/architecture/diagrams"))
+    if not ok:
+        return False, f"diagram_check failed: {last}"
+    return True, f"{len(files)} C4 file(s), {n} mermaid diagram(s); {last}"
+
+
+def g_design(d, st):
+    h = rels(d, "docs/design/*-hld.md")
+    l_ = rels(d, "docs/design/*-lld.md")
+    missing = [] if h else ["docs/design/*-hld.md (high-level-design)"]
+    missing += [] if l_ else ["docs/design/*-lld.md (low-level-design)"]
+    need = [("data", "docs/design/data-model.md", "data-model"),
+            ("api", "api/openapi.yaml", "openapi-spec"),
+            ("deploy", "docs/architecture/deployment.md", "deployment-architecture")]
+    missing += [f"{rel} ({skill})" for key, rel, skill in need
+                if wants(st, key) and not os.path.isfile(os.path.join(d, rel))]
+    if missing:
+        return False, "missing: " + ", ".join(missing)
+    ok, last = checker(d, "high-level-design/scripts/arch_check.py", *[os.path.join(d, x) for x in h],
+                       "--arch", os.path.join(d, "docs/architecture"), "--adr-dir", os.path.join(d, "docs/adr"))
+    if not ok:
+        return False, f"arch_check failed: {last}"
+    if wants(st, "data"):
+        ok, last = checker(d, "data-model/scripts/model_check.py", "--dir", os.path.join(d, "docs/design"))
+        if not ok:
+            return False, f"model_check failed: {last}"
+    parts = [f"HLD {len(h)}, LLD {len(l_)}"]
+    if wants(st, "data"):
+        parts.append("data model")
+    if wants(st, "api"):
+        parts.append("API contract")
+    if wants(st, "deploy"):
+        n = diagrams(d, "docs/architecture/deployment.md")
+        if n == 0:
+            return False, "docs/architecture/deployment.md has no mermaid diagram"
+        parts.append(f"deployment with {n} diagram(s)")
+    off = [f"{k}=no" for k in ("data", "api", "deploy") if not wants(st, k)]
+    return True, ", ".join(parts) + (f"; profile: {' '.join(off)}" if off else "")
+
+
+def g_ux(d, st):
+    if not wants(st, "ui"):
+        return True, "no UI in the profile"
+    flows = rels(d, "docs/design/flows/*/flows*.md")
+    if not flows:
+        return False, "no docs/design/flows/*/flows*.md (ux-flows)"
+    ok, last = checker(d, "ux-flows/scripts/flows_check.py")
+    if not ok:
+        return False, f"flows_check failed: {last}"
+    if not os.path.isfile(os.path.join(d, "docs/design/tokens.json")):
+        return False, "no docs/design/tokens.json (design-system)"
+    ok, last = checker(d, "design-system/scripts/contrast.py", "--tokens", os.path.join(d, "docs/design/tokens.json"))
+    if not ok:
+        return False, f"contrast failed: {last}"
+    if ui_stack(st) == DEFAULT_UI_STACK:
+        return ux_screens_as_code(d, flows)
+    features = sorted({os.path.dirname(f) for f in rels(d, "docs/design/screens/*/*.html")})
+    if not features:
+        return False, "no docs/design/screens/<feature>/*.html (screen-design)"
+    for feat in features:
+        name = os.path.basename(feat)
+        fl = sorted(rels(d, f"docs/design/flows/{name}/flows*.md"))
+        args = ["--screens", os.path.join(d, feat)] + (["--flows", os.path.join(d, fl[-1])] if fl else [])
+        ok, last = checker(d, "screen-design/scripts/states_check.py", *args)
+        if not ok:
+            return False, f"states_check failed for {feat}: {last}"
+    ok, last = checker(d, "screen-design/scripts/bundle.py", "check",
+                       "--design", os.path.join(d, "docs/design"), "--flows-root", os.path.join(d, "docs/design/flows"))
+    if not ok:
+        return False, f"bundle check failed: {last}"
+    return True, (f"flows: {len(flows)} file(s) passed; tokens: contrast passed; "
+                  f"screens: {len(features)} feature(s) passed; {last}")
+
+
+def newest_flows(flows):
+    """The newest flows file per feature folder (flows-v2.md over flows.md)."""
+    by_feature = {}
+    for f in flows:
+        by_feature.setdefault(os.path.dirname(f), []).append(f)
+    return [sorted(v)[-1] for _, v in sorted(by_feature.items())]
+
+
+def ux_screens_as_code(d, flows):
+    """The react-shadcn design pipeline: a direction chosen from three scored
+    variants, a motion spec, every screen as a *.screen.tsx in the design
+    gallery with every state, and design-lint over the app. Screens drawn as
+    HTML beside the app drifted from it; screens as code cannot."""
+    approved = rels(d, "docs/design/variants/*/approved.json")
+    if not approved:
+        return False, "no chosen design direction: docs/design/variants/*/approved.json (design-directions)"
+    try:
+        rec = json.load(open(os.path.join(d, approved[-1])))
+    except (OSError, ValueError) as e:
+        return False, f"{approved[-1]} does not parse: {e}"
+    scores = rec.get("scores") or rec.get("ratings") or {}
+    chosen = rec.get("chosen") or ""
+    if len(scores) < 3:
+        return False, f"{approved[-1]}: {len(scores)} scored variants; a direction is chosen from 3"
+    if chosen not in scores:
+        return False, f"{approved[-1]}: chosen {chosen or 'nothing'} is not one of the scored variants"
+    if not os.path.isfile(os.path.join(d, "docs/design/motion.md")):
+        return False, "no docs/design/motion.md (motion-design)"
+    src = next((s_ for s_ in ("src", "web/src") if os.path.isfile(os.path.join(d, s_, "design", "screen.ts"))), "")
+    if not src:
+        return False, "no design gallery: src/design/screen.ts or web/src/design/screen.ts (react-web template)"
+    ok, last = checker(d, "screen-design/scripts/gallery_check.py", "--src", src, "--flows", *newest_flows(flows))
+    if not ok:
+        return False, f"gallery_check failed: {last}"
+    gallery = last
+    if not os.path.isfile(os.path.join(d, "scripts", "design-lint.sh")):
+        return False, "no scripts/design-lint.sh (design-system)"
+    # the repository's own target (its roots and allowances) when it has one
+    has_target = re.search(r"^design-lint\s*:", read(d, "Makefile"), re.M)
+    r = sh(["make", "-s", "design-lint"] if has_target else ["bash", "scripts/design-lint.sh"], d)
+    lines = [l_ for l_ in (r.stdout + r.stderr).splitlines() if l_.startswith("design-lint:")]
+    if r.returncode != 0:
+        return False, f"design-lint failed: {lines[-2] if len(lines) > 1 else (lines[-1] if lines else 'no output')}"
+    return True, (f"flows: {len(flows)} file(s) passed; tokens: contrast passed; "
+                  f"direction: {chosen} of {len(scores)} scored variants; motion spec; {gallery}; design-lint passed")
+
+
+CASES = "docs/testing/test-cases.md"
+TC_ROW = re.compile(r"^\|\s*(TC-\d+)\s*\|(.*)$", re.M)
+
+
+def g_test_cases(d, st):
+    if not os.path.isfile(os.path.join(d, CASES)):
+        return False, f"no {CASES} (test-cases)"
+    ok, last = checker(d, "test-cases/scripts/cases_check.py",
+                       "--backlog", os.path.join(d, "docs/product/backlog.md"), "--cases", os.path.join(d, CASES),
+                       "--risks", os.path.join(d, "docs/testing/risks.md"),
+                       "--threats", os.path.join(d, "docs/security/threat-model-*.md"))
+    return (True, last) if ok else (False, f"cases_check failed: {last}")
+
+
+TEST_FILE = re.compile(r"(^|/)(test_[^/]*|[^/]*(_test|\.test|\.spec|Test|Tests)\.[a-z]+)$|(^|/)(tests?|e2e|__tests__|androidTest|UITests)/")
+
+
+def tc_named(tc, text):
+    """TC-0012 named in a test file: as TC-0012, or as tc_0012 in a test name such as
+    test_tc_0012_rejects_blank. The id must not run on into more digits (TC-00120 is
+    another case), but a word character after it is the rest of the test name: a \\b
+    there missed test-automation's own naming, where _ follows the id."""
+    snake = tc.lower().replace("-", "_")
+    return bool(re.search(r"(?:" + re.escape(tc) + "|" + re.escape(snake) + r")(?!\d)", text, re.I))
+
+
+def g_test_automation(d, st):
+    rows = TC_ROW.findall(read(d, CASES))
+    if not rows:
+        return False, f"0 cases in {CASES}; test-cases writes them"
+    skip = {tc for tc, rest in rows if re.search(r"\b(manual-only|retired)\b", rest)}
+    auto = sorted({tc for tc, _ in rows} - skip)
+    tests = [f for f in git(d, "ls-files", "-co", "--exclude-standard").splitlines()
+             if TEST_FILE.search(f) and "node_modules/" not in f]
+    text = "\n".join(read(d, f) for f in tests)
+    named = {tc for tc in auto if tc_named(tc, text)}
+    unnamed = [tc for tc in auto if tc not in named]
+    if unnamed:
+        return False, (f"{len(unnamed)} automatable case(s) with no test naming them: {', '.join(unnamed[:8])}"
+                       f"{' ...' if len(unnamed) > 8 else ''} (test-automation)")
+    stale = changed_since_check(d)
+    if stale:
+        return False, f"make check has not passed since: {', '.join(stale[:5])}"
+    return True, f"{len(named)} of {len(auto)} automatable case(s) named by a test ({len(skip)} manual-only or retired)"
+
+
+REVIEW_OVERALL = 8.0
+REVIEW_CATEGORY = 7
+SCORE_ROW = re.compile(r"^\|\s*([a-z][a-z /-]*?)\s*\|\s*(n/a[^|]*|\d+(?:\.\d+)?)\s*\|\s*\d+%", re.M)
+EVIDENCE = re.compile(r"(\d+) of (\d+) screenshots present.*?(\d+) of (\d+) dark shots differ from light, (\d+) problems")
+
+
+def g_design_review(d, st):
+    """The design bar, measured: an overall score of 8.0, no category below 7,
+    and screenshots at 375, 768 and 1440 in light and dark for every page.
+    A review that exists but scores low is a design that is not done."""
+    if not wants(st, "ui"):
+        return True, "no UI in the profile"
+    files = rels(d, "docs/design/reviews/*-review.md")
+    if not files:
+        return False, "no docs/design/reviews/*-review.md (design-critique)"
+    notes = []
+    for rel in files:
+        text = read(d, rel)
+        overall = re.findall(r"^Overall:\s*(\d+(?:\.\d+)?)", text, re.M)
+        if not overall:
+            return False, f"{rel}: no 'Overall: <score>' line"
+        o = float(overall[-1])
+        if o < REVIEW_OVERALL:
+            return False, f"{rel}: overall {o} is below {REVIEW_OVERALL}"
+        rows = SCORE_ROW.findall(text)
+        scored = [(c.strip(), float(v)) for c, v in rows if not v.startswith("n/a")]
+        na = len(rows) - len(scored)
+        if not scored:
+            return False, f"{rel}: no scored category rows"
+        low = [f"{c} scored {v:g}" for c, v in scored if v < REVIEW_CATEGORY]
+        if low:
+            return False, f"{rel}: {', '.join(low)}, below {REVIEW_CATEGORY}"
+        ev = EVIDENCE.findall(text)
+        if not ev:
+            return False, f"{rel}: no evidence line from evidence.py check"
+        have, want, dark, dark_want, probs = (int(x) for x in ev[-1])
+        if want == 0 or have < want or dark < dark_want or probs:
+            return False, (f"{rel}: evidence incomplete: {have} of {want} screenshots, "
+                           f"{dark} of {dark_want} dark shots differ, {probs} problems")
+        notes.append(f"overall {o:g}; {len(scored)} categories scored, none below {REVIEW_CATEGORY}, {na} n/a; "
+                     f"{have} of {want} screenshots, {dark} of {dark_want} dark shots differ")
+    return True, "; ".join(notes) + (f" ({len(files)} reviews)" if len(files) > 1 else "")
+
+
+def g_branch(d, st):
+    b = git(d, "branch", "--show-current")
+    ok = bool(b) and b not in TRUNKS
+    if ok:
+        st["branch"] = b
+    return ok, f"branch: {b or 'detached'}"
+
+
+def g_build(d, st):
+    base = base_ref(d)
+    diff = git(d, "diff", "--name-only", f"{base}...HEAD") if base else ""
+    wt = porcelain(d)
+    names = set(diff.splitlines()) | {l[3:] for l in wt.splitlines()}
+    tests = [f for f in names if re.search(r"(^|/)(test_[^/]*|[^/]*(_test|\.test|\.spec|Test)\.[a-z]+)$|(^|/)tests?/", f)]
+    stale = changed_since_check(d)
+    if not tests:
+        return False, "no test file added or changed on the branch"
+    if stale:
+        return False, f"make check has not passed since {len(stale)} change(s): {', '.join(stale[:5])}"
+    return True, f"{len(tests)} test file(s) on the branch; make check passed after the last change"
+
+
+def g_review(d, st):
+    dirs = [p for p in glob.glob(os.path.join(d, ".scratch", "review", "*")) if os.path.isdir(p)]
+    return (bool(dirs), f"review folders: {len(dirs)}")
+
+
+def g_dod(d, st):
+    stale = changed_since_check(d)
+    dirty = [l for l in porcelain(d).splitlines()
+             if l.strip() and not l[3:].startswith(".scratch") and not not_work(d, l[3:].strip('"'))]
+    base = base_ref(d)
+    ahead = git(d, "rev-list", "--count", f"{base}..HEAD") if base else "0"
+    if stale:
+        return False, f"make check has not passed since: {', '.join(stale[:5])}"
+    if dirty:
+        return False, f"{len(dirty)} uncommitted change(s)"
+    if not ahead or int(ahead) == 0:
+        return False, "no commit on the branch"
+    contradictions = profile_contradictions(d, st)
+    if contradictions:
+        return False, "; ".join(contradictions) + " (run the stages it skipped, or correct the profile)"
+    ok, smoke = smoke_evidence(d)
+    if not ok:
+        return False, smoke
+    return True, f"{ahead} commit(s) on the branch, clean, make check passed after the last change; {smoke}"
+
+
+RUN_FILES = re.compile(r"(^|/)((docker-)?compose\.ya?ml|Dockerfile)$")
+RUN_TARGET = re.compile(r"^(dev|up)\s*:", re.M)
+SMOKE_LINE = re.compile(r"^smoke: (\d+) requests? checked, (\d+) failed\s*$", re.M)
+
+
+def runnable(d):
+    """What the repository ships that a person would start, or an empty list."""
+    found = [f for f in git(d, "ls-files").splitlines() if RUN_FILES.search(f) and "node_modules/" not in f]
+    for mk in ("Makefile", "GNUmakefile"):
+        p = os.path.join(d, mk)
+        if os.path.isfile(p) and RUN_TARGET.search(open(p, encoding="utf-8", errors="replace").read()):
+            found.append(f"{mk} dev/up target")
+    return found
+
+
+UI_DEPS = re.compile(r'"(react|react-dom|vue|svelte|next|@angular/core|solid-js|preact)"\s*:')
+SCHEMA = re.compile(r"(^|/)(migrations?|alembic)/|(^|/)(schema\.prisma|sqlc\.ya?ml|schema\.sql)$")
+
+
+def profile_contradictions(d, st):
+    """A profile that says no to something the code plainly has skipped stages."""
+    pr = st.get("profile")
+    if not pr:
+        return []
+    files = [f for f in git(d, "ls-files").splitlines() if "node_modules/" not in f]
+    out = []
+    if pr.get("ui") == "no":
+        ui = [f for f in files if (f.endswith("package.json") and UI_DEPS.search(read(d, f)))
+              or f.endswith("AndroidManifest.xml") or f.endswith(".swift")]
+        if ui:
+            out.append(f"the profile says ui=no, but {ui[0]} is a UI")
+    if pr.get("data") == "no":
+        db = [f for f in files if SCHEMA.search(f)]
+        if db:
+            out.append(f"the profile says data=no, but {db[0]} is a schema")
+    return out
+
+
+def smoke_evidence(d):
+    """make check proves the tests, not the product: a repository that ships
+    something runnable must show definition-of-done's smoke run of it (the app started as
+    a user starts it, its main flow driven against the real backend), recorded
+    after the last commit with at least one request checked and none failed."""
+    ships = runnable(d)
+    if not ships:
+        return True, "smoke: nothing to run (no compose file, Dockerfile or make dev/up target)"
+    files = sorted(glob.glob(os.path.join(d, ".scratch", "smoke-*.md")), key=os.path.getmtime)
+    if not files:
+        return False, (f"the app was never run: no .scratch/smoke-*.md, but the repository ships "
+                       f"{', '.join(ships[:3])} (definition-of-done item 13)")
+    newest = files[-1]
+    rel = os.path.relpath(newest, d)
+    m = SMOKE_LINE.findall(open(newest, encoding="utf-8", errors="replace").read())
+    if not m:
+        return False, f"{rel} has no 'smoke: N requests checked, F failed' line"
+    checked, failed = (int(x) for x in m[-1])
+    if checked == 0:
+        return False, f"{rel}: smoke checked 0 requests, so it proved nothing"
+    if failed:
+        return False, f"{rel}: smoke: {failed} of {checked} requests failed"
+    head = git(d, "log", "-1", "--format=%ct")
+    if head and os.path.getmtime(newest) < int(head):
+        return False, f"{rel}: the smoke run is older than the last commit; run it again"
+    return True, f"smoke: {checked} requests checked, 0 failed ({rel})"
+
+
+def upstream_sha(d):
+    """The commit the branch's upstream points at, or "" when it has none."""
+    if not os.path.isdir(os.path.join(d, ".git")):
+        return ""
+    r = sh(["git", "rev-parse", "-q", "--verify", "@{upstream}"], d)
+    return r.stdout.strip() if r.returncode == 0 else ""
+
+
+def g_mr(d, st):
+    mr = glob.glob(os.path.join(d, ".scratch", "mr-*.md"))
+    rep = f"docs/autopilot/{st['run']}.md"
+    committed = bool(git(d, "ls-files", rep))
+    upstream = git(d, "rev-parse", "--abbrev-ref", "@{upstream}")
+    note = ""
+    if upstream and "fatal" not in upstream:
+        before = st.get("upstream_at_start") or ""
+        if not before:
+            return False, f"the branch has an upstream ({upstream}): the run must not push"
+        if upstream_sha(d) != before:
+            return False, f"{upstream} was pushed during the run (it moved from {before[:8]}): the run must not push"
+        note = f"; upstream {upstream} unchanged since the run started"
+    return (bool(mr) and committed,
+            f"MR description: {len(mr)}; {rep}: {'committed' if committed else 'not committed'}{note}")
+
+
+GATES = {"repo": g_repo, "prd": g_prd, "stories": g_stories, "decide": g_decide,
+         "architecture": g_architecture, "design": g_design, "ux": g_ux, "test_cases": g_test_cases,
+         "branch": g_branch, "build": g_build, "test_automation": g_test_automation,
+         "design_review": g_design_review, "review": g_review, "dod": g_dod, "mr": g_mr}
+assert list(GATES) == NAMES, "every stage has its gate, in order"
+
+
+def next_stage(st):
+    for n in NAMES:
+        s = st["stages"][n]
+        if s["status"] == "blocked":
+            return n, "blocked"
+        if s["status"] != "done":
+            return n, s["status"]
+    return None, "done"
+
+
+def cmd_start(a):
+    d = a.dir
+    if os.path.isfile(state_path(d)):
+        st = json.load(open(state_path(d)))
+        n, _ = next_stage(st)
+        if n:
+            print(f"brg-autopilot: run {st['run']} is open at stage {n}; continue it, or finish it first", file=sys.stderr)
+            return 1
+    now = datetime.datetime.now()
+    st = {
+        "run": f"{now:%Y-%m-%d}-{slug(a.statement)}",
+        "statement": a.statement,
+        "started": now.isoformat(timespec="seconds"),
+        "started_epoch": now.timestamp(),
+        "stages": {n: {"status": "pending", "attempts": 0, "checked": "", "notes": []} for n in NAMES},
+        "decisions": [],
+        # where an upstream the engineer pushed stood when the run began; the
+        # mr gate refuses only a move during the run
+        "upstream_at_start": upstream_sha(d),
+    }
+    os.makedirs(d, exist_ok=True)
+    save(d, st)
+    print(f"brg-autopilot: run {st['run']} started, {len(NAMES)} stages")
+    return cmd_next(a)
+
+
+def cmd_next(a):
+    st = load(a.dir)
+    n, status = next_stage(st)
+    if n is None:
+        print("brg-autopilot: every stage is done; the merge request is prepared")
+        return 0
+    stage = dict((s[0], s) for s in STAGES)[n]
+    if status == "blocked":
+        print(f"brg-autopilot: stage {n} is blocked after {MAX_ATTEMPTS} attempts; write the report (brg-autopilot report) and stop")
+        return 1
+    print(f"next: {n}  (attempt {st['stages'][n]['attempts'] + 1} of {MAX_ATTEMPTS})")
+    print(f"skill: {stage[1]}")
+    print(f"gate: {stage[2]}")
+    return 0
+
+
+def cmd_done(a):
+    st = load(a.dir)
+    n, _ = next_stage(st)
+    if a.stage != n:
+        print(f"brg-autopilot: the next stage is {n}, not {a.stage}; stages run in order", file=sys.stderr)
+        return 1
+    ok, what = GATES[a.stage](a.dir, st)
+    st["stages"][a.stage]["checked"] = what
+    if ok:
+        st["stages"][a.stage]["status"] = "done"
+        save(a.dir, st)
+        print(f"gate {a.stage}: passed ({what})")
+        return cmd_next(a)
+    save(a.dir, st)
+    print(f"gate {a.stage}: not met ({what}); fix it and run done again, or record a failed attempt with fail")
+    return 1
+
+
+def cmd_fail(a):
+    st = load(a.dir)
+    s = st["stages"][a.stage]
+    s["attempts"] += 1
+    s["notes"].append(a.why)
+    s["status"] = "blocked" if s["attempts"] >= MAX_ATTEMPTS else "retry"
+    save(a.dir, st)
+    print(f"stage {a.stage}: attempt {s['attempts']} of {MAX_ATTEMPTS} failed ({a.why}); {s['status']}")
+    return 1 if s["status"] == "blocked" else 0
+
+
+def cmd_decision(a):
+    st = load(a.dir)
+    if a.key == "none-open":
+        st["no_open_decisions"] = a.why
+        save(a.dir, st)
+        print(f"decisions: none open ({a.why})")
+        return 0
+    st["decisions"].append({"key": a.key, "choice": a.choice, "alternatives": a.alternatives,
+                            "why": a.why, "adr": a.adr or "", "status": "Proposed"})
+    save(a.dir, st)
+    print(f"decision {len(st['decisions'])}: {a.key} = {a.choice} (Proposed)")
+    return 0
+
+
+def cmd_report(a):
+    st = load(a.dir)
+    rel = f"docs/autopilot/{st['run']}.md"
+    L = [f"# Autopilot run {st['run']}", "",
+         f"Statement: {st['statement']}", "",
+         f"Started {st['started']}; branch {st.get('branch', 'none')}. Every decision below was taken on",
+         "the user's behalf with the recommended option and is Proposed until the user accepts or",
+         "changes it. Nothing was pushed, merged or deployed.", "",
+         "## Decisions to review", "",
+         "| Key | Choice | Alternatives | Why | ADR |", "| --- | --- | --- | --- | --- |"]
+    for x in st["decisions"]:
+        L.append(f"| {x['key']} | {x['choice']} | {x['alternatives']} | {x['why']} | {x['adr'] or 'none'} |")
+    if not st["decisions"]:
+        L.append(f"| none | | | {st.get('no_open_decisions', 'no decision recorded')} | |")
+    L += ["", "## Stages", "", "| Stage | Status | Attempts | Gate checked |", "| --- | --- | --- | --- |"]
+    for n in NAMES:
+        s = st["stages"][n]
+        L.append(f"| {n} | {s['status']} | {s['attempts']} | {s['checked'] or 'not checked'} |")
+    notes = [(n, x) for n in NAMES for x in st["stages"][n]["notes"]]
+    L += ["", "## Not done", ""]
+    open_ = [n for n in NAMES if st["stages"][n]["status"] != "done" and n != "mr"]
+    L += [f"- {n}: {st['stages'][n]['status']}" for n in open_] or ["- none"]
+    if notes:
+        L += ["", "## Failed attempts", ""] + [f"- {n}: {x}" for n, x in notes]
+    os.makedirs(os.path.join(a.dir, "docs", "autopilot"), exist_ok=True)
+    with open(os.path.join(a.dir, rel), "w") as f:
+        f.write("\n".join(L) + "\n")
+    print(f"brg-autopilot: report written to {rel} ({len(st['decisions'])} decisions, "
+          f"{sum(st['stages'][n]['status'] == 'done' for n in NAMES)} of {len(NAMES)} stages done)")
+    return 0
+
+
+def cmd_status(a):
+    st = load(a.dir)
+    print(f"run {st['run']}: {st['statement']}")
+    for n in NAMES:
+        s = st["stages"][n]
+        print(f"  {n:8} {s['status']:8} attempts {s['attempts']}  {s['checked']}")
+    print(f"decisions: {len(st['decisions'])}")
+    print(f"profile: {profile_text(st) if st.get('profile') else 'not recorded'}")
+    return 0
+
+
+def cmd_stages(a):
+    print("\n".join(NAMES))
+    return 0
+
+
+def cmd_profile(a):
+    """What the product has, which decides the stages that apply: ux and
+    design_review need ui, the data model data, the API contract api, the
+    deployment architecture deploy. Recorded as a row of the digest; the dod
+    gate refuses a profile the code contradicts."""
+    st = load(a.dir)
+    st["profile"] = {k: getattr(a, k) for k in PROFILE_KEYS}
+    st["profile"]["ui_stack"] = a.ui_stack
+    text = profile_text(st)
+    st["decisions"] = [x for x in st["decisions"] if x["key"] != "profile"]
+    st["decisions"].append({"key": "profile", "choice": text, "alternatives": "-", "why": a.why,
+                            "adr": "", "status": "Proposed"})
+    save(a.dir, st)
+    print(f"profile: {text} (Proposed)")
+    return 0
+
+
+def make_targets(d):
+    """The targets the repository's Makefile defines, by name."""
+    for mk in ("Makefile", "GNUmakefile"):
+        p = os.path.join(d, mk)
+        if os.path.isfile(p):
+            return set(re.findall(r"^([A-Za-z0-9_.-]+)\s*:(?!=)", read(d, mk), re.M))
+    return set()
+
+
+def compose_file(d):
+    for f in ("compose.yaml", "compose.yml", "docker-compose.yml", "docker-compose.yaml"):
+        if os.path.isfile(os.path.join(d, f)):
+            return f
+    return ""
+
+
+def branch_id(d):
+    """The ticket key in the branch name (feature/T-5-app gives T-5), or ""."""
+    m = re.search(r"([A-Z][A-Z0-9]*(?:-[A-Z0-9]+)*-\d+)", git(d, "branch", "--show-current"))
+    return m.group(1) if m else ""
+
+
+def plan_checks(text):
+    """The plan's base URL and its (method, path, status) checks. A line is
+    `base <url>`, `<METHOD> <path or url> <status>`, a blank or a # comment."""
+    base, checks = "", []
+    for line in text.splitlines():
+        w = line.split("#", 1)[0].split()
+        if len(w) == 2 and w[0].lower() == "base":
+            base = w[1].rstrip("/")
+        elif len(w) == 3 and w[2].isdigit():
+            checks.append((w[0].upper(), w[1], int(w[2])))
+    return base, checks
+
+
+def cmd_smoke_request(a):
+    """Headless at dod, the sandbox keeps Docker and .env out of reach, so the
+    model hands the smoke to the launcher (which runs outside it) and ends its
+    turn. Refused when there is nothing the launcher could run."""
+    st = load(a.dir)
+    sid = a.id or branch_id(a.dir) or "run"
+    plan = f".scratch/smoke-plan-{sid}.txt"
+    if "smoke" in make_targets(a.dir):
+        how = "make smoke"
+    else:
+        if not os.path.isfile(os.path.join(a.dir, plan)):
+            print(f"brg-autopilot: no make smoke target and no {plan}; write the checks there "
+                  "(`base <url>`, then one `METHOD /path status` per line)", file=sys.stderr)
+            return 1
+        _, checks = plan_checks(read(a.dir, plan))
+        if not checks:
+            print(f"brg-autopilot: {plan} lists 0 checks; a smoke that checks nothing proves nothing",
+                  file=sys.stderr)
+            return 1
+        how = f"{plan} ({len(checks)} checks)"
+    st["smoke_request"] = {"pending": True, "id": sid, "requested": datetime.datetime.now().isoformat(timespec="seconds")}
+    save(a.dir, st)
+    print(f"smoke requested: {how}; end your turn now, the launcher runs it outside the sandbox "
+          "and resumes this session with the verdict")
+    if os.environ.get("BRG_AUTOPILOT_HEADLESS") != "1":
+        print("note: not a headless run, so no launcher will pick this up; run the smoke yourself (definition-of-done item 13)")
+    return 0
+
+
+def run_logged(args, d, log):
+    """Run a command in d with its output appended to log; its exit code."""
+    with open(log, "a") as f:
+        f.write(f"$ {' '.join(args)}\n")
+        f.flush()
+        try:
+            return subprocess.run(args, cwd=d, stdout=f, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL,
+                                  timeout=int(os.environ.get("BRG_SMOKE_TIMEOUT", "900"))).returncode
+        except (OSError, subprocess.TimeoutExpired) as e:
+            f.write(f"{e}\n")
+            return 127
+
+
+class NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, *args, **kwargs):
+        return None
+
+
+def http_status(method, url, deadline):
+    """The status the app answers, retrying a refused connection until the
+    deadline (the stack may still be starting); 0 when it never answered."""
+    opener = urllib.request.build_opener(NoRedirect)
+    while True:
+        try:
+            with opener.open(urllib.request.Request(url, method=method), timeout=10) as r:
+                return r.status, ""
+        except urllib.error.HTTPError as e:
+            return e.code, ""
+        except (urllib.error.URLError, OSError) as e:
+            if time.time() >= deadline:
+                return 0, str(getattr(e, "reason", e))
+            time.sleep(0.5)
+
+
+def run_smoke(d, sid):
+    """The smoke, outside the sandbox. make smoke when the Makefile has it
+    (it writes the evidence and exits non-zero on failure); otherwise up,
+    the plan's checks, and down, always. Returns (passed, evidence path, line)."""
+    log = os.path.join(d, ".bearing", "state", "smoke.log")
+    targets = make_targets(d)
+    if "smoke" in targets:
+        started = time.time() - 1
+        rc = run_logged(["make", "smoke"], d, log)
+        files = [f for f in glob.glob(os.path.join(d, ".scratch", "smoke-*.md")) if os.path.getmtime(f) >= started]
+        if not files:
+            return False, "", f"make smoke exited {rc} and wrote no .scratch/smoke-*.md"
+        newest = max(files, key=os.path.getmtime)
+        rel = os.path.relpath(newest, d)
+        m = SMOKE_LINE.findall(read(d, rel))
+        if not m:
+            return False, rel, f"no 'smoke: N requests checked, F failed' line (make smoke exited {rc})"
+        checked, failed = (int(x) for x in m[-1])
+        line = f"smoke: {checked} requests checked, {failed} failed"
+        if checked == 0:
+            return False, rel, line + " (0 requests proves nothing)"
+        return rc == 0 and failed == 0, rel, line + ("" if rc == 0 else f" (make smoke exited {rc})")
+    rel = f".scratch/smoke-{sid}.md"
+    base, checks = plan_checks(read(d, f".scratch/smoke-plan-{sid}.txt"))
+    compose = compose_file(d)
+    if "up" in targets:
+        up, down = ["make", "up"], ["make", "down"]
+    elif compose:
+        up, down = (["docker", "compose", "up", "-d", "--build", "--wait"], ["docker", "compose", "down"])
+    else:
+        up = down = None
+    made_env = False
+    if not os.path.exists(os.path.join(d, ".env")) and os.path.isfile(os.path.join(d, ".env.example")):
+        shutil.copyfile(os.path.join(d, ".env.example"), os.path.join(d, ".env"))
+        made_env = True
+    rows, notes = [], []
+    try:
+        if not up:
+            notes.append("nothing to start: no make up target and no compose file")
+        else:
+            rc = run_logged(up, d, log)
+            if rc != 0:
+                notes.append(f"`{' '.join(up)}` exited {rc}; see .bearing/state/smoke.log")
+            else:
+                deadline = time.time() + int(os.environ.get("BRG_SMOKE_WAIT", "60"))
+                for method, path, want in checks:
+                    url = path if "://" in path else base + (path if path.startswith("/") else "/" + path)
+                    got, err = http_status(method, url, deadline)
+                    rows.append((method, path, want, got, err))
+    finally:
+        if down:
+            rc = run_logged(down, d, log)
+            if rc != 0:
+                notes.append(f"`{' '.join(down)}` exited {rc}")
+        if made_env:
+            os.remove(os.path.join(d, ".env"))
+    failed = sum(1 for r in rows if r[3] != r[2])
+    line = f"smoke: {len(rows)} requests checked, {failed} failed"
+    L = [f"# Smoke {sid}", "", f"Run by brg-autopilot launch, outside the sandbox, {datetime.datetime.now():%Y-%m-%d %H:%M}.",
+         f"Started with `{' '.join(up) if up else 'nothing'}`, stopped with `{' '.join(down) if down else 'nothing'}`.", ""]
+    L += [f"- {n}" for n in notes] + ([""] if notes else [])
+    L += ["| Method | Path | Expected | Status |", "| --- | --- | --- | --- |"]
+    L += [f"| {m} | {p} | {w} | {g or 'no answer: ' + e} |" for m, p, w, g, e in rows]
+    L += ["", line]
+    os.makedirs(os.path.join(d, ".scratch"), exist_ok=True)
+    with open(os.path.join(d, rel), "w") as f:
+        f.write("\n".join(L) + "\n")
+    if not rows:
+        return False, rel, line + " (0 requests proves nothing" + (f"; {notes[0]})" if notes else ")")
+    return failed == 0 and not notes, rel, line + (f" ({'; '.join(notes)})" if notes else "")
+
+
+def session_id(log, offset):
+    """The session id of the newest init event written to log after offset."""
+    sid = ""
+    with open(log, encoding="utf-8", errors="replace") as f:
+        f.seek(offset)
+        for line in f:
+            try:
+                ev = json.loads(line)
+            except ValueError:
+                continue
+            if isinstance(ev, dict) and ev.get("type") == "system" and ev.get("subtype") == "init" and ev.get("session_id"):
+                sid = ev["session_id"]
+    return sid
+
+
+def cmd_launch(a):
+    claude = os.environ.get("BRG_CLAUDE", "claude")
+    flags = ["--permission-mode", "acceptEdits", "--allowedTools", "Bash,Read,Write,Edit,Glob,Grep,Skill,Agent",
+             "--output-format", "stream-json", "--verbose"]
+    if os.environ.get("BRG_AUTOPILOT_PLUGIN_DIR"):
+        flags = ["--plugin-dir", os.environ["BRG_AUTOPILOT_PLUGIN_DIR"]] + flags
+    cmd = [claude, "-p", f"Run autopilot for this requirement: {a.statement}"] + flags
+    if a.print:
+        print(" ".join(repr(c) if " " in c else c for c in cmd))
+        print(f"then, for each smoke-request (at most {MAX_SMOKE_ROUNDS}): the smoke outside the sandbox, "
+              "and claude -p --resume <session> with its verdict")
+        return 0
+    if not shutil.which(claude):
+        print(f"brg-autopilot: {claude} not found", file=sys.stderr)
+        return 1
+    os.makedirs(a.dir, exist_ok=True)
+    log = os.path.join(a.dir, ".bearing", "state", "autopilot.log")
+    os.makedirs(os.path.dirname(log), exist_ok=True)
+    env = dict(os.environ, BRG_AUTOPILOT_HEADLESS="1")
+    print(f"brg-autopilot: running headless in {a.dir}; the stream goes to {os.path.relpath(log, a.dir)}")
+
+    def claude_run(args):
+        offset = os.path.getsize(log) if os.path.exists(log) else 0
+        with open(log, "a") as f:
+            rc = subprocess.run(args, cwd=a.dir, stdout=f, stderr=subprocess.STDOUT, env=env).returncode
+        return rc, session_id(log, offset)
+
+    rc, session = claude_run(cmd)
+    rounds = 0
+    while True:
+        st = json.load(open(state_path(a.dir))) if os.path.isfile(state_path(a.dir)) else {}
+        req = st.get("smoke_request") or {}
+        if not req.get("pending"):
+            break
+        if rounds >= MAX_SMOKE_ROUNDS:
+            print(f"brg-autopilot: smoke asked for a round {rounds + 1}; the limit is {MAX_SMOKE_ROUNDS}; stopping")
+            return 1
+        rounds += 1
+        print(f"brg-autopilot: smoke round {rounds} of {MAX_SMOKE_ROUNDS}, outside the sandbox")
+        ok, rel, line = run_smoke(a.dir, req.get("id") or "run")
+        req.update(pending=False, round=rounds, passed=ok, evidence=rel, verdict=line)
+        st["smoke_request"] = req
+        save(a.dir, st)
+        print(f"brg-autopilot: {rel or 'no evidence file'}: {line}; {'passed' if ok else 'failed'}")
+        if not ok and rounds >= MAX_SMOKE_ROUNDS:
+            print(f"brg-autopilot: smoke failed {rounds} rounds of {MAX_SMOKE_ROUNDS}; stopping. "
+                  "Fix it by hand, or resume the session yourself")
+            return 1
+        if not session:
+            print("brg-autopilot: no session id in the stream-json log, so the run cannot be resumed", file=sys.stderr)
+            return 1
+        if ok:
+            msg = (f"brg-autopilot ran the smoke outside the sandbox: {rel}, {line}: passed. "
+                   "Finish the dod stage (brg-autopilot done dod) and continue autopilot.")
+        else:
+            msg = (f"brg-autopilot ran the smoke outside the sandbox: {rel or 'no evidence file'}, {line}: failed "
+                   f"(round {rounds} of {MAX_SMOKE_ROUNDS}). Read it and .bearing/state/smoke.log, fix each "
+                   "failure test first, commit, then run brg-autopilot smoke-request again and end your turn.")
+        rc, resumed = claude_run([claude, "-p", msg, "--resume", session] + flags)
+        session = resumed or session
+    print(f"brg-autopilot: claude exited {rc}; see brg-autopilot status and docs/autopilot/")
+    return rc
+
+
+def main():
+    ap = argparse.ArgumentParser(prog="brg-autopilot", description=__doc__.split("\n\n")[0])
+    sub = ap.add_subparsers(dest="cmd", required=True)
+    def add(name, fn, *args):
+        p = sub.add_parser(name)
+        for x in args:
+            p.add_argument(x)
+        p.add_argument("--dir", default=os.getcwd())
+        p.set_defaults(fn=fn)
+        return p
+    add("start", cmd_start, "statement")
+    add("next", cmd_next)
+    p = add("done", cmd_done, "stage"); p.set_defaults(fn=cmd_done)
+    add("fail", cmd_fail, "stage", "why")
+    p = add("decision", cmd_decision, "key", "choice", "alternatives", "why")
+    p.add_argument("--adr", default="")
+    add("report", cmd_report)
+    add("status", cmd_status)
+    sub.add_parser("stages").set_defaults(fn=cmd_stages, dir=os.getcwd())
+    p = add("profile", cmd_profile)
+    for k in PROFILE_KEYS:
+        p.add_argument(f"--{k}", required=True, choices=["yes", "no"])
+    p.add_argument("--ui-stack", default=DEFAULT_UI_STACK,
+                   help="react-shadcn (default: React, shadcn/ui, Tailwind, screens as code) or the stack "
+                        "the implementer chose (html prototypes for any other)")
+    p.add_argument("--why", required=True)
+    p = add("launch", cmd_launch, "statement")
+    p.add_argument("--print", action="store_true")
+    p = add("smoke-request", cmd_smoke_request)
+    p.add_argument("--id", default="", help="the ticket key in smoke-<ID>.md; default: from the branch name")
+    a = ap.parse_args()
+    a.dir = os.path.abspath(a.dir)
+    if getattr(a, "stage", None) and a.stage not in NAMES:
+        print(f"brg-autopilot: unknown stage {a.stage}; stages: {', '.join(NAMES)}", file=sys.stderr)
+        return 2
+    return a.fn(a)
+
+
+if __name__ == "__main__":
+    sys.exit(main())

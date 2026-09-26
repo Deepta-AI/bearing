@@ -1,0 +1,5 @@
+# __REPO_NAME__ fastlane Appfile. Identity only; credentials come from the
+# environment (see Fastfile). The bundle id must match project.yml.
+app_identifier("__ORG_ID__.__REPO_SLUG__")
+team_id(ENV["APPLE_TEAM_ID"]) if ENV["APPLE_TEAM_ID"]
+itc_team_id(ENV["ASC_TEAM_ID"]) if ENV["ASC_TEAM_ID"]

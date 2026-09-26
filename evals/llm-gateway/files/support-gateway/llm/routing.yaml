@@ -1,0 +1,30 @@
+# Routing for every model call. Prices are USD per million tokens.
+version: 1
+
+models:
+  claude-haiku-4-5:
+    provider: anthropic
+    input_per_m: 1.00
+    output_per_m: 5.00
+  claude-sonnet-5:
+    provider: anthropic
+    input_per_m: 2.00
+    output_per_m: 10.00
+
+tiers:
+  fast:
+    model: claude-haiku-4-5
+    max_tokens: 1024
+    timeout_s: 20
+  balanced:
+    model: claude-sonnet-5
+    max_tokens: 4096
+    timeout_s: 60
+
+routes:
+  ticket_classify:
+    tier: fast
+    max_tokens: 16
+  reply_draft:
+    tier: balanced
+    max_tokens: 1200

@@ -1,0 +1,8 @@
+-- Migration: __NAME__        Task: __TASK_ID__
+-- Store: postgres | sqlite | clickhouse | mongodb      Phase: expand | migrate | contract (1 of 3)
+-- Purpose: one sentence, what changes and why
+-- Locks: Up: <lock, on what, how long on prod-sized data>; Down: <the same for the Down, or "not measured">
+-- Rows: <table> ~<count> (source: <doc>); backfill <in batches of N, where> | none
+-- Index: <index> serves <the query as the code writes it, file:function>; rejected: <alternative> | "none: no new shape"
+-- Retention / PII: <TTL or retention window | none>; <field: encrypted with KMS key | no PII>
+-- Down: what it reverts; Down loses: <data in CAPITALS, or "nothing">; tested in: <CI job or test file>

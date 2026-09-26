@@ -1,0 +1,91 @@
+# Prometheus alert rules for __SERVICE__.
+# Copy to monitoring/alerts/__SERVICE__.yaml. Every rule carries a
+# runbook_url; the runbook exists (runbook) before the rule merges.
+# Burn rates assume a 99.9 percent 30-day availability SLO (see
+# docs/observability/slos.md). Adjust the thresholds with the SLO.
+
+groups:
+  - name: __SERVICE__.availability
+    rules:
+      - alert: __SERVICE__ErrorBudgetBurnFast
+        expr: |
+          (
+            sum(rate(http_server_request_duration_seconds_count{service_name="__SERVICE__", http_response_status_code=~"5.."}[1h]))
+            / sum(rate(http_server_request_duration_seconds_count{service_name="__SERVICE__"}[1h]))
+          ) > (14.4 * 0.001)
+          and
+          (
+            sum(rate(http_server_request_duration_seconds_count{service_name="__SERVICE__", http_response_status_code=~"5.."}[5m]))
+            / sum(rate(http_server_request_duration_seconds_count{service_name="__SERVICE__"}[5m]))
+          ) > (14.4 * 0.001)
+        for: 2m
+        labels:
+          severity: page
+          service: __SERVICE__
+        annotations:
+          summary: "__SERVICE__ is burning its 30-day error budget 14x too fast"
+          description: "5xx ratio over 1h and 5m is above 1.44 percent. At this rate the budget is gone in two days."
+          runbook_url: __RUNBOOK_BASE__/__SERVICE__ErrorBudgetBurnFast.md
+
+      - alert: __SERVICE__ErrorBudgetBurnSlow
+        expr: |
+          (
+            sum(rate(http_server_request_duration_seconds_count{service_name="__SERVICE__", http_response_status_code=~"5.."}[6h]))
+            / sum(rate(http_server_request_duration_seconds_count{service_name="__SERVICE__"}[6h]))
+          ) > (6 * 0.001)
+          and
+          (
+            sum(rate(http_server_request_duration_seconds_count{service_name="__SERVICE__", http_response_status_code=~"5.."}[30m]))
+            / sum(rate(http_server_request_duration_seconds_count{service_name="__SERVICE__"}[30m]))
+          ) > (6 * 0.001)
+        for: 15m
+        labels:
+          severity: ticket
+          service: __SERVICE__
+        annotations:
+          summary: "__SERVICE__ is burning its error budget 6x too fast"
+          description: "5xx ratio over 6h and 30m is above 0.6 percent. Budget gone in five days."
+          runbook_url: __RUNBOOK_BASE__/__SERVICE__ErrorBudgetBurnSlow.md
+
+  - name: __SERVICE__.latency
+    rules:
+      - alert: __SERVICE__LatencyP95High
+        expr: |
+          histogram_quantile(0.95,
+            sum by (le) (rate(http_server_request_duration_seconds_bucket{service_name="__SERVICE__"}[5m]))
+          ) > 0.8
+        for: 10m
+        labels:
+          severity: page
+          service: __SERVICE__
+        annotations:
+          summary: "__SERVICE__ p95 latency above 800 ms for 10 minutes"
+          description: "Check the slowest routes table on the RED dashboard, then the database and downstream panels."
+          runbook_url: __RUNBOOK_BASE__/__SERVICE__LatencyP95High.md
+
+  - name: __SERVICE__.traffic
+    rules:
+      - alert: __SERVICE__NoTraffic
+        expr: |
+          sum(rate(http_server_request_duration_seconds_count{service_name="__SERVICE__"}[10m])) == 0
+          and
+          sum(rate(http_server_request_duration_seconds_count{service_name="__SERVICE__"}[1h] offset 1d)) > 0
+        for: 10m
+        labels:
+          severity: page
+          service: __SERVICE__
+        annotations:
+          summary: "__SERVICE__ received no requests for 10 minutes"
+          description: "Yesterday at this hour there was traffic. Ingress, DNS or the deployment is down, or the metrics pipeline is."
+          runbook_url: __RUNBOOK_BASE__/__SERVICE__NoTraffic.md
+
+      - alert: __SERVICE__TargetDown
+        expr: up{job="__SERVICE__"} == 0
+        for: 3m
+        labels:
+          severity: page
+          service: __SERVICE__
+        annotations:
+          summary: "Prometheus cannot scrape __SERVICE__"
+          description: "The metrics endpoint has been unreachable for 3 minutes."
+          runbook_url: __RUNBOOK_BASE__/__SERVICE__TargetDown.md

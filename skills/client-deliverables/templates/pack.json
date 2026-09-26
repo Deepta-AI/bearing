@@ -1,0 +1,51 @@
+{
+ "project": "",
+ "customer": "",
+ "prepared_by": "",
+ "folders": {
+  "01_Product": {"holds": "The requirements, the user stories with their acceptance criteria and tasks, the user flows, the open questions and the coverage of every requirement", "filled_by": "prd, backlog, ux-flows"},
+  "02_Technical": {"holds": "The database design, its schema, data dictionary and ERD, and the low-level designs", "filled_by": "data-model, low-level-design"},
+  "03_Architecture": {"holds": "The high-level design, the architecture diagrams, the decisions and conflicts settled, the design tenets and the repository plan", "filled_by": "high-level-design, adr, architecture-diagram"},
+  "04_API_Documentation": {"holds": "The OpenAPI contract and the readable API reference", "filled_by": "openapi-spec"},
+  "05_UI_UX": {"holds": "Screen designs for every platform and state, the design system and the product gallery", "filled_by": "design-system, screen-design"},
+  "06_QA": {"holds": "The test plan, the risk register, the test cases with their steps, and the development and test tasks", "filled_by": "test-cases, backlog"},
+  "07_Analytics": {"holds": "The event design sheet and the tracking plan", "filled_by": "analytics-events"},
+  "08_Security": {"holds": "The threat models and the VAPT report", "filled_by": "threat-model, vapt-report"},
+  "09_Deployment": {"holds": "The deployment architecture, the environments and the runbooks", "filled_by": "deployment-architecture, runbook"},
+  "10_Release_Notes": {"holds": "Release notes per version", "filled_by": "release"},
+  "11_Client_Deliverables": {"holds": "What goes to the client: proposals, the statement of work, sign-offs, demo recordings, the handover pack", "filled_by": "client-handover, and the team by hand"},
+  "12_Meeting_Notes": {"holds": "Kick-off, planning, review and retrospective notes", "filled_by": "the team, by hand (docs/meetings/)"}
+ },
+ "artifacts": [
+  {"key": "Requirements", "title": "Product Requirements", "folder": "01_Product", "source": "docs/product/PRD.md"},
+  {"key": "UserStories", "title": "User Stories", "folder": "01_Product", "source": "docs/product/backlog.md"},
+  {"key": "UserFlows", "title": "User Flows", "folder": "01_Product", "source": ["docs/product/user-flows.md", "docs/design/flows/*/flows.md"]},
+  {"key": "OpenQuestions", "title": "Open Questions", "folder": "01_Product", "source": "docs/product/questions.md", "csv": [{"table": "Q", "file": "questions.csv"}]},
+  {"key": "Coverage", "title": "Requirement Coverage", "folder": "01_Product", "source": "docs/product/coverage.md", "docx": false},
+  {"key": "Import", "title": "Tracker Import", "folder": "01_Product", "source": "docs/product/IMPORT.md", "docx": false},
+  {"key": "DatabaseDesign", "title": "Database Design", "folder": "02_Technical", "source": "docs/design/data-model.md"},
+  {"key": "ERD", "title": "Entity Relationship Diagram", "folder": "02_Technical", "source": "docs/design/erd.md", "docx": false},
+  {"key": "LowLevelDesign", "title": "Low-Level Design", "folder": "02_Technical", "source": "docs/design/*-lld.md"},
+  {"key": "HLD", "title": "High-Level Design", "folder": "03_Architecture", "source": "docs/design/*-hld.md"},
+  {"key": "ArchitectureDecisions", "title": "Architecture Decisions", "folder": "03_Architecture", "source": ["docs/architecture/decisions.md", "docs/adr/*.md"]},
+  {"key": "SystemDesignTenets", "title": "System Design Tenets", "folder": "03_Architecture", "source": "docs/architecture/tenets.md"},
+  {"key": "ApiReference", "title": "API Reference", "folder": "04_API_Documentation", "source": "docs/api/API.md"},
+  {"key": "TestPlan", "title": "Test Plan", "folder": "06_QA", "source": ["docs/testing/test-plan.md", "docs/testing/risks.md", "docs/testing/test-scenarios.md"], "csv": [{"table": "Risk", "file": "risks.csv"}]},
+  {"key": "TestCases", "title": "Test Cases", "folder": "06_QA", "source": ["docs/testing/test-cases.md", "docs/testing/test-case-steps.md"], "csv": [{"table": "TC", "file": "test-cases.csv"}]},
+  {"key": "DevelopmentAndTestPlan", "title": "Development and Test Plan", "folder": "06_QA", "source": "docs/product/tasks.md", "csv": [{"table": "Task", "file": "tasks.csv"}]},
+  {"key": "EventDesignSheet", "title": "Event Design Sheet", "folder": "07_Analytics", "source": ["docs/analytics/EVENT_SHEET.md", "docs/analytics/tracking-plan.md"]},
+  {"key": "SecurityReview", "title": "Security Review", "folder": "08_Security", "source": ["docs/security/threat-model-*.md", "docs/security/VAPT-*.md"]},
+  {"key": "DeploymentArchitecture", "title": "Deployment Architecture", "folder": "09_Deployment", "source": "docs/architecture/deployment.md"},
+  {"key": "Environments", "title": "Environments", "folder": "09_Deployment", "source": "docs/environments.md", "docx": false},
+  {"key": "Runbooks", "title": "Runbooks", "folder": "09_Deployment", "source": "docs/runbooks/*.md"},
+  {"key": "ReleaseNotes", "title": "Release Notes", "folder": "10_Release_Notes", "source": "docs/releases/*.md"}
+ ],
+ "copy": [
+  {"from": ["docs/design/schema.sql", "docs/design/data-dictionary.csv"], "folder": "02_Technical"},
+  {"from": ["docs/architecture/architecture.json", "docs/architecture/repo-plan.json", "docs/architecture/diagrams/*.svg", "docs/architecture/diagrams/*.png", "docs/architecture/*-c4.md"], "folder": "03_Architecture"},
+  {"from": "api/openapi.yaml", "folder": "04_API_Documentation"},
+  {"from": ["docs/design/**/*.html", "docs/design/**/*.css", "docs/design/**/*.json", "docs/design/**/*.png", "docs/design/DESIGN.md", "docs/design/components.md"], "folder": "05_UI_UX", "strip": "docs/design"},
+  {"from": ["docs/handover/**/*"], "folder": "11_Client_Deliverables", "strip": "docs/handover"},
+  {"from": ["docs/meetings/**/*"], "folder": "12_Meeting_Notes", "strip": "docs/meetings"}
+ ]
+}

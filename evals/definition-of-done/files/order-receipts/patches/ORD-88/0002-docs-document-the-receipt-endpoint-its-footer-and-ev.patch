@@ -1,0 +1,53 @@
+From a095f20cab0da2d0e2d80fd76ce6e96a06dc842a Mon Sep 17 00:00:00 2001
+From: Meera Iyer <meera.iyer@example.com>
+Date: Sat, 26 Sep 2026 02:48:02 +0530
+Subject: [PATCH 2/2] docs: document the receipt endpoint, its footer and event
+ [ORD-88]
+
+---
+ .env.example                  | 2 ++
+ docs/analytics/EVENT_SHEET.md | 1 +
+ docs/api.md                   | 8 ++++++++
+ 3 files changed, 11 insertions(+)
+
+diff --git a/.env.example b/.env.example
+index 71b4838..9d5be0f 100644
+--- a/.env.example
++++ b/.env.example
+@@ -2,3 +2,5 @@
+ ADDR=:8080
+ # Log level: debug, info, warn, error.
+ LOG_LEVEL=info
++# Footer printed at the bottom of every receipt.
++RECEIPT_FOOTER=Thank you for shopping with us
+diff --git a/docs/analytics/EVENT_SHEET.md b/docs/analytics/EVENT_SHEET.md
+index 4bc646d..c808395 100644
+--- a/docs/analytics/EVENT_SHEET.md
++++ b/docs/analytics/EVENT_SHEET.md
+@@ -5,3 +5,4 @@ Events this service sends. The pipeline drops any event not listed here.
+ | Event | Trigger | Properties | Owner |
+ |---|---|---|---|
+ | order_viewed | GET /v1/orders/{id} returns 200 | order_id, status | Growth |
++| receipt_viewed | GET /v1/orders/{id}/receipt returns 200 | order_id, total_paise | Growth |
+diff --git a/docs/api.md b/docs/api.md
+index 19ac3f9..a891f80 100644
+--- a/docs/api.md
++++ b/docs/api.md
+@@ -9,6 +9,14 @@ The order with that id.
+ - 200: `{"id", "customer_id", "status", "total_paise", "lines": [...]}`
+ - 404: `{"error": "not_found"}`
+ 
++## GET /v1/orders/{id}/receipt
++
++The printable receipt for an order. `footer` is set per environment
++(`RECEIPT_FOOTER`).
++
++- 200: `{"order_id", "lines": [{"name", "qty", "amount_paise"}], "total_paise", "footer"}`
++- 404: `{"error": "not_found"}`
++
+ ## GET /v1/orders/export/{format}
+ 
+ Every order, for the support desk. `format` is `csv`; anything else is a 404.
+-- 
+2.43.0
+

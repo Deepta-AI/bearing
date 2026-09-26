@@ -1,0 +1,58 @@
+{
+ "skill_name": "data-model",
+ "evals": [
+  {
+   "id": 1,
+   "name": "appointments-from-stories",
+   "prompt": "We're starting appointments (CLN-41). Can you design the data model for it from the PRD and backlog? Tables, indexes, what's PII and how long we keep it, and the migrations we'd need. Don't write the migrations yet, just the design.",
+   "expected_output": "A data model design under docs/ that builds on the existing tenants, patients and doctors tables (bigint ids), prevents overlapping appointments of different lengths at the database level, gives each story's query an index with the day view bounded in the clinic's time zone, says what happens to a reminder when its appointment is cancelled or moved, stores the fee as bigint minor units per ADR 0002, keeps the 7 year rule for appointments and sizes the table from it, leaves unstated retention open, leaves the phase 2 waitlist out, and plans migrations from 0003 without writing them or recording decisions the user did not make.",
+   "files": [
+    "files/clinic-appointments"
+   ],
+   "expectations": [
+    "No file was created under migrations/ and no existing file (migrations/0001_tenants.sql, migrations/0002_patients_doctors.sql, the ADRs, the PRD, the backlog or the code) was changed; every new file is part of the data model design under docs/ (a design document, optionally with companion files such as a schema sketch, data dictionary or diagram), and nothing outside that design (a glossary, an ADR for a choice the user did not make, code) was added",
+    "The design references the existing tenants, patients and doctors tables by foreign key instead of defining new patient or doctor tables, and those foreign key columns are bigint to match the existing identity ids (not uuid)",
+    "Overlapping appointments for the same doctor are prevented by a database constraint that handles different lengths (for example an EXCLUDE USING gist on doctor_id and a tstzrange of start and end); a unique index on the start time alone does not pass unless the document states that it misses overlaps between 15, 30 and 45 minute appointments, and the rule does not apply to cancelled appointments so a cancelled slot can be booked again as US-05-003 requires",
+    "The day view of US-05-001 (one doctor, one day, ordered by start) is served by an index whose leading columns are the tenant or doctor followed by the start time, and the design says the day is bounded in the clinic's own time zone (from tenants.timezone), not a UTC calendar day, since clinics span India, the UAE and Singapore",
+    "The reminder sender's query for pending reminders that are due is served by an index (for example a partial index on send_at WHERE status is pending), and the retry limit of 3 from US-05-004 is represented in the model",
+    "The consultation fee is a bigint minor units column named with the _minor suffix plus a currency char(3) column, following docs/adr/0002-money-as-minor-units.md; no float, real or double precision column holds money",
+    "The document gives appointments the 7 year retention from the PRD and names the reason for visit (whatever the column is called) as health-related PII",
+    "Retention for the reason for visit beyond the appointment rule, or for reminder delivery data, is not given an invented number: anything the PRD does not state is marked as undefined or an open question",
+    "The design says what happens to a pending reminder when its appointment is cancelled (it is not sent) and when it is rescheduled (its send time moves to 24 hours before the new start), and how the model makes that so",
+    "The design computes the steady-state size of appointments under the 7 year retention from the PRD volume (about 2.4 million a year kept 7 years, roughly 17 million rows or more with growth) and uses that number for a decision such as the purge mechanism, BRIN or partitioning; quoting the yearly volume alone does not pass",
+    "The migration plan lists the new migrations in order, numbered to follow migrations/0002_patients_doctors.sql (0003 onward) in the repository's goose style",
+    "No ADR and no docs/decisions.md row was written for a technology the repository or the request already settles (for example the database or migration tool already in use), and none for a choice the request does not need (for example an ORM or data access library for a design-only request); any choice the run made without an answer from the user is reported as a decision awaiting the user, not recorded as Accepted",
+    "The design states how it reads \"a failed send is retried up to 3 times\" (3 attempts in total, or a first send plus 3 retries) as an interpretation or an open question, and its attempt limit matches the reading it states",
+    "If the design partitions appointments, it states how the no-overlap exclusion constraint survives, since PostgreSQL 16 (ADR 0001) cannot declare an exclusion constraint on a partitioned table; a design that does not partition passes this expectation",
+    "No file written or edited contains an em dash character"
+   ]
+  },
+  {
+   "id": 2,
+   "name": "revise-for-online-booking",
+   "prompt": "Online booking is going into next sprint, stories US-05-009 and US-05-010 are in the backlog now. Please update the data model for it.",
+   "expected_output": "docs/design/data-model.md is revised in place: a record of what changed and why naming US-05-009 and US-05-010, a per-tenant case-insensitive unique email for patient accounts that also settles re-registration during the 30 day deletion window, the online booking channel recorded, a hold that blocks the slot, sends no reminder and lapses after 10 minutes through a sweeper or booking-time check (not a now() predicate), lock-safe new migrations 0005 onward for the hot appointments table, the applied 0003 and 0004 left untouched, and booking-lld.md left alone but named as stale.",
+   "files": [
+    "files/clinic-online-booking"
+   ],
+   "expectations": [
+    "docs/design/data-model.md was updated in place and no second data model document was created; migrations/0003_appointments.sql and migrations/0004_reminders.sql are unchanged, and the new schema changes are planned as new migrations numbered 0005 onward",
+    "The document or the final message records what changed in this update and why, naming US-05-009 and US-05-010",
+    "The reminders design is unchanged: the reminders heading and the rows for idx_reminders_appointment_id and idx_reminders_pending_send_at are as in the original (an added sentence explaining how holds relate to reminders does not fail this)",
+    "No reminder is created for a held slot: a reminder row is created only when an appointment is booked or a hold is confirmed, so a lapsed hold never sends an SMS",
+    "Patient account email uniqueness is per tenant and case-insensitive (for example a unique index on (tenant_id, lower(email))), not unique across all clinics, because US-05-009 allows the same email at different clinics",
+    "The patient account email is listed as PII with the 30 day deletion after account closure from US-05-009 and a mechanism that enforces it (for example a scheduled job that deletes or nulls the email)",
+    "The design decides what happens when the same email signs up again at the same clinic during the 30 days after the account was closed (for example the unique index covers only open accounts, or the closed account is reopened); a unique index on (tenant_id, lower(email)) over all rows with no word on this case does not pass",
+    "Appointments record whether they were booked online (for example a booking channel column or a link to the booking patient account), so the front desk can see which appointments were booked online as US-05-009 requires",
+    "A held slot cannot be booked by anyone else, and the database or a stated transactional check enforces it (for example a held status covered by appointments_no_overlap); the hold records when it lapses, 10 minutes after it was taken as US-05-010 says",
+    "A lapsed hold does not keep blocking the slot: lapsed holds are removed, or set to a state the overlap check ignores, by a sweeper job or a check inside the booking transaction, and the document says which. A design whose only mechanism is a constraint or index predicate that compares with now() does not pass, because PostgreSQL requires those predicates to be immutable",
+    "If the design changes the appointments_no_overlap exclusion constraint itself (for example its WHERE clause), it states that an exclusion constraint cannot be built concurrently, so recreating it takes an exclusive lock on appointments while its GiST index builds over about 3.1 million rows, and plans for that (a maintenance window, or a design that avoids the change); a design that leaves the constraint as it is passes",
+    "Any change to a constraint on the hot appointments table (about 3.1 million rows), such as adding a held status to appointments_status_check, is planned without a validating scan under an exclusive lock, for example ADD CONSTRAINT ... NOT VALID followed by VALIDATE CONSTRAINT, or a lock_timeout with the lock risk stated",
+    "No table for sign-in codes or passwords is added, since US-05-009 says the auth-gateway service handles them",
+    "docs/design/booking-lld.md is left unchanged and named as a document that is now out of date (its status transitions and booking flow do not include the hold); rewriting it unasked does not pass",
+    "No ADR and no docs/decisions.md row was written for a technology the repository or the request already settles (for example the database or migration tool already in use); any choice the run made without an answer from the user is reported as a decision awaiting the user, not recorded as Accepted",
+    "No file written or edited contains an em dash character"
+   ]
+  }
+ ]
+}

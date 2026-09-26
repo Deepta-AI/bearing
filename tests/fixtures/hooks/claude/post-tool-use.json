@@ -1,0 +1,1 @@
+{"session_id":"s1","hook_event_name":"PostToolUse","tool_name":"Write","tool_input":{"file_path":"__FILE__","content":"x"},"tool_response":{"success":true}}

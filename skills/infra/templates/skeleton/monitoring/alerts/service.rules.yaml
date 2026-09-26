@@ -1,0 +1,52 @@
+# Prometheus alert rules for __REPO_SLUG__. Every rule has a runbook_url
+# into docs/runbooks/ and the runbook exists before the rule is merged.
+# make lint counts alerts against runbook links.
+groups:
+  - name: __REPO_SLUG__.service
+    rules:
+      - alert: __REPO_NAME__ServiceDown
+        expr: sum(up{job="__REPO_SLUG__"}) == 0
+        for: 5m
+        labels:
+          severity: critical
+          team: __TEAM_GROUP__
+        annotations:
+          summary: "__REPO_SLUG__ has no healthy targets"
+          description: "No __REPO_SLUG__ target has been up for 5 minutes."
+          runbook_url: https://gitlab.example.com/__TEAM_GROUP__/__REPO_SLUG__/-/blob/main/docs/runbooks/service-down.md
+
+      - alert: __REPO_NAME__HighErrorRate
+        expr: |
+          sum(rate(http_requests_total{job="__REPO_SLUG__", code=~"5.."}[5m]))
+            / sum(rate(http_requests_total{job="__REPO_SLUG__"}[5m])) > 0.05
+        for: 10m
+        labels:
+          severity: critical
+          team: __TEAM_GROUP__
+        annotations:
+          summary: "__REPO_SLUG__ 5xx ratio above 5%"
+          description: "{{ $value | humanizePercentage }} of requests failed over the last 10 minutes."
+          runbook_url: https://gitlab.example.com/__TEAM_GROUP__/__REPO_SLUG__/-/blob/main/docs/runbooks/high-error-rate.md
+
+      - alert: __REPO_NAME__HighLatency
+        expr: |
+          histogram_quantile(0.99, sum by (le) (rate(http_request_duration_seconds_bucket{job="__REPO_SLUG__"}[5m]))) > 1
+        for: 10m
+        labels:
+          severity: warning
+          team: __TEAM_GROUP__
+        annotations:
+          summary: "__REPO_SLUG__ p99 latency above 1s"
+          description: "p99 is {{ $value | humanizeDuration }} over the last 10 minutes."
+          runbook_url: https://gitlab.example.com/__TEAM_GROUP__/__REPO_SLUG__/-/blob/main/docs/runbooks/high-latency.md
+
+      - alert: __REPO_NAME__PodRestarting
+        expr: increase(kube_pod_container_status_restarts_total{namespace=~"__REPO_SLUG__-.*"}[15m]) > 3
+        for: 0m
+        labels:
+          severity: warning
+          team: __TEAM_GROUP__
+        annotations:
+          summary: "{{ $labels.pod }} restarted {{ $value }} times in 15 minutes"
+          description: "Container {{ $labels.container }} in {{ $labels.namespace }} is crash looping."
+          runbook_url: https://gitlab.example.com/__TEAM_GROUP__/__REPO_SLUG__/-/blob/main/docs/runbooks/pod-restarting.md

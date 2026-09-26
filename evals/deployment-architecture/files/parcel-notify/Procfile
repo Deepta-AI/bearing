@@ -1,0 +1,3 @@
+release: ./bin/migrate up
+web: ./bin/web
+worker: ./bin/worker

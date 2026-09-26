@@ -1,0 +1,5 @@
+[
+  {"client_id": "c_101", "name": "Asha Stores", "plan": "basic", "active": true, "monthly_paise": 49900},
+  {"client_id": "c_102", "name": "Meera Textiles", "plan": "pro", "active": true, "monthly_paise": 249900},
+  {"client_id": "c_103", "name": "Old Mill Traders", "plan": "basic", "active": false, "monthly_paise": 49900}
+]

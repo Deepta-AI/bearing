@@ -1,0 +1,54 @@
+{
+ "skill_name": "computer-vision",
+ "evals": [
+  {
+   "id": 1,
+   "name": "defect-model-leaky-split-rare-class",
+   "prompt": "Our bracket defect model reports 97.5% accuracy on test and the line manager wants to switch it on next week. Before we do, can you check whether that number actually holds up and tell us what threshold we should run it at? Quality says letting a defective bracket through costs us roughly 20 times what scrapping a good one does. The contractor's scores are in data/scores.csv.",
+   "expected_output": "The run finds the split was made by image: 639 of 1300 part ids appear in more than one split and 377 of the 570 test images belong to a bracket also in train; on unseen brackets the model is much weaker (test AUROC about 1.00 on leaked parts, about 0.86 on unseen). It works at bracket level because a bracket is rejected if any image is flagged. It notices the labelled set holds about 3.3% defective brackets (43 of 1300) against 0.5% on the line, so the 20 to 1 cost is applied at the line's rate: the threshold rises from about 0.41 (bracket level, unweighted) to about 0.56, chosen on validation brackets unseen in train (137 brackets, 5 defective) and reported once on test brackets unseen in train and not used for the choice (57 of the 155 unseen test brackets also appear in val). At the line's rate, shipping every bracket without the model costs 20 x 0.005 = 0.1 per bracket (1000 per 10,000), and the model on unseen brackets costs about the same (roughly 975 to 1050 per 10,000 across thresholds and subsets, more at the unweighted 0.41), so it saves little or nothing. The figures rest on 5 to 7 defective brackets and are provisional until the data is re-split by part and the model retrained; the run does not tell the line manager to switch it on.",
+   "files": [
+    "files/bracket-inspect"
+   ],
+   "expectations": [
+    "It finds that the split was made by image, not by part: part ids appear in more than one split (639 of 1300 parts), or equivalently that 377 of the 570 test images (328 of 483 test parts) share a part id with the training split, and it recommends re-splitting by part_id (group split) and retraining",
+    "It compares test performance on images or brackets whose part is also in train against those whose part is not, showing the unseen parts score clearly worse (for example AUROC about 1.00 against about 0.86 at image level, or recall at 0.5 of 1.00 against 0.33)",
+    "It shows accuracy is the wrong headline at this defect rate (predicting every test image good already scores about 95.8%, 546 of 570) and reports recall with missed defects and false rejects (or false-reject rate), or AUROC, in its place",
+    "Because the README says a bracket is rejected if any of its images is flagged, it evaluates at bracket level (a bracket's score is the maximum of its image scores, or an equivalent any-image rule) and reports missed defective brackets and scrapped good brackets, not only image counts",
+    "It notices that the labelled set is enriched with defects (about 3.3% of brackets, 43 of 1300, against about 0.5% on the line per the README) and accounts for it: the cost-based threshold or the expected cost is computed at the line's defect rate (for example by weighting defective and good brackets by line rate over labelled rate), and it says that precision and false rejects per defect caught measured on the labelled set do not carry over to the line",
+    "The threshold is chosen from the 20 to 1 cost on validation data only (validation brackets unseen in train, or all of validation) and its performance is then reported on test data that played no part in choosing it; a run that chooses the threshold on test, or pools validation and test into one set to choose and report on, fails",
+    "It notices that validation and test also share brackets (158 test brackets also appear in val; 57 of the 155 test brackets unseen in train are in val) and either reports the test figures on brackets seen in neither train nor val (98 brackets, 6 defective) or states the overlap as a reason the test figures are optimistic",
+    "It compares the model's expected cost at the line's defect rate against running without it: shipping every bracket unchecked costs 20 x 0.5% = 0.1 per bracket (about 1000 per 10,000 brackets, in units of one scrapped good bracket), and on brackets unseen in training the model at 0.5 or at the cost-chosen threshold comes out about the same or worse, so it saves little or nothing as an automatic reject gate",
+    "It states how few defective examples the unseen-part figures rest on (about 5 defective brackets in validation and 6 or 7 in test, or the image equivalents) and gives an interval, a bootstrap range or an explicit statement that the threshold and recall are unstable at these counts",
+    "It does not tell the line manager the model is ready to switch on as is, and says the threshold and figures are provisional because of the leak, the small unseen-defect count, or both, until the data is re-split by part and the model retrained",
+    "data/scores.csv is unchanged",
+    "It explicitly lists what it did not do (at least retraining or re-splitting the model, and any check on the line camera or of serving latency) as not done, rather than leaving it unstated or presenting it as a result",
+    "No file written or edited contains an em dash character"
+   ]
+  },
+  {
+   "id": 2,
+   "name": "certificate-vlm-uncalibrated-confidence",
+   "prompt": "wire up process() in extract/pipeline.py. just ship it with 0.5 as the threshold: fields with confidence above 0.5 go straight into the ERP, anything else goes to manual entry. we labelled 40 certs and the model's outputs on them are in data/labelled.",
+   "expected_output": "process() is implemented with a configurable threshold, deterministic checks and offline tests, but the run first scores the model on the 40 labelled certificates field by field (certificate_no 38/40, heat_no 35/40, issue_date 32/40, grade 40/40, yield_mpa 38/40): 16 of the 17 wrong fields have confidence of at least 0.5 and would go straight into the ERP, 10 of them at 0.9 or more, and confidence ranks right above wrong no better than chance (AUROC about 0.51). It finds the systematic errors (deccan-steel dates with day and month swapped, 8 cases; kaveri-alloys heat numbers with letter O read as zero, 5 cases) and, because the 40 are not in proportion to deliveries, reweights by the delivery mix: at 0.5 about 33 wrong fields a day would enter the ERP (about 31 certificates of 60), not the 24 a straight scale-up gives. A model call that fails sends the certificate to manual entry. Any threshold it recommends other than 0.5 is chosen on some certificates and checked on others, flagged as the user's decision, and the run says 40 is a small set and that the live model, the ERP and latency were not exercised.",
+   "files": [
+    "files/cert-extract"
+   ],
+   "expectations": [
+    "It scores the saved predictions against the labels and reports exact-match accuracy for each of the five fields (certificate_no 38/40, heat_no 35/40, issue_date 32/40, grade 40/40, yield_mpa 38/40); an overall count alone does not pass",
+    "It reports how many wrong values would go straight into the ERP at 0.5 on the labelled set: 16 of the 17 wrong fields have confidence of at least 0.5",
+    "It shows the model's confidence is not a reliable probability with either the count of wrong values at high confidence (10 of the 17 at 0.9 or more) or a ranking measure (confidence separates right from wrong about as well as chance, AUROC about 0.5); a comparison of mean confidences alone does not pass",
+    "It finds the deccan-steel issue dates are read with day and month swapped (8 certificates, from DD/MM/YYYY printing) and that kaveri-alloys heat numbers have the letter O read as zero (5 certificates), or reports accuracy per supplier showing these two suppliers carry the errors (north-rolling 89/90, deccan-steel 62/70, kaveri-alloys 32/40)",
+    "Because the README says the 40 are not in proportion to deliveries, it weights the per-supplier error rates by the delivery mix (north-rolling 20%, deccan-steel 55%, kaveri-alloys 25%) to estimate what reaches the ERP at 0.5 on a normal day: about 33 wrong fields (or about 31 affected certificates) of 60 certificates, against the 24 a straight scale-up of 16 in 40 would give",
+    "process() is implemented: fields at or above the threshold are posted with erp.post_certificate and the rest go to erp.queue_for_manual_entry (per field or per certificate), with the threshold configurable rather than hard-coded in the logic",
+    "It adds at least one deterministic check that sends a field to manual entry regardless of confidence and catches errors seen in the labelled set, such as a per-supplier heat number pattern (catches all 5 heat number errors) or holding deccan-steel dates whose day is 12 or less",
+    "When the model call fails (extract_fields raises, or the reply cannot be parsed) process() puts the certificate on manual entry with a reason, or re-raises without having posted anything, so no certificate is silently lost or half-posted, and a test covers that path",
+    "Tests for the routing, the added check and the failure path exist, use no network (the model and ERP are replaced with fakes), and pass when `make test` is run",
+    "The user's instruction about 0.5 is handled openly: either 0.5 is the shipped value with the measured consequence stated, or the first lines of the reply say a different value or rule ships instead, why, and that the choice is the user's to confirm; any cost ratio used is marked as an assumption",
+    "Any threshold it recommends other than 0.5 is chosen on some of the certificates and checked on others it was not chosen on (a split or cross-validation by certificate), or it recommends none and says 40 certificates are too few to tune on; a value chosen and reported on the same 40 fails even when disclosed",
+    "It states that 40 certificates is a small set and that the checks and figures derived from them are optimistic or uncertain until measured on a fresh batch",
+    "It states, each explicitly, that the live model was not called, that the ERP was not called and that latency was not measured",
+    "No file written or edited contains an em dash character"
+   ]
+  }
+ ]
+}

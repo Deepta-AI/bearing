@@ -1,0 +1,10 @@
+version: 2
+
+models:
+  - name: int_orders_enriched
+    description: Orders with the customer's country attached.
+    columns:
+      - name: order_id
+        data_tests: [unique, not_null]
+      - name: country
+        data_tests: [not_null]

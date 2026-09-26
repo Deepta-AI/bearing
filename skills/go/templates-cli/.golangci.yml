@@ -1,0 +1,66 @@
+version: "2"
+run:
+  timeout: 5m
+  tests: true
+linters:
+  default: standard
+  enable:
+    - copyloopvar
+    - errname
+    - errorlint
+    - exhaustive
+    - gocritic
+    - gosec
+    - misspell
+    - nilerr
+    - nolintlint
+    - prealloc
+    - revive
+    - unconvert
+    - unparam
+    - usestdlibvars
+    - wrapcheck
+  settings:
+    errorlint:
+      errorf: true
+      asserts: true
+      comparison: true
+    gocritic:
+      enabled-tags: [diagnostic, performance, style]
+      disabled-checks:
+        - hugeParam # false positives on option structs; measure first
+    gosec:
+      excludes:
+        - G104 # unhandled errors are errcheck's job
+    nolintlint:
+      require-explanation: true
+      require-specific: true
+    revive:
+      rules:
+        - name: exported
+        - name: context-as-argument
+        - name: context-keys-type
+        - name: error-return
+        - name: error-strings
+        - name: error-naming
+        - name: errorf
+        - name: unused-parameter
+        - name: unhandled-error
+          arguments: [fmt.Fprint, fmt.Fprintf, fmt.Fprintln]
+        - name: defer
+    wrapcheck:
+      ignore-sigs:
+        - .Errorf(
+        - errors.New(
+        - errors.Join(
+      ignore-package-globs:
+        - "__MODULE__/*"
+  exclusions:
+    rules:
+      - path: _test\.go
+        linters: [gosec, wrapcheck, unparam]
+formatters:
+  enable: [gofmt, goimports]
+  settings:
+    goimports:
+      local-prefixes: ["__MODULE__"]

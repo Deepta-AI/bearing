@@ -1,0 +1,17 @@
+# incident channel export, 2026-09-22, all times IST (UTC+05:30)
+13:58 deploy-bot: shopfront v2.3.0 rolled out to prod (3/3 pods)
+14:04 alertmanager: [FIRING] CheckoutErrorRateHigh shopfront 5xx ratio 0.41 > 0.05 for 2m
+14:06 oncall-payments: ack, looking. declaring sev 2, I'll lead and scribe
+14:09 oncall-payments: runbook step 1 says restart the checkout pods, doing that
+14:12 oncall-payments: restarted all 3 pods
+14:13 support-lead: customers writing in about payment failing at checkout
+14:15 oncall-payments: errors are back, the restart bought about 3 minutes
+14:19 dba-oncall: primary CPU 31%, no slow queries, connections 60 of 500. db looks fine
+14:26 oncall-payments: logs are full of "PoolTimeout: no connection within 2.0s"
+14:31 dev-two: v2.3.0 went out at 13:58 and has the pool trim from SHOP-80
+14:38 oncall-payments: rolling back to v2.2.4
+14:44 deploy-bot: shopfront v2.2.4 rolled out to prod (3/3 pods)
+14:46 oncall-payments: 5xx back to zero
+14:50 alertmanager: [RESOLVED] CheckoutErrorRateHigh
+14:52 support-lead: 37 tickets about failed payments so far
+14:55 oncall-payments: resolved. postmortem owner: payments team

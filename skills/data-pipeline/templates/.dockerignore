@@ -1,0 +1,11 @@
+.venv
+.airflow
+.git
+.env
+profiles.yml
+dbt/target
+dbt/dbt_packages
+dbt/logs
+logs
+tests
+.bearing/state

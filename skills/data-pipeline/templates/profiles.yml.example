@@ -1,0 +1,29 @@
+# Copy to profiles.yml (git-ignored; make setup does this once) or point
+# DBT_PROFILES_DIR at a directory holding one. Every value comes from the
+# environment through env_var(); never write a credential into this file.
+# The adapter is a tech-decision choice (key: analytics store); change `type`
+# and the fields to match dbt-bigquery, dbt-snowflake or dbt-clickhouse.
+pipeline:
+  target: "{{ env_var('DBT_TARGET', 'dev') }}"
+  outputs:
+    dev:
+      type: postgres
+      host: "{{ env_var('DBT_HOST', 'localhost') }}"
+      port: "{{ env_var('DBT_PORT', '5432') | int }}"
+      user: "{{ env_var('DBT_USER', 'postgres') }}"
+      password: "{{ env_var('DBT_PASSWORD', '') }}"
+      dbname: "{{ env_var('DBT_DBNAME', '__REPO_SLUG__') }}"
+      schema: "{{ env_var('DBT_SCHEMA', 'analytics') }}"
+      threads: 4
+      connect_timeout: 10
+    prod:
+      type: postgres
+      host: "{{ env_var('DBT_HOST') }}"
+      port: "{{ env_var('DBT_PORT', '5432') | int }}"
+      user: "{{ env_var('DBT_USER') }}"
+      password: "{{ env_var('DBT_PASSWORD') }}"
+      dbname: "{{ env_var('DBT_DBNAME') }}"
+      schema: "{{ env_var('DBT_SCHEMA', 'analytics') }}"
+      threads: 8
+      connect_timeout: 10
+      sslmode: require

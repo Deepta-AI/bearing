@@ -1,0 +1,12 @@
+# Smoke flow: the app launches and the health card reaches a settled state.
+# Run against a preview or development build on a simulator or device:
+#   make test-e2e
+appId: __ORG_ID__.__REPO_NAME__
+---
+- launchApp
+- assertVisible: '__REPO_NAME__'
+- extendedWaitUntil:
+    visible:
+      id: 'health-card'
+    timeout: 15000
+- assertNotVisible: 'Checking the API'

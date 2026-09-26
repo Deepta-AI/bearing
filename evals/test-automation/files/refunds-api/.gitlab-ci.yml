@@ -1,0 +1,18 @@
+stages:
+  - test
+  - build
+
+unit:
+  stage: test
+  image: golang:1.25
+  script:
+    - make check
+
+build:
+  stage: build
+  image: golang:1.25
+  script:
+    - go build -o bin/api ./cmd/api
+  artifacts:
+    paths:
+      - bin/api

@@ -1,0 +1,99 @@
+# OpenTelemetry Collector for the local stack.
+# Receives OTLP from every service, produces RED metrics from spans,
+# and fans out to Prometheus, Tempo and Loki. Copy to observability/.
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 512
+    spike_limit_mib: 128
+  batch:
+    timeout: 2s
+    send_batch_size: 1024
+  resource:
+    attributes:
+      - key: deployment.environment
+        value: dev
+        action: upsert
+  # Drop attributes that must never reach a backend.
+  attributes/redact:
+    actions:
+      - key: http.request.header.authorization
+        action: delete
+      - key: http.request.header.cookie
+        action: delete
+      - key: user.email
+        action: delete
+
+# Sampling lives here, never in the service SDKs: they run the default
+# parentbased_always_on sampler so every span reaches this collector and
+# spanmetrics below sees every request. The local stack keeps every
+# trace. A production collector (infra) adds tail sampling in a second
+# traces pipeline fed by the forward connector, so spanmetrics still counts
+# every span; it keeps every error, every slow trace and a share of the
+# rest, for example:
+#   tail_sampling:
+#     decision_wait: 10s
+#     policies:
+#       - { name: errors, type: status_code, status_code: { status_codes: [ERROR] } }
+#       - { name: slow, type: latency, latency: { threshold_ms: 800 } }
+#       - { name: rest, type: probabilistic, probabilistic: { sampling_percentage: 10 } }
+# Tail sampling needs every span of a trace on one collector: with more
+# than one replica, front them with the loadbalancing exporter keyed on
+# the trace id.
+
+connectors:
+  # RED metrics from spans, so a service with traces gets the dashboard
+  # even before it exports its own metrics.
+  spanmetrics:
+    histogram:
+      explicit:
+        buckets: [5ms, 10ms, 25ms, 50ms, 100ms, 250ms, 500ms, 1s, 2.5s, 5s, 10s]
+    dimensions:
+      - name: http.route
+      - name: http.response.status_code
+    metrics_flush_interval: 15s
+
+exporters:
+  prometheus:
+    endpoint: 0.0.0.0:8889
+    resource_to_telemetry_conversion:
+      enabled: true
+  otlp/tempo:
+    endpoint: tempo:4317
+    tls:
+      insecure: true
+  otlphttp/loki:
+    endpoint: http://loki:3100/otlp
+    tls:
+      insecure: true
+  debug:
+    verbosity: basic
+
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+
+service:
+  extensions: [health_check]
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, attributes/redact, resource, batch]
+      exporters: [otlp/tempo, spanmetrics]
+    metrics:
+      receivers: [otlp, spanmetrics]
+      processors: [memory_limiter, resource, batch]
+      exporters: [prometheus]
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, attributes/redact, resource, batch]
+      exporters: [otlphttp/loki]

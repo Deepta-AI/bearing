@@ -1,0 +1,17 @@
+image:
+  repository: registry.acme.example.com/finance/ledger-sync
+  tag: latest
+replicaCount: 1
+autoscaling:
+  enabled: false
+resources:
+  requests: { cpu: 100m, memory: 128Mi }
+  limits: { cpu: 500m, memory: 256Mi }
+ingress:
+  enabled: true
+  className: nginx
+  host: ""
+env:
+  DB_MAX_CONNS: "5"
+reconcile:
+  schedule: "30 1 * * *"

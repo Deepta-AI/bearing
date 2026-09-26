@@ -1,0 +1,19 @@
+{
+  "name": "bearing",
+  "owner": {
+    "name": "Ravi Teja Akella"
+  },
+  "metadata": {
+    "description": "The Bearing marketplace: one plugin, bearing.",
+    "version": "0.6.0"
+  },
+  "plugins": [
+    {
+      "name": "bearing",
+      "source": "./",
+      "description": "A developer workflow for coding agents: skills for every stage, review subagents, hooks and repository templates.",
+      "version": "0.6.0",
+      "category": "development"
+    }
+  ]
+}

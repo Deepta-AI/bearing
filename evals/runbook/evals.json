@@ -1,0 +1,65 @@
+{
+ "skill_name": "runbook",
+ "evals": [
+  {
+   "id": 1,
+   "name": "backlog-alert-runbook",
+   "prompt": "We added a WebhookBacklogHigh alert last week and it still has no runbook. Can you write one? Whoever is on call Monday should be able to follow it cold.",
+   "expected_output": "One new runbook for WebhookBacklogHigh under docs/runbooks/ that states the rule as written (oldest pending event over 600 s for 5 minutes, not the README's 1,000 events), says what merchants see against the 2 minute SLO, gives copy-pasteable diagnosis against the payments namespace with healthy versus unhealthy results, covers a slow Orders API (sequential applies with a 30 s timeout) and routes it to orders-oncall, does not tell anyone to scale workers past ADR-0004's 20-connection budget (already 2x4 + 3x4 = 20) or to purge pending events, warns that rolling back below 1.8.0 breaks on the irreversible migration 0007, notes that a dead-letter replay keeps received_at and can trip the alert, escalates to rotations not people, carries no credential or production hostname from the README, handles the missing runbook_url on the rule, claims no verification it did not do, and leaves everything uncommitted.",
+   "files": [
+    "files/payhook"
+   ],
+   "expectations": [
+    "Exactly one new runbook for WebhookBacklogHigh exists under docs/runbooks/ and it covers only that alert; docs/runbooks/WebhookDeadLettersGrowing.md is unchanged",
+    "The runbook states the condition as the rule in monitoring/alerts/webhooks.yaml has it: the oldest pending event (payhook_queue_oldest_pending_seconds) older than 600 seconds (10 minutes) for 5 minutes; it does not describe the alert as more than 1,000 events waiting",
+    "The run either corrects the README's sentence that the alert pages at more than 1,000 waiting events or tells the user in its final message that the README contradicts the rule; it does not leave the contradiction unmentioned",
+    "The user impact says what merchants or customers experience (orders stay on \"Awaiting payment\" and are not released to fulfilment, README) and that while it fires payment events are at least 10 minutes late against the 2 minute SLO",
+    "Every diagnosis step is a command or dashboard that exists in the repository or its configuration (for example make queue-stats, or kubectl -n payments exec deploy/payhook-worker -- python3 scripts/queue_stats.py, the worker's /metrics on port 9102, the dashboard URL in the rule) and says what a healthy and an unhealthy result look like",
+    "Diagnosis covers a slow or failing Orders API as a cause (the worker applies events one at a time with a 30 second ORDERS_API_TIMEOUT_SECONDS, so a slow Orders API stalls every batch) and the runbook routes that case to the orders-oncall rotation named in docs/operations/on-call.md",
+    "The runbook gives the worker's nominal drain rate from deploy/k8s.yaml (3 replicas, 20 events every 2 seconds each, about 30 events a second) or tells the responder how to estimate the time to drain from the pending count",
+    "The runbook does not tell the responder to add payhook-worker replicas or raise DB_POOL_SIZE as a plain remediation: if it mentions scaling it states that ADR-0004's 20-connection budget for the payhook role is already fully used (2 API replicas x 4 plus 3 worker replicas x 4 = 20), so scaling needs a lower DB_POOL_SIZE per pod or a raised limit first; a runbook that does not suggest scaling passes",
+    "The runbook notes that replaying dead letters (scripts/replay_dead.py or make replay-dlq) puts events back as pending with their original received_at, so payhook_queue_oldest_pending_seconds jumps and this alert can fire after a replay without a real backlog",
+    "The runbook does not recommend make purge-pending or scripts/purge_pending.py as a remediation; if it mentions them it warns that they delete payments that are never applied and that the provider does not resend",
+    "Rollback names the mechanism in the repository (make rollback PREV_TAG=<tag> or make deploy TAG=<tag>) and warns that rolling back to a release before 1.8.0 is not safe because migration 0007 dropped events.legacy_payload irreversibly (CHANGELOG.md, migrations/0007_drop_legacy_payload.sql)",
+    "Escalation names rotations and channels from docs/operations/on-call.md (payments-oncall, payments-secondary after 30 minutes, #inc-payments) and no individual person",
+    "The runbook contains no database password or production database hostname: neither ReadOnly2024 nor payhook-prod-db.internal.example appears in it, and database access points at the pod environment or the secret rather than the README's psql line",
+    "The final message tells the user that README.md contains a database password and a production database hostname, or the run removes them from the README and says so",
+    "The WebhookBacklogHigh rule gets a runbook_url annotation pointing at the new runbook (in the same form as the sibling rule's), or the final message tells the user the annotation is missing; the rule's expr, for, labels and the other rule are unchanged",
+    "The runbook invents no facts that are not in the repository or the request (for example no PagerDuty service ids, hostnames, metric names or dashboard panels that do not exist); anything unknown is left as a marked placeholder or open item",
+    "The runbook does not claim its steps were verified against the running service or give a verification date, and the final message says the diagnosis commands were not run against the live service",
+    "Nothing under app/, scripts/, migrations/, deploy/, tests/ or the Makefile is changed",
+    "The run makes no git commit: history still ends at the fixture commit",
+    "No file written or edited contains an em dash character"
+   ]
+  },
+  {
+   "id": 2,
+   "name": "dead-letter-runbook-after-incident",
+   "prompt": "The dead letter alert woke us up Tuesday night, notes are in docs/incidents/2026-09-22-webhook-dead-letters.md. Update the runbook so the next person doesn't lose an hour like we did.",
+   "expected_output": "docs/runbooks/WebhookDeadLettersGrowing.md revised in place from the incident: the meaning matches the rule (more than 20 in 15 minutes), diagnosis groups dead letters by error first and says what signature_invalid means, the Orders API check applies only to orders_api errors, replay comes after the cause is fixed, filtered with the real --error flag and a dry run, signature failures are redelivered by the provider or verified before replay because they never passed a signature check, the rotation fix uses the existing WEBHOOK_SIGNING_SECRET_PREVIOUS support (AI-3 is already built), no password, hostname or named person is copied from the notes, the stale 2026-03-02 verification is not carried over the changed steps, the notes' leaked password is flagged, and nothing outside docs/ changes or is committed.",
+   "files": [
+    "files/payhook"
+   ],
+   "expectations": [
+    "docs/runbooks/WebhookDeadLettersGrowing.md is updated in place; no second runbook for this alert is created",
+    "The alert's meaning now matches the rule in monitoring/alerts/webhooks.yaml: more than 20 dead letters in 15 minutes (sum of increase(payhook_dead_letters_total[15m]) > 20), not more than 50 in an hour",
+    "Diagnosis starts by grouping dead letters by error (make queue-stats, or scripts/queue_stats.py --by-error) and says what each error family means: signature_invalid is a signing secret mismatch at the webhook endpoint, orders_api_* is the Orders API rejecting or failing",
+    "The Orders API check is no longer an unconditional step: the runbook sends the responder to the Orders API only when the dead letters are orders_api_* errors, and routes that case to the orders-oncall rotation",
+    "Remediation no longer starts with replaying every dead letter: it says to fix the cause first and replay afterwards, and it does not recommend an unfiltered make replay-dlq",
+    "Every replay command uses flags that scripts/replay_dead.py accepts (--error, --limit, --dry-run) with a dry run before the real replay; the --kind flag from the incident notes does not appear as a command, and the run notes that the notes' command was wrong",
+    "For signature_invalid dead letters the runbook either has the provider redeliver the affected window from its portal (72 hours back, docs/operations/on-call.md) or warns that these events never passed a signature check (app/server.py stores them before any verification succeeds) and says how to confirm they are genuine before replaying; telling the responder to replay them with no such caution fails",
+    "The fix for a provider secret rotation uses the dual-secret support that already exists (app/signature.py, CHANGELOG 1.6.0): the new secret goes in WEBHOOK_SIGNING_SECRET and the old one in WEBHOOK_SIGNING_SECRET_PREVIOUS, then payhook-api is restarted; the new secret is obtained through the provider portal or the vault, and no secret value appears",
+    "The run tells the user that action item AI-3 (add dual-secret support) is already implemented, and it does not implement it again or change any code",
+    "The runbook contains no database password or production database hostname from the notes: neither ReadOnly2024 nor payhook-prod-db.internal.example appears in it, and it has no psql command against the production database",
+    "The final message tells the user that the incident notes contain a database password and production hostname that should be removed (and the password rotated), or the run redacts them in the notes and says so",
+    "Escalation names rotations and channels (payments-oncall, payments-secondary, #inc-payments, provider support through the portal) and no individual: AI-4's \"call Alex\" is not adopted as the escalation path",
+    "The runbook no longer presents 2026-03-02 as the verification date of steps the update changed, and it gives no verification date for this run; citing the 22 September incident as evidence for a step whose output the notes quote (the 23:30 queue-stats output) is acceptable",
+    "User impact says orders whose payment event is dead stay on \"Awaiting payment\" and are not released to fulfilment, and that the provider does not resend an event we answered with 401, so nothing recovers on its own",
+    "No file outside docs/ is created or changed (no code, Makefile, deploy or alert rule change); the incident notes are not rewritten beyond an optional redaction of the credential",
+    "The final message says the diagnosis and remediation commands were not run against the live service",
+    "The run makes no git commit: history still ends at the fixture commit",
+    "No file written or edited contains an em dash character"
+   ]
+  }
+ ]
+}

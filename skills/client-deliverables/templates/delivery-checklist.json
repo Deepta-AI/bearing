@@ -1,0 +1,1054 @@
+{
+ "title": "Project Delivery Checklist",
+ "note": "Fill in Status, Owner, Target Date and Remarks; Status and Responsible are dropdowns. client-deliverables marks a task Completed only when its evidence exists, and never changes a status a person set.",
+ "statuses": [
+  "Not Started",
+  "In Progress",
+  "Completed",
+  "Blocked",
+  "Not Applicable"
+ ],
+ "roles": [
+  "Product Team",
+  "Team Lead",
+  "Developer",
+  "QA",
+  "Engineering Manager"
+ ],
+ "tasks": [
+  {
+   "phase": "1. Project Initiation",
+   "task": "Receive resource count / capacity allocation from Management",
+   "responsible": "Engineering Manager",
+   "evidence": []
+  },
+  {
+   "phase": "1. Project Initiation",
+   "task": "Decide and finalise the project team (Dev, QA, Architect, Lead)",
+   "responsible": "Engineering Manager",
+   "evidence": []
+  },
+  {
+   "phase": "1. Project Initiation",
+   "task": "Confirm PRD, User Stories, Personas, Business Objectives are ready",
+   "responsible": "Product Team",
+   "evidence": [
+    "docs/product/PRD.md",
+    "docs/product/backlog.md"
+   ]
+  },
+  {
+   "phase": "1. Project Initiation",
+   "task": "Confirm Functional & Non-Functional Requirements are documented",
+   "responsible": "Product Team",
+   "evidence": [
+    "docs/product/PRD.md"
+   ]
+  },
+  {
+   "phase": "1. Project Initiation",
+   "task": "Confirm Data Models / Data Points and Acceptance Criteria are defined",
+   "responsible": "Product Team",
+   "evidence": [
+    "docs/design/data-model.md"
+   ]
+  },
+  {
+   "phase": "1. Project Initiation",
+   "task": "Confirm UI/UX references are shared (if applicable)",
+   "responsible": "Product Team",
+   "evidence": []
+  },
+  {
+   "phase": "1. Project Initiation",
+   "task": "Schedule and set up the Project Kickoff / Handover meeting",
+   "responsible": "Team Lead",
+   "evidence": []
+  },
+  {
+   "phase": "1. Project Initiation",
+   "task": "Conduct handover walkthrough: business requirements, user journeys, functional scope",
+   "responsible": "Product Team",
+   "evidence": []
+  },
+  {
+   "phase": "1. Project Initiation",
+   "task": "Walk through technical constraints, timelines, milestones, deliverables, dependencies",
+   "responsible": "Product Team",
+   "evidence": []
+  },
+  {
+   "phase": "1. Project Initiation",
+   "task": "Raise all open questions from Dev and QA during handover",
+   "responsible": "Team Lead",
+   "evidence": [
+    "docs/product/questions.md"
+   ]
+  },
+  {
+   "phase": "1. Project Initiation",
+   "task": "Ensure all requirements are thoroughly clarified with the team; close every clarification",
+   "responsible": "Team Lead",
+   "evidence": []
+  },
+  {
+   "phase": "1. Project Initiation",
+   "task": "Obtain formal approval / sign-off on PRD and User Stories",
+   "responsible": "Product Team",
+   "evidence": []
+  },
+  {
+   "phase": "1. Project Initiation",
+   "task": "Confirm development can begin (handover done, questions closed, PRD approved)",
+   "responsible": "Team Lead",
+   "evidence": []
+  },
+  {
+   "phase": "2. Project Setup",
+   "task": "Create the shared project Drive folder with the standard structure",
+   "responsible": "Team Lead",
+   "evidence": []
+  },
+  {
+   "phase": "2. Project Setup",
+   "task": "Create sub-folders: Product, Technical, Architecture, API Documentation, UI/UX, QA",
+   "responsible": "Team Lead",
+   "evidence": []
+  },
+  {
+   "phase": "2. Project Setup",
+   "task": "Create sub-folders: Analytics, Security, Deployment, Release Notes, Client Deliverables, Meeting Notes",
+   "responsible": "Team Lead",
+   "evidence": []
+  },
+  {
+   "phase": "2. Project Setup",
+   "task": "Apply document naming convention and version history to all documents",
+   "responsible": "Team Lead",
+   "evidence": [
+    "docs/deliverables/versions.json"
+   ]
+  },
+  {
+   "phase": "2. Project Setup",
+   "task": "Create the dedicated git group for the client (PascalCase)",
+   "responsible": "Team Lead",
+   "evidence": [
+    "docs/architecture/repo-plan.json"
+   ]
+  },
+  {
+   "phase": "2. Project Setup",
+   "task": "Create Client subgroup repositories (Web / Android / iOS)",
+   "responsible": "Team Lead",
+   "evidence": []
+  },
+  {
+   "phase": "2. Project Setup",
+   "task": "Create Server subgroup repositories (API, Auth, Notification, Scheduler, Worker)",
+   "responsible": "Team Lead",
+   "evidence": []
+  },
+  {
+   "phase": "2. Project Setup",
+   "task": "Verify all group / subgroup / repo names follow PascalCase and are descriptive",
+   "responsible": "Team Lead",
+   "evidence": []
+  },
+  {
+   "phase": "2. Project Setup",
+   "task": "Create dedicated cloud projects: Dev, QA, Prod (PascalCase naming)",
+   "responsible": "Team Lead",
+   "evidence": []
+  },
+  {
+   "phase": "2. Project Setup",
+   "task": "Confirm cloud project naming with Engineering Manager if any uncertainty",
+   "responsible": "Team Lead",
+   "evidence": []
+  },
+  {
+   "phase": "2. Project Setup",
+   "task": "Provision all cloud resources within the correct cloud project",
+   "responsible": "Developer",
+   "evidence": []
+  },
+  {
+   "phase": "2. Project Setup",
+   "task": "Create the project entry in the tracker",
+   "responsible": "Team Lead",
+   "evidence": []
+  },
+  {
+   "phase": "2. Project Setup",
+   "task": "Set up the tracker hierarchy: Project > PRD > User Stories > Tasks / Bugs > Releases",
+   "responsible": "Team Lead",
+   "evidence": []
+  },
+  {
+   "phase": "3. Planning & Estimation",
+   "task": "Create User Stories with clear, testable Acceptance Criteria",
+   "responsible": "Product Team",
+   "evidence": [
+    "docs/product/backlog.md"
+   ]
+  },
+  {
+   "phase": "3. Planning & Estimation",
+   "task": "Add all User Stories to the tracker and link them to the PRD",
+   "responsible": "Team Lead",
+   "evidence": []
+  },
+  {
+   "phase": "3. Planning & Estimation",
+   "task": "Break each User Story into Development Tasks, QA Tasks and Bugs",
+   "responsible": "Team Lead",
+   "evidence": [
+    "docs/product/backlog.md|-D1"
+   ]
+  },
+  {
+   "phase": "3. Planning & Estimation",
+   "task": "Create all tasks within one working day of handover completion",
+   "responsible": "Team Lead",
+   "evidence": []
+  },
+  {
+   "phase": "3. Planning & Estimation",
+   "task": "Add Description, Acceptance Criteria, Priority, Estimated Effort, Dependencies to each task",
+   "responsible": "Team Lead",
+   "evidence": [
+    "docs/product/backlog.md|Estimate"
+   ]
+  },
+  {
+   "phase": "3. Planning & Estimation",
+   "task": "Verify every task is linked to a User Story",
+   "responsible": "Team Lead",
+   "evidence": []
+  },
+  {
+   "phase": "3. Planning & Estimation",
+   "task": "Conduct the Sprint Planning meeting and distribute tasks",
+   "responsible": "Team Lead",
+   "evidence": []
+  },
+  {
+   "phase": "3. Planning & Estimation",
+   "task": "Assign work considering skillset, workload, sprint capacity and timelines",
+   "responsible": "Team Lead",
+   "evidence": []
+  },
+  {
+   "phase": "3. Planning & Estimation",
+   "task": "Confirm each Developer and QA Engineer understands their assigned scope",
+   "responsible": "Developer",
+   "evidence": []
+  },
+  {
+   "phase": "4. Solution Design",
+   "task": "Prepare UI/UX designs using Claude Design",
+   "responsible": "Developer",
+   "evidence": [
+    "docs/design/index.html",
+    "docs/design/screens/*/index.html"
+   ]
+  },
+  {
+   "phase": "4. Solution Design",
+   "task": "Review and obtain Product team approval on UI/UX designs",
+   "responsible": "Product Team",
+   "evidence": []
+  },
+  {
+   "phase": "4. Solution Design",
+   "task": "Route any post-approval design change through the change management process",
+   "responsible": "Team Lead",
+   "evidence": []
+  },
+  {
+   "phase": "4. Solution Design",
+   "task": "Prepare the High-Level Design (HLD)",
+   "responsible": "Team Lead",
+   "evidence": [
+    "docs/design/*-hld.md"
+   ]
+  },
+  {
+   "phase": "4. Solution Design",
+   "task": "HLD: System Architecture and Service Boundaries",
+   "responsible": "Team Lead",
+   "evidence": [
+    "docs/design/*-hld.md"
+   ]
+  },
+  {
+   "phase": "4. Solution Design",
+   "task": "HLD: Database Design",
+   "responsible": "Team Lead",
+   "evidence": [
+    "docs/design/*-hld.md|Data"
+   ]
+  },
+  {
+   "phase": "4. Solution Design",
+   "task": "HLD: External Integrations",
+   "responsible": "Team Lead",
+   "evidence": [
+    "docs/design/*-hld.md|External integrations"
+   ]
+  },
+  {
+   "phase": "4. Solution Design",
+   "task": "HLD: Security Considerations",
+   "responsible": "Team Lead",
+   "evidence": [
+    "docs/design/*-hld.md|Security"
+   ]
+  },
+  {
+   "phase": "4. Solution Design",
+   "task": "HLD: Deployment Architecture",
+   "responsible": "Team Lead",
+   "evidence": [
+    "docs/architecture/deployment.md"
+   ]
+  },
+  {
+   "phase": "4. Solution Design",
+   "task": "HLD: Scalability Strategy",
+   "responsible": "Team Lead",
+   "evidence": [
+    "docs/design/*-hld.md|Scal"
+   ]
+  },
+  {
+   "phase": "4. Solution Design",
+   "task": "HLD: Observability Architecture",
+   "responsible": "Team Lead",
+   "evidence": [
+    "docs/design/*-hld.md|Observability"
+   ]
+  },
+  {
+   "phase": "4. Solution Design",
+   "task": "HLD: Analytics Architecture",
+   "responsible": "Team Lead",
+   "evidence": [
+    "docs/design/*-hld.md|Analytics"
+   ]
+  },
+  {
+   "phase": "4. Solution Design",
+   "task": "Prepare Low-Level Design (where applicable)",
+   "responsible": "Developer",
+   "evidence": [
+    "docs/design/*-lld.md"
+   ]
+  },
+  {
+   "phase": "4. Solution Design",
+   "task": "Prepare Architecture Diagram",
+   "responsible": "Team Lead",
+   "evidence": [
+    "docs/architecture/diagrams/*_SystemArchitecture_v*.svg"
+   ]
+  },
+  {
+   "phase": "4. Solution Design",
+   "task": "Confirm the standard technology stack; get Architect + EM review for any deviation",
+   "responsible": "Team Lead",
+   "evidence": [
+    "docs/design/*-hld.md|Outside the standard stack"
+   ]
+  },
+  {
+   "phase": "4. Solution Design",
+   "task": "Obtain architecture approval before development begins",
+   "responsible": "Team Lead",
+   "evidence": []
+  },
+  {
+   "phase": "5. Infrastructure & Environments",
+   "task": "Set up Development environment",
+   "responsible": "Developer",
+   "evidence": []
+  },
+  {
+   "phase": "5. Infrastructure & Environments",
+   "task": "Set up QA environment",
+   "responsible": "Developer",
+   "evidence": []
+  },
+  {
+   "phase": "5. Infrastructure & Environments",
+   "task": "Set up Production environment",
+   "responsible": "Developer",
+   "evidence": []
+  },
+  {
+   "phase": "5. Infrastructure & Environments",
+   "task": "Configure separate environment variables, databases, storage and secrets per environment",
+   "responsible": "Developer",
+   "evidence": []
+  },
+  {
+   "phase": "5. Infrastructure & Environments",
+   "task": "Document Environment Configuration in the project folder",
+   "responsible": "Developer",
+   "evidence": [
+    "docs/environments.md"
+   ]
+  },
+  {
+   "phase": "5. Infrastructure & Environments",
+   "task": "Define the Backup Policy: scope, frequency, retention period and storage location",
+   "responsible": "Team Lead",
+   "evidence": []
+  },
+  {
+   "phase": "5. Infrastructure & Environments",
+   "task": "Define and document RPO (Recovery Point Objective) and RTO (Recovery Time Objective)",
+   "responsible": "Team Lead",
+   "evidence": [
+    "docs/architecture/deployment.md|RPO"
+   ]
+  },
+  {
+   "phase": "5. Infrastructure & Environments",
+   "task": "Configure automated database backups for QA and Production (PostgreSQL / MongoDB / ClickHouse)",
+   "responsible": "Developer",
+   "evidence": []
+  },
+  {
+   "phase": "5. Infrastructure & Environments",
+   "task": "Configure backups for object storage, file storage and configuration/secrets",
+   "responsible": "Developer",
+   "evidence": []
+  },
+  {
+   "phase": "5. Infrastructure & Environments",
+   "task": "Enable encryption at rest and restrict access to all backup buckets",
+   "responsible": "Developer",
+   "evidence": []
+  },
+  {
+   "phase": "5. Infrastructure & Environments",
+   "task": "Store backups in a separate location/region from the primary environment",
+   "responsible": "Developer",
+   "evidence": []
+  },
+  {
+   "phase": "5. Infrastructure & Environments",
+   "task": "Configure backup failure alerting and monitoring",
+   "responsible": "Developer",
+   "evidence": []
+  },
+  {
+   "phase": "5. Infrastructure & Environments",
+   "task": "Perform a restore drill and verify data integrity of the restored copy",
+   "responsible": "QA",
+   "evidence": []
+  },
+  {
+   "phase": "5. Infrastructure & Environments",
+   "task": "Document the Backup & Restore Procedure in the Deployment folder",
+   "responsible": "Team Lead",
+   "evidence": [
+    "docs/runbooks/*restore*.md",
+    "docs/runbooks/*backup*.md"
+   ]
+  },
+  {
+   "phase": "5. Infrastructure & Environments",
+   "task": "Verify masking rules before any Production backup is restored to a lower environment",
+   "responsible": "Team Lead",
+   "evidence": []
+  },
+  {
+   "phase": "5. Infrastructure & Environments",
+   "task": "Take a verified pre-deployment backup before each Production release",
+   "responsible": "Developer",
+   "evidence": []
+  },
+  {
+   "phase": "5. Infrastructure & Environments",
+   "task": "Set up the Build pipeline",
+   "responsible": "Developer",
+   "evidence": [
+    ".gitlab-ci.yml",
+    ".github/workflows/ci.yml"
+   ]
+  },
+  {
+   "phase": "5. Infrastructure & Environments",
+   "task": "Set up the Automated Testing pipeline",
+   "responsible": "QA",
+   "evidence": [
+    ".gitlab-ci.yml|stage: test",
+    ".github/workflows/ci.yml|make test"
+   ]
+  },
+  {
+   "phase": "5. Infrastructure & Environments",
+   "task": "Set up the Deployment pipeline (fully automated and repeatable)",
+   "responsible": "Developer",
+   "evidence": []
+  },
+  {
+   "phase": "5. Infrastructure & Environments",
+   "task": "Define and document the Rollback strategy",
+   "responsible": "Team Lead",
+   "evidence": [
+    "docs/architecture/deployment.md|ollback"
+   ]
+  },
+  {
+   "phase": "5. Infrastructure & Environments",
+   "task": "Set up branching per GitFlow: main, develop, feature, bugfix, hotfix, release",
+   "responsible": "Team Lead",
+   "evidence": []
+  },
+  {
+   "phase": "5. Infrastructure & Environments",
+   "task": "Enforce branch protection: no direct commits to main or develop",
+   "responsible": "Team Lead",
+   "evidence": []
+  },
+  {
+   "phase": "6. Development",
+   "task": "Develop features per the approved design and coding standards",
+   "responsible": "Developer",
+   "evidence": []
+  },
+  {
+   "phase": "6. Development",
+   "task": "Follow frontend standards: React functional components, hooks, one component per file",
+   "responsible": "Developer",
+   "evidence": []
+  },
+  {
+   "phase": "6. Development",
+   "task": "Manage all server state via TanStack Query; Zustand only for shared state",
+   "responsible": "Developer",
+   "evidence": []
+  },
+  {
+   "phase": "6. Development",
+   "task": "Validate every API request and response using Zod",
+   "responsible": "Developer",
+   "evidence": []
+  },
+  {
+   "phase": "6. Development",
+   "task": "Use shadcn/ui as the standard component library; no new UI libraries without approval",
+   "responsible": "Developer",
+   "evidence": []
+  },
+  {
+   "phase": "6. Development",
+   "task": "Enforce ESLint, Prettier and TypeScript strict mode",
+   "responsible": "Developer",
+   "evidence": [
+    "eslint.config.*"
+   ]
+  },
+  {
+   "phase": "6. Development",
+   "task": "Follow Go standards: gofmt, golangci-lint, structured logging, context propagation",
+   "responsible": "Developer",
+   "evidence": []
+  },
+  {
+   "phase": "6. Development",
+   "task": "Apply error wrapping, dependency injection and API versioning",
+   "responsible": "Developer",
+   "evidence": []
+  },
+  {
+   "phase": "6. Development",
+   "task": "Write Unit Tests for backend services",
+   "responsible": "Developer",
+   "evidence": [
+    "**/*_test.go",
+    "tests/test_*.py",
+    "src/**/*.test.ts"
+   ]
+  },
+  {
+   "phase": "6. Development",
+   "task": "Follow database standards (PostgreSQL / MongoDB / ClickHouse) per guidelines",
+   "responsible": "Developer",
+   "evidence": []
+  },
+  {
+   "phase": "6. Development",
+   "task": "Raise Merge Requests for every change; delete branches after merge",
+   "responsible": "Developer",
+   "evidence": []
+  },
+  {
+   "phase": "6. Development",
+   "task": "Complete one Peer Review per Merge Request",
+   "responsible": "Developer",
+   "evidence": []
+  },
+  {
+   "phase": "6. Development",
+   "task": "Complete one Lead Review per Merge Request",
+   "responsible": "Team Lead",
+   "evidence": []
+  },
+  {
+   "phase": "6. Development",
+   "task": "Verify code quality, readability, performance, security, test coverage, architecture compliance",
+   "responsible": "Team Lead",
+   "evidence": []
+  },
+  {
+   "phase": "6. Development",
+   "task": "Create and maintain API Documentation",
+   "responsible": "Developer",
+   "evidence": [
+    "docs/api/API.md",
+    "api/openapi.yaml"
+   ]
+  },
+  {
+   "phase": "6. Development",
+   "task": "Update task status before Daily Scrum and move tasks to the correct Kanban status",
+   "responsible": "Developer",
+   "evidence": []
+  },
+  {
+   "phase": "6. Development",
+   "task": "Post End-of-Day update: work completed, progress, blockers, next-day plan",
+   "responsible": "Developer",
+   "evidence": []
+  },
+  {
+   "phase": "7. Observability & Analytics",
+   "task": "Implement structured logging (ELK / Loki)",
+   "responsible": "Developer",
+   "evidence": []
+  },
+  {
+   "phase": "7. Observability & Analytics",
+   "task": "Implement correlation IDs and request tracing",
+   "responsible": "Developer",
+   "evidence": []
+  },
+  {
+   "phase": "7. Observability & Analytics",
+   "task": "Expose metrics and health endpoints; configure Prometheus",
+   "responsible": "Developer",
+   "evidence": []
+  },
+  {
+   "phase": "7. Observability & Analytics",
+   "task": "Build Grafana dashboards (application, infrastructure, database)",
+   "responsible": "Developer",
+   "evidence": []
+  },
+  {
+   "phase": "7. Observability & Analytics",
+   "task": "Configure API latency, error and resource utilisation monitoring",
+   "responsible": "Developer",
+   "evidence": []
+  },
+  {
+   "phase": "7. Observability & Analytics",
+   "task": "Configure alerting for critical failures",
+   "responsible": "Developer",
+   "evidence": []
+  },
+  {
+   "phase": "7. Observability & Analytics",
+   "task": "Prepare the Event Design Sheet before implementation",
+   "responsible": "Product Team",
+   "evidence": [
+    "docs/analytics/*.md"
+   ]
+  },
+  {
+   "phase": "7. Observability & Analytics",
+   "task": "Define event name, description, trigger, screen, attributes and business outcome",
+   "responsible": "Product Team",
+   "evidence": []
+  },
+  {
+   "phase": "7. Observability & Analytics",
+   "task": "Prepare the Analytics Tracking Plan and Event Dictionary",
+   "responsible": "Product Team",
+   "evidence": [
+    "docs/analytics/*.md"
+   ]
+  },
+  {
+   "phase": "7. Observability & Analytics",
+   "task": "Prepare User Journey Mapping",
+   "responsible": "Product Team",
+   "evidence": []
+  },
+  {
+   "phase": "7. Observability & Analytics",
+   "task": "Implement analytics (the platform the analytics ADR names)",
+   "responsible": "Developer",
+   "evidence": []
+  },
+  {
+   "phase": "7. Observability & Analytics",
+   "task": "Implement user, session and platform attributes on every event",
+   "responsible": "Developer",
+   "evidence": []
+  },
+  {
+   "phase": "7. Observability & Analytics",
+   "task": "Ensure unique user identification across sessions and devices",
+   "responsible": "Developer",
+   "evidence": []
+  },
+  {
+   "phase": "7. Observability & Analytics",
+   "task": "Verify analytics dashboards: funnel, adoption, retention, conversion, drop-off",
+   "responsible": "QA",
+   "evidence": []
+  },
+  {
+   "phase": "8. Quality Assurance",
+   "task": "Involve QA from requirement analysis onwards",
+   "responsible": "QA",
+   "evidence": []
+  },
+  {
+   "phase": "8. Quality Assurance",
+   "task": "Write Test Cases and map them to Acceptance Criteria",
+   "responsible": "QA",
+   "evidence": [
+    "docs/testing/test-cases.md"
+   ]
+  },
+  {
+   "phase": "8. Quality Assurance",
+   "task": "Execute Functional Testing",
+   "responsible": "QA",
+   "evidence": []
+  },
+  {
+   "phase": "8. Quality Assurance",
+   "task": "Execute API Testing",
+   "responsible": "QA",
+   "evidence": []
+  },
+  {
+   "phase": "8. Quality Assurance",
+   "task": "Execute UI Testing",
+   "responsible": "QA",
+   "evidence": []
+  },
+  {
+   "phase": "8. Quality Assurance",
+   "task": "Execute Security Testing",
+   "responsible": "QA",
+   "evidence": []
+  },
+  {
+   "phase": "8. Quality Assurance",
+   "task": "Execute Performance Testing (where applicable)",
+   "responsible": "QA",
+   "evidence": [
+    "docs/testing/load-tests.md"
+   ]
+  },
+  {
+   "phase": "8. Quality Assurance",
+   "task": "Execute Cross Browser and Cross Device Testing (where applicable)",
+   "responsible": "QA",
+   "evidence": [
+    "playwright.config.ts|webkit"
+   ]
+  },
+  {
+   "phase": "8. Quality Assurance",
+   "task": "Build the UI Automation suite",
+   "responsible": "QA",
+   "evidence": [
+    "e2e/*.spec.ts",
+    ".maestro/*.yaml"
+   ]
+  },
+  {
+   "phase": "8. Quality Assurance",
+   "task": "Build the API Automation suite",
+   "responsible": "QA",
+   "evidence": [
+    "tests/integration/*.py",
+    "internal/**/*_test.go"
+   ]
+  },
+  {
+   "phase": "8. Quality Assurance",
+   "task": "Build the Regression Automation suite",
+   "responsible": "QA",
+   "evidence": []
+  },
+  {
+   "phase": "8. Quality Assurance",
+   "task": "Integrate automation into the CI/CD pipeline",
+   "responsible": "QA",
+   "evidence": []
+  },
+  {
+   "phase": "8. Quality Assurance",
+   "task": "Log every bug in the tracker, linked to its User Story",
+   "responsible": "QA",
+   "evidence": []
+  },
+  {
+   "phase": "8. Quality Assurance",
+   "task": "Include severity, priority, steps to reproduce, expected/actual result, screenshots",
+   "responsible": "QA",
+   "evidence": []
+  },
+  {
+   "phase": "8. Quality Assurance",
+   "task": "Retest fixes and close bugs",
+   "responsible": "QA",
+   "evidence": []
+  },
+  {
+   "phase": "8. Quality Assurance",
+   "task": "Support UAT in the QA environment (if applicable)",
+   "responsible": "QA",
+   "evidence": []
+  },
+  {
+   "phase": "8. Quality Assurance",
+   "task": "Provide QA sign-off before Production deployment",
+   "responsible": "QA",
+   "evidence": []
+  },
+  {
+   "phase": "9. Security",
+   "task": "Run Dependency Scan",
+   "responsible": "Developer",
+   "evidence": []
+  },
+  {
+   "phase": "9. Security",
+   "task": "Run Secret Scan",
+   "responsible": "Developer",
+   "evidence": []
+  },
+  {
+   "phase": "9. Security",
+   "task": "Run Static Code Analysis",
+   "responsible": "Developer",
+   "evidence": []
+  },
+  {
+   "phase": "9. Security",
+   "task": "Conduct Security Review with Claude Code (vapt-report)",
+   "responsible": "Team Lead",
+   "evidence": [
+    "docs/security/*.md"
+   ]
+  },
+  {
+   "phase": "9. Security",
+   "task": "Conduct Vulnerability Assessment and generate the VAPT Report",
+   "responsible": "Team Lead",
+   "evidence": [
+    "docs/security/vapt*.md"
+   ]
+  },
+  {
+   "phase": "9. Security",
+   "task": "Fix all Critical and High vulnerabilities",
+   "responsible": "Developer",
+   "evidence": []
+  },
+  {
+   "phase": "9. Security",
+   "task": "Resolve Medium vulnerabilities wherever feasible before production",
+   "responsible": "Developer",
+   "evidence": []
+  },
+  {
+   "phase": "9. Security",
+   "task": "File the Security Review Document and VAPT Scan Report in the project folder",
+   "responsible": "Team Lead",
+   "evidence": [
+    "docs/security/*.md"
+   ]
+  },
+  {
+   "phase": "10. Release & Deployment",
+   "task": "Assign the release Version Number",
+   "responsible": "Team Lead",
+   "evidence": []
+  },
+  {
+   "phase": "10. Release & Deployment",
+   "task": "Prepare Release Notes",
+   "responsible": "Team Lead",
+   "evidence": [
+    "docs/releases/*.md"
+   ]
+  },
+  {
+   "phase": "10. Release & Deployment",
+   "task": "Prepare the Deployment Checklist and Deployment Guide",
+   "responsible": "Developer",
+   "evidence": []
+  },
+  {
+   "phase": "10. Release & Deployment",
+   "task": "Prepare the Rollback Plan",
+   "responsible": "Team Lead",
+   "evidence": [
+    "docs/architecture/deployment.md|ollback"
+   ]
+  },
+  {
+   "phase": "10. Release & Deployment",
+   "task": "Prepare the User Guide and Known Issues & Limitations document",
+   "responsible": "Product Team",
+   "evidence": []
+  },
+  {
+   "phase": "10. Release & Deployment",
+   "task": "Confirm QA sign-off is obtained",
+   "responsible": "QA",
+   "evidence": []
+  },
+  {
+   "phase": "10. Release & Deployment",
+   "task": "Deploy to Production through the approved pipeline only",
+   "responsible": "Developer",
+   "evidence": []
+  },
+  {
+   "phase": "10. Release & Deployment",
+   "task": "Execute Smoke Testing post-deployment",
+   "responsible": "QA",
+   "evidence": []
+  },
+  {
+   "phase": "10. Release & Deployment",
+   "task": "Complete Production Verification",
+   "responsible": "QA",
+   "evidence": []
+  },
+  {
+   "phase": "10. Release & Deployment",
+   "task": "Confirm the full release checklist is complete before closing the release",
+   "responsible": "Team Lead",
+   "evidence": []
+  },
+  {
+   "phase": "11. Artefacts & Documentation",
+   "task": "PRD, User Stories and Acceptance Criteria filed and current",
+   "responsible": "Product Team",
+   "evidence": [
+    "docs/product/backlog.md"
+   ]
+  },
+  {
+   "phase": "11. Artefacts & Documentation",
+   "task": "HLD, LLD, Architecture Diagram and Database Design filed and current",
+   "responsible": "Team Lead",
+   "evidence": [
+    "docs/design/*-hld.md"
+   ]
+  },
+  {
+   "phase": "11. Artefacts & Documentation",
+   "task": "API Documentation and Environment Configuration filed and current",
+   "responsible": "Developer",
+   "evidence": [
+    "docs/api/API.md"
+   ]
+  },
+  {
+   "phase": "11. Artefacts & Documentation",
+   "task": "Test Cases and Automation Test Suite filed and current",
+   "responsible": "QA",
+   "evidence": [
+    "docs/testing/test-cases.md"
+   ]
+  },
+  {
+   "phase": "11. Artefacts & Documentation",
+   "task": "Event Design Sheet, Tracking Plan, User Journey Mapping, Event Dictionary filed",
+   "responsible": "Product Team",
+   "evidence": []
+  },
+  {
+   "phase": "11. Artefacts & Documentation",
+   "task": "Security Review Document and VAPT Report filed",
+   "responsible": "Team Lead",
+   "evidence": [
+    "docs/security/*.md"
+   ]
+  },
+  {
+   "phase": "11. Artefacts & Documentation",
+   "task": "Deployment Guide, Release Notes, User Guide, Known Issues filed",
+   "responsible": "Team Lead",
+   "evidence": [
+    "docs/architecture/deployment.md"
+   ]
+  },
+  {
+   "phase": "11. Artefacts & Documentation",
+   "task": "Backup Policy and Backup & Restore Procedure filed and current",
+   "responsible": "Team Lead",
+   "evidence": []
+  },
+  {
+   "phase": "12. Communication & Governance",
+   "task": "Document all major technical decisions",
+   "responsible": "Team Lead",
+   "evidence": [
+    "docs/adr/*.md"
+   ]
+  },
+  {
+   "phase": "12. Communication & Governance",
+   "task": "Document and get approval for every requirement change",
+   "responsible": "Product Team",
+   "evidence": []
+  },
+  {
+   "phase": "12. Communication & Governance",
+   "task": "Communicate risks and blockers immediately",
+   "responsible": "Developer",
+   "evidence": []
+  },
+  {
+   "phase": "12. Communication & Governance",
+   "task": "Route all client communication through the Product Owner / Project Manager",
+   "responsible": "Product Team",
+   "evidence": []
+  },
+  {
+   "phase": "12. Communication & Governance",
+   "task": "Capture and circulate meeting notes",
+   "responsible": "Team Lead",
+   "evidence": []
+  },
+  {
+   "phase": "12. Communication & Governance",
+   "task": "Complete assigned learning paths and share knowledge with the team",
+   "responsible": "Developer",
+   "evidence": []
+  },
+  {
+   "phase": "12. Communication & Governance",
+   "task": "Conduct project retrospective and capture process improvements",
+   "responsible": "Team Lead",
+   "evidence": []
+  }
+ ]
+}

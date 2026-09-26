@@ -1,0 +1,12 @@
+{
+  "id": "data-pipeline",
+  "display": "Data pipeline",
+  "type": "Data/Pipeline",
+  "stack": "Python 3.12 + dbt-core 1.10+ (dbt-postgres) + Apache Airflow 3 + sqlfluff + ruff + pytest + uv",
+  "databases": "PostgreSQL warehouse (BigQuery, Snowflake or ClickHouse through the dbt adapter)",
+  "entrypoint": "dags/daily_orders.py",
+  "rules_file": "data.md",
+  "check_command": "make check",
+  "install": "uv lock",
+  "tool": "uv"
+}

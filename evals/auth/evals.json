@@ -1,0 +1,70 @@
+{
+ "skill_name": "auth",
+ "evals": [
+  {
+   "id": 1,
+   "name": "authorisation-for-a-multi-clinic-api",
+   "prompt": "Receptionists can read clinical notes right now, and I'm fairly sure anyone logged in can open another clinic's appointments just by changing the id in the URL. Fix authorisation in this API so it matches the roles in the backlog, with tests so it can't quietly regress.",
+   "expected_output": "Every load by id or by patient scoped by the caller's clinic, role rules from docs/product/backlog.md enforced on the server on every route that exposes the data (clinical notes also leak through the patient history summary and the CSV export), the unprotected /admin/export found and fixed along with its clinic_id query parameter, login checked by default for every route with only /healthz and /login public, tests for each backlog role rule and the cross-clinic cases passing under make check, and nothing added that the request and backlog did not ask for.",
+   "files": [
+    "files/clinic-api"
+   ],
+   "expectations": [
+    "The run changed the repository's Go code or tests, and `make check` (go vet and go test) passes when the grader runs it in the output repository",
+    "A logged-in user of clinic c-bharat gets a refusal (404 or 403, not 200) for GET /appointments/a-1, POST /appointments/a-1/cancel and GET /patients/p-1, and GET /patients/p-1/appointments answers with a refusal or an empty list carrying no a-1 data; a test proves at least the appointment case",
+    "A cross-clinic POST /appointments/{id}/cancel that is refused leaves the appointment not cancelled, and a test checks the stored state (or a later read by its own clinic), not only the status code",
+    "The clinic check happens inside the store call or the same lookup (for example AppointmentByID taking the clinic id and refusing a mismatch), not as a separate check each handler must remember to make after an unscoped load",
+    "All five unscoped lookups are fixed: internal/httpapi/appointments.go lines 12, 21 and 29, internal/httpapi/patients.go line 12, and the patient history load at internal/httpapi/patients.go line 33 (AppointmentsForPatient, which lists by patient id alone)",
+    "GET /appointments/{id}/notes is refused for the receptionist and admin roles and allowed for the doctor",
+    "Clinical notes reach no receptionist or admin through any other route: the patient history (internal/httpapi/patients.go line 34 copies Notes into the summary field) and the CSV export (internal/httpapi/export.go lines 15 and 21 write a notes column for the admin) no longer carry the notes to those roles, and the final message says notes were leaking there",
+    "A test proves that a receptionist or admin response from the patient history or the export does not contain the seeded note text (for example 'Follow-up for hypertension')",
+    "POST /appointments/{id}/cancel is refused for the doctor role and allowed for receptionist and admin, as US-02-002 says",
+    "The run notices that GET /admin/export is registered without the login check (internal/httpapi/routes.go line 26) and fixes it so it requires login and the admin role",
+    "The export no longer takes the clinic from the clinic_id query parameter (internal/httpapi/export.go line 12); it uses the logged-in user's clinic, and a test or the report shows an admin cannot export another clinic",
+    "Login is enforced by default: the check wraps the whole mux or a route group, so a route added later with a plain mux.Handle or mux.HandleFunc call (the way /admin/export was left open) is refused without login, and GET /healthz and POST /login are then the only routes that answer without login. A loop or table that wraps each registered entry while the mux itself stays reachable unwrapped does not count",
+    "Each role rule the backlog states has tests for both an allowed and a refused role: cancel (receptionist or admin allowed, doctor refused), notes (doctor allowed, receptionist and admin refused) and export (admin allowed, another role refused)",
+    "The final message names the lookups that were missing the clinic check (by function, file or line)",
+    "The final message names the routes left public (GET /healthz and POST /login), not only a count or a pointer to another file",
+    "No role grant is added that the backlog does not state (for example admins are not given access to notes, doctors are not given cancel), and no role loses access the backlog gives it (every staff role still reads the patient history and patient details of its own clinic)",
+    "go.mod gains no dependency",
+    "No route, session behaviour or middleware the request did not ask for is implemented (for example logout or logout-everywhere endpoints, session lifetimes, CSRF middleware, password hashing changes); the report may recommend them",
+    "No ADR, decision record or decision-log row is added, since the request asked for a fix and the repository keeps no decision records (other documentation files are neither required nor penalised here)",
+    "Existing seed users, patients and appointments are unchanged (seed records added only to make a test possible are allowed), and no tool report directory or .gitignore entry for one is left in the repository",
+    "The run makes no git commit",
+    "No file written or edited contains an em dash character"
+   ]
+  },
+  {
+   "id": 2,
+   "name": "token-auth-for-the-mobile-app",
+   "prompt": "The Android app ships next sprint and it can't use our cookie sessions. Add token auth for mobile clients next to the web cookies. 'Log out of all devices' (US-01-004) needs to work for both web and the app. There's a half-finished token thing in internal/auth from an old story, use it if it's any good.",
+   "expected_output": "Token auth for the Android app that the server can revoke, the parked 30-day token judged unfit, logout everywhere and staff deactivation (US-01-006) ending web sessions and app credentials alike, the existing web cookie flow kept, the decision recorded as ADR 0004 as the repository's ADRs require (0003 says a native app needs a separate decision) with 0003's decision left intact, the missing Secure cookie flag noticed, no hard-coded signing key in use, and make check passing.",
+   "files": [
+    "files/clinic-api-mobile"
+   ],
+   "expectations": [
+    "The run added token auth code and tests to the repository, and `make check` passes when the grader runs it in the output repository",
+    "A client can sign in with email and password and receive a token without relying on a cookie, and a request carrying that token as a bearer credential (Authorization header) from an Anand staff member to GET /appointments/a-1 gets 200; a test proves it",
+    "The run judges the parked token in internal/auth/token.go (30 day lifetime at line 16, no way to revoke) unfit as the app's only credential and says so, rather than shipping a 30 day bearer token that the server cannot revoke",
+    "The run ships an app credential, and any app credential the server accepts without checking server-side state on each use (for example a self-contained signed token) lives 60 minutes or less, while any credential that lives longer is checked against server-side state on each use so it can be revoked. A run that ships no app credential fails this",
+    "A doctor can stay signed in on the app for the working week (US-01-005, at least 5 days) without entering the password again, whether through a refresh token or a revocable server-side token",
+    "If the run issues refresh tokens: using one issues a new refresh token and the old one stops working, and a test proves the old refresh token is refused after rotation. A run that ships no app credential at all fails this",
+    "If the run issues refresh tokens: presenting an already used refresh token revokes the rest of that token family (or all of the user's tokens), and a test proves it. A run that ships no app credential at all fails this",
+    "Logging out of all devices ends every web cookie session and every app credential for that user (for example through a per-user session version or revoking all), and a test covers both a cookie session and a token",
+    "Deactivating a staff member through the existing POST /admin/staff/{id}/deactivate (US-01-006) also stops their app: a request with a token issued before the deactivation is refused (401) on its next use, not only once it expires, their refresh or long-lived token is refused too, and a test proves the token case",
+    "Bearer tokens are accepted by the same server-side login check the cookie uses, so every existing role and clinic rule (for example TestReceptionistCannotReadNotes and TestOtherClinicIsNotFound) applies to token requests too, with a test making a role or clinic-scoped request with a token",
+    "With the token code in place, POST /login still sets the sid cookie for the web app and the five existing tests in internal/httpapi/appointments_test.go pass without their assertions being weakened",
+    "A new ADR exists at docs/adr/0004-<title>.md in the format of 0001 to 0003 (numbered title, Status, Context, Decision, Consequences)",
+    "The Decision section of docs/adr/0003-cookie-sessions-for-the-web-app.md is not rewritten (a Status line change to note it is extended or superseded is allowed)",
+    "With token auth implemented, no ADR other than the one for the mobile token decision is added, and no ADR names a decider or approver who does not appear in the request or the repository",
+    "The run notices that the sid cookie set in internal/auth/login.go line 27 has no Secure flag, and either restores it or reports it",
+    "If the shipped code signs or MACs tokens, the key is read from configuration and no non-test code path signs or verifies with a hard-coded or committed key such as dev-signing-key; the string surviving only in tests or documentation that quote it does not fail this. A run that leaves the parked IssueToken with its committed key in the repository fails this",
+    "With token auth implemented, no route, feature or middleware beyond token auth, logout everywhere and making deactivation reach the app is implemented (for example rate limiting, CSRF middleware or password hashing changes); the report may recommend them",
+    "Any dependency added to go.mod is named in the final message with the reason for it",
+    "Existing seed users, patients and appointments are unchanged (seed records added only to make a test possible are allowed), and no tool report directory or .gitignore entry for one is left in the repository",
+    "The run makes no git commit",
+    "No file written or edited contains an em dash character"
+   ]
+  }
+ ]
+}

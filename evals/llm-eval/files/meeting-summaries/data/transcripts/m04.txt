@@ -1,0 +1,10 @@
+Meeting: Support tooling, 2026-09-04
+Attendees: Divya, Farhan
+
+Divya: Ticket tagging is inconsistent, half the billing tickets have no tag.
+Farhan: We could make the tag required on close.
+Divya: Agreed. Decision: tag becomes required when closing a ticket.
+Farhan: I'll change the helpdesk setting on Monday, 8 September.
+Divya: And I'll tell the team in stand-up.
+Farhan: What about old tickets? We could backfill, but it's a lot of work.
+Divya: No decision on backfill yet.

@@ -1,0 +1,4 @@
+# Copy to terraform.tfvars (gitignored) for local plans, or export TF_VAR_*.
+# Non-secret values only. A secret never goes in a tfvars file.
+project = "my-gcp-project-prod"
+region  = "asia-south1"

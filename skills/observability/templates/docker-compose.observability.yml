@@ -1,0 +1,143 @@
+# Local observability stack. Copy to observability/ next to
+# otel-collector.yaml. Started by `make observability-up`.
+# Grafana: http://localhost:3000 (anonymous admin, no login).
+# Services export OTLP to localhost:4317 (gRPC) or localhost:4318 (HTTP).
+
+name: observability
+
+services:
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.108.0
+    command: ["--config=/etc/otelcol/config.yaml"]
+    volumes:
+      - ./otel-collector.yaml:/etc/otelcol/config.yaml:ro
+    ports:
+      - "4317:4317"
+      - "4318:4318"
+      - "8889:8889"
+      - "13133:13133"
+    depends_on: [tempo, loki]
+
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.retention.time=2d
+      - --web.enable-remote-write-receiver
+    configs:
+      - source: prometheus
+        target: /etc/prometheus/prometheus.yml
+    volumes:
+      - ../monitoring/alerts:/etc/prometheus/alerts:ro
+    ports:
+      - "9090:9090"
+
+  tempo:
+    image: grafana/tempo:2.6.0
+    command: ["-config.file=/etc/tempo/tempo.yaml"]
+    configs:
+      - source: tempo
+        target: /etc/tempo/tempo.yaml
+    volumes:
+      - tempo-data:/var/tempo
+    ports:
+      - "3200:3200"
+
+  loki:
+    image: grafana/loki:3.2.0
+    command: ["-config.file=/etc/loki/local-config.yaml"]
+    volumes:
+      - loki-data:/loki
+    ports:
+      - "3100:3100"
+
+  grafana:
+    image: grafana/grafana:11.2.0
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+      GF_AUTH_DISABLE_LOGIN_FORM: "true"
+      GF_FEATURE_TOGGLES_ENABLE: traceqlEditor
+    configs:
+      - source: grafana-datasources
+        target: /etc/grafana/provisioning/datasources/datasources.yaml
+      - source: grafana-dashboards
+        target: /etc/grafana/provisioning/dashboards/dashboards.yaml
+    volumes:
+      - ../monitoring/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - "3000:3000"
+    depends_on: [prometheus, tempo, loki]
+
+volumes:
+  tempo-data:
+  loki-data:
+
+configs:
+  prometheus:
+    content: |
+      global:
+        scrape_interval: 15s
+        evaluation_interval: 15s
+      rule_files:
+        - /etc/prometheus/alerts/*.yaml
+      scrape_configs:
+        - job_name: otel-collector
+          static_configs:
+            - targets: ["otel-collector:8889"]
+  tempo:
+    content: |
+      server:
+        http_listen_port: 3200
+      distributor:
+        receivers:
+          otlp:
+            protocols:
+              grpc:
+                endpoint: 0.0.0.0:4317
+      storage:
+        trace:
+          backend: local
+          local:
+            path: /var/tempo/blocks
+          wal:
+            path: /var/tempo/wal
+      metrics_generator:
+        storage:
+          path: /var/tempo/generator/wal
+  grafana-datasources:
+    content: |
+      apiVersion: 1
+      datasources:
+        - name: Prometheus
+          type: prometheus
+          uid: prometheus
+          url: http://prometheus:9090
+          isDefault: true
+        - name: Tempo
+          type: tempo
+          uid: tempo
+          url: http://tempo:3200
+          jsonData:
+            tracesToLogsV2:
+              datasourceUid: loki
+              filterByTraceID: true
+        - name: Loki
+          type: loki
+          uid: loki
+          url: http://loki:3100
+          jsonData:
+            derivedFields:
+              - name: trace_id
+                matcherRegex: '"trace_id":"(\w+)"'
+                url: "$${__value.raw}"
+                datasourceUid: tempo
+  grafana-dashboards:
+    content: |
+      apiVersion: 1
+      providers:
+        - name: repo
+          folder: Services
+          type: file
+          options:
+            path: /var/lib/grafana/dashboards

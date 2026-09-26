@@ -1,0 +1,9 @@
+Meeting: Mobile release go/no-go, 2026-09-02
+Attendees: Karthik, Neha, Vikram
+
+Karthik: Crash-free sessions are at 99.2 percent on the beta, target is 99.5.
+Neha: The top crash is the image picker on Android 12. Fix is in review.
+Vikram: Then we hold the release until the fix is in. Decision: no-go today, re-check on Friday.
+Neha: I'll get the fix merged and into beta by Thursday.
+Karthik: I will pull the crash numbers again on Friday morning.
+Vikram: Anything else? No? Fine.

@@ -1,0 +1,189 @@
+# __REPO_NAME__ pipeline (iOS app). Stages follow the kit vocabulary.
+# make check is the gate; CI runs the same targets the engineer runs, one
+# job per gate so a failure names itself. GitLab sets CI=true, so a gate
+# whose tool is missing fails here instead of printing SKIPPED.
+#
+# Two kinds of runner:
+#   Linux (shared runners): format, lint and the package tests. The package
+#     compiles and tests with `swift test` on the swift:6.3.3 image, so most
+#     of the pipeline needs no Mac.
+#   macOS (tags: [macos]): everything that needs Xcode: xcodegen, the app
+#     build, the simulator tests and the TestFlight upload. Xcode runs only on
+#     macOS, so these jobs need a self-hosted Mac runner or a Mac cloud
+#     (GitLab SaaS macOS runners, MacStadium, AWS EC2 Mac). Until one is
+#     registered with the `macos` tag they are `allow_failure: true` so the
+#     rest of the pipeline stays green; flip that to false the day the runner
+#     exists. The Xcode release the runner must carry is in .xcode-version.
+# Signing never lives in the repo: `match` (MATCH_GIT_URL, MATCH_PASSWORD) or
+# an App Store Connect API key (ASC_KEY_ID, ASC_ISSUER_ID, ASC_KEY_CONTENT
+# base64) come from masked, protected CI variables.
+
+stages: [validate, lint, test, security, build, publish, deploy, verify]
+
+include:
+  - template: Security/Secret-Detection.gitlab-ci.yml
+  - template: Security/SAST.gitlab-ci.yml
+
+variables:
+  SWIFT_IMAGE: "swift:6.3.3"
+  SWIFTFORMAT_VERSION: "0.63.0"
+  KIT_DIR: "Packages/__REPO_NAME__Kit"
+  # Leave empty to let make test-ui pick the first available iPhone on the
+  # runner; set it to pin one ("iPhone 17").
+  SIMULATOR: ""
+
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "develop"
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_TAG
+
+default:
+  image: $SWIFT_IMAGE
+  cache:
+    key: spm-$CI_COMMIT_REF_SLUG
+    paths: [Packages/__REPO_NAME__Kit/.build]
+
+branch-name:
+  stage: validate
+  image: alpine:3.20
+  before_script: []
+  cache: []
+  rules: [{ if: $CI_PIPELINE_SOURCE == "merge_request_event" }]
+  script:
+    - echo "$CI_MERGE_REQUEST_SOURCE_BRANCH_NAME" | grep -Eq '^(feature|bugfix|hotfix|chore|docs)/[A-Z][A-Z0-9]*(-[0-9]+)+-[A-Za-z0-9]+$|^release/v[0-9]+\.[0-9]+\.[0-9]+$'
+    - echo "branch-name: 1 branch checked"
+
+# POSIX sh: alpine/git runs busybox ash, which has no process substitution.
+commits:
+  stage: validate
+  image: alpine/git:2.45.2
+  before_script: []
+  cache: []
+  rules: [{ if: $CI_PIPELINE_SOURCE == "merge_request_event" }]
+  script:
+    - git fetch origin "$CI_MERGE_REQUEST_TARGET_BRANCH_NAME" --depth=200
+    - |
+      range="origin/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME..HEAD"
+      subjects=$(mktemp)
+      git log --no-merges --format=%s "$range" > "$subjects"
+      n=$(wc -l < "$subjects" | tr -d ' ')
+      [ "$n" -gt 0 ] || { echo "commits: 0 commits in range $range"; exit 1; }
+      bad=0
+      while IFS= read -r subj; do
+        echo "$subj" | grep -Eq '^(feat|fix|refactor|test|docs|chore|perf|build|ci|revert)(\([a-z0-9._/-]+\))?!?: .{1,72}( \[[A-Z][A-Z0-9]*(-[0-9]+)+\])?$' || { echo "bad subject: $subj"; bad=$((bad+1)); }
+      done < "$subjects"
+      if git log --no-merges --format=%B "$range" | grep -Eiq 'co-authored-by: .*(claude|anthropic|copilot|chatgpt|gemini)|generated with'; then echo "AI attribution trailer found"; exit 1; fi
+      echo "commits: $n commits checked, $bad bad"
+      [ "$bad" -eq 0 ]
+
+# The official swiftformat image has no shell, so GitLab cannot run a script
+# in it; the release ships a Linux binary instead. The swift image lacks
+# make, curl and unzip, hence the apt line (a few seconds).
+format:
+  stage: lint
+  cache: []
+  before_script:
+    - apt-get update -qq && apt-get install -y -qq --no-install-recommends make curl unzip ca-certificates >/dev/null
+    - curl -fsSL -o /tmp/swiftformat.zip "https://github.com/nicklockwood/SwiftFormat/releases/download/${SWIFTFORMAT_VERSION}/swiftformat_linux.zip"
+    - unzip -q -o /tmp/swiftformat.zip -d /tmp/swiftformat && install -m 755 "$(find /tmp/swiftformat -type f | head -1)" /usr/local/bin/swiftformat
+    - swiftformat --version
+  script:
+    - make format-check
+
+# swiftlint has an official Linux image (ghcr.io/realm/swiftlint); it lacks
+# make, so this job mirrors make lint by hand and adds the code-quality report.
+lint:
+  stage: lint
+  image: { name: ghcr.io/realm/swiftlint:0.57.1, entrypoint: [""] }
+  cache: []
+  script:
+    - n=$(find App Packages -name '*.swift' | wc -l); [ "$n" -gt 0 ] || { echo "lint: 0 swift files, nothing checked"; exit 1; }
+    - swiftlint lint --strict --reporter codeclimate > gl-code-quality-report.json || { swiftlint lint --strict; exit 1; }
+    - echo "lint: $n files checked"
+  artifacts:
+    reports: { codequality: gl-code-quality-report.json }
+
+unit:
+  stage: test
+  before_script:
+    - apt-get update -qq && apt-get install -y -qq --no-install-recommends make git >/dev/null
+  script:
+    - swift --version
+    - make test
+
+# Everything below needs Xcode, hence a macOS runner.
+.macos:
+  tags: [macos]
+  image: null
+  cache:
+    key: spm-macos-$CI_COMMIT_REF_SLUG
+    paths: [Packages/__REPO_NAME__Kit/.build, build/DerivedData/SourcePackages]
+  allow_failure: true # no macOS runner registered yet; set to false when one exists
+  before_script:
+    - xcodebuild -version
+    - 'want=$(cat .xcode-version); xcodebuild -version | head -1 | grep -q "Xcode $want" || echo "warning: runner Xcode differs from .xcode-version ($want)"'
+    - command -v xcodegen >/dev/null || brew install xcodegen
+    - make generate
+
+build:
+  extends: .macos
+  stage: build
+  script:
+    - make build
+  artifacts: { paths: [build/DerivedData/Build/Products], expire_in: 1 day }
+
+# Simulator tests; make test-ui resolves the simulator at run time. Not part
+# of make check.
+ui-test:
+  extends: .macos
+  stage: test
+  script:
+    - SIMULATOR="$SIMULATOR" make test-ui
+  artifacts:
+    when: always
+    paths: [build/TestResults.xcresult]
+    expire_in: 1 week
+
+# TestFlight. Manual: the engineer decides when a build goes to testers.
+publish:
+  extends: .macos
+  stage: publish
+  rules:
+    - if: $CI_COMMIT_BRANCH == "develop"
+      when: manual
+    - if: $CI_COMMIT_BRANCH == "main"
+      when: manual
+    - if: $CI_COMMIT_TAG
+      when: manual
+  script:
+    - '[ -n "$ASC_KEY_ID" ] && [ -n "$ASC_ISSUER_ID" ] && [ -n "$ASC_KEY_CONTENT" ] || { echo "publish: ASC_KEY_ID, ASC_ISSUER_ID and ASC_KEY_CONTENT must be set as masked CI variables"; exit 1; }'
+    - command -v fastlane >/dev/null || brew install fastlane
+    - fastlane beta
+  artifacts: { paths: [build/*.ipa, build/*.xcarchive, build/*.dSYM.zip], expire_in: 1 week }
+
+# App Store release. Kept manual and unwired on purpose: submission for
+# review is a human decision (release notes, phased release, review notes).
+deploy-production:
+  stage: deploy
+  image: alpine:3.20
+  before_script: []
+  cache: []
+  environment: { name: production, url: https://apps.apple.com }
+  rules: [{ if: $CI_COMMIT_TAG, when: manual }]
+  script:
+    - echo "deploy: submit the TestFlight build $CI_COMMIT_TAG for App Store review (fastlane deliver or App Store Connect); wire this job when the release process is decided"
+    - exit 1
+
+smoke:
+  stage: verify
+  image: alpine:3.20
+  before_script: []
+  cache: []
+  rules: [{ if: $CI_COMMIT_TAG, when: on_success }]
+  needs: [publish]
+  script:
+    - ipas=$(find build -maxdepth 1 -name '*.ipa' 2>/dev/null | wc -l); archives=$(find build -maxdepth 1 -name '*.xcarchive' 2>/dev/null | wc -l)
+    - '[ "$ipas" -gt 0 ] || [ "$archives" -gt 0 ] || { echo "smoke: no .ipa or .xcarchive from publish"; exit 1; }'
+    - echo "smoke: $ipas ipa(s), $archives archive(s) checked"

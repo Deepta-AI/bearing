@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>{{FEATURE}}: screens, round {{ROUND}}</title>
+<!-- Per-feature index: the redlines and the three screenshots per screen. The
+     product-wide gallery is ../../index.html, rendered by bundle.py from design.json. -->
+<link rel="stylesheet" href="../../tokens.css">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--color-bg); color: var(--color-text);
+    font-family: var(--font-body); font-size: var(--text-body, 16px); line-height: var(--leading-body, 1.5); padding: var(--space-5, 24px) var(--space-4, 16px); }
+  @media (min-width: 768px) { body { padding: var(--space-6, 32px) var(--space-6, 32px); } }
+  h1 { font-size: 1.5rem; margin: 0 0 var(--space-2, 8px); text-wrap: balance; }
+  h2 { font-size: 1.25rem; margin: 0 0 var(--space-2, 8px); }
+  h3 { font-size: 1rem; margin: var(--space-4, 16px) 0 var(--space-2, 8px); }
+  p { margin: 0 0 var(--space-3, 12px); max-width: 66ch; }
+  .muted { color: var(--color-text-muted); }
+  a { color: var(--color-link); }
+  .summary { display: grid; gap: var(--space-2, 8px) var(--space-5, 24px); grid-template-columns: max-content 1fr;
+    margin: var(--space-4, 16px) 0 var(--space-6, 32px); }
+  .summary dt { color: var(--color-text-muted); }
+  .summary dd { margin: 0; }
+  .screen { border-top: 2px solid var(--color-border); padding-top: var(--space-4, 16px); margin-bottom: var(--space-7, 48px); }
+  .states { display: flex; flex-wrap: wrap; gap: var(--space-2, 8px); padding: 0; margin: 0 0 var(--space-4, 16px); list-style: none; }
+  .states a { display: inline-block; min-height: 44px; line-height: 44px; padding: 0 var(--space-3, 12px);
+    border: 1px solid var(--color-border); text-decoration: none; color: var(--color-text); }
+  .states a:hover { border-color: var(--color-link); }
+  .shots { display: grid; gap: var(--space-3, 12px); grid-template-columns: 1fr; align-items: start; }
+  @media (min-width: 1100px) { .shots { grid-template-columns: 375fr 768fr 1440fr; } }
+  .shots figure { margin: 0; }
+  .shots figcaption { color: var(--color-text-muted); font-size: .875rem; margin-bottom: var(--space-2, 8px); }
+  .shots img, .shots iframe { width: 100%; border: 1px solid var(--color-border); background: var(--color-bg-subtle); display: block; }
+  .shots iframe { aspect-ratio: 16 / 10; }
+  .shots .w375 iframe { aspect-ratio: 375 / 812; }
+  .shots .w768 iframe { aspect-ratio: 768 / 1024; }
+  table { border-collapse: collapse; width: 100%; max-width: 900px; font-size: .9375rem; }
+  th, td { text-align: left; vertical-align: top; padding: var(--space-2, 8px) var(--space-3, 12px); border-bottom: 1px solid var(--color-border); }
+  th { color: var(--color-text-muted); font-weight: 600; }
+  code { font-family: var(--font-mono); font-size: .9em; }
+</style>
+</head>
+<body>
+<p class="muted"><a href="../../index.html">All screens</a> / {{FEATURE}}</p>
+<h1>{{FEATURE}}: screens, round {{ROUND}}</h1>
+<p class="muted">One prototype per screen. Open a state link to see that state; #state=all shows every state as the whole screen, desktop beside the designed 375 px arrangement; the theme button switches dark. Comment per screen and per state in the session; the round is recorded in CHANGES.md.</p>
+
+<dl class="summary">
+  <dt>Inventory</dt><dd>{{INVENTORY_SOURCE}}</dd>
+  <dt>Tokens</dt><dd>{{TOKEN_SOURCE}}</dd>
+  <dt>Framework</dt><dd>{{FRAMEWORK}}, contract: {{COMPONENTS_MD_OR_NO_CONTRACT}}</dd>
+  <dt>Events</dt><dd>{{EVENT_SHEET_OR_NO_SHEET}}</dd>
+  <dt>Screenshots</dt><dd>{{SCREENSHOT_STATUS}}</dd>
+  <dt>Screens</dt><dd>{{N_SCREENS}}, states rendered {{N_STATES}}, screens with all inventory states {{N_COMPLETE}} of {{N_SCREENS}}</dd>
+</dl>
+
+<!-- One block per screen. The skill fills ID, NAME, FILE, JOB, the state list, shot paths (or empty) and the redlines. -->
+{{#SCREENS}}
+<section class="screen" id="{{ID}}" aria-labelledby="h-{{ID}}">
+  <h2 id="h-{{ID}}">{{ID}} {{NAME}}</h2>
+  <p>{{JOB}} <span class="muted">Serves {{STORY_IDS}}.</span></p>
+
+  <h3>States</h3>
+  <ul class="states">
+    {{#STATES}}<li><a href="{{FILE}}#state={{STATE}}">{{STATE}}</a></li>{{/STATES}}
+  </ul>
+
+  <h3>At three widths</h3>
+  <div class="shots">
+    <figure class="w375"><figcaption>375</figcaption>
+      <img src="{{SHOT_375}}" alt="{{NAME}} at 375 px" onerror="this.replaceWith(Object.assign(document.createElement('iframe'),{src:'{{FILE}}#chrome=0',title:'{{NAME}} at phone width',loading:'lazy'}))"></figure>
+    <figure class="w768"><figcaption>768</figcaption>
+      <img src="{{SHOT_768}}" alt="{{NAME}} at 768 px" onerror="this.replaceWith(Object.assign(document.createElement('iframe'),{src:'{{FILE}}#chrome=0',title:'{{NAME}} at tablet width',loading:'lazy'}))"></figure>
+    <figure class="w1440"><figcaption>1440</figcaption>
+      <img src="{{SHOT_1440}}" alt="{{NAME}} at 1440 px" onerror="this.replaceWith(Object.assign(document.createElement('iframe'),{src:'{{FILE}}#chrome=0',title:'{{NAME}} at desktop width',loading:'lazy'}))"></figure>
+  </div>
+
+  <h3>Redlines</h3>
+  <table>
+    <thead><tr><th>Item</th><th>Value</th></tr></thead>
+    <tbody>
+      <tr><td>Layout</td><td>375 {{LAYOUT_375}}; 768 {{LAYOUT_768}}; 1440 <code>{{DESKTOP_COLUMNS}}</code></td></tr>
+      <tr><td>Spacing used</td><td>{{SPACING_VALUES}}</td></tr>
+      <tr><td>Type roles</td><td>{{TYPE_ROLES}}</td></tr>
+      <tr><td>Tokens used</td><td><code>{{TOKEN_NAMES}}</code></td></tr>
+      <tr><td>Components</td><td>{{DATA_COMPONENT_NAMES}} (gaps: {{CONTRACT_GAPS_OR_NONE}})</td></tr>
+      <tr><td>Controls</td><td>{{CONTROLS_IN_TAB_ORDER_WITH_KEYS}}</td></tr>
+      <tr><td>Events</td><td>{{DATA_EVENT_NAMES_OR_NO_SHEET}}; needs event: {{NEEDS_EVENT_OR_NONE}}</td></tr>
+      <tr><td>Motion</td><td>{{MOTION_MOMENT_OR_NONE}}</td></tr>
+      <tr><td>Copy marked proposed</td><td>{{PROPOSED_COPY_OR_NONE}}</td></tr>
+    </tbody>
+  </table>
+</section>
+{{/SCREENS}}
+
+<p class="muted">Rounds so far: {{ROUND}}. See <a href="CHANGES.md">CHANGES.md</a>.</p>
+</body>
+</html>

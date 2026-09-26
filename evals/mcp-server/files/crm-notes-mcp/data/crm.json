@@ -1,0 +1,18 @@
+{
+  "accounts": [
+    {"id": "acc_301", "name": "Sunrise Diagnostics", "tier": "gold", "owner": "am_ritu",
+     "billing_contact": "Meera Iyer", "billing_phone": "+91 90000 10001",
+     "card_on_file": "4111111111111111", "arr_inr": 1850000, "last_contact": "2026-09-10"},
+    {"id": "acc_302", "name": "Blue Fern Clinics", "tier": "silver", "owner": "am_ritu",
+     "billing_contact": "Arjun Rao", "billing_phone": "+91 90000 10002",
+     "card_on_file": "5500005555555559", "arr_inr": 640000, "last_contact": "2026-06-02"},
+    {"id": "acc_303", "name": "Harbor Logistics", "tier": "gold", "owner": "am_dev",
+     "billing_contact": "Sana Qureshi", "billing_phone": "+91 90000 10003",
+     "card_on_file": "4012888888881881", "arr_inr": 2400000, "last_contact": "2026-09-19"}
+  ],
+  "notes": [
+    {"id": "n_1", "account_id": "acc_301", "author": "am_ritu", "text": "Renewal call booked for 3 Oct.", "at": "2026-09-10"},
+    {"id": "n_2", "account_id": "acc_301", "author": "am_ritu", "text": "Wants volume pricing for 12 sites.", "at": "2026-09-12"},
+    {"id": "n_3", "account_id": "acc_303", "author": "am_dev", "text": "Asked for SOC 2 report.", "at": "2026-09-19"}
+  ]
+}

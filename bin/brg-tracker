@@ -1,0 +1,166 @@
+#!/usr/bin/env bash
+# brg-tracker: one command surface for every ticket tracker.
+#
+#   brg-tracker config                      -> effective tracker and where it came from (never secrets)
+#   brg-tracker me                          -> the authenticated user
+#   brg-tracker resolve <KEY>               -> the tracker's own id for a key
+#   brg-tracker get <KEY>                   -> compact JSON for one ticket
+#   brg-tracker list [--type t] [--status s] [--q text] [--limit n]  -> every page, count on stderr
+#   brg-tracker create --type <epic|story|task|bug|testcase> --title <s>
+#               [--description-file f] [--parent KEY] [--priority p]
+#   brg-tracker update <KEY> [--status name] [--assignee me|email|login] [--title s]
+#               [--description-file f] [--priority p]
+#   brg-tracker close <KEY>                 -> status BEARING_TRACKER_DONE_STATUS (default Done)
+#   brg-tracker comment <KEY> (<text> | --file f)
+#   brg-tracker link <KEY> <relates|blocks> <KEY2>   -> prints "link: issue-link" or "link: comment"
+#   brg-tracker trace <KEY> [--branch b] [--mr url] [--commits a,b] [--tests TC-..] [--adr ADR-nnnn]
+#
+# --parent and --priority map per adapter: rest uses epic_id for a story,
+# story_id for a bug, parent_id otherwise, and a priority enum
+# (lowest..highest); Jira uses the parent field and a priority name (High);
+# GitLab and GitHub use a "Parent:" line plus a link or cross-reference
+# comment, and a priority::<slug> label. link is a real issue link on rest,
+# Jira and GitLab; on GitHub it is a cross-reference comment.
+#
+# Configuration: BEARING_TRACKER from the environment, then
+# ~/.config/bearing/bearing.env (KEY=value; environment wins). Values:
+#   none            every command prints "tracker: none ..." and exits 0 for
+#                   read commands, 3 for write commands (callers treat 3 as skipped)
+#   rest            bin/brg-rest    keys as the server returns them (docs/TRACKERS.md)
+#   jira            bin/brg-jira    keys PROJ-123
+#   gitlab          bin/brg-gitlab  keys GL-123
+#   github          bin/brg-github  keys GH-123
+# Tokens and passwords are read by the adapters and never printed.
+set -euo pipefail
+
+KIT="$(cd "$(dirname "$0")/.." && pwd)"
+ENV_FILE="${BEARING_ENV:-${XDG_CONFIG_HOME:-$HOME/.config}/bearing/bearing.env}"
+
+usage() { sed -n '2,36p' "$0" | sed 's/^# \{0,1\}//'; exit "${1:-2}"; }
+die() { echo "brg-tracker: $*" >&2; exit 1; }
+
+# load_env: KEY=value lines from the env file; a variable already set in the
+# environment is never overridden. Quotes are stripped, "  # comment" tails
+# are dropped from unquoted values.
+load_env() {
+  [ -f "$ENV_FILE" ] || return 0
+  local line key val
+  while IFS= read -r line || [ -n "$line" ]; do
+    case "${line#"${line%%[![:space:]]*}"}" in ''|'#'*) continue;; esac
+    case "$line" in *=*) ;; *) continue;; esac
+    key="${line%%=*}"; key="${key//[[:space:]]/}"; val="${line#*=}"
+    printf '%s' "$key" | grep -Eq '^[A-Z_][A-Z0-9_]*$' || continue
+    val="${val#"${val%%[![:space:]]*}"}"
+    case "$val" in
+      \"*) val="${val#\"}"; val="${val%%\"*}";;
+      \'*) val="${val#\'}"; val="${val%%\'*}";;
+      *) val="${val%%[[:space:]]#*}"; val="${val%"${val##*[![:space:]]}"}";;
+    esac
+    [ -n "${!key+x}" ] && continue
+    export "$key=$val"
+  done < "$ENV_FILE"
+}
+
+src="default"
+[ -n "${BEARING_TRACKER+x}" ] && src="environment"
+load_env
+[ "$src" = "environment" ] || { [ -n "${BEARING_TRACKER+x}" ] && src="$ENV_FILE"; }
+tracker="${BEARING_TRACKER:-none}"
+tracker="$(printf '%s' "$tracker" | tr '[:upper:]' '[:lower:]')"
+[ -n "$tracker" ] || tracker=none
+
+cmd="${1:-}"; [ -n "$cmd" ] || usage; shift
+case "$cmd" in -h|--help|help) usage 0;; esac
+
+adapter=""
+case "$tracker" in
+  none) ;;
+  rest) adapter="$KIT/bin/brg-rest";;
+  jira) adapter="$KIT/bin/brg-jira";;
+  gitlab) adapter="$KIT/bin/brg-gitlab";;
+  github) adapter="$KIT/bin/brg-github";;
+  *) die "unknown BEARING_TRACKER '$tracker' (none | rest | jira | gitlab | github), set in $ENV_FILE";;
+esac
+
+# The id shape each adapter produces, shown only as information; the prefix
+# itself is BEARING_TASK_ID_PREFIX or empty (no tracker is the default).
+shape_of() {
+  case "$tracker" in
+    rest) printf 'whatever key the REST tracker returns';;
+    jira) printf '%s-N' "${BEARING_TRACKER_PROJECT:-<BEARING_TRACKER_PROJECT>}";;
+    gitlab) printf 'GL-N';;
+    github) printf 'GH-N';;
+    *) printf 'any id matching [A-Z][A-Z0-9]*(-[0-9]+)+, or NOTASK-<n>';;
+  esac
+}
+
+if [ "$cmd" = "config" ]; then
+  echo "tracker: $tracker (from $src)"
+  echo "env file: $ENV_FILE$([ -f "$ENV_FILE" ] || printf ' (absent)')"
+  if [ "$tracker" != none ]; then
+    url="${BEARING_TRACKER_URL:-}"
+    [ "$tracker" = gitlab ] && url="${url:-https://gitlab.com}"
+    [ "$tracker" = github ] && url="${url:-https://github.com}"
+    echo "url: ${url:-<unset>}"
+    echo "project: ${BEARING_TRACKER_PROJECT:-<unset>}"
+    if [ "$tracker" = rest ] || [ "$tracker" = jira ]; then echo "email: ${BEARING_TRACKER_EMAIL:-<unset>}"; fi
+    auth=""
+    [ -z "${BEARING_TRACKER_TOKEN:-}" ] || auth="token set"
+    [ -z "${BEARING_TRACKER_PASSWORD:-}" ] || auth="${auth:+$auth, }password set"
+    auth="${auth:-none}"
+    case "$tracker" in
+      gitlab) [ "$auth" != none ] || { command -v glab >/dev/null && auth="glab auth (no token in config)"; };;
+      github) [ "$auth" != none ] || { command -v gh >/dev/null && auth="gh auth (no token in config)"; };;
+      rest) [ "$auth" != none ] || [ ! -f "${XDG_CONFIG_HOME:-$HOME/.config}/bearing/rest.token" ] || auth="cached token";;
+    esac
+    echo "auth: $auth"
+    echo "done status: ${BEARING_TRACKER_DONE_STATUS:-Done}"
+    echo "adapter: ${adapter#"$KIT/"}"
+  fi
+  echo "id prefix: ${BEARING_TASK_ID_PREFIX:-} (${BEARING_TASK_ID_PREFIX:+forced by BEARING_TASK_ID_PREFIX; }ids look like $(shape_of))"
+  exit 0
+fi
+
+if [ "$tracker" = none ]; then
+  echo "tracker: none (set BEARING_TRACKER in ~/.config/bearing/bearing.env)"
+  case "$cmd" in me|get|list|resolve) exit 0;; create|update|comment|link|trace|close) exit 3;; *) usage;; esac
+fi
+
+[ -x "$adapter" ] || die "adapter $adapter is missing or not executable"
+
+# rest: the generic surface mapped onto bin/brg-rest, whose list and create
+# take the project key as a positional argument and whose parent flag depends
+# on the type.
+if [ "$tracker" = rest ]; then
+  proj="${BEARING_TRACKER_PROJECT:-}"
+  case "$cmd" in
+    list|create) [ -n "$proj" ] || die "set BEARING_TRACKER_PROJECT (the REST tracker's project key)";;
+  esac
+  case "$cmd" in
+    me|resolve) exec "$adapter" "$cmd" "$@";;
+    get|update|comment|link|trace|close)
+      [ $# -ge 1 ] || usage; key="$1"; shift
+      exec "$adapter" "$cmd" "$key" "$@";;
+    list) exec "$adapter" list "$proj" "$@";;
+    create)
+      typ="task"; parent=""; args=()
+      while [ $# -gt 0 ]; do case "$1" in
+        --type) typ="$2"; args+=(--type "$2"); shift 2;;
+        --parent) parent="$2"; shift 2;;
+        --title|--description-file|--priority) args+=("$1" "$2"); shift 2;;
+        *) die "unknown option for create: $1";; esac; done
+      if [ -n "$parent" ]; then
+        case "$typ" in story) args+=(--epic "$parent");; bug) args+=(--story "$parent");; *) args+=(--parent "$parent");; esac
+      fi
+      exec "$adapter" create "$proj" ${args[@]+"${args[@]}"};;
+    *) usage;;
+  esac
+fi
+
+case "$cmd" in
+  me|list|create) exec "$adapter" "$cmd" "$@";;
+  get|resolve|update|comment|link|trace|close)
+    [ $# -ge 1 ] || usage; key="$1"; shift
+    exec "$adapter" "$cmd" "$key" "$@";;
+  *) usage;;
+esac

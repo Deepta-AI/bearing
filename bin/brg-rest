@@ -1,0 +1,352 @@
+#!/usr/bin/env bash
+# brg-rest: client for any tracker that speaks the Bearing REST tracker
+# protocol (docs/TRACKERS.md, "REST tracker protocol"): create, read,
+# update, comment, link, trace.
+#
+#   brg-rest login | me | projects | statuses <project> [type]
+#   brg-rest resolve <KEY|id>                 -> numeric id
+#   brg-rest get <KEY|id>                     -> the issue JSON
+#   brg-rest list <project> [--type t] [--status name] [--q text] [--limit n]
+#   brg-rest create <project> --type <t> --title <s> [--description-file f]
+#          [--priority p] [--epic KEY] [--parent KEY] [--story KEY]
+#          [--labels a,b] [--points n] [--assignee me|email]
+#   brg-rest update <KEY|id> [--status name] [--assignee me|email] [--title s]
+#          [--description-file f] [--priority p] [--points n] [--due YYYY-MM-DD]
+#   brg-rest close <KEY|id>                   -> status BEARING_TRACKER_DONE_STATUS (Done)
+#   brg-rest comment <KEY|id> (<text> | --file f)
+#   brg-rest link <KEY|id> <blocks|blocked_by|relates|duplicates> <KEY|id>
+#   brg-rest trace <KEY|id> [--branch b] [--mr url] [--commits a,b] [--tests KEY,..]
+#          [--adr ADR-nnnn] [--docs path,..]
+#
+# Configuration comes from the environment, then ~/.config/bearing/bearing.env
+# (KEY=value lines, read as data, never executed; the environment wins):
+# BEARING_TRACKER_URL (required, the server's base url), BEARING_TRACKER_TOKEN
+# (a bearer token) or BEARING_TRACKER_EMAIL plus BEARING_TRACKER_PASSWORD (the
+# login endpoint trades them for a token, cached at ~/.config/bearing/rest.token,
+# mode 600), BEARING_TRACKER_DONE_STATUS and BEARING_TRACKER_MAX_PAGES.
+# Credentials reach curl through a config file on a pipe and request bodies
+# through stdin, never on the command line, and are never printed. Every call
+# has a 30 s budget. A 429 is retried once; a 5xx is retried once for GET and
+# PUT, and for a create or a comment only after a search for its marker (an
+# HTML comment it carries) finds nothing, so a retry never duplicates. list
+# follows limit/offset up to BEARING_TRACKER_MAX_PAGES (default 20) pages,
+# says when it stops early, and prints the count on stderr. A key is whatever
+# the server returns in an issue's "key" field; every issue path takes the
+# numeric id, so the client resolves a key through the search endpoint (then
+# the project's issue list when BEARING_TRACKER_PROJECT is set). brg-tracker
+# is the generic front; this client is its adapter for BEARING_TRACKER=rest.
+set -euo pipefail
+
+CONF_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/bearing"
+TOKEN_FILE="$CONF_DIR/rest.token"
+ENV_FILE="${BEARING_ENV:-$CONF_DIR/bearing.env}"
+
+# load_kv FILE: KEY=value lines; a variable already set is never overridden.
+# Quotes are stripped, "  # comment" tails dropped from unquoted values. The
+# file is parsed, not sourced, so nothing in it can run.
+load_kv() {
+  [ -f "$1" ] || return 0
+  local line key val
+  while IFS= read -r line || [ -n "$line" ]; do
+    case "${line#"${line%%[![:space:]]*}"}" in ''|'#'*) continue;; esac
+    case "$line" in *=*) ;; *) continue;; esac
+    key="${line%%=*}"; key="${key//[[:space:]]/}"; val="${line#*=}"
+    printf '%s' "$key" | grep -Eq '^[A-Z_][A-Z0-9_]*$' || continue
+    val="${val#"${val%%[![:space:]]*}"}"
+    case "$val" in
+      \"*) val="${val#\"}"; val="${val%%\"*}";;
+      \'*) val="${val#\'}"; val="${val%%\'*}";;
+      *) val="${val%%[[:space:]]#*}"; val="${val%"${val##*[![:space:]]}"}";;
+    esac
+    [ -n "${!key+x}" ] && continue
+    export "$key=$val"
+  done < "$1"
+}
+load_kv "$ENV_FILE"
+URL="${BEARING_TRACKER_URL:-}"
+URL="${URL%/}"
+EMAIL="${BEARING_TRACKER_EMAIL:-}"
+PASSWORD="${BEARING_TRACKER_PASSWORD:-}"
+DONE_STATUS="${BEARING_TRACKER_DONE_STATUS:-Done}"
+
+usage() { sed -n '2,37p' "$0" | sed 's/^# \{0,1\}//'; exit "${1:-2}"; }
+# A transport failure is reported once. It can happen inside a command
+# substitution (resolve nests api calls and has a fallback path), so the
+# failing subshell leaves a marker and every later api call or die in the
+# same run exits silently instead of adding lines.
+WORK="$(mktemp -d "${TMPDIR:-/tmp}/brg-rest.XXXXXX")"
+FAIL_MARK="$WORK/fail"; : > "$FAIL_MARK"
+trap 'rm -rf "$WORK"' EXIT
+die() { [ -s "$FAIL_MARK" ] && exit 1; echo "brg-rest: $*" >&2; exit 1; }
+fatal() { [ -s "$FAIL_MARK" ] && exit 1; echo "brg-rest: $*" >&2; echo 1 > "$FAIL_MARK"; exit 1; }
+need() { command -v "$1" >/dev/null || die "$1 is required"; }
+need curl; need jq
+
+token=""
+[ -n "${BEARING_TRACKER_TOKEN:-}" ] && token="$BEARING_TRACKER_TOKEN"
+[ -z "$token" ] && [ -f "$TOKEN_FILE" ] && token="$(cat "$TOKEN_FILE")"
+
+MAX_PAGES="${BEARING_TRACKER_MAX_PAGES:-20}"
+case "$MAX_PAGES" in ''|*[!0-9]*|0) die "BEARING_TRACKER_MAX_PAGES must be a whole number above 0 (got '$MAX_PAGES')";; esac
+case "$token" in *$'\n'*|*$'\r'*) die "the tracker token contains a line break";; esac
+
+# Credentials go to curl through a config file on a pipe, never on the command
+# line. Inside a double-quoted config value curl reads \ and " as escapes, so
+# both are backslash-escaped and a token holding either arrives intact.
+cfg_quote() { printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'; }
+auth_cfg() { [ -z "$token" ] || printf 'header = "Authorization: Bearer %s"\n' "$(cfg_quote "$token")"; }
+no_auth_cfg() { :; }
+# new_mark -> a random marker. A create or a comment carries it in an HTML
+# comment (the markdown renderer drops it) so a retry can find what a failed
+# POST already made.
+new_mark() { printf 'bearing-op-%s' "$(od -An -N8 -tx1 /dev/urandom | tr -d ' \n')"; }
+
+# request METHOD URL [JSON] [auth|noauth] [RECOVER]: sets STATUS and BODY (no
+# stdout, so it is called directly and never inside a substitution), response
+# headers in $WORK/headers. The body travels on stdin, stderr goes to a temp
+# file. A 429 is retried once after 2 seconds for every method (the server
+# refused it unapplied); a 5xx is retried once for GET and PUT, which are
+# idempotent, and for a POST whose RECOVER is "retry" (login). Any other POST
+# answered 5xx may have been applied, so it is sent again only after the
+# RECOVER function (which prints what the POST would have made, or nothing)
+# finds nothing; without one it is not retried. A transport failure reports
+# curl's one line and stops the run.
+STATUS=""; BODY=""
+request() {
+  local method="$1" url="$2" data="${3:-}" auth="${4:-auth}" recover="${5:-}" cfg out err msg attempt found
+  local dargs=()
+  [ -s "$FAIL_MARK" ] && exit 1
+  [ -n "$URL" ] || die "set BEARING_TRACKER_URL (the REST tracker's base url) in $ENV_FILE or the environment"
+  [ -z "$data" ] || dargs=(-H 'Content-Type: application/json' --data-binary @-)
+  cfg=auth_cfg; [ "$auth" = auth ] || cfg=no_auth_cfg
+  err="$(mktemp "$WORK/err.XXXXXX")"
+  for attempt in 1 2; do
+    : > "$WORK/headers"
+    out="$(printf '%s' "$data" | curl -sS --max-time 30 --connect-timeout 10 -w '\n%{http_code}' -D "$WORK/headers" -X "$method" "$url" \
+      -K <("$cfg") -H 'Accept: application/json' ${dargs[@]+"${dargs[@]}"} 2>"$err")" \
+      || { msg="$(head -c 200 "$err")"; rm -f "$err"; fatal "cannot reach $URL: ${msg:-curl failed}"; }
+    STATUS="${out##*$'\n'}"
+    [ "$attempt" = 1 ] || break
+    case "$STATUS" in
+      429) sleep 2; continue;;
+      5*) case "$method:$recover" in
+            GET:*|PUT:*|POST:retry) sleep 2; continue;;
+            POST:?*)
+              sleep 2
+              found="$("$recover")" || fatal "$method ${url#"$URL"} -> $STATUS, and the check for an already-applied request failed"
+              [ -n "$found" ] || continue
+              echo "brg-rest: $method ${url#"$URL"} answered $STATUS but had been applied; not sent again" >&2
+              out="$found"$'\n'"200"; STATUS=200;;
+          esac;;
+    esac
+    break
+  done
+  rm -f "$err"
+  BODY="${out%$'\n'*}"
+}
+
+login() {
+  [ -n "$EMAIL" ] && [ -n "$PASSWORD" ] || die "set BEARING_TRACKER_TOKEN, or BEARING_TRACKER_EMAIL and BEARING_TRACKER_PASSWORD, in $ENV_FILE"
+  local body resp
+  body="$(jq -nc --arg e "$EMAIL" --arg p "$PASSWORD" '{email:$e,password:$p}')"
+  request POST "$URL/api/auth/login" "$body" noauth retry; resp="$BODY"
+  if [ "$(printf '%s' "$resp" | jq -r '.mfa_required // false' 2>/dev/null)" = "true" ]; then
+    [ -n "${BEARING_TRACKER_MFA_CODE:-}" ] || die "MFA required: export BEARING_TRACKER_MFA_CODE=<code> and retry"
+    local mt; mt="$(printf '%s' "$resp" | jq -r .mfa_token)"
+    request POST "$URL/api/auth/mfa" "$(jq -nc --arg t "$mt" --arg c "$BEARING_TRACKER_MFA_CODE" '{mfa_token:$t,code:$c}')" noauth; resp="$BODY"
+  fi
+  token="$(printf '%s' "$resp" | jq -r '.token // empty' 2>/dev/null || true)"
+  [ -n "$token" ] || die "login failed ($STATUS): $(printf '%s' "$resp" | jq -r '.error // "unknown error"' 2>/dev/null | head -c 200)"
+  mkdir -p "$CONF_DIR"; ( umask 077; printf '%s' "$token" > "$TOKEN_FILE" )
+  echo "brg-rest: logged in as $EMAIL (token cached)" >&2
+}
+
+# api METHOD PATH [JSON] [RECOVER] -> body on stdout; sets $STATUS; re-logs
+# in once on 401. RECOVER is handed to request (see there).
+api() {
+  local method="$1" path="$2" data="${3:-}" recover="${4:-}" attempt
+  [ -s "$FAIL_MARK" ] && exit 1
+  [ -n "$URL" ] || die "set BEARING_TRACKER_URL (the REST tracker's base url) in $ENV_FILE or the environment"
+  [ -n "$token" ] || login
+  for attempt in 1 2; do
+    request "$method" "$URL$path" "$data" auth "$recover"
+    if [ "$STATUS" = "401" ] && [ "$attempt" = 1 ] && [ -n "$PASSWORD" ]; then login; continue; fi
+    break
+  done
+  case "$STATUS" in
+    2*) printf '%s' "$BODY";;
+    401|403) die "$method $path -> $STATUS: check BEARING_TRACKER_EMAIL, BEARING_TRACKER_PASSWORD or BEARING_TRACKER_TOKEN (brg-rest login)";;
+    *) msg="$(printf '%s' "$BODY" | jq -r '.error // .' 2>/dev/null | head -c 300)"
+       case "$method:$STATUS:$recover" in POST:5*:) msg="${msg:-server error}; not retried, a POST may already have been applied";; esac
+       die "$method $path -> $STATUS: $msg";;
+  esac
+}
+
+# pages PATH LIMIT FILTER [NOUN]: every issue of PATH (a list endpoint) through
+# jq FILTER, one line each, page by page on limit/offset (200 a page) until a
+# short page or X-Total-Count. Stops at LIMIT issues (0 means no limit) or at
+# BEARING_TRACKER_MAX_PAGES pages (default 20) and says so when more exist; with
+# a NOUN it ends with the count on stderr, zero included.
+pages() {
+  local path="$1" limit="$2" filter="$3" noun="${4:-}" per=200 page=1 offset=0 sep="?" body n rows k got=0 total more
+  [ "$limit" = 0 ] || [ "$limit" -ge 200 ] || per="$limit"
+  case "$path" in *\?*) sep="&";; esac
+  while :; do
+    body="$(api GET "$path${sep}limit=$per$([ "$offset" = 0 ] || printf '&offset=%s' "$offset")")"
+    total="$(tr -d '\r' < "$WORK/headers" | sed -n 's/^[Xx]-[Tt]otal-[Cc]ount: *//p' | head -1)"
+    n="$(printf '%s' "$body" | jq 'length')"
+    rows="$(printf '%s' "$body" | jq -c ".[] | $filter")"
+    k=0; [ -z "$rows" ] || k="$(printf '%s\n' "$rows" | wc -l | tr -d ' ')"
+    offset=$((offset + n)); more=no
+    if [ "$n" -ge "$per" ]; then more=yes; fi
+    case "$total" in ''|*[!0-9]*) ;; *) [ "$offset" -lt "$total" ] && more=yes || more=no;; esac
+    if [ "$limit" -gt 0 ] && [ $((got + k)) -ge "$limit" ]; then
+      printf '%s\n' "$rows" | sed -n "1,$((limit - got))p"
+      if [ $((got + k)) -gt "$limit" ] || [ "$more" = yes ]; then echo "brg-rest: stopped at --limit $limit; more issue(s) exist" >&2; fi
+      got="$limit"; break
+    fi
+    [ -z "$rows" ] || printf '%s\n' "$rows"
+    got=$((got + k))
+    [ "$more" = yes ] || break
+    if [ "$page" -ge "$MAX_PAGES" ]; then
+      echo "brg-rest: stopped after $page page(s) at BEARING_TRACKER_MAX_PAGES=$MAX_PAGES; more issue(s) exist, narrow the query or raise the cap" >&2
+      break
+    fi
+    page=$((page + 1))
+  done
+  [ -z "$noun" ] || echo "brg-rest: $got $noun listed from $page page(s)" >&2
+}
+
+# Recovery for a POST answered 5xx: print what it made, or nothing.
+rec_issue() { # my newest $REC_TYPE titled $REC_TITLE in $REC_PROJECT whose description carries $REC_MARK
+  local ids id found
+  ids="$(pages "/api/projects/$REC_PROJECT/issues?type=$REC_TYPE&reporter=me" 0 '{id,title}' \
+    | jq -rs --arg t "$REC_TITLE" '[.[] | select(.title == $t) | .id] | sort | reverse | .[:5][]')"
+  for id in $ids; do
+    found="$(api GET "/api/issues/$id" | jq -c --arg m "$REC_MARK" 'select((.issue.description // "") | contains($m)) | .issue')"
+    [ -z "$found" ] || { printf '%s' "$found"; return 0; }
+  done
+}
+rec_comment() { # the comment on $REC_ID carrying $REC_MARK
+  api GET "/api/issues/$REC_ID" | jq -c --arg m "$REC_MARK" '[.comments[]? | select((.body // "") | contains($m))][0] // empty'
+}
+comment_post() { # id text -> the comment JSON; the text gains an invisible marker line
+  REC_ID="$1"; REC_MARK="$(new_mark)"
+  api POST "/api/issues/$1/comments" "$(jq -nc --arg b "$2"$'\n\n'"<!-- $REC_MARK -->" '{body:$b}')" rec_comment
+}
+
+# resolve KEY|id -> numeric id. A key is whatever the server returns in an
+# issue's "key" field; nothing here assumes its shape. The search endpoint is
+# asked first; when it finds nothing and BEARING_TRACKER_PROJECT is set, that
+# project's issue list is paged for the key.
+resolve() {
+  local ref="$1" id proj
+  if printf '%s' "$ref" | grep -Eq '^[0-9]+$'; then echo "$ref"; return; fi
+  printf '%s' "$ref" | grep -Eq '^[A-Za-z0-9][A-Za-z0-9._:#-]*$' || die "'$ref' is neither a numeric id nor a key"
+  id="$(api GET "/api/search?q=$(printf '%s' "$ref" | jq -sRr @uri)" | jq -r --arg k "$ref" '[.. | objects | select(.key? == $k) | .id] | first // empty' 2>/dev/null || true)"
+  proj="${BEARING_TRACKER_PROJECT:-}"
+  if [ -z "$id" ] && [ -n "$proj" ]; then
+    id="$(pages "/api/projects/$proj/issues" 0 '{id,key}' | jq -r --arg k "$ref" 'select(.key == $k) | .id' | sed -n 1p)"
+  fi
+  [ -n "$id" ] || die "issue $ref not found"
+  echo "$id"
+}
+
+project_of() { api GET "/api/issues/$1" | jq -r '.issue.project_id // empty'; }
+project_key_of() { local pid; pid="$(project_of "$1")"; [ -n "$pid" ] || die "issue $1 has no project"; api GET /api/projects | jq -r --argjson p "$pid" '.[] | select(.id == $p) | .key'; }
+
+status_id() { # project type name
+  api GET "/api/projects/$1/statuses" | jq -r --arg t "$2" --arg n "$3" '.[] | select(.type == $t and (.name | ascii_downcase) == ($n | ascii_downcase)) | .id' | head -1
+}
+member_id() { # project email|me
+  if [ "$2" = "me" ]; then api GET /api/auth/me | jq -r '.id'; return; fi
+  api GET "/api/projects/$1/members" | jq -r --arg e "$2" '.[] | select((.email // .user.email // "") == $e) | (.user_id // .id // .user.id)' | head -1
+}
+
+cmd="${1:-}"; [ -n "$cmd" ] || usage; shift
+case "$cmd" in -h|--help|help) usage 0;; esac
+case "$cmd" in
+  login) login ;;
+  me) api GET /api/auth/me | jq '{id,name,email}' ;;
+  projects) api GET /api/projects | jq -c '.[] | {id,key,name}' ;;
+  statuses) [ $# -ge 1 ] || usage; p="$1"; t="${2:-}"; api GET "/api/projects/$p/statuses" | jq -c --arg t "$t" '.[] | select($t == "" or .type == $t) | {id,type,name,category}' ;;
+  resolve) [ $# -eq 1 ] || usage; resolve "$1" ;;
+  get) [ $# -eq 1 ] || usage; id="$(resolve "$1")"; api GET "/api/issues/$id" | jq '.issue' ;;
+  list)
+    [ $# -ge 1 ] || usage; p="$1"; shift; q=""; limit=0
+    while [ $# -gt 0 ]; do case "$1" in --type) q="$q&type=$2"; shift 2;; --status) q="$q&status=$(printf '%s' "$2" | jq -sRr @uri)"; shift 2;; --q) q="$q&q=$(printf '%s' "$2" | jq -sRr @uri)"; shift 2;; --limit) limit="$2"; shift 2;; *) usage;; esac; done
+    case "$limit" in ''|*[!0-9]*) die "--limit must be a whole number (got '$limit')";; esac
+    path="/api/projects/$p/issues"; [ -z "$q" ] || path="$path?${q#&}"
+    pages "$path" "$limit" '{id,key,type,title,status:.status_name,assignee:(.assignee.name // null),priority}' "issue(s)" ;;
+  create)
+    [ $# -ge 1 ] || usage; p="$1"; shift
+    typ=task; title=""; desc=""; prio=""; epic=""; parent=""; story=""; labels=""; points=""; assignee=""
+    while [ $# -gt 0 ]; do case "$1" in
+      --type) typ="$2"; shift 2;; --title) title="$2"; shift 2;; --description-file) desc="$(cat "$2")"; shift 2;;
+      --priority) prio="$2"; shift 2;; --epic) epic="$2"; shift 2;; --parent) parent="$2"; shift 2;; --story) story="$2"; shift 2;;
+      --labels) labels="$2"; shift 2;; --points) points="$2"; shift 2;; --assignee) assignee="$2"; shift 2;; *) usage;; esac; done
+    [ -n "$title" ] || die "--title is required"
+    case "$typ" in epic|story|task|bug|subtask|testscenario|testcase) ;; *) die "type must be epic|story|task|bug|subtask|testscenario|testcase";; esac
+    [ -z "$prio" ] || case "$prio" in lowest|low|medium|high|highest) ;; *) die "priority must be lowest|low|medium|high|highest";; esac
+    REC_MARK="$(new_mark)"; REC_PROJECT="$p"; REC_TYPE="$typ"; REC_TITLE="$title"
+    [ -z "$desc" ] || desc="$desc"$'\n\n'; desc="$desc<!-- $REC_MARK -->"
+    body="$(jq -nc --arg t "$typ" --arg ti "$title" --arg d "$desc" '{type:$t,title:$ti,description:$d}')"
+    [ -z "$prio" ] || body="$(printf '%s' "$body" | jq -c --arg p "$prio" '. + {priority:$p}')"
+    if [ -n "$epic" ]; then rid="$(resolve "$epic")"; body="$(printf '%s' "$body" | jq -c --argjson e "$rid" '. + {epic_id:$e}')"; fi
+    if [ -n "$parent" ]; then rid="$(resolve "$parent")"; body="$(printf '%s' "$body" | jq -c --argjson e "$rid" '. + {parent_id:$e}')"; fi
+    if [ -n "$story" ]; then rid="$(resolve "$story")"; body="$(printf '%s' "$body" | jq -c --argjson e "$rid" '. + {story_id:$e}')"; fi
+    [ -z "$points" ] || body="$(printf '%s' "$body" | jq -c --argjson n "$points" '. + {story_points:$n}')"
+    if [ -n "$assignee" ]; then aid="$(member_id "$p" "$assignee")"; [ -n "$aid" ] || die "assignee $assignee is not a member of $p"; body="$(printf '%s' "$body" | jq -c --argjson a "$aid" '. + {assignee_id:$a}')"; fi
+    if [ -n "$labels" ]; then
+      ids="$(api GET "/api/projects/$p/labels" | jq -c --arg l "$labels" '[($l | split(",")[]) as $n | .[] | select(.name == $n) | .id]')"
+      body="$(printf '%s' "$body" | jq -c --argjson l "$ids" '. + {label_ids:$l}')"
+    fi
+    api POST "/api/projects/$p/issues" "$body" rec_issue | jq '{id,key,type,title,status:.status_name,priority}' ;;
+  update|close)
+    [ $# -ge 1 ] || usage; id="$(resolve "$1")"; shift; patch='{}'; p=""
+    if [ "$cmd" = close ]; then [ $# -eq 0 ] || usage; set -- --status "$DONE_STATUS"; fi
+    while [ $# -gt 0 ]; do case "$1" in
+      --status) p="${p:-$(project_key_of "$id")}"; t="$(api GET "/api/issues/$id" | jq -r .issue.type)"; sid="$(status_id "$p" "$t" "$2")"; [ -n "$sid" ] || die "status '$2' not configured for type $t in $p (brg-rest statuses $p $t)"; patch="$(printf '%s' "$patch" | jq -c --argjson s "$sid" '. + {status_id:$s}')"; shift 2;;
+      --assignee) p="${p:-$(project_key_of "$id")}"; aid="$(member_id "$p" "$2")"; [ -n "$aid" ] || die "assignee $2 not found in $p"; patch="$(printf '%s' "$patch" | jq -c --argjson a "$aid" '. + {assignee_id:$a}')"; shift 2;;
+      --title) patch="$(printf '%s' "$patch" | jq -c --arg v "$2" '. + {title:$v}')"; shift 2;;
+      --description-file) patch="$(printf '%s' "$patch" | jq -c --arg v "$(cat "$2")" '. + {description:$v}')"; shift 2;;
+      --priority) patch="$(printf '%s' "$patch" | jq -c --arg v "$2" '. + {priority:$v}')"; shift 2;;
+      --points) patch="$(printf '%s' "$patch" | jq -c --argjson v "$2" '. + {story_points:$v}')"; shift 2;;
+      --due) patch="$(printf '%s' "$patch" | jq -c --arg v "$2" '. + {due_date:$v}')"; shift 2;;
+      *) usage;; esac; done
+    [ "$patch" != "{}" ] || die "nothing to update"
+    api PUT "/api/issues/$id" "$patch" | jq '{id,key,type,title,status:.status_name,assignee:(.assignee.name // null),priority}' ;;
+  comment)
+    [ $# -ge 2 ] || usage; id="$(resolve "$1")"; shift
+    if [ "$1" = "--file" ]; then text="$(cat "$2")"; else text="$*"; fi
+    [ -n "$text" ] || die "empty comment"
+    comment_post "$id" "$text" | jq '{id,issue_id,created_at}' ;;
+  link)
+    [ $# -eq 3 ] || usage; id="$(resolve "$1")"; typ="$2"; tid="$(resolve "$3")"
+    case "$typ" in blocks|blocked_by|relates|duplicates) ;; *) die "link type must be blocks|blocked_by|relates|duplicates";; esac
+    api POST "/api/issues/$id/links" "$(jq -nc --arg t "$typ" --argjson i "$tid" '{type:$t,target_id:$i}')" >/dev/null
+    echo "brg-rest: $1 $typ $3"; echo "link: issue-link" ;;
+  trace)
+    [ $# -ge 1 ] || usage; id="$(resolve "$1")"; key="$1"; shift
+    branch="$(git branch --show-current 2>/dev/null || true)"; mr=""; commits=""; tests=""; adr=""; docs=""
+    while [ $# -gt 0 ]; do case "$1" in --branch) branch="$2"; shift 2;; --mr) mr="$2"; shift 2;; --commits) commits="$2"; shift 2;; --tests) tests="$2"; shift 2;; --adr) adr="$2"; shift 2;; --docs) docs="$2"; shift 2;; *) usage;; esac; done
+    [ -n "$branch$mr$commits$tests$adr$docs" ] || die "nothing to trace; give --branch, --mr, --commits, --tests, --adr or --docs"
+    body="### Traceability (Bearing, $(date -u +%Y-%m-%dT%H:%MZ))"
+    [ -z "$branch" ] || body="$body"$'\n'"- Branch: $branch"
+    [ -z "$mr" ] || body="$body"$'\n'"- MR: $mr"
+    [ -z "$commits" ] || body="$body"$'\n'"- Commits: $commits"
+    [ -z "$tests" ] || body="$body"$'\n'"- Tests: $tests"
+    [ -z "$adr" ] || body="$body"$'\n'"- ADR: $adr"
+    [ -z "$docs" ] || body="$body"$'\n'"- Docs: $docs"
+    comment_post "$id" "$body" >/dev/null
+    linked=0
+    if [ -n "$tests" ]; then
+      for t in $(printf '%s' "$tests" | tr ',' ' '); do
+        # a test id that is also a tracker issue gains a relates link; one the
+        # server does not know stays in the comment only
+        tid="$(resolve "$t" 2>/dev/null || true)"; [ -z "$tid" ] || { api POST "/api/issues/$id/links" "$(jq -nc --argjson i "$tid" '{type:"relates",target_id:$i}')" >/dev/null 2>&1 && linked=$((linked+1)) || true; }
+      done
+    fi
+    echo "brg-rest: trace comment posted on $key, $linked test issue link(s) added" ;;
+  *) usage ;;
+esac

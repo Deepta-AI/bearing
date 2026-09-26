@@ -1,0 +1,9 @@
+[project]
+name = "invoice-bot"
+version = "1.4.2"
+requires-python = ">=3.11"
+dependencies = []
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

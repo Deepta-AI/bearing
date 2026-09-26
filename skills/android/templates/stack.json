@@ -1,0 +1,12 @@
+{
+  "id": "android",
+  "display": "Android app",
+  "type": "Client/Mobile",
+  "stack": "Kotlin 2.4 + AGP 9.4 + Gradle 9.7 (Kotlin DSL, version catalog) + Jetpack Compose + Material 3 + Hilt + coroutines/Flow + Room + Retrofit/kotlinx.serialization + DataStore",
+  "databases": "Room (SQLite) local; talks to the API",
+  "entrypoint": "app/src/main/java/com/example/app/App.kt",
+  "rules_file": "android.md",
+  "check_command": "make check",
+  "install": "",
+  "tool": "gradle"
+}

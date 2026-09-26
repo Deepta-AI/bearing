@@ -1,0 +1,93 @@
+# Prometheus blackbox exporter modules and the scrape job that uses
+# them. Copy the modules block to monitoring/blackbox.yml (mounted into
+# the exporter) and the scrape job into the Prometheus config in the
+# infra repo. One target per public /healthz and /readyz.
+
+modules:
+  http_healthz:
+    prober: http
+    timeout: 5s
+    http:
+      method: GET
+      valid_status_codes: [200]
+      fail_if_body_not_matches_regexp:
+        - '"status":"ok"'
+      headers:
+        User-Agent: company-blackbox/1
+      preferred_ip_protocol: ip4
+      tls_config:
+        insecure_skip_verify: false
+
+  http_readyz:
+    prober: http
+    timeout: 8s
+    http:
+      method: GET
+      valid_status_codes: [200]
+      fail_if_body_matches_regexp:
+        - '"status":"fail"'
+      headers:
+        User-Agent: company-blackbox/1
+      preferred_ip_protocol: ip4
+
+  tcp_connect:
+    prober: tcp
+    timeout: 5s
+
+# --- Prometheus scrape job (infra repo, prometheus.yml) -----------------
+#
+# scrape_configs:
+#   - job_name: blackbox-healthz
+#     metrics_path: /probe
+#     params:
+#       module: [http_healthz]
+#     static_configs:
+#       - targets:
+#           - https://api.example.com/healthz          # __SERVICE__ prod
+#           - https://api.qa.example.com/healthz       # __SERVICE__ qa
+#         labels:
+#           service: __SERVICE__
+#     relabel_configs:
+#       - source_labels: [__address__]
+#         target_label: __param_target
+#       - source_labels: [__param_target]
+#         target_label: instance
+#       - target_label: __address__
+#         replacement: blackbox-exporter:9115
+#   - job_name: blackbox-readyz
+#     metrics_path: /probe
+#     params:
+#       module: [http_readyz]
+#     static_configs:
+#       - targets:
+#           - https://api.example.com/readyz
+#           - https://api.qa.example.com/readyz
+#         labels:
+#           service: __SERVICE__
+#     relabel_configs:
+#       - source_labels: [__address__]
+#         target_label: __param_target
+#       - source_labels: [__param_target]
+#         target_label: instance
+#       - target_label: __address__
+#         replacement: blackbox-exporter:9115
+#
+# --- Alert rules (monitoring/alerts/__SERVICE__-health.yaml) -----------
+#
+# groups:
+#   - name: __SERVICE__.health
+#     rules:
+#       - alert: __SERVICE__ReadinessFailing
+#         expr: probe_success{job="blackbox-readyz", service="__SERVICE__"} == 0
+#         for: 3m
+#         labels: { severity: page, service: __SERVICE__ }
+#         annotations:
+#           summary: "__SERVICE__ /readyz failing for 3 minutes on {{ $labels.instance }}"
+#           runbook_url: __RUNBOOK_BASE__/__SERVICE__ReadinessFailing.md
+#       - alert: __SERVICE__HealthFlapping
+#         expr: changes(probe_success{job=~"blackbox-.*", service="__SERVICE__"}[15m]) > 3
+#         for: 0m
+#         labels: { severity: ticket, service: __SERVICE__ }
+#         annotations:
+#           summary: "__SERVICE__ health probe flapped more than 3 times in 15 minutes"
+#           runbook_url: __RUNBOOK_BASE__/__SERVICE__HealthFlapping.md

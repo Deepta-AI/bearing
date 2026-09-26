@@ -1,0 +1,14 @@
+KAVERI OFFICE SUPPLIES
+GSTIN: 29ABCDE1234F1Z5
+Tax Invoice No: KOS/26-27/0917          Date: 17-09-2026
+Bill to: Anvaya Clinics, Bengaluru
+
+1. A4 paper, 75 gsm, 10 reams            4,500.00
+2. Whiteboard markers, 4 boxes            1,120.00
+                              Subtotal    5,620.00
+                              IGST 18%    1,011.60
+                              Total       6,631.60
+
+Payment due: 17-10-2026
+Bank: account 001234567890, IFSC EXMP0001234
+Queries: billing@kaveri-office.example, +91 90000 20017

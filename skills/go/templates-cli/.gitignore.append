@@ -1,0 +1,5 @@
+# Go: build output (bin/__REPO_SLUG__, the pinned tools make tools installs
+# into bin/tools, and the release binaries CI writes to dist/).
+bin/
+dist/
+coverage.out

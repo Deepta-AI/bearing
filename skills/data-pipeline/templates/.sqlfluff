@@ -1,0 +1,49 @@
+# sqlfluff over the dbt models.
+# `make lint` uses the jinja templater with dbt's builtins (ref, source,
+# config, var resolve without dbt), so the gate runs offline. The dbt
+# templater compiles through dbt and, with dbt 1.8 or newer, opens a
+# warehouse connection to fill the relation cache; `make lint-dbt` runs it
+# in the CI job that has Postgres.
+[sqlfluff]
+dialect = postgres
+templater = jinja
+max_line_length = 100
+exclude_rules = structure.column_order
+
+[sqlfluff:templater:jinja]
+apply_dbt_builtins = True
+
+# Values for var() when the jinja templater renders; the dbt templater
+# takes them from dbt_project.yml.
+[sqlfluff:templater:jinja:context]
+start_date = 1970-01-01
+end_date = 2100-01-01
+
+[sqlfluff:templater:dbt]
+project_dir = dbt
+profiles_dir = .
+
+[sqlfluff:indentation]
+indent_unit = space
+tab_space_size = 4
+
+[sqlfluff:rules:capitalisation.keywords]
+capitalisation_policy = lower
+
+[sqlfluff:rules:capitalisation.identifiers]
+extended_capitalisation_policy = lower
+
+[sqlfluff:rules:capitalisation.functions]
+extended_capitalisation_policy = lower
+
+[sqlfluff:rules:capitalisation.literals]
+capitalisation_policy = lower
+
+[sqlfluff:rules:capitalisation.types]
+extended_capitalisation_policy = lower
+
+[sqlfluff:rules:aliasing.table]
+aliasing = explicit
+
+[sqlfluff:rules:aliasing.column]
+aliasing = explicit

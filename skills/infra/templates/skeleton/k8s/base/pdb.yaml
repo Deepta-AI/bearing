@@ -1,0 +1,9 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: __REPO_SLUG__
+spec:
+  # More than one replica means a budget; node drains keep one pod serving.
+  minAvailable: 1
+  selector:
+    matchLabels: {}

@@ -1,0 +1,1273 @@
+{
+ "guard": {
+  "title": "The guard reads a command before it runs",
+  "cwd": "~/bearing",
+  "recorded": "2026-09-25",
+  "steps": [
+   {
+    "cmd": "bash bin/brg-guard command \"git status --short\"",
+    "code": 0,
+    "ms": 23,
+    "out": []
+   },
+   {
+    "cmd": "bash bin/brg-guard command \"git push origin main\"",
+    "code": 2,
+    "ms": 19,
+    "out": [
+     [
+      0.02,
+      "Bearing blocked 'git push': the engineer pushes, merges and deploys; the agent prepares. Print the command for the engineer instead."
+     ]
+    ]
+   },
+   {
+    "cmd": "bash bin/brg-guard command 'env GIT_TRACE=1 git push origin main'",
+    "code": 2,
+    "ms": 20,
+    "out": [
+     [
+      0.02,
+      "Bearing blocked 'git push': the engineer pushes, merges and deploys; the agent prepares. Print the command for the engineer instead."
+     ]
+    ]
+   },
+   {
+    "cmd": "bash bin/brg-guard command 'echo ok && git commit --amend --no-edit'",
+    "code": 2,
+    "ms": 18,
+    "out": [
+     [
+      0.02,
+      "Bearing blocked 'git commit --amend': the engineer pushes, merges and deploys; the agent prepares. Print the command for the engineer instead."
+     ]
+    ]
+   },
+   {
+    "cmd": "bash bin/brg-guard command \"rm -rf ../elsewhere\"",
+    "code": 2,
+    "ms": 17,
+    "out": [
+     [
+      0.02,
+      "Bearing blocked 'rm -rf outside the repository': the engineer pushes, merges and deploys; the agent prepares. Print the command for the engineer instead."
+     ]
+    ]
+   },
+   {
+    "cmd": "bash bin/brg-guard command 'git $SUB origin'",
+    "code": 2,
+    "ms": 20,
+    "out": [
+     [
+      0.02,
+      "brg-guard: the verb after git is a variable that cannot be read; refusing (fail closed)"
+     ]
+    ]
+   },
+   {
+    "cmd": "bash bin/brg-guard command \"kubectl apply -f k8s/\"",
+    "code": 2,
+    "ms": 18,
+    "out": [
+     [
+      0.02,
+      "Bearing blocked 'kubectl apply': the engineer pushes, merges and deploys; the agent prepares. Print the command for the engineer instead."
+     ]
+    ]
+   },
+   {
+    "cmd": "bash bin/brg-guard --verbs | wc -l",
+    "code": 0,
+    "ms": 11,
+    "out": [
+     [
+      0.01,
+      "135"
+     ]
+    ]
+   }
+  ]
+ },
+ "hooks": {
+  "title": "A hook is a six-line adapter over the guard",
+  "cwd": "~/bearing",
+  "recorded": "2026-09-25",
+  "steps": [
+   {
+    "cmd": "cat hooks/scripts/block-publish.sh",
+    "code": 0,
+    "ms": 2,
+    "out": [
+     [
+      0.0,
+      "#!/usr/bin/env bash"
+     ],
+     [
+      0.0,
+      "# PreToolUse (Bash): adapter over bin/brg-guard command. Exit 2 blocks."
+     ],
+     [
+      0.0,
+      "set -u"
+     ],
+     [
+      0.0,
+      "# shellcheck source=lib.sh"
+     ],
+     [
+      0.0,
+      ". \"$(dirname \"$0\")/lib.sh\""
+     ],
+     [
+      0.0,
+      "exec bash \"$(dirname \"$0\")/../../bin/brg-guard\" command \"$(json_field tool_input.command)\""
+     ]
+    ]
+   },
+   {
+    "cmd": "printf '%s' '{\"tool_input\":{\"command\":\"make check\"}}' | bash hooks/scripts/block-publish.sh; echo \"exit $?\"",
+    "code": 0,
+    "ms": 30,
+    "out": [
+     [
+      0.03,
+      "exit 0"
+     ]
+    ]
+   },
+   {
+    "cmd": "printf '%s' '{\"tool_input\":{\"command\":\"git push origin main\"}}' | bash hooks/scripts/block-publish.sh; echo \"exit $?\"",
+    "code": 0,
+    "ms": 27,
+    "out": [
+     [
+      0.02,
+      "Bearing blocked 'git push': the engineer pushes, merges and deploys; the agent prepares. Print the command for the engineer instead."
+     ],
+     [
+      0.03,
+      "exit 2"
+     ]
+    ]
+   }
+  ]
+ },
+ "scaffold": {
+  "title": "A new repository from the templates",
+  "cwd": "/work",
+  "recorded": "2026-09-26",
+  "steps": [
+   {
+    "cmd": "bash ~/bearing/bin/brg-scaffold go-api InvoiceService --dir /work/InvoiceService --host gitlab --tracker none",
+    "code": 0,
+    "ms": 3070,
+    "out": [
+     [
+      0.49,
+      "host: gitlab (--host)"
+     ],
+     [
+      0.53,
+      "host files: .gitlab-ci.yml .gitlab/"
+     ],
+     [
+      3.06,
+      "lockfile: created by go mod tidy && go -C tools mod tidy"
+     ],
+     [
+      3.07,
+      "brg-scaffold: 65 files written to /work/InvoiceService (stack go-api, host gitlab, 0 paths renamed, 0 files with unfilled placeholders)"
+     ]
+    ]
+   },
+   {
+    "cmd": "cd InvoiceService && git config core.hooksPath && git status --short | wc -l",
+    "code": 0,
+    "ms": 5,
+    "out": [
+     [
+      0.0,
+      ".githooks"
+     ],
+     [
+      0.01,
+      "26"
+     ]
+    ]
+   },
+   {
+    "cmd": "cd InvoiceService && head -8 CLAUDE.md",
+    "code": 0,
+    "ms": 2,
+    "out": [
+     [
+      0.0,
+      "@AGENTS.md"
+     ],
+     [
+      0.0,
+      ""
+     ],
+     [
+      0.0,
+      "# CLAUDE.md"
+     ],
+     [
+      0.0,
+      ""
+     ],
+     [
+      0.0,
+      "Claude Code specifics for this repository; the standard is AGENTS.md above."
+     ],
+     [
+      0.0,
+      "Loaded into every session: keep this file under 40 lines."
+     ],
+     [
+      0.0,
+      ""
+     ],
+     [
+      0.0,
+      "```"
+     ]
+    ]
+   },
+   {
+    "cmd": "cd InvoiceService && ls -A",
+    "code": 0,
+    "ms": 2,
+    "out": [
+     [
+      0.0,
+      "AGENTS.md"
+     ],
+     [
+      0.0,
+      ".claude"
+     ],
+     [
+      0.0,
+      "CLAUDE.md"
+     ],
+     [
+      0.0,
+      "cmd"
+     ],
+     [
+      0.0,
+      "CODEOWNERS"
+     ],
+     [
+      0.0,
+      "CONTRIBUTING.md"
+     ],
+     [
+      0.0,
+      "db"
+     ],
+     [
+      0.0,
+      "docker-compose.yml"
+     ],
+     [
+      0.0,
+      "Dockerfile"
+     ],
+     [
+      0.0,
+      "docs"
+     ],
+     [
+      0.0,
+      ".editorconfig"
+     ],
+     [
+      0.0,
+      ".env.example"
+     ],
+     [
+      0.0,
+      ".git"
+     ],
+     [
+      0.0,
+      ".githooks"
+     ],
+     [
+      0.0,
+      ".gitignore"
+     ],
+     [
+      0.0,
+      ".gitlab"
+     ],
+     [
+      0.0,
+      ".gitlab-ci.yml"
+     ],
+     [
+      0.0,
+      ".golangci.yml"
+     ],
+     [
+      0.0,
+      "go.mod"
+     ],
+     [
+      0.0,
+      "go.sum"
+     ],
+     [
+      0.0,
+      "internal"
+     ],
+     [
+      0.0,
+      "Makefile"
+     ],
+     [
+      0.0,
+      "README.md"
+     ],
+     [
+      0.0,
+      "scripts"
+     ],
+     [
+      0.0,
+      "SECURITY.md"
+     ],
+     [
+      0.0,
+      "sqlc.yaml"
+     ],
+     [
+      0.0,
+      "tools"
+     ]
+    ]
+   },
+   {
+    "cmd": "cd InvoiceService && head -12 AGENTS.md",
+    "code": 0,
+    "ms": 1,
+    "out": [
+     [
+      0.0,
+      "# AGENTS.md"
+     ],
+     [
+      0.0,
+      ""
+     ],
+     [
+      0.0,
+      "The standard every AI coding agent follows in this repository (Claude Code,"
+     ],
+     [
+      0.0,
+      "Cursor, Codex, Gemini CLI, Copilot). It loads into every session, so it holds"
+     ],
+     [
+      0.0,
+      "only what applies on every turn; the skills carry each step's detail."
+     ],
+     [
+      0.0,
+      ""
+     ],
+     [
+      0.0,
+      "Use the strongest skill for a step, from any pack. A Bearing skill is the"
+     ],
+     [
+      0.0,
+      "choice only where nothing installed does the step better. Unsure which one:"
+     ],
+     [
+      0.0,
+      "`workflow` names the next step and its skill."
+     ],
+     [
+      0.0,
+      ""
+     ],
+     [
+      0.0,
+      "## Ground rules"
+     ],
+     [
+      0.0,
+      ""
+     ]
+    ]
+   },
+   {
+    "cmd": "cd InvoiceService && ls .githooks .claude .claude/rules",
+    "code": 0,
+    "ms": 2,
+    "out": [
+     [
+      0.0,
+      ".claude:"
+     ],
+     [
+      0.0,
+      "rules"
+     ],
+     [
+      0.0,
+      "settings.json"
+     ],
+     [
+      0.0,
+      ""
+     ],
+     [
+      0.0,
+      ".claude/rules:"
+     ],
+     [
+      0.0,
+      "analytics.md"
+     ],
+     [
+      0.0,
+      "code.md"
+     ],
+     [
+      0.0,
+      "database.md"
+     ],
+     [
+      0.0,
+      "go.md"
+     ],
+     [
+      0.0,
+      "observability.md"
+     ],
+     [
+      0.0,
+      "security.md"
+     ],
+     [
+      0.0,
+      "testing.md"
+     ],
+     [
+      0.0,
+      ""
+     ],
+     [
+      0.0,
+      ".githooks:"
+     ],
+     [
+      0.0,
+      "commit-msg"
+     ],
+     [
+      0.0,
+      "install.sh"
+     ],
+     [
+      0.0,
+      "lib.sh"
+     ],
+     [
+      0.0,
+      "pre-commit"
+     ],
+     [
+      0.0,
+      "pre-push"
+     ]
+    ]
+   }
+  ]
+ },
+ "adopt": {
+  "title": "Adopting a repository that already exists, twice",
+  "cwd": "/work",
+  "recorded": "2026-09-25",
+  "steps": [
+   {
+    "cmd": "mkdir legacy && cd legacy && git init -q -b main && printf '{\"name\":\"legacy\",\"scripts\":{\"test\":\"vitest\"}}\\n' > package.json && printf '# Legacy\\n' > README.md && git add -A && git commit -qm 'chore: initial' && echo ready",
+    "code": 0,
+    "ms": 10,
+    "out": [
+     [
+      0.01,
+      "ready"
+     ]
+    ]
+   },
+   {
+    "cmd": "cd legacy && bash ~/bearing/bin/brg-adopt --stack react-web --host github --tracker none",
+    "code": 0,
+    "ms": 1325,
+    "out": [
+     [
+      0.01,
+      "host: github (--host)"
+     ],
+     [
+      1.19,
+      "added     .githooks/install.sh"
+     ],
+     [
+      1.2,
+      "added     .githooks/commit-msg"
+     ],
+     [
+      1.2,
+      "added     .githooks/pre-push"
+     ],
+     [
+      1.2,
+      "added     .githooks/lib.sh"
+     ],
+     [
+      1.21,
+      "added     .githooks/pre-commit"
+     ],
+     [
+      1.21,
+      "appended  .gitignore"
+     ],
+     [
+      1.22,
+      "added     .github/PULL_REQUEST_TEMPLATE.md"
+     ],
+     [
+      1.22,
+      "added     .github/workflows/ci.yml"
+     ],
+     [
+      1.22,
+      "added     .claude/rules/security.md"
+     ],
+     [
+      1.23,
+      "added     .claude/rules/testing.md"
+     ],
+     [
+      1.23,
+      "added     .claude/rules/code.md"
+     ],
+     [
+      1.23,
+      "added     .claude/rules/observability.md"
+     ],
+     [
+      1.24,
+      "added     .claude/rules/analytics.md"
+     ],
+     [
+      1.24,
+      "added     .claude/rules/database.md"
+     ],
+     [
+      1.24,
+      "added     .claude/rules/react.md"
+     ],
+     [
+      1.25,
+      "added     .claude/settings.json"
+     ],
+     [
+      1.25,
+      "added     .editorconfig"
+     ],
+     [
+      1.25,
+      "added     CLAUDE.md"
+     ],
+     [
+      1.26,
+      "added     docs/README.md"
+     ],
+     [
+      1.26,
+      "added     docs/templates/RUNBOOK.md"
+     ],
+     [
+      1.26,
+      "added     docs/templates/EVENT_SHEET.md"
+     ],
+     [
+      1.27,
+      "added     docs/templates/LLD.md"
+     ],
+     [
+      1.27,
+      "added     docs/templates/POSTMORTEM.md"
+     ],
+     [
+      1.27,
+      "added     docs/templates/VAPT.md"
+     ],
+     [
+      1.28,
+      "added     docs/templates/HLD.md"
+     ],
+     [
+      1.28,
+      "added     docs/postmortems/.gitkeep"
+     ],
+     [
+      1.28,
+      "added     docs/adr/0000-template.md"
+     ],
+     [
+      1.29,
+      "added     docs/security/.gitkeep"
+     ],
+     [
+      1.29,
+      "added     docs/runbooks/.gitkeep"
+     ],
+     [
+      1.3,
+      "added     docs/design/.gitkeep"
+     ],
+     [
+      1.3,
+      "added     docs/analytics/.gitkeep"
+     ],
+     [
+      1.3,
+      "added     CODEOWNERS"
+     ],
+     [
+      1.31,
+      "added     SECURITY.md"
+     ],
+     [
+      1.31,
+      "added     AGENTS.md"
+     ],
+     [
+      1.31,
+      "added     Makefile"
+     ],
+     [
+      1.32,
+      "added     CONTRIBUTING.md"
+     ],
+     [
+      1.32,
+      "brg-adopt: 36 files in standard (host github): added 36, kept 0, conflicts 0 (core.hooksPath set)"
+     ]
+    ]
+   },
+   {
+    "cmd": "cd legacy && bash ~/bearing/bin/brg-adopt --stack react-web --host github --tracker none | tail -3",
+    "code": 0,
+    "ms": 1145,
+    "out": [
+     [
+      1.15,
+      "host: github (--host)"
+     ],
+     [
+      1.15,
+      "brg-adopt: 34 files in standard (host github): added 0, kept 34, conflicts 0 (core.hooksPath set)"
+     ]
+    ]
+   }
+  ]
+ },
+ "autopilot": {
+  "title": "Autopilot holds the order; the gates are checked on disk",
+  "cwd": "/work",
+  "recorded": "2026-09-25",
+  "steps": [
+   {
+    "cmd": "python3 ~/bearing/bin/brg-autopilot stages",
+    "code": 0,
+    "ms": 57,
+    "out": [
+     [
+      0.05,
+      "repo"
+     ],
+     [
+      0.05,
+      "prd"
+     ],
+     [
+      0.05,
+      "stories"
+     ],
+     [
+      0.05,
+      "decide"
+     ],
+     [
+      0.05,
+      "architecture"
+     ],
+     [
+      0.05,
+      "design"
+     ],
+     [
+      0.05,
+      "ux"
+     ],
+     [
+      0.05,
+      "test_cases"
+     ],
+     [
+      0.05,
+      "branch"
+     ],
+     [
+      0.05,
+      "build"
+     ],
+     [
+      0.05,
+      "test_automation"
+     ],
+     [
+      0.05,
+      "design_review"
+     ],
+     [
+      0.05,
+      "review"
+     ],
+     [
+      0.05,
+      "dod"
+     ],
+     [
+      0.05,
+      "mr"
+     ]
+    ]
+   },
+   {
+    "cmd": "mkdir pilot && cd pilot && git init -q -b main && git commit -q --allow-empty -m 'chore: start' && echo ready",
+    "code": 0,
+    "ms": 11,
+    "out": [
+     [
+      0.01,
+      "ready"
+     ]
+    ]
+   },
+   {
+    "cmd": "cd pilot && python3 ~/bearing/bin/brg-autopilot start 'Invoices can be exported as CSV'",
+    "code": 0,
+    "ms": 76,
+    "out": [
+     [
+      0.07,
+      "brg-autopilot: run 2026-09-25-invoices-can-be-exported-as-csv started, 15 stages"
+     ],
+     [
+      0.07,
+      "next: repo  (attempt 1 of 3)"
+     ],
+     [
+      0.07,
+      "skill: new-repo (empty directory) or onboard-repo (existing repository)"
+     ],
+     [
+      0.07,
+      "gate: a git repository whose Makefile check target records a pass (.check-passed)"
+     ]
+    ]
+   },
+   {
+    "cmd": "cd pilot && python3 ~/bearing/bin/brg-autopilot next",
+    "code": 0,
+    "ms": 47,
+    "out": [
+     [
+      0.04,
+      "next: repo  (attempt 1 of 3)"
+     ],
+     [
+      0.04,
+      "skill: new-repo (empty directory) or onboard-repo (existing repository)"
+     ],
+     [
+      0.04,
+      "gate: a git repository whose Makefile check target records a pass (.check-passed)"
+     ]
+    ]
+   },
+   {
+    "cmd": "cd pilot && python3 ~/bearing/bin/brg-autopilot done repo",
+    "code": 1,
+    "ms": 50,
+    "out": [
+     [
+      0.05,
+      "gate repo: not met (no Makefile check target); fix it and run done again, or record a failed attempt with fail"
+     ]
+    ]
+   },
+   {
+    "cmd": "cd pilot && python3 ~/bearing/bin/brg-autopilot status | head -20",
+    "code": 0,
+    "ms": 49,
+    "out": [
+     [
+      0.05,
+      "run 2026-09-25-invoices-can-be-exported-as-csv: Invoices can be exported as CSV"
+     ],
+     [
+      0.05,
+      "  repo     pending  attempts 0  no Makefile check target"
+     ],
+     [
+      0.05,
+      "  prd      pending  attempts 0  "
+     ],
+     [
+      0.05,
+      "  stories  pending  attempts 0  "
+     ],
+     [
+      0.05,
+      "  decide   pending  attempts 0  "
+     ],
+     [
+      0.05,
+      "  architecture pending  attempts 0  "
+     ],
+     [
+      0.05,
+      "  design   pending  attempts 0  "
+     ],
+     [
+      0.05,
+      "  ux       pending  attempts 0  "
+     ],
+     [
+      0.05,
+      "  test_cases pending  attempts 0  "
+     ],
+     [
+      0.05,
+      "  branch   pending  attempts 0  "
+     ],
+     [
+      0.05,
+      "  build    pending  attempts 0  "
+     ],
+     [
+      0.05,
+      "  test_automation pending  attempts 0  "
+     ],
+     [
+      0.05,
+      "  design_review pending  attempts 0  "
+     ],
+     [
+      0.05,
+      "  review   pending  attempts 0  "
+     ],
+     [
+      0.05,
+      "  dod      pending  attempts 0  "
+     ],
+     [
+      0.05,
+      "  mr       pending  attempts 0  "
+     ],
+     [
+      0.05,
+      "decisions: 0"
+     ],
+     [
+      0.05,
+      "profile: not recorded"
+     ]
+    ]
+   }
+  ]
+ },
+ "tracker": {
+  "title": "One command surface over every tracker",
+  "cwd": "~/bearing",
+  "recorded": "2026-09-25",
+  "steps": [
+   {
+    "cmd": "bash bin/brg-tracker config",
+    "code": 0,
+    "ms": 11,
+    "out": [
+     [
+      0.01,
+      "tracker: none (from ~/.config/bearing/bearing.env)"
+     ],
+     [
+      0.01,
+      "env file: ~/.config/bearing/bearing.env"
+     ],
+     [
+      0.01,
+      "id prefix:  (ids look like any id matching [A-Z][A-Z0-9]*(-[0-9]+)+, or NOTASK-<n>)"
+     ]
+    ]
+   },
+   {
+    "cmd": "bash bin/brg-tracker create --type story --title 'Export invoices'; echo \"exit $?\"",
+    "code": 0,
+    "ms": 10,
+    "out": [
+     [
+      0.01,
+      "tracker: none (set BEARING_TRACKER in ~/.config/bearing/bearing.env)"
+     ],
+     [
+      0.01,
+      "exit 3"
+     ]
+    ]
+   }
+  ]
+ },
+ "check": {
+  "title": "make check, the kit's own gate",
+  "cwd": "~/bearing",
+  "recorded": "2026-09-25",
+  "steps": [
+   {
+    "cmd": "make check",
+    "code": 0,
+    "ms": 197653,
+    "out": [
+     [
+      2.69,
+      "validate: 4 targets passed (strict)"
+     ],
+     [
+      4.77,
+      "lint-skills: 101 skills, 7 agents, 7 hook scripts, 38 template files"
+     ],
+     [
+      4.96,
+      "lint-tools: 101 skills, 379 commands examined, 24 exempt (engineer-only), 0 problems"
+     ],
+     [
+      4.98,
+      "lint-evals: 101 skills, 20 with evals (40 cases), 81 pending, 0 problems"
+     ],
+     [
+      5.58,
+      "lint-json: 31 files parsed"
+     ],
+     [
+      13.26,
+      "lint-shell: 80 scripts, shellcheck clean"
+     ],
+     [
+      13.32,
+      "lint-prose: 1562 files, 0 em dashes"
+     ],
+     [
+      13.7,
+      "lint-docs: 4 generated docs up to date"
+     ],
+     [
+      13.73,
+      "lint-neutral: 1524 files, 0 scars, 0 RS- literals"
+     ],
+     [
+      13.79,
+      "lint-version: 3 fields match VERSION 0.5.0"
+     ],
+     [
+      13.81,
+      "lint-budget: 8 files checked; AGENTS.md 2895 and CLAUDE.md 1294 bytes, unscoped rules 837 bytes (about 1256 tokens a session)"
+     ],
+     [
+      13.84,
+      "lint-templates: 77 document templates, 438 sections, 38 code templates skipped, 0 problems"
+     ],
+     [
+      72.0,
+      "tracker_fake_server: 4 adapters, 68 commands, 71 requests logged, 4 idempotent-retry, 4 pagination and 4 quoted-token adapters, 1 slow call; tracker_none folded in (11 commands)"
+     ],
+     [
+      72.0,
+      "tracker_fake_server.sh: 21 cases, 328 assertions, 0 failed"
+     ],
+     [
+      74.04,
+      "deterministic: 6 generated files compared over 2 runs, 101 skills in the site data"
+     ],
+     [
+      74.04,
+      "deterministic.sh: 4 cases, 31 assertions, 0 failed"
+     ],
+     [
+      91.64,
+      "adopt_idempotent: 15 brg-adopt runs over 8 repositories"
+     ],
+     [
+      91.64,
+      "adopt_idempotent.sh: 10 cases, 91 assertions, 0 failed"
+     ],
+     [
+      94.85,
+      "doctor_matrix: 16 brg-doctor runs over 7 repository states and 3 profiles"
+     ],
+     [
+      94.85,
+      "doctor_matrix.sh: 11 cases, 105 assertions, 0 failed"
+     ],
+     [
+      100.9,
+      "harness_each.sh: 14 cases, 232 assertions, 0 failed"
+     ],
+     [
+      149.16,
+      "scaffold_each_stack: 13 stacks scaffolded (host both), 2 host variants, 2 tool-free make check runs"
+     ],
+     [
+      149.16,
+      "scaffold_each_stack.sh: 19 cases, 444 assertions, 0 failed"
+     ],
+     [
+      150.26,
+      "gate_selfaudit: 14 makefiles, 76 gates audited"
+     ],
+     [
+      150.26,
+      "gate_selfaudit.sh: 15 cases, 324 assertions, 0 failed"
+     ],
+     [
+      154.39,
+      "autopilot_stages.sh: 11 cases, 55 assertions, 0 failed"
+     ],
+     [
+      156.6,
+      "autopilot_state.sh: 11 cases, 60 assertions, 0 failed"
+     ],
+     [
+      156.74,
+      "brg_checklists.sh: 4 cases, 33 assertions, 0 failed"
+     ],
+     [
+      157.14,
+      "deps_supply_chain.sh: 6 cases, 18 assertions, 0 failed"
+     ],
+     [
+      157.43,
+      "design_contrast.sh: 4 cases, 12 assertions, 0 failed"
+     ],
+     [
+      158.28,
+      "design_evidence.sh: 5 cases, 18 assertions, 0 failed"
+     ],
+     [
+      159.19,
+      "docs_drift.sh: 9 cases, 45 assertions, 0 failed"
+     ],
+     [
+      159.52,
+      "dod_red_proof.sh: 4 cases, 17 assertions, 0 failed"
+     ],
+     [
+      159.84,
+      "feature_flags_check.sh: 6 cases, 23 assertions, 0 failed"
+     ],
+     [
+      162.26,
+      "gate_probe.sh: 6 cases, 24 assertions, 0 failed"
+     ],
+     [
+      162.81,
+      "gen_wiki: 5 exports, 4 flows"
+     ],
+     [
+      162.81,
+      "gen_wiki.sh: 5 cases, 39 assertions, 0 failed"
+     ],
+     [
+      162.87,
+      "githooks_install.sh: 3 cases, 8 assertions, 0 failed"
+     ],
+     [
+      163.73,
+      "githooks_pre_commit.sh: 7 cases, 17 assertions, 0 failed"
+     ],
+     [
+      173.71,
+      "guard_deny_table: 398 rows (297 deny, 101 allow)"
+     ],
+     [
+      173.71,
+      "guard_deny_table.sh: 11 cases, 857 assertions, 0 failed"
+     ],
+     [
+      174.14,
+      "guard_format.sh: 5 cases, 88 assertions, 0 failed"
+     ],
+     [
+      175.33,
+      "guard_harness_gates.sh: 15 cases, 91 assertions, 0 failed"
+     ],
+     [
+      175.73,
+      "guard_latency: benign: 8000 bytes, rc 0, 388 ms"
+     ],
+     [
+      176.12,
+      "guard_latency: blocked: 8000 bytes, rc 2, 389 ms"
+     ],
+     [
+      176.4,
+      "guard_latency: shell heredoc: 7994 bytes, rc 0, 272 ms"
+     ],
+     [
+      176.42,
+      "guard_latency: over the limit: 17000 bytes, rc 2, 11 ms"
+     ],
+     [
+      176.42,
+      "guard_latency.sh: 3 cases, 14 assertions, 0 failed"
+     ],
+     [
+      179.21,
+      "guard_readonly: 138 rows (85 deny, 53 allow)"
+     ],
+     [
+      179.21,
+      "guard_readonly.sh: 3 cases, 147 assertions, 0 failed"
+     ],
+     [
+      179.51,
+      "guard_session_stop.sh: 10 cases, 34 assertions, 0 failed"
+     ],
+     [
+      180.03,
+      "harness_eval.sh: 5 cases, 18 assertions, 0 failed"
+     ],
+     [
+      180.24,
+      "install_dry_run: 9 install.sh runs, 0 files touched under the fake HOME"
+     ],
+     [
+      180.24,
+      "install_dry_run.sh: 7 cases, 55 assertions, 0 failed"
+     ],
+     [
+      180.48,
+      "lint_evals.sh: 6 cases, 24 assertions, 0 failed"
+     ],
+     [
+      181.02,
+      "lint_tools.sh: 6 cases, 24 assertions, 0 failed"
+     ],
+     [
+      181.37,
+      "llm_callsites.sh: 5 cases, 22 assertions, 0 failed"
+     ],
+     [
+      181.75,
+      "load_env: 7 parser copies compared, 5 env files parsed"
+     ],
+     [
+      181.75,
+      "load_env.sh: 7 cases, 46 assertions, 0 failed"
+     ],
+     [
+      182.4,
+      "motion_check.sh: 8 cases, 40 assertions, 0 failed"
+     ],
+     [
+      184.52,
+      "progress.sh: 7 cases, 54 assertions, 0 failed"
+     ],
+     [
+      185.03,
+      "prose_lint_check.sh: 6 cases, 33 assertions, 0 failed"
+     ],
+     [
+      187.45,
+      "rename_migration.sh: 4 cases, 16 assertions, 0 failed"
+     ],
+     [
+      187.91,
+      "runbook_check.sh: 7 cases, 32 assertions, 0 failed"
+     ],
+     [
+      188.29,
+      "screen_states.sh: 5 cases, 19 assertions, 0 failed"
+     ],
+     [
+      188.58,
+      "secrets_ci_credentials.sh: 5 cases, 17 assertions, 0 failed"
+     ],
+     [
+      188.78,
+      "skill_evals.sh: 4 cases, 8 assertions, 0 failed"
+     ],
+     [
+      193.54,
+      "stack_json: 13 stack files (ids: android data-pipeline flutter-app go-cli go-api infra ios next-app node-api python-cli python-api react-native react-web)"
+     ],
+     [
+      193.54,
+      "stack_json.sh: 15 cases, 289 assertions, 0 failed"
+     ],
+     [
+      193.62,
+      "state_path.sh: 3 cases, 8 assertions, 0 failed"
+     ],
+     [
+      194.02,
+      "stories_coverage.sh: 7 cases, 23 assertions, 0 failed"
+     ],
+     [
+      194.52,
+      "test_cases_refs.sh: 5 cases, 28 assertions, 0 failed"
+     ],
+     [
+      194.88,
+      "threat_model_check.sh: 7 cases, 29 assertions, 0 failed"
+     ],
+     [
+      195.27,
+      "traceability_check.sh: 7 cases, 29 assertions, 0 failed"
+     ],
+     [
+      195.61,
+      "ux_flows_check.sh: 6 cases, 21 assertions, 0 failed"
+     ],
+     [
+      195.9,
+      "vapt_findings.sh: 5 cases, 17 assertions, 0 failed"
+     ],
+     [
+      197.65,
+      "verify_deploy.sh: 10 cases, 52 assertions, 0 failed"
+     ],
+     [
+      197.65,
+      "tests: 49 run, 0 failed"
+     ],
+     [
+      197.65,
+      "check: passed"
+     ]
+    ]
+   }
+  ]
+ }
+}

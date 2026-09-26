@@ -1,0 +1,48 @@
+{
+ "skill_name": "adr",
+ "evals": [
+  {
+   "id": 1,
+   "name": "supersede-in-house-convention",
+   "prompt": "We agreed in yesterday's architecture review to move login sessions out of Redis and into Postgres: a sessions table with an expires_at column, and the existing jobs worker purges expired rows every hour. Redis is only there for sessions, so this lets us drop a managed service in every environment. Please write this up as an ADR, it is accepted.",
+   "expected_output": "One new ADR in docs/decisions/ following the repository's ADR-NNN convention and headings, numbered 015, Accepted, superseding ADR-012 (which is marked superseded without its decision being rewritten), with facts from the code and at least two options.",
+   "files": [
+    "files/decisions-repo"
+   ],
+   "expectations": [
+    "Exactly one new ADR file exists, at docs/decisions/ADR-015-<kebab title>.md; nothing was created under docs/adr/ or any other directory",
+    "The new ADR uses the repository's own headings (Context, Decision, Alternatives considered, Consequences) and its 'Status:' line style",
+    "The new ADR's status is Accepted",
+    "The new ADR names ADR-012 as the decision it supersedes",
+    "ADR-012 is marked as superseded (by ADR-015) and its Decision section text is unchanged",
+    "The Decision section starts with 'We will'",
+    "At least two options are recorded, including staying on Redis, each with a cost or risk",
+    "The context cites a fact taken from the repository, such as the 12 hour TTL in internal/session/store.go, the go-redis dependency, or Redis being used only by internal/session",
+    "The consequences name something that becomes harder or a cost (for example the purge job or database load) and a trigger for revisiting the decision",
+    "The task id BILL-212 from the branch name appears in the ADR",
+    "The ADR does not state reasons or details of the architecture review as fact beyond what the request and repository give; anything else is marked as needing confirmation",
+    "No file written or edited contains an em dash character"
+   ]
+  },
+  {
+   "id": 2,
+   "name": "two-schemes-conflict",
+   "prompt": "write an ADR: Use ClickHouse for the events store instead of Postgres. we decided it in the data review last week, the other option on the table was TimescaleDB",
+   "expected_output": "The run notices the repository has two ADR schemes (docs/adr NNNN and docs/decisions ADR-NNN), names both, raises the choice as a question, and writes the ADR into one existing scheme with the next number there, never a third scheme, superseding the Postgres events decision.",
+   "files": [
+    "files/two-schemes"
+   ],
+   "expectations": [
+    "The transcript names both existing ADR locations (docs/adr/ and docs/decisions/) and treats them as a conflict to resolve rather than silently picking one",
+    "The transcript records a question for the user about which convention to follow, with the choice made",
+    "Exactly one new ADR file exists, inside docs/adr/ or docs/decisions/, named in that directory's pattern, with a number that collides with no existing ADR in either directory (0004 in docs/adr/, or ADR-004 in docs/decisions/)",
+    "No third directory or numbering scheme was created",
+    "The new ADR identifies 0002 (Use Postgres for events) as superseded, and 0002's status now reads superseded (not still Accepted) while its decision text is unchanged",
+    "TimescaleDB appears as a rejected option with a reason, and staying on Postgres is also considered",
+    "The context uses a number from the repository (about 40 million events a day, or the 9x ingest spikes)",
+    "The ADR does not state reasons, dates or people for the data review as fact beyond what the request and repository give; anything else is marked as needing confirmation",
+    "No file written or edited contains an em dash character"
+   ]
+  }
+ ]
+}

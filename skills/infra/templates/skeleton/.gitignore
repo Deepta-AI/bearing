@@ -1,0 +1,16 @@
+# Terraform: state and plans are never in git; the lock file is.
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+.plans/
+crash.log
+crash.*.log
+terraform.tfvars
+*.auto.tfvars
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+# Local environment
+.env

@@ -1,0 +1,153 @@
+From 20e4690e470eb532c4c4458dc3064203a407e119 Mon Sep 17 00:00:00 2001
+From: Dev Two <dev2@example.com>
+Date: Thu, 24 Sep 2026 16:12:00 +0530
+Subject: [PATCH] add partial refunds
+
+Support can now refund part of an order from the dashboard.
+Refunds are capped at the order total, including earlier partial
+refunds, and the gateway reference is stored on each refund.
+Tests added for the happy path, the cap and the role check.
+---
+ docs/api.md           | 12 ++++++++++++
+ payments/api.py       | 22 ++++++++++++++++++++++
+ payments/db.py        |  7 +++++++
+ payments/orders.py    | 18 ++++++++++++++++++
+ tests/test_refunds.py | 22 ++++++++++++++++++++++
+ 5 files changed, 81 insertions(+)
+ create mode 100644 tests/test_refunds.py
+
+diff --git a/docs/api.md b/docs/api.md
+index 07a125e..2e28310 100644
+--- a/docs/api.md
++++ b/docs/api.md
+@@ -14,3 +14,15 @@ Returns the order.
+ 
+     200 {"id": 10, "total_paise": 100000, "status": "paid"}
+     404 {"error": "order not found"}
++
++## POST /orders/{id}/refunds
++
++Refunds part or all of an order. Roles `admin` and `support` only. The sum
++of all refunds on an order never exceeds its total.
++
++    request  {"amount_paise": 25000}
++    201 {"refund_id": 1, "amount_paise": 25000}
++    403 {"error": "forbidden"}
++    404 {"error": "order not found"}
++    422 {"error": "invalid refund amount"}
++    502 {"error": "gateway unavailable, try again"}
+diff --git a/payments/api.py b/payments/api.py
+index 523ee6e..ad66976 100644
+--- a/payments/api.py
++++ b/payments/api.py
+@@ -1,4 +1,7 @@
+ from payments import orders
++from payments.gateway import GatewayError
++
++REFUND_ROLES = ("admin", "support")
+ 
+ 
+ def get_order(conn, principal, order_id):
+@@ -11,3 +14,22 @@ def get_order(conn, principal, order_id):
+         "total_paise": order["total_paise"],
+         "status": order["status"],
+     }
++
++
++def refund_order(conn, gateway, principal, order_id, body):
++    """POST /orders/{id}/refunds"""
++    if principal.role not in REFUND_ROLES:
++        return 403, {"error": "forbidden"}
++    order = orders.get_order(conn, order_id)
++    if order is None:
++        return 404, {"error": "order not found"}
++    amount_paise = int(float(body["amount"]) * 100)
++    if amount_paise <= 0 or amount_paise > order["total_paise"]:
++        return 422, {"error": "invalid refund amount"}
++    refund_id = orders.create_refund(conn, order_id, amount_paise)
++    try:
++        gateway_ref = gateway.refund(order_id, amount_paise)
++    except GatewayError:
++        return 502, {"error": "gateway unavailable, try again"}
++    orders.set_gateway_ref(conn, refund_id, gateway_ref)
++    return 201, {"refund_id": refund_id, "amount_paise": amount_paise}
+diff --git a/payments/db.py b/payments/db.py
+index e7792e5..e44a73a 100644
+--- a/payments/db.py
++++ b/payments/db.py
+@@ -11,6 +11,13 @@ CREATE TABLE IF NOT EXISTS orders (
+   total_paise INTEGER NOT NULL,
+   status TEXT NOT NULL DEFAULT 'paid'
+ );
++CREATE TABLE IF NOT EXISTS refunds (
++  id INTEGER PRIMARY KEY,
++  order_id INTEGER NOT NULL REFERENCES orders(id),
++  amount_paise INTEGER NOT NULL,
++  gateway_ref TEXT,
++  created_at TEXT NOT NULL DEFAULT (datetime('now'))
++);
+ """
+ 
+ 
+diff --git a/payments/orders.py b/payments/orders.py
+index 409df3e..dc73f8e 100644
+--- a/payments/orders.py
++++ b/payments/orders.py
+@@ -1,4 +1,5 @@
+ ORDERS_TABLE = "orders"
++REFUNDS_TABLE = "refunds"
+ 
+ 
+ def get_order(conn, order_id):
+@@ -6,3 +7,20 @@ def get_order(conn, order_id):
+         f"SELECT id, merchant_id, total_paise, status FROM {ORDERS_TABLE} WHERE id = ?",
+         (order_id,),
+     ).fetchone()
++
++
++def create_refund(conn, order_id, amount_paise):
++    cur = conn.execute(
++        f"INSERT INTO {REFUNDS_TABLE} (order_id, amount_paise) VALUES (?, ?)",
++        (order_id, amount_paise),
++    )
++    conn.commit()
++    return cur.lastrowid
++
++
++def set_gateway_ref(conn, refund_id, gateway_ref):
++    conn.execute(
++        f"UPDATE {REFUNDS_TABLE} SET gateway_ref = ? WHERE id = ?",
++        (gateway_ref, refund_id),
++    )
++    conn.commit()
+diff --git a/tests/test_refunds.py b/tests/test_refunds.py
+new file mode 100644
+index 0000000..f3ebe2f
+--- /dev/null
++++ b/tests/test_refunds.py
+@@ -0,0 +1,22 @@
++from payments import api
++from payments.gateway import FakeGateway
++
++
++def test_support_can_refund_part_of_an_order(conn, support):
++    gateway = FakeGateway()
++    status, body = api.refund_order(conn, gateway, support, 10, {"amount": 250.0})
++    assert status == 201
++    assert body["amount_paise"] == 25000
++    assert gateway.calls == [(10, 25000)]
++
++
++def test_cannot_refund_more_than_order_total(conn, support):
++    gateway = FakeGateway()
++    status, _ = api.refund_order(conn, gateway, support, 10, {"amount": 1500})
++    assert status == 422
++    assert gateway.calls == []
++
++
++def test_viewer_cannot_refund(conn, viewer):
++    status, _ = api.refund_order(conn, FakeGateway(), viewer, 10, {"amount": 10})
++    assert status == 403
+-- 
+2.43.0
+

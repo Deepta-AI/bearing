@@ -1,0 +1,22 @@
+# Commands a skill names but never runs, so they need no grant.
+# One row per command: <skill>|<command prefix>|<reason>. Keep the reason
+# specific; lint-tools fails on a row that no longer matches anything.
+api-versioning|make test-contracts|a target the skill adds to the Makefile
+company-attribution|make check|the gate the skill adds headers-check to
+license-compliance|make licenses|a target the skill adds to the Makefile
+license-compliance|npm ci|named as a reproducible-build flag in the release notes
+license-compliance|uv sync --frozen|named as a reproducible-build flag in the release notes
+secrets|make env-check|a target the skill adds to the Makefile
+doctor|claude plugin install|a fix line printed for the engineer
+doctor|git clone --depth 1|a fix line printed for the engineer
+doctor|npx @opengsd/gsd-core|a fix line printed for the engineer
+gate-audit|git ls-files|an example of a gate pattern that passes on empty input
+git-hooks|git commit --no-verify|the emergency bypass the skill explains to the engineer
+mcp-server|claude mcp add|a registration line printed for the user
+postmortem|git log|output the caller pasted; the skill reads it, never runs it
+release|npm i|a README install line the skill greps for
+release|pnpm add|a README install line the skill greps for
+release|go get|a README install line the skill greps for
+workflow|git init|a next action named for the engineer
+workflow|make check|the Stop hook's recorded result, read, not run
+docs-drift|make test|a docs claim the skill checks against the recipe, never runs

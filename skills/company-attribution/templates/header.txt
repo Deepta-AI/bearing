@@ -1,0 +1,1 @@
+Copyright (c) __YEAR__ __HOLDER__. All rights reserved.

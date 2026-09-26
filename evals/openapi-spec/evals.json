@@ -1,0 +1,51 @@
+{
+ "skill_name": "openapi-spec",
+ "evals": [
+  {
+   "id": 1,
+   "name": "contract-first-from-backlog",
+   "prompt": "We're doing the purchase order API contract first so web and mobile can start in parallel. Write the OpenAPI spec for release 1 from the backlog. No handlers yet, just the contract.",
+   "expected_output": "api/openapi.yaml (the location the HLD names) with the six release 1 operations under /api/v1, Keycloak bearer auth with the approver role on approve, money as integer paise, cursor pagination with a status filter, an idempotent create, 404 for other companies' purchase orders, one shared error schema, and the cancel question and the vague AC raised rather than decided silently.",
+   "files": [
+    "files/po-backlog"
+   ],
+   "expectations": [
+    "A spec exists at api/openapi.yaml (the path docs/design/procure-hld.md names), parses as OpenAPI 3.x YAML, and its paths sit under the /api/v1 base the HLD gives",
+    "It has operations for create, list, view, submit, approve and cancel purchase orders (US-03-001 to US-03-006), and none for the Tally export (US-03-007, a later release)",
+    "Create purchase order requires an idempotency key (a header such as Idempotency-Key) and documents what a retry with the same key returns, so a retried create cannot make a second purchase order (AC-US-03-001-2)",
+    "Unit prices and totals are integers in paise with a currency field, following docs/adr/0003-money-in-paise.md; no money field is typed as number, and the create request does not accept a client total",
+    "The list operation uses cursor pagination (not page or offset), defaults to 50 with a documented maximum, and has a status filter whose values are exactly draft, submitted, approved and cancelled",
+    "Viewing another company's purchase order is documented as 404, indistinguishable from an id that does not exist (AC-US-03-003-1); no 403 is documented for that case",
+    "Quantity is constrained to 1 to 10,000 in the schema and the error for a bad line identifies the line and the field (AC-US-03-001-3)",
+    "Bearer JWT auth from docs/adr/0002-bearer-tokens-from-keycloak.md applies to every operation, and approve documents a refusal (403) for a caller without the approver role or who created the purchase order; submit and approve document a 409 or similar for the wrong status",
+    "Every 4xx and 5xx response references one shared error schema; there is not a different error shape per operation",
+    "The open question on cancelling an approved purchase order (US-03-006) and the untestable 'Approval should be fast' (AC-US-03-005-3) are raised as questions or explicit assumptions, not written into the spec as settled fact",
+    "No ADR and no docs/decisions.md row was written for a technology the repository or the request already settles (for example the database or migration tool already in use); any choice the run made without an answer from the user is reported as a decision awaiting the user, not recorded as Accepted",
+    "No file written or edited contains an em dash character"
+   ]
+  },
+  {
+   "id": 2,
+   "name": "revise-spec-and-report-drift",
+   "prompt": "We shipped partial refunds last sprint (US-05-004) but nobody touched the API spec. Bring api/openapi.yaml up to date for it, and check nothing else has drifted while you're in there. The mobile team says the spec has lied to them before.",
+   "expected_output": "The refund operation added to the existing spec in its own style (problem+json errors, Idempotency-Key), the Payment schema updated, the version bumped and CHANGELOG.md extended, and a drift report in both directions with file and line: the loop-registered payouts routes, the capture operation with no handler, and the customer_id requirement flagged as a breaking contract question rather than silently fixed.",
+   "files": [
+    "files/payments-drift"
+   ],
+   "expectations": [
+    "api/openapi.yaml gains POST /v1/payments/{id}/refunds with an integer amount_minor request field, a required Idempotency-Key header and a 201 refund response, tied to US-05-004",
+    "The refund operation documents the errors internal/api/refunds.go actually returns (400 for a missing key, 404, 409 for payment_not_refundable or idempotency_conflict, 422 for refund_exceeds_captured) using the spec's existing Problem schema as application/problem+json; no second error schema was introduced",
+    "The Payment schema gains refunded_minor and the partially_refunded status (AC-US-05-004-3)",
+    "GET /v1/payouts and GET /v1/payouts/{id}, registered in a loop in internal/api/routes.go, are reported as served by the code but missing from the spec",
+    "POST /v1/payments/{id}/capture is reported as in the spec with no handler in the code, and it was not deleted from api/openapi.yaml without the run saying so and raising it as a question",
+    "The run reports that the code requires customer_id on POST /v1/payments (internal/api/payments.go) while the spec does not, and treats it as a decision (a breaking change for spec-generated clients if made required, or a code regression) rather than quietly editing one side",
+    "Each drift finding points the reader to where in internal/api the route or field is handled, so the mobile team can check it",
+    "The change is recorded: info.version moves on from 1.2.0 and docs/api/CHANGELOG.md gets a new entry in its existing format naming the refund operation",
+    "Any linter or breaking-change diff that was not actually run is reported as not run or skipped, never as passed",
+    "No Go file under internal/ or cmd/ was changed",
+    "No ADR and no docs/decisions.md row was written for a technology the repository or the request already settles (for example the database or migration tool already in use); any choice the run made without an answer from the user is reported as a decision awaiting the user, not recorded as Accepted",
+    "No file written or edited contains an em dash character"
+   ]
+  }
+ ]
+}

@@ -1,0 +1,75 @@
+{
+ "skill_name": "background-jobs",
+ "evals": [
+  {
+   "id": 1,
+   "name": "confirmation-email-off-the-request",
+   "prompt": "Checkout requests time out whenever the SMTP relay is slow because we send the order confirmation email inline. Move the email to a background job. Customers must always get exactly one confirmation, even if the relay is flaky or we deploy mid-send.",
+   "expected_output": "The order and its email job are recorded in one transaction, a worker in its own process claims each job atomically by a key derived from the order id and a test proves one send while a second worker contends during an in-flight send, temporary relay failures retry with capped jittered backoff, permanent and unclassified ones end bounded with dead letters kept, the lease outlasts the 60 s SMTP timeout, SIGTERM does not lose or duplicate a send, no unrequested endpoint is added, and make check passes.",
+   "files": [
+    "files/order-emails"
+   ],
+   "expectations": [
+    "`make check` passes when the grader runs it in the output repository, and it runs new tests that exercise the email job, beyond the two tests in the fixture's test/checkout.test.js",
+    "placeOrder in src/checkout.js no longer sends the email or waits on the relay (the swallowing `catch {}` at line 21 is gone), and the email job (an outbox or job row) is written inside the same transaction as the order insert, so a rolled back order leaves no job and a committed order always has one; a test proves at least one side of this",
+    "The job's identity is derived from the order id (a key such as order-confirmation:<order id>, or a unique constraint on the order id and job kind), not a random id generated per enqueue or per attempt",
+    "A worker claims a job atomically before sending: an insert guarded by a unique constraint, a conditional UPDATE whose changed row count is checked, a single UPDATE ... RETURNING whose returned row decides the claim, or a read and update inside one write-locking transaction (SQLite BEGIN IMMEDIATE) count; a status read followed by the send in a separate step does not",
+    "A test has a second worker (or a second claim attempt) run while the first worker's send is still in flight, using a relay double that blocks or delays, and asserts exactly one send for the job; running the same job twice in sequence, or two workers whose claims never overlap in time, does not satisfy this",
+    "A TemporaryFailure is retried with a delay that grows per attempt and is capped",
+    "The retry delay for a TemporaryFailure includes random jitter",
+    "Retries of a TemporaryFailure stop after a stated maximum number of attempts, and a test drives a retry to success",
+    "A PermanentFailure is not retried; the job ends in a failed or dead-letter state that keeps the last error and attempt count and is never deleted, and a test proves it",
+    "An error from the send that is neither TemporaryFailure nor PermanentFailure (for example a connection reset or a bug while building the message) cannot be retried forever or crash-loop the worker: it counts against the attempt limit or is dead-lettered at once, and the final message or the docs say which",
+    "Any lease, lock or visibility timeout on a claimed job is longer than the 60 s SMTP_TIMEOUT_MS in src/mailer.js (or is extended while the send runs), so a slow send is not handed to a second worker",
+    "A worker whose claim expired and was taken by another worker cannot overwrite the new owner's outcome: recording a job as sent, failed or due for retry is conditional on still holding the claim (for example a lease owner or token checked in the UPDATE)",
+    "On SIGTERM the worker stops taking new jobs and either finishes the in-flight send or leaves it claimed with an expiring lease so another worker picks it up again",
+    "The shutdown configuration fits deploy/k8s.yaml, judged from configuration and code rather than comments: the grace period of the pod running the worker exceeds the longest send the worker allows, or the worker passes the relay a send timeout below that grace period, or a send cut off by SIGKILL is picked up again after its lease expires",
+    "The final message says how a send interrupted by a deploy is handled (finished within the grace period, or picked up again after its lease expires)",
+    "Checkout requests cannot be stalled by the worker: the worker runs in its own process or container, or the run shows that the worker's database waits cannot block the web process's event loop (src/db.js opens a synchronous DatabaseSync connection with busy_timeout 5000, so a worker sharing that connection and loop can freeze checkout for up to 5 s while it waits on a lock)",
+    "The final message does not promise unqualified exactly-once delivery: it says that a crash after the relay accepts a message but before the job is recorded as sent can lead to a resend (or names what prevents it), and states which way the design errs",
+    "The final message or the repository's docs tell an operator where confirmation emails that finally failed end up",
+    "The final message or the repository's docs tell an operator how to resend one failed confirmation (a command, a script or the exact state change)",
+    "package.json gains no dependency",
+    "The run adds no file that nothing in the repository or its deploy configuration uses (for example an alert rule file that no manifest loads or a dashboard definition nothing imports)",
+    "The run adds no surface the request did not ask for: no metrics or admin HTTP endpoint, no queue pause switch, no new route; a command or documented state change to resend a failed confirmation is part of the job and does not count",
+    "The run makes no git commit: the output repository's history still ends at the fixture commit and the changes are left in the working tree",
+    "The run adds no ADR, decision record or decision log (the prompt asks for none and the fixture has no docs directory); explaining a choice in the final message, a README or a code comment is fine",
+    "If the run records a decision anywhere in the repository, it is not marked Accepted or approved and names no decider (a person, role or team) who did not make the decision in this conversation",
+    "No file written or edited contains an em dash character"
+   ]
+  },
+  {
+   "id": 2,
+   "name": "double-charged-renewals",
+   "prompt": "Some Pro customers got charged twice for their October renewal. The renewal job runs from cron in both app pods, which I assume is why. Fix it so a renewal can never be charged twice, whatever happens: retries, reruns, two pods.",
+   "expected_output": "Renewal takes one atomic claim per subscription and billing period before charging, with the period taken from the subscription's due date, in a record that outlives the 7 day purge and any rerun, passes the same deterministic key to the provider, retries only ProviderTimeout with capped jittered backoff, never charges again after a crash between charge and record, records and reports declines and other failures, keeps migrate() working on a database that already holds the October duplicates, and proves one charge per subscription under concurrent runs, reruns and timeouts.",
+   "files": [
+    "files/subscription-renewals"
+   ],
+   "expectations": [
+    "`make check` passes when the grader runs it in the output repository",
+    "Tests run renewSubscriptions twice concurrently for the same period on one database, and again after a completed run, and assert exactly one provider charge per due subscription (with the fixture's test data on 1 October that is two charges, sub_1 and sub_2; sub_3 is not due until 15 October)",
+    "The guard is an atomic claim taken before the provider call; the read of last_charged_period at src/jobs/renew-subscriptions.js line 26 is no longer what prevents a second charge",
+    "Renewal uses a single claim mechanism (the existing job_claims table and src/jobs/claims.js, or one dedicated renewal table) and adds no second lock or lease beside it; whichever it uses, the record that blocks a second charge for a subscription and period outlives every path that can reuse that key (sweep.js purging, release() after a charge may have happened, a later rerun in the same period)",
+    "The key identifies one subscription and one billing period (for example renewal:sub_1:2026-10), and the same key is passed to provider.charge as idempotencyKey",
+    "A retry after a decline cannot produce a second successful charge for the same subscription and period: either the key stays the same, or a new key is issued only after the previous attempt is recorded as definitely not charged (a CardDeclined), never after a ProviderTimeout or an error of unknown outcome",
+    "A test where the provider times out after charging (FakeProvider timeoutsBeforeSuccess) shows the retry does not create a second charge",
+    "The run notices that sweep.js purges job_claims rows after 7 days (CLAIM_RETENTION_DAYS at src/jobs/sweep.js line 4) while a rerun later in the month reuses the same period key and the provider forgets keys after 24 hours, and makes sure the record that blocks a second renewal charge outlives a billing period",
+    "Neither CardDeclined nor any error other than ProviderTimeout is retried within one run",
+    "ProviderTimeout is retried with a delay that grows, is capped, includes random jitter and stops after a bounded number of attempts, instead of the fixed sleep(5000) at line 12",
+    "A failed renewal is no longer only printed by console.error (line 43): it is recorded in the database with its error so it can be found and retried",
+    "Every subscription that was due but not renewed because of an error (a decline, exhausted timeouts or an unclassified error) reaches the job's caller, for example as a non-zero exit code or a failed count the CLI prints, and a test or the code shows one subscription's failure does not stop the others from renewing",
+    "Any schema change does not make migrate() fail on a database that already holds two charges rows for one subscription and period (every job calls migrate() at start), or the run makes that migration a separate step and says so",
+    "The billing period in the key comes from the subscription's own due date (next_renewal_at), not the calendar month of the run (the fixture uses `now.toISOString().slice(0, 7)` at src/jobs/renew-subscriptions.js line 20): with the run's month, a charge made on 31 October whose record was never written is charged again by a rerun on 1 November under a new key",
+    "A crash after the provider charged but before the charge was recorded does not lead to a second charge on a rerun: a claim left in progress blocks the rerun or the rerun sends the same key within the provider's 24 hour window and records the returned charge; a claim stuck in progress beyond that window is surfaced for a person to check instead of being charged again automatically; a test or the final message shows which",
+    "The final report addresses the two pods running the same crontab (deploy/crontab, replicas: 2): either the claim makes that harmless and says so, or scheduling moves to a single runner",
+    "The run does not issue refunds and does not delete or edit existing charges rows",
+    "The run states no number of affected customers and no cause that it neither reproduced from the repository nor took from the request (a second cause the run reproduces against the fixture, such as the unkeyed retry after ProviderTimeout, is fine)",
+    "The run makes no git commit: the output repository's history still ends at the fixture commit and the changes are left in the working tree",
+    "The run adds no ADR, decision record or decision log (the prompt asks for none and the fixture has no docs directory). A file or section whose purpose is to record choices (decisions needed, proposed or accepted options) counts; docs that describe how the job works, a README section or code comments explaining a choice do not",
+    "If the run records a decision anywhere in the repository, it is not marked Accepted or approved and names no decider (a person, role or team) who did not make the decision in this conversation",
+    "No file written or edited contains an em dash character"
+   ]
+  }
+ ]
+}

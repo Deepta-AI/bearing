@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>{{FEATURE}}: {{VARIANT_NAME}}</title>
+<!--
+  Variant {{N}} of 3: {{VARIANT_NAME}}
+  Direction: {{DIRECTION}}
+  Brief: {{ONE_PARAGRAPH_BRIEF}}
+  Faces: display {{DISPLAY_FACE}}, body {{BODY_FACE}}
+  Palette: {{PALETTE_WITH_REASONS}}
+  Rhythm: {{RHYTHM_ONE_SENTENCE}}
+  Signature: {{SIGNATURE_ELEMENT}}
+  Motion moment: {{MOTION_MOMENT}}
+  Generic-default revisions: {{WHAT_CHANGED_AND_WHY}}
+  Screens: {{SCREEN_IDS}}
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family={{DISPLAY_FACE_QUERY}}&family={{BODY_FACE_QUERY}}&display=swap">
+<style>
+  /* Tokens. Every colour states its reason in the comment beside it. */
+  :root {
+    --font-display: "{{DISPLAY_FACE}}", serif;
+    --font-body: "{{BODY_FACE}}", sans-serif;
+    --font-data: "{{DATA_FACE_OR_BODY}}", monospace;
+
+    --step-0: 1rem;            /* body, 16 px */
+    --step-1: 1.25rem;         /* ratio {{RATIO}} */
+    --step-2: 1.563rem;
+    --step-3: 2.441rem;        /* display; three or four steps only */
+    --lh-body: 1.5;
+    --lh-head: 1.15;
+    --measure: 66ch;
+
+    --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px;
+    --space-5: 24px; --space-6: 32px; --space-7: 48px; --space-8: 64px;
+
+    --radius-outer: {{RADIUS_OUTER}};   /* raised surfaces */
+    --radius-inner: {{RADIUS_INNER}};   /* controls inside them; outer minus gap */
+    --shadow-raised: {{SHADOW_OR_NONE}}; /* only on the one raised surface */
+
+    --dur-enter: 320ms; --dur-exit: 180ms;
+    --ease-out: cubic-bezier(.2,.8,.2,1); --ease-in: cubic-bezier(.6,0,.8,.2);
+
+    /* Light theme. 60% surface, 30% surface-2, 10% accent. */
+    --surface: {{L_SURFACE}};        /* {{reason}} */
+    --surface-2: {{L_SURFACE_2}};    /* {{reason}} */
+    --ink: {{L_INK}};                /* {{reason: contrast on surface}} */
+    --ink-muted: {{L_INK_MUTED}};    /* {{reason: 4.5:1 kept}} */
+    --line: {{L_LINE}};
+    --accent: {{L_ACCENT}};          /* one job: {{ACCENT_JOB}} */
+    --accent-ink: {{L_ACCENT_INK}};  /* text on accent */
+    --danger: {{L_DANGER}};          /* error text, always with a word */
+    --focus: {{L_FOCUS}};            /* ring, contrasts with both surfaces */
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --surface: {{D_SURFACE}};      /* dark base, not pure black */
+      --surface-2: {{D_SURFACE_2}};  /* steps up in L for elevation */
+      --ink: {{D_INK}};              /* off-white */
+      --ink-muted: {{D_INK_MUTED}};
+      --line: {{D_LINE}};
+      --accent: {{D_ACCENT}};        /* C reduced 10 to 20% */
+      --accent-ink: {{D_ACCENT_INK}};
+      --danger: {{D_DANGER}};
+      --focus: {{D_FOCUS}};
+    }
+  }
+  :root[data-theme="dark"] {
+    --surface: {{D_SURFACE}}; --surface-2: {{D_SURFACE_2}}; --ink: {{D_INK}};
+    --ink-muted: {{D_INK_MUTED}}; --line: {{D_LINE}}; --accent: {{D_ACCENT}};
+    --accent-ink: {{D_ACCENT_INK}}; --danger: {{D_DANGER}}; --focus: {{D_FOCUS}};
+  }
+
+  * { box-sizing: border-box; }
+  html { color-scheme: light dark; }
+  body {
+    margin: 0; background: var(--surface); color: var(--ink);
+    font: 400 var(--step-0)/var(--lh-body) var(--font-body);
+    overflow-x: clip;
+  }
+  h1, h2, h3 {
+    font-family: var(--font-display); line-height: var(--lh-head);
+    text-wrap: balance; margin: 0 0 var(--space-4);
+  }
+  h1 { font-size: var(--step-3); }
+  h2 { font-size: var(--step-2); }
+  h3 { font-size: var(--step-1); }
+  p, li { max-width: var(--measure); }
+  .num { font-family: var(--font-data); font-variant-numeric: tabular-nums; }
+
+  /* Every control: visible focus, 44 px target, verb label. */
+  button, a, input, select, textarea, [role="button"] { min-height: 44px; }
+  :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  button { cursor: pointer; font: inherit; }
+  .btn-primary {
+    background: var(--accent); color: var(--accent-ink); border: 0;
+    border-radius: var(--radius-inner); padding: var(--space-3) var(--space-5);
+    transition: transform var(--dur-exit) var(--ease-out), opacity var(--dur-exit);
+  }
+  .btn-primary:hover { transform: translateY(-1px); }
+  .btn-primary:active { transform: translateY(0); }
+  .btn-primary:disabled { opacity: .5; cursor: not-allowed; }
+  a:visited { color: var(--ink-muted); }
+
+  label { display: block; margin-bottom: var(--space-1); }   /* never placeholder-only */
+  .error { color: var(--danger); }                            /* copy: what happened, what to do */
+
+  /* Layout: three layouts, not one stacked. Fill 1440; no dead half column. */
+  .page { padding: var(--space-5) var(--space-4); }
+  @media (min-width: 768px) { .page { padding: var(--space-7) var(--space-6); } }
+  @media (min-width: 1440px) {
+    .page { max-width: 1320px; margin-inline: auto; display: grid;
+            grid-template-columns: {{DESKTOP_COLUMNS}}; gap: var(--space-7); }
+  }
+
+  /* MOTION MOMENT: one orchestrated sequence, transform and opacity only. */
+  .moment > * { opacity: 0; transform: translateY(12px);
+    animation: enter var(--dur-enter) var(--ease-out) forwards; }
+  .moment > :nth-child(2) { animation-delay: 80ms; }
+  .moment > :nth-child(3) { animation-delay: 160ms; }
+  @keyframes enter { to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) {
+    .moment > * { animation: none; opacity: 1; transform: none; }
+    * { transition-duration: 0ms !important; }
+  }
+
+  .theme-toggle { position: fixed; inset-inline-end: var(--space-4); inset-block-start: var(--space-4);
+    background: var(--surface-2); color: var(--ink); border: 1px solid var(--line);
+    border-radius: var(--radius-inner); padding: var(--space-2) var(--space-3); }
+</style>
+</head>
+<body>
+<button class="theme-toggle" type="button" aria-pressed="false">Dark theme</button>
+
+<main class="page">
+  <!-- Screen {{SCREEN_ID}}: {{SCREEN_NAME}}. Copy from the flows; states rendered as they would appear. -->
+  <header class="moment">
+    <h1>{{REAL_HEADLINE}}</h1>
+    <p>{{REAL_SUPPORTING_LINE}}</p>
+    <button class="btn-primary" type="button">{{VERB_NOUN_LABEL}}</button>
+  </header>
+
+  <section aria-labelledby="s2">
+    <h2 id="s2">{{SECOND_SCREEN_OR_STATE}}</h2>
+    <!-- Empty or error state from the flows, with its literal copy. -->
+    <p class="error">{{ERROR_COPY_WHAT_HAPPENED_WHAT_TO_DO}}</p>
+  </section>
+</main>
+
+<script>
+  // The only script: theme toggle. Persisting is a per-viewer convenience, wrapped.
+  (function () {
+    var root = document.documentElement, btn = document.querySelector('.theme-toggle');
+    function apply(t) {
+      if (t) root.setAttribute('data-theme', t); else root.removeAttribute('data-theme');
+      var dark = t === 'dark' || (!t && matchMedia('(prefers-color-scheme: dark)').matches);
+      btn.textContent = dark ? 'Light theme' : 'Dark theme';
+      btn.setAttribute('aria-pressed', String(dark));
+    }
+    var saved = null; try { saved = localStorage.getItem('theme'); } catch (e) {}
+    apply(saved);
+    btn.addEventListener('click', function () {
+      var dark = root.getAttribute('data-theme') === 'dark' ||
+        (!root.getAttribute('data-theme') && matchMedia('(prefers-color-scheme: dark)').matches);
+      var next = dark ? 'light' : 'dark';
+      try { localStorage.setItem('theme', next); } catch (e) {}
+      apply(next);
+    });
+  })();
+</script>
+</body>
+</html>

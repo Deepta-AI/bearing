@@ -1,0 +1,50 @@
+{
+ "skill_name": "threat-model",
+ "evals": [
+  {
+   "id": 1,
+   "name": "three-entry-points-with-real-flaws",
+   "prompt": "Before we ship them, threat model the invoice PDF download, the Razorpay webhook and the customer CSV import in this service.",
+   "expected_output": "A threat model file under docs/ that finds the cross-tenant invoice read, the replayable webhook and the unbounded CSV import, credits the real HMAC check at its file and line, and maps every open threat to a backlog story or a named new story.",
+   "files": [
+    "files/billing-service"
+   ],
+   "expectations": [
+    "A threat model document was written under docs/ in the repository",
+    "It identifies that staff of one tenant can read another tenant's invoice through GET /invoices/{id}/pdf because InvoiceByID does not scope by tenant, and does not treat the session check as mitigating it",
+    "It identifies that a validly signed Razorpay event can be replayed to re-apply a payment, and does not mark this as mitigated by the HMAC check",
+    "It identifies that the CSV import reads the whole body with no size limit (memory exhaustion) or that it handles customer PII (email, phone), and gives the import at least one threat",
+    "The webhook spoofing threat cites the existing HMAC comparison at internal/httpapi/webhooks.go line 19 as its mitigation",
+    "Every threat that is not mitigated in code names a follow-up: a backlog story id that exists in docs/product/backlog.md (for example US-04-007 for the audit trail) or a titled new story",
+    "No mitigation is given as 'handled by the framework' or a similar unverifiable claim",
+    "Each threat has a stable identifier and a likelihood and impact rating",
+    "Open risks name an owner that is a role or rotation, not a person's name",
+    "It notices that RequireSession, RequireRole and TenantID in internal/httpapi/handlers.go do nothing, and treats the session and admin checks as unverified rather than as mitigations",
+    "It identifies that the webhook trusts invoice_id and amount from the event body (or that it ignores MarkPaid errors and still answers 200)",
+    "The run changed no file other than the threat model it wrote",
+    "No file written or edited contains an em dash character"
+   ]
+  },
+  {
+   "id": 2,
+   "name": "revise-for-new-refund-route",
+   "prompt": "We added a refund endpoint (POST /invoices/{id}/refunds, see refunds.go). Update the billing threat model for it.",
+   "expected_output": "The existing docs/security/threat-model-billing.md is revised in place, keeping T-01 to T-05 with their meaning, adding refund threats from T-06, and recording what changed since v1.",
+   "files": [
+    "files/billing-service-revision"
+   ],
+   "expectations": [
+    "The existing docs/security/threat-model-billing.md was updated in place and no second threat model file was created",
+    "Threat ids T-01 to T-05 are still present with the same meaning; none was renumbered or deleted",
+    "New refund threats are numbered from T-06 upward",
+    "It identifies that any logged-in staff member can refund although the backlog story US-04-009 says clinic admin (missing role check)",
+    "It identifies that a refund can target another tenant's invoice by id, or that the refund amount is not checked against the amount paid, or that repeated refunds are possible",
+    "The document records what changed in this revision (a version bump, a changes table or a revision history entry naming the refund route)",
+    "T-01 still cites internal/httpapi/webhooks.go line 19",
+    "The mitigation of every refund threat names US-04-009, an existing story, or a titled new story (not only free text)",
+    "Every new refund threat that is not mitigated appears among the residual risks with an owner that is a role",
+    "No file written or edited contains an em dash character"
+   ]
+  }
+ ]
+}

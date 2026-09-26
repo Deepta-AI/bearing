@@ -1,0 +1,409 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>{{PRODUCT}}: design system</title>
+<!--
+  Built by design-system with scripts/system_page.py build from
+  docs/design/tokens.json v{{VERSION}}. Do not edit the output by hand:
+  change tokens.json or components.md and build again.
+
+  Every colour, space, radius, shadow and duration below is a custom
+  property from tokens.css (linked, next to this file). The page names no
+  colour of its own; system_page.py check fails on a colour literal in a
+  style block or a style attribute.
+
+  Each component section is written once, between the specimens markers;
+  the build draws it twice, inside [data-theme="light"] and
+  [data-theme="dark"] panes, so both themes sit side by side. Hover,
+  active and focus are drawn with is-* classes because a static page cannot
+  hold a pointer over a control.
+
+  A component the contract (components.md) does not list is cut by the
+  build; a component the contract lists and this template lacks is added
+  here, with one data-state specimen per state in its "- States:" line.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+{{FONTS_LINK}}
+<link rel="stylesheet" href="tokens.css">
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--color-bg); color: var(--color-text);
+    font-family: var(--font-body); font-size: var(--text-body, 16px);
+    line-height: var(--leading-body, 1.5); overflow-x: clip;
+  }
+  [data-theme] { background: var(--color-bg); color: var(--color-text); }
+  h1, h2, h3 { font-family: var(--font-display); line-height: 1.15; text-wrap: balance; margin: 0 0 var(--space-2, 8px); }
+  h1 { font-size: var(--text-display, 40px); }
+  h2 { font-size: var(--text-title, 24px); }
+  h3 { font-size: var(--text-body, 16px); margin-top: var(--space-4, 24px); }
+  p { max-width: 70ch; }
+  code { font-family: var(--font-mono); font-size: .875em; }
+  a { color: var(--color-link); }
+  .skip { position: absolute; inset-inline-start: var(--space-3, 16px); top: -100px; }
+  .skip:focus { top: var(--space-3, 16px); background: var(--color-surface-raised); padding: var(--space-2, 8px); }
+  .wrap { max-width: 1440px; margin-inline: auto; padding: var(--space-4, 24px) var(--space-3, 16px) var(--space-6, 48px); }
+  @media (min-width: 768px) { .wrap { padding-inline: var(--space-5, 32px); } }
+  .lede { color: var(--color-text-muted); }
+  .toc { position: sticky; top: 0; z-index: var(--z-sticky, 10); display: flex; flex-wrap: wrap;
+    gap: var(--space-1, 4px) var(--space-3, 16px); padding: var(--space-2, 8px) 0;
+    background: var(--color-bg); border-block-end: 1px solid var(--color-border); }
+  @media (max-width: 767px) { .toc { position: static; } }
+  .toc a { color: var(--color-text-muted); text-decoration: none; min-height: 44px; display: inline-flex; align-items: center; }
+  .toc a:hover { color: var(--color-text); }
+  section { padding-block: var(--space-5, 32px); border-block-end: 1px solid var(--color-border); }
+
+  /* Foundations, filled from tokens.json by the build. */
+  .table-wrap { overflow-x: auto; }
+  table.roles { border-collapse: collapse; inline-size: 100%; }
+  .roles th, .roles td { text-align: start; padding: var(--space-1, 4px) var(--space-2, 8px);
+    border-block-end: 1px solid var(--color-border); vertical-align: middle; }
+  .sw { display: inline-block; inline-size: 2.5rem; block-size: 1.5rem; margin-inline-end: var(--space-2, 8px);
+    vertical-align: middle; border: 1px solid var(--color-border); border-radius: var(--radius-control); }
+  .type-row, .space-row { display: grid; grid-template-columns: 9rem 1fr; gap: var(--space-3, 16px); align-items: baseline; margin: 0 0 var(--space-2, 8px); max-width: none; }
+  .space-row { grid-template-columns: 9rem auto 1fr; align-items: center; }
+  .bar { display: block; block-size: .75rem; background: var(--color-accent); border-radius: var(--radius-control); }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr)); gap: var(--space-3, 16px); }
+  .tile { min-block-size: 5rem; padding: var(--space-2, 8px); background: var(--color-surface);
+    border: 1px solid var(--color-border); display: flex; align-items: end; }
+  .rule, .durations { color: var(--color-text-muted); }
+
+  /* Panes: light and dark side by side from 900 px, stacked below. Both fill the width. */
+  .contract { color: var(--color-text-muted); }
+  .panes { display: grid; gap: var(--space-3, 16px); grid-template-columns: minmax(0, 1fr); }
+  @media (min-width: 900px) { .panes { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
+  .pane { padding: var(--space-3, 16px); border: 1px solid var(--color-border); border-radius: var(--radius-container); }
+  .pane-label { margin: 0 0 var(--space-2, 8px); font-size: var(--text-label, 14px); color: var(--color-text-muted); }
+  .specimens { display: grid; gap: var(--space-3, 16px); grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr)); }
+  .specimen { margin: 0; display: flex; flex-direction: column; gap: var(--space-1, 4px); min-width: 0; }
+  .stage { min-block-size: 6rem; padding: var(--space-2, 8px); background: var(--color-surface);
+    border-radius: var(--radius-control); display: flex; flex-direction: column; justify-content: center; gap: var(--space-2, 8px); }
+  .specimen figcaption { font-family: var(--font-mono); font-size: var(--text-label, 14px); color: var(--color-text-muted); }
+  .is-focus { outline: var(--focus-width, 2px) solid var(--color-focus); outline-offset: var(--focus-offset, 2px); }
+  .spin { display: inline-block; inline-size: 1em; block-size: 1em; border: 2px solid currentColor;
+    border-inline-end-color: transparent; border-radius: 50%; animation: spin var(--duration-deliberate, 700ms) linear infinite; vertical-align: -.15em; }
+  @keyframes spin { to { transform: rotate(1turn); } }
+
+  /* Button */
+  .btn { min-height: 44px; padding: 0 var(--space-3, 16px); border: 1px solid transparent; border-radius: var(--radius-control);
+    font: inherit; font-weight: var(--weight-label, 600); cursor: pointer; display: inline-flex; align-items: center; gap: var(--space-1, 4px);
+    transition: background var(--duration-fast, 150ms) var(--ease-standard, ease); }
+  .btn-primary { background: var(--color-accent); color: var(--color-on-accent); box-shadow: var(--elevation-1); }
+  .btn-primary.is-hover { background: var(--color-accent-hover); box-shadow: var(--elevation-2); }
+  .btn-primary.is-active { background: var(--color-accent-active); box-shadow: var(--elevation-0); }
+  .btn-secondary { background: var(--color-surface); color: var(--color-text); border-color: var(--color-border-strong); }
+  .btn-secondary.is-hover { background: var(--color-bg-subtle); }
+  .btn-secondary.is-active { background: var(--color-selection); }
+  .btn:disabled { background: var(--color-bg-subtle); color: var(--color-text-disabled); border-color: var(--color-border); box-shadow: none; cursor: not-allowed; }
+  .row-of { display: flex; flex-wrap: wrap; gap: var(--space-2, 8px); }
+
+  /* Input and select */
+  .field { display: grid; gap: var(--space-1, 4px); }
+  .field-label { font-size: var(--text-label, 14px); font-weight: var(--weight-label, 600); }
+  .input { inline-size: 100%; min-height: 44px; padding: 0 var(--space-2, 8px); font: inherit;
+    background: var(--color-surface); color: var(--color-text); border: 1px solid var(--color-border); border-radius: var(--radius-control); }
+  .input.is-hover { border-color: var(--color-border-strong); }
+  .input:disabled { background: var(--color-bg-subtle); color: var(--color-text-disabled); }
+  .input[readonly] { background: var(--color-bg-subtle); border-style: dashed; }
+  .input[aria-invalid="true"] { border-color: var(--color-danger); }
+  .help { font-size: var(--text-label, 14px); color: var(--color-text-muted); margin: 0; }
+  .err { font-size: var(--text-label, 14px); color: var(--color-danger); margin: 0; }
+  .select { display: flex; align-items: center; justify-content: space-between; }
+  .select svg { inline-size: 1rem; block-size: 1rem; }
+  .listbox { margin: 0; padding: var(--space-1, 4px) 0; list-style: none; background: var(--color-surface-raised);
+    border: 1px solid var(--color-border); border-radius: var(--radius-control); box-shadow: var(--elevation-3); }
+  .listbox li { min-height: 36px; display: flex; align-items: center; padding: 0 var(--space-2, 8px); }
+  .listbox [aria-selected="true"] { background: var(--color-accent-subtle); }
+
+  /* Checkbox and radio */
+  .choice { display: flex; align-items: center; gap: var(--space-2, 8px); min-height: 44px; }
+  .box { inline-size: 20px; block-size: 20px; flex: none; display: grid; place-items: center;
+    border: 2px solid var(--color-border-strong); border-radius: var(--radius-control); background: var(--color-surface); color: var(--color-on-accent); }
+  .box.round { border-radius: 50%; }
+  .box svg { inline-size: 14px; block-size: 14px; }
+  .choice.is-hover .box { border-color: var(--color-text); }
+  .box.on { background: var(--color-accent); border-color: var(--color-accent); }
+  .box.round.on { background: var(--color-surface); border-color: var(--color-accent); }
+  .dot { inline-size: 10px; block-size: 10px; border-radius: 50%; background: var(--color-accent); }
+  .choice.off { color: var(--color-text-disabled); }
+  .choice.off .box { border-color: var(--color-border); background: var(--color-bg-subtle); }
+  .choice.bad .box { border-color: var(--color-danger); }
+
+  /* Card */
+  .card { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-container);
+    padding: var(--space-3, 16px); box-shadow: var(--elevation-1); color: var(--color-text); text-decoration: none; display: block; }
+  .card.is-hover { box-shadow: var(--elevation-2); border-color: var(--color-border-strong); }
+  .card.is-active { box-shadow: var(--elevation-0); background: var(--color-bg-subtle); }
+  .card strong { display: block; }
+  .card span { color: var(--color-text-muted); font-size: var(--text-label, 14px); }
+
+  /* List row */
+  .list { margin: 0; padding: 0; list-style: none; }
+  .li { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2, 8px); min-height: 44px;
+    padding: 0 var(--space-2, 8px); border-block-end: 1px solid var(--color-border); }
+  .li.is-hover { background: var(--color-bg-subtle); }
+  .li[aria-selected="true"] { background: var(--color-accent-subtle); }
+  .li[aria-disabled="true"] { color: var(--color-text-disabled); }
+  .meta { color: var(--color-text-muted); font-size: var(--text-label, 14px); }
+
+  /* Table */
+  .tbl { border-collapse: collapse; inline-size: 100%; font-size: var(--text-label, 14px); }
+  .tbl th { background: var(--color-bg-subtle); text-align: start; font-weight: var(--weight-label, 600); }
+  .tbl th, .tbl td { padding: var(--space-1, 4px) var(--space-2, 8px); border-block-end: 1px solid var(--color-border); }
+  .tbl .num { text-align: end; font-variant-numeric: tabular-nums; }
+  .tbl tr.is-hover td { background: var(--color-bg-subtle); }
+  .tbl tr[aria-selected="true"] td { background: var(--color-accent-subtle); }
+  .tbl .sk { margin-block: var(--space-1, 4px); }
+
+  /* Dialog and sheet: drawn inside a small scene so the page stays readable. */
+  .scene { position: relative; min-block-size: 10rem; overflow: hidden; border-radius: var(--radius-control); background: var(--color-bg-subtle); }
+  .scrim { position: absolute; inset: 0; background: var(--color-overlay); }
+  .dialog { position: absolute; inset-inline: var(--space-2, 8px); top: 50%; transform: translateY(-50%);
+    background: var(--color-surface-raised); color: var(--color-text); border-radius: var(--radius-overlay); box-shadow: var(--elevation-3);
+    padding: var(--space-2, 8px) var(--space-3, 16px); }
+  .dialog p { margin: 0 0 var(--space-2, 8px); font-size: var(--text-label, 14px); }
+  .dialog.opening { opacity: .55; transform: translateY(-44%) scale(.96); }
+  .dialog.closing { opacity: .3; transform: translateY(-50%) scale(.98); }
+  .scrim.fading { opacity: .5; }
+  .sheet { position: absolute; inset-inline: 0; bottom: 0; background: var(--color-surface-raised); box-shadow: var(--elevation-3);
+    border-radius: var(--radius-overlay) var(--radius-overlay) 0 0; padding: var(--space-2, 8px) var(--space-3, 16px); min-block-size: 7rem; }
+  .handle { inline-size: 2.5rem; block-size: 4px; margin: 0 auto var(--space-2, 8px); border-radius: var(--radius-full, 999px); background: var(--color-border-strong); }
+  .sheet.peek { transform: translateY(55%); }
+  .sheet.dragging { transform: translateY(22%); }
+  .sheet.dragging .handle { background: var(--color-accent); }
+  .sheet.closing { transform: translateY(78%); opacity: .6; }
+  .sheet p { margin: 0; font-size: var(--text-label, 14px); }
+
+  /* Toast */
+  .toast { background: var(--color-surface-raised); color: var(--color-text); box-shadow: var(--elevation-3);
+    border-inline-start: 4px solid var(--color-success); border-radius: var(--radius-control); padding: var(--space-2, 8px) var(--space-3, 16px);
+    display: flex; align-items: center; justify-content: space-between; gap: var(--space-2, 8px); font-size: var(--text-label, 14px); }
+  .toast.entering { opacity: .5; transform: translateY(8px); }
+  .toast.leaving { opacity: .35; transform: translateX(12px); }
+  .timer { block-size: 3px; background: var(--color-bg-subtle); border-radius: var(--radius-full, 999px); overflow: hidden; }
+  .timer span { display: block; block-size: 100%; inline-size: 60%; background: var(--color-success); }
+  .toast a { color: var(--color-link); }
+
+  /* Tabs */
+  .tabs { display: flex; gap: var(--space-1, 4px); border-block-end: 1px solid var(--color-border); }
+  .tab { min-height: 44px; padding: 0 var(--space-2, 8px); border: 0; border-block-end: 2px solid transparent; background: transparent;
+    color: var(--color-text-muted); font: inherit; cursor: pointer; }
+  .tab.is-hover { color: var(--color-text); border-block-end-color: var(--color-border-strong); }
+  .tab[aria-selected="true"] { color: var(--color-text); border-block-end-color: var(--color-accent); font-weight: var(--weight-label, 600); }
+  .tab:disabled { color: var(--color-text-disabled); cursor: not-allowed; }
+
+  /* Navigation */
+  .nav { display: grid; gap: 2px; margin: 0; padding: 0; list-style: none; }
+  .nav a { display: flex; align-items: center; justify-content: space-between; min-height: 44px; padding: 0 var(--space-2, 8px);
+    border-radius: var(--radius-control); color: var(--color-text-muted); text-decoration: none; }
+  .nav a.is-hover { background: var(--color-bg-subtle); color: var(--color-text); }
+  .nav a[aria-current="page"] { background: var(--color-accent-subtle); color: var(--color-text); font-weight: var(--weight-label, 600); }
+  .badge { min-inline-size: 1.5rem; padding: 0 var(--space-1, 4px); border-radius: var(--radius-full, 999px); text-align: center;
+    background: var(--color-accent); color: var(--color-on-accent); font-size: var(--text-label, 14px); }
+
+  /* Empty state */
+  .empty { text-align: start; }
+  .empty h3 { margin: 0 0 var(--space-1, 4px); font-size: var(--text-body, 16px); }
+  .empty p { margin: 0 0 var(--space-2, 8px); color: var(--color-text-muted); font-size: var(--text-label, 14px); }
+
+  /* Skeleton: opacity only; tokens.css zeroes durations under reduced motion. */
+  .sk { display: block; block-size: .75rem; background: var(--color-bg-subtle); border-radius: var(--radius-control); }
+  .sk.anim { animation: shimmer var(--duration-deliberate, 700ms) ease-in-out infinite alternate; }
+  .sk.w60 { inline-size: 60%; } .sk.w80 { inline-size: 80%; } .sk.w40 { inline-size: 40%; }
+  .sk.block { block-size: 3rem; }
+  @keyframes shimmer { to { opacity: .45; } }
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<div class="wrap">
+<header>
+  <h1>{{PRODUCT}} design system</h1>
+  <p class="lede">Generated from <code>tokens.json</code> v{{VERSION}} (source: {{SOURCE}}). {{MEMORABLE}}</p>
+  <p class="lede">Every colour on this page comes from <code>tokens.css</code>. Each component is drawn in every state its contract lists, in the light theme and the dark theme side by side. Screens link the same file, so what is here is what they use.</p>
+</header>
+<nav class="toc" aria-label="Sections">
+<a href="#foundations">Foundations</a>
+{{TOC}}
+</nav>
+<main id="main">
+
+<section id="foundations" aria-labelledby="h-foundations">
+  <h2 id="h-foundations">Foundations</h2>
+  {{FOUNDATIONS}}
+</section>
+
+<section class="component" data-component="Button" id="c-button" aria-labelledby="h-button">
+  <h2 id="h-button">Button</h2>
+  <p class="contract">Primary is the one action per view; secondary beside it. The label is a verb and its object and stays through loading.</p>
+  <div class="specimens" data-specimens>
+    <figure class="specimen" data-state="rest"><div class="stage"><div class="row-of"><button class="btn btn-primary" type="button">Save invoice</button><button class="btn btn-secondary" type="button">Cancel</button></div></div><figcaption>rest</figcaption></figure>
+    <figure class="specimen" data-state="hover"><div class="stage"><div class="row-of"><button class="btn btn-primary is-hover" type="button">Save invoice</button><button class="btn btn-secondary is-hover" type="button">Cancel</button></div></div><figcaption>hover</figcaption></figure>
+    <figure class="specimen" data-state="focus-visible"><div class="stage"><div class="row-of"><button class="btn btn-primary is-focus" type="button">Save invoice</button><button class="btn btn-secondary is-focus" type="button">Cancel</button></div></div><figcaption>focus-visible</figcaption></figure>
+    <figure class="specimen" data-state="active"><div class="stage"><div class="row-of"><button class="btn btn-primary is-active" type="button">Save invoice</button><button class="btn btn-secondary is-active" type="button">Cancel</button></div></div><figcaption>active</figcaption></figure>
+    <figure class="specimen" data-state="disabled"><div class="stage"><div class="row-of"><button class="btn btn-primary" type="button" disabled>Save invoice</button><button class="btn btn-secondary" type="button" disabled>Cancel</button></div></div><figcaption>disabled</figcaption></figure>
+    <figure class="specimen" data-state="loading"><div class="stage"><div class="row-of"><button class="btn btn-primary" type="button" aria-busy="true"><span class="spin" aria-hidden="true"></span>Saving invoice</button></div></div><figcaption>loading</figcaption></figure>
+  </div><!-- /specimens -->
+</section><!-- /component -->
+
+<section class="component" data-component="Input" id="c-input" aria-labelledby="h-input">
+  <h2 id="h-input">Input</h2>
+  <p class="contract">A visible label above, never a placeholder alone. The error says what happened and what to do, under the field, and keeps what was typed.</p>
+  <div class="specimens" data-specimens>
+    <figure class="specimen" data-state="rest"><div class="stage"><label class="field"><span class="field-label">Email address</span><input class="input" type="email" value="sam@example.org"><span class="help">We send the receipt here.</span></label></div><figcaption>rest</figcaption></figure>
+    <figure class="specimen" data-state="hover"><div class="stage"><label class="field"><span class="field-label">Email address</span><input class="input is-hover" type="email" value="sam@example.org"></label></div><figcaption>hover</figcaption></figure>
+    <figure class="specimen" data-state="focus-visible"><div class="stage"><label class="field"><span class="field-label">Email address</span><input class="input is-focus" type="email" value="sam@exa"></label></div><figcaption>focus-visible</figcaption></figure>
+    <figure class="specimen" data-state="disabled"><div class="stage"><label class="field"><span class="field-label">Email address</span><input class="input" type="email" value="sam@example.org" disabled></label></div><figcaption>disabled</figcaption></figure>
+    <figure class="specimen" data-state="read-only"><div class="stage"><label class="field"><span class="field-label">Account number</span><input class="input" type="text" value="40 1182 0093" readonly></label></div><figcaption>read-only</figcaption></figure>
+    <figure class="specimen" data-state="invalid"><div class="stage"><label class="field"><span class="field-label">Email address</span><input class="input" type="email" value="sam@example" aria-invalid="true"><span class="err">This address has no domain ending. Add one, like .org.</span></label></div><figcaption>invalid</figcaption></figure>
+  </div><!-- /specimens -->
+</section><!-- /component -->
+
+<section class="component" data-component="Select" id="c-select" aria-labelledby="h-select">
+  <h2 id="h-select">Select</h2>
+  <p class="contract">Native select under eight options; a listbox with search above that. The chosen value reads on the control.</p>
+  <div class="specimens" data-specimens>
+    <figure class="specimen" data-state="rest"><div class="stage"><div class="field"><span class="field-label">Currency</span><div class="input select" role="combobox" aria-expanded="false">Euro<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></div></div></div><figcaption>rest</figcaption></figure>
+    <figure class="specimen" data-state="hover"><div class="stage"><div class="field"><span class="field-label">Currency</span><div class="input select is-hover" role="combobox" aria-expanded="false">Euro<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></div></div></div><figcaption>hover</figcaption></figure>
+    <figure class="specimen" data-state="focus-visible"><div class="stage"><div class="field"><span class="field-label">Currency</span><div class="input select is-focus" role="combobox" aria-expanded="false">Euro<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></div></div></div><figcaption>focus-visible</figcaption></figure>
+    <figure class="specimen" data-state="open"><div class="stage"><div class="field"><span class="field-label">Currency</span><div class="input select is-focus" role="combobox" aria-expanded="true">Euro<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 15 6-6 6 6"/></svg></div><ul class="listbox" role="listbox"><li role="option">Dollar</li><li role="option" aria-selected="true">Euro</li><li role="option">Pound</li></ul></div></div><figcaption>open</figcaption></figure>
+    <figure class="specimen" data-state="disabled"><div class="stage"><div class="field"><span class="field-label">Currency</span><div class="input select" role="combobox" aria-disabled="true" style="background: var(--color-bg-subtle); color: var(--color-text-disabled)">Euro<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></div></div></div><figcaption>disabled</figcaption></figure>
+    <figure class="specimen" data-state="invalid"><div class="stage"><div class="field"><span class="field-label">Currency</span><div class="input select" role="combobox" aria-invalid="true">Choose one<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></div><span class="err">Pick the currency the invoice is paid in.</span></div></div><figcaption>invalid</figcaption></figure>
+  </div><!-- /specimens -->
+</section><!-- /component -->
+
+<section class="component" data-component="Checkbox and radio" id="c-checkbox-and-radio" aria-labelledby="h-checkbox-and-radio">
+  <h2 id="h-checkbox-and-radio">Checkbox and radio</h2>
+  <p class="contract">A checkbox waits for submit; a radio picks one of a set. The whole row is the target, 44 px high.</p>
+  <div class="specimens" data-specimens>
+    <figure class="specimen" data-state="rest"><div class="stage"><span class="choice" role="checkbox" aria-checked="false"><span class="box"></span>Email me receipts</span><span class="choice" role="radio" aria-checked="false"><span class="box round"></span>Monthly</span></div><figcaption>rest</figcaption></figure>
+    <figure class="specimen" data-state="hover"><div class="stage"><span class="choice is-hover" role="checkbox" aria-checked="false"><span class="box"></span>Email me receipts</span><span class="choice is-hover" role="radio" aria-checked="false"><span class="box round"></span>Monthly</span></div><figcaption>hover</figcaption></figure>
+    <figure class="specimen" data-state="focus-visible"><div class="stage"><span class="choice" role="checkbox" aria-checked="false"><span class="box is-focus"></span>Email me receipts</span><span class="choice" role="radio" aria-checked="false"><span class="box round is-focus"></span>Monthly</span></div><figcaption>focus-visible</figcaption></figure>
+    <figure class="specimen" data-state="checked"><div class="stage"><span class="choice" role="checkbox" aria-checked="true"><span class="box on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg></span>Email me receipts</span><span class="choice" role="radio" aria-checked="true"><span class="box round on"><span class="dot"></span></span>Monthly</span></div><figcaption>checked</figcaption></figure>
+    <figure class="specimen" data-state="indeterminate"><div class="stage"><span class="choice" role="checkbox" aria-checked="mixed"><span class="box on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><path d="M6 12h12"/></svg></span>All invoices (3 of 8)</span></div><figcaption>indeterminate</figcaption></figure>
+    <figure class="specimen" data-state="disabled"><div class="stage"><span class="choice off" role="checkbox" aria-checked="false" aria-disabled="true"><span class="box"></span>Email me receipts</span><span class="choice off" role="radio" aria-checked="false" aria-disabled="true"><span class="box round"></span>Monthly</span></div><figcaption>disabled</figcaption></figure>
+    <figure class="specimen" data-state="invalid"><div class="stage"><span class="choice bad" role="checkbox" aria-checked="false" aria-invalid="true"><span class="box"></span>I accept the payment terms</span><span class="err">Accept the terms to send the invoice.</span></div><figcaption>invalid</figcaption></figure>
+  </div><!-- /specimens -->
+</section><!-- /component -->
+
+<section class="component" data-component="Card" id="c-card" aria-labelledby="h-card">
+  <h2 id="h-card">Card</h2>
+  <p class="contract">A pressable card is one link covering the card; a static card groups content and carries no shadow.</p>
+  <div class="specimens" data-specimens>
+    <figure class="specimen" data-state="rest"><div class="stage"><a class="card" href="#c-card"><strong>Invoice 1042</strong><span>Due in 6 days</span></a></div><figcaption>rest</figcaption></figure>
+    <figure class="specimen" data-state="hover"><div class="stage"><a class="card is-hover" href="#c-card"><strong>Invoice 1042</strong><span>Due in 6 days</span></a></div><figcaption>hover</figcaption></figure>
+    <figure class="specimen" data-state="focus-visible"><div class="stage"><a class="card is-focus" href="#c-card"><strong>Invoice 1042</strong><span>Due in 6 days</span></a></div><figcaption>focus-visible</figcaption></figure>
+    <figure class="specimen" data-state="active"><div class="stage"><a class="card is-active" href="#c-card"><strong>Invoice 1042</strong><span>Due in 6 days</span></a></div><figcaption>active</figcaption></figure>
+  </div><!-- /specimens -->
+</section><!-- /component -->
+
+<section class="component" data-component="List row" id="c-list-row" aria-labelledby="h-list-row">
+  <h2 id="h-list-row">List row</h2>
+  <p class="contract">The whole row is the target. Meta sits at the end in the muted role; a selected row uses the accent subtle fill.</p>
+  <div class="specimens" data-specimens>
+    <figure class="specimen" data-state="rest"><div class="stage"><ul class="list"><li class="li">Northwind Supplies<span class="meta">3 open</span></li></ul></div><figcaption>rest</figcaption></figure>
+    <figure class="specimen" data-state="hover"><div class="stage"><ul class="list"><li class="li is-hover">Northwind Supplies<span class="meta">3 open</span></li></ul></div><figcaption>hover</figcaption></figure>
+    <figure class="specimen" data-state="focus-visible"><div class="stage"><ul class="list"><li class="li is-focus">Northwind Supplies<span class="meta">3 open</span></li></ul></div><figcaption>focus-visible</figcaption></figure>
+    <figure class="specimen" data-state="selected"><div class="stage"><ul class="list" role="listbox"><li class="li" role="option" aria-selected="true">Northwind Supplies<span class="meta">3 open</span></li></ul></div><figcaption>selected</figcaption></figure>
+    <figure class="specimen" data-state="disabled"><div class="stage"><ul class="list"><li class="li" aria-disabled="true">Northwind Supplies<span class="meta">archived</span></li></ul></div><figcaption>disabled</figcaption></figure>
+  </div><!-- /specimens -->
+</section><!-- /component -->
+
+<section class="component" data-component="Table" id="c-table" aria-labelledby="h-table">
+  <h2 id="h-table">Table</h2>
+  <p class="contract">Numbers align to the end in tabular figures. Loading keeps the header and draws skeleton rows; empty and error sit inside the table frame.</p>
+  <div class="specimens" data-specimens>
+    <figure class="specimen" data-state="rest"><div class="stage"><table class="tbl"><thead><tr><th>Invoice</th><th class="num">Amount</th></tr></thead><tbody><tr><td>1042</td><td class="num">1,240.00</td></tr><tr><td>1043</td><td class="num">86.50</td></tr></tbody></table></div><figcaption>rest</figcaption></figure>
+    <figure class="specimen" data-state="hover"><div class="stage"><table class="tbl"><thead><tr><th>Invoice</th><th class="num">Amount</th></tr></thead><tbody><tr><td>1042</td><td class="num">1,240.00</td></tr><tr class="is-hover"><td>1043</td><td class="num">86.50</td></tr></tbody></table></div><figcaption>hover</figcaption></figure>
+    <figure class="specimen" data-state="selected"><div class="stage"><table class="tbl"><thead><tr><th>Invoice</th><th class="num">Amount</th></tr></thead><tbody><tr aria-selected="true"><td>1042</td><td class="num">1,240.00</td></tr><tr><td>1043</td><td class="num">86.50</td></tr></tbody></table></div><figcaption>selected</figcaption></figure>
+    <figure class="specimen" data-state="sorted-asc"><div class="stage"><table class="tbl"><thead><tr><th>Invoice</th><th class="num" aria-sort="ascending">Amount &#8593;</th></tr></thead><tbody><tr><td>1043</td><td class="num">86.50</td></tr><tr><td>1042</td><td class="num">1,240.00</td></tr></tbody></table></div><figcaption>sorted-asc</figcaption></figure>
+    <figure class="specimen" data-state="sorted-desc"><div class="stage"><table class="tbl"><thead><tr><th>Invoice</th><th class="num" aria-sort="descending">Amount &#8595;</th></tr></thead><tbody><tr><td>1042</td><td class="num">1,240.00</td></tr><tr><td>1043</td><td class="num">86.50</td></tr></tbody></table></div><figcaption>sorted-desc</figcaption></figure>
+    <figure class="specimen" data-state="loading"><div class="stage"><table class="tbl" aria-busy="true"><thead><tr><th>Invoice</th><th class="num">Amount</th></tr></thead><tbody><tr><td><span class="sk anim w60"></span></td><td><span class="sk anim w80"></span></td></tr><tr><td><span class="sk anim w40"></span></td><td><span class="sk anim w60"></span></td></tr></tbody></table></div><figcaption>loading</figcaption></figure>
+    <figure class="specimen" data-state="empty"><div class="stage"><table class="tbl"><thead><tr><th>Invoice</th><th class="num">Amount</th></tr></thead><tbody><tr><td colspan="2">No invoices this month. <a href="#c-table">Create an invoice</a></td></tr></tbody></table></div><figcaption>empty</figcaption></figure>
+    <figure class="specimen" data-state="error"><div class="stage"><table class="tbl"><thead><tr><th>Invoice</th><th class="num">Amount</th></tr></thead><tbody><tr><td colspan="2"><span class="err">Invoices did not load. Check the connection, then retry.</span> <a href="#c-table">Retry</a></td></tr></tbody></table></div><figcaption>error</figcaption></figure>
+  </div><!-- /specimens -->
+</section><!-- /component -->
+
+<section class="component" data-component="Dialog" id="c-dialog" aria-labelledby="h-dialog">
+  <h2 id="h-dialog">Dialog</h2>
+  <p class="contract">A decision with two buttons, over a scrim. Entrances use the enter easing; exits are faster than entrances.</p>
+  <div class="specimens" data-specimens>
+    <figure class="specimen" data-state="opening"><div class="stage"><div class="scene"><div class="scrim fading"></div><div class="dialog opening" role="dialog" aria-label="Delete draft"><p><strong>Delete this draft?</strong></p><p>It cannot be restored.</p></div></div></div><figcaption>opening</figcaption></figure>
+    <figure class="specimen" data-state="open"><div class="stage"><div class="scene"><div class="scrim"></div><div class="dialog" role="dialog" aria-label="Delete draft"><p><strong>Delete this draft?</strong></p><p>It cannot be restored.</p><div class="row-of"><button class="btn btn-secondary" type="button">Keep draft</button><button class="btn btn-primary" type="button">Delete draft</button></div></div></div></div><figcaption>open</figcaption></figure>
+    <figure class="specimen" data-state="closing"><div class="stage"><div class="scene"><div class="scrim fading"></div><div class="dialog closing" role="dialog" aria-label="Delete draft"><p><strong>Delete this draft?</strong></p><p>It cannot be restored.</p></div></div></div><figcaption>closing</figcaption></figure>
+  </div><!-- /specimens -->
+</section><!-- /component -->
+
+<section class="component" data-component="Sheet" id="c-sheet" aria-labelledby="h-sheet">
+  <h2 id="h-sheet">Sheet</h2>
+  <p class="contract">Bottom sheet on a phone, side sheet on desktop. The handle is the drag target and brightens while dragged.</p>
+  <div class="specimens" data-specimens>
+    <figure class="specimen" data-state="peek"><div class="stage"><div class="scene"><div class="sheet peek" role="dialog" aria-label="Filters"><div class="handle"></div><p><strong>Filters</strong></p><p>Status, date, customer</p></div></div></div><figcaption>peek</figcaption></figure>
+    <figure class="specimen" data-state="open"><div class="stage"><div class="scene"><div class="scrim"></div><div class="sheet" role="dialog" aria-label="Filters"><div class="handle"></div><p><strong>Filters</strong></p><p>Status, date, customer</p></div></div></div><figcaption>open</figcaption></figure>
+    <figure class="specimen" data-state="dragging"><div class="stage"><div class="scene"><div class="scrim fading"></div><div class="sheet dragging" role="dialog" aria-label="Filters"><div class="handle"></div><p><strong>Filters</strong></p><p>Status, date, customer</p></div></div></div><figcaption>dragging</figcaption></figure>
+    <figure class="specimen" data-state="closing"><div class="stage"><div class="scene"><div class="sheet closing" role="dialog" aria-label="Filters"><div class="handle"></div><p><strong>Filters</strong></p></div></div></div><figcaption>closing</figcaption></figure>
+  </div><!-- /specimens -->
+</section><!-- /component -->
+
+<section class="component" data-component="Toast" id="c-toast" aria-labelledby="h-toast">
+  <h2 id="h-toast">Toast</h2>
+  <p class="contract">Confirms a finished action with at most one follow-up. It pauses while the pointer or focus is on it.</p>
+  <div class="specimens" data-specimens>
+    <figure class="specimen" data-state="entering"><div class="stage"><div class="toast entering" role="status">Invoice sent<a href="#c-toast">Undo</a></div></div><figcaption>entering</figcaption></figure>
+    <figure class="specimen" data-state="visible"><div class="stage"><div class="toast" role="status">Invoice sent<a href="#c-toast">Undo</a></div></div><figcaption>visible</figcaption></figure>
+    <figure class="specimen" data-state="leaving"><div class="stage"><div class="toast leaving" role="status">Invoice sent<a href="#c-toast">Undo</a></div></div><figcaption>leaving</figcaption></figure>
+    <figure class="specimen" data-state="paused"><div class="stage"><div class="toast is-focus" role="status">Invoice sent<a href="#c-toast">Undo</a></div><div class="timer" aria-hidden="true"><span></span></div></div><figcaption>paused</figcaption></figure>
+  </div><!-- /specimens -->
+</section><!-- /component -->
+
+<section class="component" data-component="Tabs" id="c-tabs" aria-labelledby="h-tabs">
+  <h2 id="h-tabs">Tabs</h2>
+  <p class="contract">The state is drawn on the second tab. The selected tab carries the accent underline and the heavier weight.</p>
+  <div class="specimens" data-specimens>
+    <figure class="specimen" data-state="rest"><div class="stage"><div class="tabs" role="tablist"><button class="tab" role="tab" aria-selected="true" type="button">Open</button><button class="tab" role="tab" aria-selected="false" type="button">Paid</button><button class="tab" role="tab" aria-selected="false" type="button">Void</button></div></div><figcaption>rest</figcaption></figure>
+    <figure class="specimen" data-state="hover"><div class="stage"><div class="tabs" role="tablist"><button class="tab" role="tab" aria-selected="true" type="button">Open</button><button class="tab is-hover" role="tab" aria-selected="false" type="button">Paid</button><button class="tab" role="tab" aria-selected="false" type="button">Void</button></div></div><figcaption>hover</figcaption></figure>
+    <figure class="specimen" data-state="focus-visible"><div class="stage"><div class="tabs" role="tablist"><button class="tab" role="tab" aria-selected="true" type="button">Open</button><button class="tab is-focus" role="tab" aria-selected="false" type="button">Paid</button><button class="tab" role="tab" aria-selected="false" type="button">Void</button></div></div><figcaption>focus-visible</figcaption></figure>
+    <figure class="specimen" data-state="selected"><div class="stage"><div class="tabs" role="tablist"><button class="tab" role="tab" aria-selected="false" type="button">Open</button><button class="tab" role="tab" aria-selected="true" type="button">Paid</button><button class="tab" role="tab" aria-selected="false" type="button">Void</button></div></div><figcaption>selected</figcaption></figure>
+    <figure class="specimen" data-state="disabled"><div class="stage"><div class="tabs" role="tablist"><button class="tab" role="tab" aria-selected="true" type="button">Open</button><button class="tab" role="tab" aria-selected="false" type="button" disabled>Paid</button><button class="tab" role="tab" aria-selected="false" type="button">Void</button></div></div><figcaption>disabled</figcaption></figure>
+  </div><!-- /specimens -->
+</section><!-- /component -->
+
+<section class="component" data-component="Navigation" id="c-navigation" aria-labelledby="h-navigation">
+  <h2 id="h-navigation">Navigation</h2>
+  <p class="contract">Side navigation on desktop, the same destinations in a bottom bar on a phone. The state is drawn on the second item.</p>
+  <div class="specimens" data-specimens>
+    <figure class="specimen" data-state="rest"><div class="stage"><ul class="nav"><li><a href="#c-navigation">Overview</a></li><li><a href="#c-navigation">Invoices</a></li><li><a href="#c-navigation">Customers</a></li></ul></div><figcaption>rest</figcaption></figure>
+    <figure class="specimen" data-state="hover"><div class="stage"><ul class="nav"><li><a href="#c-navigation">Overview</a></li><li><a class="is-hover" href="#c-navigation">Invoices</a></li><li><a href="#c-navigation">Customers</a></li></ul></div><figcaption>hover</figcaption></figure>
+    <figure class="specimen" data-state="focus-visible"><div class="stage"><ul class="nav"><li><a href="#c-navigation">Overview</a></li><li><a class="is-focus" href="#c-navigation">Invoices</a></li><li><a href="#c-navigation">Customers</a></li></ul></div><figcaption>focus-visible</figcaption></figure>
+    <figure class="specimen" data-state="current"><div class="stage"><ul class="nav"><li><a href="#c-navigation">Overview</a></li><li><a href="#c-navigation" aria-current="page">Invoices</a></li><li><a href="#c-navigation">Customers</a></li></ul></div><figcaption>current</figcaption></figure>
+    <figure class="specimen" data-state="badged"><div class="stage"><ul class="nav"><li><a href="#c-navigation">Overview</a></li><li><a href="#c-navigation">Invoices<span class="badge" aria-label="3 overdue">3</span></a></li><li><a href="#c-navigation">Customers</a></li></ul></div><figcaption>badged</figcaption></figure>
+  </div><!-- /specimens -->
+</section><!-- /component -->
+
+<section class="component" data-component="Empty state" id="c-empty-state" aria-labelledby="h-empty-state">
+  <h2 id="h-empty-state">Empty state</h2>
+  <p class="contract">Says what is missing and what to do next, with the action. No apology.</p>
+  <div class="specimens" data-specimens>
+    <figure class="specimen" data-state="first-run"><div class="stage"><div class="empty"><h3>No invoices yet</h3><p>Create the first one; it takes a minute.</p><button class="btn btn-primary" type="button">Create invoice</button></div></div><figcaption>first-run</figcaption></figure>
+    <figure class="specimen" data-state="no-results"><div class="stage"><div class="empty"><h3>Nothing matches "northw"</h3><p>Check the spelling or clear the search.</p><button class="btn btn-secondary" type="button">Clear search</button></div></div><figcaption>no-results</figcaption></figure>
+    <figure class="specimen" data-state="error"><div class="stage"><div class="empty"><h3>Invoices did not load</h3><p class="err">The connection dropped. Retry, or come back in a minute.</p><button class="btn btn-secondary" type="button">Retry loading invoices</button></div></div><figcaption>error</figcaption></figure>
+  </div><!-- /specimens -->
+</section><!-- /component -->
+
+<section class="component" data-component="Skeleton" id="c-skeleton" aria-labelledby="h-skeleton">
+  <h2 id="h-skeleton">Skeleton</h2>
+  <p class="contract">Shaped like what is coming so nothing moves when it arrives. Opacity only; static under reduced motion.</p>
+  <div class="specimens" data-specimens>
+    <figure class="specimen" data-state="animating"><div class="stage" aria-busy="true"><span class="sk anim block"></span><span class="sk anim w80"></span><span class="sk anim w60"></span></div><figcaption>animating</figcaption></figure>
+    <figure class="specimen" data-state="static"><div class="stage" aria-busy="true"><span class="sk block"></span><span class="sk w80"></span><span class="sk w60"></span></div><figcaption>static</figcaption></figure>
+  </div><!-- /specimens -->
+</section><!-- /component -->
+
+</main>
+</div>
+</body>
+</html>

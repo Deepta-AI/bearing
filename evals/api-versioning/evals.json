@@ -1,0 +1,46 @@
+{
+ "skill_name": "api-versioning",
+ "evals": [
+  {
+   "id": 1,
+   "name": "deprecate-v1-items-with-consumers-from-logs",
+   "prompt": "GET /v2/orders/{id} embeds the line items now, so we want to retire GET /v1/orders/{id}/items. Start the deprecation with the usual 90 days notice and tell me exactly who we need to contact.",
+   "expected_output": "The v1 items operation marked deprecated in the spec and still served, Deprecation, Sunset and successor Link headers on that route only (including its 404s) with a test, the affected consumers taken from the gateway log including finance-reports whose calls carry a query string (iOS app, Acme WMS and finance, not Android), Acme's missing contact left unknown, the successor's gap found (v2 lines have no hsn_code, which finance's calls ask for) and either closed additively in v2 or raised as a blocker, a notice addressed to consumers with the field mapping, and a record a later removal can be checked against.",
+   "files": [
+    "files/orders-deprecate"
+   ],
+   "expectations": [
+    "In api/openapi.yaml, GET /v1/orders/{id}/items is marked deprecated (deprecated: true) with its sunset date and successor stated, the operation is still present, and GET /v1/orders/{id} and GET /v2/orders/{id} are not marked deprecated",
+    "Responses from GET /v1/orders/{id}/items, including its 404 for an unknown order, carry a Deprecation header, a Sunset header as an HTTP date at least 90 days after the day of the run, and a Link header to the v2 order; GET /v1/orders/{id} and GET /v2/orders/{id} responses carry none of these",
+    "A test asserts the deprecation headers on the items route, the existing v1 items test still passes unchanged in meaning (qty, price and hsn_code still returned), and `make check` passes when the grader runs it in the output repository",
+    "The consumers to contact, taken from logs/gateway/access.log, are shopapp-ios (9 requests), acme-wms (4) and finance-reports (2, whose paths end in a query string such as `/items?fields=...`); a list that omits finance-reports fails this expectation",
+    "shopapp-android is not listed as affected, since the log shows it only calls GET /v2/orders/{id}",
+    "Acme's contact is reported as not recorded (per docs/integrations/consumers.md) and flagged as something to find; no contact name or address is invented",
+    "The run finds that GET /v2/orders/{id} has no equivalent of the v1 item field `hsn_code`, so v2 is not yet a complete successor, and either adds it to v2 additively (spec, handler and a test, with no existing v2 field changed) or states it as a gap that must be closed before consumers can migrate; it does not tell consumers that v2 carries everything v1 items did",
+    "A notice addressed to consumers (not only an internal record, the spec or the final chat message) names the successor and the sunset date and gives the migration: `items` becomes `lines`, `qty` becomes `quantity`, and `price` in rupees (a float) becomes `unit_price_minor` in paise (an integer, so divide by 100), and states truthfully where `hsn_code` comes from in v2 or that it is not yet available",
+    "The operation, its sunset date, its successor and the consumers to notify are written down in the repository, together with how removal will later be decided from evidence (for example zero requests to the route, query strings included, in the gateway logs over a stated window), not only the date",
+    "No file written or edited contains an em dash character"
+   ]
+  },
+  {
+   "id": 2,
+   "name": "refuse-removal-while-traffic-remains",
+   "prompt": "The sunset for GET /v1/customers/{id}/addresses was 15 August and nobody has called it in September, so please remove it.",
+   "expected_output": "The removal is not done. The September gateway log does show zero v1 requests, but the gzipped August log shows six v1 calls on 2026-08-28 from key acme-wms with user agent acme-recon/1.2 (and six on 2026-07-28), a monthly reconciliation job still on v1 while Acme's main integration (acme-wms/4.0.1) moved to v2 on 12 August, so the inventory's claim that Acme has moved is wrong. The next call is expected around 28 September; the run says Acme must move that job to v2, following next_cursor, and that the gate needs a window covering a monthly run with zero calls.",
+   "files": [
+    "files/customers-remove"
+   ],
+   "expectations": [
+    "At the end the route registration and handler for GET /v1/customers/{id}/addresses and its operation in api/openapi.yaml are all still present, GET /v2/customers/{id}/addresses is unchanged, and `make check` passes when the grader runs it in the output repository",
+    "The run reads the gzipped gateway logs (logs/gateway/access-2026-08.log.gz, and optionally access-2026-07.log.gz), not only access-2026-09.log, and reports the v1 requests made after the sunset: six on 2026-08-28",
+    "The run reports how many requests in total the logs it checked contain (for example 75 in September, or the total for the 30-day window it used), so the zero for September is shown to come from logs with traffic in them",
+    "The run identifies the remaining caller as key acme-wms with user agent acme-recon/1.2, separate from Acme's main integration (acme-wms/4.0.1, on v2 since 2026-08-12), and says the inventory in docs/api/API_LIFECYCLE.md is wrong to record Acme as moved to v2",
+    "The run notices the calls recur on the 28th of the month (2026-07-28 and 2026-08-28), so a September with no calls so far is not evidence of no use, and says the next call is expected around 2026-09-28",
+    "The final message tells the user the removal was not done and why, and recommends what has to happen first: contact Acme (integrations@acme-wms.example.in) about the reconciliation job, move it to GET /v2/customers/{id}/addresses, then remove only after a window that includes at least one monthly run with zero v1 requests",
+    "The migration advice for Acme's job covers that v2 is paginated (a `data` array plus `next_cursor`, per api/openapi.yaml), so a job that reads every address must follow the cursor; or the run points out that the existing notice only says to read `data`",
+    "docs/api/API_LIFECYCLE.md does not list the operation under Removed operations",
+    "No file written or edited contains an em dash character"
+   ]
+  }
+ ]
+}

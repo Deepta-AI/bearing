@@ -1,0 +1,32 @@
+{
+  "cli": { "version": ">= 16.0.0", "appVersionSource": "remote" },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "channel": "development",
+      "env": { "EXPO_PUBLIC_API_URL": "https://qa.__REPO_SLUG__.example.com" }
+    },
+    "preview": {
+      "distribution": "internal",
+      "channel": "preview",
+      "android": { "buildType": "apk" },
+      "ios": { "simulator": false },
+      "env": { "EXPO_PUBLIC_API_URL": "https://qa.__REPO_SLUG__.example.com" }
+    },
+    "production": {
+      "autoIncrement": true,
+      "channel": "production",
+      "distribution": "store",
+      "android": { "buildType": "app-bundle" },
+      "ios": { "simulator": false },
+      "env": { "EXPO_PUBLIC_API_URL": "https://__REPO_SLUG__.example.com" }
+    }
+  },
+  "submit": {
+    "production": {
+      "android": { "track": "internal" },
+      "ios": {}
+    }
+  }
+}

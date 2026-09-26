@@ -1,0 +1,12 @@
+Meeting: Q4 roadmap review, 2026-09-05
+Attendees: Lakshmi, Arun, Priya, Karthik
+
+Lakshmi: Three candidates for Q4: saved carts, invoice download in the app, and the new onboarding.
+Arun: Saved carts is two sprints. Invoice download is one.
+Priya: Onboarding has the biggest impact on activation but needs design first.
+Karthik: Mobile can do invoice download alongside.
+Lakshmi: Decision: Q4 is invoice download and onboarding; saved carts moves to Q1.
+Priya: I'll have onboarding designs by 26 September.
+Arun: I'll size onboarding once designs land.
+Karthik: I'll start invoice download on mobile next sprint.
+Lakshmi: Is the onboarding change risky for existing users? Open.

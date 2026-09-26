@@ -1,0 +1,414 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>{{FEATURE}}: {{SCREEN_ID}} {{SCREEN_NAME}}</title>
+<!--
+  Screen {{SCREEN_ID}}: {{SCREEN_NAME}}   (design.json key {{FEATURE}}/{{SCREEN_ID}})
+  Job: {{ONE_SENTENCE_JOB}}
+  Serves: {{STORY_IDS}}   Platform: {{WEB_MOBILE_OR_BOTH}}
+  Framework: {{FRAMEWORK}} (regions carry data-component from docs/design/components.md)
+  Tokens: linked from ../../tokens.css, the one file that names a colour. With
+    --standalone the link is replaced by <style data-tokens> holding a copy of it.
+  States: {{STATE_LIST}}
+  Navigation, desktop: {{DESKTOP_NAV_FROM_DESIGN_JSON}}
+  Navigation, mobile: {{MOBILE_NAV_FROM_DESIGN_JSON}}
+  Links out, from the flows navigation map: {{EDGES_AS_SCREEN_ID_TO_FILE}}
+  Motion moment: {{MOTION_MOMENT_OR_NONE}}
+  Events: {{EVENT_SHEET_OR_NO_SHEET}}
+  Generic-default revisions: {{WHAT_CHANGED_AND_WHY}}
+
+  Structure: one [data-state] panel per state, each the whole screen: an
+  annotation (data-annotation: what changed from the default and why), then
+  a desktop frame and a 375 px mobile frame, each with its app chrome
+  (data-app-chrome). The mobile frame is designed, not squeezed: its own
+  order, a docked primary action, the bottom tab bar.
+  Deep links: #state=<name> shows one state, #state=all every state,
+  #chrome=0 hides the documentation for screenshots (below 720 px it shows
+  the mobile frame, from 720 px the desktop frame, so 768 is the tablet layout).
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family={{DISPLAY_FACE_QUERY}}&family={{BODY_FACE_QUERY}}&display=swap">
+<link rel="stylesheet" href="../../tokens.css">
+<style>
+  /* Layout and chrome only. Every colour, space, radius, shadow and duration is a tokens.css name. */
+  *, *::before, *::after { box-sizing: border-box; }
+  body { margin: 0; background: var(--color-bg); color: var(--color-text);
+    font-family: var(--font-body); font-size: var(--text-body, 16px); line-height: var(--leading-body, 1.5); overflow-x: clip; }
+  h1, h2, h3 { font-family: var(--font-display); line-height: 1.15; text-wrap: balance; margin: 0 0 var(--space-2, 8px); }
+  h1 { font-size: var(--text-display, 40px); }
+  h2 { font-size: var(--text-title, 24px); }
+  h3 { font-size: var(--text-body, 16px); }
+  p, li { max-width: 66ch; }
+  a { color: var(--color-link); }
+  .num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+  .muted { color: var(--color-text-muted); }
+
+  /* Every control: visible focus (tokens.css draws the ring), 44 px target, verb label. */
+  button, a, input, select, textarea, [role="button"] { min-height: 44px; }
+  button { cursor: pointer; font: inherit; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-1, 4px);
+    padding: 0 var(--space-3, 16px); border-radius: var(--radius-control); border: 1px solid transparent;
+    font-weight: var(--weight-label, 600); text-decoration: none; transition: background var(--duration-fast, 150ms) var(--ease-standard, ease); }
+  .btn-primary { background: var(--color-accent); color: var(--color-on-accent); box-shadow: var(--elevation-1); }
+  .btn-primary:hover { background: var(--color-accent-hover); box-shadow: var(--elevation-2); }
+  .btn-primary:disabled, .btn-primary[aria-busy="true"] { background: var(--color-bg-subtle); color: var(--color-text-disabled); box-shadow: none; cursor: not-allowed; }
+  .btn-secondary { background: var(--color-surface); color: var(--color-text); border-color: var(--color-border-strong); }
+  .btn-block { inline-size: 100%; }
+  label { display: block; margin-bottom: var(--space-1, 4px); font-weight: var(--weight-label, 600); }   /* never placeholder-only */
+  input, select, textarea { inline-size: 100%; font: inherit; padding: 0 var(--space-2, 8px);
+    background: var(--color-surface); color: var(--color-text); border: 1px solid var(--color-border); border-radius: var(--radius-control); }
+  [aria-invalid="true"] { border-color: var(--color-danger); }
+  .error { color: var(--color-danger); min-height: 1.5em; }   /* line reserved; copy: what happened, what to do */
+  .skip { position: absolute; inset-inline-start: var(--space-3, 16px); top: -100px; }
+  .skip:focus { top: var(--space-3, 16px); background: var(--color-surface-raised); padding: var(--space-2, 8px); }
+  .skeleton { display: block; background: var(--color-bg-subtle); border-radius: var(--radius-control); min-height: 1em;
+    animation: shimmer var(--duration-deliberate, 700ms) ease-in-out infinite alternate; }
+  @keyframes shimmer { to { opacity: .5; } }
+
+  /* Documentation around the screen: the head, the state bar, the annotation band. */
+  .doc-head { padding: var(--space-4, 24px) var(--space-3, 16px) var(--space-2, 8px); max-width: 1440px; margin-inline: auto; }
+  .crumb { margin: 0 0 var(--space-2, 8px); color: var(--color-text-muted); }
+  .states { position: sticky; top: 0; z-index: var(--z-sticky, 10); display: flex; flex-wrap: wrap; gap: var(--space-2, 8px); align-items: center;
+    padding: var(--space-2, 8px) var(--space-3, 16px); background: var(--color-bg-subtle); border-block: 1px solid var(--color-border); font-size: var(--text-label, 14px); }
+  @media (max-width: 719px) { .states { position: static; } }
+  .states .label { margin-inline-end: var(--space-2, 8px); color: var(--color-text-muted); }
+  .states button { background: transparent; color: var(--color-text); border: 1px solid var(--color-border); border-radius: var(--radius-control); padding: 0 var(--space-3, 16px); }
+  .states button[aria-pressed="true"] { background: var(--color-accent); color: var(--color-on-accent); border-color: var(--color-accent); }
+  .states .theme-toggle { margin-inline-start: auto; }
+  .state { max-width: 1440px; margin-inline: auto; padding: var(--space-5, 32px) var(--space-3, 16px); border-block-end: 1px solid var(--color-border); }
+  .annotation { margin-bottom: var(--space-3, 16px); padding-inline-start: var(--space-3, 16px); border-inline-start: 3px solid var(--color-accent); }
+  .annotation .tag { margin: 0; font-size: var(--text-label, 14px); color: var(--color-text-muted); text-transform: uppercase; letter-spacing: .06em; }
+  .annotation p { margin: 0; }
+  [data-state][hidden] { display: none; }
+
+  /* Frames: desktop and the designed 375 px arrangement side by side from 1200 px, so no column sits beside empty space. */
+  .frames { display: grid; gap: var(--space-4, 24px); grid-template-columns: minmax(0, 1fr); align-items: start; }
+  @media (min-width: 1200px) { .frames { grid-template-columns: minmax(0, 1fr) 375px; } }
+  @media (max-width: 719px) { [data-frame="desktop"] { display: none; } }
+  .frame-label { margin: 0 0 var(--space-1, 4px); font-size: var(--text-label, 14px); color: var(--color-text-muted); }
+  [data-frame="desktop"] { container-type: inline-size; }
+
+  /* Desktop chrome: top bar across, side nav from 900 px of frame width, section links in a row below that (the 768 layout). */
+  .app { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto 1fr; min-block-size: 40rem;
+    background: var(--color-bg); border: 1px solid var(--color-border); border-radius: var(--radius-container); overflow: hidden; }
+  .topbar { grid-column: 1 / -1; display: flex; align-items: center; gap: var(--space-3, 16px); min-block-size: 56px;
+    padding: 0 var(--space-3, 16px); background: var(--color-surface); border-block-end: 1px solid var(--color-border); }
+  .brand { font-family: var(--font-display); font-weight: var(--weight-title, 600); color: var(--color-text); text-decoration: none; display: inline-flex; align-items: center; }
+  .spacer { flex: 1; }
+  .sidenav { display: flex; flex-wrap: wrap; gap: var(--space-1, 4px); padding: var(--space-2, 8px) var(--space-3, 16px);
+    background: var(--color-bg-subtle); border-block-end: 1px solid var(--color-border); }
+  .sidenav a, .tabbar a { display: flex; align-items: center; gap: var(--space-2, 8px); padding: 0 var(--space-2, 8px);
+    border-radius: var(--radius-control); color: var(--color-text-muted); text-decoration: none; }
+  .sidenav a:hover { background: var(--color-surface); color: var(--color-text); }
+  .sidenav a[aria-current="page"], .tabbar a[aria-current="page"] { background: var(--color-accent-subtle); color: var(--color-text); font-weight: var(--weight-label, 600); }
+  .content { padding: var(--space-4, 24px) var(--space-3, 16px); display: grid; gap: var(--space-4, 24px); align-content: start; min-width: 0; }
+  @container (min-width: 900px) {
+    .app { grid-template-columns: 240px minmax(0, 1fr); grid-template-rows: auto 1fr; }
+    .sidenav { flex-direction: column; flex-wrap: nowrap; border-block-end: 0; border-inline-end: 1px solid var(--color-border); padding: var(--space-3, 16px) var(--space-2, 8px); }
+    .content { padding: var(--space-5, 32px) var(--space-5, 32px); }
+  }
+  @container (min-width: 960px) {
+    .content { grid-template-columns: {{DESKTOP_COLUMNS}}; }   /* for example minmax(0, 2fr) minmax(0, 1fr): the work and its context */
+  }
+
+  /* Mobile chrome: its own top bar with back, the body in the phone's order, a docked action, the bottom tab bar. */
+  .phone { inline-size: 375px; max-inline-size: 100%; min-block-size: 760px; margin-inline: auto; display: flex; flex-direction: column;
+    background: var(--color-bg); border: 1px solid var(--color-border); border-radius: var(--radius-overlay); overflow: hidden; }
+  .m-top { display: flex; align-items: center; gap: var(--space-2, 8px); min-block-size: 56px; padding: 0 var(--space-3, 16px);
+    background: var(--color-surface); border-block-end: 1px solid var(--color-border); }
+  .m-top p { margin: 0; font-weight: var(--weight-label, 600); }
+  .m-body { flex: 1; padding: var(--space-3, 16px); display: grid; gap: var(--space-3, 16px); align-content: start; }
+  .m-dock { padding: var(--space-2, 8px) var(--space-3, 16px); background: var(--color-surface); border-block-start: 1px solid var(--color-border); display: grid; gap: var(--space-2, 8px); }
+  .tabbar { display: grid; grid-template-columns: repeat({{TAB_COUNT_3_TO_5}}, minmax(0, 1fr)); background: var(--color-surface); border-block-start: 1px solid var(--color-border); }
+  .tabbar a { flex-direction: column; justify-content: center; gap: 2px; min-block-size: 56px; font-size: var(--text-label, 14px); border-radius: 0; }
+  .tabbar svg, .sidenav svg { inline-size: 20px; block-size: 20px; }
+
+  /* Screenshot mode, #chrome=0: the screen alone, the frame that matches the viewport, no documentation. */
+  html[data-chrome="0"] [data-doc], html[data-chrome="0"] .states { display: none; }
+  html[data-chrome="0"] .state { padding: 0; border: 0; max-width: none; }
+  html[data-chrome="0"] .frames { display: block; }
+  html[data-chrome="0"] [data-frame="mobile"] { display: none; }
+  html[data-chrome="0"] .app { border: 0; border-radius: 0; min-block-size: 100vh; }
+  @media (max-width: 719px) {
+    html[data-chrome="0"] [data-frame="mobile"] { display: block; }
+    html[data-chrome="0"] .phone { inline-size: 100%; border: 0; border-radius: 0; min-block-size: 100vh; }
+  }
+
+  /* MOTION MOMENT: {{MOTION_MOMENT_OR_NONE}}. Transform and opacity only; tokens.css zeroes durations under reduced motion. */
+  .moment > * { opacity: 0; transform: translateY(12px); animation: enter var(--duration-base, 240ms) var(--ease-enter, ease-out) forwards; }
+  .moment > :nth-child(2) { animation-delay: 80ms; }
+  .moment > :nth-child(3) { animation-delay: 160ms; }
+  @keyframes enter { to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) {
+    .moment > * { animation: none; opacity: 1; transform: none; }
+    .skeleton { animation: none; }
+  }
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="doc-head" data-doc>
+  <p class="crumb"><a href="../../index.html">All screens</a> / <a href="index.html">{{FEATURE}}</a></p>
+  <h1>{{SCREEN_ID}} {{SCREEN_NAME}}: every state</h1>
+  <p>{{ONE_SENTENCE_JOB}} <span class="muted">Serves {{STORY_IDS}}.</span></p>
+  <p><strong>Navigation, desktop:</strong> {{DESKTOP_NAV_FOR_THIS_SCREEN}}<br>
+     <strong>Navigation, mobile:</strong> {{MOBILE_NAV_FOR_THIS_SCREEN}}</p>
+</header>
+
+<!-- Prototype chrome. One button per state; the panels below carry the same names. -->
+<nav class="states" aria-label="Screen states" data-component="prototype-chrome">
+  <span class="label">{{SCREEN_ID}} state:</span>
+  <button type="button" data-state-target="all" aria-pressed="false">All states</button>
+  {{#STATES}}<button type="button" data-state-target="{{STATE}}" aria-pressed="false">{{STATE}}</button>{{/STATES}}
+  <button class="theme-toggle" type="button" aria-pressed="false">Dark theme</button>
+</nav>
+
+<main id="main">
+
+<!-- ======================================================== success (the default) -->
+<section class="state" data-state="success" aria-labelledby="st-success">
+  <div class="annotation" data-doc>
+    <p class="tag">State</p>
+    <h2 id="st-success">{{SUCCESS_TITLE}}</h2>
+    <p data-annotation>{{WHAT_THE_PERSON_SEES_AND_WHY_THIS_IS_THE_DEFAULT}}</p>
+  </div>
+  <div class="frames">
+    <div data-frame="desktop">
+      <p class="frame-label" data-doc>Desktop, 1440 (at 768 the side nav becomes a row under the top bar)</p>
+      <div class="app" data-app-chrome="side-nav">
+        <header class="topbar" data-component="Navigation">
+          <a class="brand" href="{{HOME_SCREEN_FILE}}">{{PRODUCT}}</a>
+          <span class="spacer"></span>
+          <span class="muted">{{SIGNED_IN_IDENTITY}}</span>
+        </header>
+        <!-- One link per destination in design.json navigation. A destination outside
+             this bundle is a <span class="muted"> with the reason in a title, never a dead link. -->
+        <nav class="sidenav" aria-label="Sections" data-component="Navigation">
+          {{#NAV_ITEMS}}<a href="{{NAV_FILE}}"{{CURRENT_ATTR}}>{{NAV_ICON_SVG}}{{NAV_LABEL}}</a>{{/NAV_ITEMS}}
+        </nav>
+        <div class="content moment" data-component="{{REGION_COMPONENT}}">
+          <div>
+            <h1>{{REAL_HEADLINE}}</h1>
+            <p>{{SUCCESS_COPY_FROM_FLOWS}}</p>
+            <!-- Every edge out of this screen in the flows navigation map is a real link to that screen's file. -->
+            <a class="btn btn-primary" href="{{NEXT_SCREEN_FILE}}" data-component="Button" data-event="{{EVENT_NAME}}">{{VERB_NOUN_LABEL}}</a>
+          </div>
+          <aside data-component="{{CONTEXT_COMPONENT}}">{{CONTEXT_THE_WORK_NEEDS_BESIDE_IT}}</aside>
+        </div>
+      </div>
+    </div>
+    <div data-frame="mobile">
+      <p class="frame-label" data-doc>Mobile, 375: {{WHAT_THE_PHONE_ARRANGEMENT_CHANGES}}</p>
+      <div class="phone" data-app-chrome="bottom-tab-bar">
+        <header class="m-top" data-component="Navigation">
+          <a href="{{BACK_SCREEN_FILE}}" aria-label="Back to {{BACK_SCREEN_NAME}}">{{BACK_ICON_SVG}}</a>
+          <p>{{SHORT_TITLE}}</p>
+        </header>
+        <div class="m-body" data-component="{{REGION_COMPONENT}}">
+          <p>{{SUCCESS_COPY_FROM_FLOWS_SHORTENED}}</p>
+          <p class="muted">{{CONTEXT_REDUCED_TO_ONE_LINE}}</p>
+        </div>
+        <div class="m-dock">
+          <a class="btn btn-primary btn-block" href="{{NEXT_SCREEN_FILE}}" data-component="Button" data-event="{{EVENT_NAME}}">{{VERB_NOUN_LABEL}}</a>
+        </div>
+        <nav class="tabbar" aria-label="Sections" data-component="Navigation">
+          {{#TAB_ITEMS}}<a href="{{TAB_FILE}}"{{CURRENT_ATTR}}>{{TAB_ICON_SVG}}{{TAB_LABEL}}</a>{{/TAB_ITEMS}}
+        </nav>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================================================== loading -->
+<section class="state" data-state="loading" aria-labelledby="st-loading" hidden>
+  <div class="annotation" data-doc>
+    <p class="tag">State</p>
+    <h2 id="st-loading">Loading</h2>
+    <p data-annotation>{{WHAT_IS_STILL_VISIBLE_WHILE_IT_LOADS_AND_WHY}}</p>
+  </div>
+  <div class="frames">
+    <div data-frame="desktop">
+      <div class="app" data-app-chrome="side-nav">
+        {{DESKTOP_TOPBAR_AND_SIDENAV_AS_IN_SUCCESS}}
+        <div class="content" data-component="{{REGION_COMPONENT}}" aria-busy="true">
+          <div>
+            <h1>{{REAL_HEADLINE}}</h1>
+            <span class="skeleton" aria-hidden="true" style="max-width: 40ch"></span>
+            <span class="skeleton" aria-hidden="true" style="max-width: 28ch; margin-top: var(--space-2, 8px)"></span>
+            <button class="btn btn-primary" type="button" data-component="Button" aria-busy="true">{{VERB_NOUN_LABEL}}</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div data-frame="mobile">
+      <div class="phone" data-app-chrome="bottom-tab-bar">
+        {{MOBILE_TOPBAR_AS_IN_SUCCESS}}
+        <div class="m-body" aria-busy="true"><span class="skeleton" aria-hidden="true"></span><span class="skeleton" aria-hidden="true" style="max-width: 20ch"></span></div>
+        {{MOBILE_DOCK_BUSY_AND_TABBAR_AS_IN_SUCCESS}}
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================================================== empty -->
+<section class="state" data-state="empty" aria-labelledby="st-empty" hidden>
+  <div class="annotation" data-doc>
+    <p class="tag">State</p>
+    <h2 id="st-empty">Empty</h2>
+    <p data-annotation>{{WHO_SEES_IT_EMPTY_AND_THE_FIRST_ACTION_IT_INVITES}}</p>
+  </div>
+  <div class="frames">
+    <div data-frame="desktop">
+      <div class="app" data-app-chrome="side-nav">
+        {{DESKTOP_TOPBAR_AND_SIDENAV_AS_IN_SUCCESS}}
+        <div class="content" data-component="Empty state">
+          <div>
+            <h1>{{EMPTY_HEADLINE_FROM_FLOWS}}</h1>
+            <p>{{EMPTY_INVITATION}}</p>
+            <a class="btn btn-primary" href="{{FIRST_ACTION_SCREEN_FILE}}" data-component="Button" data-event="{{EVENT_NAME}}">{{EMPTY_FIRST_ACTION_VERB}}</a>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div data-frame="mobile">
+      <div class="phone" data-app-chrome="bottom-tab-bar">
+        {{MOBILE_TOPBAR_AS_IN_SUCCESS}}
+        <div class="m-body" data-component="Empty state"><p><strong>{{EMPTY_HEADLINE_FROM_FLOWS}}</strong></p><p>{{EMPTY_INVITATION}}</p></div>
+        <div class="m-dock"><a class="btn btn-primary btn-block" href="{{FIRST_ACTION_SCREEN_FILE}}" data-component="Button">{{EMPTY_FIRST_ACTION_VERB}}</a></div>
+        {{MOBILE_TABBAR_AS_IN_SUCCESS}}
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================================================== error -->
+<section class="state" data-state="error" aria-labelledby="st-error" hidden>
+  <div class="annotation" data-doc>
+    <p class="tag">State</p>
+    <h2 id="st-error">Error</h2>
+    <p data-annotation>{{WHICH_FAILURE_WHAT_IS_KEPT_AND_THE_WAY_OUT}}</p>
+  </div>
+  <div class="frames">
+    <div data-frame="desktop">
+      <div class="app" data-app-chrome="side-nav">
+        {{DESKTOP_TOPBAR_AND_SIDENAV_AS_IN_SUCCESS}}
+        <div class="content" data-component="{{REGION_COMPONENT}}">
+          <div>
+            <h1>{{REAL_HEADLINE}}</h1>
+            <p class="error" role="alert">{{ERROR_WHAT_HAPPENED_WHAT_TO_DO}}</p>
+            <button class="btn btn-secondary" type="button" data-component="Button">{{RETRY_VERB_NOUN}}</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div data-frame="mobile">
+      <div class="phone" data-app-chrome="bottom-tab-bar">
+        {{MOBILE_TOPBAR_AS_IN_SUCCESS}}
+        <div class="m-body"><p class="error" role="alert">{{ERROR_WHAT_HAPPENED_WHAT_TO_DO}}</p></div>
+        <div class="m-dock"><button class="btn btn-secondary btn-block" type="button" data-component="Button">{{RETRY_VERB_NOUN}}</button></div>
+        {{MOBILE_TABBAR_AS_IN_SUCCESS}}
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================================================== partial -->
+<section class="state" data-state="partial" aria-labelledby="st-partial" hidden>
+  <div class="annotation" data-doc>
+    <p class="tag">State</p>
+    <h2 id="st-partial">Partial</h2>
+    <p data-annotation>{{WHAT_LOADED_WHAT_DID_NOT_AND_HOW_THE_REST_IS_FETCHED}}</p>
+  </div>
+  <div class="frames">
+    <div data-frame="desktop">
+      <div class="app" data-app-chrome="side-nav">
+        {{DESKTOP_TOPBAR_AND_SIDENAV_AS_IN_SUCCESS}}
+        <div class="content" data-component="{{REGION_COMPONENT}}">
+          <div>
+            <h1>{{REAL_HEADLINE}}</h1>
+            <p class="muted"><span class="num">{{N}}</span> of <span class="num">{{M}}</span> {{WHAT_LOADED}}. {{PARTIAL_ACTION_COPY}}</p>
+            <button class="btn btn-secondary" type="button" data-component="Button">{{LOAD_REST_VERB_NOUN}}</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div data-frame="mobile">
+      <div class="phone" data-app-chrome="bottom-tab-bar">
+        {{MOBILE_TOPBAR_AS_IN_SUCCESS}}
+        <div class="m-body"><p class="muted"><span class="num">{{N}}</span> of <span class="num">{{M}}</span> {{WHAT_LOADED}}.</p></div>
+        <div class="m-dock"><button class="btn btn-secondary btn-block" type="button" data-component="Button">{{LOAD_REST_VERB_NOUN}}</button></div>
+        {{MOBILE_TABBAR_AS_IN_SUCCESS}}
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- The screen's own states from the flows table (selected, invalid, offline, confirming) take the same shape:
+     annotation, desktop frame with its chrome, mobile frame with its chrome. A state the screen truly lacks
+     has no panel and is marked with an "n/a: <state> because <reason>" HTML comment. -->
+<section class="state" data-state="{{OWN_STATE}}" aria-labelledby="st-own" hidden>
+  <div class="annotation" data-doc>
+    <p class="tag">State</p>
+    <h2 id="st-own">{{OWN_STATE_HEADING}}</h2>
+    <p data-annotation>{{WHAT_CHANGED_FROM_THE_DEFAULT_AND_WHY}}</p>
+  </div>
+  <div class="frames">
+    <div data-frame="desktop"><div class="app" data-app-chrome="side-nav">{{DESKTOP_TOPBAR_AND_SIDENAV_AS_IN_SUCCESS}}<div class="content"><p>{{OWN_STATE_COPY}}</p></div></div></div>
+    <div data-frame="mobile"><div class="phone" data-app-chrome="bottom-tab-bar">{{MOBILE_TOPBAR_AS_IN_SUCCESS}}<div class="m-body"><p>{{OWN_STATE_COPY}}</p></div>{{MOBILE_TABBAR_AS_IN_SUCCESS}}</div></div>
+  </div>
+</section>
+
+</main>
+
+<script>
+  // The only script: state switcher, screenshot mode and theme toggle. Nothing is posted anywhere.
+  (function () {
+    var root = document.documentElement;
+    var panels = document.querySelectorAll('section[data-state]');
+    var buttons = document.querySelectorAll('[data-state-target]');
+    var toggle = document.querySelector('.theme-toggle');
+    function params() {
+      var out = {}; location.hash.replace(/^#/, '').split('&').forEach(function (kv) {
+        var p = kv.split('='); if (p[0]) out[p[0]] = p[1] || ''; }); return out;
+    }
+    function show(name) {
+      var found = false;
+      panels.forEach(function (p) { var on = name === 'all' || p.dataset.state === name; p.hidden = !on; found = found || on; });
+      if (!found && panels[0]) { panels[0].hidden = false; name = panels[0].dataset.state; }
+      buttons.forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.stateTarget === name)); });
+    }
+    function applyHash() {
+      var p = params();
+      var shot = p.chrome === '0';
+      if (shot) root.setAttribute('data-chrome', '0'); else root.removeAttribute('data-chrome');
+      show(p.state || (shot ? (panels[0] && panels[0].dataset.state) : 'all'));
+    }
+    buttons.forEach(function (b) { b.addEventListener('click', function () {
+      var p = params(); p.state = b.dataset.stateTarget;
+      location.hash = Object.keys(p).map(function (k) { return k + '=' + p[k]; }).join('&');
+    }); });
+    addEventListener('hashchange', applyHash);
+    applyHash();
+
+    function theme(t) {
+      if (t) root.setAttribute('data-theme', t); else root.removeAttribute('data-theme');
+      var dark = t === 'dark' || (!t && matchMedia('(prefers-color-scheme: dark)').matches);
+      toggle.textContent = dark ? 'Light theme' : 'Dark theme';
+      toggle.setAttribute('aria-pressed', String(dark));
+    }
+    var saved = null; try { saved = localStorage.getItem('theme'); } catch (e) {}
+    theme(saved);
+    toggle.addEventListener('click', function () {
+      var next = toggle.getAttribute('aria-pressed') === 'true' ? 'light' : 'dark';
+      try { localStorage.setItem('theme', next); } catch (e) {}
+      theme(next);
+    });
+  })();
+</script>
+</body>
+</html>

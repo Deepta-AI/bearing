@@ -1,0 +1,196 @@
+# __REPO_NAME__ CI on GitHub Actions: the twin of .gitlab-ci.yml. Same stages
+# (validate, lint, test, security, build, then EAS build, update and deploy
+# on request) and every gate is `make <target>`, so the Makefile stays the
+# single source of what a gate does. GitHub sets CI=true, so a gate whose
+# tool is missing fails here instead of printing SKIPPED. Native builds run
+# on EAS cloud from ubuntu-latest; no Mac runner is needed for either platform.
+#
+# The two-approval rule (one peer, one lead, from CODEOWNERS) is a branch
+# protection setting, not something a workflow can enforce: Settings >
+# Branches > main and develop: require a pull request, 2 approving reviews,
+# review from Code Owners, dismiss stale approvals, and the status checks
+# lint, unit, expo-doctor, dependency-scan and export.
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [develop, main]
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "EAS action for this ref (a person approves in the environment)"
+        type: choice
+        options: [build-android, build-ios, publish-update, deploy-qa, deploy-production]
+        default: build-android
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: "24"
+  EXPO_NO_TELEMETRY: "1"
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - name: branch-name
+        if: github.event_name == 'pull_request'
+        env: { BRANCH: "${{ github.head_ref }}" }
+        run: |
+          echo "$BRANCH" | grep -Eq '^(feature|bugfix|hotfix|chore|docs)/[A-Z][A-Z0-9]*(-[0-9]+)+-[A-Za-z0-9]+$|^release/v[0-9]+\.[0-9]+\.[0-9]+$'
+          echo "branch-name: 1 branch checked"
+      - name: commits
+        if: github.event_name == 'pull_request'
+        env: { BASE: "${{ github.base_ref }}" }
+        run: |
+          git fetch origin "$BASE" --depth=200
+          range="origin/$BASE..HEAD"
+          subjects=$(mktemp)
+          git log --no-merges --format=%s "$range" > "$subjects"
+          n=$(wc -l < "$subjects" | tr -d ' ')
+          [ "$n" -gt 0 ] || { echo "commits: 0 commits in range $range"; exit 1; }
+          bad=0
+          while IFS= read -r subj; do
+            echo "$subj" | grep -Eq '^(feat|fix|refactor|test|docs|chore|perf|build|ci|revert)(\([a-z0-9._/-]+\))?!?: .{1,72}( \[[A-Z][A-Z0-9]*(-[0-9]+)+\])?$' || { echo "bad subject: $subj"; bad=$((bad+1)); }
+          done < "$subjects"
+          if git log --no-merges --format=%B "$range" | grep -Eiq 'co-authored-by: .*(claude|anthropic|copilot|chatgpt|gemini)|generated with'; then echo "AI attribution trailer found"; exit 1; fi
+          echo "commits: $n commits checked, $bad bad"
+          [ "$bad" -eq 0 ]
+
+  lint:
+    needs: validate
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        gate: [format-check, lint, typecheck]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "${{ env.NODE_VERSION }}" }
+      - run: echo "STORE_PATH=$(pnpm store path --silent)" >> "$GITHUB_ENV"
+      - uses: actions/cache@v4
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: pnpm-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: pnpm-${{ runner.os }}-
+      - name: install
+        run: if [ -f pnpm-lock.yaml ]; then pnpm install --frozen-lockfile; else echo "lockfile:none committed, installing unfrozen (run pnpm install and commit pnpm-lock.yaml)"; pnpm install; fi
+      - run: make ${{ matrix.gate }}
+
+  unit:
+    needs: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "${{ env.NODE_VERSION }}" }
+      - run: echo "STORE_PATH=$(pnpm store path --silent)" >> "$GITHUB_ENV"
+      - uses: actions/cache@v4
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: pnpm-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: pnpm-${{ runner.os }}-
+      - name: install
+        run: if [ -f pnpm-lock.yaml ]; then pnpm install --frozen-lockfile; else echo "lockfile:none committed, installing unfrozen (run pnpm install and commit pnpm-lock.yaml)"; pnpm install; fi
+      - run: make test
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: coverage, path: coverage, retention-days: 7 }
+
+  expo-doctor:
+    needs: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "${{ env.NODE_VERSION }}" }
+      - name: install
+        run: if [ -f pnpm-lock.yaml ]; then pnpm install --frozen-lockfile; else echo "lockfile:none committed, installing unfrozen (run pnpm install and commit pnpm-lock.yaml)"; pnpm install; fi
+      - run: npx expo-doctor
+
+  # Maestro needs a simulator with the app installed: a macOS runner and a
+  # dev build. Left as a manual, best-effort job; not part of make check.
+  e2e:
+    if: github.event_name == 'workflow_dispatch' && inputs.action == 'build-ios'
+    needs: validate
+    runs-on: macos-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - run: 'echo "e2e: install Maestro (curl -fsSL https://get.maestro.mobile.dev | bash), boot a simulator with the preview build, then make test-e2e"'
+
+  dependency-scan:
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "${{ env.NODE_VERSION }}" }
+      - name: install
+        run: if [ -f pnpm-lock.yaml ]; then pnpm install --frozen-lockfile; else echo "lockfile:none committed, installing unfrozen (run pnpm install and commit pnpm-lock.yaml)"; pnpm install; fi
+      - run: make vuln
+
+  export:
+    needs: [unit, expo-doctor, dependency-scan]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "${{ env.NODE_VERSION }}" }
+      - name: install
+        run: if [ -f pnpm-lock.yaml ]; then pnpm install --frozen-lockfile; else echo "lockfile:none committed, installing unfrozen (run pnpm install and commit pnpm-lock.yaml)"; pnpm install; fi
+      - run: make export
+      - name: smoke
+        run: |
+          [ -f dist/metadata.json ] || { echo "smoke: dist/metadata.json missing"; exit 1; }
+          n=$(find dist/assets -type f | wc -l); b=$(find dist/_expo -type f -name '*.hbc' -o -type f -name '*.js' | wc -l)
+          [ "$b" -gt 0 ] || { echo "smoke: 0 bundles exported"; exit 1; }
+          echo "smoke: $b bundles, $n assets checked"
+      - uses: actions/upload-artifact@v4
+        with: { name: export, path: dist, retention-days: 1 }
+
+  # EAS cloud builds, updates and store submission run only from
+  # workflow_dispatch and stop at the environment's protection rule: a person
+  # approves in the GitHub UI. EXPO_TOKEN is an environment secret from an
+  # Expo robot user. The preview profile builds develop; production builds a tag.
+  eas:
+    if: github.event_name == 'workflow_dispatch'
+    needs: validate
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ inputs.action == 'deploy-production' && 'production' || 'qa' }}
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "${{ env.NODE_VERSION }}" }
+      - name: install
+        run: if [ -f pnpm-lock.yaml ]; then pnpm install --frozen-lockfile; else echo "lockfile:none committed, installing unfrozen (run pnpm install and commit pnpm-lock.yaml)"; pnpm install; fi
+      - run: '[ -n "$EXPO_TOKEN" ] || { echo "EXPO_TOKEN is not set in the environment secrets"; exit 1; }'
+      - name: ${{ inputs.action }}
+        run: |
+          profile=preview; case "$GITHUB_REF" in refs/tags/*) profile=production;; esac
+          case "${{ inputs.action }}" in
+            build-android) pnpm dlx eas-cli build --non-interactive --profile "$profile" --platform android; echo "build-android: 1 EAS build submitted (profile $profile)";;
+            build-ios) pnpm dlx eas-cli build --non-interactive --profile "$profile" --platform ios; echo "build-ios: 1 EAS build submitted (profile $profile)";;
+            publish-update) pnpm dlx eas-cli update --non-interactive --channel preview --message "${GITHUB_SHA::7}"; echo "publish-update: 1 update published to preview";;
+            deploy-qa) echo "deploy-qa: distribute the preview build (EAS internal distribution, TestFlight or Firebase App Distribution); wire this step to your release script"; exit 1;;
+            deploy-production) echo "deploy-production: eas submit --profile production for both stores (eas.json submit.production); wire this step to your release script"; exit 1;;
+          esac

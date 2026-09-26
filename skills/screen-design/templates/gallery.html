@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>{{PRODUCT}}: design bundle</title>
+<!--
+  docs/design/index.html, rendered by scripts/bundle.py gallery from
+  docs/design/design.json. Do not edit the output: change design.json and
+  render again. The page is the product-wide front door to the bundle:
+  the information architecture, the navigation and its reason, one card
+  per screen with what it is for and what was raised while designing it,
+  and the audit numbers. Colours come from tokens.css next to this file.
+-->
+<link rel="stylesheet" href="tokens.css">
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  body { margin: 0; background: var(--color-bg); color: var(--color-text);
+    font-family: var(--font-body); font-size: var(--text-body, 16px); line-height: var(--leading-body, 1.5); overflow-x: clip; }
+  h1, h2, h3 { font-family: var(--font-display); line-height: 1.15; text-wrap: balance; margin: 0 0 var(--space-2, 8px); }
+  h1 { font-size: var(--text-display, 40px); }
+  h2 { font-size: var(--text-title, 24px); margin-top: var(--space-5, 32px); }
+  h3 { font-size: var(--text-body, 16px); }
+  a { color: var(--color-link); }
+  p { max-width: 70ch; }
+  .skip { position: absolute; inset-inline-start: var(--space-3, 16px); top: -100px; }
+  .skip:focus { top: var(--space-3, 16px); background: var(--color-surface-raised); padding: var(--space-2, 8px); }
+  .wrap { max-width: 1440px; margin-inline: auto; padding: var(--space-4, 24px) var(--space-3, 16px) var(--space-6, 48px); }
+  @media (min-width: 768px) { .wrap { padding-inline: var(--space-5, 32px); } }
+  .lede, .key { color: var(--color-text-muted); }
+  .key { font-family: var(--font-mono); font-size: var(--text-label, 14px); }
+  /* Two columns from 1100 px: the IA tree beside the screens, so neither sits beside empty space. */
+  .layout { display: grid; gap: var(--space-5, 32px); grid-template-columns: minmax(0, 1fr); }
+  @media (min-width: 1100px) { .layout { grid-template-columns: 20rem minmax(0, 1fr); } }
+  .side { align-self: start; }
+  @media (min-width: 1100px) { .side { position: sticky; top: var(--space-3, 16px); } }
+  .side ul { list-style: none; padding-inline-start: var(--space-3, 16px); margin: 0; }
+  .side > div > ul { padding-inline-start: 0; }
+  .side li { margin-block: var(--space-1, 4px); }
+  dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: var(--space-1, 4px) var(--space-3, 16px); margin: 0; }
+  dt { color: var(--color-text-muted); }
+  dd { margin: 0; }
+  .cards { list-style: none; padding: 0; margin: 0; display: grid; gap: var(--space-3, 16px);
+    grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr)); }
+  .card { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-container);
+    padding: var(--space-3, 16px); display: flex; flex-direction: column; gap: var(--space-1, 4px); }
+  .card p { margin: 0; }
+  .states a { margin-inline-end: var(--space-1, 4px); }
+  .serves, .notes { color: var(--color-text-muted); font-size: var(--text-label, 14px); }
+  .raised { margin-top: var(--space-2, 8px); padding: var(--space-2, 8px); border-inline-start: 3px solid var(--color-warning);
+    background: var(--color-warning-subtle); border-radius: var(--radius-control); font-size: var(--text-label, 14px); }
+  .raised p { font-weight: var(--weight-label, 600); }
+  .raised ul { margin: var(--space-1, 4px) 0 0; padding-inline-start: var(--space-3, 16px); }
+  .panel { background: var(--color-bg-subtle); border-radius: var(--radius-container); padding: var(--space-3, 16px); margin-top: var(--space-3, 16px); }
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<div class="wrap">
+<header>
+  <h1>{{PRODUCT}}</h1>
+  <p class="lede">Design bundle v{{VERSION}}. {{SUMMARY}}</p>
+  <p>{{SYSTEM_LINK}}</p>
+</header>
+<div class="layout">
+  <aside class="side" aria-label="Information architecture">
+    <h2>Sitemap</h2>
+    <div>{{SITEMAP}}</div>
+    <div class="panel">
+      <h3>Navigation</h3>
+      {{NAVIGATION}}
+    </div>
+  </aside>
+  <main id="main">
+    <h2>Screens</h2>
+    <ul class="cards">
+{{SCREENS}}
+    </ul>
+    <h2>Brief</h2>
+    {{BRIEF}}
+    <h2>Directions</h2>
+    {{DIRECTIONS}}
+    <h2>Raised while designing</h2>
+    {{CONCERNS}}
+    <h2>Audit</h2>
+    {{AUDIT}}
+    <p class="lede">Pushing this bundle to a shared design system is a person's step: see DESIGN-SYNC.md in this folder.</p>
+  </main>
+</div>
+</div>
+</body>
+</html>

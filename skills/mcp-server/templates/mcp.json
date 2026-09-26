@@ -1,0 +1,19 @@
+{
+  "mcpServers": {
+    "orders": {
+      "command": "uv",
+      "args": ["run", "python", "-m", "mcp_server.server"],
+      "env": {
+        "BACKEND_URL": "${BACKEND_URL}",
+        "BACKEND_TOKEN": "${BACKEND_TOKEN}"
+      }
+    },
+    "orders-remote": {
+      "type": "http",
+      "url": "https://mcp.example.internal/mcp",
+      "headers": {
+        "Authorization": "Bearer ${MCP_BEARER_TOKEN}"
+      }
+    }
+  }
+}

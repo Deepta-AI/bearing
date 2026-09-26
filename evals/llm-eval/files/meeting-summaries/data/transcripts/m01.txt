@@ -1,0 +1,11 @@
+Meeting: Checkout redesign weekly, 2026-09-01
+Attendees: Priya, Arun, Meera
+
+Priya: Usability tests are done. Five of eight people missed the coupon field on the new checkout.
+Arun: We can move the coupon field above the total. It is a one-day change.
+Meera: Let's do that. Decision: coupon field moves above the order total in the next release.
+Priya: I will rerun the test with four people after the change, by 12 September.
+Arun: I'll ship the change by 5 September.
+Meera: Do we keep the old checkout behind a flag for enterprise customers? I don't know yet.
+Priya: Let's ask sales before deciding.
+Meera: Okay, open for now.

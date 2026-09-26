@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# brg-state-path: the session state file for a branch, one rule for every
+# skill: .bearing/state/<branch with every / replaced by _>.md under the
+# repository root. A detached HEAD is "detached".
+#
+#   brg-state-path            the current branch's state file
+#   brg-state-path <branch>   that branch's state file
+#
+# Prints the absolute path (the file need not exist). Exits 1 outside a git
+# repository. bin/brg-guard and hooks/scripts/lib.sh compute the same path
+# inline because they ship alone; tests/unit/state_path.sh proves all three
+# agree. bash 3.2 safe.
+set -u
+root="$(git rev-parse --show-toplevel 2>/dev/null)" || { echo "brg-state-path: not a git repository" >&2; exit 1; }
+branch="${1:-$(git branch --show-current 2>/dev/null)}"
+[ -n "$branch" ] || branch="detached"
+printf '%s/.bearing/state/%s.md\n' "$root" "$(printf '%s' "$branch" | tr '/' '_')"

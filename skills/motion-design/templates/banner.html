@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Promotional banner</title>
+<style>
+  /* Tokens: hex first, oklch second (fallback order). Light and dark both designed. */
+  :root {
+    --color-bg: #f0f7f3; --color-bg: oklch(97% 0.01 160);
+    --color-surface: #f9fdfb; --color-surface: oklch(99% 0.005 160);
+    --color-text: #121e17; --color-text: oklch(22% 0.02 160);
+    --color-text-muted: #4c5951; --color-text-muted: oklch(45% 0.02 160);
+    --color-accent: #056641; --color-accent: oklch(45% 0.10 160);
+    --color-on-accent: #f9fdfb; --color-on-accent: oklch(99% 0.005 160);
+    --color-accent-subtle: #d2f1df; --color-accent-subtle: oklch(93% 0.04 160);
+    --color-focus: #056641; --color-focus: oklch(45% 0.10 160);
+    --font-display: "Fraunces", "Iowan Old Style", Georgia, serif;
+    --font-body: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+    --space-2: 8px; --space-3: 16px; --space-4: 24px; --space-5: 32px;
+    --radius-control: 6px; --radius-container: 12px;
+    --duration-instant: 80ms; --duration-fast: 150ms; --duration-base: 240ms; --duration-slow: 400ms; --duration-deliberate: 700ms;
+    --ease-standard: cubic-bezier(0.2, 0, 0, 1); --ease-enter: cubic-bezier(0, 0, 0.2, 1);
+    --stagger: 40ms;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --color-bg: #0c140f; --color-bg: oklch(18% 0.015 160);
+      --color-surface: #19221d; --color-surface: oklch(24% 0.015 160);
+      --color-text: #ecf4ef; --color-text: oklch(96% 0.01 160);
+      --color-text-muted: #a4b2aa; --color-text-muted: oklch(75% 0.02 160);
+      --color-accent: #61d19a; --color-accent: oklch(78% 0.13 160);
+      --color-on-accent: #0c140f; --color-on-accent: oklch(18% 0.015 160);
+      --color-accent-subtle: #0e3020; --color-accent-subtle: oklch(28% 0.05 160);
+      --color-focus: #61d19a; --color-focus: oklch(78% 0.13 160);
+      color-scheme: dark;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    :root { --duration-instant: 0ms; --duration-fast: 0ms; --duration-base: 0ms; --duration-slow: 0ms; --duration-deliberate: 0ms; --stagger: 0ms; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: var(--space-3); background: var(--color-bg); color: var(--color-text); font: 16px/1.5 var(--font-body); }
+  :focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+
+  /* The banner: a full-width band, text and figure paired at desktop, stacked on a phone. */
+  .banner { position: relative; overflow: hidden; width: min(100%, 960px); background: var(--color-surface); border-radius: var(--radius-container); display: grid; grid-template-columns: 1fr; gap: var(--space-4); padding: var(--space-5); }
+  @media (min-width: 720px) { .banner { grid-template-columns: 3fr 2fr; align-items: center; } }
+  .sweep { position: absolute; inset: 0; background: var(--color-accent-subtle); transform-origin: left; transform: scaleX(0); z-index: 0; }
+  .copy, .figure { position: relative; z-index: 1; }
+  .copy > * { margin: 0; }
+  .eyebrow { font-size: 13px; font-weight: 600; letter-spacing: 0.01em; text-transform: uppercase; color: var(--color-accent); }
+  h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(28px, 4vw, 40px); line-height: 1.1; margin-top: var(--space-2); }
+  .offer { margin-top: var(--space-3); color: var(--color-text-muted); }
+  .offer strong { color: var(--color-text); font-variant-numeric: tabular-nums; }
+  .cta { margin-top: var(--space-4); display: inline-block; font: inherit; font-weight: 600; height: 44px; line-height: 44px; padding: 0 var(--space-4); border: 0; border-radius: var(--radius-control); background: var(--color-accent); color: var(--color-on-accent); cursor: pointer; box-shadow: 0 1px 2px oklch(0% 0 0 / 0.12); transition: transform var(--duration-instant) var(--ease-standard); }
+  .cta:active { transform: scale(0.97); }
+  .figure { justify-self: center; width: 100%; max-width: 280px; }
+  .figure svg { display: block; width: 100%; height: auto; }
+  .bar { fill: var(--color-accent); transform-origin: bottom; transform: scaleY(0); }
+
+  /* Every animated element starts hidden and lands in its final state; only transform and opacity move. */
+  .step { opacity: 0; transform: translateY(8px); }
+
+  .controls { position: absolute; right: var(--space-3); top: var(--space-3); z-index: 2; display: flex; gap: var(--space-2); }
+  .controls button { font: inherit; font-size: 13px; font-weight: 600; height: 32px; padding: 0 var(--space-2); border-radius: var(--radius-control); border: 1px solid var(--color-text-muted); background: var(--color-surface); color: var(--color-text); cursor: pointer; }
+  .controls button[hidden] { display: none; }
+</style>
+</head>
+<body>
+<section class="banner" aria-labelledby="banner-title" data-state="idle">
+  <div class="sweep" aria-hidden="true"></div>
+  <div class="copy">
+    <p class="eyebrow step">Festive season</p>
+    <h1 id="banner-title" class="step">Settle every invoice before the books close</h1>
+    <p class="offer step">Pay by 31 October and keep <strong data-count="2.5" data-suffix="%" data-decimals="1">2.5%</strong> of the total as early-settlement credit.</p>
+    <button class="cta step" type="button">Start a settlement</button>
+  </div>
+  <div class="figure" aria-hidden="true">
+    <svg viewBox="0 0 280 160" role="img">
+      <rect class="bar step-bar" x="20" y="20" width="40" height="120" rx="4" style="--i: 0"></rect>
+      <rect class="bar step-bar" x="80" y="20" width="40" height="120" rx="4" style="--i: 1"></rect>
+      <rect class="bar step-bar" x="140" y="20" width="40" height="120" rx="4" style="--i: 2"></rect>
+      <rect class="bar step-bar" x="200" y="20" width="40" height="120" rx="4" style="--i: 3"></rect>
+    </svg>
+  </div>
+  <div class="controls">
+    <button type="button" data-action="pause" aria-pressed="false">Pause</button>
+    <button type="button" data-action="replay" hidden>Replay</button>
+  </div>
+</section>
+
+<script>
+(function () {
+  var banner = document.querySelector('.banner');
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)');
+  var pauseBtn = banner.querySelector('[data-action="pause"]');
+  var replayBtn = banner.querySelector('[data-action="replay"]');
+  var running = [];
+
+  function ms(name) { return parseFloat(getComputedStyle(document.documentElement).getPropertyValue(name)) || 0; }
+  function finalState() {
+    banner.querySelectorAll('.step').forEach(function (el) { el.style.opacity = 1; el.style.transform = 'none'; });
+    banner.querySelector('.sweep').style.transform = 'scaleX(1)';
+    banner.querySelectorAll('.bar').forEach(function (el, i) { el.style.transform = 'scaleY(' + [0.45, 0.7, 0.55, 1][i] + ')'; });
+    banner.querySelectorAll('[data-count]').forEach(function (el) { el.textContent = el.dataset.count + (el.dataset.suffix || ''); });
+    banner.dataset.state = 'done';
+    pauseBtn.hidden = true; replayBtn.hidden = false;
+  }
+
+  // The scripted timeline. Offsets in ms from t0; every step is transform or opacity.
+  function play() {
+    running.forEach(function (a) { a.cancel(); });
+    running = [];
+    banner.dataset.state = 'playing';
+    pauseBtn.hidden = false; pauseBtn.textContent = 'Pause'; pauseBtn.setAttribute('aria-pressed', 'false'); replayBtn.hidden = true;
+    if (reduce.matches) { finalState(); return; }
+
+    var enter = getComputedStyle(document.documentElement).getPropertyValue('--ease-enter').trim();
+    var base = ms('--duration-base'), slow = ms('--duration-slow'), deliberate = ms('--duration-deliberate'), stagger = ms('--stagger');
+    var timeline = [
+      { el: banner.querySelector('.sweep'), at: 0, dur: slow, frames: [{ transform: 'scaleX(0)' }, { transform: 'scaleX(1)' }] }
+    ];
+    banner.querySelectorAll('.step').forEach(function (el, i) {
+      timeline.push({ el: el, at: 200 + i * (stagger * 3), dur: base, frames: [{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'none' }] });
+    });
+    banner.querySelectorAll('.bar').forEach(function (el, i) {
+      timeline.push({ el: el, at: 500 + i * stagger, dur: slow, frames: [{ transform: 'scaleY(0)' }, { transform: 'scaleY(' + [0.45, 0.7, 0.55, 1][i] + ')' }] });
+    });
+    timeline.forEach(function (step) {
+      running.push(step.el.animate(step.frames, { delay: step.at, duration: step.dur, easing: enter, fill: 'forwards' }));
+    });
+
+    // Number count-up: the final value stays in the markup for assistive tech; only the visible text changes.
+    banner.querySelectorAll('[data-count]').forEach(function (el) {
+      var target = parseFloat(el.dataset.count), decimals = parseInt(el.dataset.decimals || '0', 10), suffix = el.dataset.suffix || '';
+      var start = null, at = 700;
+      el.setAttribute('aria-label', target.toFixed(decimals) + suffix);
+      function tick(now) {
+        if (banner.dataset.state === 'paused') { start = null; requestAnimationFrame(tick); return; }
+        if (start === null) start = now;
+        var t = Math.min(1, (now - start - at) / deliberate);
+        if (t < 0) { requestAnimationFrame(tick); return; }
+        var eased = 1 - Math.pow(1 - t, 3);
+        el.textContent = (target * eased).toFixed(decimals) + suffix;
+        if (t < 1 && banner.dataset.state !== 'done') requestAnimationFrame(tick); else el.textContent = target.toFixed(decimals) + suffix;
+      }
+      requestAnimationFrame(tick);
+    });
+
+    Promise.all(running.map(function (a) { return a.finished.catch(function () {}); })).then(function () {
+      if (banner.dataset.state === 'playing') { banner.dataset.state = 'done'; pauseBtn.hidden = true; replayBtn.hidden = false; }
+    });
+  }
+
+  pauseBtn.addEventListener('click', function () {
+    var paused = banner.dataset.state === 'paused';
+    running.forEach(function (a) { paused ? a.play() : a.pause(); });
+    banner.dataset.state = paused ? 'playing' : 'paused';
+    pauseBtn.textContent = paused ? 'Pause' : 'Resume';
+    pauseBtn.setAttribute('aria-pressed', String(!paused));
+  });
+  replayBtn.addEventListener('click', function () {
+    banner.querySelectorAll('.step, .sweep, .bar').forEach(function (el) { el.style.opacity = ''; el.style.transform = ''; });
+    play();
+  });
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden) running.forEach(function (a) { a.pause(); });
+    else if (banner.dataset.state === 'playing') running.forEach(function (a) { a.play(); });
+  });
+  reduce.addEventListener('change', function () { if (reduce.matches) { running.forEach(function (a) { a.finish(); }); finalState(); } });
+
+  play();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,66 @@
+{
+ "skill_name": "postmortem",
+ "evals": [
+  {
+   "id": 1,
+   "name": "checkout-outage-from-incident-doc",
+   "prompt": "Can you write up the postmortem for Tuesday's checkout outage? The incident doc and the data we pulled are in docs/postmortems.",
+   "expected_output": "A new blameless postmortem under docs/postmortems/ that corrects the incident doc from the repository: impact of 3,204 failed checkout requests out of 7,936 (about 40 percent) between 08:31Z and 09:14Z summed from the 5xx CSV instead of the eyeballed 5,000, a UTC timeline with the alert at 08:34Z (not 14:04Z) and the v2.3.0 release that the doc says did not happen, a root cause chain from the DB_POOL_SIZE cut from 20 to 5 in v2.3.0 to PoolTimeout under the midday load, the misleading runbook restart step, concrete owned follow-ups including the runbook, the pool restore recorded as done in v2.3.1, no invented numbers, owners or ticket ids, and nothing outside docs changed or committed.",
+   "files": [
+    "files/checkout-outage"
+   ],
+   "expectations": [
+    "A new postmortem file is written under docs/postmortems/ (a file other than 2026-09-22-checkout-errors-incident.md), and the incident doc and the two files under docs/postmortems/incident-data/ are left unchanged",
+    "The impact states 3,204 failed checkout requests (the sum of the http_5xx column in incident-data/5xx-by-minute.csv) and names that CSV or the 5xx panel export as the source; it does not present the incident doc's \"about 5,000\" as the figure (mentioning it as the earlier estimate being corrected is fine)",
+    "The impact gives the size of the failure relative to traffic: 7,936 checkout requests in the 08:31Z to 09:13Z window, about 40 percent failing (a stated rate between 39 and 41 percent, or both counts, satisfies this)",
+    "The duration is given as about 43 minutes, errors starting at 08:31Z and ending with the rollback at 09:14Z (42 to 44 minutes, from the CSV and the chat export, counts)",
+    "Every timeline time is in UTC and consistent with the chat export converted from IST: the alert fired at 08:34Z (14:04 IST), and the incident doc's \"14:04Z CheckoutErrorRateHigh fired\" is not carried over; the postmortem or the final message notes that entry was in IST",
+    "The timeline includes the v2.3.0 release before the errors began (tagged at 08:20Z and rolled out at 08:28Z per git and the chat export), and the postmortem or the final message says the incident doc's \"Last deploy: none that day\" is wrong",
+    "The root cause is written as a chain of conditions that runs from DB_POOL_SIZE being cut from 20 to 5 in shopfront/settings.py in v2.3.0 (SHOP-80) to requests waiting over the 2 s DB_POOL_TIMEOUT_S and failing with PoolTimeout (500s) under the midday load",
+    "The \"database primary was slow\" hypothesis is not presented as the cause: the postmortem records that the DBA check (CPU 31 percent, no slow queries, 60 of 500 connections) ruled it out, and it does not keep \"Look into the DB CPU\" as a follow-up without saying why",
+    "The postmortem is blameless: it does not name Dev One or any person as the cause, and the incident doc's \"merged a pool change without anyone reviewing it\" is restated as a condition (for example a capacity setting that lives in code and changed with no load review or check), not as a person's failing",
+    "It records that the runbook's first remediation step (restart the checkout pods) bought only about 3 minutes and delayed the rollback, and that the runbook says nothing about checking the last deploy or rolling back",
+    "A follow-up updates docs/runbooks/CheckoutErrorRateHigh.md with what actually worked (check the last deploy and roll back, the PoolTimeout signal), since the incident doc says it was not updated",
+    "Restoring the pool size to 20 is not listed as an open follow-up: the postmortem records it as done in v2.3.1 (SHOP-88, commit \"fix(db): restore pool size 20\")",
+    "Every follow-up is a concrete action (for example an alert on pool wait or saturation with a threshold, or a check that stops a pool size change shipping without a load review); \"Add more monitoring\" does not appear as a follow-up in that form",
+    "Every follow-up has an owner that is a team named in the repository (payments-team or platform-oncall from CODEOWNERS, or the payments team named in the chat) or is explicitly marked as needing an owner; no person's name is invented as an owner",
+    "No follow-up cites a ticket id that does not exist in the repository or the notes (SHOP-71, SHOP-80, SHOP-88); new work is marked with a placeholder or left without an id",
+    "Figures the repository does not contain (orders or revenue lost, distinct customers affected) are stated as unknown with how to measure them, not estimated; the 37 support tickets are not presented as the number of customers affected",
+    "No file outside docs/ is created or changed (shopfront/, tests/, Makefile, CODEOWNERS and README.md are as at the fixture), and make check still passes",
+    "The run makes no git commit: the output repository's history still ends at the fixture commit",
+    "The final message says the postmortem was built from the repository's records only (incident doc, CSV, chat export, git history) and names what it could not verify, such as live dashboards or the order data",
+    "No file written or edited contains an em dash character"
+   ]
+  },
+  {
+   "id": 2,
+   "name": "duplicate-payout-emails-rca",
+   "prompt": "Need an RCA for Thursday night's duplicate payout emails. My notes are in ops/2026-09-24-payout-notes.md and the provider export is next to them. Partner success wants it before their Monday call.",
+   "expected_output": "A new blameless postmortem under docs/postmortems/ built from the notes, the provider export and the git history: 426 accepted messages for 312 payouts, 87 payouts emailed more than once (60 twice, 27 three times), 114 extra emails to 73 of 180 partners between 18:10Z and 18:41Z, money not duplicated per the notes; root cause our retry after the 2 s client timeout (v1.8.0, PAY-231) resending messages the provider had already accepted, with no idempotency key though the provider supports one, not a provider bug; the hand-set NOTIFY_MAX_RETRIES=1 on the host flagged as not in the repository; concrete owned follow-ups; no email address, phone number or API key copied, and the committed key flagged for rotation; nothing outside docs changed or committed.",
+   "files": [
+    "files/payout-notify"
+   ],
+   "expectations": [
+    "A new postmortem file is written under docs/postmortems/ beside the July one, and the files under ops/ are left unchanged (or, if the run removes the API key from the notes, the final message says so)",
+    "The impact states 87 payouts whose email was sent more than once and 114 extra emails (426 accepted messages for 312 payouts in ops/provider-accepted-2026-09-24.csv), computed from the export and naming it as the source",
+    "The impact states 73 partners affected (distinct partner_id among the duplicated payouts), and the notes' \"about 40 partners\" is not presented as the figure (mentioning it as the earlier estimate being corrected is fine)",
+    "The impact says money was not duplicated (312 payouts, 312 transfers) and attributes that to the ledger check in the on-call notes rather than to something the run verified; 312 distinct payouts in the export is consistent with it",
+    "Timeline times are in UTC and anchored to the export: batch sends from about 18:00Z to 18:55Z, duplicates from 18:10Z to 18:41Z; times taken from the notes' vague wording (\"around midnight\", \"a bit later\") are converted from IST and marked as approximate or inferred",
+    "The timeline includes release v1.8.0 on 24 Sep (PAY-231), which lowered PROVIDER_TIMEOUT_S from 10.0 to 2.0 and raised the NOTIFY_MAX_RETRIES default from 1 to 3, hours before the batch",
+    "The root cause is a chain in our client: a 2 s timeout shorter than the provider's latency while it was degraded made accepted sends look failed, and notify/sender.py retried them without the idempotency key that notify/provider.py supports, so each retry became a new email",
+    "The notes' guess that the provider sent duplicates is not presented as the cause; the postmortem says the provider accepted each retry as a separate message, as its own docstring and the distinct message ids in the export show",
+    "The postmortem is blameless: Dev Three is not named, and \"bumped retries to 3 ... shouldn't have done without asking\" is restated as a condition (for example a retry and timeout change that shipped with no test of whether retries are safe)",
+    "It flags that the mitigation (NOTIFY_MAX_RETRIES=1 set by hand on the batch host) is not in the repository: notify/config.py still defaults to 3 and deploy/notify.env does not set it, so the next deploy can bring back 3 retries",
+    "It says that one retry with a 2 s timeout can still send a payout email twice, so the hand-set value reduces but does not remove the risk; the durable fix is a follow-up such as an idempotency key per payout (for example the payout id) or a longer timeout",
+    "Follow-ups are concrete: at least one fixes the duplicate sends (an idempotency key per payout, or equivalent), and one lets the next on-call see or handle this (an alert on more than one accepted message per payout, or a runbook); \"TODO: monitoring\" does not survive as a follow-up in that form",
+    "Every follow-up has an owner that is a team named in the repository (payouts-team or platform-team from CODEOWNERS) or is explicitly marked as needing an owner; no person's name is invented as an owner, and no ticket id is cited beyond PAY-231, PAY-198 or PAY-199 except as a placeholder",
+    "No file written or edited contains an email address, phone number or the API key from the notes (accounts@brightlane-traders.example, ops@kaveri-foods.example, +91 98450 12345, nt_live_4b1f8e0a92c7d3e6a1)",
+    "The final message flags that a live-looking provider API key (NOTIFY_API_KEY) is committed in ops/2026-09-24-payout-notes.md and recommends rotating it, without repeating the key; the postmortem may carry this as a follow-up too",
+    "No file outside docs/ is created or changed apart from what the ops expectation allows (notify/, tests/, deploy/, Makefile and README.md are as at the fixture), and make check still passes",
+    "The run makes no git commit: the output repository's history still ends at the fixture commit",
+    "The final message names what it could not verify from the repository (the provider's status page and dashboard, the ledger check, what the batch host's environment actually holds)",
+    "No file written or edited contains an em dash character"
+   ]
+  }
+ ]
+}

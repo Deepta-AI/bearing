@@ -1,0 +1,51 @@
+{
+ "skill_name": "llm-agent",
+ "evals": [
+  {
+   "id": 1,
+   "name": "refund-agent-with-money-tools",
+   "prompt": "We need the refund agent from PAY-41 (spec is in docs/product/refund-agent.md). When a ticket tagged refund comes in it should read the ticket, look up the order, and then either issue the refund, leave a note on the ticket for a person, or email the customer. Build it under app/agents/ on top of the ModelClient in app/llm.py. We can't add any dependencies to this repo, so the tests have to run against a fake model, and make check has to stay green.",
+   "expected_output": "An agent under app/agents/ whose tools sit in one registry with side-effect classes, where refunds above Rs 2,000 wait for a support ops approval instead of executing, the refund tool enforces the handbook rules in code (own order, 30 days, never above the order total, idempotent on retry), the loop is bounded by turns and by money computed from usage, a flag in var/flags.json stops it without a deploy, every call is logged with a run id and without ticket text, and scripted-model tests prove each of these offline.",
+   "files": [
+    "files/refund-desk"
+   ],
+   "expectations": [
+    "`make check` passes when the grader runs it in the output repository, and it runs new tests that drive the agent loop with a scripted fake model (beyond the fixture's tests in tests/test_payments.py and tests/test_store.py)",
+    "The tools the model can call are declared in one place with an explicit side-effect class each (for example read, write, irreversible), the refund tool and the customer email tool are in the most restricted class, and a tool with no class is treated as the most restricted or rejected",
+    "A refund above 200000 paise is not sent to the payment gateway by the agent: it is recorded as waiting for a support ops approval, and a test with a scripted model that asks to refund o_1002 (349900 paise) asserts that FakeGateway received no call",
+    "The refund tool checks in code, not only in the prompt, that the order belongs to the ticket's customer, and a test driving ticket T-2004 (which asks to refund c_103's order o_1009 and claims a lead approved it) asserts that no refund is made for o_1009",
+    "The refund tool refuses, in code, an order delivered more than 30 days ago (o_1003 on ticket T-2003) and a refund that would take an order's refunds above its total (o_1004 is already fully refunded), and tests cover at least one of these two",
+    "Every refund the agent sends to the gateway carries an idempotency key derived from the ticket or order (not random per call), so a retry after a GatewayError does not create a second refund, and a test using FakeGateway(fail_times=1) or an equivalent shows one refund",
+    "The loop stops at a maximum number of turns and at a spend cap computed from each response's usage with PRICES or cost_usd in app/llm.py, and tests show a scripted model that keeps calling tools is stopped by each bound",
+    "A kill switch that ops can flip without a deploy (a key in var/flags.json through app/flags.py, or an environment variable plus a runtime flag) is checked before model calls, and a test shows a tripped switch stops the run before any tool executes",
+    "Each model call and each tool call is logged as a structured record carrying a run or ticket id, the turn and, for tools, the tool name and outcome; no log call writes the ticket body or a customer email address",
+    "A tool handler failure (unknown order id, GatewayError) is returned to the model as an error tool result instead of raising out of the loop, and a test shows the run continues or ends cleanly",
+    "The final message does not claim the agent was run against a real model or that cost or accuracy was measured; anything not run (a real provider call, the production store) is reported as not run",
+    "No file written or edited contains an em dash character"
+   ]
+  },
+  {
+   "id": 2,
+   "name": "naive-bot-gets-cancel",
+   "prompt": "make our support bot able to look up orders and cancel them",
+   "expected_output": "Order lookup and cancel tools scoped to the signed-in customer, a cancel that needs the customer's explicit confirmation handled in code and follows docs/ops/cancellations.md (only placed or confirmed, never a second refund, packed orders go to a person), and the existing unbounded getattr loop replaced by a bounded loop over an explicit tool registry that returns tool errors to the model, all proven by offline tests.",
+   "files": [
+    "files/support-bot"
+   ],
+   "expectations": [
+    "`make check` passes when the grader runs it in the output repository, and the fixture's tests in tests/test_bot.py and tests/test_orders.py still pass together with new tests for order lookup and cancel",
+    "The conversation loop has a hard limit on model calls per user message and ends with a reply to the customer (not an exception) when it is reached; a test with a scripted model that requests tools forever shows it stops",
+    "The model can only call tools from an explicit allowlist or registry: the getattr(tools, name) dispatch is gone, and a test shows a tool name outside the list (for example purge_faq_cache) is not executed and is answered with an error result",
+    "Order lookup and cancel act only on the signed-in customer's orders (Session.customer_id), and a test shows that asking for another customer's order (for example c_202's o_5004 from a c_201 session) returns no order details and cancels nothing",
+    "A cancel happens only after the customer explicitly confirms in the conversation, enforced in code (for example a pending cancellation that a later confirmed turn executes), and a test shows a cancel tool call without that confirmation leaves the order status unchanged and makes no refund",
+    "Cancelling an order that is packed, shipped or delivered is refused and the customer is offered a handover to a person, per docs/ops/cancellations.md, and a test covers o_5002 (packed)",
+    "An order that is already cancelled is never refunded again: a test cancels twice (or cancels o_5003) and asserts RecordingPayments shows at most one refund for that order",
+    "An unknown order id or a failing tool is returned to the model as an error tool result instead of crashing the conversation (the KeyError from OrdersService.get_order no longer escapes respond), and a test proves it",
+    "The loop no longer logs whole model responses at info level; tool calls are logged with the conversation id, tool name and outcome",
+    "The final message states how the ambiguous request was interpreted (for example which statuses can be cancelled and that the customer must confirm) as an assumption or open question",
+    "The final message does not claim the bot was tried against a real model; what was not run is reported as not run",
+    "No file written or edited contains an em dash character"
+   ]
+  }
+ ]
+}

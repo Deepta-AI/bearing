@@ -1,0 +1,170 @@
+# __REPO_NAME__ CI on GitHub Actions: the twin of .gitlab-ci.yml. Same stages
+# (validate, lint, test, security, build, then release on request) and every
+# gate is `make <target>`, so the Makefile stays the single source of what a
+# gate does. GitHub sets CI=true, so a gate whose tool is missing fails here
+# instead of printing SKIPPED.
+#
+# Linux runners run the gate and build the Android APK; the iOS build runs
+# on macos-latest on request. Store uploads are fastlane lanes a person runs.
+#
+# The two-approval rule (one peer, one lead, from CODEOWNERS) is a branch
+# protection setting, not something a workflow can enforce: Settings >
+# Branches > main and develop: require a pull request, 2 approving reviews,
+# review from Code Owners, dismiss stale approvals, and the status checks
+# lint, unit, dependency-scan and build-android.
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [develop, main]
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      release:
+        description: "Which store track to prepare (a person approves in the environment and runs fastlane)"
+        type: choice
+        options: [internal, production]
+        default: internal
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+env:
+  FLUTTER_VERSION: "3.47.5"
+  BUILD_NUMBER: ${{ github.run_number }}
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - name: branch-name
+        if: github.event_name == 'pull_request'
+        env: { BRANCH: "${{ github.head_ref }}" }
+        run: |
+          echo "$BRANCH" | grep -Eq '^(feature|bugfix|hotfix|chore|docs)/[A-Z][A-Z0-9]*(-[0-9]+)+-[A-Za-z0-9]+$|^release/v[0-9]+\.[0-9]+\.[0-9]+$'
+          echo "branch-name: 1 branch checked"
+      - name: commits
+        if: github.event_name == 'pull_request'
+        env: { BASE: "${{ github.base_ref }}" }
+        run: |
+          git fetch origin "$BASE" --depth=200
+          range="origin/$BASE..HEAD"
+          subjects=$(mktemp)
+          git log --no-merges --format=%s "$range" > "$subjects"
+          n=$(wc -l < "$subjects" | tr -d ' ')
+          [ "$n" -gt 0 ] || { echo "commits: 0 commits in range $range"; exit 1; }
+          bad=0
+          while IFS= read -r subj; do
+            echo "$subj" | grep -Eq '^(feat|fix|refactor|test|docs|chore|perf|build|ci|revert)(\([a-z0-9._/-]+\))?!?: .{1,72}( \[[A-Z][A-Z0-9]*(-[0-9]+)+\])?$' || { echo "bad subject: $subj"; bad=$((bad+1)); }
+          done < "$subjects"
+          if git log --no-merges --format=%B "$range" | grep -Eiq 'co-authored-by: .*(claude|anthropic|copilot|chatgpt|gemini)|generated with'; then echo "AI attribution trailer found"; exit 1; fi
+          echo "commits: $n commits checked, $bad bad"
+          [ "$bad" -eq 0 ]
+
+  lint:
+    needs: validate
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        gate: [format-check, analyze]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - name: install
+        run: |
+          [ -f pubspec.lock ] || echo "lockfile: no pubspec.lock committed; pub get resolves now (run make setup and commit pubspec.lock)"
+          flutter pub get
+          make gen
+      - run: make ${{ matrix.gate }}
+
+  unit:
+    needs: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - name: install
+        run: flutter pub get && make gen
+      - run: make test
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: coverage, path: coverage/lcov.info, retention-days: 7 }
+
+  dependency-scan:
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: google/osv-scanner-action/osv-scanner-action@v2
+        with:
+          scan-args: --lockfile=pubspec.lock
+      - run: |
+          echo "dependency-scan: $(grep -cE '^  [a-z0-9_]+:$' pubspec.lock) packages checked"
+
+  build-android:
+    needs: [unit, dependency-scan]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: "17" }
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - name: install
+        run: flutter pub get && make gen
+      - run: make build-android FLAVOR=prod
+      - uses: actions/upload-artifact@v4
+        with:
+          name: app-release-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 7
+
+  # macOS only; runs on request because the minutes cost ten times Linux.
+  build-ios:
+    if: github.event_name == 'workflow_dispatch'
+    needs: [unit, dependency-scan]
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - name: install
+        run: flutter pub get && make gen
+      - run: flutter build ipa --release --no-codesign --dart-define-from-file=config/prod.json --build-number="$BUILD_NUMBER"
+      - run: 'echo "build-ios: 1 archive built (unsigned; fastlane match signs on release)"'
+
+  # Store uploads run only from workflow_dispatch and stop at the
+  # environment's protection rule: a person approves in the GitHub UI, then
+  # runs the fastlane lane the job prints. The job never uploads.
+  release:
+    if: github.event_name == 'workflow_dispatch'
+    needs: [build-android]
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ inputs.release }}
+    steps:
+      - run: |
+          echo "release ${{ inputs.release }}: cd android && BUILD_NUMBER=$BUILD_NUMBER bundle exec fastlane ${{ inputs.release }} (and cd ios && bundle exec fastlane ${{ inputs.release == 'production' && 'release' || 'beta' }} on macOS)"
+          exit 1

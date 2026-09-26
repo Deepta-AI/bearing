@@ -1,0 +1,46 @@
+# dbt project. The project name is fixed (a dbt name must be an identifier);
+# the repository name lives in pyproject.toml.
+name: pipeline
+version: "0.1.0"
+profile: pipeline
+require-dbt-version: ">=1.10.0"
+
+model-paths: ["models"]
+seed-paths: ["seeds"]
+test-paths: ["tests"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+analysis-paths: ["analyses"]
+target-path: target
+clean-targets: [target, dbt_packages]
+
+flags:
+  send_anonymous_usage_stats: false
+
+# The partition window every incremental mart reads. A plain `dbt run`
+# builds everything; the DAG and `make backfill` pass a day or a range.
+vars:
+  start_date: "1970-01-01"
+  end_date: "2100-01-01"
+
+models:
+  pipeline:
+    +persist_docs:
+      relation: true
+      columns: true
+    staging:
+      +materialized: view
+      +schema: staging
+      +tags: ["daily"]
+    intermediate:
+      +materialized: view
+      +schema: intermediate
+      +tags: ["daily"]
+    marts:
+      +materialized: table
+      +schema: marts
+      +tags: ["daily"]
+
+seeds:
+  pipeline:
+    +schema: raw

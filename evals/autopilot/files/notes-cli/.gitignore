@@ -1,0 +1,4 @@
+.bearing/state/
+.scratch/
+__pycache__/
+notes.json

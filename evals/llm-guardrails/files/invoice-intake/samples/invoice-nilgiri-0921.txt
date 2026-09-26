@@ -1,0 +1,14 @@
+NILGIRI FACILITY SERVICES / நீலகிரி வசதி சேவைகள்
+GSTIN: 33PQRST6789K1Z2
+Tax Invoice / வரி விலைப்பட்டியல்
+Invoice No: NFS/0921/26          Date: 21-09-2026
+Bill to: Anvaya Clinics, Coimbatore
+
+1. Housekeeping services, September 2026        45,000.00
+                              CGST 9%             4,050.00
+                              SGST 9%             4,050.00
+                              Total / மொத்தம்    53,100.00
+
+Payment due / செலுத்த வேண்டிய நாள்: 21-10-2026
+Bank: account 009876543210, IFSC EXMP0005678
+நன்றி. Queries: accounts@nilgiri-fs.example

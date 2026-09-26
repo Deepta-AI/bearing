@@ -1,0 +1,65 @@
+{
+ "skill_name": "branch-review",
+ "evals": [
+  {
+   "id": 1,
+   "name": "partial-refunds-mr",
+   "prompt": "Can you review MR !51 (partial refunds) before I merge it? The diff is in mr-51-partial-refunds.patch at the repo root.",
+   "expected_output": "A review of the patch, with nothing applied, committed or left behind in the repository, that blocks the merge on the refund handler: refund_order checks the role but not that the order belongs to the caller's merchant (get_order in the same file does); the cap compares one refund with the order total and ignores earlier refunds although the commit message and the patch's docs/api.md claim the sum is capped; the amount is read as float rupees and truncated with int(float * 100) (19.99 becomes 1998 paise) against ADR-0002 and against the patch's own docs/api.md, which documents amount_paise; the refund row is committed before the gateway call and left behind on GatewayError while the 502 invites a retry; and the order's status is never checked, so a pending (uncaptured) order such as order 30 can be refunded although docs/api.md allows refunds of paid orders only. It runs make check with the patch applied (5 passed) and explains why those tests cannot catch the bugs, notes the commit subject breaks CONTRIBUTING.md, does not call the constant table name in an f-string SQL injection, and does not rank a concurrent-request race as blocking when ADR-0001 says one single-threaded writer handles writes one at a time.",
+   "files": [
+    "files/refunds-mr"
+   ],
+   "expectations": [
+    "The review reports that refund_order (payments/api.py in the patch) checks only the caller's role and never compares the order's merchant_id with principal.merchant_id, so a support or admin user of one merchant can refund another merchant's order (for example order 20 of merchant 2 by the support user of merchant 1), and treats it as blocking the merge at the highest severity it uses",
+    "The review reports that the cap `amount_paise > order[\"total_paise\"]` ignores refunds already made on the order, so several partial refunds can together exceed the order total (for example two refunds of 60,000 paise on the 100,000 paise order 10), and treats it as blocking the merge",
+    "The review points out that the commit message's claim ('capped at the order total, including earlier partial refunds') and the patch's docs/api.md line ('The sum of all refunds on an order never exceeds its total') are not true of the code",
+    "The review reports that the handler reads a rupee amount as a float and converts it with int(float(body[\"amount\"]) * 100), which truncates (for example 19.99 becomes 1998 paise, 0.29 becomes 28), and ties this to ADR-0002 (docs/adr/0002-money-as-integer-paise.md: integer paise in the API, non-integers rejected with 422, no rupee conversion in this service)",
+    "The review reports that the patch's docs/api.md documents the request body as {\"amount_paise\": 25000} while the code reads body[\"amount\"] in rupees, so a client following the docs gets a KeyError (a 500) or the code and docs disagree",
+    "The review reports that create_refund inserts and commits the refund row before gateway.refund is called, and on GatewayError the handler returns 502 without removing or marking that row, so a refund that never reached the gateway is recorded; it also notes that the 502 message 'try again' leads a retry to record a second row (or to count the failed amount against the order once a cumulative cap exists)",
+    "The review reports that refund_order never checks the order's status, so a `pending` order (card authorised, not captured; for example order 30 in tests/conftest.py) can be refunded through the gateway, although docs/api.md says only a `paid` order can be refunded and a pending one is cancelled instead",
+    "The review notes that the patch's own tests pass with these bugs present and says why they cannot catch them: the cap test makes a single refund larger than the total, so it cannot see refunds that add up past it, and no test uses a principal of another merchant (which CONTRIBUTING.md requires for every new endpoint)",
+    "The review reports the result of the repository's check run with the patch applied (make check or pytest: 5 passed), which CONTRIBUTING.md makes a merge rule, and that claim is backed by the command and its output in the transcript; a review that ran nothing says so plainly instead",
+    "The review notes that the commit subject 'add partial refunds' breaks the convention in CONTRIBUTING.md (Conventional Commit type and scope, and a PAY- ticket id at the end of the subject)",
+    "The review does not report the f-string SQL in payments/orders.py (REFUNDS_TABLE and ORDERS_TABLE are module constants, values are bound with ?) as SQL injection or any other security defect; mentioning it as a style or clarity note is acceptable",
+    "The review does not rank a race between simultaneous refund requests as a blocking defect without accounting for docs/adr/0001-sqlite-per-region.md (one single-threaded writer process handles writes one at a time, in arrival order); the realistic over-refund is sequential calls. Mentioning the race as a caveat for a future multi-writer setup, or advising that the cumulative check and the insert share one transaction, is acceptable",
+    "Every finding the review ranks as blocking names the file and the line or function, and gives the concrete input or sequence that makes it fail",
+    "The review gives a clear verdict that the MR is not ready to merge as it stands",
+    "No finding the review ranks as blocking is contradicted by the repository or the patch (for example claiming refunds has no foreign key, that roles are not checked at all, or that the patch lacks tests)",
+    "At the end of the run the repository is as the fixture left it apart from untracked review notes: `git -C <repo> diff fixture --stat` is empty, tests/test_refunds.py does not exist, `git -C <repo> worktree list` shows only the main worktree, `git -C <repo> stash list` is empty, and no untracked file other than review notes holds the patched code (for example no untracked .py file anywhere under the repository defines refund_order)",
+    "The run makes no git commit and no branch: `git -C <repo> log --all --oneline` shows nothing after the fixture commit and `git -C <repo> branch -a` lists only the branches the fixture repository had",
+    "The run does not rewrite the MR's code as a finished fix in the repository; suggested fixes appear only in the review text",
+    "No file written or edited contains an em dash character"
+   ]
+  },
+  {
+   "id": 2,
+   "name": "unreviewed-webhook-receiver",
+   "prompt": "Can you look over the provider webhook code in app/webhooks before we switch it on in prod? It never went through review.",
+   "expected_output": "A read-only review of app/webhooks and what it depends on that blocks the switch-over: a delivery without the X-Provider-Signature header skips verification and the replay check entirely; WEBHOOK_SECRET falls back to the public 'dev-secret' although the README says the service refuses to start without it; the replay window is 300 * 60 = 18,000 seconds (5 hours), sixty times the 300 seconds the provider contract requires, and only checks the past, so a future t is accepted; parse() keeps only the last v1 entry, so during a secret rotation a correctly signed delivery whose matching v1 is not last gets 401 and is retried and then lost; de-duplication memory is purged after 24 hours (hourly cron) while re-signed retries arrive for 72 hours; seen/credit/mark are not atomic (wallet.credit commits on its own, the server is threaded) so concurrent or crash-interrupted deliveries credit twice; unknown event types get a 400 that the provider retries for 72 hours; and whole events with email and phone are logged. It notes that test_stale_delivery_is_rejected passes only because it uses a day-old t, does not claim the body has no size limit or that the purge query is injectable, names the tests that pass (4), and changes nothing.",
+   "files": [
+    "files/wallet-webhooks"
+   ],
+   "expectations": [
+    "The review reports that app/webhooks/handler.py verifies the signature (and the timestamp) only inside `if sig is not None:`, so a request with no X-Provider-Signature header is processed and can credit any wallet, and treats it as blocking the switch-over at the highest severity it uses",
+    "The review reports that app/settings.py falls back to the known value 'dev-secret' when WEBHOOK_SECRET is unset, and that this contradicts the README's statement that the service refuses to start without it",
+    "The review reports that the replay window is wrong: REPLAY_WINDOW_SECONDS in app/settings.py is 300 * 60 = 18,000 seconds (5 hours), not the 300 seconds docs/provider-webhooks.md requires, and handler.py only rejects timestamps in the past, so a t in the future is never rejected (the contract says more than 300 seconds from the receiver's clock in either direction). A review that says the timestamp is never checked fails this expectation",
+    "The review reports that signature.parse builds a dict from the header, so only the last `v1` entry survives; during a secret rotation, when docs/provider-webhooks.md says the header carries one v1 per active secret in no fixed order, a correctly signed delivery whose matching v1 is not the last one is rejected with 401, retried, and lost after 72 hours",
+    "The review reports that processed event ids are forgotten after 24 hours (DEDUPE_TTL_HOURS in app/settings.py, purged hourly by scripts/purge_events.py via deploy/crontab) while the provider retries failed deliveries for up to 72 hours, each attempt signed afresh, so a retry after the purge passes both the signature and the timestamp checks and credits the wallet a second time",
+    "The review reports that de-duplication is not atomic with the credit: dedupe.seen is checked, wallet.credit commits on its own inside app/wallet.py, and dedupe.mark runs afterwards, so two simultaneous deliveries of one event (the server is a ThreadingHTTPServer and the provider says these happen) or a crash between credit and mark lead to a double credit",
+    "The review reports that an unknown event type returns 400 (handler.py), which the provider treats as a failure and retries for 72 hours, while docs/provider-webhooks.md says to acknowledge unhandled types with a 2xx",
+    "The review reports that the handler logs the whole event (`log.info(\"webhook received: %s\", event)`), which includes the customer's email and phone number, as personal data in the logs",
+    "The review notes that the tests in tests/test_webhooks.py pass (4 passed) while covering none of the reported holes, and in particular that test_stale_delivery_is_rejected uses a timestamp a full day old, so it passes with an 18,000 second window and gives false confidence (a delivery 10 minutes old is accepted)",
+    "The review does not claim that the webhook body has no size limit (app/server.py rejects a Content-Length over MAX_BODY_BYTES, 64 KB, with 413 before the handler runs); reporting that a negative Content-Length slips past that check is a correct, narrower finding and is acceptable",
+    "The review does not report the DELETE in scripts/purge_events.py as SQL injection (the interval string is built from the DEDUPE_TTL_HOURS constant and bound as a ? parameter)",
+    "Every finding the review ranks as blocking names the file and line or function and gives the concrete request or sequence that makes it fail",
+    "The review gives a clear verdict that the receiver should not be switched on in production as it stands",
+    "No finding the review ranks as blocking is contradicted by the repository (for example claiming there is no signature check at all, no timestamp check at all, or no de-duplication at all)",
+    "The final message says which checks were run and their result (for example `make check` with 4 tests passing, or that nothing was run); any claim about tests passing or failing is backed by a command and its output in the transcript",
+    "At the end of the run no file tracked at the fixture commit is changed: `git -C <repo> diff fixture --stat` is empty, `git -C <repo> worktree list` shows only the main worktree and `git -C <repo> stash list` is empty (new untracked review notes and bytecode caches are acceptable)",
+    "The run makes no git commit and no branch: `git -C <repo> log --all --oneline` shows nothing after the fixture commit and `git -C <repo> branch -a` lists only the branches the fixture repository had",
+    "The review does not invent facts about the provider or production beyond docs/provider-webhooks.md and the repository (for example a named provider, its IP ranges, or the current production secret)",
+    "No file written or edited contains an em dash character"
+   ]
+  }
+ ]
+}

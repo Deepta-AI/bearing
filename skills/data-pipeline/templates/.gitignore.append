@@ -1,0 +1,16 @@
+
+
+# data pipeline
+.venv/
+__pycache__/
+*.pyc
+.ruff_cache/
+.pytest_cache/
+junit.xml
+.env
+profiles.yml
+.airflow/
+logs/
+dbt/target/
+dbt/dbt_packages/
+dbt/logs/

@@ -1,0 +1,12 @@
+{
+  "id": "python-api",
+  "display": "Python service",
+  "type": "Server/API",
+  "stack": "Python 3.14 + FastAPI + Pydantic v2 + SQLAlchemy 2 async + Alembic + structlog + OpenTelemetry + uv",
+  "databases": "PostgreSQL",
+  "entrypoint": "app/main.py",
+  "rules_file": "python.md",
+  "check_command": "make check",
+  "install": "uv lock",
+  "tool": "uv"
+}

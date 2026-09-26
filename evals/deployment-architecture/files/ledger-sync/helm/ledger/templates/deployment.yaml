@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ledger-api
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels: { app: ledger-api }
+  template:
+    metadata:
+      labels: { app: ledger-api }
+    spec:
+      containers:
+        - name: api
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          ports: [{ containerPort: 8080 }]
+          env:
+            - name: DB_MAX_CONNS
+              value: {{ .Values.env.DB_MAX_CONNS | quote }}
+          envFrom:
+            - secretRef: { name: ledger-secrets }
+          resources: {{- toYaml .Values.resources | nindent 12 }}

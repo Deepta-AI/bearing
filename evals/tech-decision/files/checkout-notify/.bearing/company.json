@@ -1,0 +1,7 @@
+{
+ "company": "Northwind Labs Private Limited",
+ "cloud": "gcp",
+ "region": "asia-south1",
+ "git_host": "gitlab",
+ "tracker": "rest"
+}

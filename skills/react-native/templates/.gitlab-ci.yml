@@ -1,0 +1,191 @@
+# __REPO_NAME__ pipeline (React Native app, Expo). Stages follow the kit vocabulary.
+# make check is the gate; CI runs the same targets the engineer runs, one
+# job per gate so a failure names itself. GitLab sets CI=true, so a gate
+# whose tool is missing fails here instead of printing SKIPPED.
+# Linux runners cover format, lint, typecheck, unit tests, doctor, audit and
+# the JS export. Native builds go through EAS cloud and are manual jobs; no
+# Mac runner is needed for either platform.
+
+stages: [validate, lint, test, security, build, publish, deploy, verify]
+
+include:
+  - template: Security/Secret-Detection.gitlab-ci.yml
+  - template: Security/SAST.gitlab-ci.yml
+
+variables:
+  NODE_VERSION: "24"
+  PNPM_VERSION: "10.17.1"
+  PNPM_HOME: "$CI_PROJECT_DIR/.pnpm"
+  PNPM_STORE: "$CI_PROJECT_DIR/.pnpm-store"
+  EXPO_NO_TELEMETRY: "1"
+
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "develop"
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_TAG
+
+default:
+  image: node:${NODE_VERSION}
+  cache:
+    key: pnpm-$CI_COMMIT_REF_SLUG
+    paths: [.pnpm-store]
+  before_script:
+    - node --version
+    - corepack enable && corepack prepare "pnpm@${PNPM_VERSION}" --activate
+    - pnpm config set store-dir "$PNPM_STORE"
+    - if [ -f pnpm-lock.yaml ]; then pnpm install --frozen-lockfile; else echo "lockfile:none committed, installing unfrozen (run pnpm install and commit pnpm-lock.yaml)"; pnpm install; fi
+
+branch-name:
+  stage: validate
+  image: alpine:3.20
+  before_script: []
+  cache: []
+  rules: [{ if: $CI_PIPELINE_SOURCE == "merge_request_event" }]
+  script:
+    - echo "$CI_MERGE_REQUEST_SOURCE_BRANCH_NAME" | grep -Eq '^(feature|bugfix|hotfix|chore|docs)/[A-Z][A-Z0-9]*(-[0-9]+)+-[A-Za-z0-9]+$|^release/v[0-9]+\.[0-9]+\.[0-9]+$'
+    - echo "branch-name: 1 branch checked"
+
+# POSIX sh: alpine/git runs busybox ash, which has no process substitution.
+commits:
+  stage: validate
+  image: alpine/git:2.45.2
+  before_script: []
+  cache: []
+  rules: [{ if: $CI_PIPELINE_SOURCE == "merge_request_event" }]
+  script:
+    - git fetch origin "$CI_MERGE_REQUEST_TARGET_BRANCH_NAME" --depth=200
+    - |
+      range="origin/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME..HEAD"
+      subjects=$(mktemp)
+      git log --no-merges --format=%s "$range" > "$subjects"
+      n=$(wc -l < "$subjects" | tr -d ' ')
+      [ "$n" -gt 0 ] || { echo "commits: 0 commits in range $range"; exit 1; }
+      bad=0
+      while IFS= read -r subj; do
+        echo "$subj" | grep -Eq '^(feat|fix|refactor|test|docs|chore|perf|build|ci|revert)(\([a-z0-9._/-]+\))?!?: .{1,72}( \[[A-Z][A-Z0-9]*(-[0-9]+)+\])?$' || { echo "bad subject: $subj"; bad=$((bad+1)); }
+      done < "$subjects"
+      if git log --no-merges --format=%B "$range" | grep -Eiq 'co-authored-by: .*(claude|anthropic|copilot|chatgpt|gemini)|generated with'; then echo "AI attribution trailer found"; exit 1; fi
+      echo "commits: $n commits checked, $bad bad"
+      [ "$bad" -eq 0 ]
+
+format:
+  stage: lint
+  script: [make format-check]
+
+lint:
+  stage: lint
+  script: [make lint]
+
+typecheck:
+  stage: lint
+  script: [make typecheck]
+
+unit:
+  stage: test
+  script: [make test]
+  coverage: '/All files[^|]*\|[^|]*\s+([\d\.]+)/'
+  artifacts:
+    when: always
+    reports:
+      coverage_report: { coverage_format: cobertura, path: coverage/cobertura-coverage.xml }
+
+expo-doctor:
+  stage: test
+  script: [npx expo-doctor]
+
+# Maestro needs a simulator with the app installed, so this job is manual and
+# needs a runner with one (tag it). It is not part of make check.
+e2e:
+  stage: test
+  tags: [macos]
+  image: null
+  cache: []
+  before_script: []
+  allow_failure: true # no simulator runner registered yet; set to false when one exists
+  rules: [{ if: $CI_PIPELINE_SOURCE == "merge_request_event", when: manual }]
+  script:
+    - command -v maestro >/dev/null || { echo "maestro missing on this runner (curl -fsSL https://get.maestro.mobile.dev | bash)"; exit 1; }
+    - make test-e2e
+
+dependency-scan:
+  stage: security
+  script: [make vuln]
+  allow_failure: false
+
+export:
+  stage: build
+  script:
+    - make export
+  artifacts: { paths: [dist], expire_in: 1 day }
+
+# Native builds run on EAS cloud from any Linux runner: eas-cli uploads the
+# project and Expo's servers build it, so no Mac is needed for iOS. EXPO_TOKEN
+# is a masked, protected CI variable from an Expo robot user; the job refuses
+# to start without it.
+.eas-build:
+  stage: build
+  rules:
+    - if: $CI_COMMIT_BRANCH == "develop"
+      when: manual
+    - if: $CI_COMMIT_TAG
+      when: manual
+  script:
+    - '[ -n "$EXPO_TOKEN" ] || { echo "EXPO_TOKEN is not set"; exit 1; }'
+    - profile=preview; [ -z "$CI_COMMIT_TAG" ] || profile=production
+    - pnpm dlx eas-cli build --non-interactive --profile "$profile" --platform "$PLATFORM"
+    - echo "build-$PLATFORM: 1 EAS build submitted (profile $profile)"
+
+build-android:
+  extends: .eas-build
+  variables: { PLATFORM: android }
+
+build-ios:
+  extends: .eas-build
+  variables: { PLATFORM: ios }
+  # A team with its own Mac runner that must hold EXPO_TOKEN can route the job
+  # there instead; EAS cloud still does the build:
+  # tags: [macos]
+  # image: null
+
+# EAS Update ships JS and assets to installed builds. Manual so a broken
+# develop never reaches testers' phones by accident. Rollback: README, OTA.
+publish-update:
+  stage: publish
+  rules: [{ if: $CI_COMMIT_BRANCH == "develop", when: manual }]
+  script:
+    - '[ -n "$EXPO_TOKEN" ] || { echo "EXPO_TOKEN is not set"; exit 1; }'
+    - pnpm dlx eas-cli update --non-interactive --channel preview --message "$CI_COMMIT_SHORT_SHA $CI_COMMIT_TITLE"
+
+deploy-qa:
+  stage: deploy
+  image: alpine:3.20
+  before_script: []
+  cache: []
+  environment: { name: qa }
+  rules: [{ if: $CI_COMMIT_BRANCH == "develop", when: manual }]
+  script:
+    - echo "deploy to qa: distribute the preview build (EAS internal distribution, TestFlight or Firebase App Distribution); wire this job to your release script"
+    - exit 1
+
+deploy-production:
+  stage: deploy
+  environment: { name: production }
+  rules: [{ if: $CI_COMMIT_TAG, when: manual }]
+  script:
+    - '[ -n "$EXPO_TOKEN" ] || { echo "EXPO_TOKEN is not set"; exit 1; }'
+    - echo "deploy to production: eas submit --profile production for both stores (eas.json submit.production); wire this job to your release script"
+    - exit 1
+
+smoke:
+  stage: verify
+  image: alpine:3.20
+  before_script: []
+  cache: []
+  needs: [export]
+  script:
+    - '[ -f dist/metadata.json ] || { echo "smoke: dist/metadata.json missing"; exit 1; }'
+    - n=$(find dist/assets -type f | wc -l); b=$(find dist/_expo -type f -name '*.hbc' -o -type f -name '*.js' | wc -l)
+    - '[ "$b" -gt 0 ] || { echo "smoke: 0 bundles exported"; exit 1; }'
+    - echo "smoke: $b bundles, $n assets checked"

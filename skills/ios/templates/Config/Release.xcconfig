@@ -1,0 +1,10 @@
+// __REPO_NAME__ Release build settings. Committed. The production API is
+// fixed here on purpose: a release build must not depend on a machine's .env.
+// xcconfig treats // as a comment even inside a value, hence $() in URLs.
+
+API_BASE_URL = https:/$()/api.__REPO_SLUG__.example.com
+
+SWIFT_OPTIMIZATION_LEVEL = -O
+DEBUG_INFORMATION_FORMAT = dwarf-with-dsym
+ENABLE_TESTABILITY = NO
+VALIDATE_PRODUCT = YES

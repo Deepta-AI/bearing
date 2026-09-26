@@ -1,0 +1,48 @@
+{
+ "skill_name": "prompt-registry",
+ "evals": [
+  {
+   "id": 1,
+   "name": "fstring-prompts-to-versions-gstin-fix",
+   "prompt": "Our LLM prompts are scattered as f-strings in extract.py, classify.py and reply.py and nobody can say which wording is in prod. Pull them into one place with versions so we can change them safely. Also the invoice extractor keeps inventing GST numbers for vendors that don't have one, please fix that prompt. Finance labelled 10 invoices in tests/fixtures/invoices.jsonl you can check against.",
+   "expected_output": "The three prompts move into versioned prompt files behind one loader that validates variables and substitutes without breaking the JSON braces, with render and validation tests that fail on zero prompts; the move is shown to change nothing the model receives (the extractor by replaying the recording, classify and reply by comparison with the old f-strings); the old extractor prompt is scored by replaying the recordings (7 of 10: an invented GSTIN on inv-03 and inv-09, and Ferncrest's own buyer GSTIN copied on inv-06); the GSTIN fix is a new version that returns null when the vendor prints no GSTIN and never takes the buyer's, with the invoice text delimited, reported as unscored because the recordings cannot speak for a changed prompt; no figure is attributed to anything that did not produce it.",
+   "files": [
+    "files/invoice-bot"
+   ],
+   "expectations": [
+    "All three prompts (in invoicebot/extract.py, invoicebot/classify.py and invoicebot/reply.py) live outside the Python modules in versioned prompt files loaded through one loader, and the three modules no longer contain the prompt wording",
+    "The loader validates variables before any model call: a missing required value, an unknown name and a value over its length limit each raise an error; a test for each exists and passes when the grader runs `make test`",
+    "Rendering the extractor prompt keeps its JSON example or schema braces intact (no str.format or f-string substitution over the body), and a test renders every prompt with sample values, asserts no unfilled placeholder remains, and fails when no prompt is found",
+    "The move is shown to change nothing the model receives for classify and reply too, where no recording exists: the run compares the system and user text (and model and max_tokens) the moved prompts render against what the old f-strings produced for the same inputs, by a comparison run or a test that holds the old strings; rendering without error is not enough",
+    "The new extractor version, kept separate from the old one, tells the model to return null for the GSTIN when the vendor prints none (dropping the 'Always fill in every field' instruction), says the GSTIN wanted is the vendor's own and not the buyer's (Ferncrest's, printed after 'Bill to' on every invoice), and its output format allows null for gstin",
+    "The old extractor version is scored on the 10 finance-labelled invoices by running something that replays tests/recorded/extract.jsonl without a RecordingMismatch (which requires its wording to be unchanged), and the result reports 7 of 10 invoices fully correct (a field-level count such as 57 of 60 with every miss named counts) and a wrong GSTIN on all 3 unregistered vendors, distinguishing the two failure kinds: an invented GSTIN on inv-03 and inv-09, and Ferncrest's own GSTIN 29AADCF4410P1Z7 copied from the 'Bill to' line on inv-06; the grader reproduces it",
+    "Every figure is attributed to what produced it: no score is claimed for the new extractor version (the recordings only cover the old prompt and RecordedLLM refuses a changed one), the transcript says what is needed to score it, and production either keeps the scored version or the switch is flagged as unscored; if code corrects the model's output after the call (for example nulling a GSTIN), a result after that correction is labelled as such and not presented as the new prompt's score, and the correction is tested and reported as a change to what extract() returns",
+    "The new extractor version puts the invoice text inside delimiters and says text inside them is data, not instructions; for the vendor reply, where vendor_name is read from the invoice and issue is typed by a clerk, either a new version delimits both the same way or the report names this injection route as an open finding with the reason",
+    "Each prompt version records the model and max_tokens it was written for, and the call sites take them from the prompt instead of hard-coding them",
+    "No file written or edited contains an em dash character"
+   ]
+  },
+  {
+   "id": 2,
+   "name": "read-only-audit-js-registry",
+   "prompt": "quick audit of our prompts before friday's release? don't change anything yet, just tell me what's wrong",
+   "expected_output": "A read-only audit that leaves the repository untouched and reports, with file and line: the inline system prompt in src/routes/chat.js interpolating the agent's name and the customer's ticket text undelimited, the inline tagger prompt in src/jobs/tagger.js, summarise v2 active with no score and eval sets that are not in the repository so no recorded score can be reproduced, v2's declared-but-unused tone and used-but-undeclared customer_note, the model override to haiku in src/jobs/summarise-ticket.js, a render() that validates and escapes nothing so a ticket containing a closing tag escapes the delimiter, and call sites that pin version numbers so the status field decides nothing; it does not flag the error-message string or the triage prompt's wording, labels anything it did not verify, and says how many prompts it audited.",
+   "files": [
+    "files/support-assist"
+   ],
+   "expectations": [
+    "No file in the repository was changed, created or deleted (`git status --porcelain` is empty), as the request asked",
+    "The report names the inline system prompt in src/routes/chat.js with a line number, and says that the agent's display name and the customer's ticket text are interpolated straight into the system prompt without delimiters (a prompt injection route)",
+    "The report names the inline prompt in src/jobs/tagger.js (TAG_PROMPT, passed as system) with a line number",
+    "The report does not flag src/errors.js's long message string as a prompt, and does not list the wording of prompts/triage/v1.md as a problem to fix before the release (it is delimited, scored and says ticket text is data); loader defects that also affect triage are allowed, since they are not the triage prompt's wording",
+    "The report says prompts/summarise/v2.md is active with no eval score recorded in prompts/summarise/CHANGELOG.md, while the retired v1 has one (0.81), and that the eval sets the prompts name (evals/triage/cases.jsonl, evals/summarise/cases.jsonl) are not in the repository, so neither recorded score (triage 0.93, summarise v1 0.81) can be reproduced or a score for v2 computed from it",
+    "The report finds the variable mismatch in prompts/summarise/v2.md: tone is declared but never used in the body, and customer_note is used in the body but not declared",
+    "The report says src/jobs/summarise-ticket.js sends the summarise prompt to claude-haiku-4-5 although the prompt declares claude-sonnet-5, so the prompt's score (if any) does not describe what runs",
+    "The report says render() in src/prompts/index.js validates and escapes nothing: a missing variable becomes the literal text 'undefined', unknown or oversized values pass through, and a ticket containing '</ticket_text>' closes the delimiter early in triage and summarise, so the 'text inside the tags is data' defence can be bypassed; backed by running it or by quoting the lines",
+    "The report says the registry's status field decides nothing at run time: src/jobs/summarise-ticket.js and src/jobs/triage.js pass a hard-coded version number to load(), which ignores status, so marking a version active or retired in the registry does not change what runs",
+    "Every finding about existing code or prompt text cites a file and line (a finding that something is absent names the path it looked for instead), and the report states how many prompts it audited, separating registry versions from inline prompts",
+    "The transcript reports as not run anything it did not execute (for example no eval score was computed for any prompt), claims no score it did not compute, and presents no claim about model or API behaviour (such as a default setting of a model) as a release blocker unless it verified it, labelling any unverified claim as unverified"
+   ]
+  }
+ ]
+}

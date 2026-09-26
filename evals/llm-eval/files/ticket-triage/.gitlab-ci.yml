@@ -1,0 +1,17 @@
+stages:
+  - lint
+  - test
+
+default:
+  image: python:3.12-slim
+
+lint:
+  stage: lint
+  script:
+    - python3 -m py_compile triage/*.py scripts/*.py
+
+test:
+  stage: test
+  script:
+    - pip install pytest
+    - python3 -m pytest -q

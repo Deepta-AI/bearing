@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- No cleartext anywhere. A debug build that talks to a local API adds a
+     debug-overrides block in src/debug/res/xml/network_security_config.xml,
+     never here. Certificate pins for money paths go in a domain-config block
+     with a rotation plan written first. -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

@@ -1,0 +1,5 @@
+CREATE TABLE IF NOT EXISTS items (
+    sku  TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    qty  INTEGER NOT NULL CHECK (qty >= 0)
+);

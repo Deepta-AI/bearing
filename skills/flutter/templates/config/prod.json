@@ -1,0 +1,5 @@
+{
+  "FLAVOR": "prod",
+  "API_URL": "https://api.__REPO_SLUG__.example.com",
+  "VERBOSE_LOGGING": false
+}

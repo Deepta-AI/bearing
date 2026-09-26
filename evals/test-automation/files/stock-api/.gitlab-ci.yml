@@ -1,0 +1,18 @@
+stages:
+  - build
+  - deploy
+
+build:
+  stage: build
+  image: python:3.12-slim
+  script:
+    - pip install .
+    - python -c "import stock.app"
+
+deploy:
+  stage: deploy
+  image: python:3.12-slim
+  script:
+    - ./deploy.sh
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"

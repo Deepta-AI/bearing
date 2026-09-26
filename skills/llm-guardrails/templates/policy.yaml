@@ -1,0 +1,72 @@
+# Guardrails policy. Reviewed like code; the module reads it at start.
+# Every key here has at least one fixture in tests/guardrails/fixtures.jsonl.
+version: 1
+owner: <team>
+
+limits:
+  max_input_chars: 50000
+  max_output_tokens: 4096
+  allowed_languages: [en, hi]     # ISO 639-1; detect on the first 500 chars
+  max_tool_calls_per_turn: 8
+
+pii:
+  action: redact                  # redact | block
+  classes:                        # detector: regex | luhn | verhoeff | model
+    - { name: pan, detector: regex, pattern: "\\b[A-Z]{5}[0-9]{4}[A-Z]\\b" }
+    - { name: aadhaar, detector: verhoeff, pattern: "\\b\\d{4}\\s?\\d{4}\\s?\\d{4}\\b" }
+    - { name: phone_in, detector: regex, pattern: "(?:\\+91[\\s-]?)?[6-9]\\d{4}[\\s-]?\\d{5}\\b" }
+    - { name: email, detector: regex, pattern: "[\\w.+-]+@[\\w-]+\\.[\\w.]+" }
+    - { name: card, detector: luhn, pattern: "\\b(?:\\d[ -]?){13,19}\\b" }
+    - { name: bank_account, detector: regex, pattern: "\\b\\d{9,18}\\b(?=.*IFSC)" }
+    - { name: health, detector: model }   # claude-haiku-4-5, only when the product handles it
+  placeholder: "[{class}_{n}]"    # reversible map lives outside the prompt and the log
+
+injection:
+  action: block                   # chat turns; for documents the business must process: review
+  delimiters: [input_text, document, retrieved_chunk, tool_result]
+  patterns:                       # case-insensitive, after unicode NFKC normalisation
+    - "ignore (all |the )?(previous|above|prior) instructions"
+    - "(system|developer) (mode|prompt)"
+    - "you are now"
+    - "reveal|print|repeat .{0,40}(instructions|system prompt)"
+    - "call (every|all) tools?"
+  decode_and_rescan: [base64]
+
+tools:
+  default_tier: irreversible
+  tiers:
+    list_orders: read
+    get_invoice: read
+    create_ticket: write
+    issue_refund: irreversible
+  approval_required_for: [irreversible]
+  deny_in_background: [irreversible]
+  argument_limits:
+    issue_refund: { amount_paise: { max: 500000 } }
+    send_email: { to_domain: { allow: ["example.com"] } }
+  denylist_paths: ["..", "/etc", "/proc", "~"]
+
+output:
+  schema_required: true           # when the caller parses the output
+  pii_leak: block
+  prompt_leak: block
+  classifier:
+    model: claude-haiku-4-5
+    max_tokens: 256
+    classes: [allowed, disallowed, needs_review]
+    block_on: [disallowed]
+    review_on: [needs_review]
+  grounding:
+    required_for: [rag_answer]
+    method: embedding             # embedding | judge
+    threshold: 0.78               # set from the eval set, not by feel
+    on_fail: mark_ungrounded      # mark_ungrounded | block
+  refusal:
+    user_message: "I can't help with that request."
+    metric: guardrail_refusals_total
+
+metrics:
+  blocked: guardrail_blocked_total          # labels: check, reason
+  redacted: guardrail_redacted_total        # labels: class
+  output_flagged: guardrail_output_flagged_total   # labels: check
+  classifier_latency: guardrail_classifier_seconds

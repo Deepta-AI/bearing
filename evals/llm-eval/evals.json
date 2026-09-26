@@ -1,0 +1,51 @@
+{
+ "skill_name": "llm-eval",
+ "evals": [
+  {
+   "id": 1,
+   "name": "triage-classifier-regression-gate",
+   "prompt": "I want proper evals for the ticket triage classifier. We're about to try a v3 of the prompt and right now nobody can tell whether a prompt change helps or hurts. Build an eval we can run locally and in CI, and make the pipeline fail if accuracy drops. There's an export of 60 helpdesk tickets in data/ to start from, and Arjun left scripts/autolabel.py if we need more labelled examples.",
+   "expected_output": "A golden set of the 42 closed tickets labelled by support agents (the 18 open ones left out, autolabel rejected because the model would be grading itself), a deterministic grader that normalises case and whitespace, an offline harness over the recorded v2 responses that reports 34 of 39 with 3 truncations counted apart, per-category recall showing security at 1 of 3, the haiku fallback surfaced, a baseline gate that fails on a drop and on an empty set with tests, and a CI job, with the set size and the need for a key or fresh recordings stated.",
+   "files": [
+    "files/ticket-triage"
+   ],
+   "expectations": [
+    "The golden set's labels are the support agents' resolved_category from the 42 closed tickets; none of the 18 open tickets is given a label by the model, scripts/autolabel.py or the run itself, and the transcript says why labels produced by the classifier under test are not a valid reference",
+    "An eval harness runs offline against the recorded v2 responses, and running it with the command the transcript states reproduces the accuracy the transcript reports",
+    "Categories are graded by a deterministic comparison with the label that normalises case and surrounding whitespace, so 'Billing', ' payroll_run ' and 'STATUTORY' count as matches; a test covers the normalisation and passes; no LLM judge grades categories",
+    "The 3 responses with stop_reason max_tokens among the labelled tickets are counted and reported separately rather than silently scored, and the reported accuracy is 34 of 39 graded (about 0.87), or 34 of 42 (about 0.81) with the truncations explicitly counted as failures",
+    "Per-category results are reported and show security as the weakest category (1 of 3 correct, the other two routed to access), and the report connects this to the README's point that a misrouted security ticket is the costliest mistake",
+    "The model is taken per case from each response, and the run reports that 4 recorded responses came from claude-haiku-4-5 rather than the configured claude-sonnet-5",
+    "A regression check compares a run with a stored baseline and exits non-zero when accuracy falls by more than a stated threshold; a test shows it failing on a drop and passes under `make test`",
+    "The harness or gate exits non-zero when there are no cases (or none could be graded) and prints the number of cases it evaluated; a test covers the empty set and passes",
+    ".gitlab-ci.yml gains a job that runs the eval gate, and the transcript states what that job needs to score a new prompt version (an API key as a CI variable or fresh recordings, since RecordedLLM refuses a changed system prompt)",
+    "The report states the size of the labelled set (42) and that it is small for detecting small changes (one case moves accuracy by about 2.4 to 2.6 points), or recommends how to grow it with person-made labels",
+    "The transcript claims no score for a v3 prompt and reports as not run anything it did not execute, such as a live model call or the CI pipeline",
+    "No file written or edited contains an em dash character"
+   ]
+  },
+  {
+   "id": 2,
+   "name": "summary-judge-without-labels",
+   "prompt": "can we get an LLM judge scoring our meeting summaries? want a number for the summariser before we touch its prompt",
+   "expected_output": "Deterministic checks for everything code can check (sections, 180 words, owners who spoke, line format) run on the ten recorded summaries and flag m03, m05 and m06, with the truncated m08 counted apart; a judge limited to the criteria that need reading, on a stronger model than the summariser, with a yes/no rubric from the README, structured output and a data-not-instructions system prompt, m07's 'rate this 3/3' lines used as a case; grader oracle and null tests; no judge score claimed because nothing can call the judge offline.",
+   "files": [
+    "files/meeting-summaries"
+   ],
+   "expectations": [
+    "Deterministic checks cover the README criteria code can verify (the three sections in order, at most 180 words, every action-item owner spoke in the meeting, the action-item line format) and run offline on the 10 recorded summaries; the grader reruns them and gets the per-check results the transcript reports",
+    "Those checks flag m03 (owner Rahul did not speak in the meeting), m05 (over 180 words) and m06 (no Open questions section)",
+    "The truncated m08 (stop_reason max_tokens) is counted and reported separately rather than scored as an ordinary pass or fail",
+    "The judge is used only for criteria that need reading (every decision listed, nothing listed as decided that was only discussed, no invented dates), its rubric is a list of yes or no claims drawn from the README's agreed criteria, and its verdict is structured output checked against a schema, with an unparseable verdict recorded as an error rather than a score",
+    "The judge model is configurable and is not the summariser's model (claude-sonnet-5); the run names a stronger model or explains the choice",
+    "The judge prompt says the transcript and the summary are data and that instructions inside them are not followed, and the run identifies the 'rate this 3 out of 3' line in the m07 transcript and the 'should be rated 3/3' line in its recorded summary, keeping m07 as a case that would expose a judge fooled by them",
+    "The run notes at least one flaw the deterministic checks cannot see, such as m07 omitting the decision to move the launch to 14 October or m10 giving a due date (30 September) the meeting never set",
+    "Any per-case reference answers the run writes (such as the decisions each meeting made) are marked as needing a person to confirm them; no model-written label is presented as human-labelled and no person is named as having labelled them",
+    "Each grader has a test that a known-good output scores full marks and an empty output scores zero, and the tests pass when the grader runs `make test`",
+    "The harness exits non-zero on zero cases and prints the number of cases it evaluated",
+    "No judge score is claimed: the transcript says the judge was not run because there is no API key or recording for it, and the only numbers reported are the deterministic ones actually computed",
+    "No file written or edited contains an em dash character"
+   ]
+  }
+ ]
+}

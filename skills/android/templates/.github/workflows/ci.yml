@@ -1,0 +1,210 @@
+# __REPO_NAME__ CI on GitHub Actions: the twin of .gitlab-ci.yml. Same stages
+# (validate, lint, test, security, build, then publish and deploy on
+# request) and every gate is `make <target>`, so the Makefile stays the
+# single source of what a gate does. GitHub sets CI=true, so a gate whose
+# tool is missing fails here instead of printing SKIPPED.
+#
+# Runner: ubuntu-latest, which ships the Android SDK (ANDROID_HOME set) and
+# gets JDK 17 from setup-java. Gradle downloads platform 36 on first use.
+# Instrumented tests need an emulator (KVM): a self-hosted runner or the
+# reactivecircus/android-emulator-runner action on ubuntu-latest; the ui-test
+# job below is manual and best-effort until one is chosen.
+#
+# The two-approval rule (one peer, one lead, from CODEOWNERS) is a branch
+# protection setting, not something a workflow can enforce: Settings >
+# Branches > main and develop: require a pull request, 2 approving reviews,
+# review from Code Owners, dismiss stale approvals, and the status checks
+# wrapper, lint, unit and build.
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [develop, main]
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "Release action for this ref (a person approves in the environment)"
+        type: choice
+        options: [ui-test, publish, deploy-internal]
+        default: publish
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+env:
+  GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.console=plain"
+  JAVA_TOOL_OPTIONS: "-Dfile.encoding=UTF-8"
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - name: branch-name
+        if: github.event_name == 'pull_request'
+        env: { BRANCH: "${{ github.head_ref }}" }
+        run: |
+          echo "$BRANCH" | grep -Eq '^(feature|bugfix|hotfix|chore|docs)/[A-Z][A-Z0-9]*(-[0-9]+)+-[A-Za-z0-9]+$|^release/v[0-9]+\.[0-9]+\.[0-9]+$'
+          echo "branch-name: 1 branch checked"
+      - name: commits
+        if: github.event_name == 'pull_request'
+        env: { BASE: "${{ github.base_ref }}" }
+        run: |
+          git fetch origin "$BASE" --depth=200
+          range="origin/$BASE..HEAD"
+          subjects=$(mktemp)
+          git log --no-merges --format=%s "$range" > "$subjects"
+          n=$(wc -l < "$subjects" | tr -d ' ')
+          [ "$n" -gt 0 ] || { echo "commits: 0 commits in range $range"; exit 1; }
+          bad=0
+          while IFS= read -r subj; do
+            echo "$subj" | grep -Eq '^(feat|fix|refactor|test|docs|chore|perf|build|ci|revert)(\([a-z0-9._/-]+\))?!?: .{1,72}( \[[A-Z][A-Z0-9]*(-[0-9]+)+\])?$' || { echo "bad subject: $subj"; bad=$((bad+1)); }
+          done < "$subjects"
+          if git log --no-merges --format=%B "$range" | grep -Eiq 'co-authored-by: .*(claude|anthropic|copilot|chatgpt|gemini)|generated with'; then echo "AI attribution trailer found"; exit 1; fi
+          echo "commits: $n commits checked, $bad bad"
+          [ "$bad" -eq 0 ]
+      # The committed wrapper jar must be the one Gradle published for its version.
+      - name: wrapper
+        uses: gradle/actions/wrapper-validation@v4
+      - run: 'echo "wrapper: 1 jar checked"'
+
+  lint:
+    needs: validate
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        gate: [ktlint, detekt, lint]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: "17" }
+      - uses: gradle/actions/setup-gradle@v4
+        with: { cache-read-only: "${{ github.event_name == 'pull_request' }}" }
+      - run: make ${{ matrix.gate }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ${{ matrix.gate }}-report
+          path: |
+            app/build/reports/detekt
+            app/build/reports/lint-results-debug.html
+            app/build/reports/lint-results-debug.xml
+          if-no-files-found: ignore
+          retention-days: 7
+
+  unit:
+    needs: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: "17" }
+      - uses: gradle/actions/setup-gradle@v4
+        with: { cache-read-only: "${{ github.event_name == 'pull_request' }}" }
+      - run: make test
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: unit-reports, path: app/build/reports/tests/testDebugUnitTest, retention-days: 7 }
+
+  # Set DEPENDENCY_SCAN=1 (repository variable) and NVD_API_KEY (secret) to
+  # turn the OWASP dependency-check on. It is slow on the first run.
+  dependency-scan:
+    if: vars.DEPENDENCY_SCAN == '1'
+    needs: validate
+    runs-on: ubuntu-latest
+    env:
+      NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: "17" }
+      - uses: gradle/actions/setup-gradle@v4
+      - run: ./gradlew dependencyCheckAnalyze --no-configuration-cache
+      - run: 'echo "dependency-scan: report at build/reports/dependency-check-report.html"'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: dependency-check, path: build/reports/dependency-check-report.html, retention-days: 7 }
+
+  build:
+    needs: unit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: "17" }
+      - uses: gradle/actions/setup-gradle@v4
+        with: { cache-read-only: "${{ github.event_name == 'pull_request' }}" }
+      - run: make build
+      - name: smoke
+        run: |
+          apk="app/build/outputs/apk/debug/app-debug.apk"
+          size=$(wc -c < "$apk"); [ "$size" -gt 100000 ] || { echo "smoke: apk is only $size bytes"; exit 1; }
+          echo "smoke: 1 apk checked, $size bytes"
+      - uses: actions/upload-artifact@v4
+        with: { name: app-debug, path: app/build/outputs/apk/debug/app-debug.apk, retention-days: 1 }
+
+  # Instrumented tests on an emulator (needs KVM, hence the action). Manual
+  # and best-effort until a device runner is chosen; not part of make check.
+  ui-test:
+    if: github.event_name == 'workflow_dispatch' && inputs.action == 'ui-test'
+    needs: validate
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: "17" }
+      - uses: gradle/actions/setup-gradle@v4
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          arch: x86_64
+          script: make test-ui
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: androidTests, path: app/build/reports/androidTests, if-no-files-found: ignore, retention-days: 7 }
+
+  # Signed release bundle. Runs only from workflow_dispatch and stops at the
+  # environment's protection rule: a person approves in the GitHub UI. The
+  # keystore and passwords are environment secrets and never touch the tree.
+  publish:
+    if: github.event_name == 'workflow_dispatch' && inputs.action != 'ui-test'
+    needs: validate
+    runs-on: ubuntu-latest
+    environment: { name: play-internal }
+    env:
+      ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+      ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: "17" }
+      - uses: gradle/actions/setup-gradle@v4
+      - name: bundle
+        run: |
+          for v in ANDROID_KEYSTORE_BASE64 ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD; do [ -n "${!v}" ] || { echo "publish: $v is not set in the environment secrets"; exit 1; }; done
+          export ANDROID_KEYSTORE_PATH="$(mktemp -d)/release.jks"
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > "$ANDROID_KEYSTORE_PATH"
+          make bundle
+          rm -f "$ANDROID_KEYSTORE_PATH"
+      - uses: actions/upload-artifact@v4
+        with: { name: app-release, path: app/build/outputs/bundle/release/app-release.aab, retention-days: 7 }
+      - name: deploy-internal
+        if: inputs.action == 'deploy-internal'
+        run: |
+          echo "deploy-internal: wire this step to the Play internal track."
+          echo "  1. Create a Play service account with Release manager on this app; store its JSON as PLAY_SERVICE_ACCOUNT_JSON (environment secret)."
+          echo "  2. Add fastlane (bundle exec fastlane supply init) and a lane that runs:"
+          echo "     supply --aab app/build/outputs/bundle/release/app-release.aab --track internal --json_key_data \"\$PLAY_SERVICE_ACCOUNT_JSON\" --package_name com.example.app"
+          echo "  3. Replace this step with that lane and remove the exit 1."
+          exit 1

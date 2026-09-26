@@ -1,0 +1,56 @@
+{
+ "skill_name": "docs-drift",
+ "evals": [
+  {
+   "id": 1,
+   "name": "inherited-go-service-with-stale-readme-and-an-unbuilt-design",
+   "prompt": "I just inherited this orders service from another team and don't trust the docs. Before I touch anything, tell me which docs no longer match the code, and fix the ones that are just out of date.",
+   "expected_output": "The README is brought up to date with the code (make dev instead of make run, internal/db/ instead of internal/store/, DATABASE_URL instead of DB_URL). Its other setup claims are read against the code too: nothing in the repository loads a .env file, there are no Go test files so make test and make check pass on nothing, and there is no CI config behind 'the gate CI runs'; each is either made true in the README or reported. ADR 0002 is left as written because it is a dated record, and the user is told so. The LLD's missing internal/orders/validate.go and its 'newest first' ordering are reported as code that drifted from an accepted design, not fixed by editing the LLD or writing code. The user can tell from the final message which docs are now correct and which still disagree with the code.",
+   "files": [
+    "files/orders-api"
+   ],
+   "expectations": [
+    "README.md no longer tells the reader to run make run; it names make dev (the Makefile target that runs the API)",
+    "README.md no longer names internal/store/ as a current path; it names internal/db/ for data access",
+    "README.md no longer tells the reader to set DB_URL; it names DATABASE_URL, the variable cmd/api/main.go and .env.example use",
+    "The README's links to docs/adr/0002-orders-store-package.md and docs/design/lld-orders.md still resolve to files that exist",
+    "The run caught that nothing in the repository reads a .env file (cmd/api/main.go only calls os.Getenv and the Makefile neither includes nor exports .env), so copying .env.example to .env configures nothing: README.md now tells the reader how the variables actually reach the process (for example exporting them or sourcing .env before make dev), or the final message reports this to the user",
+    "The run caught that the repository has no Go test files, so make test and make check succeed without testing anything: README.md no longer says make test runs the unit tests without qualification, or the final message tells the user there are zero tests behind those targets",
+    "The final message tells the user there is no CI configuration in the repository to back the README's claim that make check is the gate CI runs (or README.md no longer makes that claim)",
+    "docs/adr/0002-orders-store-package.md is byte for byte unchanged, and no new ADR was written as Accepted for the package rename",
+    "The final message tells the user that ADR 0002 still names internal/store/ and that it was deliberately left unedited because it records a past decision (a new ADR, not an edit, would record the rename)",
+    "docs/design/lld-orders.md is unchanged: the run does not delete or soften the validation step or the ordering claim to match the code",
+    "No file named internal/orders/validate.go was created and no Go source file or go.mod was changed",
+    "The final message reports that the accepted LLD requires ValidateOrder in internal/orders/validate.go and the create handler writes to the store without validation, as a finding for the engineer (code drifted from the design), not as a doc to fix",
+    "The final message reports that the LLD says GET /orders returns orders newest first while the list path (db.Store.List and ListHandler) applies no ordering, as a design the code does not meet",
+    "The final message lets the user tell which docs are now correct and which still disagree with the code: each README fix names the old and the new claim, and each unresolved mismatch names the doc and the code involved",
+    "The run made no git commit and did not push: the branch head is the commit it started on",
+    "No file written or edited contains an em dash character"
+   ]
+  },
+  {
+   "id": 2,
+   "name": "runbook-behind-a-renamed-seed-script-before-the-mr",
+   "prompt": "I renamed the seed script and its make target on this branch. Before I raise the MR, check the docs didn't fall behind my change and sort out anything that did.",
+   "expected_output": "The database runbook's seed steps are brought in line with the branch (make db-seed, scripts/seed_db.py, SEED_ROWS in place of the removed --rows flag) without dropping the LEDGER_DB check the postmortem added and without advancing its Last reviewed date for a three-line fix. The postmortem that names scripts/seed.py is left untouched as history and the user is told so, but its claim that the seed now refuses a path outside the working directory is checked: scripts/seed_db.py has no such guard, and the user hears about that regression before the MR. The README, which is still correct, is not rewritten. Nothing is committed or pushed.",
+   "files": [
+    "files/ledger-seed"
+   ],
+   "expectations": [
+    "docs/runbooks/database.md no longer tells the reader to run make seed; it names make db-seed",
+    "docs/runbooks/database.md no longer tells the reader to run scripts/seed.py or to pass --rows; a different row count is set through SEED_ROWS (for example SEED_ROWS=500 make db-seed)",
+    "Every make target and script path that docs/runbooks/database.md names exists in the repository",
+    "docs/runbooks/database.md still names LEDGER_DB as the file seeding writes to (the postmortem's second action depends on the runbook naming the variable to check before seeding)",
+    "The runbook's 'Last reviewed 2026-08-20' line is not advanced to a later date: the run corrected the seed steps, it did not review the whole runbook end to end",
+    "docs/postmortems/2026-08-14-seed-on-staging.md is byte for byte unchanged",
+    "The final message says the postmortem still names scripts/seed.py and that it was left alone because it is a record of what happened at the time",
+    "The final message tells the user that the postmortem records 'Seed refuses a path outside the working directory' as done but scripts/seed_db.py writes to whatever LEDGER_DB names with no such check, as a regression to fix or confirm before the MR",
+    "README.md is unchanged, or changed only in ways that keep every command and path it names valid; it is not rewritten",
+    "No file under scripts/, src/ or tests/ and not the Makefile was changed: the docs follow the code, not the other way round",
+    "The final message names the runbook as the doc that fell behind and says what in it changed, old command to new",
+    "The run made no git commit and did not push: the branch is still feature/DATA-42-seed-rename at the commit it started on",
+    "No file written or edited contains an em dash character"
+   ]
+  }
+ ]
+}

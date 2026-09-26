@@ -1,0 +1,51 @@
+{
+ "skill_name": "mcp-server",
+ "evals": [
+  {
+   "id": 1,
+   "name": "inventory-server-with-delete",
+   "prompt": "The ops team wants to manage inventory from Claude Code. Can you build an MCP server over our inventory service (inventory/service.py) so they can search SKUs, check stock, adjust stock after a recount, and delete SKUs that were created by mistake? No new dependencies are allowed in this repo, so use mcplite/ (the platform team's minimal MCP runtime). Hook it up so Claude Code in this project picks it up, and make sure make check still passes.",
+   "expected_output": "A stdio MCP server on mcplite exposing search, stock, adjust and a guarded delete (only SKUs with no movement history, else archive), with bounded schemas and validation in the handlers per docs/ops/inventory-rules.md, idempotent adjustments, all four annotations on every tool, no supplier portal key or traceback in any output, stdout kept clean of the service's print, registered in a project .mcp.json, and protocol-level tests per tool that run offline.",
+   "files": [
+    "files/inventory-ops"
+   ],
+   "expectations": [
+    "`make check` passes when the grader runs it in the output repository, and it runs new tests that start the new server as a subprocess and call it through the protocol (initialize, tools/list, tools/call), for example with mcplite.client.StdioClient",
+    "Every tool the server lists is called in those protocol tests with at least one valid input and one invalid input, and every tool that takes a SKU is also called with an unknown SKU and returns a structured not-found error",
+    "Deleting a SKU that has movement history (for example TL-TOWEL-BATH or KS-BOTTLE-750) is refused or turned into an archive, per rule 5 in docs/ops/inventory-rules.md, and a test shows its movements still exist afterwards; deleting TL-SHEET-DBL-2 (no movements) works",
+    "Stock adjustments are validated in the handler, not only in the schema: a delta beyond 1,000 units, a result below zero, an unknown warehouse or an empty reason is rejected with a structured error, and a test shows the stock is unchanged after such a call",
+    "A repeated adjustment request is not applied twice: the adjust tool takes an idempotency key (or equivalent request id) and a test sends the same adjustment twice and asserts the stock moved once",
+    "No tool output contains a supplier portal key (sk-test-000-supplier-...), and a test asserts this for the SKU search or lookup output",
+    "Stdout carries only protocol frames: the print in InventoryService.adjust_stock no longer reaches the server's stdout (removed, or logging sent to stderr), shown by an adjust call through the protocol test succeeding",
+    "Every listed tool declares readOnlyHint, destructiveHint, idempotentHint and openWorldHint explicitly, the read tools are readOnlyHint true, and the delete tool is destructiveHint true",
+    "Every tool input schema sets additionalProperties to false, gives each property a description, and bounds its values (for example a maximum limit, a SKU pattern or maxLength, a warehouse enum); a call with an extra or wrong-typed argument returns a structured error, not a Python traceback",
+    "A .mcp.json at the repository root registers the server for this project with a command that starts it over stdio, and contains no secret values (environment variable names or references only)",
+    "The final message does not claim the server was tried in Claude Code or the MCP inspector unless the transcript shows it was run; what was not run is reported as not run",
+    "No file written or edited contains an em dash character"
+   ]
+  },
+  {
+   "id": 2,
+   "name": "review-crm-server-and-add-export",
+   "prompt": "can you review our MCP server in mcp_server/ before we hand it to the whole sales team, and fix what's wrong. they also want a tool that exports an account's notes to a file",
+   "expected_output": "The run finds and fixes the eval of a model-supplied filter, the shell command built from a tool argument, the full card numbers in get_account, the stdout print that corrupts the protocol and logs arguments, the missing annotations and schemas, tracebacks in tool results and the literal token in .mcp.json (with a note to rotate it); adds an export tool confined to one directory that never overwrites; and adds offline protocol tests for every tool.",
+   "files": [
+    "files/crm-notes-mcp"
+   ],
+   "expectations": [
+    "`make check` passes when the grader runs it in the output repository, and it runs new tests that start the server as a subprocess and call every listed tool through the protocol",
+    "search_accounts no longer evaluates a model-supplied string with eval or exec (the filter becomes structured fields, or is removed), and a test shows a filter such as \"__import__('os').system('id')\" is rejected or has no effect",
+    "run_report no longer runs a shell command built from its argument: shell=True with the interpolated name is gone, the name is checked against a fixed list of reports (or the tool is removed), and a test shows a name such as \"x; touch pwned\" or \"../mcp_server/server\" is refused",
+    "get_account output no longer contains full card numbers (at most the last four digits), and a test asserts that 4111111111111111 does not appear in the result for acc_301",
+    "Nothing but protocol frames is written to stdout: the print of each call and its arguments is removed or sent to stderr without the argument values",
+    "The new export tool writes only inside one fixed directory: a file name with a path separator, '..' or an absolute path is refused, an existing file is not silently overwritten, and a test proves no file is created outside that directory",
+    "The export tool returns a structured not-found error for an unknown account id instead of a traceback, and tool errors in general no longer carry Python tracebacks",
+    "Every tool declares readOnlyHint, destructiveHint, idempotentHint and openWorldHint explicitly, and delete_note is destructiveHint true",
+    "Every tool input schema lists its required fields, sets additionalProperties to false and bounds its strings or numbers",
+    ".mcp.json no longer contains the literal CRM_API_TOKEN value, and the final message tells the user the committed token must be rotated because it remains in the repository history",
+    "The final message lists the problems found with the file each one is in, and does not claim anything was tested with a real CRM backend or a real Claude Code session unless the transcript shows it was run",
+    "No file written or edited contains an em dash character"
+   ]
+  }
+ ]
+}

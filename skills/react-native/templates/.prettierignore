@@ -1,0 +1,15 @@
+node_modules
+dist
+ios
+android
+coverage
+.expo
+pnpm-lock.yaml
+# Owned by Bearing, not formatted by Prettier
+docs
+.claude
+.gitlab
+AGENTS.md
+CLAUDE.md
+CONTRIBUTING.md
+SECURITY.md

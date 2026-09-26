@@ -1,0 +1,53 @@
+{
+  "@@locale": "en",
+  "appTitle": "__REPO_NAME__",
+  "@appTitle": {
+    "description": "The product name, shown in the app bar and the task switcher"
+  },
+  "healthTitle": "API health",
+  "@healthTitle": {
+    "description": "Heading of the card that shows the API's health answer"
+  },
+  "healthChecking": "Checking the API",
+  "@healthChecking": {
+    "description": "Shown while the health request is in flight"
+  },
+  "healthStatus": "Status",
+  "@healthStatus": {
+    "description": "Label before the API's status value"
+  },
+  "healthVersion": "Version",
+  "@healthVersion": {
+    "description": "Label before the API's version value"
+  },
+  "unknown": "unknown",
+  "@unknown": {
+    "description": "Shown when the API did not report a version"
+  },
+  "retry": "Retry",
+  "@retry": {
+    "description": "Button that repeats a failed request"
+  },
+  "unexpectedError": "Unexpected error",
+  "@unexpectedError": {
+    "description": "Shown for a failure the app did not anticipate"
+  },
+  "notFoundTitle": "Page not found",
+  "@notFoundTitle": {
+    "description": "Title of the page shown for an unknown route"
+  },
+  "notFoundBody": "No page at {location}",
+  "@notFoundBody": {
+    "description": "Body of the not-found page",
+    "placeholders": {
+      "location": {
+        "type": "String",
+        "example": "/nowhere"
+      }
+    }
+  },
+  "backHome": "Back to the start",
+  "@backHome": {
+    "description": "Button that returns to the first page"
+  }
+}

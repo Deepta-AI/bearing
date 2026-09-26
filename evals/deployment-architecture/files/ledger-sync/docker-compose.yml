@@ -1,0 +1,18 @@
+services:
+  api:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      DATABASE_URL: postgres://ledger:ledger@db:5432/ledger?sslmode=disable
+      REDIS_URL: redis://cache:6379/0
+      DB_MAX_CONNS: "5"
+    depends_on: [db, cache]
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: ledger
+      POSTGRES_PASSWORD: ledger
+      POSTGRES_DB: ledger
+  cache:
+    image: redis:7

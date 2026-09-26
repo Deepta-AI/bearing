@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Theme preview</title>
+<style>
+  /* Page chrome: a tool, not the product. Both schemes designed. */
+  :root { --chrome-bg: #f3f4f6; --chrome-text: #1f2329; --chrome-muted: #5c6470; --chrome-line: #d5d9e0; color-scheme: light dark; }
+  @media (prefers-color-scheme: dark) { :root { --chrome-bg: #15181d; --chrome-text: #e6e8ec; --chrome-muted: #9aa3b0; --chrome-line: #2c323b; } }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--chrome-bg); color: var(--chrome-text); font: 14px/1.5 ui-sans-serif, system-ui, sans-serif; }
+  header { padding: 16px 24px; border-bottom: 1px solid var(--chrome-line); display: flex; gap: 24px; align-items: baseline; flex-wrap: wrap; }
+  header h1 { font-size: 16px; margin: 0; }
+  header p { margin: 0; color: var(--chrome-muted); }
+  .board { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(360px, 1fr); gap: 24px; padding: 24px; overflow-x: auto; }
+  @media (max-width: 720px) { .board { grid-auto-flow: row; grid-auto-columns: auto; padding: 16px; } }
+
+  /* One column per theme. Every colour below is a role; nothing is literal. */
+  .theme { background: var(--color-bg); color: var(--color-text); font-family: var(--font-body); border: 1px solid var(--color-border); border-radius: var(--radius-container); padding: var(--space-4); display: grid; gap: var(--space-4); align-content: start; }
+  .theme h2 { font-family: var(--font-display); font-size: 22px; margin: 0; line-height: 1.15; }
+  .theme .meta { color: var(--color-text-muted); font-size: 13px; }
+  .theme .meta code { font-family: var(--font-mono); font-size: 12px; }
+  .theme section { display: grid; gap: var(--space-2); }
+  .theme section > h3 { font-size: 13px; font-weight: 600; letter-spacing: 0.01em; margin: 0; color: var(--color-text-muted); text-transform: uppercase; }
+  .row { display: flex; gap: var(--space-2); flex-wrap: wrap; align-items: center; }
+
+  .btn { font: inherit; font-weight: 600; font-size: 13px; height: 40px; padding: 0 var(--space-3); border-radius: var(--radius-control); border: 1px solid transparent; cursor: pointer; box-shadow: var(--elevation-1); }
+  .btn-primary { background: var(--color-accent); color: var(--color-on-accent); }
+  .btn-primary:hover { background: var(--color-accent-hover); box-shadow: var(--elevation-2); }
+  .btn-secondary { background: var(--color-surface); color: var(--color-text); border-color: var(--color-border-strong); }
+  .btn-ghost { background: transparent; color: var(--color-text); box-shadow: none; }
+  .btn-danger { background: var(--color-danger); color: var(--color-on-danger); }
+  .btn[disabled] { color: var(--color-text-disabled); background: var(--color-bg-subtle); box-shadow: none; cursor: not-allowed; }
+  .theme :focus-visible { outline: var(--focus-width) solid var(--color-focus); outline-offset: var(--focus-offset); }
+
+  .field { display: grid; gap: 4px; }
+  .field label { font-size: 13px; font-weight: 600; }
+  .field input, .field select { font: inherit; height: 40px; padding: 0 var(--space-2); border-radius: var(--radius-control); border: 1px solid var(--color-border-strong); background: var(--color-surface); color: var(--color-text); }
+  .field input::placeholder { color: var(--color-text-muted); }
+  .field .help { font-size: 12px; color: var(--color-text-muted); }
+  .field.invalid input { border-color: var(--color-danger); }
+  .field.invalid .help { color: var(--color-danger); }
+  .check { display: flex; gap: var(--space-2); align-items: center; }
+  .check input { width: 20px; height: 20px; accent-color: var(--color-accent); margin: 0; }
+
+  .card { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-container); padding: var(--space-3); }
+  .card.pressable { box-shadow: var(--elevation-1); cursor: pointer; }
+  .card h4 { margin: 0 0 4px; font-size: 16px; }
+  .card p { margin: 0; color: var(--color-text-muted); }
+
+  .list { list-style: none; margin: 0; padding: 0; border: 1px solid var(--color-border); border-radius: var(--radius-container); overflow: hidden; }
+  .list li { display: flex; justify-content: space-between; padding: var(--space-2) var(--space-3); border-top: 1px solid var(--color-border); background: var(--color-surface); }
+  .list li:first-child { border-top: 0; }
+  .list li.selected { background: var(--color-accent-subtle); }
+  .list li span:last-child { color: var(--color-text-muted); font-variant-numeric: tabular-nums; }
+
+  table { width: 100%; border-collapse: collapse; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-container); overflow: hidden; }
+  th { text-align: left; font-size: 12px; letter-spacing: 0.01em; background: var(--color-bg-subtle); padding: var(--space-2); }
+  td { padding: var(--space-2); border-top: 1px solid var(--color-border); font-variant-numeric: tabular-nums; }
+  td.num, th.num { text-align: right; }
+
+  .dialog { background: var(--color-surface-raised); border-radius: var(--radius-overlay); box-shadow: var(--elevation-3); padding: var(--space-4); display: grid; gap: var(--space-2); }
+  .dialog h4 { margin: 0; font-family: var(--font-display); font-size: 18px; }
+  .sheet { background: var(--color-surface-raised); border-radius: var(--radius-overlay) var(--radius-overlay) 0 0; box-shadow: var(--elevation-3); padding: var(--space-3) var(--space-4) var(--space-4); }
+  .sheet .handle { width: 32px; height: 4px; border-radius: var(--radius-full); background: var(--color-border-strong); margin: 0 auto var(--space-2); }
+
+  .toast { display: flex; gap: var(--space-2); align-items: center; background: var(--color-surface-raised); box-shadow: var(--elevation-3); border-radius: var(--radius-container); padding: var(--space-2) var(--space-3); border-left: 4px solid var(--color-info); }
+  .toast.success { border-left-color: var(--color-success); }
+  .toast.danger { border-left-color: var(--color-danger); }
+  .toast.warning { border-left-color: var(--color-warning); }
+  .toast a { color: var(--color-link); margin-left: auto; font-weight: 600; }
+
+  .tabs { display: flex; gap: var(--space-3); border-bottom: 1px solid var(--color-border); }
+  .tabs button { font: inherit; font-weight: 600; background: none; border: 0; padding: var(--space-2) 0; color: var(--color-text-muted); border-bottom: 2px solid transparent; margin-bottom: -1px; }
+  .tabs button[aria-selected="true"] { color: var(--color-text); border-bottom-color: var(--color-accent); }
+
+  nav { display: flex; gap: 4px; background: var(--color-bg-subtle); border-radius: var(--radius-container); padding: 4px; }
+  nav a { flex: 1; text-align: center; text-decoration: none; padding: var(--space-2); border-radius: var(--radius-control); color: var(--color-text-muted); font-weight: 600; font-size: 13px; }
+  nav a[aria-current="page"] { background: var(--color-surface); color: var(--color-text); }
+  nav .badge { display: inline-block; min-width: 18px; padding: 0 5px; border-radius: var(--radius-full); background: var(--color-accent); color: var(--color-on-accent); font-size: 11px; margin-left: 4px; }
+
+  .empty { text-align: center; padding: var(--space-5) var(--space-3); border: 1px dashed var(--color-border-strong); border-radius: var(--radius-container); }
+  .empty h4 { margin: 0 0 4px; }
+  .empty p { margin: 0 0 var(--space-3); color: var(--color-text-muted); }
+
+  .skeleton { display: grid; gap: var(--space-2); }
+  .skeleton span { display: block; height: 12px; border-radius: var(--radius-control); background: var(--color-bg-subtle); animation: shimmer 1.2s ease-in-out infinite; }
+  .skeleton span:nth-child(2) { width: 70%; } .skeleton span:nth-child(3) { width: 40%; }
+  @keyframes shimmer { 50% { opacity: 0.55; } }
+  @media (prefers-reduced-motion: reduce) { .skeleton span { animation: none; } }
+
+  .swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); gap: 4px; }
+  .swatch { border-radius: var(--radius-control); border: 1px solid var(--color-border); padding: 6px; font-size: 11px; font-family: var(--font-mono); }
+  .contrast { font-size: 12px; font-family: var(--font-mono); display: grid; grid-template-columns: 1fr auto auto; gap: 2px 12px; }
+  .contrast .fail { color: var(--color-danger); font-weight: 700; }
+  .problems { color: var(--color-danger); font-size: 12px; margin: 0; padding-left: 16px; }
+  ::selection { background: var(--color-selection); }
+</style>
+</head>
+<body>
+<header>
+  <h1 id="title">Theme preview</h1>
+  <p id="summary"></p>
+  <p>Every component in every theme, side by side. Generated by <code>theme-lint.py --preview</code>; do not edit.</p>
+</header>
+<main class="board" id="board"></main>
+<script id="data" type="application/json">__THEMES_JSON__</script>
+<script>
+(function () {
+  var data = JSON.parse(document.getElementById('data').textContent);
+  var supportsOklch = window.CSS && CSS.supports && CSS.supports('color', 'oklch(50% 0 0)');
+  document.getElementById('title').textContent = (data.product || 'Product') + ': theme preview';
+  document.getElementById('summary').textContent = data.themes.length + ' themes';
+
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+
+  function column(theme) {
+    var el = document.createElement('article');
+    el.className = 'theme';
+    el.setAttribute('data-theme', theme.name);
+    Object.keys(theme.roles).forEach(function (role) {
+      var v = theme.roles[role];
+      el.style.setProperty('--color-' + role, v.hex);
+      if (supportsOklch && v.oklch) el.style.setProperty('--color-' + role, v.oklch);
+    });
+    var display = theme.display ? '"' + theme.display + '", ' + (data.font.display || 'serif') : (data.font.display || 'serif');
+    el.style.setProperty('--font-display', display);
+    el.style.setProperty('--font-body', data.font.body || 'sans-serif');
+    el.style.setProperty('--font-mono', data.font.mono || 'monospace');
+    ['control', 'container', 'overlay', 'full'].forEach(function (k) { el.style.setProperty('--radius-' + k, (data.radius[k] || 0) + 'px'); });
+    Object.keys(data.space).forEach(function (k) { el.style.setProperty('--space-' + k, data.space[k] + 'px'); });
+    var mode = theme.extends === 'dark' ? 'dark' : 'light';
+    ['0', '1', '2', '3'].forEach(function (k) { var lv = data.elevation[k] || {}; el.style.setProperty('--elevation-' + k, lv[mode] || 'none'); });
+    el.style.setProperty('--focus-width', (data.focus.width || 2) + 'px');
+    el.style.setProperty('--focus-offset', (data.focus.offset || 2) + 'px');
+    el.style.colorScheme = mode;
+
+    var h = '<div><h2>' + esc(theme.name) + '</h2><div class="meta">' + esc(theme.kind) + ', extends <code>' + esc(theme.extends) + '</code>, ' + theme.overridden.length + ' roles overridden' + (theme.display ? ', display ' + esc(theme.display) : '') + '</div></div>';
+    if (theme.problems && theme.problems.length) h += '<ul class="problems">' + theme.problems.map(function (p) { return '<li>' + esc(p) + '</li>'; }).join('') + '</ul>';
+    h += '<section><h3>Button</h3><div class="row"><button class="btn btn-primary">Save invoice</button><button class="btn btn-secondary">Cancel</button><button class="btn btn-ghost">More</button><button class="btn btn-danger">Delete</button><button class="btn btn-primary" disabled>Saving</button></div></section>';
+    h += '<section><h3>Input and select</h3><div class="field"><label for="e-' + esc(theme.name) + '">Email</label><input id="e-' + esc(theme.name) + '" placeholder="you@example.com"><span class="help">We send the receipt here.</span></div>'
+       + '<div class="field invalid"><label for="a-' + esc(theme.name) + '">Amount</label><input id="a-' + esc(theme.name) + '" value="12,34,567" aria-invalid="true"><span class="help">Amount must be under 10,00,000.</span></div>'
+       + '<div class="field"><label for="s-' + esc(theme.name) + '">Currency</label><select id="s-' + esc(theme.name) + '"><option>INR</option><option>USD</option></select></div></section>';
+    h += '<section><h3>Checkbox, radio, switch</h3><div class="row"><label class="check"><input type="checkbox" checked> Send a copy</label><label class="check"><input type="radio" name="r-' + esc(theme.name) + '" checked> Monthly</label><label class="check"><input type="radio" name="r-' + esc(theme.name) + '"> Yearly</label><label class="check"><input type="checkbox" role="switch" checked> Notifications</label></div></section>';
+    h += '<section><h3>Card</h3><div class="card"><h4>Static card</h4><p>Flat. A boundary, not a button.</p></div><div class="card pressable" tabindex="0"><h4>Pressable card</h4><p>Elevation 1: the whole card is one action.</p></div></section>';
+    h += '<section><h3>List row</h3><ul class="list"><li><span>Acme Traders</span><span>4,20,000</span></li><li class="selected"><span>Blue Mill</span><span>98,500</span></li><li><span>Cedar Works</span><span>12,300</span></li></ul></section>';
+    h += '<section><h3>Table</h3><table><thead><tr><th>Invoice</th><th>Status</th><th class="num">Amount</th></tr></thead><tbody><tr><td>INV-1041</td><td>Paid</td><td class="num">4,20,000</td></tr><tr><td>INV-1042</td><td>Due</td><td class="num">98,500</td></tr></tbody></table></section>';
+    h += '<section><h3>Dialog</h3><div class="dialog" role="dialog" aria-modal="true"><h4>Delete invoice INV-1042?</h4><p style="margin:0;color:var(--color-text-muted)">This cannot be undone.</p><div class="row"><button class="btn btn-danger">Delete invoice</button><button class="btn btn-secondary">Keep it</button></div></div></section>';
+    h += '<section><h3>Sheet</h3><div class="sheet"><div class="handle"></div><strong>Filter invoices</strong><p style="margin:4px 0 0;color:var(--color-text-muted)">Bottom sheet on mobile, side panel on desktop.</p></div></section>';
+    h += '<section><h3>Toast</h3><div class="toast success" role="status">Invoice sent.<a href="#">Undo</a></div><div class="toast danger" role="alert">Could not reach the bank. Retry in a minute.</div></section>';
+    h += '<section><h3>Tabs</h3><div class="tabs" role="tablist"><button role="tab" aria-selected="true">Overview</button><button role="tab" aria-selected="false">Payments</button><button role="tab" aria-selected="false">Notes</button></div></section>';
+    h += '<section><h3>Navigation</h3><nav aria-label="Primary"><a href="#" aria-current="page">Home</a><a href="#">Invoices<span class="badge">3</span></a><a href="#">Reports</a></nav></section>';
+    h += '<section><h3>Empty state</h3><div class="empty"><h4>No invoices yet</h4><p>Create the first one and it appears here.</p><button class="btn btn-primary">New invoice</button></div></section>';
+    h += '<section><h3>Skeleton</h3><div class="skeleton" aria-busy="true"><span></span><span></span><span></span></div></section>';
+    h += '<section><h3>Roles</h3><div class="swatches">' + Object.keys(theme.roles).map(function (r) { return '<div class="swatch" style="background:var(--color-' + r + ')"><span style="background:var(--color-surface);color:var(--color-text);padding:0 3px;border-radius:2px">' + esc(r) + '</span></div>'; }).join('') + '</div></section>';
+    h += '<section><h3>Contrast</h3><div class="contrast">' + (theme.contrast || []).map(function (p) { return '<span>' + esc(p.fg) + ' on ' + esc(p.bg) + '</span><span class="' + (p.pass ? '' : 'fail') + '">' + p.ratio.toFixed(2) + ':1</span><span>' + (p.min ? 'min ' + p.min : 'note') + '</span>'; }).join('') + '</div></section>';
+    el.innerHTML = h;
+    return el;
+  }
+
+  var board = document.getElementById('board');
+  data.themes.forEach(function (t) { board.appendChild(column(t)); });
+})();
+</script>
+</body>
+</html>

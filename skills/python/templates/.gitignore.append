@@ -1,0 +1,16 @@
+
+
+# python
+.venv/
+__pycache__/
+*.pyc
+.ruff_cache/
+.mypy_cache/
+.pytest_cache/
+.coverage
+coverage.xml
+junit.xml
+htmlcov/
+dist/
+build/
+.env

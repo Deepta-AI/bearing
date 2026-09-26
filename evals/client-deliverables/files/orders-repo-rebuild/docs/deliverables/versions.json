@@ -1,0 +1,89 @@
+{
+ "artifacts": {
+  "Requirements": {
+   "title": "Product Requirements",
+   "folder": "01_Product",
+   "version": 1,
+   "sha256": "0c351a18d71de2943fdafbaecd11e361be318c91040a67190d58208111166223",
+   "sections": [
+    "1. Problem",
+    "2. Business objectives",
+    "3. Requirements"
+   ],
+   "rows": {
+    "REQ-001": "036271820ad7",
+    "REQ-002": "43a8a5624d26"
+   },
+   "lists": true,
+   "history": [
+    {
+     "version": 1,
+     "date": "2026-09-10",
+     "author": "Example Co Private Limited",
+     "summary": "First issue"
+    }
+   ]
+  },
+  "UserStories": {
+   "title": "User Stories",
+   "folder": "01_Product",
+   "version": 1,
+   "sha256": "df08f589caef675a1ef3f25c07f285c16c84103a78de0e3eca4a8903f3cad6ac",
+   "sections": [
+    "US-01-001 See unpaid invoices"
+   ],
+   "rows": {
+    "US-01-001": "cbc4e4b06fa0",
+    "AC-US-01-001-1": "2331900515ed"
+   },
+   "lists": true,
+   "history": [
+    {
+     "version": 1,
+     "date": "2026-09-10",
+     "author": "Example Co Private Limited",
+     "summary": "First issue"
+    }
+   ]
+  },
+  "HLD": {
+   "title": "High-Level Design",
+   "folder": "03_Architecture",
+   "version": 1,
+   "sha256": "09925cf3797ecbc23183d71285e8a8f2e7821ab44c8f5cb5397c33256a895eb8",
+   "sections": [
+    "1. Goal",
+    "2. Architecture"
+   ],
+   "rows": {},
+   "lists": true,
+   "history": [
+    {
+     "version": 1,
+     "date": "2026-09-10",
+     "author": "Example Co Private Limited",
+     "summary": "First issue"
+    }
+   ]
+  },
+  "TestCases": {
+   "title": "Test Cases",
+   "folder": "06_QA",
+   "version": 1,
+   "sha256": "82b65e2cad94caa0845eb58a9eaebb3f546079b7b2dbf06386737eae649f7a7e",
+   "sections": [],
+   "rows": {
+    "TC-0001": "72396936aab1"
+   },
+   "lists": true,
+   "history": [
+    {
+     "version": 1,
+     "date": "2026-09-10",
+     "author": "Example Co Private Limited",
+     "summary": "First issue"
+    }
+   ]
+  }
+ }
+}

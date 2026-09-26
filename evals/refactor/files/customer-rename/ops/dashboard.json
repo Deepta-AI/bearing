@@ -1,0 +1,7 @@
+{
+  "title": "Billing",
+  "panels": [
+    {"title": "Active paying accounts", "expr": "billing_clients_active"},
+    {"title": "Lookups by account", "logs": "service=billingd | json | client_id != \"\""}
+  ]
+}

@@ -1,0 +1,228 @@
+openapi: 3.1.0
+info:
+  title: <API name>
+  version: 1.0.0
+  description: |
+    <One paragraph. What this API is for and who calls it.>
+    Serves: US-nn-nnn, AC-US-nn-nnn-k. Style: docs/api/README.md.
+  contact:
+    name: <team rotation, not a person>
+  # Read by scripts/api_doc.py for the header of docs/api/API.md. Each is
+  # one or two sentences; a missing one is derived from the spec and says so.
+  x-api-style: REST over HTTPS with JSON bodies; one service, no GraphQL.
+  x-versioning: >-
+    Major in the path (/api/v1); dated behaviour changes inside a major in
+    X-API-Version, server default the newest.
+  x-authentication: >-
+    Bearer JWT on every operation except those marked security: [] (sign-in
+    and health). A record the caller does not own is 404, never 403.
+servers:
+  - url: https://api.<env>.example.com/api/v1
+    description: <env>
+security:
+  - bearerAuth: []
+tags:
+  - name: <resource>
+    description: <one line>
+
+paths:
+  /<resources>:
+    get:
+      operationId: list<Resources>
+      summary: List <resources>
+      tags: [<resource>]
+      x-story-ids: [US-nn-nnn]
+      parameters:
+        - $ref: '#/components/parameters/ApiVersion'
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+        - name: filter[status]
+          in: query
+          schema: { type: string, enum: [draft, sent, paid] }
+      responses:
+        '200':
+          description: One page
+          headers:
+            X-Request-Id: { $ref: '#/components/headers/XRequestId' }
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, page]
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/<Resource>' }
+                  page: { $ref: '#/components/schemas/Page' }
+              example:
+                data:
+                  - id: 0192b1c2-7f3a-7c4e-9a1b-2c3d4e5f6a7b
+                    status: draft
+                    created_at: 2026-09-22T08:05:00Z
+                page: { next_cursor: eyJpZCI6IjAxOTIifQ, has_more: true }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '500': { $ref: '#/components/responses/InternalError' }
+    post:
+      operationId: create<Resource>
+      summary: Create a <resource>
+      tags: [<resource>]
+      x-story-ids: [US-nn-nnn]
+      parameters:
+        - $ref: '#/components/parameters/ApiVersion'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/<Resource>Create' }
+            example: { name: Example, amount_minor: 1999, currency: INR }
+      responses:
+        '201':
+          description: Created
+          headers:
+            Location: { schema: { type: string, format: uri } }
+            X-Request-Id: { $ref: '#/components/headers/XRequestId' }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/<Resource>' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/UnprocessableEntity' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /<resources>/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      operationId: get<Resource>
+      summary: Get one <resource>
+      tags: [<resource>]
+      x-story-ids: [US-nn-nnn]
+      parameters:
+        - $ref: '#/components/parameters/ApiVersion'
+      responses:
+        '200':
+          description: The <resource>
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/<Resource>' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    ApiVersion:
+      name: X-API-Version
+      in: header
+      required: false
+      description: Date version, e.g. 2026-09-01. Missing means the server default.
+      schema: { type: string, pattern: '^\d{4}-\d{2}-\d{2}$' }
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: Client UUID. Same key and body replays the first result for 24 hours.
+      schema: { type: string, format: uuid }
+    Cursor:
+      name: cursor
+      in: query
+      schema: { type: string }
+    Limit:
+      name: limit
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+  headers:
+    XRequestId:
+      schema: { type: string }
+      description: Echoed or generated request id; quote it in support tickets.
+    RateLimitRemaining:
+      schema: { type: integer }
+  schemas:
+    Error:
+      type: object
+      required: [error]
+      # Every value of error.code the API returns, with its one HTTP status.
+      # api_doc.py prints this as the error code table and uses it to name
+      # the codes behind each status in the per-resource tables.
+      x-error-codes:
+        - { code: validation_failed, status: 400, meaning: "Malformed request or a field failed validation; details names the field." }
+        - { code: unauthorized, status: 401, meaning: "No token or an invalid or expired one." }
+        - { code: not_found, status: 404, meaning: "No such record, or not visible to this caller." }
+        - { code: idempotency_conflict, status: 409, meaning: "Idempotency-Key reused with a different body." }
+        - { code: unprocessable, status: 422, meaning: "Valid shape but the content breaks a rule." }
+        - { code: rate_limited, status: 429, meaning: "Too many requests; wait Retry-After seconds." }
+        - { code: internal, status: 500, meaning: "Unexpected failure; quote request_id to support." }
+      properties:
+        error:
+          type: object
+          required: [code, message, request_id]
+          properties:
+            code: { type: string, example: validation_failed }
+            message: { type: string, example: amount_minor must be positive }
+            details:
+              type: array
+              items:
+                type: object
+                properties:
+                  field: { type: string }
+                  reason: { type: string }
+            request_id: { type: string, example: req_01J9Z6 }
+    Page:
+      type: object
+      required: [has_more]
+      properties:
+        next_cursor: { type: [string, 'null'] }
+        has_more: { type: boolean }
+    <Resource>:
+      type: object
+      required: [id, status, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        status: { type: string, enum: [draft, sent, paid] }
+        created_at: { type: string, format: date-time }
+      example:
+        id: 0192b1c2-7f3a-7c4e-9a1b-2c3d4e5f6a7b
+        status: draft
+        created_at: 2026-09-22T08:05:00Z
+    <Resource>Create:
+      type: object
+      required: [name, amount_minor, currency]
+      properties:
+        name: { type: string, maxLength: 120 }
+        amount_minor: { type: integer, minimum: 1 }
+        currency: { type: string, pattern: '^[A-Z]{3}$' }
+      example: { name: Example, amount_minor: 1999, currency: INR }
+  responses:
+    BadRequest:
+      description: Malformed request
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    Unauthorized:
+      description: Missing or invalid token
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    NotFound:
+      description: No such resource for this caller
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    Conflict:
+      description: Idempotency key reused with a different body
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    UnprocessableEntity:
+      description: Valid shape, invalid content
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    TooManyRequests:
+      description: Rate limited; see Retry-After
+      headers:
+        Retry-After: { schema: { type: integer } }
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    InternalError:
+      description: Unexpected failure; request_id is in the body
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }

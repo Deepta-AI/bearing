@@ -1,0 +1,13 @@
+// __REPO_NAME__ Debug build settings. Committed; holds defaults only.
+// Per-machine values (your team id, a staging API) go in Local.xcconfig,
+// written by `make env` from .env and git-ignored.
+// xcconfig treats // as a comment even inside a value, hence $() in URLs.
+
+API_BASE_URL = http:/$()/localhost:8080
+
+SWIFT_OPTIMIZATION_LEVEL = -Onone
+DEBUG_INFORMATION_FORMAT = dwarf
+ENABLE_TESTABILITY = YES
+GCC_OPTIMIZATION_LEVEL = 0
+
+#include? "Local.xcconfig"

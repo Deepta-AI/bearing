@@ -1,0 +1,5 @@
+{
+  "FLAVOR": "staging",
+  "API_URL": "https://api.qa.__REPO_SLUG__.example.com",
+  "VERBOSE_LOGGING": true
+}

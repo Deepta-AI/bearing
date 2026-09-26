@@ -1,0 +1,4 @@
+# m h dom mon dow  command
+30 2 1 * *   cd /app && node --no-warnings src/jobs/renew-subscriptions.js
+*/10 * * * * cd /app && node --no-warnings -e "import('./src/jobs/invoice-emails.js')"
+15 3 * * *   cd /app && node --no-warnings src/jobs/sweep.js

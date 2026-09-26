@@ -1,0 +1,12 @@
+{
+  "id": "go-api",
+  "display": "Go service",
+  "type": "Server/API",
+  "stack": "Go 1.26 + net/http + pgx + sqlc + goose + slog + Prometheus + OpenTelemetry",
+  "databases": "PostgreSQL",
+  "entrypoint": "cmd/api/main.go",
+  "rules_file": "go.md",
+  "check_command": "make check",
+  "install": "go mod tidy && go -C tools mod tidy",
+  "tool": "go"
+}

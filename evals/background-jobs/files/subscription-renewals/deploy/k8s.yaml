@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: billing
+spec:
+  replicas: 2
+  template:
+    spec:
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: app
+          image: registry.example.com/billing:latest
+          command: ["sh", "-c", "crond && node --no-warnings src/server.js"]
+          env:
+            - name: BILLING_DB
+              value: /data/billing.db
+          volumeMounts:
+            - name: data
+              mountPath: /data
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: billing-data

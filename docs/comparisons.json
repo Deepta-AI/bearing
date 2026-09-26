@@ -1,0 +1,2559 @@
+{
+ "accessibility": {
+  "best_alternative": {
+   "name": "accessibility-audit",
+   "pack": "AccessLint",
+   "installed": true,
+   "invoke": "accessibility-audit"
+  },
+  "verdict": "alternative-stronger",
+  "why": "For a web app with a live page, AccessLint is the deeper audit: WCAG-EM scope and sampling, the @accesslint/core rule engine over CDP with React source mapping to file:line, a hands-on tier (batched keyboard walk, focus visibility, reflow, target size, forms) that closes a per-criterion ledger, findings graded verified, flagged or human-required, conformance stated as pass, fail or undetermined, and a fix skill that re-runs its baseline to verify. accessibility's web dynamic pass is axe through Playwright plus a keyboard walk. AccessLint is web only, needs a running page and Chrome, and adds no gate to the repository. accessibility therefore uses it as the web engine and keeps the React Native, Android and iOS static passes, the static web pass when nothing runs, the TC-id axe spec as the standing CI gate, and the kit's report shape.",
+  "use_alternative_when": "Auditing, fixing or diffing a running web app for WCAG 2.2, especially a multi-page conformance report or a hands-on keyboard and screen-reader-tree pass.",
+  "use_bearing_when": "Mobile screens (React Native, Compose, SwiftUI), web source with no running page, adding the axe spec to Playwright CI, or one report across stacks; on web it calls AccessLint itself when installed.",
+  "recommendation": "keep",
+  "confidence": "medium"
+ },
+ "onboard-repo": {
+  "best_alternative": null,
+  "verdict": "no-alternative",
+  "why": "gsd-onboard and gsd-map-codebase map an existing codebase and write planning files, but install no standard files. brg-adopt is a script with three outcomes per file (added, kept, conflict written as .bearing-new). It fails when the standard holds zero files and prints the counts. No installed skill brings an existing repository onto a house standard without overwriting.",
+  "use_alternative_when": "Understanding an unfamiliar codebase before planning work (gsd-map-codebase).",
+  "use_bearing_when": "Putting an existing repository on this standard.",
+  "recommendation": "keep",
+  "confidence": "high"
+ },
+ "adr": {
+  "best_alternative": {
+   "name": "documentation-and-adrs",
+   "pack": "addyosmani",
+   "installed": true,
+   "invoke": "documentation-and-adrs"
+  },
+  "verdict": "bearing-stronger",
+  "why": "Close to equal. adr forces a rejected option (asks once, else writes 'none considered'), marks the superseded ADR, grounds Context in facts from code and git log, and prints a contract with the option count. It now detects an existing ADR convention (.adr-dir, other folders, rst or adoc, the numbering and headings) before falling back to docs/adr/, which was documentation-and-adrs's one advantage.",
+  "use_alternative_when": "The repository keeps ADRs somewhere other than docs/adr/ or in a non-Markdown format.",
+  "use_bearing_when": "Recording any decision in a repository on the house layout, especially one that supersedes an earlier ADR.",
+  "recommendation": "keep",
+  "confidence": "medium",
+  "measured": {
+   "date": "2026-09-24",
+   "model": "claude-opus-5-5",
+   "iteration": 1,
+   "cases": 2,
+   "runs_per_arm": 1,
+   "arms": {
+    "with_skill": {
+     "pass_rate": 1.0,
+     "tokens": 73408,
+     "seconds": 87.1
+    },
+    "with_the_alternative": {
+     "pass_rate": 0.85,
+     "tokens": 71050,
+     "seconds": 54.5
+    },
+    "without_skill": {
+     "pass_rate": 0.85,
+     "tokens": 69762,
+     "seconds": 73.3
+    }
+   },
+   "result": "bearing ahead",
+   "closest": "with_the_alternative",
+   "margin": 0.15
+  }
+ },
+ "llm-agent": {
+  "best_alternative": {
+   "name": "claude-api (agent-design, tool-use-concepts)",
+   "pack": "Anthropic (claude-api)",
+   "installed": true,
+   "invoke": "claude-api"
+  },
+  "verdict": "bearing-stronger",
+  "why": "claude-api is the authoritative reference on the tool runner, agent tool surfaces, Managed Agents and SDK shapes, and llm-agent already loads it for exactly that. It is a reference, not a build: it has no permission-tier registry with a schema count check, no money bound from usage, no kill switch, and no tests that the loop stops at max_turns and max_cost_usd or that an irreversible tool is denied. Those are Bearing's substance.",
+  "use_alternative_when": "Choosing between Messages API, tool runner, Agent SDK and Managed Agents, or looking up exact SDK shapes.",
+  "use_bearing_when": "Building a shippable agent in the repository.",
+  "recommendation": "keep",
+  "confidence": "high",
+  "measured": {
+   "date": "2026-09-25",
+   "model": "claude-opus-5-5",
+   "iteration": 1,
+   "cases": 2,
+   "runs_per_arm": 1,
+   "arms": {
+    "with_skill": {
+     "pass_rate": 0.915,
+     "tokens": 149929,
+     "seconds": 553.8
+    },
+    "with_the_alternative": {
+     "pass_rate": 0.79,
+     "tokens": 142685,
+     "seconds": 243.1
+    },
+    "without_skill": {
+     "pass_rate": 0.75,
+     "tokens": 101177,
+     "seconds": 251.2
+    }
+   },
+   "result": "bearing ahead",
+   "closest": "with_the_alternative",
+   "margin": 0.125
+  }
+ },
+ "android": {
+  "best_alternative": {
+   "name": "agp-9-upgrade",
+   "pack": "android/skills (Google)",
+   "installed": true,
+   "invoke": "agp-9-upgrade"
+  },
+  "verdict": "different-job",
+  "why": "Google's pack has no conventions, scaffold or gate, but each skill does one platform job better than the lane: AGP 9 migration off the built-in Kotlin and new DSL opt-outs the lane carries, edge-to-edge insets and IME under targetSdk 36, intent, PendingIntent and provider security, R8 keep-rule analysis, and test-layer setup. The lane keeps the architecture rules (one StateFlow UiState, injected dispatchers, DTOs stop at the repository, Tink tokens), the catalog and make check. The lane's pins meet the vendor floors (KSP 2.3.12 against 2.3.6, Hilt 2.60.1 against 2.59.2). Reading r8-analyzer exposed package-wide kotlinx.serialization keep rules in the lane, the kind it ranks worst and that the library already bundles; they were removed. The opt-outs are vendor-sanctioned, but the AGP 9 notes say AGP 10 removes them.",
+  "use_alternative_when": "Migrating AGP or leaving the opt-outs (agp-9-upgrade); insets, IME or system bars (edge-to-edge); manifest, deep link, PendingIntent or intent-extra code (android-intent-security); release size or a release-only crash (r8-analyzer); adding a missing test layer (android-testing-setup, told the stack is JUnit 6 local and JUnit 4 instrumented); a repo on Navigation 3 or after an ADR (navigation-3).",
+  "use_bearing_when": "Writing, reviewing or scaffolding Kotlin, Compose or Java on this stack, targetSdk 36 with Tink token storage; the lane loads the pack skills itself for those jobs.",
+  "recommendation": "keep",
+  "confidence": "high"
+ },
+ "api-versioning": {
+  "best_alternative": {
+   "name": "/review (api-contract specialist)",
+   "pack": "gstack",
+   "installed": true,
+   "invoke": "/review"
+  },
+  "verdict": "bearing-stronger",
+  "why": "The only installed overlap is the gstack review api-contract checklist, which flags breaking changes and deprecations without a sunset inside a diff review. api-versioning does the lifecycle work: Deprecation, Sunset and Link headers, a consumer inventory, a removal gate that passes only when requests to the operation are 0 and total requests are above 0 (so empty logs fail), oasdiff or a manual checklist with counts, and per-consumer contract snapshots in CI. addyosmani's deprecation-and-migration skill is referenced but not installed.",
+  "use_alternative_when": "Reviewing a diff for accidental contract breaks.",
+  "use_bearing_when": "Choosing a versioning policy, deprecating, proving no consumer is left, or removing an endpoint.",
+  "recommendation": "keep",
+  "confidence": "high",
+  "measured": {
+   "date": "2026-09-26",
+   "model": "claude-opus-5-5",
+   "iteration": 2,
+   "cases": 2,
+   "runs_per_arm": 1,
+   "arms": {
+    "with_skill": {
+     "pass_rate": 1.0,
+     "tokens": 88046,
+     "seconds": 100.0
+    },
+    "with_the_alternative": {
+     "pass_rate": 0.895,
+     "tokens": 114548,
+     "seconds": 133.9
+    },
+    "without_skill": {
+     "pass_rate": 0.845,
+     "tokens": 86612,
+     "seconds": 142.2
+    }
+   },
+   "result": "bearing ahead",
+   "closest": "with_the_alternative",
+   "margin": 0.105
+  }
+ },
+ "openapi-spec": {
+  "best_alternative": {
+   "name": "api-and-interface-design",
+   "pack": "addyosmani",
+   "installed": true,
+   "invoke": "api-and-interface-design"
+  },
+  "verdict": "bearing-stronger",
+  "why": "api-and-interface-design is principles and a checklist; it writes no spec and checks nothing. openapi-spec writes api/openapi.yaml, extracts routes per stack and reports drift in both directions with file:line, stops when both counts are zero, runs redocly lint and oasdiff breaking with SKIPPED when absent. The addyosmani skill is sharper on idempotency (atomic claim via unique constraint, key retention must outlive the longest retry and DLQ path), whereas Bearing's style fixes a 24 hour retention.",
+  "use_alternative_when": "Designing a non-HTTP interface (module boundary, TypeScript types, component props).",
+  "use_bearing_when": "An HTTP API needs its OpenAPI contract written or audited against the code.",
+  "recommendation": "keep",
+  "confidence": "high",
+  "measured": {
+   "date": "2026-09-24",
+   "model": "claude-opus-5-5",
+   "iteration": 1,
+   "cases": 2,
+   "runs_per_arm": 1,
+   "arms": {
+    "with_skill": {
+     "pass_rate": 1.0,
+     "tokens": 116678,
+     "seconds": 364.4
+    },
+    "with_the_alternative": {
+     "pass_rate": 0.865,
+     "tokens": 93210,
+     "seconds": 242.1
+    },
+    "without_skill": {
+     "pass_rate": 0.865,
+     "tokens": 92725,
+     "seconds": 264.6
+    }
+   },
+   "result": "bearing ahead",
+   "closest": "with_the_alternative",
+   "margin": 0.135
+  }
+ },
+ "architecture-diagram": {
+  "best_alternative": {
+   "name": "/diagram",
+   "pack": "gstack",
+   "installed": true,
+   "invoke": "/diagram"
+  },
+  "verdict": "bearing-stronger",
+  "why": "gstack /diagram turns an English description or mermaid into .excalidraw, SVG and PNG; it never reads the code. architecture-diagram derives C4 context, container, component and sequence views from compose, k8s, client calls and queue names, refuses an edge without a call site (drawn dashed and listed unconfirmed), and ships a sources table. The two are complementary and Bearing already offers /diagram for rendering.",
+  "use_alternative_when": "The mermaid already exists and an editable Excalidraw or PNG is wanted.",
+  "use_bearing_when": "The diagram must reflect the code as it is, with every box and edge sourced.",
+  "recommendation": "keep",
+  "confidence": "high",
+  "measured": {
+   "date": "2026-09-26",
+   "model": "claude-opus-5-5",
+   "iteration": 3,
+   "cases": 2,
+   "runs_per_arm": 1,
+   "arms": {
+    "with_skill": {
+     "pass_rate": 0.97,
+     "tokens": 115140,
+     "seconds": 257.3
+    },
+    "with_the_alternative": {
+     "pass_rate": 0.97,
+     "tokens": 104828,
+     "seconds": 235.9
+    },
+    "without_skill": {
+     "pass_rate": 0.86,
+     "tokens": 95575,
+     "seconds": 146.2
+    }
+   },
+   "result": "within 10 points",
+   "closest": "with_the_alternative",
+   "margin": 0.0
+  }
+ },
+ "auth": {
+  "best_alternative": {
+   "name": "/cso",
+   "pack": "gstack",
+   "installed": true,
+   "invoke": "/cso"
+  },
+  "verdict": "bearing-stronger",
+  "why": "/cso audits: OWASP A01 and A07 ask whether user A can reach user B's rows and check sessions and JWT rotation, with confidence gating and independent verifiers. It builds nothing. auth decides session versus token and RBAC versus ABAC, counts routes with and without auth, counts id loads scoped versus unscoped with every unscoped path:line, writes a permission matrix and requires one passing test per cell. For an audit of existing auth, /cso's verifier loop is the better tool.",
+  "use_alternative_when": "Auditing an existing codebase's access control for exploitable findings.",
+  "use_bearing_when": "Designing and building authentication and authorisation with the matrix enforced as tests.",
+  "recommendation": "keep",
+  "confidence": "high",
+  "measured": {
+   "date": "2026-09-26",
+   "model": "claude-opus-5-5",
+   "iteration": 5,
+   "cases": 2,
+   "runs_per_arm": 1,
+   "arms": {
+    "with_skill": {
+     "pass_rate": 1.0,
+     "tokens": 118256,
+     "seconds": 291.1
+    },
+    "with_the_alternative": {
+     "pass_rate": 0.62,
+     "tokens": 114391,
+     "seconds": 238.8
+    },
+    "without_skill": {
+     "pass_rate": 0.885,
+     "tokens": 102758,
+     "seconds": 210.2
+    }
+   },
+   "result": "bearing ahead",
+   "closest": "without_skill",
+   "margin": 0.115
+  }
+ },
+ "ci-pipeline": {
+  "best_alternative": {
+   "name": "design-review / qa test-framework bootstrap (B5.5)",
+   "pack": "gstack",
+   "installed": true,
+   "invoke": "/qa"
+  },
+  "verdict": "bearing-stronger",
+  "why": "No installed skill generates a GitLab pipeline; the only generator is gstack's GitHub-only test.yml step. The new packs do a different job: gha-security-review traces exploitable attacks by an outside contributor on GitHub workflows (pwn requests, expression injection, comment commands, credential reach, unpinned third-party actions in privileged jobs), and agentic-actions-auditor covers prompt-injection paths into AI agent actions. That review is stronger than anything ci-pipeline judged before (alternative-stronger for that step), so ci-pipeline now runs both in step 7 over every workflow file and fixes a finding only in a file it wrote itself. Neither pack reads .gitlab-ci.yml.",
+  "use_alternative_when": "Reviewing an existing repository's GitHub workflows for security with no pipeline change: run gha-security-review, plus agentic-actions-auditor when an AI action is used.",
+  "use_bearing_when": "Writing or refreshing a pipeline on GitLab or GitHub; it calls both packs itself for the GitHub side.",
+  "recommendation": "keep",
+  "confidence": "high"
+ },
+ "company-attribution": {
+  "best_alternative": null,
+  "verdict": "no-alternative",
+  "why": "No installed skill writes an organisation profile, LICENSE, NOTICE, CODEOWNERS, SECURITY.md or package-metadata attribution. The only hits for 'LICENSE' are licence fields in the frontmatter of other skills, and gstack cso only audits CODEOWNERS. This skill is template filling steered by the model, with a legal stop rule, and has no script of its own.",
+  "use_alternative_when": "None.",
+  "use_bearing_when": "Attributing a repository to your organisation and setting its licence.",
+  "recommendation": "keep",
+  "confidence": "high"
+ },
+ "license-compliance": {
+  "best_alternative": null,
+  "verdict": "no-alternative",
+  "why": "No installed skill mentions SBOM, SPDX, copyleft or licence policy; cso's supply-chain phase covers CVEs, not licences. license-compliance has a real script (license-gate.py) that parses SPDX expressions and exits non-zero on zero components, any denied or any unknown licence, plus notice and provenance checklists.",
+  "use_alternative_when": "Never; none installed.",
+  "use_bearing_when": "SBOM, licence gate, third-party notices, provenance.",
+  "recommendation": "keep",
+  "confidence": "high"
+ },
+ "cloud-cost": {
+  "best_alternative": null,
+  "verdict": "no-alternative",
+  "why": "A search for FinOps, cloud cost and billing found only incidental mentions (API pricing in claude-api, deploy notes in gstack). cloud-cost reads a billing export or provider CLI, stops on zero lines, attributes spend, computes unit costs with named denominators and prints cuts as commands without running them.",
+  "use_alternative_when": "Never; none installed.",
+  "use_bearing_when": "Monthly cloud cost review.",
+  "recommendation": "keep",
+  "confidence": "high"
+ },
+ "data-pipeline": {
+  "best_alternative": null,
+  "verdict": "no-alternative",
+  "why": "Nothing installed covers dbt or Airflow. The lane is current and concrete: Airflow 3 imports (airflow.sdk, providers.standard), idempotent partitioned windows from data_interval, no full-refresh in prod, the sqlfluff dbt-templater offline trap, and pytest gates that enforce layers and mart tests without a reviewer. Weakest spot: it hand-rolls start_date/end_date vars and does not mention dbt's built-in microbatch incremental strategy (dbt 1.9+), which does the same partitioned backfill natively.",
+  "use_alternative_when": "None installed.",
+  "use_bearing_when": "Any dbt model, Airflow DAG, backfill or data-pipeline scaffold.",
+  "recommendation": "keep",
+  "confidence": "high"
+ },
+ "data-model": {
+  "best_alternative": {
+   "name": "domain-modeling",
+   "pack": "mattpocock",
+   "installed": true,
+   "invoke": "domain-modeling"
+  },
+  "verdict": "bearing-stronger",
+  "why": "domain-modeling sharpens vocabulary into a CONTEXT.md glossary and explicitly excludes implementation, so it covers only the naming half. data-model produces entities with lifecycle and story ids, an erDiagram, per-store DDL with a named index per query shape, PII retention cells written UNDEFINED when no mechanism exists, an ordered migration plan, and a rule check against database references with a deviation count. Run domain-modeling first when terms are fuzzy.",
+  "use_alternative_when": "The domain terms are ambiguous or contested and need settling before tables exist.",
+  "use_bearing_when": "Stories must become tables, indexes, retention and migrations.",
+  "recommendation": "keep",
+  "confidence": "high",
+  "measured": {
+   "date": "2026-09-26",
+   "model": "claude-opus-5-5",
+   "iteration": 2,
+   "cases": 2,
+   "runs_per_arm": 1,
+   "arms": {
+    "with_skill": {
+     "pass_rate": 0.935,
+     "tokens": 192336,
+     "seconds": 714.9
+    },
+    "with_the_alternative": {
+     "pass_rate": 0.905,
+     "tokens": 97906,
+     "seconds": 231.0
+    },
+    "without_skill": {
+     "pass_rate": 0.935,
+     "tokens": 94719,
+     "seconds": 291.4
+    }
+   },
+   "result": "within 10 points",
+   "closest": "without_skill",
+   "margin": 0.0
+  }
+ },
+ "database": {
+  "best_alternative": {
+   "name": "supabase-postgres-best-practices",
+   "pack": "supabase",
+   "installed": true,
+   "invoke": "supabase-postgres-best-practices"
+  },
+  "verdict": "bearing-stronger",
+  "why": "Supabase's skill is about 30 short Postgres rules (indexes, pooling, RLS, locking, pagination) that are mostly a subset of database's postgres.md. It has nothing on lock-safe migrations, expand/contract, ClickHouse or Mongo, and its description overclaims migrations and pgvector. It was right on three points database has now taken in: v7 over v4 ids (the reference had v4 as the default, against its own gotcha), wrapping RLS function calls in a scalar SELECT, and least-privilege roles plus pg_stat_statements. It is still worth loading on Supabase projects for auth.uid() policies and SECURITY DEFINER helpers. gstack /review's data-migration specialist remains a 48-line generic list.",
+  "use_alternative_when": "The database is Supabase: auth.uid() policies, anon and authenticated roles, Data API exposure.",
+  "use_bearing_when": "Any schema, index, query, migration or store choice on Postgres, ClickHouse or MongoDB.",
+  "recommendation": "keep",
+  "confidence": "high"
+ },
+ "tech-debt": {
+  "best_alternative": {
+   "name": "health",
+   "pack": "gstack",
+   "installed": true,
+   "invoke": "/health"
+  },
+  "verdict": "bearing-stronger",
+  "why": "gstack /health scores type check, lint, tests and dead code into a weighted composite with trend history; it does not inventory TODO markers, suppressions, skipped tests or quarantined tests. tech-debt seeds an idempotent register from those four classes with a file count that must be non-zero, estimates interest and principal, ranks by their ratio, surfaces fired triggers and never deletes rows. ship's TODOS.md step only marks items complete from a diff.",
+  "use_alternative_when": "A quick quality score and its trend over time.",
+  "use_bearing_when": "Deciding what to clean up next and keeping a debt register.",
+  "recommendation": "keep",
+  "confidence": "medium",
+  "measured": {
+   "date": "2026-09-26",
+   "model": "claude-opus-5-5",
+   "iteration": 1,
+   "cases": 2,
+   "runs_per_arm": 1,
+   "arms": {
+    "with_skill": {
+     "pass_rate": 1.0,
+     "tokens": 87265,
+     "seconds": 150.5
+    },
+    "with_the_alternative": {
+     "pass_rate": 0.89,
+     "tokens": 102755,
+     "seconds": 167.6
+    },
+    "without_skill": {
+     "pass_rate": 0.83,
+     "tokens": 84448,
+     "seconds": 164.2
+    }
+   },
+   "result": "bearing ahead",
+   "closest": "with_the_alternative",
+   "margin": 0.11
+  }
+ },
+ "tech-decision": {
+  "best_alternative": {
+   "name": "gsd-discuss-phase (advisor mode, gsd-advisor-researcher)",
+   "pack": "GSD",
+   "installed": true,
+   "invoke": "gsd-discuss-phase"
+  },
+  "verdict": "bearing-stronger",
+  "why": "tech-decision carries an ordered catalogue of decision keys with defaults and the facts that flip them, forces a single recommendation plus the flip condition, asks one question per turn, and records every choice as an ADR plus a docs/decisions.md row with deferred keys dated. The GSD advisor researches live docs (Context7, web) but is told never to name a single winner and writes to phase CONTEXT.md, not an ADR; mattpocock grilling and Superpowers brainstorming ask well but record nothing durable. The one thing Bearing lacks is live research, which the advisor agent could supply as input.",
+  "use_alternative_when": "The options are fast-moving libraries whose current versions and maturity need a web or Context7 check before recommending.",
+  "use_bearing_when": "Any stack, infra or architecture choice that must end in a single recommendation, the user's decision and an ADR.",
+  "recommendation": "keep",
+  "confidence": "medium",
+  "measured": {
+   "date": "2026-09-26",
+   "model": "claude-opus-5-5",
+   "iteration": 4,
+   "cases": 2,
+   "runs_per_arm": 1,
+   "arms": {
+    "with_skill": {
+     "pass_rate": 0.955,
+     "tokens": 95448,
+     "seconds": 240.6
+    },
+    "with_the_alternative": {
+     "pass_rate": 0.825,
+     "tokens": 101159,
+     "seconds": 234.2
+    },
+    "without_skill": {
+     "pass_rate": 0.91,
+     "tokens": 80028,
+     "seconds": 191.1
+    }
+   },
+   "result": "within 10 points",
+   "closest": "without_skill",
+   "margin": 0.045
+  }
+ },
+ "client-deliverables": {
+  "best_alternative": {
+   "name": "docx",
+   "pack": "Anthropic",
+   "installed": true,
+   "invoke": "docx"
+  },
+  "verdict": "bearing-stronger",
+  "why": "The docx skill writes one Word document from content the model composes. It keeps no version per artifact, no history, no numbered folder layout, no CSV for the tracker or the test tool, and no checklist that reads evidence from the repository. client-deliverables rebuilds the whole pack from the committed artifacts with scripts, bumps a version only when a source changed, and never overwrites a status a person set.",
+  "use_alternative_when": "One document written by hand that is not a Bearing artifact.",
+  "use_bearing_when": "Any delivery of project documents to a client, and every update of the delivery checklist.",
+  "recommendation": "keep",
+  "confidence": "high",
+  "measured": {
+   "date": "2026-09-26",
+   "model": "claude-opus-5-5",
+   "iteration": 2,
+   "cases": 2,
+   "runs_per_arm": 1,
+   "arms": {
+    "with_skill": {
+     "pass_rate": 0.93,
+     "tokens": 87269,
+     "seconds": 84.2
+    },
+    "with_the_alternative": {
+     "pass_rate": 0.9,
+     "tokens": 125825,
+     "seconds": 339.2
+    },
+    "without_skill": {
+     "pass_rate": 0.75,
+     "tokens": 117920,
+     "seconds": 264.6
+    }
+   },
+   "result": "within 10 points",
+   "closest": "with_the_alternative",
+   "margin": 0.03
+  }
+ },
+ "deployment-architecture": {
+  "best_alternative": {
+   "name": "gsd-map-codebase (tech focus)",
+   "pack": "GSD",
+   "installed": true,
+   "invoke": "gsd-map-codebase"
+  },
+  "verdict": "bearing-stronger",
+  "why": "Nothing installed documents deployment in depth; gsd-map-codebase's tech mapper adds a short CI/CD and deployment section and /setup-deploy only configures /land-and-deploy. deployment-architecture writes every cell as value (file:line) or 'unconfirmed:', counts sourced versus unconfirmed claims, and marks a missing rollback path UNDEFINED and missing RPO/RTO per store.",
+  "use_alternative_when": "",
+  "use_bearing_when": "On-call or handover needs to know what runs where, how big, and how to roll it back.",
+  "recommendation": "keep",
+  "confidence": "high",
+  "measured": {
+   "date": "2026-09-24",
+   "model": "claude-opus-5-5",
+   "iteration": 2,
+   "cases": 2,
+   "runs_per_arm": 1,
+   "arms": {
+    "with_skill": {
+     "pass_rate": 0.97,
+     "tokens": 94206,
+     "seconds": 172.3
+    },
+    "with_the_alternative": {
+     "pass_rate": 0.425,
+     "tokens": 113085,
+     "seconds": 377.1
+    },
+    "without_skill": {
+     "pass_rate": 0.81,
+     "tokens": 78898,
+     "seconds": 173.4
+    }
+   },
+   "result": "bearing ahead",
+   "closest": "without_skill",
+   "margin": 0.16
+  }
+ },
+ "dependency-audit": {
+  "best_alternative": {
+   "name": "supply-chain-risk-auditor",
+   "pack": "trailofbits/skills",
+   "installed": true,
+   "invoke": "supply-chain-risk-auditor"
+  },
+  "verdict": "bearing-stronger",
+  "why": "For measuring supply-chain risk the pack is stronger (alternative-stronger for that step): deterministic collector scripts, version-matched advisories across the lockfile tree, abandoned and archived upstreams, npm publisher concentration, install scripts, an unassessable state that is never read as clean, and a non-zero exit on measuring nothing. It never classifies, plans, applies, gates or reverts an upgrade, and it covers only npm, PyPI and Go, with no pnpm-lock.yaml. dependency-audit does the whole job on six stacks and now runs the pack inside step 2, so its advisories join the vulnerable rows and abandoned packages form a replace group. It is stronger than /cso's supply-chain phase, which it replaces as the best alternative.",
+  "use_alternative_when": "A read-only risk report on npm, PyPI or Go dependencies, for example before an engagement or when choosing a library, with no upgrade intended.",
+  "use_bearing_when": "Auditing and upgrading a repository's dependencies with the gate after each group, on any stack; it calls the pack itself when installed.",
+  "recommendation": "keep",
+  "confidence": "high",
+  "measured": {
+   "date": "2026-09-26",
+   "model": "claude-opus-5-5",
+   "iteration": 1,
+   "cases": 2,
+   "runs_per_arm": 1,
+   "arms": {
+    "with_skill": {
+     "pass_rate": 0.97,
+     "tokens": 97518,
+     "seconds": 169.1
+    },
+    "with_the_alternative": {
+     "pass_rate": 0.97,
+     "tokens": 86771,
+     "seconds": 128.1
+    },
+    "without_skill": {
+     "pass_rate": 0.97,
+     "tokens": 93457,
+     "seconds": 140.8
+    }
+   },
+   "result": "within 10 points",
+   "closest": "with_the_alternative",
+   "margin": 0.0
+  }
+ },
+ "design-critique": {
+  "best_alternative": {
+   "name": "design-review",
+   "pack": "gstack",
+   "installed": true,
+   "invoke": "/design-review"
+  },
+  "verdict": "bearing-stronger",
+  "why": "On static prototypes Bearing wins: evidence.py shoots three widths in both themes and fails when a width is missing, when dark never applied (by byte-identical shots or identical computed colours), or when zero pages were given. Fixes are surgical edits, not rewrites. On a running app gstack /design-review is clearly stronger. It has an 80-item checklist, interaction-flow and cross-page consistency phases, a regression baseline, and a fix loop that commits each fix with a regression test. Bearing's description still claims 'or a URL', which is where gstack is the better tool. ui-craft critique and gsd-ui-review have no evidence gate.",
+  "use_alternative_when": "The app runs locally or on staging and the review should cover flows across pages and commit the fixes (gstack /design-review).",
+  "use_bearing_when": "Only HTML prototypes, variants or a static export exist, and the score must rest on counted evidence of widths and themes.",
+  "recommendation": "keep",
+  "confidence": "medium"
+ },
+ "design-system": {
+  "best_alternative": {
+   "name": "tokens",
+   "pack": "ui-craft",
+   "installed": true,
+   "invoke": "tokens"
+  },
+  "verdict": "bearing-stronger",
+  "why": "ui-craft tokens audits or proposes a three-layer token spine in OKLCH and asks before writing. It has no schema, no per-stack bindings (Compose, SwiftUI, React Native), no component contract and no lint. gstack design-consultation writes DESIGN.md prose and a preview with no tokens as code. design-system has two mechanisms: schema validation of tokens.json, and design-lint.sh, which counts hardcoded colours, spacing, font sizes and shadows, fails on zero files scanned, and uses a debt allowance that can only go down. Its contrast count comes from scripts/contrast.py, which checks the light and dark roles in tokens.json through themes's theme-lint and fails on zero pairs.",
+  "use_alternative_when": "Use tokens for a quick audit of an existing token spine in a web-only project. Use design-consultation to choose the aesthetic direction (research, outside voices), which design-system then takes as its input.",
+  "use_bearing_when": "The direction is settled and it must become tokens.json, per-stack theme files, a component contract and a lint gate in make check.",
+  "recommendation": "keep",
+  "confidence": "high"
+ },
+ "design-directions": {
+  "best_alternative": {
+   "name": "design-shotgun",
+   "pack": "gstack",
+   "installed": true,
+   "invoke": "/design-shotgun"
+  },
+  "verdict": "bearing-stronger",
+  "why": "design-shotgun has three things Bearing lacks: real image generation, a vision quality gate ($D check) and a persistent taste profile. All three need an OpenAI key, and this machine has none (OPENAI_API_KEY is unset and ~/.gstack/openai.json is absent), so today it falls back to plain HTML wireframes. It also keeps every artefact in ~/.gstack, outside the repository. design-directions produces working HTML in the repo that later skills read: both themes, three widths, focus styles, the flows' copy and a reduced-motion guard. Its distinctness test (swapped headline, three axes) is the same idea as shotgun's anti-convergence rule, and in both it is judged by the model. With a key configured, shotgun is the better tool for pure look exploration, which makes the prior finding of 'roughly equal' fair.",
+  "use_alternative_when": "An OpenAI key is configured and the goal is fast visual mood exploration from images, benefiting from taste memory across sessions.",
+  "use_bearing_when": "The variants must live in the repo as runnable HTML with real copy, both themes and three widths, feeding screen-design and design-critique.",
+  "recommendation": "keep",
+  "confidence": "medium"
+ },
+ "doctor": {
+  "best_alternative": null,
+  "verdict": "no-alternative",
+  "why": "Nothing installed checks the Bearing installation: plugin, packs, hooks, the CLAUDE.md import of AGENTS.md, rules, the make check target and hooksPath. gsd-health validates GSD's .planning/ directory and gstack health is a code quality dashboard, both different jobs. doctor runs bin/brg-doctor, which prints one line per check and exits 1 when a required check is missing, and the skill maps every miss to a fix command.",
+  "use_alternative_when": "",
+  "use_bearing_when": "After install.sh, or whenever a kit piece should be present and is not.",
+  "recommendation": "keep",
+  "confidence": "high"
+ },
+ "definition-of-done": {
+  "best_alternative": {
+   "name": "verification-before-completion",
+   "pack": "Superpowers",
+   "installed": true,
+   "invoke": "verification-before-completion"
+  },
+  "verdict": "bearing-stronger",
+  "why": "Prior finding holds. verification-before-completion is a discipline (run the command before claiming) and names the revert-the-fix red check only as a pattern; definition-of-done runs a twelve-item list with evidence per row and ships scripts/red_proof.sh, which runs the regression test in a throwaway worktree green at HEAD and red with non-test files reverted, failing on zero test files or zero non-test files. It also stops on a zero-file diff and greps for suppressions, new dependencies, AI trailers and em dashes. gsd-verify-work is conversational UAT, a different job.",
+  "use_alternative_when": "Always, as the background habit before any claim; it is a rule, not a gate, so it pairs with definition-of-done.",
+  "use_bearing_when": "Before merge-request on any branch, especially a bugfix or hotfix branch that needs red proof.",
+  "recommendation": "keep",
+  "confidence": "high",
+  "measured": {
+   "date": "2026-09-26",
+   "model": "claude-opus-5-5",
+   "iteration": 2,
+   "cases": 2,
+   "runs_per_arm": 1,
+   "arms": {
+    "with_skill": {
+     "pass_rate": 1.0,
+     "tokens": 91411,
+     "seconds": 172.6
+    },
+    "with_the_alternative": {
+     "pass_rate": 0.935,
+     "tokens": 83021,
+     "seconds": 95.1
+    },
+    "without_skill": {
+     "pass_rate": 0.9,
+     "tokens": 81164,
+     "seconds": 100.0
+    }
+   },
+   "result": "within 10 points",
+   "closest": "with_the_alternative",
+   "margin": 0.065
+  }
+ },
+ "estimate": {
+  "best_alternative": {
+   "name": "sprint-plan",
+   "pack": "pm-skills",
+   "installed": true,
+   "invoke": "sprint-plan"
+  },
+  "verdict": "bearing-stronger",
+  "why": "estimate refuses to size any story without acceptance criteria, writes two to four assumptions per story, draws a dependency graph and lists cycles as gaps, re-slices any phase whose demo sentence starts with the backend or the schema, and derives a points band from the share of unconfirmed assumptions. sprint-plan fills one sprint against historical velocity and a buffer; it presumes stories are already estimated and has no refusal, cycle check or band. The Bearing checks are written rules rather than scripts, so the edge is procedural, not mechanical. GSD's phase-estimation module estimates tokens per phase, a different quantity.",
+  "use_alternative_when": "The backlog is already sized and a team needs one sprint filled against measured velocity and availability.",
+  "use_bearing_when": "A whole backlog needs sizing, a phase plan and a confidence band before a commitment is made.",
+  "recommendation": "keep",
+  "confidence": "medium"
+ },
+ "analytics-events": {
+  "best_alternative": null,
+  "verdict": "no-alternative",
+  "why": "A search across user-level, plugin and GSD skills for tracking plan, event taxonomy, posthog, mixpanel and analytics event found nothing. analytics-events designs the sheet, defines identity and consent, generates a typed catalogue with a test that it matches the sheet, and audits code against the sheet both ways.",
+  "use_alternative_when": "Never; none installed.",
+  "use_bearing_when": "Any product analytics design, wiring or audit.",
+  "recommendation": "keep",
+  "confidence": "high"
+ },
+ "ab-experiment": {
+  "best_alternative": null,
+  "verdict": "no-alternative",
+  "why": "No installed skill designs or analyses an A/B test: a grep for sample size and minimum detectable across every installed skill and GSD workflow returned nothing, and plan-eng-review only mentions A/B testing in passing. The kit's named alternative, growthbook, is not installed. ab-experiment computes the sample size with python3 -c, fixes the horizon at design time, and in analyse runs a sample ratio mismatch chi-square before reading any metric, stopping at p under 0.001.",
+  "use_alternative_when": "",
+  "use_bearing_when": "Any A/B or feature experiment needs a hypothesis with a number, a sample size, stop rules or an analysis.",
+  "recommendation": "keep",
+  "confidence": "high"
+ },
+ "explain-codebase": {
+  "best_alternative": {
+   "name": "gsd-map-codebase",
+   "pack": "GSD",
+   "installed": true,
+   "invoke": "gsd-map-codebase"
+  },
+  "verdict": "different-job",
+  "why": "Confirmed. explain-codebase answers one question read-only in under 60 lines, stops on zero source files, and reports conventions as claimed versus observed with a match/drift count. gsd-map-codebase spawns four mapper agents that write and commit seven persisted documents under .planning/codebase/ for later GSD planning; it also uses file:line in flows but is a standing artifact, not an answer. Neither replaces the other.",
+  "use_alternative_when": "The repository is being onboarded for multi-session GSD work and a persisted map is wanted.",
+  "use_bearing_when": "A person asks how something works or where X lives and wants a checked answer now without files written.",
+  "recommendation": "keep",
+  "confidence": "high",
+  "measured": {
+   "date": "2026-09-26",
+   "model": "claude-opus-5-5",
+   "iteration": 2,
+   "cases": 2,
+   "runs_per_arm": 1,
+   "arms": {
+    "with_skill": {
+     "pass_rate": 0.82,
+     "tokens": 81514,
+     "seconds": 76.6
+    },
+    "with_the_alternative": {
+     "pass_rate": 0.595,
+     "tokens": 104880,
+     "seconds": 392.1
+    },
+    "without_skill": {
+     "pass_rate": 0.73,
+     "tokens": 80047,
+     "seconds": 74.3
+    }
+   },
+   "result": "within 10 points",
+   "closest": "without_skill",
+   "margin": 0.09
+  }
+ },
+ "feature-flags": {
+  "best_alternative": {
+   "name": "cloudflare (references/flagship)",
+   "pack": "cloudflare",
+   "installed": true,
+   "invoke": "cloudflare"
+  },
+  "verdict": "bearing-stronger",
+  "why": "The installed alternative is Cloudflare's Flagship reference: vendor-specific API, targeting rules, percentage rollouts and OpenFeature usage, but no lifecycle. feature-flags enforces default off, an owner rotation, a removal task and date, tests for both states, a register-versus-code audit that must show zero mismatches, and a remove mode that deletes the dead branch. Bearing has no percentage rollout or targeting; on Cloudflare Workers Flagship is the value source to pair with Bearing's module. growthbook, the kit's named alternate, is not installed and stays unverified.",
+  "use_alternative_when": "The service runs on Cloudflare and needs targeting or percentage rollouts; use it as the value source behind Bearing's flags module.",
+  "use_bearing_when": "Adding, using or removing any flag with ownership and removal discipline.",
+  "recommendation": "keep",
+  "confidence": "medium"
+ },
+ "flutter": {
+  "best_alternative": {
+   "name": "flutter-apply-architecture-best-practices",
+   "pack": "flutter/agent-plugins (Flutter team)",
+   "installed": true,
+   "invoke": "flutter-apply-architecture-best-practices"
+  },
+  "verdict": "bearing-stronger",
+  "why": "The Flutter team's architecture skill prescribes ChangeNotifier view models with provider or get_it and type-grouped folders. It has no AsyncValue three-branch rule, no typed repository errors, no dart-define flavours, no scaffold and no gate. Its localisation skill uses the deprecated synthetic flutter_gen package; the lane's l10n.yaml output-dir is the current form. Its integration-test skill injects enableFlutterDriverExtension into the entry point for MCP driving. dart-run-static-analysis is a subset of make check, though it documents formatter trailing_commas, which the lane now sets to preserve. The pack is stronger only at narrow jobs: layout constraint errors, platform deep-link files (intent filters, assetlinks, AASA) and WidgetTester mechanics.",
+  "use_alternative_when": "A RenderFlex overflow or unbounded constraint (flutter-fix-layout-issues); Android or iOS deep-link platform setup (flutter-setup-declarative-routing); WidgetTester mechanics (flutter-add-widget-test); a repo already on ChangeNotifier MVVM (the architecture skill).",
+  "use_bearing_when": "Any Flutter or Dart code, review or scaffold on this stack; the lane calls the three narrow skills itself.",
+  "recommendation": "keep",
+  "confidence": "medium"
+ },
+ "gate-audit": {
+  "best_alternative": null,
+  "verdict": "no-alternative",
+  "why": "No installed skill audits CI jobs, hooks and check targets for passing on empty input, missing counts or asserting constants. gstack health runs the linters and scores them, and gsd-health checks the planning directory; neither reads a gate's code for its empty-input behaviour. The skill follows its own rule by failing on zero gates.",
+  "use_alternative_when": "Never for this job.",
+  "use_bearing_when": "After adding a CI job or hook, or when a pipeline is suspiciously green.",
+  "recommendation": "keep",
+  "confidence": "high"
+ },
+ "genai-design": {
+  "best_alternative": {
+   "name": "gsd-ai-integration-phase",
+   "pack": "GSD",
+   "installed": true,
+   "invoke": "gsd-ai-integration-phase"
+  },
+  "verdict": "bearing-stronger",
+  "why": "Read in full with its four agents, the GSD workflow is strong on two things Bearing lacks: a domain researcher that web-researches practitioner rubrics, failure modes and regulation, and a completeness validation of the spec. But it starts from 'which framework' (LangChain, CrewAI, LlamaIndex...) and never asks whether the task needs an agent or retrieval at all, has no cost per 1,000 requests or latency arithmetic, and hard-errors outside a GSD project. Bearing walks the ladder from prompt-only and requires the rejected cheaper rung with a named failure, prices exact model ids from claude-api, and requires risks equal mitigated risks.",
+  "use_alternative_when": "The project runs on GSD phases, or the domain is regulated or unfamiliar enough that researched expert rubrics matter more than cost math.",
+  "use_bearing_when": "Designing any GenAI feature before code, especially deciding whether it needs retrieval or an agent and what it costs.",
+  "recommendation": "keep",
+  "confidence": "medium",
+  "measured": {
+   "date": "2026-09-26",
+   "model": "claude-opus-5-5",
+   "iteration": 1,
+   "cases": 2,
+   "runs_per_arm": 1,
+   "arms": {
+    "with_skill": {
+     "pass_rate": 0.96,
+     "tokens": 106773,
+     "seconds": 241.9
+    },
+    "with_the_alternative": {
+     "pass_rate": 0.835,
+     "tokens": 190011,
+     "seconds": 963.4
+    },
+    "without_skill": {
+     "pass_rate": 0.75,
+     "tokens": 99890,
+     "seconds": 265.1
+    }
+   },
+   "result": "bearing ahead",
+   "closest": "with_the_alternative",
+   "margin": 0.125
+  }
+ },
+ "git-hooks": {
+  "best_alternative": {
+   "name": "conventional-commit-message",
+   "pack": "dangreen (user-level)",
+   "installed": true,
+   "invoke": "conventional-commit-message"
+  },
+  "verdict": "bearing-stronger",
+  "why": "conventional-commit-message only helps write a message and installs no hook. mattpocock setup-pre-commit (Husky plus lint-staged, JS only) is on disk but not registered in the plugin's skill list, so it is not installed. Bearing ships three committed hooks that check the Conventional subject and task id, the AI trailer, em dashes, secret patterns and forbidden files, plus a per-extension lint and the make check gate. install.sh fails unless exactly 3 hooks are present, and the skill dry-runs each hook. pre-commit fails on zero staged files, and passes with a named reason only for a deletion-only commit, an empty merge, --allow-empty or a reword amend.",
+  "use_alternative_when": "Choosing the type and scope wording of a commit message (conventional-commit-message), which the commit-msg hook then checks.",
+  "use_bearing_when": "Installing or repairing enforced hooks in any repository.",
+  "recommendation": "keep",
+  "confidence": "high"
+ },
+ "go": {
+  "best_alternative": {
+   "name": "golang-concurrency, golang-context, golang-error-handling, golang-testing, golang-database, golang-security, golang-safety, golang-observability, golang-performance, golang-code-style",
+   "pack": "samber/cc-skills-golang",
+   "installed": true,
+   "invoke": "golang-testing"
+  },
+  "verdict": "alternative-stronger",
+  "why": "On Go itself the samber pack is far deeper: about 16,000 lines across ten skills against roughly 100 lines of go guidelines. It covers goroutine lifecycle, synctest, goleak, typed-nil traps, slice aliasing, the log-or-return rule and security audit modes. It has no stack, scaffold or gate, and it contradicts the stack: golang-migrate over goose, sqlx next to pgx, database/sql pool calls, a ban on writing schemas and RLS, go install @latest, and its own libraries (samber/lo, samber/oops). go keeps the stack, scaffold and fail-on-empty make check, explicitly supersedes the pack on those points, and loads the pack skill each job needs. Two pack rules were missing from go and have been added: log or return, never both; synctest and goleak.",
+  "use_alternative_when": "Any Go language question inside a go repository: concurrency, context, errors, tests, security, nil safety, and performance after a profile. go loads the matching skill.",
+  "use_bearing_when": "The go-api stack (pgx, sqlc, goose, slog), the layout, the scaffold, CI and the make check gate, and every conflict with the pack.",
+  "recommendation": "keep",
+  "confidence": "high"
+ },
+ "llm-guardrails": {
+  "best_alternative": {
+   "name": "cso (Phase 7 LLM security)",
+   "pack": "gstack",
+   "installed": true,
+   "invoke": "/cso"
+  },
+  "verdict": "unverified",
+  "why": "gstack /cso audits LLM security as one of its phases (user input reaching system prompts, unbounded LLM spend) and verifies findings, but it builds nothing. llm-guardrails builds the policy file, the input, tool-tier and output checks in one module wired at the gateway, and a parametrised adversarial fixture suite whose passing count must equal the fixture count and which fails on zero fixtures. Its --audit mode is narrower than /cso but checks wiring /cso does not (call sites without check_input, tools without a tier). Measured 25 Sep 2026: a tie, 0.79 for the skill, /cso and no skill. The skill lost on taking a side-effect target from document content, putting other people's derived records in the prompt, and not testing over-blocking or reply text; those four were added to the skill the same day. A rerun is owed before a verdict.",
+  "use_alternative_when": "Finding LLM security holes in existing code as part of a wider security audit.",
+  "use_bearing_when": "Adding guardrails to an LLM feature and proving they catch the adversarial set.",
+  "recommendation": "keep",
+  "confidence": "low",
+  "measured": {
+   "date": "2026-09-26",
+   "model": "claude-opus-5-5",
+   "iteration": 2,
+   "cases": 2,
+   "runs_per_arm": 1,
+   "arms": {
+    "with_skill": {
+     "pass_rate": 0.635,
+     "tokens": 168797,
+     "seconds": 659.8
+    },
+    "with_the_alternative": {
+     "pass_rate": 0.35,
+     "tokens": 117228,
+     "seconds": 277.9
+    },
+    "without_skill": {
+     "pass_rate": 0.645,
+     "tokens": 110600,
+     "seconds": 299.9
+    }
+   },
+   "result": "within 10 points",
+   "closest": "without_skill",
+   "margin": -0.01
+  }
+ },
+ "session-handoff": {
+  "best_alternative": {
+   "name": "gsd-pause-work",
+   "pack": "GSD",
+   "installed": true,
+   "invoke": "gsd-pause-work"
+  },
+  "verdict": "bearing-stronger",
+  "why": "For per-branch work session-handoff is stronger because the Bearing SessionStart hook prints the state file back automatically and the Gate line is computed from the .check-passed marker, so the next session sees whether the gate is stale without invoking anything. gsd-pause-work is stronger for multi-session plans: it writes machine-readable HANDOFF.json, measures uncommitted files from git rather than memory, records blocking constraints the resume step enforces, and commits the handoff. context-save only writes to ~/.gstack and needs a manual /context-restore; mattpocock handoff writes to the OS temp dir.",
+  "use_alternative_when": "The work is a GSD phase or spans many sessions with a plan, decisions and blocking constraints that must gate resumption.",
+  "use_bearing_when": "Pausing a single task branch in a work repository before /clear or end of day.",
+  "recommendation": "keep",
+  "confidence": "medium"
+ },
+ "harness-setup": {
+  "best_alternative": null,
+  "verdict": "no-alternative",
+  "why": "No installed skill makes a repository work with Cursor, Codex, Gemini CLI, Copilot, OpenCode, Windsurf, Cline, Zed or Kiro. harness-setup runs bin/brg-harness, which writes each harness's thin adapters over the shared bin/brg-guard, fails closed when the event JSON cannot be read, and never overwrites a differing file (it writes <file>.bearing-new and counts conflicts). The kit's named alternative is a manual npx skills add, which installs skills but no rules or guard hooks. GSD's installer targets many runtimes but only for GSD's own files.",
+  "use_alternative_when": "",
+  "use_bearing_when": "A repository or engineer needs the standard and its guard rails in a non-Claude harness.",
+  "recommendation": "keep",
+  "confidence": "high"
+ },
+ "health-checks": {
+  "best_alternative": {
+   "name": "canary",
+   "pack": "gstack",
+   "installed": true,
+   "invoke": "/canary"
+  },
+  "verdict": "different-job",
+  "why": "canary is a time-boxed browser watch after a deploy (screenshots, console errors, load time against a baseline) that produces a one-off report. health-checks builds standing mechanisms: /healthz and /readyz with named concurrent dependency checks, a scheduled synthetic suite in CI, blackbox probes and flap alerts with runbooks. No installed skill builds readiness endpoints or synthetic journeys.",
+  "use_alternative_when": "Watching a web app for ten minutes right after a deploy.",
+  "use_bearing_when": "Adding health endpoints, synthetic checks and uptime alerting to a service.",
+  "recommendation": "keep",
+  "confidence": "high"
+ },
+ "high-level-design": {
+  "best_alternative": {
+   "name": "/plan-eng-review",
+   "pack": "gstack",
+   "installed": true,
+   "invoke": "/plan-eng-review"
+  },
+  "verdict": "bearing-stronger",
+  "why": "Confirmed with nuance. As an author high-level-design is stronger: goal and non-goals must be agreed before section 2, failure-mode cells that nobody can fill are written UNDEFINED, the scaling section needs a number, and every claim is sourced or prefixed 'assumption:'. /plan-eng-review does not write an HLD; it reviews one, with a scope challenge, one AskUserQuestion per issue, a failure-mode critical-gap rule and a default-on outside voice (Codex), which is a stronger review loop than Bearing's optional critic. Use Bearing to write, then /plan-eng-review on the result.",
+  "use_alternative_when": "An HLD or plan already exists and needs an adversarial review before build.",
+  "use_bearing_when": "The HLD document itself has to be written from a PRD and the code.",
+  "recommendation": "keep",
+  "confidence": "medium",
+  "measured": {
+   "date": "2026-09-26",
+   "model": "claude-opus-5-5",
+   "iteration": 3,
+   "cases": 2,
+   "runs_per_arm": 1,
+   "arms": {
+    "with_skill": {
+     "pass_rate": 0.96,
+     "tokens": 179145,
+     "seconds": 756.0
+    },
+    "with_the_alternative": {
+     "pass_rate": 0.94,
+     "tokens": 170508,
+     "seconds": 444.8
+    },
+    "without_skill": {
+     "pass_rate": 0.895,
+     "tokens": 98160,
+     "seconds": 214.7
+    }
+   },
+   "result": "within 10 points",
+   "closest": "with_the_alternative",
+   "margin": 0.02
+  }
+ },
+ "i18n": {
+  "best_alternative": {
+   "name": "harden",
+   "pack": "ui-craft",
+   "installed": true,
+   "invoke": "harden"
+  },
+  "verdict": "bearing-stronger",
+  "why": "harden treats i18n as one line of a nine-item UI hardening matrix (no hard-coded strings, 1.3x expansion, RTL icon flip) and explicitly refuses counts. i18n counts hard-coded strings before and after, sets up the catalog per platform with ICU plurals and Intl formatters, a locale fallback chain, a pseudo-locale RTL pass, and an i18n-check that fails on zero keys compared or any missing key.",
+  "use_alternative_when": "A general UI production-readiness pass where i18n is one of many states to check.",
+  "use_bearing_when": "Actually internationalising a client or adding a locale.",
+  "recommendation": "keep",
+  "confidence": "high"
+ },
+ "incident": {
+  "best_alternative": null,
+  "verdict": "no-alternative",
+  "why": "Nothing installed runs a live incident. internal-comms (Anthropic) lists incident reports but ships only generic comms guidelines (3P, newsletter, FAQ, general); investigate and gsd-debug do root-cause debugging, not severity, roles, UTC timeline and comms cadence. incident is scribe-only by design and never runs a remediation.",
+  "use_alternative_when": "investigate (gstack) in parallel for the root-cause hunt while incident keeps the record.",
+  "use_bearing_when": "Declaring, updating, communicating and resolving an incident.",
+  "recommendation": "keep",
+  "confidence": "high"
+ },
+ "infra": {
+  "best_alternative": {
+   "name": "terraform-style-guide",
+   "pack": "hashicorp/agent-skills",
+   "installed": true,
+   "invoke": "terraform-style-guide"
+  },
+  "verdict": "bearing-stronger",
+  "why": "HashiCorp's three skills are narrow: a generic AWS-flavoured style guide, a thorough terraform test reference, and a module refactor recipe that ends in terraform apply. None covers remote state, environments, IAM breadth, secrets, Kubernetes, alerts, plan-only CI or the never-apply rule. terraform-test and terraform-refactor-module are stronger than infra on their own jobs, since infra had no test guidance and no moved blocks. infra now loads them for those jobs, limits tests to plan mode with mocks, and ends a refactor at a reviewed plan. Their correct rules (moved, import and removed blocks, output descriptions, underscore identifiers) were added to the guidelines.",
+  "use_alternative_when": "Writing .tftest.hcl files, splitting a root into modules, or HCL layout questions; infra loads them.",
+  "use_bearing_when": "Any Terraform, kustomize or monitoring change, review or infra scaffold, and whenever a pack skill suggests apply.",
+  "recommendation": "keep",
+  "confidence": "high"
+ },
+ "ios": {
+  "best_alternative": {
+   "name": "swiftui-pro",
+   "pack": "twostraws/SwiftUI-Agent-Skill",
+   "installed": true,
+   "invoke": "swiftui-pro"
+  },
+  "verdict": "bearing-stronger",
+  "why": "swiftui-pro is a SwiftUI reviewer and is stronger than the lane's checklist at SwiftUI itself: deprecated against modern API, view extraction, performance, HIG and VoiceOver detail, across nine reference files. It agrees with the lane on @Observable @MainActor, .task and no GCD. It has no scaffold, gate, Keychain, XcodeGen, privacy manifest or Swift 6 migration guidance, and assumes iOS 26 where the lane's floor is iOS 17. The lane therefore loads it for SwiftUI view writing and review and keeps everything else. /ios-qa (gstack) remains the choice for device QA.",
+  "use_alternative_when": "Writing or reviewing SwiftUI views for API modernity, composition, performance and accessibility detail; /ios-qa for a running app on a device.",
+  "use_bearing_when": "Swift and SwiftUI conventions, review against project rules, scaffolding, and the gate; it calls swiftui-pro itself.",
+  "recommendation": "keep",
+  "confidence": "medium"
+ },
+ "background-jobs": {
+  "best_alternative": {
+   "name": "api-and-interface-design",
+   "pack": "addyosmani",
+   "installed": true,
+   "invoke": "api-and-interface-design"
+  },
+  "verdict": "bearing-stronger",
+  "why": "No installed skill builds background jobs generically (the Cloudflare queue references are platform-specific). background-jobs writes a per-job contract that stops on an empty idempotency key, fixes backoff with full jitter, visibility above timeout, SIGTERM redelivery and dead letters, and requires five property tests. Handlers claim the idempotency key with an insert guarded by a unique constraint in the same transaction as the side effect, and a unique violation means done or in progress, the atomic pattern api-and-interface-design requires.",
+  "use_alternative_when": "",
+  "use_bearing_when": "Any queue, cron or outbox job needs its failure contract, worker shutdown, metrics and tests.",
+  "recommendation": "keep",
+  "confidence": "medium",
+  "measured": {
+   "date": "2026-09-26",
+   "model": "claude-opus-5-5",
+   "iteration": 3,
+   "cases": 2,
+   "runs_per_arm": 1,
+   "arms": {
+    "with_skill": {
+     "pass_rate": 0.955,
+     "tokens": 113717,
+     "seconds": 352.8
+    },
+    "with_the_alternative": {
+     "pass_rate": 0.84,
+     "tokens": 98496,
+     "seconds": 271.1
+    },
+    "without_skill": {
+     "pass_rate": 0.855,
+     "tokens": 97899,
+     "seconds": 335.6
+    }
+   },
+   "result": "bearing ahead",
+   "closest": "without_skill",
+   "margin": 0.1
+  }
+ },
+ "low-level-design": {
+  "best_alternative": {
+   "name": "writing-plans",
+   "pack": "Superpowers",
+   "installed": true,
+   "invoke": "writing-plans"
+  },
+  "verdict": "bearing-stronger",
+  "why": "low-level-design counts the design gaps: sequences without an error branch are written UNDEFINED, each query must name its index, config vars are checked against .env.example, and any work item over 400 lines is split before writing. writing-plans produces executable TDD steps with exact code, a no-placeholder rule and a reviewer-subagent prompt, which is stronger for execution but carries no queries, indexes, transactions or error mapping. They chain: low-level-design's work breakdown feeds writing-plans.",
+  "use_alternative_when": "The design is settled and the next step is bite-sized TDD tasks with exact code for an executor.",
+  "use_bearing_when": "One HLD component needs its modules, queries, transactions, errors and config designed before tasks are cut.",
+  "recommendation": "keep",
+  "confidence": "medium",
+  "measured": {
+   "date": "2026-09-24",
+   "model": "claude-opus-5-5",
+   "iteration": 3,
+   "cases": 2,
+   "runs_per_arm": 1,
+   "arms": {
+    "with_skill": {
+     "pass_rate": 1.0,
+     "tokens": 132764,
+     "seconds": 417.7
+    },
+    "with_the_alternative": {
+     "pass_rate": 0.875,
+     "tokens": 149972,
+     "seconds": 561.9
+    },
+    "without_skill": {
+     "pass_rate": 0.845,
+     "tokens": 107691,
+     "seconds": 301.1
+    }
+   },
+   "result": "bearing ahead",
+   "closest": "with_the_alternative",
+   "margin": 0.125
+  }
+ },
+ "llm-eval": {
+  "best_alternative": {
+   "name": "gsd-eval-review",
+   "pack": "GSD",
+   "installed": true,
+   "invoke": "gsd-eval-review"
+  },
+  "verdict": "bearing-stronger",
+  "why": "Read in full with gsd-eval-auditor and gsd-eval-planner, the GSD pair plans eval dimensions and later audits whether they were implemented, scored by a deterministic eval.score verb with an adversarial auditor stance. It never builds anything: no golden set, no graders, no harness, no baseline, no CI gate, and it only runs inside a GSD phase that has a SUMMARY.md. llm-eval builds all of those, tests every grader with an oracle and a null case, fails on zero cases, and gates on a delta against a person-accepted baseline. GSD's advice of 10 to 20 examples is also looser than Bearing's minimums.",
+  "use_alternative_when": "Auditing, after a GSD phase, whether the planned eval dimensions and guardrails were actually implemented.",
+  "use_bearing_when": "Building or running the eval for any LLM feature; a coverage audit like GSD's could be added as a llm-eval --audit mode.",
+  "recommendation": "keep",
+  "confidence": "high",
+  "measured": {
+   "date": "2026-09-25",
+   "model": "claude-opus-5-5",
+   "iteration": 1,
+   "cases": 2,
+   "runs_per_arm": 1,
+   "arms": {
+    "with_skill": {
+     "pass_rate": 0.915,
+     "tokens": 122213,
+     "seconds": 319.2
+    },
+    "with_the_alternative": {
+     "pass_rate": 0.5,
+     "tokens": 107110,
+     "seconds": 329.9
+    },
+    "without_skill": {
+     "pass_rate": 0.79,
+     "tokens": 109207,
+     "seconds": 273.0
+    }
+   },
+   "result": "bearing ahead",
+   "closest": "without_skill",
+   "margin": 0.125
+  }
+ },
+ "llm-gateway": {
+  "best_alternative": {
+   "name": "cloudflare (ai-gateway reference)",
+   "pack": "Cloudflare",
+   "installed": true,
+   "invoke": "cloudflare"
+  },
+  "verdict": "different-job",
+  "why": "Cloudflare AI Gateway is a hosted proxy configured on Cloudflare with caching, rate limits and fallbacks, documented for Vercel AI SDK and OpenAI SDK patterns. llm-gateway builds an in-code module: routing by tier, idempotency keys, per-tenant limits, cost from response usage, gen_ai spans, a kill switch, tests on a recorded-response fake, and a gate that call sites outside llm/ must reach zero. The hosted product could be a provider behind Bearing's module, not a replacement for it.",
+  "use_alternative_when": "The service runs on Cloudflare and wants provider analytics and caching at the edge; put it behind the Bearing module as the transport.",
+  "use_bearing_when": "Any service that calls a model.",
+  "recommendation": "keep",
+  "confidence": "medium",
+  "measured": {
+   "date": "2026-09-25",
+   "model": "claude-opus-5-5",
+   "iteration": 1,
+   "cases": 2,
+   "runs_per_arm": 1,
+   "arms": {
+    "with_skill": {
+     "pass_rate": 1.0,
+     "tokens": 136623,
+     "seconds": 359.4
+    },
+    "with_the_alternative": {
+     "pass_rate": 0.71,
+     "tokens": 94768,
+     "seconds": 205.8
+    },
+    "without_skill": {
+     "pass_rate": 0.795,
+     "tokens": 100090,
+     "seconds": 314.4
+    }
+   },
+   "result": "bearing ahead",
+   "closest": "without_skill",
+   "margin": 0.205
+  }
+ },
+ "llm-fine-tuning": {
+  "best_alternative": {
+   "name": "huggingface-llm-trainer",
+   "pack": "official marketplace (huggingface-skills)",
+   "installed": false,
+   "invoke": "huggingface-llm-trainer"
+  },
+  "verdict": "unverified",
+  "why": "Read on 25 Sep 2026: huggingface-llm-trainer writes and submits runnable TRL and PEFT jobs to Hugging Face Jobs (SFT, DPO, GRPO, Unsloth) and is stronger for the run itself; trl-training covers the TRL command line on any machine. Neither decides whether to train against an eval, gates on a smoke run, serves the adapter with vLLM behind the product's gateway or writes the model card. llm-fine-tuning now does those and routes the run to them. Measured 25 Sep 2026 against no skill (huggingface-llm-trainer is not installed): 0.96 against 0.70.",
+  "use_alternative_when": "Running the training job on Hugging Face Jobs (huggingface-llm-trainer) or with the TRL CLI (trl-training).",
+  "use_bearing_when": "Deciding whether to train, preparing the data, the GPU check and smoke run, serving behind the gateway, the canary and the model card.",
+  "recommendation": "keep",
+  "confidence": "medium",
+  "measured": {
+   "date": "2026-09-26",
+   "model": "claude-opus-5-5",
+   "iteration": 1,
+   "cases": 2,
+   "runs_per_arm": 1,
+   "arms": {
+    "with_skill": {
+     "pass_rate": 0.96,
+     "tokens": 117140,
+     "seconds": 330.3
+    },
+    "without_skill": {
+     "pass_rate": 0.7,
+     "tokens": 101421,
+     "seconds": 546.3
+    }
+   },
+   "result": "bearing ahead",
+   "closest": "without_skill",
+   "margin": 0.26
+  }
+ },
+ "load-test": {
+  "best_alternative": {
+   "name": "k6",
+   "pack": "Grafana k6 skill",
+   "installed": true,
+   "invoke": "k6"
+  },
+  "verdict": "bearing-stronger",
+  "why": "Grafana's k6 skill is the stronger script author: protocol examples for HTTP, gRPC, WebSocket and browser, a docs lookup through k6 x docs, a validate loop that runs or inspects the script, and a best-practices review. It does not derive thresholds from the HLD SLOs, has no production refusal, writes to k6/scripts/, adds no make target, CI job or results table, and suggests k6 cloud run, which the settings template denies. load-test now loads it for writing and checking the script and keeps target resolution, the production-host refusal, SLO-derived thresholds with abortOnFail, the four stages, teardown, make load-test failing on zero scripts, the manual qa-only CI job and the per-commit results table.",
+  "use_alternative_when": "Writing or debugging a one-off k6 script outside the SLO workflow: a gRPC, WebSocket or browser scenario, choosing an executor, or looking up a k6 API.",
+  "use_bearing_when": "Any load, stress or soak test of a service in a repository on this standard; it calls k6 itself when installed.",
+  "recommendation": "keep",
+  "confidence": "high"
+ },
+ "logging": {
+  "best_alternative": {
+   "name": "observability-and-instrumentation",
+   "pack": "addyosmani agent-skills",
+   "installed": true,
+   "invoke": "observability-and-instrumentation"
+  },
+  "verdict": "bearing-stronger",
+  "why": "addyosmani gives the principles (structured events, correlation id, levels, never log secrets) with Express snippets but no inventory, no templates and no gate. logging counts boundaries before and after, lists stray print calls, binds the request id at the edge, ships HTTP logging templates for six stacks behind LOG_HTTP toggles, and runs the repo gate. addyosmani has two rules Bearing lacks: a stable event name field on every line and an entryPoint field when several entry points (scheduler, replay, CLI) write one sink; its 'spot-check actual output for PII' is also stronger than Bearing's static deny list.",
+  "use_alternative_when": "Reviewing a PR for telemetry quality or teaching the why; stacks Bearing has no template for (Node/Express).",
+  "use_bearing_when": "Establishing or repairing logging in a repo on the Bearing stacks, with counts and HTTP logging toggles.",
+  "recommendation": "feed-rules",
+  "confidence": "medium",
+  "measured": {
+   "date": "2026-09-26",
+   "model": "claude-opus-5-5",
+   "iteration": 2,
+   "cases": 2,
+   "runs_per_arm": 1,
+   "arms": {
+    "with_skill": {
+     "pass_rate": 0.96,
+     "tokens": 144772,
+     "seconds": 450.4
+    },
+    "with_the_alternative": {
+     "pass_rate": 0.925,
+     "tokens": 101562,
+     "seconds": 225.6
+    },
+    "without_skill": {
+     "pass_rate": 0.965,
+     "tokens": 98292,
+     "seconds": 234.6
+    }
+   },
+   "result": "within 10 points",
+   "closest": "without_skill",
+   "margin": -0.005
+  }
+ },
+ "mcp-server": {
+  "best_alternative": {
+   "name": "build-mcp-server",
+   "pack": "mcp-server-dev (official)",
+   "installed": true,
+   "invoke": "build-mcp-server"
+  },
+  "verdict": "bearing-stronger",
+  "why": "The prior finding partly holds: build-mcp-server is the stronger designer (remote HTTP versus MCPB versus stdio, search plus execute for large surfaces, elicitation, Claude connector review and directory submission) but it writes no tests and has no client mode. Both build a server, so this is not a different job; Bearing wins on mechanism with a protocol-level test per tool whose count must equal tools exposed, and a client that maps discovered tools into tiers with new tools irreversible. Every tool also sets a title and all four annotation hints from its tier, and the protocol test fails a tool without them. mcp-builder still ships an LLM evaluation script Bearing does not have.",
+  "use_alternative_when": "Deciding deployment and distribution (remote connector, MCPB, directory submission) or wrapping a large API; mcp-builder for an LLM-driven eval of the finished server.",
+  "use_bearing_when": "Building and testing a server or client inside a service repository; add tool annotations from build-mcp-server's tool-design reference.",
+  "recommendation": "keep",
+  "confidence": "medium",
+  "measured": {
+   "date": "2026-09-25",
+   "model": "claude-opus-5-5",
+   "iteration": 1,
+   "cases": 2,
+   "runs_per_arm": 1,
+   "arms": {
+    "with_skill": {
+     "pass_rate": 0.915,
+     "tokens": 121524,
+     "seconds": 345.9
+    },
+    "with_the_alternative": {
+     "pass_rate": 0.625,
+     "tokens": 112028,
+     "seconds": 237.0
+    },
+    "without_skill": {
+     "pass_rate": 0.625,
+     "tokens": 106051,
+     "seconds": 243.4
+    }
+   },
+   "result": "bearing ahead",
+   "closest": "with_the_alternative",
+   "margin": 0.29
+  }
+ },
+ "db-migration": {
+  "best_alternative": null,
+  "verdict": "no-alternative",
+  "why": "No installed skill scaffolds schema migrations with a lock and index header and an up, down, up proof. mattpocock migrate-to-shoehorn is a test-library migration and cloudflare-one-migrations is a SASE vendor migration; both only match the word. The skill's substance is the per-tool layout for nine tools and the migrate-verify target it creates when none exists. The packs added in round two do not change this: supabase-postgres-best-practices claims migrations but its only migration advice is idempotent DO blocks, and golang-database tells the agent to use golang-migrate and never write migration SQL.",
+  "use_alternative_when": "Never for this job.",
+  "use_bearing_when": "Any schema change.",
+  "recommendation": "keep",
+  "confidence": "high",
+  "measured": {
+   "date": "2026-09-26",
+   "model": "claude-opus-5-5",
+   "iteration": 2,
+   "cases": 2,
+   "runs_per_arm": 1,
+   "arms": {
+    "with_skill": {
+     "pass_rate": 0.935,
+     "tokens": 98765,
+     "seconds": 262.0
+    },
+    "without_skill": {
+     "pass_rate": 0.9,
+     "tokens": 93388,
+     "seconds": 281.1
+    }
+   },
+   "result": "within 10 points",
+   "closest": "without_skill",
+   "margin": 0.035
+  }
+ },
+ "app-store-release": {
+  "best_alternative": {
+   "name": "ship (sections/apple-release.md)",
+   "pack": "gstack",
+   "installed": true,
+   "invoke": "/ship"
+  },
+  "verdict": "bearing-stronger",
+  "why": "gstack ship carries a real App Store adapter the kit lists as \"none\": fastlane end to end, a preflight for the 1024pt icon, privacy manifests and ITSAppUsesNonExemptEncryption, and an idempotency log that stops a re-upload on ambiguity. It is iOS only, executes uploads and submission itself, and mints a standing App Store Connect API key. app-store-release covers both stores, Android versionCode across every track, phased rollout with halt criteria and dashboards, Play Data safety from the SDK list, and a rejection playbook, while printing every command. It now also runs gstack's iOS preflight checks (1024 icon without alpha, privacy manifest, export compliance, usage strings) and keeps an upload log that blocks a repeat upload.",
+  "use_alternative_when": "A solo iOS app where the owner wants the agent to archive, upload and submit through fastlane.",
+  "use_bearing_when": "Any Play or App Store submission in a work repository, rollout planning, or a rejection reply.",
+  "recommendation": "keep",
+  "confidence": "medium"
+ },
+ "motion-design": {
+  "best_alternative": {
+   "name": "animate",
+   "pack": "ui-craft",
+   "installed": true,
+   "invoke": "animate"
+  },
+  "verdict": "bearing-stronger",
+  "why": "ui-craft animate, backed by the 434-line references/motion.md, has deeper web motion craft: a decision ladder, a reduced-motion contract, FLIP, and an audit for missing motion. It is web-only, edits code with no test, and reads durations from its own budget table. motion-design covers React Native, Compose and SwiftUI, reads durations from the tokens, and writes a Playwright test that asserts the final state and getAnimations().length === 0 under reduced motion. It also runs two counts that must hold: reduced-motion paths must equal patterns applied, and layout properties animated must be zero. Its own gotcha 'none installed does motion design' is stale, because animate is installed and listed in ALTERNATES.",
+  "use_alternative_when": "Tuning or trimming web motion by eye (easing, stagger, choreography), or when the job is removing motion that is too much.",
+  "use_bearing_when": "Motion must come from tokens, work on native stacks, and ship with a reduced-motion test and the counted gate.",
+  "recommendation": "keep",
+  "confidence": "medium"
+ },
+ "merge-request": {
+  "best_alternative": {
+   "name": "ship",
+   "pack": "gstack",
+   "installed": true,
+   "invoke": "/ship"
+  },
+  "verdict": "bearing-stronger",
+  "why": "gstack /ship verifies more (coverage audit, pre-landing review army, adversarial review, evidence ledger) but it is a non-interactive pipeline that includes uncommitted changes, merges the base into the branch, squashes WIP commits, bumps VERSION on every PR and pushes; the kit's claim that it \"stops at the push\" is only true because bearing's block-publish hook blocks it, after the branch has already been mutated. merge-request prepares the description, audits commit subjects and trailers without rewriting history, stops on a zero-file diff, and prints the push and MR URL. For preparing an MR a human pushes, merge-request is stronger; ship's review and coverage steps are separate jobs covered by branch-review and definition-of-done.",
+  "use_alternative_when": "A solo repository where the agent is allowed to commit, merge base, version and open the PR end to end.",
+  "use_bearing_when": "Any work repository where the engineer pushes and opens the MR.",
+  "recommendation": "keep",
+  "confidence": "medium",
+  "measured": {
+   "date": "2026-09-26",
+   "model": "claude-opus-5-5",
+   "iteration": 2,
+   "cases": 2,
+   "runs_per_arm": 1,
+   "arms": {
+    "with_skill": {
+     "pass_rate": 1.0,
+     "tokens": 89727,
+     "seconds": 144.0
+    },
+    "with_the_alternative": {
+     "pass_rate": 0.59,
+     "tokens": 115042,
+     "seconds": 188.3
+    },
+    "without_skill": {
+     "pass_rate": 0.645,
+     "tokens": 81986,
+     "seconds": 245.2
+    }
+   },
+   "result": "bearing ahead",
+   "closest": "without_skill",
+   "margin": 0.355
+  }
+ },
+ "new-repo": {
+  "best_alternative": null,
+  "verdict": "no-alternative",
+  "why": "No installed skill scaffolds a repository from stack templates. The closest, gsd-new-project, creates planning files (.planning/PROJECT.md, ROADMAP.md) and runs git init, but installs no Makefile, CI, hooks or agent files. brg-scaffold is a real script: it refuses a non-empty target, fails when zero files were written, and reports the count of unfilled placeholders, which must be 0.",
+  "use_alternative_when": "Use gsd-new-project for project planning (requirements, roadmap), which can run alongside new-repo.",
+  "use_bearing_when": "Creating any new company repository.",
+  "recommendation": "keep",
+  "confidence": "high"
+ },
+ "nextjs": {
+  "best_alternative": {
+   "name": "vercel-react-best-practices",
+   "pack": "vercel (user skills)",
+   "installed": true,
+   "invoke": "vercel-react-best-practices"
+  },
+  "verdict": "bearing-stronger",
+  "why": "nextjs covers the full job: server-by-default boundary, the authorise then validate then act order for server actions, split env with server-only, cache named on every fetch, route states, testing server components, and a scaffold. Vercel adds server-side performance rules Bearing lacks (server-no-shared-module-state, server-serialization, after()), but no structure, security order or tests. The lane is on Next 16.3 with Cache Components: proxy.ts replaces middleware.ts, actions use updateTag, and it has taken in Vercel's rules on waterfalls, barrel imports, shared server module state and serialisation.",
+  "use_alternative_when": "Tuning server-render performance: parallel fetches, RSC payload size, per-request dedup, non-blocking after().",
+  "use_bearing_when": "Writing, reviewing or scaffolding a Next App Router app, especially server actions, env handling and tests. Upgrade the lane to Next 16 before new projects start on it.",
+  "recommendation": "keep",
+  "confidence": "medium"
+ },
+ "node": {
+  "best_alternative": null,
+  "verdict": "no-alternative",
+  "why": "No installed skill covers Node service code (workers-best-practices is Cloudflare Workers only). The lane gives what an unguided model would not do consistently: Fastify 5 with a Zod type provider on every route and the response, one error envelope, floating-promise lint, Drizzle repositories with services owning transactions, migrations never run on boot, OTel loaded before pg and pino, bounded shutdown, and a scaffold with pinned versions. Weakest spot: it targets Node 22 and pnpm 9 when Node 24 has been Active LTS since Oct 2025 and pnpm 10 is current.",
+  "use_alternative_when": "The service runs on Cloudflare Workers: use workers-best-practices and wrangler instead.",
+  "use_bearing_when": "Any Node or TypeScript server code on Fastify, Express or similar, and scaffolding node-api.",
+  "recommendation": "keep",
+  "confidence": "high"
+ },
+ "observability": {
+  "best_alternative": {
+   "name": "otel-instrumentation",
+   "pack": "dash0 (user-level)",
+   "installed": true,
+   "invoke": "otel-instrumentation"
+  },
+  "verdict": "bearing-stronger",
+  "why": "otel-instrumentation is a far deeper reference (about 8,200 lines: per-SDK setup for ten languages, span/metric/log hygiene, a dependency verification rule and a post-deploy validation checklist) but it is advisory only: no collector or compose template, no dashboard, no alert rules, no SLO document, and 18 of its links point at otel-collector and otel-ottl skills that are not installed. observability ships templates, burn-rate rules, promtool check, and a gate that rule count must equal runbook count, plus a local trace-to-log join check. It now defines what working means and the on-call questions before instrumenting, test-fires each new alert, and samples in the collector rather than the SDK, so the RED metrics derived from spans stay whole. It still lacks otel-instrumentation's per-language span hygiene for stacks it does not cover.",
+  "use_alternative_when": "Instrumenting a stack Bearing does not cover (Java, .NET, Ruby, PHP, Scala, Next.js App Router) or needing span-kind/status/attribute hygiene and a backend validation checklist; addyosmani when deciding what to instrument for a new feature.",
+  "use_bearing_when": "Wiring a Go, Python, React or mobile service end to end with the collector, Grafana stack, RED dashboard, burn-rate alerts, SLO doc and runbook stubs.",
+  "recommendation": "keep",
+  "confidence": "high"
+ },
+ "on-call": {
+  "best_alternative": null,
+  "verdict": "no-alternative",
+  "why": "No installed skill sets up rotations, escalation or error-budget policy; addyosmani only states alert rules (actionable, runbook, two severities). on-call's check mode fails on zero rules, a paging alert without a runbook file, or an unroutable rule, and prints counts. It lacks addyosmani's test-fire-each-alert rule, which belongs here or in observability.",
+  "use_alternative_when": "Never; none installed.",
+  "use_bearing_when": "Rotation, routing, error-budget freeze rule, handover and weekly page review.",
+  "recommendation": "keep",
+  "confidence": "high"
+ },
+ "feature-patterns": {
+  "best_alternative": null,
+  "verdict": "no-alternative",
+  "why": "No installed skill covers these eight mechanisms generically; the Cloudflare skill has platform-specific rate-limit, queue and multitenancy references only. feature-patterns loads exactly one reference, greps its markers for existing implementations before asking, skips questions an ADR answers, and writes a plan with failure modes and named tests. Its payments reference derives the Idempotency-Key from the payment intent, reuses it across retries, and keeps it longer than the retry, dead-letter and dispute windows.",
+  "use_alternative_when": "",
+  "use_bearing_when": "Planning uploads, search, realtime, cache, rate limiting, payments, notifications or multitenancy.",
+  "recommendation": "keep",
+  "confidence": "high",
+  "measured": {
+   "date": "2026-09-24",
+   "model": "claude-opus-5-5",
+   "iteration": 2,
+   "cases": 2,
+   "runs_per_arm": 1,
+   "arms": {
+    "with_skill": {
+     "pass_rate": 0.955,
+     "tokens": 87954,
+     "seconds": 166.8
+    },
+    "without_skill": {
+     "pass_rate": 0.83,
+     "tokens": 79142,
+     "seconds": 125.6
+    }
+   },
+   "result": "bearing ahead",
+   "closest": "without_skill",
+   "margin": 0.125
+  }
+ },
+ "performance": {
+  "best_alternative": {
+   "name": "web-perf",
+   "pack": "user-level skill (no author metadata)",
+   "installed": true,
+   "invoke": "web-perf"
+  },
+  "verdict": "bearing-stronger",
+  "why": "web-perf is a deeper browser page-load audit (DevTools trace insights, network chains, bundle analysis) but it stops unless the chrome-devtools MCP server is configured, and it is not configured in ~/.claude.json. performance covers backend and mobile profilers, refuses to touch code before a metric line exists, stops on zero measurements, and treats an after-median inside the before spread as noise to revert. gstack benchmark is page-level regression tracking.",
+  "use_alternative_when": "A web page's LCP, INP or CLS, once the chrome-devtools MCP is added.",
+  "use_bearing_when": "Any slow endpoint, job, memory growth or app startup.",
+  "recommendation": "keep",
+  "confidence": "medium"
+ },
+ "postmortem": {
+  "best_alternative": {
+   "name": "retro",
+   "pack": "pm-skills",
+   "installed": true,
+   "invoke": "retro"
+  },
+  "verdict": "different-job",
+  "why": "pm-skills retro is a sprint retrospective (Start/Stop/Continue, velocity versus commitment, two or three actions); gstack retro is a weekly shipping retro and mattpocock retro improves the agent's environment. None produces an incident record with impact numbers, a UTC timeline marking inferred times, a causal chain and owned follow-ups. The kit's own label for retro, 'the team half', is accurate.",
+  "use_alternative_when": "The team-process retro after a sprint, not an outage.",
+  "use_bearing_when": "Writing up any incident.",
+  "recommendation": "keep",
+  "confidence": "high"
+ },
+ "prd": {
+  "best_alternative": {
+   "name": "create-prd",
+   "pack": "pm-skills",
+   "installed": true,
+   "invoke": "create-prd"
+  },
+  "verdict": "bearing-stronger",
+  "why": "prd extracts numbered REQ statements from an existing input, records the source line next to each, flags vague words as ambiguous with an open question, never renumbers existing ids, and treats zero statements extracted as a failed run. create-prd writes an eight-section business document from scratch (contacts, OKRs, value proposition, release) with no ids, no source tracing and no failure condition. mattpocock to-spec is further off: it writes an extensive numbered user-story list, which is the one-story-per-line pattern the owner rejects. gsd-ingest-docs normalises many documents into .planning/ with a conflict engine, but its requirements come from GSD scoping rather than line-level extraction.",
+  "use_alternative_when": "There is no input to normalise and stakeholders need a business case document with objectives, segments and value propositions.",
+  "use_bearing_when": "Any brief, email or old PRD must become the traceable root that stories, tests and commits cite.",
+  "recommendation": "keep",
+  "confidence": "medium",
+  "measured": {
+   "date": "2026-09-26",
+   "model": "claude-opus-5-5",
+   "iteration": 2,
+   "cases": 2,
+   "runs_per_arm": 1,
+   "arms": {
+    "with_skill": {
+     "pass_rate": 0.98,
+     "tokens": 113961,
+     "seconds": 343.7
+    },
+    "with_the_alternative": {
+     "pass_rate": 0.795,
+     "tokens": 85479,
+     "seconds": 159.7
+    },
+    "without_skill": {
+     "pass_rate": 0.85,
+     "tokens": 88548,
+     "seconds": 191.4
+    }
+   },
+   "result": "bearing ahead",
+   "closest": "without_skill",
+   "margin": 0.13
+  }
+ },
+ "privacy-review": {
+  "best_alternative": {
+   "name": "cso (Phase 11 Data Classification)",
+   "pack": "gstack",
+   "installed": true,
+   "invoke": "/cso"
+  },
+  "verdict": "bearing-stronger",
+  "why": "cso Phase 11 is a fill-in classification block (restricted, confidential, internal, public) with no mechanisms. privacy-review builds the data map from the schema, wires retention and table-driven DSAR export and delete, designs append-only consent, scans every log call for PII and fails on zero calls scanned, and writes tests against a seeded subject. gsd-domain-researcher touches regulation only as research input.",
+  "use_alternative_when": "A quick data sensitivity overview inside a security audit.",
+  "use_bearing_when": "Any GDPR or DPDP work that must end in working retention, DSAR and consent.",
+  "recommendation": "keep",
+  "confidence": "high"
+ },
+ "client-handover": {
+  "best_alternative": null,
+  "verdict": "no-alternative",
+  "why": "The handover-named skills (mattpocock handoff, gsd-pause-work, context-save) hand a session to another agent; gsd-onboard and document-generate onboard or document a codebase. None produces a client pack with an access inventory scanned for credential patterns, environments, licences, known debt with ticket keys and a sign-off page. It reads build targets from the Makefile with Read and Grep, as the doc-writer agent it runs under allows.",
+  "use_alternative_when": "Never for a client handover; mattpocock handoff for agent-to-agent session transfer.",
+  "use_bearing_when": "End of an engagement.",
+  "recommendation": "keep",
+  "confidence": "high"
+ },
+ "prompt-registry": {
+  "best_alternative": {
+   "name": "claude-api prompt-audit",
+   "pack": "Anthropic (claude-api)",
+   "installed": true,
+   "invoke": "claude-api"
+  },
+  "verdict": "bearing-stronger",
+  "why": "The two answer different halves. claude-api prompt-audit is clearly stronger at judging prompt text: pattern groups for dated instructions tied to the target model, provenance, a keep list, a per-hunk diff and a before and after behavioural probe. prompt-registry owns the lifecycle it lacks: a versioned registry with frontmatter, one loader that validates variables before the call, render tests that fail on zero prompts, and a score per version that keeps the old version active on a regression. Bearing's own audit mode only finds inline prompts, not bad prompt text.",
+  "use_alternative_when": "Improving or auditing the wording of prompts, skills or tool descriptions, and after every model migration.",
+  "use_bearing_when": "Putting prompts under version control with tests and per-version eval scores; call prompt-audit from its improve mode.",
+  "recommendation": "keep",
+  "confidence": "medium",
+  "measured": {
+   "date": "2026-09-26",
+   "model": "claude-opus-5-5",
+   "iteration": 2,
+   "cases": 2,
+   "runs_per_arm": 1,
+   "arms": {
+    "with_skill": {
+     "pass_rate": 1.0,
+     "tokens": 104990,
+     "seconds": 238.9
+    },
+    "with_the_alternative": {
+     "pass_rate": 0.38,
+     "tokens": 130440,
+     "seconds": 151.3
+    },
+    "without_skill": {
+     "pass_rate": 0.57,
+     "tokens": 85978,
+     "seconds": 129.5
+    }
+   },
+   "result": "bearing ahead",
+   "closest": "without_skill",
+   "margin": 0.43
+  }
+ },
+ "prose-lint": {
+  "best_alternative": {
+   "name": "clarify",
+   "pack": "ui-craft",
+   "installed": true,
+   "invoke": "clarify"
+  },
+  "verdict": "bearing-stronger",
+  "why": "clarify is a 36-line lens that critiques UI labels, errors and empty states only. prose-lint covers docs, MR text, commits and comments, greps each pattern with a per-file hit count before editing, re-greps after, and carries rewrite rules for em dashes by what follows the dash. clarify is stronger on UX copy judgement (is the label clear), which is a different question from the AI-tell lint.",
+  "use_alternative_when": "UI microcopy needs to be clearer or more specific, not just free of AI tells.",
+  "use_bearing_when": "Docs, READMEs, MR descriptions, commits and comments before an MR.",
+  "recommendation": "keep",
+  "confidence": "high"
+ },
+ "python": {
+  "best_alternative": {
+   "name": "review (checklist.md Python sections)",
+   "pack": "gstack",
+   "installed": true,
+   "invoke": "/review"
+  },
+  "verdict": "bearing-stronger",
+  "why": "gstack's review checklist has a few Python-specific lines (async/sync mixing, shell injection, parameterised SQL) but no conventions for writing FastAPI code. python gives concrete, correct guidance: pure ASGI middleware over BaseHTTPMiddleware, lazy='raise' on relationships, expire_on_commit=False, per-request AsyncSession, Alembic on the async engine, asgi-lifespan in tests, and a ruff rule set including ASYNC and DTZ. The lane is on Python 3.14.",
+  "use_alternative_when": "A whole-branch review where Python is one language among several; gstack /review adds its cross-cutting checks.",
+  "use_bearing_when": "Writing or reviewing FastAPI/SQLAlchemy code and scaffolding python-api.",
+  "recommendation": "keep",
+  "confidence": "high"
+ },
+ "rag": {
+  "best_alternative": {
+   "name": "claude-api",
+   "pack": "Anthropic",
+   "installed": true,
+   "invoke": "claude-api"
+  },
+  "verdict": "different-job",
+  "why": "The only installed RAG-building material is Cloudflare's Vectorize and AI Search references, which build retrieval on Cloudflare's hosted products. rag builds on pgvector in the team's own Postgres with versioned idempotent ingestion, an embedding ADR, HNSW parameters stated, citations on every hit, and recall@5, recall@10 and MRR on a golden set that fails on zero questions. Nothing else installed measures retrieval.",
+  "use_alternative_when": "The system is deployed on Cloudflare Workers and a managed index is acceptable.",
+  "use_bearing_when": "RAG on the team stack (Postgres, pgvector) or any RAG that must be measured.",
+  "recommendation": "keep",
+  "confidence": "high",
+  "measured": {
+   "date": "2026-09-26",
+   "model": "claude-opus-5-5",
+   "iteration": 2,
+   "cases": 2,
+   "runs_per_arm": 1,
+   "arms": {
+    "with_skill": {
+     "pass_rate": 0.87,
+     "tokens": 162188,
+     "seconds": 504.4
+    },
+    "with_the_alternative": {
+     "pass_rate": 0.57,
+     "tokens": 162905,
+     "seconds": 321.1
+    },
+    "without_skill": {
+     "pass_rate": 0.7,
+     "tokens": 125504,
+     "seconds": 355.6
+    }
+   },
+   "result": "bearing ahead",
+   "closest": "without_skill",
+   "margin": 0.17
+  }
+ },
+ "react": {
+  "best_alternative": {
+   "name": "vercel-react-best-practices",
+   "pack": "vercel (user skills)",
+   "installed": true,
+   "invoke": "vercel-react-best-practices"
+  },
+  "verdict": "bearing-stronger",
+  "why": "Vercel's skill is a 70-rule performance catalogue (waterfalls, bundle, re-renders) with no state model, validation, accessibility, testing, scaffold or gate. react covers the whole job for a Vite SPA: a server-state rule, Zod at every boundary, typed query keys, a four-state render rule, a 79-line review checklist and a scaffold with pinned versions and a fail-on-empty make check. It has taken in Vercel's waterfall and barrel-import rules. Two Vercel rules still do not fit this stack: client-swr-dedup (Bearing uses TanStack Query) and rerender-memo (Bearing bans unmeasured memo).",
+  "use_alternative_when": "A measured performance problem (bundle size, waterfalls, re-render storms, long lists) needs a specific fix. Skip its SWR rule in TanStack Query repos.",
+  "use_bearing_when": "Writing, reviewing or scaffolding any React web code: state, data fetching, validation, a11y, tests and the gate.",
+  "recommendation": "keep",
+  "confidence": "high"
+ },
+ "react-native": {
+  "best_alternative": {
+   "name": "expo-router",
+   "pack": "expo/skills (Expo team)",
+   "installed": true,
+   "invoke": "expo-router"
+  },
+  "verdict": "bearing-stronger",
+  "why": "The Expo skills know the current SDK better than the lane: expo-router covers native stack headers, form sheets, NativeTabs, link previews and the SDK 56+ expo-router/react-navigation import rule, and expo-upgrade holds the SDK bump procedure and the deprecation table (it flagged the lane's AsyncStorage default, now replaced by expo-sqlite/localStorage). Neither gives state ownership (TanStack Query versus Zustand), Zod at boundaries, secure-store rules, list and accessibility rules, a scaffold or a gate. expo-dev-client, eas-update and eas-app-stores are not installed: they run EAS cloud builds or publish, which the repo settings deny. The lane's Expo 57.0.24 pin clears expo-upgrade's 57.0.9 Hermes V1 floor.",
+  "use_alternative_when": "An Expo SDK bump or a deprecated package (expo-upgrade); native navigation UI and router import paths (expo-router).",
+  "use_bearing_when": "Any Expo or React Native code, review or scaffold on this stack; it calls both skills itself.",
+  "recommendation": "keep",
+  "confidence": "medium"
+ },
+ "refactor": {
+  "best_alternative": {
+   "name": "improve-codebase-architecture",
+   "pack": "mattpocock-skills",
+   "installed": true,
+   "invoke": "improve-codebase-architecture"
+  },
+  "verdict": "different-job",
+  "why": "improve-codebase-architecture chooses what to restructure (deepening candidates, an HTML report, a grilling loop, CONTEXT.md and ADR updates) and explicitly stops before proposing interfaces. refactor executes a chosen restructuring safely: green baseline or stop, characterisation tests when none exist, one mechanical transform per commit with check and tests between, a diff ceiling, and a behaviour gate that undoes any step touching a test, fixture, public signature or user string. The outputs serve different stages, so they chain rather than compete.",
+  "use_alternative_when": "Deciding which modules to deepen and designing the target shape.",
+  "use_bearing_when": "Carrying out the restructuring once the target is chosen.",
+  "recommendation": "keep",
+  "confidence": "high",
+  "measured": {
+   "date": "2026-09-26",
+   "model": "claude-opus-5-5",
+   "iteration": 1,
+   "cases": 2,
+   "runs_per_arm": 1,
+   "arms": {
+    "with_skill": {
+     "pass_rate": 1.0,
+     "tokens": 100716,
+     "seconds": 276.0
+    },
+    "without_skill": {
+     "pass_rate": 1.0,
+     "tokens": 92685,
+     "seconds": 208.5
+    }
+   },
+   "result": "within 10 points",
+   "closest": "without_skill",
+   "margin": 0.0
+  }
+ },
+ "release": {
+  "best_alternative": {
+   "name": "release-notes",
+   "pack": "pm-skills",
+   "installed": true,
+   "invoke": "release-notes"
+  },
+  "verdict": "bearing-stronger",
+  "why": "release-notes turns tickets into user-facing prose and touches no version, tag or file. gstack ship's Step 12 has a tested version-bump CLI but bumps per PR in a 4-digit scheme and never tags. release derives semver from Conventional Commits since the last tag, stops on zero commits, edits exactly the version fields across seven stack files (including Android versionCode and iOS build number), runs the gate and prints the tag and push commands. With --package (the former publish skill) it also derives semver from the exported-surface diff (gorelease, apidiff, griffe or .d.ts), stops on zero exported symbols, inspects the tarball with npm pack --dry-run, checks the README install name, orders workspace publishes topologically and states provenance honestly; no installed skill does API-diff semver or a pack check.",
+  "use_alternative_when": "Writing the customer-facing announcement from the CHANGELOG release produced.",
+  "use_bearing_when": "Cutting a tagged release of a service or app, or with --package a library, SDK or CLI.",
+  "recommendation": "keep",
+  "confidence": "high"
+ },
+ "task-report": {
+  "best_alternative": {
+   "name": "gsd-pause-work --report (session-report workflow)",
+   "pack": "GSD",
+   "installed": true,
+   "invoke": "gsd-pause-work"
+  },
+  "verdict": "bearing-stronger",
+  "why": "task-report is a per-task outcome report where Verified may cite only commands run this session with their output, and anything not run goes under Not done as \"not run\". The GSD session report is a stakeholder summary driven by .planning/STATE.md, git log over 24 hours and estimated token usage, so it does not bind claims to executed commands. No installed skill produces the Changed / Verified / Not done / Noticed shape; the gstack completion protocol (DONE, BLOCKED) is a status line, not a report.",
+  "use_alternative_when": "A GSD milestone needs a session summary for stakeholders with phase progress.",
+  "use_bearing_when": "Closing any task; it is the owner's mandated report shape.",
+  "recommendation": "keep",
+  "confidence": "medium"
+ },
+ "resilience-testing": {
+  "best_alternative": null,
+  "verdict": "no-alternative",
+  "why": "No installed skill plans fault injection, restore drills or DR tests; chaos appears only as a mention in gstack plan-eng-review. resilience-testing turns the HLD failure-mode table into faults with expected behaviour, abort and revert commands, stops on zero failure modes, records measured RTO and RPO against claims, and never injects a fault itself.",
+  "use_alternative_when": "Not applicable.",
+  "use_bearing_when": "Any chaos, backup restore or DR question.",
+  "recommendation": "keep",
+  "confidence": "high"
+ },
+ "branch-review": {
+  "best_alternative": {
+   "name": "review",
+   "pack": "gstack",
+   "installed": true,
+   "invoke": "/review"
+  },
+  "verdict": "bearing-stronger",
+  "why": "branch-review now runs gstack /review as its engine, so it inherits everything the alternative finds, then adds two mechanisms /review lacks: the stack checklists applied item by item with a 'checked, none found' line each, and one fresh-context verifier per Critical and High that sees only path, claim and failure scenario. gstack's own adversarial pass and pre-emit gate hunt for new findings or self-check quotes; neither is an independent confirm or refute of each finding. It also stops on a zero-file diff and fixes the /review auto-fix risk by passing 'ask before any fix'.",
+  "use_alternative_when": "A quick self-review of your own branch where independent verification is not worth the extra agents, or a repository not set up with Bearing.",
+  "use_bearing_when": "Any MR on the standard, or a review that must not touch the tree (--engine bearing).",
+  "recommendation": "keep",
+  "confidence": "high",
+  "measured": {
+   "date": "2026-09-26",
+   "model": "claude-opus-5-5",
+   "iteration": 2,
+   "cases": 2,
+   "runs_per_arm": 1,
+   "arms": {
+    "with_skill": {
+     "pass_rate": 1.0,
+     "tokens": 112092,
+     "seconds": 333.0
+    },
+    "with_the_alternative": {
+     "pass_rate": 0.815,
+     "tokens": 122336,
+     "seconds": 231.8
+    },
+    "without_skill": {
+     "pass_rate": 0.945,
+     "tokens": 81334,
+     "seconds": 116.2
+    }
+   },
+   "result": "within 10 points",
+   "closest": "without_skill",
+   "margin": 0.055
+  }
+ },
+ "runbook": {
+  "best_alternative": {
+   "name": "observability-and-instrumentation (Writing Runbooks)",
+   "pack": "addyosmani agent-skills",
+   "installed": true,
+   "invoke": "observability-and-instrumentation"
+  },
+  "verdict": "bearing-stronger",
+  "why": "The kit's named alternate, document-generate (gstack), is a Diataxis writer with no runbook shape at all; addyosmani's runbook section is the closer match but is a three-line minimum and guidance. runbook finds the alert rule by name, fills eight sections with copy-pasteable commands and healthy-versus-unhealthy results, flags a missing runbook_url, and counts placeholders. It writes \"Last verified: not run\" unless the diagnosis commands actually ran. addyosmani's rule to update the runbook when closing each incident is still absent.",
+  "use_alternative_when": "A three-line stub while writing alerts in a repo off this standard.",
+  "use_bearing_when": "Any runbook for a named alert.",
+  "recommendation": "feed-rules",
+  "confidence": "medium"
+ },
+ "screen-design": {
+  "best_alternative": {
+   "name": "design-html",
+   "pack": "gstack",
+   "installed": true,
+   "invoke": "/design-html"
+  },
+  "verdict": "bearing-stronger",
+  "why": "design-html turns one approved mockup into Pretext HTML for production, checked with screenshots at three widths. It has no state switching, no inventory of states and no dark-theme check. ui-craft craft builds the real surface in the app and treats states as build steps, but it produces code, not a prototype to build from. screen-design adds two gates that run as scripts. states_check.py fails when any state in the inventory has no reachable panel or a placeholder is unfilled, and also fails when zero screens were checked. evidence.py fails when a width is missing or the dark theme did not apply. Neither alternative verifies either property.",
+  "use_alternative_when": "Use design-html to finalise one approved screen into production HTML with text layout that really reflows. Use craft or sddesign to build the surface straight in the codebase and skip the prototype.",
+  "use_bearing_when": "Developers (web or native) need a standalone prototype per screen with every state switchable, redlines, component names and event names.",
+  "recommendation": "keep",
+  "confidence": "medium"
+ },
+ "secrets": {
+  "best_alternative": {
+   "name": "cso (Phase 2 Secrets Archaeology)",
+   "pack": "gstack",
+   "installed": true,
+   "invoke": "/cso"
+  },
+  "verdict": "bearing-stronger",
+  "why": "cso finds secrets with git log prefix greps and reports them; it stops there. secrets owns what follows: an inventory with owners and rotation dates, rotation per type with dual-read, the ordered leak response (revoke, rotate, scrub, blast radius count, notify) with a record, gitleaks with a pre-commit hook, and env-parity.sh that exits non-zero on zero variables read. Its scripts/ci-credentials.py adds cso's check for inline credentials in CI files, without printing any value.",
+  "use_alternative_when": "Broad security sweep to discover secrets alongside other findings.",
+  "use_bearing_when": "Inventory, rotation, leak response, scanning setup and .env parity.",
+  "recommendation": "keep",
+  "confidence": "high",
+  "measured": {
+   "date": "2026-09-26",
+   "model": "claude-opus-5-5",
+   "iteration": 1,
+   "cases": 2,
+   "runs_per_arm": 1,
+   "arms": {
+    "with_skill": {
+     "pass_rate": 1.0,
+     "tokens": 97046,
+     "seconds": 230.9
+    },
+    "with_the_alternative": {
+     "pass_rate": 0.83,
+     "tokens": 105153,
+     "seconds": 227.7
+    },
+    "without_skill": {
+     "pass_rate": 0.83,
+     "tokens": 92476,
+     "seconds": 214.9
+    }
+   },
+   "result": "bearing ahead",
+   "closest": "with_the_alternative",
+   "margin": 0.17
+  }
+ },
+ "new-skill": {
+  "best_alternative": {
+   "name": "skill-creator",
+   "pack": "Anthropic",
+   "installed": true,
+   "invoke": "skill-creator"
+  },
+  "verdict": "bearing-stronger",
+  "why": "skill-creator is the stronger engine: run_eval.py, aggregate_benchmark.py, grader and analyzer agents, a review viewer and a description optimiser, run with and without the skill. new-skill does not replace it but calls it in step 7 with a fixed brief, then adds gates skill-creator lacks for this kit: claude plugin validate --strict, make lint-skills and lint-tools, and lint-evals, which fails a new skill with no evals.json, plus the rule that a skill which does not beat the baseline is not added. For creating a Bearing skill it is therefore a superset. Superpowers writing-skills (pressure-test RED-GREEN) is the better guide for rule-enforcing discipline skills outside the kit.",
+  "use_alternative_when": "The skill being written is not a Bearing skill in the Bearing checkout.",
+  "use_bearing_when": "Adding a skill to Bearing, where the house lints, registry rows and the eval gate must pass.",
+  "recommendation": "keep",
+  "confidence": "high"
+ },
+ "spike": {
+  "best_alternative": {
+   "name": "gsd-spike",
+   "pack": "GSD",
+   "installed": true,
+   "invoke": "gsd-spike"
+  },
+  "verdict": "bearing-stronger",
+  "why": "The job is a timeboxed investigation, and spike is the only one with a clock: a written start time, a stop condition set before code, a 50 percent check that asks continue or stop, a hard stop at 100 percent, and a git status check that reverts any change outside the scratch location. gsd-spike is deeper as exploration (Given/When/Then decomposition into several spikes, prior-spike reading, a forensic observability layer, frontier mode, wrap-up into a findings skill), but it states depth over speed and has no timebox or production-file guard. Both rely on the model following written steps; neither ships a script for these checks.",
+  "use_alternative_when": "A new product idea needs several feasibility questions explored in depth, with no fixed time budget, inside a GSD project.",
+  "use_bearing_when": "One yes, no or numeric question must be answered within a fixed number of hours in a product repository without touching production files.",
+  "recommendation": "keep",
+  "confidence": "medium"
+ },
+ "backlog": {
+  "best_alternative": {
+   "name": "user-stories",
+   "pack": "pm-skills",
+   "installed": true,
+   "invoke": "user-stories",
+   "note": "to-tickets is stronger but user-invocable only, so it cannot run in an unattended eval arm"
+  },
+  "verdict": "bearing-stronger",
+  "why": "backlog ships scripts/coverage_check.py, which computes coverage from the AC Covers: lines in the files rather than from the model's matrix and exits 1 on an uncovered REQ, an unknown or withdrawn REQ, an epic with no journey, or zero REQ or zero stories read. It also judges each statement (seed, criterion, variant, duplicate, split) before writing stories. to-tickets has good vertical-slice and blocking-edge rules and a user quiz, but no link back to requirement ids and no coverage check; pm-skills user-stories is a template with INVEST guidance and nothing that verifies. GSD's roadmapper demands 100 percent requirement coverage, but only to phases and only as model-judged prose.",
+  "use_alternative_when": "A spec or conversation needs cutting into agent-sized tracer-bullet tickets with blocking edges and there is no numbered PRD to trace.",
+  "use_bearing_when": "A numbered PRD exists and every REQ must be provably covered by an acceptance criterion.",
+  "recommendation": "keep",
+  "confidence": "high",
+  "measured": {
+   "date": "2026-09-26",
+   "model": "claude-opus-5-5",
+   "iteration": 2,
+   "cases": 2,
+   "runs_per_arm": 1,
+   "arms": {
+    "with_skill": {
+     "pass_rate": 0.98,
+     "tokens": 117441,
+     "seconds": 302.4
+    },
+    "with_the_alternative": {
+     "pass_rate": 0.915,
+     "tokens": 80983,
+     "seconds": 111.7
+    },
+    "without_skill": {
+     "pass_rate": 0.955,
+     "tokens": 86363,
+     "seconds": 140.4
+    }
+   },
+   "result": "within 10 points",
+   "closest": "without_skill",
+   "margin": 0.025
+  }
+ },
+ "start-task": {
+  "best_alternative": {
+   "name": "using-git-worktrees",
+   "pack": "Superpowers",
+   "installed": true,
+   "invoke": "using-git-worktrees"
+  },
+  "verdict": "bearing-stronger",
+  "why": "start-task refuses a dirty tree, picks the base by branch type (develop for feature, main for hotfix), validates the task id shape, names the branch type/ID-PascalName and writes a state file with the acceptance criteria that session-handoff, definition-of-done and merge-request later read. using-git-worktrees only isolates a workspace and runs setup plus baseline tests; it has no id, base-selection or criteria record. The one thing worktrees adds that start-task lacks is the green baseline test run before work starts.",
+  "use_alternative_when": "Work must run in an isolated worktree beside the main checkout; run it after start-task has named the branch.",
+  "use_bearing_when": "Starting any ticketed task in a work repository: branch name, base and criteria record.",
+  "recommendation": "keep",
+  "confidence": "medium"
+ },
+ "test-automation": {
+  "best_alternative": {
+   "name": "ai-test-generation",
+   "pack": "qa-skills",
+   "installed": true,
+   "invoke": "ai-test-generation"
+  },
+  "verdict": "bearing-stronger",
+  "why": "Against ai-test-generation, unchanged: its hallucination gate is a grep plus tsc and a human keep-or-reject per test, where test-automation builds the suite on six stacks with ref_check.py and a make target that fails on zero files. property-based-testing does a different job and is stronger at it (alternative-stronger for property design): a property catalog with a strength order, generators constrained in the strategy rather than assume(), tautology and vacuity traps, the repository's existing library, and a classification of shrunk failures. It builds no suite, applies no TC naming and runs no reference gate. test-automation loads it for inv: rows and for parser, codec, normalizer, validator, comparator and money rows, passes the property and generator to test-writer, and asks before adding a library.",
+  "use_alternative_when": "Writing, reviewing or debugging property tests outside the TC table, or classifying a shrunk counterexample.",
+  "use_bearing_when": "Turning planned TC rows into named tests on any supported stack; it calls property-based-testing itself for property rows.",
+  "recommendation": "keep",
+  "confidence": "medium",
+  "measured": {
+   "date": "2026-09-26",
+   "model": "claude-opus-5-5",
+   "iteration": 2,
+   "cases": 2,
+   "runs_per_arm": 1,
+   "arms": {
+    "with_skill": {
+     "pass_rate": 0.95,
+     "tokens": 108004,
+     "seconds": 240.9
+    },
+    "with_the_alternative": {
+     "pass_rate": 0.95,
+     "tokens": 105796,
+     "seconds": 257.9
+    },
+    "without_skill": {
+     "pass_rate": 1.0,
+     "tokens": 102965,
+     "seconds": 276.7
+    }
+   },
+   "result": "within 10 points",
+   "closest": "without_skill",
+   "margin": -0.05
+  }
+ },
+ "test-cases": {
+  "best_alternative": {
+   "name": "ai-test-generation",
+   "pack": "qa-skills",
+   "installed": true,
+   "invoke": "ai-test-generation"
+  },
+  "verdict": "bearing-stronger",
+  "why": "ai-test-generation has the deeper analysis: explicit versus inferred requirements, a risk table, an ambiguity list that must be resolved, and concurrency and state-transition categories. test-cases has the mechanism: cases_check.py reads the backlog and the table, fails on an uncovered AC, a duplicate id, a row with no or vague oracle and a P1 row without a not: check, and exits 1 on zero criteria or zero rows. It also keeps stable TC ids that automation and traceability depend on. test-scenarios (pm-skills) is a template with no gate.",
+  "use_alternative_when": "The source is a raw PRD or OpenAPI spec with unresolved ambiguities; run its risk and ambiguity steps first.",
+  "use_bearing_when": "Producing the persistent TC table from a backlog in a work repository.",
+  "recommendation": "keep",
+  "confidence": "medium",
+  "measured": {
+   "date": "2026-09-24",
+   "model": "claude-opus-5-5",
+   "iteration": 1,
+   "cases": 2,
+   "runs_per_arm": 1,
+   "arms": {
+    "with_skill": {
+     "pass_rate": 1.0,
+     "tokens": 95754,
+     "seconds": 208.2
+    },
+    "with_the_alternative": {
+     "pass_rate": 0.82,
+     "tokens": 85338,
+     "seconds": 134.1
+    },
+    "without_skill": {
+     "pass_rate": 0.86,
+     "tokens": 74391,
+     "seconds": 97.7
+    }
+   },
+   "result": "bearing ahead",
+   "closest": "without_skill",
+   "margin": 0.14
+  }
+ },
+ "test-heal": {
+  "best_alternative": {
+   "name": "test-reliability",
+   "pack": "qa-skills",
+   "installed": true,
+   "invoke": "test-reliability"
+  },
+  "verdict": "bearing-stronger",
+  "why": "The two share the 20-run reproduce and 50/50 proof bar, and test-reliability adds confidence scoring, an intent-fidelity rollback and time-sensitivity and visual flake classes. test-heal is stronger on not hiding regressions: regression is a first-class class that is never edited, weakening an assertion is named as hiding a regression, every heal is followed by a whole-suite re-run that reverts a heal causing new failures, it exits non-zero on zero failures, and it has repeat commands for five runners instead of Playwright only. playwright-cli's heal confirms with a single rerun and lists \"assertion text updated in the app\" as a fixable cause; selector-drift-recovery's score-candidates.mjs exits 0 on zero applied candidates.",
+  "use_alternative_when": "Building confidence-scored runtime healing into a Playwright suite, or bulk selector regeneration after a planned redesign (selector-drift-recovery).",
+  "use_bearing_when": "Triage and repair of failures from a test-run report.",
+  "recommendation": "keep",
+  "confidence": "medium"
+ },
+ "test-run": {
+  "best_alternative": {
+   "name": "qa-only",
+   "pack": "gstack",
+   "installed": true,
+   "invoke": "/qa-only"
+  },
+  "verdict": "different-job",
+  "why": "gstack qa-only explores a running web app like a user and reports bugs with screenshots; it does not run the repository's suites. test-run inventories every suite, runs each through its machine-readable reporter, sums real test events (a Go package with no test files is zero, not a pass), marks a missing runner or timeout as not run with a non-zero exit, and writes a dated md plus json report with TC and story ids. No installed skill parses suite output this way.",
+  "use_alternative_when": "Exploratory QA of a deployed or local web app beyond the written tests.",
+  "use_bearing_when": "Running the automated suites and producing the evidence report for a commit.",
+  "recommendation": "keep",
+  "confidence": "high",
+  "measured": {
+   "date": "2026-09-26",
+   "model": "claude-opus-5-5",
+   "iteration": 2,
+   "cases": 2,
+   "runs_per_arm": 1,
+   "arms": {
+    "with_skill": {
+     "pass_rate": 0.89,
+     "tokens": 93538,
+     "seconds": 143.3
+    },
+    "with_the_alternative": {
+     "pass_rate": 0.89,
+     "tokens": 105225,
+     "seconds": 116.4
+    },
+    "without_skill": {
+     "pass_rate": 0.865,
+     "tokens": 81341,
+     "seconds": 124.7
+    }
+   },
+   "result": "within 10 points",
+   "closest": "with_the_alternative",
+   "margin": 0.0
+  }
+ },
+ "themes": {
+  "best_alternative": {
+   "name": "tokens",
+   "pack": "ui-craft",
+   "installed": true,
+   "invoke": "tokens"
+  },
+  "verdict": "bearing-stronger",
+  "why": "theme-lint.py is a real gate. It resolves every role in every theme, computes WCAG contrast from oklch for each pair, checks hex drift, and exits 1 when zero themes are found. It also writes the preview. ui-craft tokens and themes.md offer the intentional-dark test and four presets whose contrast is verified by hand with APCA. They have no runtime switching, no tenant validation and no script. theme-factory is for slide decks.",
+  "use_alternative_when": "Picking a starting preset or accent family for a web surface with no brand (ui-craft themes.md), or a slide-deck theme (theme-factory).",
+  "use_bearing_when": "Adding dark, high-contrast, brand, tenant or seasonal themes to a product, with contrast gated in make check and switching on each stack.",
+  "recommendation": "keep",
+  "confidence": "high"
+ },
+ "threat-model": {
+  "best_alternative": {
+   "name": "security-threat-model",
+   "pack": "openai/skills",
+   "installed": true,
+   "invoke": "security-threat-model"
+  },
+  "verdict": "bearing-stronger",
+  "why": "security-threat-model has the stronger analysis (alternative-stronger for that step): attacker capabilities with written non-capabilities, multi-step abuse paths tied to assets, every claim anchored in repository evidence, and an assumption check with the user before ranking. It needs code, uses TM ids that nothing downstream reads, maps no mitigation to a story and has no gate. threat-model runs it as the abuse-path pass in step 4 when code exists, then writes stable T-nn rows under STRIDE with mitigations as file:line, a story or a new story, and threats_check.py fails a sensitive scope with zero threats. It also works on a design with no code, and vapt-report cites its ids. gsd-secure-phase remains the choice inside GSD phases.",
+  "use_alternative_when": "A one-off AppSec threat model of an existing codebase that feeds no backlog and no VAPT report.",
+  "use_bearing_when": "Any threat model that must feed stories and vapt-report, and any design-time model before code; it calls the pack itself when code exists.",
+  "recommendation": "keep",
+  "confidence": "medium",
+  "measured": {
+   "date": "2026-09-24",
+   "model": "claude-opus-5-5",
+   "iteration": 1,
+   "cases": 2,
+   "runs_per_arm": 1,
+   "arms": {
+    "with_skill": {
+     "pass_rate": 1.0,
+     "tokens": 94283,
+     "seconds": 167.8
+    },
+    "with_the_alternative": {
+     "pass_rate": 0.745,
+     "tokens": 83895,
+     "seconds": 118.3
+    },
+    "without_skill": {
+     "pass_rate": 0.745,
+     "tokens": 75086,
+     "seconds": 136.8
+    }
+   },
+   "result": "bearing ahead",
+   "closest": "with_the_alternative",
+   "margin": 0.255
+  }
+ },
+ "traceability": {
+  "best_alternative": {
+   "name": "gsd-audit-milestone",
+   "pack": "GSD",
+   "installed": true,
+   "invoke": "gsd-audit-milestone"
+  },
+  "verdict": "bearing-stronger",
+  "why": "gsd-audit-milestone does a strong three-source requirement coverage check with orphan detection, but only over GSD's own .planning artifacts (REQUIREMENTS.md, VERIFICATION.md, SUMMARY frontmatter) and stops at 'requirement verified'. traceability walks the full chain REQ, story, AC, TC, test, commit, ticket, ADR, runbook and event with exact id patterns, names each gap class with its fixing skill, and treats a missing source as a counted gap instead of a stop. In a repository not run on GSD the alternative has nothing to read.",
+  "use_alternative_when": "The project is run on GSD phases and you are closing a milestone.",
+  "use_bearing_when": "Release sign-off or 'what has no tests' in a repository on the Bearing standard.",
+  "recommendation": "keep",
+  "confidence": "medium"
+ },
+ "tracker-sync": {
+  "best_alternative": {
+   "name": "user-stories",
+   "pack": "pm-skills",
+   "installed": true,
+   "invoke": "user-stories",
+   "note": "to-tickets is stronger but user-invocable only, so it cannot run in an unattended eval arm"
+  },
+  "verdict": "bearing-stronger",
+  "why": "tracker-sync runs every call through bin/brg-tracker, one command surface with fixed exit codes dispatching to real adapters for Jira, GitLab, GitHub and any REST tracker, keeps credentials out of the conversation, makes sync idempotent by writing Ticket: keys back into the backlog, and adds trace (branch, MR, commits, TC ids, ADR ids). to-tickets publishes via gh or glab as configured by setup-matt-pocock-skills, treats Jira and Linear as freeform prose, and has no generic REST adapter, no update, no trace and no idempotency. Its strength is deciding the slices, which is upstream of the tracker job.",
+  "use_alternative_when": "A GitHub or GitLab project with no Bearing configuration wants a spec sliced and filed as blocking-linked issues.",
+  "use_bearing_when": "Tickets live in Jira, a configured GitLab or GitHub, or a REST tracker and must be synced, updated and traced to MRs.",
+  "recommendation": "keep",
+  "confidence": "high"
+ },
+ "upgrade-tools": {
+  "best_alternative": {
+   "name": "gstack-upgrade",
+   "pack": "gstack",
+   "installed": true,
+   "invoke": "/gstack-upgrade"
+  },
+  "verdict": "bearing-stronger",
+  "why": "upgrade-tools is the only skill that updates every source (marketplace plugins, gstack, skills-CLI packs, GSD) with before and after versions, a count, and a doctor rerun, and it refuses to pull a dirty checkout. It upgrades gstack and GSD through their own upgraders (gstack-upgrade, gsd-update), which detect vendored installs and back up and restore local changes.",
+  "use_alternative_when": "Only gstack or only GSD needs upgrading, or either has a vendored install or local patches to preserve.",
+  "use_bearing_when": "The whole machine needs one pass across all sources with a version table and a doctor check.",
+  "recommendation": "keep",
+  "confidence": "medium"
+ },
+ "ux-flows": {
+  "best_alternative": {
+   "name": "plan-design-review",
+   "pack": "gstack",
+   "installed": true,
+   "invoke": "/plan-design-review"
+  },
+  "verdict": "bearing-stronger",
+  "why": "plan-design-review's Passes 2, 3 and 7 are the source of ux-flows' state table, storyboard and 'engineer ships No items found' decision table. It works by amending a plan through one question per gap, and can add mockups. It has no screen inventory mapped to story ids, no navigation map keyed by screen id, no count of dead ends (screens with no way forward or back) that must reach zero, and no control inventory with target sizes, keyboard path and event names. ui-craft shape covers one screen, and customer-journey-map covers the marketing funnel from awareness to advocacy. Neither produces a flow package. The dead-end check is judged by the model, not a script.",
+  "use_alternative_when": "A plan document already exists and needs its design gaps found and decided interactively, with mockups when an OpenAI key is set.",
+  "use_bearing_when": "A feature needs its full screen set, per-screen states with copy, navigation and a dead-end-free flow before any variant or screen design.",
+  "recommendation": "keep",
+  "confidence": "medium"
+ },
+ "vapt-report": {
+  "best_alternative": {
+   "name": "claude-security (plugin) or cso (gstack)",
+   "pack": "claude-plugins-official / gstack",
+   "installed": true,
+   "invoke": "claude-security"
+  },
+  "verdict": "bearing-stronger",
+  "why": "The scanners find and vapt-report writes the commit-pinned position with threat-model links and a release decision. insecure-defaults:audit is a new finder, not a rival: six category sweeps then refuting verifiers trace each fallback secret, default credential, fail-open switch, weak crypto, permissive access and debug-leak candidate to its sink and to whether the deployment manifests supply the value, and it refuses a clean result when nothing was scanned. vapt-report now runs it in step 2 over the whole repository and keeps its counts on a separate line from the collector's.",
+  "use_alternative_when": "Finding vulnerabilities at all: claude-security for depth, /cso for speed, and insecure-defaults:audit on its own for a configuration hardening pass outside a release.",
+  "use_bearing_when": "A release needs a written, commit-pinned security position with threat-model links and a release decision.",
+  "recommendation": "keep",
+  "confidence": "high"
+ },
+ "webhooks": {
+  "best_alternative": {
+   "name": "/cso (Phase 6 webhook audit)",
+   "pack": "gstack",
+   "installed": true,
+   "invoke": "/cso"
+  },
+  "verdict": "bearing-stronger",
+  "why": "/cso Phase 6 only greps webhook routes for any signature verification and flags those without. webhooks builds both directions: raw-body HMAC with a constant-time compare, a 5 minute replay window, a unique (provider, event_id) row so duplicates ack without work, ack under 1 s, dual secrets during rotation, an outbound retry schedule with dead letter, a consumer-visible delivery log, and twelve TC-WH test cases.",
+  "use_alternative_when": "A quick security sweep for unsigned webhook endpoints across a repository.",
+  "use_bearing_when": "Building or hardening an inbound or outbound webhook integration.",
+  "recommendation": "keep",
+  "confidence": "high",
+  "measured": {
+   "date": "2026-09-26",
+   "model": "claude-opus-5-5",
+   "iteration": 3,
+   "cases": 2,
+   "runs_per_arm": 1,
+   "arms": {
+    "with_skill": {
+     "pass_rate": 0.945,
+     "tokens": 129477,
+     "seconds": 424.7
+    },
+    "with_the_alternative": {
+     "pass_rate": 0.77,
+     "tokens": 132005,
+     "seconds": 391.9
+    },
+    "without_skill": {
+     "pass_rate": 0.825,
+     "tokens": 117889,
+     "seconds": 362.6
+    }
+   },
+   "result": "bearing ahead",
+   "closest": "without_skill",
+   "margin": 0.12
+  }
+ },
+ "workflow": {
+  "best_alternative": {
+   "name": "gsd-next",
+   "pack": "GSD",
+   "installed": true,
+   "invoke": "gsd-next"
+  },
+  "verdict": "bearing-stronger",
+  "why": "workflow places the repository, branch, diff and gate result on one map spanning Bearing, Superpowers, gstack and GSD, and names the next skill whichever pack owns it. gsd-next is stronger mechanically, because it reads state through a script (gsd-tools smart-entry --json) and has hard invariants such as resuming a half-executed phase, but it only routes to GSD commands inside a .planning/ project. ui-craft start routes only within ui-craft and the gstack router only within gstack. workflow's detection is written steps with no script.",
+  "use_alternative_when": "The work is already a GSD project with .planning/ state and the next step is a GSD phase command.",
+  "use_bearing_when": "Someone asks what to do next or which skill to use in a company repository, across all packs.",
+  "recommendation": "keep",
+  "confidence": "medium"
+ },
+ "autopilot": {
+  "best_alternative": {
+   "name": "gsd-autonomous",
+   "pack": "GSD",
+   "installed": true,
+   "invoke": "gsd-autonomous"
+  },
+  "verdict": "bearing-stronger",
+  "why": "autopilot chains the Bearing stages from one statement to a prepared merge request, with every gate checked on disk by bin/brg-autopilot (a stage the model claims but the disk does not show is not done), every decision taken on the user's behalf written Proposed into one digest, and a hard stop before any push. gsd-autonomous runs planned GSD phases unattended and is stronger once a .planning/ roadmap exists, but it starts from a roadmap, not a statement, and has no decision digest or merge-request stop. Judged by reading; the end-to-end eval is the measurement.",
+  "use_alternative_when": "The work is already a GSD project with a roadmap and the phases only need executing.",
+  "use_bearing_when": "One requirement statement should become a reviewed merge request with nobody answering questions, and every decision taken must be reviewable afterwards.",
+  "recommendation": "keep",
+  "confidence": "low",
+  "measured": {
+   "date": "2026-09-26",
+   "model": "claude-opus-5-5",
+   "iteration": 2,
+   "cases": 2,
+   "runs_per_arm": 1,
+   "arms": {
+    "with_skill": {
+     "pass_rate": 0.91,
+     "tokens": 323096,
+     "seconds": 1414.8
+    },
+    "with_the_alternative": {
+     "pass_rate": 0.865,
+     "tokens": 161987,
+     "seconds": 1183.6
+    },
+    "without_skill": {
+     "pass_rate": 0.865,
+     "tokens": 102254,
+     "seconds": 290.1
+    }
+   },
+   "result": "within 10 points",
+   "closest": "with_the_alternative",
+   "margin": 0.045
+  }
+ },
+ "docs-drift": {
+  "best_alternative": {
+   "name": "document-release",
+   "pack": "gstack",
+   "installed": true,
+   "invoke": "/document-release"
+  },
+  "verdict": "different-job",
+  "why": "gstack /document-release updates the docs a shipped diff touched, reading the diff. docs-drift answers a different question across the whole repository: which docs no longer match the code, whoever changed it and with whatever harness. Its script checks every path, make target and config name the docs mention and flags docs whose code moved on after them, prints counts, and fails on a broken reference or on zero docs; each finding goes to the side that is wrong, never a silent doc rewrite. Judged by reading; no eval has run.",
+  "use_alternative_when": "A release just shipped and the docs it touched need the new behaviour.",
+  "use_bearing_when": "Inheriting a codebase, before definition-of-done passes, or whenever a doc may have gone stale behind a manual or other-harness change.",
+  "recommendation": "keep",
+  "confidence": "low",
+  "measured": {
+   "date": "2026-09-26",
+   "model": "claude-opus-5-5",
+   "iteration": 2,
+   "cases": 2,
+   "runs_per_arm": 1,
+   "arms": {
+    "with_skill": {
+     "pass_rate": 1.0,
+     "tokens": 81819,
+     "seconds": 87.6
+    },
+    "with_the_alternative": {
+     "pass_rate": 0.925,
+     "tokens": 111131,
+     "seconds": 164.6
+    },
+    "without_skill": {
+     "pass_rate": 0.905,
+     "tokens": 75251,
+     "seconds": 70.9
+    }
+   },
+   "result": "within 10 points",
+   "closest": "with_the_alternative",
+   "margin": 0.075
+  }
+ },
+ "verify-deploy": {
+  "best_alternative": {
+   "name": "canary",
+   "pack": "gstack",
+   "installed": true,
+   "invoke": "/canary"
+  },
+  "verdict": "different-job",
+  "why": "gstack /canary watches a deployed URL over a window for console errors, performance and page failures. verify-deploy is the ordered check right after a deploy, against the committed docs/environments.md: readiness, health, the deployed version matched to the tag or commit the engineer shipped, and smoke checks, GET only, with a report under docs/releases/ and a verdict; it never deploys or rolls back. Run it first, then /canary on prod. Judged by reading; no eval has run.",
+  "use_alternative_when": "Watching production for regressions over the minutes after a release.",
+  "use_bearing_when": "Proving the build you meant is the one serving, and that it is ready, right after a deploy to any environment.",
+  "recommendation": "keep",
+  "confidence": "low",
+  "measured": {
+   "date": "2026-09-26",
+   "model": "claude-opus-5-5",
+   "iteration": 2,
+   "cases": 2,
+   "runs_per_arm": 1,
+   "arms": {
+    "with_skill": {
+     "pass_rate": 1.0,
+     "tokens": 78285,
+     "seconds": 64.0
+    },
+    "with_the_alternative": {
+     "pass_rate": 0.855,
+     "tokens": 93151,
+     "seconds": 73.8
+    },
+    "without_skill": {
+     "pass_rate": 0.85,
+     "tokens": 74819,
+     "seconds": 83.2
+    }
+   },
+   "result": "bearing ahead",
+   "closest": "with_the_alternative",
+   "margin": 0.145
+  }
+ },
+ "speech": {
+  "best_alternative": {
+   "name": "twilio-voice-conversation-relay",
+   "pack": "official marketplace (twilio-developer-kit)",
+   "installed": false,
+   "invoke": "twilio-voice-conversation-relay"
+  },
+  "verdict": "unverified",
+  "why": "Read on 25 Sep 2026: Twilio's skills cover the phone leg of a voice agent (ConversationRelay message types, its interrupt event, streaming replies) on a Twilio account with Twilio's own speech engines. None covers engine choice by WER on the product's audio, diarisation, VAD and endpointing, a per-stage latency budget, or Indian and code-mixed languages, which speech measures with wer.py and latency_report.py. Measured 25 Sep 2026 against no skill (the Twilio skill is not installed): 0.96 against 0.88; the difference was reporting p95 latency against the budget and excluding broken turns.",
+  "use_alternative_when": "The calls go over Twilio: use it for the telephony leg and keep speech for measurement.",
+  "use_bearing_when": "Choosing and measuring a speech engine, building batch transcription or a real-time voice loop, setting the latency budget.",
+  "recommendation": "keep",
+  "confidence": "medium",
+  "measured": {
+   "date": "2026-09-26",
+   "model": "claude-opus-5-5",
+   "iteration": 2,
+   "cases": 2,
+   "runs_per_arm": 1,
+   "arms": {
+    "with_skill": {
+     "pass_rate": 0.965,
+     "tokens": 112246,
+     "seconds": 261.8
+    },
+    "without_skill": {
+     "pass_rate": 0.865,
+     "tokens": 120523,
+     "seconds": 331.2
+    }
+   },
+   "result": "bearing ahead",
+   "closest": "without_skill",
+   "margin": 0.1
+  }
+ },
+ "computer-vision": {
+  "best_alternative": {
+   "name": "huggingface-vision-trainer",
+   "pack": "official marketplace (huggingface-skills)",
+   "installed": false,
+   "invoke": "huggingface-vision-trainer"
+  },
+  "verdict": "unverified",
+  "why": "Read on 25 Sep 2026: huggingface-vision-trainer runs detector, classifier and SAM training on Hugging Face Jobs (paid plan) with mAP and accuracy; fiftyone-model-evaluation and fiftyone-dataset-curation do mAP, error browsing and curation inside FiftyOne. None covers few-shot anomaly detection, AUROC, a threshold chosen from the cost of a miss, group-safe splits, the VLM versus trained-model choice, or export and serving latency. Measured 25 Sep 2026 against no skill (the alternatives are not installed): 0.95 against 0.87; the difference was choosing the threshold on a held-out split and scoring test once.",
+  "use_alternative_when": "Training on Hugging Face Jobs, or error analysis and curation in FiftyOne.",
+  "use_bearing_when": "Choosing the approach, splitting by group, setting the operating threshold from costs, and shipping with latency measured.",
+  "recommendation": "keep",
+  "confidence": "medium",
+  "measured": {
+   "date": "2026-09-26",
+   "model": "claude-opus-5-5",
+   "iteration": 2,
+   "cases": 2,
+   "runs_per_arm": 1,
+   "arms": {
+    "with_skill": {
+     "pass_rate": 0.96,
+     "tokens": 102736,
+     "seconds": 194.9
+    },
+    "without_skill": {
+     "pass_rate": 0.63,
+     "tokens": 87499,
+     "seconds": 157.8
+    }
+   },
+   "result": "bearing ahead",
+   "closest": "without_skill",
+   "margin": 0.33
+  }
+ },
+ "tabular-ml": {
+  "best_alternative": null,
+  "verdict": "no-alternative",
+  "why": "Searched the official marketplace and the huggingface, fiftyone and twilio skill repositories on 25 Sep 2026: nothing covers tabular or time-series ML (leakage-safe splits, a baseline gate, calibration, SHAP, drift). Platform plugins (sagemaker-ai, datarobot, databricks, dominodatalab) run jobs on their own platforms rather than teach the method. Measured 25 Sep 2026: 0.96 against 0.75 without a skill on two cases (leaky churn features with a rule baseline; seasonal alerting through a festival spike).",
+  "use_alternative_when": "The team already trains on one of those platforms: use its plugin for the job and keep tabular-ml's split and baseline gates.",
+  "use_bearing_when": "Any churn, scoring, forecasting or metric anomaly model.",
+  "recommendation": "keep",
+  "confidence": "medium",
+  "measured": {
+   "date": "2026-09-26",
+   "model": "claude-opus-5-5",
+   "iteration": 1,
+   "cases": 2,
+   "runs_per_arm": 1,
+   "arms": {
+    "with_skill": {
+     "pass_rate": 0.96,
+     "tokens": 160847,
+     "seconds": 630.7
+    },
+    "without_skill": {
+     "pass_rate": 0.75,
+     "tokens": 94446,
+     "seconds": 245.8
+    }
+   },
+   "result": "bearing ahead",
+   "closest": "without_skill",
+   "margin": 0.21
+  }
+ }
+}

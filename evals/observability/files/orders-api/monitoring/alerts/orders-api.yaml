@@ -1,0 +1,29 @@
+groups:
+  - name: orders-api
+    rules:
+      - alert: OrdersHigh5xx
+        expr: sum(rate(http_server_request_duration_seconds_count{job="orders-api", code=~"5.."}[5m])) > 0
+        for: 1m
+        labels:
+          severity: page
+        annotations:
+          summary: orders-api is returning 5xx
+          runbook_url: https://wiki.example.internal/orders/runbooks/high-5xx
+
+      - alert: OrdersHighCPU
+        expr: rate(process_cpu_seconds_total{job="orders-api"}[1m]) > 0.7
+        for: 1m
+        labels:
+          severity: page
+        annotations:
+          summary: orders-api CPU above 70 percent
+          runbook_url: https://wiki.example.internal/orders/runbooks/high-cpu
+
+      - alert: OrdersLatencyHigh
+        expr: histogram_quantile(0.99, sum by (le) (rate(http_server_request_duration_seconds_bucket{job="orders-api"}[1m]))) > 0.5
+        for: 1m
+        labels:
+          severity: page
+        annotations:
+          summary: orders-api p99 above 500 ms
+          runbook_url: https://wiki.example.internal/orders/runbooks/latency

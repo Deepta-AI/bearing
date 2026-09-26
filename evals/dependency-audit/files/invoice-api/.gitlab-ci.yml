@@ -1,0 +1,15 @@
+stages: [check, security]
+
+check:
+  stage: check
+  image: golang:1.25
+  script:
+    - make check
+
+vuln:
+  stage: security
+  image: golang:1.25
+  script:
+    - go install golang.org/x/vuln/cmd/govulncheck@latest
+    - govulncheck ./...
+  allow_failure: true
