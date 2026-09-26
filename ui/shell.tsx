@@ -11,11 +11,11 @@ const SITES: { id: Site; label: string }[] = [
   { id: "devguide", label: "Developer guide" },
 ];
 
-/** Where the other site lives. Set VITE_HANDBOOK_URL and VITE_DEVGUIDE_URL at build time. */
+/** Where the other site lives: the public deployments, or VITE_HANDBOOK_URL and VITE_DEVGUIDE_URL for a fork's own. */
 function siteHref(id: Site): string {
   const env = import.meta.env as Record<string, string | undefined>;
   const url = id === "handbook" ? env.VITE_HANDBOOK_URL : env.VITE_DEVGUIDE_URL;
-  return url || `https://github.com/Deepta-AI/bearing/tree/main/${id === "handbook" ? "site" : "devguide"}`;
+  return url || (id === "handbook" ? "https://bearing-handbook.vercel.app" : "https://bearing-devguide.vercel.app");
 }
 
 export function isActive(it: NavItem, pathname: string, hash: string) {

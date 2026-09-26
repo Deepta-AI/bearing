@@ -13,8 +13,11 @@ want the discipline without a team to supply it. Nothing in the kit names
 a company, a git host or a tracker: those are yours to configure.
 
 Bearing is open source under the MIT licence. Its home is
-<https://github.com/Deepta-AI/bearing>; the handbook and the developer
-guide are public sites built from this repository.
+<https://github.com/Deepta-AI/bearing>. Two sites are built from this
+repository: the [handbook](https://bearing-handbook.vercel.app) (how to use
+Bearing: every stage, skill and flow) and the
+[developer guide](https://bearing-devguide.vercel.app) (how Bearing works
+inside).
 
 ## Install
 
