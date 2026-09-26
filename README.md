@@ -14,9 +14,9 @@ a company, a git host or a tracker: those are yours to configure.
 
 Bearing is open source under the MIT licence. Its home is
 <https://github.com/Deepta-AI/bearing>. Two sites are built from this
-repository: the [handbook](https://bearing-handbook.vercel.app) (how to use
+repository: the [handbook](https://bearing-handbook.deeptaai.com) (how to use
 Bearing: every stage, skill and flow) and the
-[developer guide](https://bearing-devguide.vercel.app) (how Bearing works
+[developer guide](https://bearing.deeptaai.com) (how Bearing works
 inside).
 
 ## Install

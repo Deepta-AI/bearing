@@ -15,7 +15,7 @@ const SITES: { id: Site; label: string }[] = [
 function siteHref(id: Site): string {
   const env = import.meta.env as Record<string, string | undefined>;
   const url = id === "handbook" ? env.VITE_HANDBOOK_URL : env.VITE_DEVGUIDE_URL;
-  return url || (id === "handbook" ? "https://bearing-handbook.vercel.app" : "https://bearing-devguide.vercel.app");
+  return url || (id === "handbook" ? "https://bearing-handbook.deeptaai.com" : "https://bearing.deeptaai.com");
 }
 
 export function isActive(it: NavItem, pathname: string, hash: string) {

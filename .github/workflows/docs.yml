@@ -57,7 +57,7 @@ jobs:
       - if: steps.secrets.outputs.ready == 'true'
         name: build and deploy
         run: |
-          export HANDBOOK_BASE=/ VITE_HANDBOOK_URL="${{ vars.HANDBOOK_URL || 'https://bearing-handbook.vercel.app' }}" VITE_DEVGUIDE_URL="${{ vars.DEVGUIDE_URL || 'https://bearing-devguide.vercel.app' }}"
+          export HANDBOOK_BASE=/ VITE_HANDBOOK_URL="${{ vars.HANDBOOK_URL || 'https://bearing-handbook.deeptaai.com' }}" VITE_DEVGUIDE_URL="${{ vars.DEVGUIDE_URL || 'https://bearing.deeptaai.com' }}"
           make site
           bash .github/scripts/vercel-deploy.sh handbook site/dist
 
@@ -81,6 +81,6 @@ jobs:
       - if: steps.secrets.outputs.ready == 'true'
         name: build and deploy
         run: |
-          export DEVGUIDE_BASE=/ VITE_REPO_URL="${{ github.server_url }}/${{ github.repository }}" VITE_HANDBOOK_URL="${{ vars.HANDBOOK_URL || 'https://bearing-handbook.vercel.app' }}" VITE_DEVGUIDE_URL="${{ vars.DEVGUIDE_URL || 'https://bearing-devguide.vercel.app' }}"
+          export DEVGUIDE_BASE=/ VITE_REPO_URL="${{ github.server_url }}/${{ github.repository }}" VITE_HANDBOOK_URL="${{ vars.HANDBOOK_URL || 'https://bearing-handbook.deeptaai.com' }}" VITE_DEVGUIDE_URL="${{ vars.DEVGUIDE_URL || 'https://bearing.deeptaai.com' }}"
           make devguide
           bash .github/scripts/vercel-deploy.sh devguide devguide/dist
