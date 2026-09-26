@@ -39,7 +39,7 @@ DEPLOY = "kubectl " + "apply -f k8s/"
 
 
 def sessions(work):
-    g = "bash bin/brg-guard"
+    g = "bash plugins/bearing/bin/brg-guard"
     return {
         "guard": {
             "title": "The guard reads a command before it runs",
@@ -59,18 +59,18 @@ def sessions(work):
             "title": "A hook is a six-line adapter over the guard",
             "cwd": str(KIT),
             "steps": [
-                "cat hooks/scripts/block-publish.sh",
-                'printf \'%s\' \'{"tool_input":{"command":"make check"}}\' | bash hooks/scripts/block-publish.sh; echo "exit $?"',
+                "cat plugins/bearing/hooks/scripts/block-publish.sh",
+                'printf \'%s\' \'{"tool_input":{"command":"make check"}}\' | bash plugins/bearing/hooks/scripts/block-publish.sh; echo "exit $?"',
                 'printf \'%s\' \'{"tool_input":{"command":"'
                 + PUSH
-                + '"}}\' | bash hooks/scripts/block-publish.sh; echo "exit $?"',
+                + '"}}\' | bash plugins/bearing/hooks/scripts/block-publish.sh; echo "exit $?"',
             ],
         },
         "scaffold": {
             "title": "A new repository from the templates",
             "cwd": work,
             "steps": [
-                f"bash {KIT}/bin/brg-scaffold go-api InvoiceService --dir {work}/InvoiceService --host gitlab --tracker none",
+                f"bash {KIT}/plugins/bearing/bin/brg-scaffold go-api InvoiceService --dir {work}/InvoiceService --host gitlab --tracker none",
                 "cd InvoiceService && git config core.hooksPath && git status --short | wc -l",
                 "cd InvoiceService && head -8 CLAUDE.md",
                 "cd InvoiceService && ls -A",
@@ -83,20 +83,20 @@ def sessions(work):
             "cwd": work,
             "steps": [
                 'mkdir legacy && cd legacy && git init -q -b main && printf \'{"name":"legacy","scripts":{"test":"vitest"}}\\n\' > package.json && printf \'# Legacy\\n\' > README.md && git add -A && git commit -qm \'chore: initial\' && echo ready',
-                f"cd legacy && bash {KIT}/bin/brg-adopt --stack react-web --host github --tracker none",
-                f"cd legacy && bash {KIT}/bin/brg-adopt --stack react-web --host github --tracker none | tail -3",
+                f"cd legacy && bash {KIT}/plugins/bearing/bin/brg-adopt --stack react-web --host github --tracker none",
+                f"cd legacy && bash {KIT}/plugins/bearing/bin/brg-adopt --stack react-web --host github --tracker none | tail -3",
             ],
         },
         "autopilot": {
             "title": "Autopilot holds the order; the gates are checked on disk",
             "cwd": work,
             "steps": [
-                f"python3 {KIT}/bin/brg-autopilot stages",
+                f"python3 {KIT}/plugins/bearing/bin/brg-autopilot stages",
                 "mkdir pilot && cd pilot && git init -q -b main && git commit -q --allow-empty -m 'chore: start' && echo ready",
-                f"cd pilot && python3 {KIT}/bin/brg-autopilot start 'Invoices can be exported as CSV'",
-                f"cd pilot && python3 {KIT}/bin/brg-autopilot next",
-                f"cd pilot && python3 {KIT}/bin/brg-autopilot done repo",
-                f"cd pilot && python3 {KIT}/bin/brg-autopilot status | head -20",
+                f"cd pilot && python3 {KIT}/plugins/bearing/bin/brg-autopilot start 'Invoices can be exported as CSV'",
+                f"cd pilot && python3 {KIT}/plugins/bearing/bin/brg-autopilot next",
+                f"cd pilot && python3 {KIT}/plugins/bearing/bin/brg-autopilot done repo",
+                f"cd pilot && python3 {KIT}/plugins/bearing/bin/brg-autopilot status | head -20",
             ],
         },
         "check": {
@@ -108,8 +108,8 @@ def sessions(work):
             "title": "One command surface over every tracker",
             "cwd": str(KIT),
             "steps": [
-                "bash bin/brg-tracker config",
-                "bash bin/brg-tracker create --type story --title 'Export invoices'; echo \"exit $?\"",
+                "bash plugins/bearing/bin/brg-tracker config",
+                "bash plugins/bearing/bin/brg-tracker create --type story --title 'Export invoices'; echo \"exit $?\"",
             ],
         },
     }

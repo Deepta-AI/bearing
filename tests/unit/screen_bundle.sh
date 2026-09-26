@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# tests/unit/screen_bundle.sh: skills/screen-design/scripts/bundle.py
+# tests/unit/screen_bundle.sh: plugins/bearing/skills/screen-design/scripts/bundle.py
 # audits a design bundle from the files and writes real numbers into
 # design.json, renders the gallery, and checks it: passes a complete bundle
 # and fails, with the reason, on a null audit, a stale audit, a state panel
@@ -9,7 +9,7 @@
 # manifest lacks, and a manifest with zero screens.
 set -u
 . "$(dirname "$0")/../lib/assert.sh"
-B="$KIT/skills/screen-design/scripts/bundle.py"
+B="$KIT/plugins/bearing/skills/screen-design/scripts/bundle.py"
 
 # panel <state> <desktop chrome> <annotation>: one state drawn as the whole screen.
 panel() {
@@ -149,7 +149,7 @@ t_end
 
 t_begin "the raw screen template carries both frames and a chrome slot on every panel; its unfilled annotations fail"
 d="$(tmpdir)"; bundle "$d"
-cp "$KIT/skills/screen-design/templates/screen.html" "$d/screens/orders/S-01-orders.html"
+cp "$KIT/plugins/bearing/skills/screen-design/templates/screen.html" "$d/screens/orders/S-01-orders.html"
 python3 - "$d/design.json" <<'PY'
 import json, sys
 m = json.load(open(sys.argv[1])); m["screens"][0]["states"] = ["success", "loading", "empty", "error", "partial"]

@@ -10,7 +10,8 @@ import Home from "./pages/Home";
 import SkillPage from "./pages/SkillPage";
 import Skills from "./pages/Skills";
 import Workflow from "./pages/Workflow";
-import "./styles/tokens.css";
+import "@ui/tokens.css";
+import "@ui/base.css";
 import "./styles/app.css";
 
 const router = createBrowserRouter(

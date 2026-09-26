@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# tests/unit/threat_model_check.sh: skills/threat-model/scripts/threats_check.py
+# tests/unit/threat_model_check.sh: plugins/bearing/skills/threat-model/scripts/threats_check.py
 # passes a model whose threats cite an existing file:line, a backlog story
 # or a new story, and fails on a malformed or duplicate id, a missing file,
 # a line past the end, an unknown story, "handled by the framework", an
 # empty mitigation, a sensitive scope with zero threats, and empty input.
 set -u
 . "$(dirname "$0")/../lib/assert.sh"
-CHK="$KIT/skills/threat-model/scripts/threats_check.py"
+CHK="$KIT/plugins/bearing/skills/threat-model/scripts/threats_check.py"
 
 # fixture <dir> <row>...: a repository with one code file, a backlog, and a model holding the rows.
 fixture() {

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# tests/unit/ux_flows_check.sh: skills/ux-flows/scripts/flows_check.py
+# tests/unit/ux_flows_check.sh: plugins/bearing/skills/ux-flows/scripts/flows_check.py
 # passes a package whose screens all have a way forward (or are marked
 # terminal), all appear in a flowchart and all have the four required
 # states; fails on a dead end, an unflowed screen, a flowchart screen not
@@ -7,7 +7,7 @@
 # state table, and on empty input. It reads the highest flows-v<n>.md.
 set -u
 . "$(dirname "$0")/../lib/assert.sh"
-CHK="$KIT/skills/ux-flows/scripts/flows_check.py"
+CHK="$KIT/plugins/bearing/skills/ux-flows/scripts/flows_check.py"
 
 # states <id>: a complete state table for one screen.
 states() {

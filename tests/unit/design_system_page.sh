@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# tests/unit/design_system_page.sh: skills/design-system/scripts/system_page.py
+# tests/unit/design_system_page.sh: plugins/bearing/skills/design-system/scripts/system_page.py
 # writes the shared tokens.css from tokens.json (light on :root and
 # [data-theme="light"], dark on [data-theme="dark"] and under
 # prefers-color-scheme), builds design-system.html from the template with
@@ -8,8 +8,8 @@
 # literal, a page without tokens.css, and a contract with zero components.
 set -u
 . "$(dirname "$0")/../lib/assert.sh"
-SP="$KIT/skills/design-system/scripts/system_page.py"
-COMP="$KIT/skills/design-system/templates/components.md"
+SP="$KIT/plugins/bearing/skills/design-system/scripts/system_page.py"
+COMP="$KIT/plugins/bearing/skills/design-system/templates/components.md"
 
 tokens() {
   python3 - "$1" <<'PY'

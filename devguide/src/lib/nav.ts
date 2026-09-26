@@ -1,5 +1,6 @@
-export type NavItem = { to: string; label: string; n?: string };
-export type NavGroup = { title: string; items: NavItem[] };
+import type { NavGroup, NavItem } from "@ui";
+
+export type { NavGroup, NavItem };
 
 /** The chapters are a reading order, so they carry numbers; the reference does not. */
 export const NAV: NavGroup[] = [
@@ -27,8 +28,8 @@ export const NAV: NavGroup[] = [
   {
     title: "Reference",
     items: [
-      { to: "/scripts", label: "Every script" },
-      { to: "/skills", label: "Every skill" },
+      { to: "/scripts", label: "Every script", prefix: true },
+      { to: "/skills", label: "Every skill", prefix: true },
       { to: "/replays", label: "Terminal replays" },
       { to: "/glossary", label: "Glossary" },
     ],

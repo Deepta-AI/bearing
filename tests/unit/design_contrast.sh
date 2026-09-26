@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# tests/unit/design_contrast.sh: skills/design-system/scripts/contrast.py
+# tests/unit/design_contrast.sh: plugins/bearing/skills/design-system/scripts/contrast.py
 # counts the pairs it checks in light and dark from tokens.json through
 # themes's theme-lint.py, passes a system where every pair holds, and
 # fails on a text pair below 4.5:1, on an undefined role, on a missing mode
 # and on a missing tokens file (zero pairs checked).
 set -u
 . "$(dirname "$0")/../lib/assert.sh"
-CT="$KIT/skills/design-system/scripts/contrast.py"
+CT="$KIT/plugins/bearing/skills/design-system/scripts/contrast.py"
 
 # tokens <path> [role=value ...]: light and dark role sets built from two
 # greys; each extra argument overrides one light role.

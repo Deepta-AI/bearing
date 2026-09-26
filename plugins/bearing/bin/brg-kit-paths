@@ -1,0 +1,100 @@
+#!/usr/bin/env bash
+# brg-kit-paths: where the Bearing plugins are on this machine. Bearing ships
+# as three plugins from one marketplace: bearing (required: the workflow,
+# agents, hooks, bin and templates), bearing-backend and bearing-apps (the
+# stack conventions and their templates). A script that looks for a stack
+# template or checklist asks here instead of assuming one skills/ folder.
+#
+#   brg-kit-paths [--skills]        skill roots, one absolute path per line,
+#                                   bearing first (the default)
+#   brg-kit-paths --plugins         "name<TAB>root" per plugin found
+#   brg-kit-paths --skill <name>    the directory of one skill, from any
+#                                   Bearing plugin; exit 1 naming the plugin
+#                                   to install when it is not there
+#   brg-kit-paths --owner <name>    the plugin that ships a skill or a stack
+#                                   id (go, go-api, react-web ...), found or not
+#   brg-kit-paths --install-hint <name>
+#                                   one line: "<name> is in <plugin>, which is
+#                                   not installed: /plugin install <plugin>@bearing"
+#   brg-kit-paths --version         the bearing plugin's version
+#
+# Where it looks, for each sibling plugin, first hit wins:
+#   BEARING_PLUGIN_DIRS  colon-separated plugin roots (tests, other harnesses);
+#                        when set, only these are used besides bearing itself
+#   <bearing>/../<name>  the repository layout (plugins/<name>)
+#   <bearing>/../../<name>/<version>  the Claude Code cache layout
+#                        (~/.claude/plugins/cache/<marketplace>/<name>/<version>),
+#                        the same version as bearing first, else the newest
+# A root counts only when it holds .claude-plugin/plugin.json naming it.
+# Exit 1 when not even the bearing plugin's own skills are found. bash 3.2 safe.
+set -u
+SELF="$(cd "$(dirname "$0")/.." && pwd)"
+SIBLINGS="bearing-backend bearing-apps"
+
+# owner_of <skill or stack id>: the plugin that ships it (bearing for the rest).
+owner_of() {
+  case "$1" in
+    go|go-api|go-cli|python|python-api|python-cli|node|node-api|data-pipeline|infra) echo bearing-backend;;
+    react|react-web|nextjs|next-app|react-native|flutter|flutter-app|ios|android) echo bearing-apps;;
+    *) echo bearing;;
+  esac
+}
+
+# is_plugin <dir> <name>: the directory holds that plugin's manifest.
+is_plugin() {
+  [ -f "$1/.claude-plugin/plugin.json" ] && grep -Eq "\"name\": *\"$2\"" "$1/.claude-plugin/plugin.json"
+}
+
+version_of() {
+  sed -n 's/^ *"version": *"\([^"]*\)".*/\1/p' "$1/.claude-plugin/plugin.json" 2>/dev/null | head -1
+}
+
+# find_plugin <name>: the root of a sibling plugin, or nothing.
+find_plugin() {
+  local name="$1" d ver newest=""
+  if [ -n "${BEARING_PLUGIN_DIRS:-}" ]; then
+    local IFS=:
+    for d in $BEARING_PLUGIN_DIRS; do
+      [ -n "$d" ] && is_plugin "$d" "$name" && { (cd "$d" && pwd); return 0; }
+    done
+    return 1
+  fi
+  d="$(dirname "$SELF")/$name"
+  is_plugin "$d" "$name" && { (cd "$d" && pwd); return 0; }
+  ver="$(basename "$SELF")"
+  d="$(dirname "$(dirname "$SELF")")/$name"
+  [ -d "$d" ] || return 1
+  is_plugin "$d/$ver" "$name" && { (cd "$d/$ver" && pwd); return 0; }
+  newest="$(ls "$d" 2>/dev/null | sort -t. -k1,1n -k2,2n -k3,3n | tail -1)"
+  [ -n "$newest" ] && is_plugin "$d/$newest" "$name" && { (cd "$d/$newest" && pwd); return 0; }
+  return 1
+}
+
+plugins() {
+  printf 'bearing\t%s\n' "$SELF"
+  local n r
+  for n in $SIBLINGS; do r="$(find_plugin "$n")" && printf '%s\t%s\n' "$n" "$r"; done
+  return 0
+}
+
+hint() {
+  local o; o="$(owner_of "$1")"
+  if [ "$o" = bearing ]; then echo "$1 is not a Bearing skill or stack"
+  else echo "$1 is in the $o plugin, which is not installed: /plugin install $o@bearing (or claude plugin install $o@bearing)"; fi
+}
+
+[ -d "$SELF/skills" ] || { echo "brg-kit-paths: no skills/ under $SELF; the bearing plugin is incomplete" >&2; exit 1; }
+case "${1:---skills}" in
+  --skills) plugins | while IFS="$(printf '\t')" read -r _ r; do [ -d "$r/skills" ] && echo "$r/skills"; done ;;
+  --plugins) plugins ;;
+  --skill)
+    [ -n "${2:-}" ] || { echo "brg-kit-paths: --skill needs a name" >&2; exit 2; }
+    found="$(plugins | while IFS="$(printf '\t')" read -r _ r; do [ -f "$r/skills/$2/SKILL.md" ] && { echo "$r/skills/$2"; break; }; done)"
+    [ -n "$found" ] && { echo "$found"; exit 0; }
+    hint "$2" >&2; exit 1 ;;
+  --owner) [ -n "${2:-}" ] || { echo "brg-kit-paths: --owner needs a name" >&2; exit 2; }; owner_of "$2" ;;
+  --install-hint) [ -n "${2:-}" ] || { echo "brg-kit-paths: --install-hint needs a name" >&2; exit 2; }; hint "$2" ;;
+  --version) version_of "$SELF" ;;
+  -h|--help) sed -n '2,29p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+  *) echo "brg-kit-paths: unknown option $1 (see --help)" >&2; exit 2 ;;
+esac

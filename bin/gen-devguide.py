@@ -26,6 +26,14 @@ sys.dont_write_bytecode = True
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 OUT = ROOT / "devguide" / "src" / "data" / "internals.json"
 HANDBOOK = ROOT / "site" / "src" / "data" / "handbook.json"
+sys.path.insert(0, str(ROOT / "bin"))
+import kit_paths  # noqa: E402
+
+# The bearing plugin holds the agents, hooks, runtime bin and templates; the
+# skills are spread over plugins/bearing, plugins/bearing-backend and
+# plugins/bearing-apps.
+KITP = kit_paths.BEARING
+SKILL_DIRS = kit_paths.skill_dirs()
 
 
 # Tool caches and installed dependencies are not part of the kit. They exist
@@ -71,7 +79,13 @@ def frontmatter(text):
     for line in m.group(1).splitlines():
         k, sep, v = line.partition(":")
         if sep and re.fullmatch(r"[a-zA-Z][a-zA-Z0-9_-]*", k):
-            fm[k] = v.strip().strip('"')
+            v = v.strip()
+            # One-line YAML scalars: 'single' ('' is a quote) or "double".
+            if len(v) >= 2 and v[0] == v[-1] == "'":
+                v = v[1:-1].replace("''", "'")
+            elif len(v) >= 2 and v[0] == v[-1] == '"':
+                v = v[1:-1].replace('\\"', '"')
+            fm[k] = v
     return fm, text[m.end() :]
 
 
@@ -147,8 +161,8 @@ def split_tools(s):
 def build_skills(hb):
     by_name = {s["name"]: s for s in hb.get("skills", [])}
     out = []
-    for f in sorted((ROOT / "skills").glob("*/SKILL.md")):
-        d = f.parent
+    for d in SKILL_DIRS:
+        f = d / "SKILL.md"
         text = f.read_text(encoding="utf-8")
         fm, body = frontmatter(text)
         intro, secs = sections(body)
@@ -180,6 +194,7 @@ def build_skills(hb):
         out.append(
             {
                 "name": fm.get("name", d.name),
+                "plugin": kit_paths.plugin_of(d),
                 "category": h.get("category", "meta"),
                 "what": h.get("what", clip(fm.get("description", ""), 200)),
                 "when": h.get("when", ""),
@@ -236,7 +251,7 @@ def header(text, py):
 
 
 def script_group(path):
-    if path.startswith("hooks/"):
+    if "/hooks/" in "/" + path:
         return "hooks"
     n = pathlib.Path(path).name
     if n in ("install.sh", "brg-doctor", "brg-install-packs"):
@@ -256,12 +271,14 @@ def script_group(path):
 
 def build_scripts():
     paths = [ROOT / "install.sh"]
-    paths += [
-        p
-        for p in sorted((ROOT / "bin").iterdir())
-        if p.is_file() and not p.name.endswith((".txt", ".allow", ".skip"))
-    ]
-    paths += sorted((ROOT / "hooks" / "scripts").glob("*.sh"))
+    # The plugin's runtime scripts, then the repository's own tools (bin/).
+    for b in (KITP / "bin", ROOT / "bin"):
+        paths += [
+            p
+            for p in sorted(b.iterdir())
+            if p.is_file() and not p.name.endswith((".txt", ".allow", ".skip"))
+        ]
+    paths += sorted((KITP / "hooks" / "scripts").glob("*.sh"))
     out = []
     for p in paths:
         text = p.read_text(encoding="utf-8")
@@ -282,7 +299,7 @@ def build_scripts():
                 "calls": calls,
             }
         )
-    for p in sorted((ROOT / "skills").glob("*/scripts/*")):
+    for p in sorted((p for d in SKILL_DIRS for p in d.glob("scripts/*")), key=lambda q: (q.parts[-3], q.name)):
         if p.is_file() and p.suffix in (".sh", ".py") and "__pycache__" not in p.parts:
             text = p.read_text(encoding="utf-8")
             py = p.suffix == ".py"
@@ -305,7 +322,7 @@ def build_scripts():
 
 # ---------------------------------------------------------------- hooks, agents
 def build_hooks():
-    data = json.loads((ROOT / "hooks" / "hooks.json").read_text())
+    data = json.loads((KITP / "hooks" / "hooks.json").read_text())
     out = []
     for event, entries in data["hooks"].items():
         for e in entries:
@@ -313,7 +330,7 @@ def build_hooks():
                 m = re.search(r"hooks/scripts/([a-z-]+\.sh)", h["command"])
                 script = m.group(1) if m else ""
                 body = (
-                    (ROOT / "hooks" / "scripts" / script).read_text() if script else ""
+                    (KITP / "hooks" / "scripts" / script).read_text() if script else ""
                 )
                 sub = re.findall(r"brg-guard[\"']?\s+([a-z-]+)", body) or re.findall(
                     r"guard\s+([a-z-]+)", body
@@ -333,7 +350,7 @@ def build_hooks():
 
 def build_agents():
     out = []
-    for f in sorted((ROOT / "agents").glob("*.md")):
+    for f in sorted((KITP / "agents").glob("*.md")):
         fm, body = frontmatter(f.read_text(encoding="utf-8"))
         _, secs = sections(body)
         out.append(
@@ -350,7 +367,7 @@ def build_agents():
                 "lines": body.count("\n"),
                 "usedBy": sorted(
                     sk.parent.name
-                    for sk in (ROOT / "skills").glob("*/SKILL.md")
+                    for sk in (d / "SKILL.md" for d in SKILL_DIRS)
                     # Agent names are plain words (critic, reviewer), so a
                     # skill uses one only where it names it as an agent: in
                     # backticks, as bearing:<name>, in an agent: field, or as
@@ -410,6 +427,43 @@ def build_ci():
     return "\n".join(head).strip(), [j for j in jobs if not j["name"].startswith(".")]
 
 
+def build_gh():
+    """The GitHub Actions workflows: each file's header comment and its jobs,
+    with the runner and the number of matrix entries (one run per entry)."""
+    out = []
+    for p in sorted((ROOT / ".github" / "workflows").glob("*.yml")):
+        text = p.read_text(encoding="utf-8")
+        head = []
+        for line in text.splitlines():
+            if line.startswith("#"):
+                head.append(re.sub(r"^# ?", "", line))
+            else:
+                break
+        name = re.search(r"^name:\s*(\S+)", text, re.M)
+        jobs = []
+        body = text.split("\njobs:\n", 1)[1] if "\njobs:\n" in text else ""
+        for m in re.finditer(r"^  ([a-zA-Z0-9_-]+):\n((?:(?:    .*|\s*)\n)*)", body, re.M):
+            block = m.group(2)
+            runs = re.search(r"^    runs-on:\s*(\S+)", block, re.M)
+            matrix = len(re.findall(r"^\s+- \{", block, re.M))
+            jobs.append(
+                {
+                    "name": m.group(1),
+                    "runsOn": runs.group(1) if runs else "",
+                    "matrix": matrix,
+                }
+            )
+        out.append(
+            {
+                "file": str(p.relative_to(ROOT)),
+                "name": name.group(1) if name else p.stem,
+                "header": "\n".join(head).strip(),
+                "jobs": jobs,
+            }
+        )
+    return out
+
+
 def build_tests():
     out = []
     for p in files_under(ROOT / "tests"):
@@ -438,20 +492,39 @@ def build_tests():
     return out, fixtures
 
 
+# ---------------------------------------------------------------- plugins
+def build_plugins():
+    """The three plugins the marketplace lists: name, folder, files, skills."""
+    out = []
+    for name, root in kit_paths.plugins().items():
+        manifest = json.loads((root / ".claude-plugin" / "plugin.json").read_text())
+        out.append(
+            {
+                "name": name,
+                "dir": rel(root),
+                "description": manifest.get("description", ""),
+                "required": name == "bearing",
+                "files": len(files_under(root)),
+                "skills": sorted(d.name for d in SKILL_DIRS if kit_paths.plugin_of(d) == name),
+            }
+        )
+    return out
+
+
 # ---------------------------------------------------------------- stacks, templates
 def build_stacks():
     out = []
-    for f in sorted((ROOT / "skills").glob("*/templates*/stack.json")):
+    for f in sorted(p for sd in SKILL_DIRS for p in sd.glob("templates*/stack.json")):
         d = json.loads(f.read_text())
         tdir = f.parent
         files = [str(p.relative_to(tdir)) for p in files_under(tdir)]
-        d.update({"skill": f.parts[-3], "dir": rel(tdir), "files": files})
+        d.update({"skill": f.parts[-3], "plugin": kit_paths.plugin_of(f), "dir": rel(tdir), "files": files})
         out.append(d)
     return sorted(out, key=lambda s: s["id"])
 
 
 def build_templates():
-    base = ROOT / "templates"
+    base = KITP / "templates"
     return [
         {"path": str(p.relative_to(base)), "lines": lines_of(p)}
         for p in files_under(base)
@@ -483,17 +556,17 @@ def build_changelog():
 def build_settings():
     """The repository permission model and what every session loads, in counts."""
     st = json.loads(
-        (ROOT / "templates" / "repo" / ".claude" / "settings.json").read_text()
+        (KITP / "templates" / "repo" / ".claude" / "settings.json").read_text()
     )
     perm = st.get("permissions", {})
     sb = st.get("sandbox", {})
     fs = sb.get("filesystem", {})
-    rules = sorted((ROOT / "templates" / "repo" / ".claude" / "rules").glob("*.md"))
+    rules = sorted((KITP / "templates" / "repo" / ".claude" / "rules").glob("*.md"))
     unscoped = [
         r for r in rules if "paths:" not in "".join(r.read_text().splitlines(True)[:5])
     ]
-    agents_b = (ROOT / "templates" / "repo" / "AGENTS.md").stat().st_size
-    claude_b = (ROOT / "templates" / "repo" / "CLAUDE.md").stat().st_size
+    agents_b = (KITP / "templates" / "repo" / "AGENTS.md").stat().st_size
+    claude_b = (KITP / "templates" / "repo" / "CLAUDE.md").stat().st_size
     unscoped_b = sum(r.stat().st_size for r in unscoped)
     return {
         "allow": len(perm.get("allow", [])),
@@ -519,7 +592,7 @@ def build_settings():
 def build_guard_rules():
     """The blocked verb table as the guard itself prints it (tool, pattern, label)."""
     out = subprocess.run(
-        ["bash", str(ROOT / "bin" / "brg-guard"), "--verbs"],
+        ["bash", str(KITP / "bin" / "brg-guard"), "--verbs"],
         capture_output=True,
         text=True,
         check=True,
@@ -540,7 +613,7 @@ def build_autopilot():
     import importlib.machinery
     import importlib.util
 
-    path = str(ROOT / "bin" / "brg-autopilot")
+    path = str(KITP / "bin" / "brg-autopilot")
     loader = importlib.machinery.SourceFileLoader("autopilot", path)
     spec = importlib.util.spec_from_loader("autopilot", loader)
     mod = importlib.util.module_from_spec(spec)
@@ -559,6 +632,7 @@ def main():
     agents = build_agents()
     make, check = build_make()
     ci_head, ci = build_ci()
+    gh = build_gh()
     tests, fixtures = build_tests()
     stacks = build_stacks()
     templates = build_templates()
@@ -589,6 +663,8 @@ def main():
         "stacks": len(stacks),
         "templates": len(templates),
         "ciJobs": len(ci),
+        "ghJobs": sum(len(w["jobs"]) for w in gh),
+        "ghWorkflows": len(gh),
         "evals": len(evals),
         "skillFiles": sum(len(s["files"]) for s in skills),
     }
@@ -604,6 +680,7 @@ def main():
             "stacks",
             "templates",
             "ciJobs",
+            "ghJobs",
         )
         if not counts[k]
     ]
@@ -614,6 +691,7 @@ def main():
     data = {
         "version": (ROOT / "VERSION").read_text().strip(),
         "counts": counts,
+        "plugins": build_plugins(),
         "categories": hb.get("categories", {}),
         "skills": skills,
         "scripts": scripts,
@@ -624,6 +702,7 @@ def main():
         "check": check,
         "ciHeader": ci_head,
         "ci": ci,
+        "gh": gh,
         "tests": tests,
         "stacks": stacks,
         "templates": templates,

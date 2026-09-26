@@ -4,9 +4,9 @@
 # twice in a copy of the kit (the checked-in files are never written) and
 # every file they produce (docs/SKILLS.md, docs/WORKFLOW.md,
 # site/src/data/handbook.json, devguide/src/data/internals.json, and the
-# skills map in templates/repo/AGENTS.md and CLAUDE.md) must be byte
+# skills map in plugins/bearing/templates/repo/AGENTS.md and CLAUDE.md) must be byte
 # identical between runs. The handbook site renders from that JSON, so it
-# must hold one skill entry and one verdict per skill directory and every
+# must hold one skill entry per skill directory, no comparison data, and every
 # task flow in docs/flows.json, and none of the strings the kit retired:
 # "the company", "Roo", and the retired skill-name prefix. When a
 # generator fails (for example because another change is mid-edit) the copy
@@ -23,7 +23,7 @@ generate() { GEN_OUT="$( (cd "$1" && python3 bin/gen-skills-table.py && python3 
 # jcount <json> <key>: entries under that key of the site data (0 when absent).
 jcount() { python3 -c 'import json,sys
 print(len(json.load(open(sys.argv[1],encoding="utf-8")).get(sys.argv[2]) or []))' "$1" "$2"; }
-OUTS="docs/SKILLS.md docs/WORKFLOW.md site/src/data/handbook.json devguide/src/data/internals.json templates/repo/AGENTS.md templates/repo/CLAUDE.md"
+OUTS="docs/SKILLS.md docs/WORKFLOW.md site/src/data/handbook.json devguide/src/data/internals.json plugins/bearing/templates/repo/AGENTS.md plugins/bearing/templates/repo/CLAUDE.md"
 
 copy="$(tmpdir)/kit"
 sums_before="$(cd "$KIT" && cksum $OUTS)"
@@ -56,12 +56,16 @@ done
 assert_eq 6 "$n" "six outputs compared"
 t_end
 
-t_begin "one entry and one verdict per skill, every flow, no retired names"
+t_begin "one entry per skill, every flow, no comparisons, no retired names"
 hb="$copy/site/src/data/handbook.json"
-skills="$(ls "$copy"/skills/*/SKILL.md | wc -l | tr -d ' ')"
+skills="$(ls "$copy"/plugins/*/skills/*/SKILL.md | wc -l | tr -d ' ')"
 assert_eq 1 "$([ "$skills" -gt 0 ] && echo 1)" "skill directories found ($skills)"
 assert_eq "$skills" "$(jcount "$hb" skills)" "skills in the site data equal the skill directory count"
-assert_eq "$skills" "$(jcount "$hb" comparisons)" "one verdict per skill in the site data"
+# Nothing published compares Bearing with other packs: no comparison data
+# in the tree or the site data, and no ranking words in what the site shows.
+assert_eq 0 "$([ -e "$copy/docs/comparisons.json" ] && echo 1 || echo 0)" "docs/comparisons.json in the tree"
+assert_eq 0 "$(python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); print(sum(k in d for k in ("comparisons","alternates","verdictCounts")))' "$hb")" "comparison keys in the site data"
+assert_eq 0 "$(grep -ciE 'stronger|strongest|best alternative|beats? (its|the) alternative' "$hb")" "ranking phrases in the site data"
 assert_eq "$(python3 -c 'import json,sys; print(len(json.load(open(sys.argv[1]))["flows"]))' "$KIT/docs/flows.json")" "$(jcount "$hb" flows)" "every flow in docs/flows.json reaches the site data"
 assert_eq 0 "$(grep -c 'the company' "$hb")" "site data mentions of [the company]"
 # Deliberate: the one place the retired brg_ skill prefix is named, to prove
@@ -74,7 +78,7 @@ assert_eq "$skills" "$(jcount "$copy/devguide/src/data/internals.json" skills)" 
 t_end
 
 t_begin "the checked-in files were not written by this test"
-assert_eq "$sums_before" "$(cd "$KIT" && cksum $OUTS)" "docs/ and templates/repo in the kit are unchanged"
+assert_eq "$sums_before" "$(cd "$KIT" && cksum $OUTS)" "docs/ and plugins/bearing/templates/repo in the kit are unchanged"
 t_end
 
 echo "deterministic: 6 generated files compared over 2 runs, $skills skills in the site data"

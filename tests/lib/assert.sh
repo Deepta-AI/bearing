@@ -18,7 +18,7 @@ T_RUN=0; T_FAIL=0; T_CASES=0; T_CASE=''; T_CASE_ASSERTS=0
 T_IN=''; T_RC=0; T_OUT=''
 T_TMPS=''
 KIT="${KIT:-$(cd "$(dirname "$T_FILE")/../.." && pwd)}"
-GUARD="$KIT/bin/brg-guard"
+GUARD="$KIT/plugins/bearing/bin/brg-guard"
 
 _t_fail() { T_FAIL=$((T_FAIL+1)); printf 'FAIL %s [%s]: %s\n' "${T_FILE##*/}" "$T_CASE" "$*" >&2; }
 _t_pass() { :; }
@@ -64,8 +64,11 @@ assert_file() {
 }
 
 tmpdir() {
-  local d
-  d="$(mktemp -d "${TMPDIR:-/tmp}/brg-test.XXXXXX")"
+  local d base="${TMPDIR:-/tmp}"
+  # macOS sets TMPDIR with a trailing slash; a doubled slash would make the
+  # paths tests expect differ from the ones the code under test prints.
+  base="${base%/}"
+  d="$(mktemp -d "${base:-/tmp}/brg-test.XXXXXX")"
   T_TMPS="$T_TMPS $d"
   printf '%s' "$d"
 }

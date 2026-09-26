@@ -9,7 +9,7 @@
 # table and the summary line. The server is killed on exit.
 set -u
 . "$(dirname "$0")/../lib/assert.sh"
-SCRIPT="$KIT/skills/verify-deploy/scripts/verify_deploy.py"
+SCRIPT="$KIT/plugins/bearing/skills/verify-deploy/scripts/verify_deploy.py"
 COMMIT=3f9c2ab71d04e5c8a9b6f1e2d3c4b5a697887766
 # A proxy from the environment (a sandbox sets one) must not carry loopback.
 no_proxy="127.0.0.1,localhost${no_proxy:+,$no_proxy}"; NO_PROXY="$no_proxy"; export no_proxy NO_PROXY
@@ -22,7 +22,7 @@ trap 'stop_server; _t_cleanup' EXIT
 # The server: /readyz answers 503 while $W/unready exists, and once more
 # while $W/unready-once exists (the file is removed on that answer).
 cat > "$W/server.py" <<'PY'
-import http.server, json, os, sys
+import http.server, json, os, socketserver, sys
 state = sys.argv[1]
 class H(http.server.BaseHTTPRequestHandler):
     def log_message(self, *a):
@@ -56,7 +56,13 @@ class H(http.server.BaseHTTPRequestHandler):
             self.end_headers()
             return
         return self.send(404, "not found")
-s = http.server.HTTPServer(("127.0.0.1", 0), H)
+# HTTPServer.server_bind does a reverse lookup (socket.getfqdn) that can
+# stall for many seconds on a macOS runner; the name is never used here.
+class S(http.server.HTTPServer):
+    def server_bind(self):
+        socketserver.TCPServer.server_bind(self)
+        self.server_name, self.server_port = self.server_address[:2]
+s = S(("127.0.0.1", 0), H)
 open(os.path.join(state, "port.tmp"), "w").write(str(s.server_address[1]))
 os.rename(os.path.join(state, "port.tmp"), os.path.join(state, "port"))
 s.serve_forever()

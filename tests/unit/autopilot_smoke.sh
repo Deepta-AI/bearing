@@ -8,7 +8,7 @@
 # with the verdict, at most three rounds.
 set -u
 . "$(dirname "$0")/../lib/assert.sh"
-AP="$KIT/bin/brg-autopilot"; export AP
+AP="$KIT/plugins/bearing/bin/brg-autopilot"; export AP
 commit() { git -C "$d" add -A >/dev/null 2>&1; git -C "$d" -c user.email=t@e -c user.name=t commit -qm "$1" >/dev/null 2>&1; }
 
 # The fake claude: prints a stream-json init line, records its argv and the

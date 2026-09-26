@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # tests/integration/harness_each.sh: generate every harness into a temporary
-# git repository with bin/brg-harness, assert the file set and modes, pipe the
+# git repository with plugins/bearing/bin/brg-harness, assert the file set and modes, pipe the
 # recorded hook fixtures (blocked command substituted at run time) into the
 # matching adapter and assert deny; hostile and missing-key inputs must deny
 # rather than allow; every JSON file parses; the OpenCode plugin loads.
@@ -22,9 +22,9 @@ gen() { # gen <harness>: a fresh repo with the template rules, generated
   repo="$(tmpdir)"
   git -C "$repo" init -q -b main
   mkdir -p "$repo/.claude/rules"
-  cp "$KIT/templates/repo/.claude/rules/"*.md "$repo/.claude/rules/"
+  cp "$KIT/plugins/bearing/templates/repo/.claude/rules/"*.md "$repo/.claude/rules/"
   printf 'package main\n' > "$repo/main.go"
-  assert_exit 0 bash "$KIT/bin/brg-harness" "$1" --dir "$repo" --no-skills
+  assert_exit 0 bash "$KIT/plugins/bearing/bin/brg-harness" "$1" --dir "$repo" --no-skills
   GEN_OUT="$T_OUT"
 }
 gates_repo() { # gates_repo <cursor|codex>: make the generated repo one the gates hold (a
@@ -238,7 +238,7 @@ t_begin "all harnesses, second run keeps, edited file conflicts"
 gen all
 assert_contains "$GEN_OUT" "0 conflicts"
 assert_contains "$GEN_OUT" "zed: settings only, no adapters"
-assert_exit 0 bash "$KIT/bin/brg-harness" all --dir "$repo" --no-skills
+assert_exit 0 bash "$KIT/plugins/bearing/bin/brg-harness" all --dir "$repo" --no-skills
 assert_contains "$T_OUT" "0 written"
 assert_contains "$T_OUT" "0 conflicts"
 assert_contains "$T_OUT" "brg-harness: 9 harness(es) checked, 9 wired"
@@ -246,7 +246,7 @@ assert_contains "$T_OUT" "unverified: codex, copilot, opencode, windsurf, cline,
 assert_contains "$T_OUT" "cursor: 5 of 5 adapters wired, codex"
 assert_contains "$T_OUT" "gemini: 2 of 2 adapters wired, copilot"
 printf '{}\n' > "$repo/.cursor/hooks.json"
-assert_exit 1 bash "$KIT/bin/brg-harness" cursor --dir "$repo" --no-skills
+assert_exit 1 bash "$KIT/plugins/bearing/bin/brg-harness" cursor --dir "$repo" --no-skills
 assert_contains "$T_OUT" "conflict  .cursor/hooks.json (proposal at .cursor/hooks.json.bearing-new)"
 assert_contains "$T_OUT" "cursor: 0 of 5 adapters referenced, NOT wired (conflict at .cursor/hooks.json.bearing-new;"
 assert_contains "$T_OUT" ".cursor/hooks.json does not reference .bearing/hooks/cursor-shell.sh"
@@ -257,25 +257,25 @@ assert_file "$repo/.cursor/hooks.json.bearing-new" 644
 # A config that references every adapter but has a proposal beside it is
 # still a conflict: not wired until the .bearing-new is resolved.
 cp "$repo/.cursor/hooks.json.bearing-new" "$repo/.cursor/hooks.json"
-assert_exit 1 bash "$KIT/bin/brg-harness" cursor --dir "$repo" --no-skills
+assert_exit 1 bash "$KIT/plugins/bearing/bin/brg-harness" cursor --dir "$repo" --no-skills
 assert_contains "$T_OUT" "cursor: 5 of 5 adapters referenced, NOT wired (conflict at .cursor/hooks.json.bearing-new)"
 rm -f "$repo/.cursor/hooks.json.bearing-new"
-assert_exit 0 bash "$KIT/bin/brg-harness" cursor --dir "$repo" --no-skills
+assert_exit 0 bash "$KIT/plugins/bearing/bin/brg-harness" cursor --dir "$repo" --no-skills
 assert_contains "$T_OUT" "cursor: 5 of 5 adapters wired"
 # An OpenCode plugin replaced by the team's own does not call the guard.
 printf 'export const Mine = async () => ({});\n' > "$repo/.opencode/plugins/brg-guard.js"
-assert_exit 1 bash "$KIT/bin/brg-harness" opencode --dir "$repo" --no-skills
+assert_exit 1 bash "$KIT/plugins/bearing/bin/brg-harness" opencode --dir "$repo" --no-skills
 assert_contains "$T_OUT" "opencode: 0 of 1 adapters referenced, NOT wired"
 mv "$repo/.opencode/plugins/brg-guard.js.bearing-new" "$repo/.opencode/plugins/brg-guard.js"
 printf -- '---\ndescription: no paths here\n---\nbody\n' > "$repo/.claude/rules/nopaths.md"
-assert_exit 0 bash "$KIT/bin/brg-harness" cursor --dir "$repo" --no-skills
+assert_exit 0 bash "$KIT/plugins/bearing/bin/brg-harness" cursor --dir "$repo" --no-skills
 assert_contains "$T_OUT" "warning: no paths: globs found in .claude/rules/nopaths.md"
 printf -- '---\npaths: ["src/**", '"'"'lib/**'"'"']\n---\nbody\n' > "$repo/.claude/rules/inline.md"
 printf -- '---\npaths:\n    - a/**\n    - '"'"'b/**'"'"'\n---\nbody\n' > "$repo/.claude/rules/indent.md"
-assert_exit 0 bash "$KIT/bin/brg-harness" cursor --dir "$repo" --no-skills
+assert_exit 0 bash "$KIT/plugins/bearing/bin/brg-harness" cursor --dir "$repo" --no-skills
 assert_contains "$(sed -n 3p "$repo/.cursor/rules/brg-inline.mdc")" 'globs: src/**,lib/**' "inline paths list"
 assert_contains "$(sed -n 3p "$repo/.cursor/rules/brg-indent.mdc")" 'globs: a/**,b/**' "indented, unquoted and single-quoted items"
-assert_exit 2 bash "$KIT/bin/brg-harness" roo --dir "$repo" --no-skills
+assert_exit 2 bash "$KIT/plugins/bearing/bin/brg-harness" roo --dir "$repo" --no-skills
 assert_contains "$T_OUT" "unknown harness: roo"
 t_end
 
@@ -284,14 +284,14 @@ t_begin "an env value with spaces is a value, not a command"
 envd="$(tmpdir)"; marker="$envd/executed"
 printf 'BEARING_KIT_REMOTE=https://example.invalid/kit.git touch %s\nBEARING_TRACKER=none\n' "$marker" > "$envd/bearing.env"
 repo="$(tmpdir)"; git -C "$repo" init -q -b main
-assert_exit 0 env -u BEARING_KIT_REMOTE BEARING_ENV="$envd/bearing.env" bash "$KIT/bin/brg-harness" zed --dir "$repo" --no-skills
+assert_exit 0 env -u BEARING_KIT_REMOTE BEARING_ENV="$envd/bearing.env" bash "$KIT/plugins/bearing/bin/brg-harness" zed --dir "$repo" --no-skills
 _t_count; if [ -e "$marker" ]; then _t_fail "the env file was executed: $marker exists"; fi
 assert_contains "$T_OUT" "brg-harness: 1 harness(es) checked, 1 wired"
 t_end
 
 # ---- the Claude Code adapters with every fixture
 t_begin "claude adapters"
-CH="$KIT/hooks/scripts"
+CH="$KIT/plugins/bearing/hooks/scripts"
 T_IN="$(fixture claude/session-start.json)"; assert_exit 0 bash "$CH/session-start.sh"
 T_IN="$(fixture claude/user-prompt-submit.json)"; assert_exit 0 bash "$CH/inject-task-id.sh"
 T_IN="$(fixture claude/pre-tool-use.json)"; assert_exit 2 bash "$CH/block-publish.sh"
@@ -309,13 +309,13 @@ n=0
 for fx in "$FIX"/hostile/*.json; do
   name="hostile/${fx##*/}"
   T_IN="$(fixture "$name")"; assert_exit 2 bash "$repo/.bearing/hooks/codex-pretool.sh"
-  T_IN="$(fixture "$name")"; assert_exit 2 bash "$KIT/hooks/scripts/block-publish.sh"
+  T_IN="$(fixture "$name")"; assert_exit 2 bash "$KIT/plugins/bearing/hooks/scripts/block-publish.sh"
   n=$((n+1))
 done
 assert_eq 6 "$n" "hostile fixtures exercised"
 T_IN="$(fixture hostile/missing-key.json)"; assert_exit 2 bash "$repo/.bearing/hooks/codex-pretool.sh"
 assert_contains "$T_OUT" "could not read the command"
-T_IN="$(fixture hostile/invalid.json)"; assert_exit 2 bash "$KIT/hooks/scripts/block-publish.sh"
+T_IN="$(fixture hostile/invalid.json)"; assert_exit 2 bash "$KIT/plugins/bearing/hooks/scripts/block-publish.sh"
 assert_contains "$T_OUT" "could not read the command"
 T_IN="$(fixture hostile/decoy-command-key.json)"; assert_exit 2 bash "$repo/.bearing/hooks/codex-pretool.sh"
 assert_contains "$T_OUT" "blocked 'git pu$H'"
@@ -325,16 +325,16 @@ t_end
 t_begin "no jq: sentinel, warning, deny"
 nojq="$(minimal_path bash git sed grep head tail tr wc cat dirname basename mktemp cmp mv rm mkdir ls awk cut sort uniq env printf)"
 T_IN="$(fixture claude/pre-tool-use-allow.json)"
-assert_exit 2 env PATH="$nojq" bash "$KIT/hooks/scripts/block-publish.sh"
+assert_exit 2 env PATH="$nojq" bash "$KIT/plugins/bearing/hooks/scripts/block-publish.sh"
 assert_contains "$T_OUT" "jq is required by the hooks"
 assert_contains "$T_OUT" "could not read the command"
 assert_exit 2 env PATH="$nojq" bash "$repo/.bearing/hooks/codex-pretool.sh"
 assert_contains "$T_OUT" "jq is required by the hooks"
 T_IN="$(fixture claude/user-prompt-submit.json)"
-assert_exit 0 env PATH="$nojq" bash "$KIT/hooks/scripts/inject-task-id.sh"
+assert_exit 0 env PATH="$nojq" bash "$KIT/plugins/bearing/hooks/scripts/inject-task-id.sh"
 T_IN="$(fixture claude/post-tool-use.json)"
-assert_exit 0 env PATH="$nojq" bash "$KIT/hooks/scripts/format-file.sh"
-assert_exit 0 env PATH="$nojq" bash "$KIT/hooks/scripts/stop-summary.sh"
+assert_exit 0 env PATH="$nojq" bash "$KIT/plugins/bearing/hooks/scripts/format-file.sh"
+assert_exit 0 env PATH="$nojq" bash "$KIT/plugins/bearing/hooks/scripts/stop-summary.sh"
 t_end
 
 t_summary

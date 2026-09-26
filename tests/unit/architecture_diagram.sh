@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# tests/unit/architecture_diagram.sh: skills/architecture-diagram/scripts
+# tests/unit/architecture_diagram.sh: plugins/bearing/skills/architecture-diagram/scripts
 # render.py (the system, flow and deployment views from architecture.json,
 # versioned file names, numbered connections and a legend) and
 # diagram_check.py (every node and link drawn, no text overlapping or
@@ -7,8 +7,8 @@
 # line), each with its empty-input failure. PNG is not rendered here.
 set -u
 . "$(dirname "$0")/../lib/assert.sh"
-R="$KIT/skills/architecture-diagram/scripts/render.py"
-C="$KIT/skills/architecture-diagram/scripts/diagram_check.py"
+R="$KIT/plugins/bearing/skills/architecture-diagram/scripts/render.py"
+C="$KIT/plugins/bearing/skills/architecture-diagram/scripts/diagram_check.py"
 M="$KIT/tests/fixtures/architecture/architecture.json"
 
 t_begin "the fixture renders three views that pass the gate"

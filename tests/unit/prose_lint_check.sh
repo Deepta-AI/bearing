@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# tests/unit/prose_lint_check.sh: skills/prose-lint/scripts/prose_check.py
+# tests/unit/prose_lint_check.sh: plugins/bearing/skills/prose-lint/scripts/prose_check.py
 # passes clean prose and reports file:line and the class for an em dash,
 # filler, praise, an attribution trailer and a hedged claim; leaves a
 # table-cell dash; honours .prose-lint-ignore; reads a git diff file list
@@ -7,7 +7,7 @@
 # robot emoji are written as bytes so this file carries neither.
 set -u
 . "$(dirname "$0")/../lib/assert.sh"
-CHK="$KIT/skills/prose-lint/scripts/prose_check.py"
+CHK="$KIT/plugins/bearing/skills/prose-lint/scripts/prose_check.py"
 DASH="$(printf '\342\200\224')"
 ROBOT="$(printf '\360\237\244\226')"
 
@@ -73,8 +73,8 @@ t_end
 # An adopted repository's MR templates once quoted "as requested" to forbid it,
 # so the first prose lint of any MR diff tripped on the kit's own guidance.
 t_begin "the MR and PR templates the kit ships pass the prose lint"
-assert_exit 0 python3 "$CHK" "$KIT/templates/repo/.github/PULL_REQUEST_TEMPLATE.md" \
-  "$KIT/templates/repo/.gitlab/merge_request_templates/Default.md" "$KIT/skills/merge-request/templates/mr.md"
+assert_exit 0 python3 "$CHK" "$KIT/plugins/bearing/templates/repo/.github/PULL_REQUEST_TEMPLATE.md" \
+  "$KIT/plugins/bearing/templates/repo/.gitlab/merge_request_templates/Default.md" "$KIT/plugins/bearing/skills/merge-request/templates/mr.md"
 assert_contains "$T_OUT" "prose-lint: 3 files,"
 assert_contains "$T_OUT" " 0 hits in 0 files"
 t_end

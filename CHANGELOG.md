@@ -7,6 +7,18 @@ All notable changes to Bearing. Keep a Changelog format, semantic versions.
 First public release, under the MIT licence.
 
 ### Added
+- Three plugins in one marketplace, laid out for the Claude Code plugin
+  directory: `bearing` (required: the workflow skills, agents, hooks,
+  scripts and templates), `bearing-backend` (go, python, node,
+  data-pipeline, infra) and `bearing-apps` (react, nextjs, react-native,
+  flutter, ios, android), under `plugins/`. Evals, tests and the sites stay
+  outside every plugin. `bin/brg-kit-paths` finds the installed or
+  checked-out plugins, so scaffold, adopt, the review checklists, the
+  generators, the lints and the eval harness see every stack, and a
+  missing stack plugin is named with the command that installs it.
+  `make lint-plugin-size` holds each plugin under 512 files and 256 KiB a
+  file; `make lint-version` covers every plugin and marketplace entry; the
+  README lists every hook, what the guard blocks and every external fetch.
 - 105 skills, one per job across the product lifecycle: discovery and
   planning (`prd`, `backlog`, `estimate`, `spike`, `explain-codebase`,
   `tech-debt`), decisions and architecture (`tech-decision`, `adr`,
@@ -35,7 +47,7 @@ First public release, under the MIT licence.
 - Tracker adapters for Jira, GitLab, GitHub, a documented REST protocol
   any service can implement, and none.
 - A skill eval harness (`bin/skill-evals.py`): each skill run blind
-  against its best alternative and against no skill, with expectations a
-  grader checks from the transcript and the repository the run left.
+  against no skill, with expectations a grader checks from the transcript
+  and the repository the run left.
 - The handbook site and the developer guide, both generated from the
   repository.

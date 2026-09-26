@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# tests/unit/secrets_ci_credentials.sh: skills/secrets/scripts/ci-credentials.py
+# tests/unit/secrets_ci_credentials.sh: plugins/bearing/skills/secrets/scripts/ci-credentials.py
 # passes CI files that read every credential from the secret store and
 # counts a throwaway service-container password without failing; fails, and
 # names file, line and key but never the value, on a literal token in a
@@ -7,7 +7,7 @@
 # URL with a password and a credential-shaped string; fails on zero CI files.
 set -u
 . "$(dirname "$0")/../lib/assert.sh"
-CC="$KIT/skills/secrets/scripts/ci-credentials.py"
+CC="$KIT/plugins/bearing/skills/secrets/scripts/ci-credentials.py"
 
 clean() {
   local d

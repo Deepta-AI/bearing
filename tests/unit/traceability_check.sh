@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# tests/unit/traceability_check.sh: skills/traceability/scripts/trace_check.py
+# tests/unit/traceability_check.sh: plugins/bearing/skills/traceability/scripts/trace_check.py
 # passes a fully traced repository and fails, naming the class, on each gap
 # class (REQ without story, story without AC, AC without TC, TC without test,
 # story without ticket, ticket without commits, boundary change without ADR,
@@ -7,7 +7,7 @@
 # tracker none, and fails on empty input.
 set -u
 . "$(dirname "$0")/../lib/assert.sh"
-CHK="$KIT/skills/traceability/scripts/trace_check.py"
+CHK="$KIT/plugins/bearing/skills/traceability/scripts/trace_check.py"
 
 # fixture <dir>: two REQ, two stories with tickets, cases, a test, a log, an ADR, a sheet.
 fixture() {

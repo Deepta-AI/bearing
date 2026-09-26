@@ -98,7 +98,7 @@ export function Gates() {
         { id: "harness", label: "harness-eval: real sessions" },
         { id: "ci", label: "CI" },
       ]}
-      sources={["Makefile", "tests/run.sh", "tests/lib/assert.sh", "tests/lint/gate_selfaudit.sh", "bin/harness-eval.py", ".gitlab-ci.yml"]}
+      sources={["Makefile", "tests/run.sh", "tests/lib/assert.sh", "tests/lint/gate_selfaudit.sh", "bin/harness-eval.py", ".github/workflows/ci.yml", ".github/workflows/docs.yml", ".gitlab-ci.yml"]}
     >
       <H2 id="rail">Watch make check</H2>
       <CheckRail />
@@ -206,7 +206,34 @@ echo "lint-x: $n files checked, 0 problems"`}</pre>
       </p>
 
       <H2 id="ci">CI</H2>
-      <p>{data.ciHeader.split("\n\n")[0]}</p>
+      <p>
+        CI runs on GitHub Actions, in {data.gh.length} workflows. A matrix job runs once per entry. The GitLab pipeline below is the twin of both, for a
+        GitLab mirror.
+      </p>
+      <div className="ci wide">
+        {data.gh.map((w) => (
+          <div key={w.file} className="ci-stage">
+            <b>{w.file.replace(".github/workflows/", "")}</b>
+            {w.jobs.map((j) => (
+              <div key={j.name} className="ci-job">
+                <code>{j.name}</code>
+                <small>
+                  {j.runsOn}
+                  {j.matrix ? `, ${j.matrix} runs` : ""}
+                </small>
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+      <p>
+        <code>ci.yml</code> runs on every pull request, on every push to main and every morning; <code>docs.yml</code> deploys the handbook and this guide to
+        Vercel on a push to main, from the repository secrets <code>VERCEL_TOKEN</code>, <code>VERCEL_ORG_ID</code>, <code>VERCEL_PROJECT_ID</code> and{" "}
+        <code>VERCEL_DEVGUIDE_PROJECT_ID</code>, and deploys nothing while they are missing.
+      </p>
+      <p>
+        <b>The GitLab twin.</b> {data.ciHeader.split("\n\n")[0]}
+      </p>
       <div className="ci wide">
         {stages.map(([s, jobs]) => (
           <div key={s} className="ci-stage">
@@ -220,11 +247,12 @@ echo "lint-x: $n files checked, 0 problems"`}</pre>
           </div>
         ))}
       </div>
-      <Note title="Why kit:check is not make check">
+      <Note title="Why the CI check is not make check">
         <p>
-          <code>make validate</code> needs the Claude CLI, which the shared runners do not have, so CI runs every other step of check and you run{" "}
-          <code>make validate</code> locally before tagging. <code>kit:bash32</code> runs the guard and the unit tests in a bash 3.2 image, the macOS default.
-          A daily schedule runs kit:check, kit:bash32 and every scaffold with fresh dependencies, and deploys nothing.
+          <code>make validate</code> needs the Claude CLI, which the hosted runners do not have, so the <code>check</code> job (GitLab: <code>kit:check</code>)
+          runs every other step of check and you run <code>make validate</code> locally before tagging. <code>bash32</code> (GitLab:{" "}
+          <code>kit:bash32</code>) runs the guard and the unit tests in a bash 3.2 image, the macOS default, and <code>macos</code> runs the suite on a real
+          Mac. The daily run checks and scaffolds with fresh dependencies, and deploys nothing.
         </p>
       </Note>
     </Page>

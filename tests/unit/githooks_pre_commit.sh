@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# tests/unit/githooks_pre_commit.sh: templates/repo/.githooks/pre-commit on
+# tests/unit/githooks_pre_commit.sh: plugins/bearing/templates/repo/.githooks/pre-commit on
 # empty input. Run by hand or by `git commit` with nothing staged it fails
 # with "0 staged files, nothing checked". It passes, naming the reason, on a
 # deletion-only commit, on `git commit --allow-empty`, and on a merge whose
@@ -8,7 +8,7 @@
 # placeholders (.mcp.json, .bashrc) are refused; a real .mcp.json passes.
 set -u
 . "$(dirname "$0")/../lib/assert.sh"
-HOOKS="$KIT/templates/repo/.githooks"
+HOOKS="$KIT/plugins/bearing/templates/repo/.githooks"
 
 # repo: a fresh repository with the hooks installed and one commit on main.
 repo() {

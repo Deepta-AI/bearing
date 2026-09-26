@@ -6,6 +6,7 @@ import { data } from "../lib/data";
 export function Start() {
   const c = data.counts;
   const bin = data.scripts.filter((s) => s.path.startsWith("bin/")).length;
+  const pbin = data.scripts.filter((s) => s.path.startsWith("plugins/bearing/bin/")).length;
   return (
     <Page
       title="Where to start"
@@ -45,12 +46,12 @@ export function Start() {
 
       <H2 id="loop">Your working loop</H2>
       <p>You work on the kit the way the kit asks product repositories to work: a task branch, small changes, the gate before every commit.</p>
-      <Code cap="once">{`git clone <the kit's remote> ~/bearing && cd ~/bearing
+      <Code cap="once">{`git clone https://github.com/Deepta-AI/bearing ~/bearing && cd ~/bearing   # or your fork
 make help        # every target, one line each
 make install     # install the plugin from this checkout (runs install.sh)
 make doctor      # what this machine has and lacks`}</Code>
       <Code cap="every change">{`make check                        # the gate: ${c.gates} steps, about three minutes
-make check-file FILE=bin/brg-guard   # what the edit hook runs on one file
+make check-file FILE=plugins/bearing/bin/brg-guard   # what the edit hook runs on one file
 make docs                          # regenerate docs/ and both sites' data
 make harness-eval ONLY=push        # a real Claude session against the hooks (not in check)`}</Code>
       <Note title="After changing a hook or the guard">
@@ -64,21 +65,26 @@ make harness-eval ONLY=push        # a real Claude session against the hooks (no
       <H2 id="map">The repository map</H2>
       <Tree
         rows={[
-          { path: ".claude-plugin/", dir: true, note: "plugin.json and marketplace.json: how Claude Code finds and names the plugin (bearing@bearing)" },
-          { path: "skills/", dir: true, note: `${c.skills} skill folders, each SKILL.md plus references/, templates/ and scripts/ (${c.skillFiles} files in all)` },
-          { path: "agents/", dir: true, note: `${c.agents} subagents: reviewer, verifier, security auditor, explorer, test writer, doc writer, critic` },
-          { path: "hooks/", dir: true, note: "hooks.json maps six events to six short adapters in hooks/scripts/, all over bin/brg-guard" },
-          { path: "bin/", dir: true, note: `${bin} scripts: the guard, scaffold and adopt, trackers, autopilot, generators, lints` },
-          { path: "templates/repo/", dir: true, note: "what every product repository commits: AGENTS.md, CLAUDE.md, settings, rules, git hooks, docs templates" },
-          { path: "templates/user/", dir: true, note: "the per-developer files install.sh writes: bearing.env and a personal CLAUDE.md" },
+          { path: ".claude-plugin/", dir: true, note: "marketplace.json: the marketplace bearing and its three plugins (bearing@bearing, bearing-backend@bearing, bearing-apps@bearing)" },
+          { path: "plugins/bearing/", dir: true, note: "the required plugin: its own .claude-plugin/plugin.json, LICENSE and README.md, and the folders below" },
+          { path: "plugins/*/skills/", dir: true, note: `${c.skills} skill folders across the three plugins, each SKILL.md plus references/, templates/ and scripts/ (${c.skillFiles} files in all)` },
+          { path: "plugins/bearing/agents/", dir: true, note: `${c.agents} subagents: reviewer, verifier, security auditor, explorer, test writer, doc writer, critic` },
+          { path: "plugins/bearing/hooks/", dir: true, note: "hooks.json maps six events to six short adapters in scripts/, all over plugins/bearing/bin/brg-guard" },
+          { path: "plugins/bearing/bin/", dir: true, note: `${pbin} brg- scripts: the guard, scaffold and adopt, trackers, autopilot, brg-kit-paths` },
+          { path: "plugins/bearing/templates/repo/", dir: true, note: "what every product repository commits: AGENTS.md, CLAUDE.md, settings, rules, git hooks, docs templates" },
+          { path: "plugins/bearing/templates/user/", dir: true, note: "the per-developer files install.sh writes: bearing.env and a personal CLAUDE.md" },
+          { path: "plugins/bearing-backend/", dir: true, note: "optional plugin: the go, python, node, data-pipeline and infra stack skills and their templates" },
+          { path: "plugins/bearing-apps/", dir: true, note: "optional plugin: the react, nextjs, react-native, flutter, ios and android stack skills and their templates" },
+          { path: "bin/", dir: true, note: `${bin} repository tools, never shipped: the generators, lints and eval harnesses` },
           { path: "tests/", dir: true, note: `${c.tests} test files and ${c.fixtures} fixtures; tests/run.sh runs them inside make check` },
           { path: "evals/", dir: true, note: `${c.evals} skills with measured evals; evals/.pending lists the rest, and it only shrinks` },
-          { path: "docs/", dir: true, note: "INSTALL, WORKFLOW, SKILLS, TRACKERS and the reviewed flows.json and comparisons.json" },
-          { path: "site/", dir: true, note: "the team handbook (how to use Bearing), built from docs/ by bin/gen-guide.py" },
+          { path: "docs/", dir: true, note: "INSTALL, WORKFLOW, SKILLS, TRACKERS and the reviewed flows.json" },
+          { path: "site/", dir: true, note: "the public handbook (how to use Bearing), built from docs/ by bin/gen-guide.py" },
           { path: "devguide/", dir: true, note: "this guide (how Bearing works), built from the whole repository by bin/gen-devguide.py" },
           { path: "install.sh", note: "the installer: plugin, packs, the env file, the doctor" },
           { path: "Makefile", note: `${data.make.length} targets; check is the gate` },
-          { path: ".gitlab-ci.yml", note: `${c.ciJobs} jobs, including one scaffold per stack in that stack's own image` },
+          { path: ".github/workflows/", dir: true, note: `CI on GitHub Actions: ci.yml (checks, scaffolds, bash 3.2, macOS) and docs.yml (both sites to Vercel), ${c.ghJobs} jobs` },
+          { path: ".gitlab-ci.yml", note: `the GitLab twin for a mirror: ${c.ciJobs} jobs, each Linux-buildable stack scaffolded in its own image` },
         ]}
       />
 
@@ -89,34 +95,34 @@ make harness-eval ONLY=push        # a real Claude session against the hooks (no
           <strong>README.md</strong> What Bearing promises its users, the quickstart, and the last line each step prints.
         </li>
         <li>
-          <strong>hooks/hooks.json</strong> Six events, six scripts. This is the whole list of places where Bearing acts without being asked.
+          <strong>plugins/bearing/hooks/hooks.json</strong> Six events, six scripts. This is the whole list of places where Bearing acts without being asked.
         </li>
         <li>
-          <strong>hooks/scripts/lib.sh and block-publish.sh</strong> How an event's JSON becomes arguments for the guard, and why a missing <code>jq</code>{" "}
+          <strong>plugins/bearing/hooks/scripts/lib.sh and block-publish.sh</strong> How an event's JSON becomes arguments for the guard, and why a missing <code>jq</code>{" "}
           means refuse. See <Link to="/session">chapter 3</Link>.
         </li>
         <li>
-          <strong>The header of bin/brg-guard</strong> Its subcommands and the pattern language of the rule table (the first 66 lines). See{" "}
+          <strong>The header of plugins/bearing/bin/brg-guard</strong> Its subcommands and the pattern language of the rule table (the first 66 lines). See{" "}
           <Link to="/guard">chapter 4</Link>.
         </li>
         <li>
-          <strong>templates/repo/AGENTS.md</strong> The twelve ground rules every product repository gives its agents. The guard enforces the ones that can
+          <strong>plugins/bearing/templates/repo/AGENTS.md</strong> The twelve ground rules every product repository gives its agents. The guard enforces the ones that can
           be enforced.
         </li>
         <li>
-          <strong>skills/start-task/SKILL.md</strong> A typical command skill: frontmatter, Inputs with fallbacks, Steps, Output contract, Gotchas. See{" "}
+          <strong>plugins/bearing/skills/start-task/SKILL.md</strong> A typical skill: frontmatter, Inputs with fallbacks, Steps, Output contract, Gotchas. See{" "}
           <Link to="/skills-work">chapter 5</Link>.
         </li>
         <li>
-          <strong>bin/brg-scaffold</strong> How a repository is born: three layers of files, placeholders, the lockfile, git and hooks. See{" "}
+          <strong>plugins/bearing/bin/brg-scaffold</strong> How a repository is born: three layers of files, placeholders, the lockfile, git and hooks. See{" "}
           <Link to="/scaffold">chapter 7</Link>.
         </li>
         <li>
           <strong>Makefile</strong> The <code>check</code> target and each lint behind it. Every one prints a count.
         </li>
         <li>
-          <strong>bin/gen-guide.py</strong> The stage table (<code>STAGES</code>, <code>ALTERNATES</code>, <code>CATEGORY</code>): which skill is the main one
-          for each step and which pack it beats or loses to.
+          <strong>bin/gen-guide.py</strong> The stage table (<code>STAGES</code>, <code>CATEGORY</code>): which skill each step runs and
+          which pack provides it.
         </li>
       </ol>
 
@@ -140,7 +146,7 @@ make harness-eval ONLY=push        # a real Claude session against the hooks (no
         </li>
         <li>
           <strong>Scripts run on macOS bash 3.2 and Linux.</strong> No <code>mapfile</code>, no <code>${"{x,,}"}</code>, no GNU-only flags; CI runs the guard
-          and the unit tests in a bash 3.2 image.
+          and the unit tests in a bash 3.2 image and the whole suite on macOS.
         </li>
         <li>
           <strong>Generated files are never edited by hand.</strong> <code>lint-docs</code> regenerates them and fails if they changed.

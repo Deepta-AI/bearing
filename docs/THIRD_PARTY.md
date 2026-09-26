@@ -1,49 +1,46 @@
 # What comes from where
 
-The rule: the best skill for a stage is the main one, whatever pack it
-comes from. Bearing skills exist only where nothing better was found, or
-where the workflow on this standard needs ids, traceability or conventions
-the open-source skill does not carry. Every stage's main and alternate are
-in [WORKFLOW.md](WORKFLOW.md). Which packs land on a machine depends on the
+Bearing works alongside open-source packs: some workflow steps call a
+skill from one of them, and Bearing adds its own gates around it. Which
+skill each stage runs is in [WORKFLOW.md](WORKFLOW.md). Which packs land on a machine depends on the
 installer profile (`install.sh --profile minimal|standard|full`):
 
 | Profile | Installs |
 | --- | --- |
 | `minimal` | the Bearing plugin and `~/.config/bearing/bearing.env` only |
 | `standard` (default) | minimal plus Superpowers, gstack and GSD Core |
-| `full` | standard plus every row below marked "full" (`bin/brg-install-packs`) |
+| `full` | standard plus every row below marked "full" (`plugins/bearing/bin/brg-install-packs`) |
 
-Rows marked "not installed" are documented alternates with their own
-command; the generator checks every alternate named in the workflow tables
-against `known-skills.txt`, the list of skill names found on the
-maintainer's machine.
+The generator checks every skill a stage row or a flow step names from
+another pack against `known-skills.txt`, the list of skill names found on
+the maintainer's machine.
 
 ## Installed by profile
 
 | Pack | Profile | Install | Licence | Used for |
 | --- | --- | --- | --- | --- |
 | Superpowers (obra) | standard | `claude plugin install superpowers@claude-plugins-official` | MIT | brainstorming (auto), writing-plans, executing-plans, test-driven-development, systematic-debugging, verification-before-completion, writing-skills |
-| gstack (garrytan) | standard | clone into `~/.claude/skills/gstack` and `./setup` | MIT | /office-hours, /plan-ceo-review, /plan-eng-review, /plan-devex-review, /plan-design-review, /design-consultation, /design-review, /design-html, /review, /investigate, /qa, /qa-only, /browse, /cso, /health, /retro, /canary, /document-release, /document-generate, /diagram, /context-save, /spec |
-| GSD Core (open-gsd) | standard | `npx @opengsd/gsd-core@latest --global --claude` | MIT | gsd-spec-phase, gsd-plan-phase, gsd-execute-phase, gsd-verify-work, gsd-pause-work, gsd-debug, gsd-code-review, gsd-add-tests, gsd-sketch, gsd-ui-phase, gsd-ui-review, gsd-next, gsd-spike, gsd-map-codebase |
+| gstack (garrytan) | standard | fetch at the pinned commit into `~/.claude/skills/gstack` and `./setup` | MIT | /office-hours, /plan-ceo-review, /plan-eng-review, /plan-devex-review, /plan-design-review, /design-consultation, /design-review, /design-html, /review, /investigate, /qa, /qa-only, /browse, /cso, /health, /retro, /canary, /document-release, /document-generate, /diagram, /context-save, /spec |
+| GSD Core (open-gsd) | standard | `npx @opengsd/gsd-core@1.14.0 --global --claude` | MIT | gsd-spec-phase, gsd-plan-phase, gsd-execute-phase, gsd-verify-work, gsd-pause-work, gsd-debug, gsd-code-review, gsd-add-tests, gsd-sketch, gsd-ui-phase, gsd-ui-review, gsd-next, gsd-spike, gsd-map-codebase |
 | frontend-design (Anthropic, official marketplace) | full | `claude plugin install frontend-design@claude-plugins-official` | Apache-2.0 | the anti-generic design doctrine behind the design lane |
 | code-review (Anthropic, official) | full | `claude plugin install code-review@claude-plugins-official` | Apache-2.0 | multi-reviewer, confidence-scored PR review (GitHub PRs and `gh`) |
 | claude-security (Anthropic, official) | full | `claude plugin install claude-security@claude-plugins-official` | Apache-2.0 | deep vulnerability scan with a verifier panel and patch files |
 | mattpocock-skills (official) | full | `claude plugin install mattpocock-skills@claude-plugins-official` | MIT | grilling, to-spec, to-tickets, research, domain-modeling, improve-codebase-architecture, diagnosing-bugs |
-| mcp-server-dev (Anthropic, official) | full | `claude plugin install mcp-server-dev@claude-plugins-official` | Apache-2.0 | build-mcp-server, the alternate for "tools for models" |
+| mcp-server-dev (Anthropic, official) | full | `claude plugin install mcp-server-dev@claude-plugins-official` | Apache-2.0 | build-mcp-server, for "tools for models" |
 | playwright (Microsoft, official) | full | `claude plugin install playwright@claude-plugins-official` | Apache-2.0 | the Playwright MCP server for browser automation |
-| playwright-cli skill (Microsoft) | full | `npx @playwright/cli install --skills -g` | Apache-2.0 | run, debug, generate and heal Playwright tests, traces, video |
-| ui-craft (educlopez) | full | `npx skills add educlopez/ui-craft -a claude-code -g -y` | MIT | brief, tokens, shape, craft, sddesign, critique, finalize, animate, delight, polish, harden, audit, clarify (main for copy), bolder, quieter, redesign, start |
-| Vercel agent-skills | full | `npx skills add vercel-labs/agent-skills --skill <name> -a claude-code -g -y` | see repository | vercel-react-best-practices, vercel-react-view-transitions, web-design-guidelines |
-| pm-skills (phuryn), ten of its skills | full | `npx skills add phuryn/pm-skills --skill create-prd ... -a claude-code -g -y` | MIT | create-prd, user-stories, job-stories, test-scenarios, release-notes, prioritization-frameworks, sprint-plan, pre-mortem, customer-journey-map, outcome-roadmap (not its retro: installed as `retro`, it takes the name gstack's `/retro` needs) |
-| addyosmani/agent-skills, four skills | full | `npx skills add addyosmani/agent-skills --skill <name> -a claude-code -g -y` | MIT | documentation-and-adrs, api-and-interface-design, observability-and-instrumentation, debugging-and-error-recovery |
-| dash0 agent-skills | full | `npx skills add dash0hq/agent-skills --skill otel-instrumentation -a claude-code -g -y` | Apache-2.0 | OpenTelemetry instrumentation with log and trace correlation |
-| qa-skills (petrkindlmann), three skills | full | `npx skills add petrkindlmann/qa-skills --skill <name> -a claude-code -g -y` | MIT | test-reliability, selector-drift-recovery, ai-test-generation |
-| conventional-changelog | full | `npx skills add conventional-changelog/conventional-changelog --skill conventional-commit-message -a claude-code -g -y` | ISC | the commit message rules that feed versioning |
-| trailofbits/skills | full | `npx skills add trailofbits/skills --skill differential-review -a claude-code -g -y` | CC BY-SA 4.0 | security-focused review of a diff with blast radius and test coverage |
+| playwright-cli skill (Microsoft) | full | `npx @playwright/cli@0.1.21 install --skills -g` | Apache-2.0 | run, debug, generate and heal Playwright tests, traces, video |
+| ui-craft (educlopez) | full | `npx skills@1.7.0 add educlopez/ui-craft#<commit> -a claude-code -g -y` | MIT | brief, tokens, shape, craft, sddesign, critique, finalize, animate, delight, polish, harden, audit, clarify (copy review), bolder, quieter, redesign, start |
+| Vercel agent-skills | full | `npx skills@1.7.0 add vercel-labs/agent-skills#<commit> --skill <name> -a claude-code -g -y` | see repository | vercel-react-best-practices, vercel-react-view-transitions, web-design-guidelines |
+| pm-skills (phuryn), ten of its skills | full | `npx skills@1.7.0 add phuryn/pm-skills#<commit> --skill create-prd ... -a claude-code -g -y` | MIT | create-prd, user-stories, job-stories, test-scenarios, release-notes, prioritization-frameworks, sprint-plan, pre-mortem, customer-journey-map, outcome-roadmap (not its retro: installed as `retro`, it takes the name gstack's `/retro` needs) |
+| addyosmani/agent-skills, four skills | full | `npx skills@1.7.0 add addyosmani/agent-skills#<commit> --skill <name> -a claude-code -g -y` | MIT | documentation-and-adrs, api-and-interface-design, observability-and-instrumentation, debugging-and-error-recovery |
+| dash0 agent-skills | full | `npx skills@1.7.0 add dash0hq/agent-skills#<commit> --skill otel-instrumentation -a claude-code -g -y` | Apache-2.0 | OpenTelemetry instrumentation with log and trace correlation |
+| qa-skills (petrkindlmann), three skills | full | `npx skills@1.7.0 add petrkindlmann/qa-skills#<commit> --skill <name> -a claude-code -g -y` | MIT | test-reliability, selector-drift-recovery, ai-test-generation |
+| conventional-changelog | full | `npx skills@1.7.0 add conventional-changelog/conventional-changelog#<commit> --skill conventional-commit-message -a claude-code -g -y` | ISC | the commit message rules that feed versioning |
+| trailofbits/skills | full | `npx skills@1.7.0 add trailofbits/skills#<commit> --skill differential-review -a claude-code -g -y` | CC BY-SA 4.0 | security-focused review of a diff with blast radius and test coverage |
 
 ### Pinned packs
 
-These come from `bin/pinned-packs.txt`: each repository is fetched at the
+These come from `plugins/bearing/bin/pinned-packs.txt`: each repository is fetched at the
 commit named there into `~/.cache/bearing-packs`, and only the listed
 folders are copied to `~/.claude/skills/<name>` with a `.bearing-pack` file
 recording the repository, commit and licence. A folder without that file is
@@ -71,28 +68,34 @@ these packs know about: `eas submit`, `eas update`, `eas deploy`, `npx
 eas-cli`, `supabase db push`, `supabase functions deploy`, `k6 cloud` and
 `terraform apply`.
 
-`bin/brg-install-packs` installs the "full" rows; `install.sh --profile
-full` calls it. Rerun either at any time; both are idempotent. `npx skills
-list -g` shows what the skills CLI manages, `npx skills update` refreshes
-it, `npx skills remove <name> -g` drops one.
+`plugins/bearing/bin/brg-install-packs` installs the "full" rows; `install.sh --profile
+full` calls it. Rerun either at any time; both are idempotent. Every
+version and commit above comes from `plugins/bearing/bin/pinned-packs.txt`
+(`<commit>` is the full commit on the pack's `cli` row); the official
+marketplace takes no version pin. `npx skills@1.7.0 list -g` shows what the
+skills CLI manages, `npx skills@1.7.0 update` refreshes it at the ref each
+pack was installed from, `npx skills@1.7.0 remove <name> -g` drops one.
 
-## Documented alternates, not installed
+## Other packs, not installed
 
-| Pack | Install | Licence | Why it is an alternate |
+Skills and references point to these for jobs outside the workflow's
+steps. The installer does not fetch them.
+
+| Pack | Install | Licence | What it does |
 | --- | --- | --- | --- |
-| plugin87/ux-ui-agent-skills | `claude plugin marketplace add plugin87/ux-ui-agent-skills` then install | MIT | complete design-system-to-code pipeline (DTCG tokens, brandkit, design-review, a11y-audit); heavier process than ui-craft |
-| bitjaru/styleseed | `claude plugin marketplace add bitjaru/styleseed` then `claude plugin install styleseed@styleseed` | MIT | flows and screen builds with a persistent project style; weakest for open variants |
-| superdesign (official marketplace) | `claude plugin install superdesign@claude-plugins-official` | MIT | variant canvas backed by a hosted service, not local HTML |
-| greensock/gsap-skills | `npx skills add greensock/gsap-skills -a claude-code -g -y` | MIT | GSAP only; use when GSAP is the animation stack |
-| affaan-m/ECC motion skills | `npx skills add affaan-m/ECC --skill motion-foundations --skill motion-patterns -a claude-code -g -y` | MIT | Framer Motion tokens and patterns for React; the full pack is 292 skills, take only these |
-| LambdaTest agent-skills | copy `<skill>/` from the repository into `~/.claude/skills` | MIT | Appium, Detox, Espresso, XCUITest skills; vendor-leaning |
-| wshobson/agents | `claude plugin marketplace add wshobson/agents` | MIT | stride-analysis-patterns, openapi-spec-generation, incident-runbook-templates, postmortem-writing, changelog-automation, llm-application-dev; broad and shallow |
-| langfuse, deepeval, mlflow, agent-sdk-dev, growthbook, context7 (official marketplace) | `claude plugin install <name>@claude-plugins-official` | various | vendor-shaped GenAI and platform tools; install when the vendor is in use |
-| huggingface-skills (Hugging Face, official marketplace) | `claude plugin install huggingface-skills@claude-plugins-official` | Apache-2.0 | read 25 Sep 2026: huggingface-llm-trainer and trl-training run the training job that llm-fine-tuning plans (HF Jobs needs a paid plan); huggingface-vision-trainer trains detectors and classifiers for computer-vision; huggingface-community-evals gives public benchmark scores beside llm-eval; 26 skills, so install for AI projects, not every machine |
-| fiftyone (Voxel51, official marketplace) | `claude plugin install fiftyone@claude-plugins-official` | Apache-2.0 | read 25 Sep 2026: fiftyone-model-evaluation and fiftyone-dataset-curation for error analysis, duplicates and curation beside computer-vision; needs the FiftyOne app and its MCP server |
-| twilio-developer-kit (Twilio, official marketplace) | `claude plugin install twilio-developer-kit@claude-plugins-official` | MIT | read 25 Sep 2026: twilio-voice-conversation-relay for the phone leg of a speech voice agent on Twilio; install only when the calls go over Twilio |
-| pr-review-toolkit, code-simplifier, security-guidance (official) | `claude plugin install <name>@claude-plugins-official` | Apache-2.0 | more review agents; security-guidance adds hooks to every session |
-| deanpeters/Product-Manager-Skills | not installed | CC BY-NC-SA 4.0 | non-commercial licence; unusable for client work |
+| plugin87/ux-ui-agent-skills | `claude plugin marketplace add plugin87/ux-ui-agent-skills` then install | MIT | a design-system-to-code pipeline (DTCG tokens, brandkit, design-review, a11y-audit) |
+| bitjaru/styleseed | `claude plugin marketplace add bitjaru/styleseed` then `claude plugin install styleseed@styleseed` | MIT | flows and screen builds with a persistent project style |
+| superdesign (official marketplace) | `claude plugin install superdesign@claude-plugins-official` | MIT | a variant canvas backed by a hosted service |
+| greensock/gsap-skills | `npx skills add greensock/gsap-skills -a claude-code -g -y` | MIT | GSAP animation, for projects on GSAP |
+| affaan-m/ECC motion skills | `npx skills add affaan-m/ECC --skill motion-foundations --skill motion-patterns -a claude-code -g -y` | MIT | Framer Motion tokens and patterns for React; the full pack is 292 skills, this installs two |
+| LambdaTest agent-skills | copy `<skill>/` from the repository into `~/.claude/skills` | MIT | Appium, Detox, Espresso and XCUITest skills |
+| wshobson/agents | `claude plugin marketplace add wshobson/agents` | MIT | stride-analysis-patterns, openapi-spec-generation, incident-runbook-templates, postmortem-writing, changelog-automation, llm-application-dev |
+| langfuse, deepeval, mlflow, agent-sdk-dev, growthbook, context7 (official marketplace) | `claude plugin install <name>@claude-plugins-official` | various | GenAI and platform tools for those vendors; install when the vendor is in use |
+| huggingface-skills (Hugging Face, official marketplace) | `claude plugin install huggingface-skills@claude-plugins-official` | Apache-2.0 | huggingface-llm-trainer and trl-training run a training job that llm-fine-tuning plans (HF Jobs needs a paid plan); huggingface-vision-trainer trains detectors and classifiers; huggingface-community-evals gives public benchmark scores; 26 skills |
+| fiftyone (Voxel51, official marketplace) | `claude plugin install fiftyone@claude-plugins-official` | Apache-2.0 | fiftyone-model-evaluation and fiftyone-dataset-curation for error analysis, duplicates and curation; needs the FiftyOne app and its MCP server |
+| twilio-developer-kit (Twilio, official marketplace) | `claude plugin install twilio-developer-kit@claude-plugins-official` | MIT | twilio-voice-conversation-relay for the phone leg of a voice agent on Twilio |
+| pr-review-toolkit, code-simplifier, security-guidance (official) | `claude plugin install <name>@claude-plugins-official` | Apache-2.0 | review agents; security-guidance adds hooks to every session |
+| deanpeters/Product-Manager-Skills | not installed | CC BY-NC-SA 4.0 | product-management skills under a non-commercial licence |
 
 ## Kept off work repositories
 
@@ -104,35 +107,28 @@ Denied in the repository settings template: gstack `setup-browser-cookies`
 (send plans to external AI CLIs). gstack `/ship` stops at the push the
 permissions refuse; use `merge-request`.
 
-## Facts that decided the design lane
+## How the design lane uses other packs
 
-- gstack `design-shotgun` and the `design` binary call OpenAI's image
-  API; without `~/.gstack/openai.json` they print `DESIGN_NOT_AVAILABLE`
-  and produce nothing, and their mockups are PNGs, not HTML. That is why
-  `design-directions` is main for variants.
-- gstack `design-consultation` produces the best design direction and a
-  `DESIGN.md` the other skills read; it is main. `design-review` needs a
-  running app and the browse daemon; while only prototypes exist,
-  `design-critique` is main, and once the app runs in a browser the
-  workflow switches to `/design-review`.
+- `/design-consultation` (gstack) writes the design direction and a
+  `DESIGN.md` the Bearing design skills read.
+- `design-directions` makes the variants as local HTML.
+  gstack `design-shotgun` calls OpenAI's image API and needs
+  `~/.gstack/openai.json`.
+- `design-critique` reviews prototypes; once the app runs in a browser
+  the workflow calls gstack `/design-review`, which needs the browse
+  daemon.
 - ui-craft `clarify` reviews UX copy (buttons, errors, empty states, form
-  hints) better than a prose linter; it is main for "copy and clarity" and
-  `prose-lint` covers documents, MR text and commits.
-- gsd-sketch makes HTML variants without a key but has no anti-generic
-  doctrine (its default theme is Inter and blue).
-- Nothing installed emits tokens as code, does multi-brand theming, or
-  designs motion; those are `design-system`, `themes`, `motion-design`.
-- Nothing installed self-heals tests with a rule against masking
-  regressions; `test-heal` is main and qa-skills' `test-reliability`
-  and `selector-drift-recovery` are the alternates.
+  hints); `prose-lint` covers documents, MR text and commits.
 
 ## Keeping them current
 
 `upgrade-tools` updates every installed source in one run: each
 marketplace plugin (`claude plugin update <name>@<marketplace>`), gstack
-(pull and `./setup`), the skills-CLI packs (`npx skills update`) and GSD
-Core, with versions before and after and a count. Pin nothing; the kit is
-tested against current releases at each Bearing release (noted in
-CHANGELOG.md). When a pack renames a skill, `bin/gen-guide.py` fails
+(through `/gstack-upgrade`), the skills-CLI packs (`npx skills@1.7.0
+update`) and GSD Core (through `/gsd-update`), with versions before and
+after and a count. The installers fetch what `pinned-packs.txt` pins; an
+upgrade moves gstack and GSD Core past their pins on request, and a new
+pin for everyone is a new row value in that file, tested at each Bearing
+release (noted in CHANGELOG.md). When a pack renames a skill, `bin/gen-guide.py` fails
 until `docs/known-skills.txt` is regenerated (`--write-known-skills`) and
 the workflow tables are corrected.

@@ -1,7 +1,7 @@
 # Trackers
 
 The ticket tracker is optional and configurable. One command surface,
-`bin/brg-tracker`, fronts four adapters; the `tracker-sync` skill calls it
+`plugins/bearing/bin/brg-tracker`, fronts four adapters; the `tracker-sync` skill calls it
 and nothing else. Three adapters speak to Jira, GitLab and GitHub; the
 fourth, `rest`, speaks a small documented HTTP protocol (see
 [REST tracker protocol](#rest-tracker-protocol)) so any tracker, including
@@ -12,7 +12,7 @@ No tracker is assumed: the default is `none`.
 
 Everything lives in `~/.config/bearing/bearing.env` (`XDG_CONFIG_HOME`
 respected; mode 600; never inside a repository). The installer writes it
-from `templates/user/bearing.env` with placeholders; edit the values by
+from `plugins/bearing/templates/user/bearing.env` with placeholders; edit the values by
 hand. Environment variables of the same name win over the file, so a CI
 job or a one-off shell can override without editing it.
 
@@ -37,7 +37,7 @@ handbook's configuration reference.
 
 Format: `KEY=value`, one per line; `#` starts a comment; a value with
 spaces or a `#` goes in double quotes. The same file feeds repository
-creation: `bin/brg-scaffold` and `bin/brg-adopt` read it before computing
+creation: `plugins/bearing/bin/brg-scaffold` and `plugins/bearing/bin/brg-adopt` read it before computing
 their defaults, so `BEARING_KIT_REMOTE` becomes the default `--kit-remote`
 (falling back to the kit's own git remote, then `file://<kit>`),
 `BEARING_ORG_ID` the default `--org` (falling back to `com.example`) and
@@ -45,7 +45,7 @@ their defaults, so `BEARING_KIT_REMOTE` becomes the default `--kit-remote`
 so branches carry any `[A-Z][A-Z0-9]*-<n>` id or `NOTASK-<n>`).
 Explicit flags always win.
 
-`bin/brg-tracker config` prints the effective tracker, where the value
+`plugins/bearing/bin/brg-tracker config` prints the effective tracker, where the value
 came from (environment, the file, or the default), url, project, email,
 whether a token or password is set, the adapter and the id prefix. It
 never prints a token or password.
@@ -99,7 +99,7 @@ ticket step with a note. Nothing asks for credentials.
 
 ## Adapters
 
-### Jira Cloud (`bin/brg-jira`)
+### Jira Cloud (`plugins/bearing/bin/brg-jira`)
 
 - Config: `BEARING_TRACKER_URL=https://you.atlassian.net`,
   `BEARING_TRACKER_PROJECT` (project key), `BEARING_TRACKER_EMAIL`,
@@ -123,7 +123,7 @@ ticket step with a note. Nothing asks for credentials.
   through the `search/jql` endpoint. Extra: `transitions <KEY>`,
   `close <KEY>` (transition to Done).
 
-### GitLab issues (`bin/brg-gitlab`)
+### GitLab issues (`plugins/bearing/bin/brg-gitlab`)
 
 - Config: `BEARING_TRACKER_URL` (default `https://gitlab.com`),
   `BEARING_TRACKER_PROJECT=group/repo`, `BEARING_TRACKER_TOKEN` (personal token,
@@ -139,7 +139,7 @@ ticket step with a note. Nothing asks for credentials.
   search needs the token's user to be allowed to search by email).
 - Extra: `close <KEY>`.
 
-### GitHub issues (`bin/brg-github`)
+### GitHub issues (`plugins/bearing/bin/brg-github`)
 
 - Config: `BEARING_TRACKER_URL` (default `https://github.com`; a GitHub
   Enterprise host uses `<url>/api/v3`), `BEARING_TRACKER_PROJECT=owner/repo`,
@@ -156,7 +156,7 @@ ticket step with a note. Nothing asks for credentials.
   comments. `--assignee me|login|email` (email search is best effort).
 - Extra: `close <KEY>`.
 
-### REST tracker (`bin/brg-rest`)
+### REST tracker (`plugins/bearing/bin/brg-rest`)
 
 - Config: `BEARING_TRACKER=rest`, `BEARING_TRACKER_URL` (the server's base
   url, required), `BEARING_TRACKER_PROJECT` (project key), and either a
@@ -195,7 +195,7 @@ ticket step with a note. Nothing asks for credentials.
   knows `blocked_by` and `duplicates`). `trace` posts a structured
   comment and adds a `relates` link to every `--tests` id the server
   resolves as an issue.
-- `bin/brg-rest` subcommands, for the engineer when the generic surface
+- `plugins/bearing/bin/brg-rest` subcommands, for the engineer when the generic surface
   is not enough (labels, points, due dates, statuses):
 
   ```

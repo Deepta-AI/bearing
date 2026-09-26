@@ -19,9 +19,9 @@ function Layers({ i }: { i: number }) {
   const stackFiles = go ? go.files.filter((f) => !f.startsWith("skeleton/") && f !== "stack.json").length : 0;
   const skel = go ? go.files.filter((f) => f.startsWith("skeleton/")).length : 0;
   const L = [
-    { cls: "l1", b: "templates/repo/", s: `${repoFiles} shared files: AGENTS.md, settings, rules, git hooks, docs`, at: 1 },
-    { cls: "l2", b: "skills/go/templates/", s: `${stackFiles} stack files: Makefile, CI, Dockerfile, linters`, at: 2 },
-    { cls: "l3", b: "skills/go/templates/skeleton/", s: `${skel} files of working code with tests`, at: 3 },
+    { cls: "l1", b: "plugins/bearing/templates/repo/", s: `${repoFiles} shared files: AGENTS.md, settings, rules, git hooks, docs`, at: 1 },
+    { cls: "l2", b: "plugins/bearing-backend/skills/go/templates/", s: `${stackFiles} stack files: Makefile, CI, Dockerfile, linters`, at: 2 },
+    { cls: "l3", b: "plugins/bearing-backend/skills/go/templates/skeleton/", s: `${skel} files of working code with tests`, at: 3 },
     { cls: "cut", b: "host filter: gitlab", s: ".github/ removed; .gitlab-ci.yml and .gitlab/ kept", at: 4 },
   ];
   if (i >= 5)
@@ -59,7 +59,7 @@ const FRAMES: Frame[] = [
     where: "brg-scaffold go-api InvoiceService --host gitlab",
     body: (
       <p>
-        Flags win, then <code>bearing.env</code>, then defaults. The stack is found by grepping every <code>skills/*/templates*/stack.json</code> for{" "}
+        Flags win, then <code>bearing.env</code>, then defaults. The stack is found by grepping every <code>plugins/*/skills/*/templates*/stack.json</code> for{" "}
         <code>"id": "go-api"</code>; its required keys (id, type, stack, databases, entrypoint, rules_file) are checked. The target must be empty, or hold only{" "}
         <code>.bearing/</code>, because autopilot starts its run state before the repository exists.
       </p>
@@ -67,7 +67,7 @@ const FRAMES: Frame[] = [
   },
   {
     title: "Shared files",
-    where: "cp -R templates/repo/. <dir>/",
+    where: "cp -R plugins/bearing/templates/repo/. <dir>/",
     body: <p>The standard every repository commits, whatever its stack: AGENTS.md, CLAUDE.md, the Claude settings and rules, the three git hooks, the MR and issue templates for both hosts, the docs templates, CODEOWNERS.</p>,
   },
   {
@@ -149,7 +149,7 @@ export function Scaffold() {
         { id: "settings", label: "The permission model" },
         { id: "tested", label: "How it is tested" },
       ]}
-      sources={["bin/brg-scaffold", "templates/repo/", "skills/new-repo/SKILL.md", "tests/integration/scaffold_each_stack.sh"]}
+      sources={["plugins/bearing/bin/brg-scaffold", "plugins/bearing/templates/repo/", "plugins/bearing/skills/new-repo/SKILL.md", "tests/integration/scaffold_each_stack.sh"]}
     >
       <H2 id="watch">Watch it build one</H2>
       <Terminal id="scaffold" height={380} />
@@ -163,7 +163,7 @@ export function Scaffold() {
 
       <H2 id="stacks">The {data.stacks.length} stacks</H2>
       <p>
-        A stack is not registered anywhere: a folder <code>skills/&lt;lane&gt;/templates*/</code> holding a <code>stack.json</code> is a stack. Two lanes
+        A stack is not registered anywhere: a folder <code>plugins/&lt;plugin&gt;/skills/&lt;lane&gt;/templates*/</code> holding a <code>stack.json</code> is a stack. Two lanes
         ship a second variant in <code>templates-cli/</code>.
       </p>
       <div className="tablewrap">
@@ -184,7 +184,7 @@ export function Scaffold() {
                   <code>{s.id}</code>
                   <br />
                   <Link to={`/skills/${s.skill}`} className="sub">
-                    {s.dir.replace("skills/", "")}
+                    {s.dir.replace(/^plugins\/[^/]+\/skills\//, "")}
                   </Link>
                 </td>
                 <td>{s.type}</td>
@@ -198,7 +198,7 @@ export function Scaffold() {
       </div>
 
       <H2 id="stackjson">stack.json</H2>
-      <Code cap="skills/react/templates/stack.json">{`{
+      <Code cap="plugins/bearing-apps/skills/react/templates/stack.json">{`{
   "id": "react-web",               the name brg-scaffold and brg-adopt take
   "display": "React web app",
   "type": "Client/Web",            fills __REPO_TYPE__ in CLAUDE.md
@@ -237,7 +237,8 @@ export function Scaffold() {
           [".claude/settings.json", `${data.settings.allow} allow, ${data.settings.ask} ask, ${data.settings.deny} deny; sandbox; the Bearing marketplace`],
           [".claude/rules/", `${data.settings.rules.length} shared rules + go.md; only ${data.settings.unscopedRules.join(", ")} loads without a path match`],
           [".githooks/", "commit-msg, pre-commit, pre-push, lib.sh, install.sh"],
-          [".gitlab-ci.yml, .gitlab/", "CI and the merge request and issue templates"],
+          [".github/", "GitHub: the workflow and the pull request template"],
+          [".gitlab-ci.yml, .gitlab/", "GitLab: the pipeline and the merge request and issue templates (both hosts by default; BEARING_GIT_HOST picks one)"],
           ["Makefile", "help, setup, dev, check, fix, test, check-file; check touches .bearing/state/.check-passed"],
           ["docs/", "adr/, design/, runbooks/, postmortems/, security/, analytics/, templates/"],
           ["cmd/, internal/, db/", "the skeleton service and its tests"],
@@ -356,7 +357,7 @@ export function Adopt() {
         { id: "gate", label: "Making the Stop gate block" },
         { id: "skill", label: "The onboard-repo skill" },
       ]}
-      sources={["bin/brg-adopt", "skills/onboard-repo/SKILL.md", "tests/integration/adopt_idempotent.sh"]}
+      sources={["plugins/bearing/bin/brg-adopt", "plugins/bearing/skills/onboard-repo/SKILL.md", "tests/integration/adopt_idempotent.sh"]}
     >
       <H2 id="rule">The one rule</H2>
       <p>

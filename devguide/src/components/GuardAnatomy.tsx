@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 
 /**
  * The guard's pipeline for one command, stage by stage. The stages and their
- * order are guard_command() in bin/brg-guard; each example's verdict and
+ * order are guard_command() in plugins/bearing/bin/brg-guard; each example's verdict and
  * message are what the guard printed in the recorded session (devguide
  * "guard" replay), so the ending of every walk is real output.
  */
@@ -149,7 +149,7 @@ export function GuardAnatomy() {
             </div>
             <p className="an-say">{stage.say}</p>
             <p className="an-fn">
-              in <code>bin/brg-guard</code>: <code>{stage.fn}</code>
+              in <code>plugins/bearing/bin/brg-guard</code>: <code>{stage.fn}</code>
             </p>
           </>
         )}

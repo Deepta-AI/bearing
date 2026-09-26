@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# tests/unit/dod_red_proof.sh: skills/definition-of-done/scripts/red_proof.sh proves a
+# tests/unit/dod_red_proof.sh: plugins/bearing/skills/definition-of-done/scripts/red_proof.sh proves a
 # regression test is green with the fix and red without it, in a throwaway
 # worktree, leaving the working tree untouched; and fails when the test
 # passes without the fix, fails with it, or when the diff holds no test or
 # no non-test file.
 set -u
 . "$(dirname "$0")/../lib/assert.sh"
-RP="$KIT/skills/definition-of-done/scripts/red_proof.sh"
+RP="$KIT/plugins/bearing/skills/definition-of-done/scripts/red_proof.sh"
 g() { git -C "$repo" -c user.email=t@example.com -c user.name=t "$@"; }
 
 # repo with a buggy add() on main

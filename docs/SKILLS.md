@@ -8,117 +8,126 @@ looks for the upstream artifact first, and when that is missing it asks
 for the input or derives it from the code instead of stopping. Each skill
 carries its own copy of every template it fills, so it works in a
 repository that was never scaffolded. Other skills are named only as the
-fuller path, never as prerequisites. `command` means you type it;
-`auto` means Claude may load it when the request matches.
+fuller path, never as prerequisites.
+
+Every skill is reached two ways: ask in your own words and Claude loads
+the one whose description matches, or type it as `/<plugin>:<name>` (for
+example `/bearing:merge-request`, `/bearing-backend:go`, `/bearing-apps:react`;
+the Plugin column says which). On a machine with many skill packs
+Claude Code may list some skills by name only; see
+[Keep the skill listing lean](INSTALL.md#keep-the-skill-listing-lean).
+The seven subagents are `bearing:reviewer`, `bearing:verifier`,
+`bearing:security-auditor`, `bearing:explorer`, `bearing:test-writer`,
+`bearing:doc-writer` and `bearing:critic`; the skills start them.
 
 <!-- skills-table:start -->
-| Skill | What it does | Use when | Invocation |
+| Skill | Plugin | What it does | Use when |
 | --- | --- | --- | --- |
-| `ab-experiment` | 'Designs and analyses an A/B test on a feature flag: hypothesis, primary and guardrail metrics, sample size, stopping rule, decision | asked to "A/B test this", "run an experiment" or "sample size".' | auto |
-| `accessibility` | 'Audits and fixes accessibility to WCAG 2.2 AA on web and mobile, findings at file:line, axe checks in Playwright | asked about "accessibility", "a11y", "WCAG", "screen reader" or "keyboard navigation".' | auto |
-| `adr` | 'Records a decision already made as a numbered ADR (docs/adr/ or the repo''s own folder): context, options, decision, consequences | asked to "write an ADR", "record this decision" or "document why we chose".' | auto |
-| `analytics-events` | 'Designs the analytics event sheet, wires the analytics SDK behind one typed module and audits code against the sheet | asked to "track this feature", "add an event", "set up analytics" or "audit tracking".' | auto |
-| `android` | 'Conventions for native Android: Kotlin, Jetpack Compose, Material 3, Hilt, coroutines, Room, Retrofit, Gradle, ktlint, detekt | writing, reviewing or scaffolding "Android", "Kotlin" or "Compose" code.' | auto |
-| `api-versioning` | 'Versions and retires API endpoints: Deprecation and Sunset headers, consumer inventory, breaking-change diff, contract tests, log-gated removal | asked to "deprecate an endpoint", "version the API" or "sunset".' | auto |
-| `app-store-release` | 'Prepares an App Store or Google Play submission: build numbers, listing, screenshots, privacy forms, phased rollout, rejection fixes | asked to "submit to the App Store", "TestFlight" or "app rejected".' | auto |
-| `architecture-diagram` | 'Draws the architecture from the code as it is: C4 and sequence diagrams in mermaid, SVG and PNG, every box sourced | asked to "draw the architecture", "C4 diagram" or "sequence diagram".' | auto |
-| `auth` | 'Builds authentication and authorisation: sessions or tokens, passkeys, OAuth, RBAC, tenant isolation, IDOR checks, a permission matrix as tests | asked to "add login", "roles and permissions" or "who can access".' | auto |
-| `autopilot` | 'Runs unattended from one requirement statement to a prepared merge request, taking each decision as Proposed for review; never pushes | asked to "autopilot this", "run it end to end" or "build this unattended".' | auto |
-| `background-jobs` | 'Builds background jobs that survive failure: queue, cron or outbox, idempotency keys, backoff retries, dead letters, graceful shutdown | asked for a "background job", "queue", "cron job", "worker" or "outbox".' | auto |
-| `backlog` | 'Turns PRD requirements into a backlog of epics and Given-When-Then user stories with a coverage matrix, combining statements | asked to "write the user stories", "build the backlog" or "break down the PRD".' | auto |
-| `branch-review` | 'Code review of a branch, MR, patch or path with stack checklists, every Critical and High finding independently verified, and merge verdict | asked to "review this", "review the MR" or "look over my changes".' | auto |
-| `ci-pipeline` | 'Generates or refreshes the CI pipeline for the stack (GitLab CI, GitHub Actions or both), every job a make target, deploys manual | asked to "add CI", "set up the pipeline", "fix the pipeline" or "add a CI job".' | auto |
-| `client-deliverables` | 'Builds the client documentation pack: numbered folders, each document as Markdown, CSV and versioned Word, and a delivery checklist | asked to "build the client pack" or "export the docs to Word".' | auto |
-| `client-handover` | 'Writes the client handover pack at the end of an engagement: environments, access list, deploy, runbooks, debt, licences, sign-off | asked to "prepare the handover" or "hand this over to the client".' | auto |
-| `cloud-cost` | 'Reviews the cloud bill read-only: spend by service and environment, top ten lines, cost per request, proposed cuts | asked about the "cloud bill", "cost review", "FinOps" or "why is the bill so high".' | auto |
-| `company-attribution` | 'Sets who owns a repository: organisation profile, LICENSE and NOTICE, CODEOWNERS, SECURITY.md, package metadata | asked to "add a licence", "attribute this repo to" or "who owns this code".' | auto |
-| `computer-vision` | 'Builds computer vision features (VLM, classifier, detector, anomaly, document extraction) with leak-free splits and a cost-set threshold | asked to "classify images", "detect defects" or "extract from scans".' | auto |
-| `data-model` | 'Designs the data model from the stories: data-model doc, runnable schema.sql, data dictionary and ERD, a reason per column | asked to "design the data model", "what tables do we need" or "draw the ER diagram".' | auto |
-| `data-pipeline` | 'Conventions for data pipelines: dbt-core models with tests, Airflow 3 DAGs, sqlfluff, ruff, pytest, uv, partitioned backfills | writing, reviewing or scaffolding "dbt models", "an Airflow DAG" or "a backfill".' | auto |
-| `database` | 'Conventions for PostgreSQL, ClickHouse and MongoDB: store choice, schema, indexes, query review, lock-safe migrations | "designing a schema", "choosing an index", "reviewing a query" or "which database".' | auto |
-| `db-migration` | 'Writes a database migration with a tested down step and lock-safety notes (goose, Alembic, Prisma, Knex, Room, GRDB, ClickHouse, Mongo) | asked to "add a migration", "add a column" or "change the schema".' | auto |
-| `definition-of-done` | 'Checks the current branch against the Definition of Done with evidence per item: gate, tests, docs, scope, commits, a smoke run of the app | asked "am I done", "is this ready to merge" or "definition of done".' | auto |
-| `dependency-audit` | 'Audits dependencies for vulnerabilities and outdated versions, applies approved patch and minor upgrades with tests, keeps Renovate current | asked to "audit dependencies", "update the packages" or "bump deps".' | auto |
-| `deployment-architecture` | 'Documents how the system is deployed, with a diagram: environments, topology, scaling, backups, rollback, DR, each claim sourced | asked "how is this deployed", "what runs where" or "document the deployment".' | auto |
-| `design-critique` | 'Scores a UI design (design gallery, running app or HTML prototype) at three widths, both themes, eleven categories, with an AI-slop check | asked to "critique this design", "review the prototype" or "score this".' | auto |
-| `design-directions` | 'Produces three genuinely different visual design directions over the real screens, scores them and records the choice | asked for "design directions", "three design options" or "which look should we go with".' | auto |
-| `design-system` | 'Turns a design direction into a design system: oklch tokens, per-stack themes, a component contract, an every-state page and a lint | asked to "set up the design system", "make design tokens" or "lint colours".' | auto |
-| `docs-drift` | 'Finds docs that no longer match the code (broken links and paths, gone make targets, unused env vars, stale pages) and fixes the stale side | asked "are the docs up to date", "check the README" or "docs drift".' | auto |
-| `doctor` | 'Checks this machine and repository are set up for this plugin: skill packs, hooks, CLAUDE.md import, rules, hooksPath, with a fix per miss | asked to "check my setup", "is it installed" or a hook is missing.' | auto |
-| `estimate` | 'Estimates the backlog: story points and task hours with assumptions, dependencies, a phase plan and a confidence range | asked "how long will this take", "estimate the backlog" or "size the stories".' | auto |
-| `explain-codebase` | 'Explains a repository or subsystem read-only, path:line for every claim: entry points, module map, one request traced, key files | asked to "explain this repo", "how does this work" or "where is X handled".' | auto |
-| `feature-flags` | 'Adds, uses or removes a feature flag: default off, owner, removal date, one typed flags module, kill switch, tests for both states | asked to "put this behind a flag", "add a feature flag" or "remove the flag".' | auto |
-| `feature-patterns` | 'Plans one common feature mechanism (uploads, search, realtime, caching, rate limits, payments, notifications, multitenancy) with tests | asked to "add file uploads", "add search" or "rate limiting".' | auto |
-| `flutter` | 'Conventions for Flutter: Dart 3, Riverpod, go_router, dio, freezed, ARB localisation, flavours, flutter_test, integration_test, fastlane | writing, reviewing or scaffolding "Flutter", "Dart" or "Riverpod" code.' | auto |
-| `gate-audit` | 'Audits every gate (CI jobs, git hooks, make check, hook scripts) for passing on empty input, printing no count or asserting a constant | asked to "audit the gates", "is this check real" or "check the CI checks".' | auto |
-| `genai-design` | 'Designs a GenAI solution before code: success metric, approach with the cheaper option rejected, model tier, cost, latency, risks, eval plan | asked "how should we build this with an LLM" or "RAG or agent".' | auto |
-| `git-hooks` | 'Installs or repairs the committed git hooks (commit-msg, pre-commit, pre-push), sets core.hooksPath and dry-runs each | asked to "install the git hooks", "set up hooks" or "why was my commit rejected".' | auto |
-| `go` | 'Conventions for Go services: net/http mux, pgx, sqlc, goose, slog, golangci-lint, table-driven and httptest tests | writing, reviewing or scaffolding "Go" code, "a Go handler" or "sqlc queries".' | auto |
-| `harness-setup` | 'Sets up a repository for another coding agent (Cursor, Codex, Gemini CLI, Copilot, OpenCode, Windsurf, Cline, Zed, Kiro): rules, hooks, skills | asked to "set up Cursor" or "use this with Codex".' | auto |
-| `health-checks` | 'Builds /healthz and /readyz endpoints with per-dependency checks, a scheduled synthetic journey suite, uptime probes and alerts | asked to "add health checks", "readiness endpoint" or "uptime monitoring".' | auto |
-| `high-level-design` | 'Writes a High Level Design (HLD): goals and non-goals agreed first, then architecture, data, interfaces, failure modes, scaling, rollout | asked for an "HLD", "system design", "high level design" or "design doc".' | auto |
-| `i18n` | 'Internationalises the app: string catalogs per platform, ICU plurals, locale formatting, fallbacks, an RTL check, a missing-key count | asked to "add a language", "translate the app", "add i18n" or "support RTL".' | auto |
-| `incident` | 'Runs a live incident as scribe: severity, UTC timeline, roles, runbook steps for a person, comms, postmortem hand-off; never remediates | "we have an outage", "declare an incident" or "the alert is firing".' | auto |
-| `infra` | 'Conventions for infrastructure code: Terraform modules and remote state, per-environment directories, tflint, Trivy, kustomize, plan-only CI | writing or reviewing "Terraform", "k8s manifests" or "infra".' | auto |
-| `ios` | 'Conventions for native iOS: Swift 6, SwiftUI, Observation, Swift Concurrency, SwiftPM, XcodeGen, SwiftData, Swift Testing, Fastlane | writing, reviewing or scaffolding "Swift", "SwiftUI" or "iOS" code.' | auto |
-| `license-compliance` | 'Checks open-source licences: a CycloneDX SBOM, a licence inventory against an allow and deny policy, third-party notices | asked for an "SBOM", "licence check", "third-party notices" or "which licences".' | auto |
-| `llm-agent` | 'Builds an LLM agent on the Anthropic SDK: tiered tool registry, bounded loop, memory, call logging, guardrails, trajectory evals, kill switch | asked to "build an agent", "give the model tools" or "multi-agent".' | auto |
-| `llm-eval` | 'Evaluates an LLM feature: a success metric, a human-labelled golden set, code graders then an LLM judge, a CI regression gate | asked to "evaluate the model", "build an eval set" or "is the new prompt better".' | auto |
-| `llm-fine-tuning` | 'Fine-tunes an open model when prompting and RAG fall short: eval-backed decision, dataset, LoRA, DPO or distillation, vLLM serving | asked to "fine-tune a model", "train on our data" or "distil a smaller model".' | auto |
-| `llm-gateway` | 'Puts every LLM call behind one gateway module: routing by model tier, retries, timeouts, rate limits, caching, cost tracking, fallbacks | asked to "add an LLM call", "track LLM cost" or "find every model call".' | auto |
-| `llm-guardrails` | 'Adds guardrails to an LLM feature: prompt injection and PII checks before the model, a tool-call permission gate, output checks, adversarial tests | asked for "guardrails", "prompt injection" or "PII in prompts".' | auto |
-| `load-test` | 'Writes k6 load tests from the SLOs with failing thresholds (smoke, load, stress, soak) and a manual CI job; refuses production | asked to "load test", "performance test the API", "soak test" or "hold p95".' | auto |
-| `logging` | 'Adds structured logging: one logger, request id bound at the edge, shared field names, redaction, sampling, HTTP request logs | asked to "add logging", "improve the logs", "log the requests" or "fix the logs".' | auto |
-| `low-level-design` | 'Writes a Low Level Design (LLD) refining one HLD component into modules, types, error paths, indexed queries, tests and MR-sized work | asked for an "LLD", "low level design" or "detailed design".' | auto |
-| `mcp-server` | 'Builds an MCP server in Python or TypeScript: schema-checked tools, both transports, auth, a test per tool, Claude Code registration | asked to "build an MCP server" or "expose this as MCP tools".' | auto |
-| `merge-request` | 'Prepares the merge request for the current branch: gate run, commit audit, diff summary, MR description, ticket link, push command; never pushes | asked to "prepare the MR", "write the PR description".' | auto |
-| `motion-design` | 'Writes the motion spec and tokens and builds a requested animation (hero, page transition, interaction) with a reduced-motion path | asked to "add animation", "animate this" or "respect reduced motion".' | auto |
-| `new-repo` | 'Creates a new repository for one stack with Makefile, CI, git hooks, CLAUDE.md, AGENTS.md, rules, MR templates and docs in place | asked to "create a repo", "scaffold a service" or "start a new project".' | auto |
-| `new-skill` | 'Creates a new skill for this plugin in its git checkout with the house sections and lints, then evals it against a baseline | asked to "add a skill", "make this a skill" or "turn this checklist into a skill".' | auto |
-| `nextjs` | 'Conventions for Next.js: Next 16 App Router, React 19, server components, server actions with Zod, Tailwind v4, shadcn/ui, Playwright | writing, reviewing or scaffolding "Next.js" or "App Router" code.' | auto |
-| `node` | 'Conventions for Node services: Node 24, TypeScript, Fastify 5, Zod 4, Drizzle ORM, pino, OpenTelemetry, vitest, pnpm | writing, reviewing or scaffolding "Fastify", "Drizzle" or "a Node API" code.' | auto |
-| `observability` | 'Wires OpenTelemetry traces and metrics, trace ids in logs, a local Grafana stack, RED dashboards, SLOs and burn-rate alerts | asked to "add observability", "set up tracing", "add dashboards" or "define SLOs".' | auto |
-| `on-call` | 'Sets up on-call: rotation, escalation, alert routing by severity, error budget policy, handover notes, a runbook for every paging alert | asked about "on-call", "who gets paged", "escalation" or "error budget".' | auto |
-| `onboard-repo` | 'Brings an existing repository onto the team conventions (Makefile, hooks, CLAUDE.md, rules) without overwriting; conflicts land beside the file | asked to "onboard this repo" or "adopt the standard".' | auto |
-| `openapi-spec` | 'Designs or audits the OpenAPI 3.1 contract in api/openapi.yaml, generates readable API docs and counts spec and route drift | asked to "write the OpenAPI spec", "design the API contract" or "check the spec".' | auto |
-| `performance` | 'Profiles and fixes slowness with the stack''s profiler (pprof, py-spy, clinic, Lighthouse, Instruments), with before and after numbers | told "this is slow", "profile this", "optimise" or "p95 is high".' | auto |
-| `postmortem` | 'Writes a blameless postmortem after an incident: impact in numbers, UTC timeline, root cause chain, owned follow-ups, lessons | asked for a "postmortem", "RCA", "incident report" or "write up the outage".' | auto |
-| `prd` | 'Normalises any brief, notes or ticket into a PRD of numbered testable REQ statements, objectives, personas and open questions; no stories | asked to "write the PRD" or "turn this brief into requirements".' | auto |
-| `privacy-review` | 'Reviews personal data handling: a data map with purpose, basis and retention, deletion wired to it, data subject requests, a DPIA | asked about "GDPR", "DPDP", "personal data", "retention" or "delete my account".' | auto |
-| `prompt-registry` | 'Keeps prompts in a versioned registry (prompts/<name>/vN.md) loaded by one module, with typed variables, fixture tests and scores | asked to "write the system prompt", "improve this prompt" or "version prompts".' | auto |
-| `prose-lint` | 'Lints prose people read (docs, MR text, commits, UI copy) for em dashes, AI filler and self-praise, rewriting whole sentences | asked to "check the prose", "lint the README" or "does this sound AI-written".' | auto |
-| `python` | 'Conventions for Python services: Python 3.14, FastAPI, Pydantic v2, SQLAlchemy 2 async, Alembic, structlog, uv, ruff, pytest | writing, reviewing or scaffolding "FastAPI", "Pydantic" or "Python service" code.' | auto |
-| `rag` | 'Builds retrieval-augmented generation (RAG) on pgvector: ingestion, chunking, embeddings, a retriever with citations, retrieval metrics | asked to "add RAG", "chat with our documents" or "chunk and embed".' | auto |
-| `react` | 'Conventions for React web apps: React 19, TypeScript, Vite, TanStack Query and Router, Zustand, Zod, shadcn/ui, Tailwind v4, vitest | writing, reviewing or scaffolding "React", "TSX", "shadcn" or "Tailwind" code.' | auto |
-| `react-native` | 'Conventions for React Native: Expo SDK 57, expo-router, TypeScript, TanStack Query, Zustand, Zod, NativeWind, EAS, Maestro | writing, reviewing or scaffolding "React Native", "Expo" or "NativeWind" code.' | auto |
-| `refactor` | 'Refactors without changing behaviour: tests green first, one mechanical change per commit, checks between, a diff size ceiling | asked to "refactor", "clean this up", "extract" or "rename across the codebase".' | auto |
-| `release` | 'Prepares a release: version from commits or from the API diff for packages, CHANGELOG section, version bump, printed tag commands | asked to "cut a release", "bump the version" or "publish the package".' | auto |
-| `resilience-testing` | 'Tests the failure modes the design claims: fault injection plan, backup restore drills, DR tests with measured RTO and RPO | asked about "chaos testing", "restore drill", "DR test" or "what if the database dies".' | auto |
-| `runbook` | 'Writes or updates the runbook for one alert: meaning, impact, diagnosis commands, remediation, rollback, escalation | asked to "write a runbook", "document this alert" or "what do we do when X fires".' | auto |
-| `screen-design` | 'Designs every screen in every state, desktop and phone: React and shadcn screens in the app''s design gallery, or HTML mockups | asked to "design the screens", "hi-fi mockups" or "show every state".' | auto |
-| `secrets` | 'Handles secrets without seeing values: inventory, rotation, leak response (revoke, rotate, scrub, audit), gitleaks, .env.example parity | "a key was committed", "rotate the secret" or "secret leaked".' | auto |
-| `session-handoff` | 'Saves session state for the next session on this branch: next steps, done, blockers, questions, files, gate, and a progress note | asked to "save state", "write a handoff", "pause here" or before /clear.' | auto |
-| `speech` | 'Builds speech features: transcription, diarisation, text-to-speech or a real-time voice agent with barge-in, measured by WER and latency | asked to "transcribe calls", "build a voice agent" or "speech to text".' | auto |
-| `spike` | 'Runs a timeboxed spike: a yes, no or number question, a timebox and stop condition, throwaway code never merged, a written recommendation | asked to "spike this", "investigate whether" or "prototype to find out".' | auto |
-| `start-task` | 'Starts work on a ticket: creates the branch from the right base with the task id, writes state and progress notes, restates the criteria | asked to "start TASK-142", "pick up this ticket" or "create a branch".' | auto |
-| `tabular-ml` | 'Builds classical ML on tabular or event data (churn, scoring, forecasts, anomalies) with leak-proof splits, a baseline, calibration, drift checks | asked to "predict churn", "forecast demand" or "train a model".' | auto |
-| `task-report` | 'Reports a finished task under four headings: Changed, Verified, Not done, Noticed | asked to "write up what you did", "report back", "summarise the work", "give me the status" or at the end of any task.' | auto |
-| `tech-debt` | 'Keeps the tech debt register in docs/DEBT.md, seeded from TODOs, suppressed lints and skipped tests, ranked by cost of carrying it | asked about "tech debt", "what should we clean up next" or "the debt register".' | auto |
-| `tech-decision` | 'Chooses between technology options: lays out options, recommends with reasons, lets the user decide, records each choice as an ADR | asked "Kafka or RabbitMQ", "which cloud" or "what stack should we use".' | auto |
-| `test-automation` | 'Sets up or extends the automated test suite (Playwright, Maestro, Espresso, pytest, Go httptest), one test per planned test case by TC id | asked to "automate the test cases", "set up Playwright" or "e2e tests".' | auto |
-| `test-cases` | 'Writes test cases from acceptance criteria: risk per story, scenarios, TC-numbered cases with steps and a test plan; no test code | asked to "write the test cases", "build the test plan" or "cover the criteria".' | auto |
-| `test-heal` | 'Fixes failing or flaky tests: classifies each failure with evidence, heals locator, timing and data drift, leaves regressions red, quarantines flakes | asked to "fix the flaky tests" or "heal the tests".' | auto |
-| `test-run` | 'Runs every test suite present into one report: failures at file:line, slowest, flaky, coverage; a suite that did not run never passes | asked to "run the tests", "what is failing" or "run TC-0231".' | auto |
-| `themes` | 'Adds and manages themes on the design system (dark, high contrast, brand, tenant, seasonal) with contrast checks and a preview | asked to "add dark mode", "add a high contrast theme" or "theme for a tenant".' | auto |
-| `threat-model` | 'Writes a STRIDE threat model before code: assets, trust boundaries, entry points, threats rated, mitigations mapped to stories | asked to "threat model this", "STRIDE analysis" or "what could an attacker do".' | auto |
-| `traceability` | 'Builds the traceability matrix from requirements through stories, test cases, tests, commits and tickets, counting every gap; read-only | asked "is everything traced", "traceability matrix" or "untested".' | auto |
-| `tracker-sync` | 'Creates and updates tickets in the configured tracker (Jira, GitLab, GitHub or none): create, sync the backlog, move status, link MRs | asked to "create the tickets", "sync to Jira" or "move TASK-142".' | auto |
-| `upgrade-tools` | 'Upgrades every installed Claude Code plugin and skill pack on this machine (plugins, gstack, skills CLI, GSD), versions before and after | asked to "update the plugins", "upgrade the skills" or "update all".' | auto |
-| `ux-flows` | 'Maps UX flows: screen inventory tied to stories, every state with copy, storyboard, flow diagrams and a zero dead-end check | asked to "map the user flows", "what screens do we need" or "user journey".' | auto |
-| `vapt-report` | 'Writes the VAPT security report for a release from scanner findings, linked to the threat model, with a ship or block decision | asked for a "VAPT report", "security sign-off" or "pentest report".' | auto |
-| `verify-deploy` | 'Checks one environment after the engineer deploys: readiness, health, version, smoke pages, synthetic suite; read-only, never rolls back | asked to "verify the deploy", "check qa after deploying".' | auto |
-| `webhooks` | 'Builds webhooks both ways: inbound with signature checks, replay window and idempotent handlers; outbound with retries, dead letters and a delivery log | asked to "add a webhook" or "verify signatures".' | auto |
-| `workflow` | 'Says where the work stands (repository, branch, diff) and which skill or step comes next | asked "what should I do next", "which skill do I use", "how do we work here" or "what is in flight".' | auto |
+| `ab-experiment` | bearing | Designs and analyses an A/B test on a feature flag: hypothesis, primary and guardrail metrics, sample size, stopping rule, decision | asked to "A/B test this", "run an experiment" or "sample size" |
+| `accessibility` | bearing | Audits and fixes accessibility to WCAG 2.2 AA on web and mobile, findings at file:line, axe checks in Playwright | asked about "accessibility", "a11y", "WCAG", "screen reader" or "keyboard navigation" |
+| `adr` | bearing | Records a decision already made as a numbered ADR (docs/adr/ or the repo's own folder): context, options, decision, consequences | asked to "write an ADR", "record this decision" or "document why we chose" |
+| `analytics-events` | bearing | Designs the analytics event sheet, wires the analytics SDK behind one typed module and audits code against the sheet | asked to "track this feature", "add an event", "set up analytics" or "audit tracking" |
+| `android` | bearing-apps | Conventions for native Android: Kotlin, Jetpack Compose, Material 3, Hilt, coroutines, Room, Retrofit, Gradle, ktlint, detekt | writing, reviewing or scaffolding "Android", "Kotlin" or "Compose" code |
+| `api-versioning` | bearing | Versions and retires API endpoints: Deprecation and Sunset headers, consumer inventory, breaking-change diff, contract tests, log-gated removal | asked to "deprecate an endpoint", "version the API" or "sunset" |
+| `app-store-release` | bearing | Prepares an App Store or Google Play submission: build numbers, listing, screenshots, privacy forms, phased rollout, rejection fixes | asked to "submit to the App Store", "TestFlight" or "app rejected" |
+| `architecture-diagram` | bearing | Draws the architecture from the code as it is: C4 and sequence diagrams in mermaid, SVG and PNG, every box sourced | asked to "draw the architecture", "C4 diagram" or "sequence diagram" |
+| `auth` | bearing | Builds authentication and authorisation: sessions or tokens, passkeys, OAuth, RBAC, tenant isolation, IDOR checks, a permission matrix as tests | asked to "add login", "roles and permissions" or "who can access" |
+| `autopilot` | bearing | Runs unattended from one requirement statement to a prepared merge request, taking each decision as Proposed for review; never pushes | asked to "autopilot this", "run it end to end" or "build this unattended" |
+| `background-jobs` | bearing | Builds background jobs that survive failure: queue, cron or outbox, idempotency keys, backoff retries, dead letters, graceful shutdown | asked for a "background job", "queue", "cron job", "worker" or "outbox" |
+| `backlog` | bearing | Turns PRD requirements into a backlog of epics and Given-When-Then user stories with a coverage matrix, combining statements | asked to "write the user stories", "build the backlog" or "break down the PRD" |
+| `branch-review` | bearing | Code review of a branch, MR, patch or path with stack checklists, every Critical and High finding independently verified, and merge verdict | asked to "review this", "review the MR" or "look over my changes" |
+| `ci-pipeline` | bearing | Generates or refreshes the CI pipeline for the stack (GitLab CI, GitHub Actions or both), every job a make target, deploys manual | asked to "add CI", "set up the pipeline", "fix the pipeline" or "add a CI job" |
+| `client-deliverables` | bearing | Builds the client documentation pack: numbered folders, each document as Markdown, CSV and versioned Word, and a delivery checklist | asked to "build the client pack" or "export the docs to Word" |
+| `client-handover` | bearing | Writes the client handover pack at the end of an engagement: environments, access list, deploy, runbooks, debt, licences, sign-off | asked to "prepare the handover" or "hand this over to the client" |
+| `cloud-cost` | bearing | Reviews the cloud bill read-only: spend by service and environment, top ten lines, cost per request, proposed cuts | asked about the "cloud bill", "cost review", "FinOps" or "why is the bill so high" |
+| `company-attribution` | bearing | Sets who owns a repository: organisation profile, LICENSE and NOTICE, CODEOWNERS, SECURITY.md, package metadata | asked to "add a licence", "attribute this repo to" or "who owns this code" |
+| `computer-vision` | bearing | Builds computer vision features (VLM, classifier, detector, anomaly, document extraction) with leak-free splits and a cost-set threshold | asked to "classify images", "detect defects" or "extract from scans" |
+| `data-model` | bearing | Designs the data model from the stories: data-model doc, runnable schema.sql, data dictionary and ERD, a reason per column | asked to "design the data model", "what tables do we need" or "draw the ER diagram" |
+| `data-pipeline` | bearing-backend | Conventions for data pipelines: dbt-core models with tests, Airflow 3 DAGs, sqlfluff, ruff, pytest, uv, partitioned backfills | writing, reviewing or scaffolding "dbt models", "an Airflow DAG" or "a backfill" |
+| `database` | bearing | Conventions for PostgreSQL, ClickHouse and MongoDB: store choice, schema, indexes, query review, lock-safe migrations | "designing a schema", "choosing an index", "reviewing a query" or "which database" |
+| `db-migration` | bearing | Writes a database migration with a tested down step and lock-safety notes (goose, Alembic, Prisma, Knex, Room, GRDB, ClickHouse, Mongo) | asked to "add a migration", "add a column" or "change the schema" |
+| `definition-of-done` | bearing | Checks the current branch against the Definition of Done with evidence per item: gate, tests, docs, scope, commits, a smoke run of the app | asked "am I done", "is this ready to merge" or "definition of done" |
+| `dependency-audit` | bearing | Audits dependencies for vulnerabilities and outdated versions, applies approved patch and minor upgrades with tests, keeps Renovate current | asked to "audit dependencies", "update the packages" or "bump deps" |
+| `deployment-architecture` | bearing | Documents how the system is deployed, with a diagram: environments, topology, scaling, backups, rollback, DR, each claim sourced | asked "how is this deployed", "what runs where" or "document the deployment" |
+| `design-critique` | bearing | Scores a UI design (design gallery, running app or HTML prototype) at three widths, both themes, eleven categories, with an AI-slop check | asked to "critique this design", "review the prototype" or "score this" |
+| `design-directions` | bearing | Produces three genuinely different visual design directions over the real screens, scores them and records the choice | asked for "design directions", "three design options" or "which look should we go with" |
+| `design-system` | bearing | Turns a design direction into a design system: oklch tokens, per-stack themes, a component contract, an every-state page and a lint | asked to "set up the design system", "make design tokens" or "lint colours" |
+| `docs-drift` | bearing | Finds docs that no longer match the code (broken links and paths, gone make targets, unused env vars, stale pages) and fixes the stale side | asked "are the docs up to date", "check the README" or "docs drift" |
+| `doctor` | bearing | Checks this machine and repository are set up for this plugin: skill packs, hooks, CLAUDE.md import, rules, hooksPath, with a fix per miss | asked to "check my setup", "is it installed" or a hook is missing |
+| `estimate` | bearing | Estimates the backlog: story points and task hours with assumptions, dependencies, a phase plan and a confidence range | asked "how long will this take", "estimate the backlog" or "size the stories" |
+| `explain-codebase` | bearing | Explains a repository or subsystem read-only, path:line for every claim: entry points, module map, one request traced, key files | asked to "explain this repo", "how does this work" or "where is X handled" |
+| `feature-flags` | bearing | Adds, uses or removes a feature flag: default off, owner, removal date, one typed flags module, kill switch, tests for both states | asked to "put this behind a flag", "add a feature flag" or "remove the flag" |
+| `feature-patterns` | bearing | Plans one common feature mechanism (uploads, search, realtime, caching, rate limits, payments, notifications, multitenancy) with tests | asked to "add file uploads", "add search" or "rate limiting" |
+| `flutter` | bearing-apps | Conventions for Flutter: Dart 3, Riverpod, go_router, dio, freezed, ARB localisation, flavours, flutter_test, integration_test, fastlane | writing, reviewing or scaffolding "Flutter", "Dart" or "Riverpod" code |
+| `gate-audit` | bearing | Audits every gate (CI jobs, git hooks, make check, hook scripts) for passing on empty input, printing no count or asserting a constant | asked to "audit the gates", "is this check real" or "check the CI checks" |
+| `genai-design` | bearing | Designs a GenAI solution before code: success metric, approach with the cheaper option rejected, model tier, cost, latency, risks, eval plan | asked "how should we build this with an LLM" or "RAG or agent" |
+| `git-hooks` | bearing | Installs or repairs the committed git hooks (commit-msg, pre-commit, pre-push), sets core.hooksPath and dry-runs each | asked to "install the git hooks", "set up hooks" or "why was my commit rejected" |
+| `go` | bearing-backend | Conventions for Go services: net/http mux, pgx, sqlc, goose, slog, golangci-lint, table-driven and httptest tests | writing, reviewing or scaffolding "Go" code, "a Go handler" or "sqlc queries" |
+| `harness-setup` | bearing | Sets up a repository for another coding agent (Cursor, Codex, Gemini CLI, Copilot, OpenCode, Windsurf, Cline, Zed, Kiro): rules, hooks, skills | asked to "set up Cursor" or "use this with Codex" |
+| `health-checks` | bearing | Builds /healthz and /readyz endpoints with per-dependency checks, a scheduled synthetic journey suite, uptime probes and alerts | asked to "add health checks", "readiness endpoint" or "uptime monitoring" |
+| `high-level-design` | bearing | Writes a High Level Design (HLD): goals and non-goals agreed first, then architecture, data, interfaces, failure modes, scaling, rollout | asked for an "HLD", "system design", "high level design" or "design doc" |
+| `i18n` | bearing | Internationalises the app: string catalogs per platform, ICU plurals, locale formatting, fallbacks, an RTL check, a missing-key count | asked to "add a language", "translate the app", "add i18n" or "support RTL" |
+| `incident` | bearing | Runs a live incident as scribe: severity, UTC timeline, roles, runbook steps for a person, comms, postmortem hand-off; never remediates | "we have an outage", "declare an incident" or "the alert is firing" |
+| `infra` | bearing-backend | Conventions for infrastructure code: Terraform modules and remote state, per-environment directories, tflint, Trivy, kustomize, plan-only CI | writing or reviewing "Terraform", "k8s manifests" or "infra" |
+| `ios` | bearing-apps | Conventions for native iOS: Swift 6, SwiftUI, Observation, Swift Concurrency, SwiftPM, XcodeGen, SwiftData, Swift Testing, Fastlane | writing, reviewing or scaffolding "Swift", "SwiftUI" or "iOS" code |
+| `license-compliance` | bearing | Checks open-source licences: a CycloneDX SBOM, a licence inventory against an allow and deny policy, third-party notices | asked for an "SBOM", "licence check", "third-party notices" or "which licences" |
+| `llm-agent` | bearing | Builds an LLM agent on the Anthropic SDK: tiered tool registry, bounded loop, memory, call logging, guardrails, trajectory evals, kill switch | asked to "build an agent", "give the model tools" or "multi-agent" |
+| `llm-eval` | bearing | Evaluates an LLM feature: a success metric, a human-labelled golden set, code graders then an LLM judge, a CI regression gate | asked to "evaluate the model", "build an eval set" or "is the new prompt better" |
+| `llm-fine-tuning` | bearing | Fine-tunes an open model when prompting and RAG fall short: eval-backed decision, dataset, LoRA, DPO or distillation, vLLM serving | asked to "fine-tune a model", "train on our data" or "distil a smaller model" |
+| `llm-gateway` | bearing | Puts every LLM call behind one gateway module: routing by model tier, retries, timeouts, rate limits, caching, cost tracking, fallbacks | asked to "add an LLM call", "track LLM cost" or "find every model call" |
+| `llm-guardrails` | bearing | Adds guardrails to an LLM feature: prompt injection and PII checks before the model, a tool-call permission gate, output checks, adversarial tests | asked for "guardrails", "prompt injection" or "PII in prompts" |
+| `load-test` | bearing | Writes k6 load tests from the SLOs with failing thresholds (smoke, load, stress, soak) and a manual CI job; refuses production | asked to "load test", "performance test the API", "soak test" or "hold p95" |
+| `logging` | bearing | Adds structured logging: one logger, request id bound at the edge, shared field names, redaction, sampling, HTTP request logs | asked to "add logging", "improve the logs", "log the requests" or "fix the logs" |
+| `low-level-design` | bearing | Writes a Low Level Design (LLD) refining one HLD component into modules, types, error paths, indexed queries, tests and MR-sized work | asked for an "LLD", "low level design" or "detailed design" |
+| `mcp-server` | bearing | Builds an MCP server in Python or TypeScript: schema-checked tools, both transports, auth, a test per tool, Claude Code registration | asked to "build an MCP server" or "expose this as MCP tools" |
+| `merge-request` | bearing | Prepares the merge request for the current branch: gate run, commit audit, diff summary, MR description, ticket link, push command; never pushes | asked to "prepare the MR", "write the PR description" |
+| `motion-design` | bearing | Writes the motion spec and tokens and builds a requested animation (hero, page transition, interaction) with a reduced-motion path | asked to "add animation", "animate this" or "respect reduced motion" |
+| `new-repo` | bearing | Creates a new repository for one stack with Makefile, CI, git hooks, CLAUDE.md, AGENTS.md, rules, MR templates and docs in place | asked to "create a repo", "scaffold a service" or "start a new project" |
+| `new-skill` | bearing | Creates a new skill for this plugin in its git checkout with the house sections and lints, then evals it against a baseline | asked to "add a skill", "make this a skill" or "turn this checklist into a skill" |
+| `nextjs` | bearing-apps | Conventions for Next.js: Next 16 App Router, React 19, server components, server actions with Zod, Tailwind v4, shadcn/ui, Playwright | writing, reviewing or scaffolding "Next.js" or "App Router" code |
+| `node` | bearing-backend | Conventions for Node services: Node 24, TypeScript, Fastify 5, Zod 4, Drizzle ORM, pino, OpenTelemetry, vitest, pnpm | writing, reviewing or scaffolding "Fastify", "Drizzle" or "a Node API" code |
+| `observability` | bearing | Wires OpenTelemetry traces and metrics, trace ids in logs, a local Grafana stack, RED dashboards, SLOs and burn-rate alerts | asked to "add observability", "set up tracing", "add dashboards" or "define SLOs" |
+| `on-call` | bearing | Sets up on-call: rotation, escalation, alert routing by severity, error budget policy, handover notes, a runbook for every paging alert | asked about "on-call", "who gets paged", "escalation" or "error budget" |
+| `onboard-repo` | bearing | Brings an existing repository onto the team conventions (Makefile, hooks, CLAUDE.md, rules) without overwriting; conflicts land beside the file | asked to "onboard this repo" or "adopt the standard" |
+| `openapi-spec` | bearing | Designs or audits the OpenAPI 3.1 contract in api/openapi.yaml, generates readable API docs and counts spec and route drift | asked to "write the OpenAPI spec", "design the API contract" or "check the spec" |
+| `performance` | bearing | Profiles and fixes slowness with the stack's profiler (pprof, py-spy, clinic, Lighthouse, Instruments), with before and after numbers | told "this is slow", "profile this", "optimise" or "p95 is high" |
+| `postmortem` | bearing | Writes a blameless postmortem after an incident: impact in numbers, UTC timeline, root cause chain, owned follow-ups, lessons | asked for a "postmortem", "RCA", "incident report" or "write up the outage" |
+| `prd` | bearing | Normalises any brief, notes or ticket into a PRD of numbered testable REQ statements, objectives, personas and open questions; no stories | asked to "write the PRD" or "turn this brief into requirements" |
+| `privacy-review` | bearing | Reviews personal data handling: a data map with purpose, basis and retention, deletion wired to it, data subject requests, a DPIA | asked about "GDPR", "DPDP", "personal data", "retention" or "delete my account" |
+| `prompt-registry` | bearing | Keeps prompts in a versioned registry (prompts/<name>/vN.md) loaded by one module, with typed variables, fixture tests and scores | asked to "write the system prompt", "improve this prompt" or "version prompts" |
+| `prose-lint` | bearing | Lints prose people read (docs, MR text, commits, UI copy) for em dashes, AI filler and self-praise, rewriting whole sentences | asked to "check the prose", "lint the README" or "does this sound AI-written" |
+| `python` | bearing-backend | Conventions for Python services: Python 3.14, FastAPI, Pydantic v2, SQLAlchemy 2 async, Alembic, structlog, uv, ruff, pytest | writing, reviewing or scaffolding "FastAPI", "Pydantic" or "Python service" code |
+| `rag` | bearing | Builds retrieval-augmented generation (RAG) on pgvector: ingestion, chunking, embeddings, a retriever with citations, retrieval metrics | asked to "add RAG", "chat with our documents" or "chunk and embed" |
+| `react` | bearing-apps | Conventions for React web apps: React 19, TypeScript, Vite, TanStack Query and Router, Zustand, Zod, shadcn/ui, Tailwind v4, vitest | writing, reviewing or scaffolding "React", "TSX", "shadcn" or "Tailwind" code |
+| `react-native` | bearing-apps | Conventions for React Native: Expo SDK 57, expo-router, TypeScript, TanStack Query, Zustand, Zod, NativeWind, EAS, Maestro | writing, reviewing or scaffolding "React Native", "Expo" or "NativeWind" code |
+| `refactor` | bearing | Refactors without changing behaviour: tests green first, one mechanical change per commit, checks between, a diff size ceiling | asked to "refactor", "clean this up", "extract" or "rename across the codebase" |
+| `release` | bearing | Prepares a release: version from commits or from the API diff for packages, CHANGELOG section, version bump, printed tag commands | asked to "cut a release", "bump the version" or "publish the package" |
+| `resilience-testing` | bearing | Tests the failure modes the design claims: fault injection plan, backup restore drills, DR tests with measured RTO and RPO | asked about "chaos testing", "restore drill", "DR test" or "what if the database dies" |
+| `runbook` | bearing | Writes or updates the runbook for one alert: meaning, impact, diagnosis commands, remediation, rollback, escalation | asked to "write a runbook", "document this alert" or "what do we do when X fires" |
+| `screen-design` | bearing | Designs every screen in every state, desktop and phone: React and shadcn screens in the app's design gallery, or HTML mockups | asked to "design the screens", "hi-fi mockups" or "show every state" |
+| `secrets` | bearing | Handles secrets without seeing values: inventory, rotation, leak response (revoke, rotate, scrub, audit), gitleaks, .env.example parity | "a key was committed", "rotate the secret" or "secret leaked" |
+| `session-handoff` | bearing | Saves session state for the next session on this branch: next steps, done, blockers, questions, files, gate, and a progress note | asked to "save state", "write a handoff", "pause here" or before /clear |
+| `speech` | bearing | Builds speech features: transcription, diarisation, text-to-speech or a real-time voice agent with barge-in, measured by WER and latency | asked to "transcribe calls", "build a voice agent" or "speech to text" |
+| `spike` | bearing | Runs a timeboxed spike: a yes, no or number question, a timebox and stop condition, throwaway code never merged, a written recommendation | asked to "spike this", "investigate whether" or "prototype to find out" |
+| `start-task` | bearing | Starts work on a ticket: creates the branch from the right base with the task id, writes state and progress notes, restates the criteria | asked to "start TASK-142", "pick up this ticket" or "create a branch" |
+| `tabular-ml` | bearing | Builds classical ML on tabular or event data (churn, scoring, forecasts, anomalies) with leak-proof splits, a baseline, calibration, drift checks | asked to "predict churn", "forecast demand" or "train a model" |
+| `task-report` | bearing | Reports a finished task under four headings: Changed, Verified, Not done, Noticed | asked to "write up what you did", "report back", "summarise the work", "give me the status" or at the end of any task |
+| `tech-debt` | bearing | Keeps the tech debt register in docs/DEBT.md, seeded from TODOs, suppressed lints and skipped tests, ranked by cost of carrying it | asked about "tech debt", "what should we clean up next" or "the debt register" |
+| `tech-decision` | bearing | Chooses between technology options: lays out options, recommends with reasons, lets the user decide, records each choice as an ADR | asked "Kafka or RabbitMQ", "which cloud" or "what stack should we use" |
+| `test-automation` | bearing | Sets up or extends the automated test suite (Playwright, Maestro, Espresso, pytest, Go httptest), one test per planned test case by TC id | asked to "automate the test cases", "set up Playwright" or "e2e tests" |
+| `test-cases` | bearing | Writes test cases from acceptance criteria: risk per story, scenarios, TC-numbered cases with steps and a test plan; no test code | asked to "write the test cases", "build the test plan" or "cover the criteria" |
+| `test-heal` | bearing | Fixes failing or flaky tests: classifies each failure with evidence, heals locator, timing and data drift, leaves regressions red, quarantines flakes | asked to "fix the flaky tests" or "heal the tests" |
+| `test-run` | bearing | Runs every test suite present into one report: failures at file:line, slowest, flaky, coverage; a suite that did not run never passes | asked to "run the tests", "what is failing" or "run TC-0231" |
+| `themes` | bearing | Adds and manages themes on the design system (dark, high contrast, brand, tenant, seasonal) with contrast checks and a preview | asked to "add dark mode", "add a high contrast theme" or "theme for a tenant" |
+| `threat-model` | bearing | Writes a STRIDE threat model before code: assets, trust boundaries, entry points, threats rated, mitigations mapped to stories | asked to "threat model this", "STRIDE analysis" or "what could an attacker do" |
+| `traceability` | bearing | Builds the traceability matrix from requirements through stories, test cases, tests, commits and tickets, counting every gap; read-only | asked "is everything traced", "traceability matrix" or "untested" |
+| `tracker-sync` | bearing | Creates and updates tickets in the configured tracker (Jira, GitLab, GitHub, REST or none): create, sync the backlog, move status, link MRs | asked to "create the tickets", "sync to Jira" or "move TASK-142" |
+| `upgrade-tools` | bearing | Upgrades every installed Claude Code plugin and skill pack on this machine (plugins, gstack, skills CLI, GSD), versions before and after | asked to "update the plugins", "upgrade the skills" or "update all" |
+| `ux-flows` | bearing | Maps UX flows: screen inventory tied to stories, every state with copy, storyboard, flow diagrams and a zero dead-end check | asked to "map the user flows", "what screens do we need" or "user journey" |
+| `vapt-report` | bearing | Writes the VAPT security report for a release from scanner findings, linked to the threat model, with a ship or block decision | asked for a "VAPT report", "security sign-off" or "pentest report" |
+| `verify-deploy` | bearing | Checks one environment after the engineer deploys: readiness, health, version, smoke pages, synthetic suite; read-only, never rolls back | asked to "verify the deploy", "check qa after deploying" |
+| `webhooks` | bearing | Builds webhooks both ways: inbound with signature checks, replay window and idempotent handlers; outbound with retries, dead letters and a delivery log | asked to "add a webhook" or "verify signatures" |
+| `workflow` | bearing | Says where the work stands (repository, branch, diff) and which skill or step comes next | asked "what should I do next", "which skill do I use", "how do we work here" or "what is in flight" |
 <!-- skills-table:end -->
 
 ## Meta
@@ -148,7 +157,7 @@ fuller path, never as prerequisites. `command` means you type it;
   and a phase plan; refuses stories without criteria.
 - **tracker-sync** creates and updates tickets in whichever tracker
   `BEARING_TRACKER` names (Jira, GitLab issues, GitHub issues, any server
-  speaking the REST tracker protocol, or none) through `bin/brg-tracker`,
+  speaking the REST tracker protocol, or none) through `plugins/bearing/bin/brg-tracker`,
   syncs the backlog, and posts branch, MR, commits, tests and ADR on the
   ticket. With `none` every ticket step is skipped with a note. The REST
   tracker is one adapter behind it (`BEARING_TRACKER=rest`), not a skill
@@ -240,7 +249,7 @@ and iterates with the user.
 - **design-critique** reviews prototypes or a URL against a weighted
   checklist with an AI-slop detector, scores, fixes with approval, and
   re-scores; `evidence.py` shoots three widths in light and dark and fails
-  when a dark theme did not apply. It is main while only prototypes exist; once the app runs in
+  when a dark theme did not apply. The workflow runs it while only prototypes exist; once the app runs in
   a browser the workflow switches to gstack `/design-review`.
 
 ## Repository lifecycle
@@ -377,8 +386,8 @@ and iterates with the user.
   adapter with vLLM behind the gateway and writes the model card; the run
   itself can go to `huggingface-llm-trainer` or `trl-training`.
 - **mcp-server** builds MCP servers (Python or TypeScript) and clients with
-  schemas, auth, tests and the harness registration; main for "tools for
-  models", with `build-mcp-server` (mcp-server-dev) as the alternate.
+  schemas, auth, tests and the harness registration; the workflow runs it
+  for "tools for models".
 - **llm-guardrails** adds input, tool-call and output safety with a policy
   file and adversarial fixtures.
 - **llm-gateway** routes every model call through one module with
@@ -398,9 +407,17 @@ and iterates with the user.
 ## Stacks
 
 Each stack skill loads itself when you work on matching files and holds
-the guidelines, review checklist, rules file and scaffold templates.
+the guidelines, review checklist, rules file and scaffold templates. The
+stack skills ship in two optional plugins: `bearing-backend` (go, python,
+node, data-pipeline, infra) and `bearing-apps` (react, nextjs,
+react-native, flutter, ios, android). Without the plugin a stack needs,
+`new-repo`, `onboard-repo`, `ci-pipeline` and the review checklists name
+it with the install command instead of failing.
 
-- **react**, **go**, **python**, **react-native**,
-  **android**, **ios**, **infra**, **database**; the
-  Node, Next.js, Flutter and data lanes are being added and appear in the
-  table above once their directories exist.
+- **react** (`react-web`), **nextjs** (`next-app`), **node**
+  (`node-api`), **go** (`go-api`, `go-cli`), **python** (`python-api`,
+  `python-cli`), **data-pipeline** (`data-pipeline`), **react-native**
+  (`react-native`), **flutter** (`flutter-app`), **android** (`android`),
+  **ios** (`ios`) and **infra** (`infra`): thirteen scaffold ids from
+  eleven stack skills. **database** holds the store conventions every
+  server stack shares and scaffolds nothing.

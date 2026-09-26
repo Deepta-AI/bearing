@@ -1,4 +1,4 @@
-# What every repository on this standard carries, and why
+# What every repository on the Bearing standard carries, and why
 
 Installed by `new-repo` (new) or `onboard-repo` (existing). Committed
 unless marked ignored. Which host-dependent set a repository gets follows
@@ -10,7 +10,7 @@ unless marked ignored. Which host-dependent set a repository gets follows
 | `AGENTS.md` | The engineering standard every agent reads, about 120 lines: ground rules, task flow, git and change requests, definition of done, report shape, the generated skills map, the list of path-scoped rules. One file, so Claude Code, Cursor, Codex and Gemini CLI read the same thing. |
 | `CLAUDE.md` | Claude Code mechanics. The full contents of every file here are on the handbook's Default files page. Its first line is `@AGENTS.md`, which imports the standard into every session. Then a snapshot under twenty lines (stack, git host, tracker, trunk), the same generated skills map, hygiene, and the "things Claude gets wrong here" list. Under 80 lines. |
 | `.claude/settings.json` | Least-privilege permissions derived from the guard's verb table: read-only and build tools allowed; commits and dependency changes ask; push, history rewrite, deploy tools, secrets and lockfile reads denied. Also names the `bearing` marketplace and the enabled plugins so a fresh clone prompts the developer to install. Denies the third-party skills kept off work repos. |
-| `.claude/rules/*.md` | Rules. `code.md` (source files), `database.md` (migrations, SQL, repositories) and `testing.md` (test files) carry a `paths:` list and load only when a matching file is touched; `observability.md`, `analytics.md` and `security.md` have none and load in every session. Plus one per stack (`react.md`, `go.md`, `python.md`, `react-native.md`, `android.md`, `ios.md`, `infra.md`). Zero cost when irrelevant. |
+| `.claude/rules/*.md` | Rules. `code.md` (source files), `database.md` (migrations, SQL, repositories) and `testing.md` (test files) carry a `paths:` list and load only when a matching file is touched; `observability.md`, `analytics.md` and `security.md` have none and load in every session. Plus the stack's own rules file (`react.md`, `nextjs.md`, `node.md`, `go.md`, `python.md`, `data.md`, `react-native.md`, `flutter.md`, `android.md`, `ios.md` or `infra.md`). Zero cost when irrelevant. |
 | `.claude/settings.local.json` | Personal overrides. Git-ignored. May add permissions; must not loosen the deny list. |
 | `.bearing/company.json` | Who the repository belongs to, written by `company-attribution`; the LICENSE, NOTICE, CODEOWNERS and package metadata derive from it. |
 | `.bearing/bin/brg-guard`, `.bearing/hooks/` | The vendored guard (stamped with the kit version; `doctor` compares) and the hook adapters for the harness in use, written by `harness-setup`. Committed. |

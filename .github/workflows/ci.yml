@@ -3,13 +3,14 @@
 #   check      everything `make check` runs except validate (`claude plugin
 #              validate` needs the Claude CLI; run `make validate` locally
 #              before tagging).
-#   scaffold   each stack template scaffolded with bin/brg-scaffold, then
+#   scaffold   each stack template scaffolded with
+#              plugins/bearing/bin/brg-scaffold, then
 #              `make setup && make check` inside the result with that stack's
 #              toolchain. Every stack blocks. A daily schedule runs the
 #              whole workflow, so a bad upstream release fails here the
 #              next morning (the scaffold resolves dependencies fresh).
-#   bash32     bin/brg-guard, the CLI --help paths and the unit tests under
-#              bash 3.2 (the macOS default) in the bash:3.2 image.
+#   bash32     plugins/bearing/bin/brg-guard, the CLI --help paths and the
+#              unit tests under bash 3.2 (the macOS default) in the bash:3.2 image.
 #   macos      the shell lint, the whole test suite and a scaffold on
 #              macos-latest: BSD sed, BSD stat and the stock bash 3.2.
 name: ci
@@ -36,7 +37,7 @@ jobs:
         with: { fetch-depth: 0 }
       - run: sudo apt-get update -qq && sudo apt-get install -y -qq --no-install-recommends shellcheck jq
       # make check minus validate (needs the Claude CLI; see the header).
-      - run: make lint-skills lint-tools lint-evals lint-json lint-shell lint-prose lint-neutral lint-version lint-budget lint-templates lint-docs test
+      - run: make lint-skills lint-tools lint-evals lint-json lint-shell lint-prose lint-neutral lint-version lint-budget lint-templates lint-plugin-size lint-docs test
 
   scaffold:
     runs-on: ubuntu-latest
@@ -68,7 +69,7 @@ jobs:
       - if: matrix.lang == 'node'
         uses: pnpm/action-setup@v4
         with: { version: 10 }
-      - run: bash bin/brg-scaffold "${{ matrix.stack }}" "${{ matrix.name }}" --dir /tmp/x --host both
+      - run: bash plugins/bearing/bin/brg-scaffold "${{ matrix.stack }}" "${{ matrix.name }}" --dir /tmp/x --host both
       - run: cd /tmp/x && make setup && make check
 
   bash32:
@@ -82,11 +83,11 @@ jobs:
             apk add --no-cache git make jq python3 curl grep sed coreutils findutils diffutils >/dev/null
             git config --global --add safe.directory "*"
             bash --version | head -1
-            bash bin/brg-guard --version
-            bash bin/brg-guard command "git status"
-            bash bin/brg-scaffold --help >/dev/null
-            bash bin/brg-adopt --help >/dev/null
-            bash bin/brg-jira --help >/dev/null
+            bash plugins/bearing/bin/brg-guard --version
+            bash plugins/bearing/bin/brg-guard command "git status"
+            bash plugins/bearing/bin/brg-scaffold --help >/dev/null
+            bash plugins/bearing/bin/brg-adopt --help >/dev/null
+            bash plugins/bearing/bin/brg-jira --help >/dev/null
             n=0; for t in tests/unit/*.sh; do bash "$t" || exit 1; n=$((n+1)); done
             [ "$n" -gt 0 ] || exit 1
             echo "bash32: $n unit test files passed under $(bash --version | head -1)"
@@ -100,4 +101,4 @@ jobs:
       - run: brew install --quiet shellcheck jq
       - run: sw_vers && bash --version | head -1
       - run: make lint-shell test
-      - run: bash bin/brg-scaffold go-api McProbe --dir /tmp/x
+      - run: bash plugins/bearing/bin/brg-scaffold go-api McProbe --dir /tmp/x

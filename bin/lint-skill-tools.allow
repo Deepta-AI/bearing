@@ -8,7 +8,6 @@ license-compliance|npm ci|named as a reproducible-build flag in the release note
 license-compliance|uv sync --frozen|named as a reproducible-build flag in the release notes
 secrets|make env-check|a target the skill adds to the Makefile
 doctor|claude plugin install|a fix line printed for the engineer
-doctor|git clone --depth 1|a fix line printed for the engineer
 doctor|npx @opengsd/gsd-core|a fix line printed for the engineer
 gate-audit|git ls-files|an example of a gate pattern that passes on empty input
 git-hooks|git commit --no-verify|the emergency bypass the skill explains to the engineer

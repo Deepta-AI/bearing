@@ -17,7 +17,7 @@ work="$(tmpdir)"
 # parser_of <script> [function]: the function text, normalised so the brg-rest
 # variant (load_kv FILE) compares equal to the ENV_FILE variant.
 parser_of() {
-  sed -n "/^${2:-load_env}() {/,/^}/p" "$KIT/bin/$1" \
+  sed -n "/^${2:-load_env}() {/,/^}/p" "$KIT/plugins/bearing/bin/$1" \
     | sed -e "s/^${2:-load_env}() {/load_env() {/" -e 's/"\$1"/"$ENV_FILE"/g'
 }
 
@@ -92,7 +92,7 @@ assert_exit 0 bash -c '. "$1"; ENV_FILE="$2"; load_env' _ "$work/parser.sh" "$wo
 t_end
 
 # ---- end to end through brg-tracker config (prints names, never secrets)
-TR="$KIT/bin/brg-tracker"
+TR="$KIT/plugins/bearing/bin/brg-tracker"
 t_begin "brg-tracker config reads the file the same way"
 assert_exit 0 env -u BEARING_TRACKER -u BEARING_TRACKER_URL -u BEARING_TRACKER_PROJECT -u BEARING_TRACKER_EMAIL -u BEARING_TRACKER_TOKEN BEARING_ENV="$work/a.env" bash "$TR" config
 assert_contains "$T_OUT" "tracker: jira (from $work/a.env)"
@@ -118,7 +118,7 @@ mkdir -p "$fh/.config/bearing"
 printf 'BEARING_TRACKER=jira            # none | jira | gitlab\nBEARING_TRACKER_TOKEN="abc123"\n' > "$fh/.config/bearing/bearing.env"
 chmod 600 "$fh/.config/bearing/bearing.env"
 docpath="$(minimal_path bash git make jq python3 awk sed grep head tail cut tr stat ls cat basename dirname)"
-t_run env -u XDG_CONFIG_HOME HOME="$fh" PATH="$docpath" bash "$KIT/bin/brg-doctor"
+t_run env -u XDG_CONFIG_HOME HOME="$fh" PATH="$docpath" bash "$KIT/plugins/bearing/bin/brg-doctor"
 assert_contains "$T_OUT" "bearing.env present (BEARING_TRACKER=jira; none is valid)"
 assert_not_contains "$T_OUT" "abc123" "doctor never prints the token"
 assert_not_contains "$T_OUT" "mode is 600" "mode 600 raises no note"

@@ -1,8 +1,8 @@
 # Install the Bearing workflow
 
-For every developer, once per machine. Ten minutes. The handbook
-(the site in `site/`, published where GitLab Pages is enabled, or the
-project wiki from `make wiki`) covers the same ground; this page is
+For every developer, once per machine. Ten minutes. Bearing is open
+source (MIT) at <https://github.com/Deepta-AI/bearing>. The handbook
+(the public site built from `site/`) covers the same ground; this page is
 the reference.
 
 ## 1. Prerequisites
@@ -13,14 +13,49 @@ the reference.
 - git, node 22 or newer (GSD Core wants 24 and warns on older), make, jq.
   macOS: bash 3.2 is fine; `brew install jq make shellcheck` (shellcheck is
   only for developing the kit).
-- SSH access to the git host that holds your fork of bearing.
+- Network access to GitHub (or to the git host of your team's fork).
 
 ## 2. Install
 
+There are two paths. Both give the same skills, subagents and hooks.
+
+**The plugin only**, from inside Claude Code:
+
+```
+/plugin marketplace add Deepta-AI/bearing
+/plugin install bearing@bearing
+/plugin install bearing-backend@bearing   # optional: Go, Python, Node, data pipelines, infrastructure
+/plugin install bearing-apps@bearing      # optional: React, Next.js, React Native, Flutter, iOS, Android
+```
+
+The marketplace holds three plugins. `bearing` is required: the workflow
+skills, the subagents, the hooks, the scripts and the repository
+templates. `bearing-backend` and `bearing-apps` carry the stack skills
+and their scaffold templates; install the ones your repositories use.
+Without a stack plugin, its skills are absent, and `new-repo`,
+`onboard-repo`, `ci-pipeline` and the review checklists stop on that
+stack with the line to install it (`/plugin install bearing-backend@bearing`).
+
+The bearing plugin carries every workflow skill, the seven subagents (`bearing:reviewer`,
+`bearing:critic` and the rest), the hooks in `plugins/bearing/hooks/hooks.json` and the
+guard they call (`plugins/bearing/bin/brg-guard`). It does not write
+`~/.config/bearing/bearing.env` (without it the tracker is `none`; copy
+`plugins/bearing/templates/user/bearing.env` there, mode 600, to configure one), does not
+install Superpowers, gstack, GSD Core or the other packs, does not copy a
+personal `CLAUDE.md`, and leaves no checkout at `~/bearing` for the
+`~/bearing/plugins/bearing/bin/...` commands on this page. Update each
+installed plugin with `claude plugin update <name>@bearing`.
+
+**The full install**, a checkout and the installer:
+
 ```bash
-git clone <your fork url> ~/bearing
+git clone https://github.com/Deepta-AI/bearing ~/bearing
 bash ~/bearing/install.sh                     # profile standard
 ```
+
+A team that keeps a fork clones the fork instead and sets
+`BEARING_KIT_REMOTE` (step 3); see `CONTRIBUTING.md`, "Forking without
+diverging".
 
 Flags: `--profile minimal|standard|full`, `--dry-run` (print every action,
 touch nothing), `--no-claude` (no claude CLI steps; see step 6),
@@ -30,17 +65,20 @@ touch nothing), `--no-claude` (no claude CLI steps; see step 6),
 What it does, in order, skipping anything already present:
 
 1. Registers `~/bearing` (or `--remote`) as the marketplace `bearing` and
-   installs the plugin `bearing@bearing` at user scope.
-2. Writes `~/.config/bearing/bearing.env` from `templates/user/bearing.env`
+   installs its three plugins at user scope: `bearing@bearing`,
+   `bearing-backend@bearing` and `bearing-apps@bearing` (an installed one
+   is updated instead).
+2. Writes `~/.config/bearing/bearing.env` from `plugins/bearing/templates/user/bearing.env`
    with placeholders, mode 600. It never overwrites an existing file.
 3. Copies a personal `~/.claude/CLAUDE.md` starter if you have none. Open
    it and put your name and role on the first line.
 4. Profile `standard` and up: installs Superpowers from the official
-   marketplace, clones gstack into `~/.claude/skills/gstack` and runs its
-   setup, installs GSD Core globally (`npx @opengsd/gsd-core@latest
-   --global --claude`).
-5. Profile `full`: runs `bin/brg-install-packs` for the open-source skills
-   the workflow names as main choices (ui-craft, Vercel, pm-skills,
+   marketplace, fetches gstack into `~/.claude/skills/gstack` at the
+   commit pinned in `plugins/bearing/bin/pinned-packs.txt` and runs its
+   setup, installs GSD Core globally at its pinned version (`npx
+   @opengsd/gsd-core@1.14.0 --global --claude`).
+5. Profile `full`: runs `plugins/bearing/bin/brg-install-packs` for the open-source skills
+   the workflow and the skills call (ui-craft, Vercel, pm-skills,
    addyosmani, OpenTelemetry, qa-skills, Conventional Commits, Trail of
    Bits, mattpocock, mcp-server-dev, playwright, frontend-design,
    code-review, claude-security). The list with licences is in
@@ -49,6 +87,12 @@ What it does, in order, skipping anything already present:
 
 Last line: `install.sh: N installed, M already present, K skipped, 0
 failed`. Restart the harness; plugins load at start.
+
+Skills are reached two ways: ask in your own words and Claude loads the
+matching one, or type `/bearing:<name>` (for example `/bearing:doctor`).
+The short names on this page (`doctor`, `onboard-repo`) are those skills.
+If you run many skill packs, read [Keep the skill listing
+lean](#keep-the-skill-listing-lean) below.
 
 ## 3. Configure
 
@@ -66,28 +110,28 @@ Edit `~/.config/bearing/bearing.env`. Every key, with its default:
 | `BEARING_TRACKER_MAX_PAGES` | the most pages `brg-tracker list` follows before it stops and says so | `20` |
 | `BEARING_TASK_ID_PREFIX` | force the id prefix in branch names (PROJ, GH, GL); empty accepts any `[A-Z][A-Z0-9]*-<n>` or `NOTASK-<n>` | empty |
 | `BEARING_GIT_HOST` | which host's CI and change template a repository gets: gitlab, github or both | `both` |
-| `BEARING_KIT_REMOTE` | git url of the fork developers install from | the checkout's own remote |
+| `BEARING_KIT_REMOTE` | git url developers install Bearing from; set it when your team uses a fork | the checkout's own remote (the public repository for a plain clone) |
 | `BEARING_ORG_ID` | reverse-domain id for mobile bundle ids | `com.example` |
 
 `BEARING_TRACKER=none` is a valid, complete configuration: every ticket step
-is skipped with a note. Check the result with `~/bearing/bin/brg-tracker
+is skipped with a note. Check the result with `~/bearing/plugins/bearing/bin/brg-tracker
 config`; its first line reads `tracker: <name> (from file)` and it never
 prints a credential. The adapters, key shapes and command surface are in
 [TRACKERS.md](TRACKERS.md).
 
 ## 4. Verify
 
-In any repository on this standard:
+In any repository on the Bearing standard:
 
 ```
-doctor
+/bearing:doctor
 ```
 
 Last line: `brg-doctor: N checks, 0 missing, M optional`. A `MISSING`
 line names the fix. Either git host counts: `.gitlab-ci.yml` or
 `.github/workflows/*.yml` as CI, `.gitlab/merge_request_templates/Default.md`
 or `.github/PULL_REQUEST_TEMPLATE.md` as the change template. In a
-repository that has not adopted the standard yet, run `onboard-repo --stack
+repository that has not adopted the standard yet, run `/bearing:onboard-repo --stack
 <id>` (ids: `react-web`, `next-app`, `node-api`, `go-api`, `go-cli`,
 `python-api`, `python-cli`, `data-pipeline`, `react-native`,
 `flutter-app`, `android`, `ios`, `infra`). Both `new-repo`
@@ -97,8 +141,8 @@ the toolchain is installed.
 Then try the workflow on a real task:
 
 ```
-workflow                       # says what comes next
-start-task TASK-142 InvoiceTotals    # creates the branch and the state file
+/bearing:workflow                              # says what comes next
+/bearing:start-task TASK-142 InvoiceTotals     # creates the branch and the state file
 ```
 
 ## 5. What changed on your machine
@@ -123,24 +167,25 @@ permission list is harness-neutral: AGENTS.md is the canon, the Makefile
 is the gate, the git hooks enforce commit shape, formatting and the rule
 that a person pushes (the pre-push hook asks for the branch name on the
 terminal, which an agent cannot type), and the guard logic lives in
-`bin/brg-guard`. For Cursor, Codex, Gemini CLI, Copilot, OpenCode,
+`plugins/bearing/bin/brg-guard`. For Cursor, Codex, Gemini CLI, Copilot, OpenCode,
 Windsurf, Cline, Zed or Kiro:
 
 ```bash
 bash ~/bearing/install.sh --no-claude      # once per machine: kit checkout and env file
 cd <product repo>
-~/bearing/bin/brg-harness cursor           # or codex, gemini, copilot, opencode, windsurf, cline, zed, kiro, all
+~/bearing/plugins/bearing/bin/brg-harness cursor           # or codex, gemini, copilot, opencode, windsurf, cline, zed, kiro, all
 ```
 
-From Claude Code the same step is `harness-setup cursor`. It converts the
+From Claude Code the same step is `/bearing:harness-setup cursor`. It converts the
 path-scoped rules, writes the harness's instruction pointer to AGENTS.md,
 vendors the guard as `.bearing/bin/brg-guard` with the hook adapters under
 `.bearing/hooks/`, and installs the Bearing skills through the skills CLI
-(`npx skills add <kit git url> --all -a cursor -g -y` does the last step
-by hand). Commit `.bearing/bin` and `.bearing/hooks`; `.bearing/state/` stays
-ignored. `doctor` checks that the vendored guard's version stamp
+(`npx skills@1.7.0 add https://github.com/Deepta-AI/bearing#v<VERSION> --all -a cursor -g -y`,
+or your fork's URL, does the last step by hand; `--kit-ref` names another
+tag or commit). Commit `.bearing/bin`
+and `.bearing/hooks`; `.bearing/state/` stays ignored. `doctor` checks that the vendored guard's version stamp
 matches the installed kit. The matrix of what each harness supports is in
-`skills/harness-setup/references/harness-matrix.md` and in the handbook.
+`plugins/bearing/skills/harness-setup/references/harness-matrix.md` and in the handbook.
 
 ## Keep the skill listing lean
 
@@ -170,14 +215,17 @@ triggering reliable on your machine:
 ## 7. Upgrade
 
 ```
-upgrade-tools
+/bearing:upgrade-tools
 ```
 
-It pulls the kit, updates the plugin (`claude plugin update bearing@bearing`),
-gstack (pull and `./setup`), the skills-CLI packs (`npx skills update`)
-and GSD Core, prints versions before and after with a count, and reruns
-the doctor. Restart the harness afterwards. Read `CHANGELOG.md` for the
-version you are crossing.
+It pulls the kit, updates each installed Bearing plugin (`claude plugin
+update bearing@bearing`, and the same for `bearing-backend` and `bearing-apps`),
+gstack (through `/gstack-upgrade`), the skills-CLI packs (`npx
+skills@1.7.0 update`) and GSD Core (through `/gsd-update`), prints versions before and after with a count, and reruns
+the doctor. Restart the harness afterwards. On a plugin-only install,
+`claude plugin update <name>@bearing` for each installed plugin is the
+whole upgrade; the three move in lockstep, so update all of them. Read
+`CHANGELOG.md` for the version you are crossing.
 
 ## 8. Uninstall
 
@@ -185,7 +233,7 @@ version you are crossing.
 bash ~/bearing/install.sh --uninstall
 ```
 
-It removes the plugin and the marketplace, asks before removing the env
+It removes the three plugins and the marketplace, asks before removing the env
 file, removes `~/.claude/CLAUDE.md` only while it is still the untouched
 template, and prints how to unhook each repository. Superpowers, gstack
 and GSD Core are independent: `claude plugin uninstall
@@ -195,21 +243,29 @@ skills-CLI pack.
 
 ## The handbook site on Vercel
 
-Where the git host has no Pages, the `handbook:vercel` job publishes the
-same site to Vercel on every merge to main: public to anyone with the link,
-never indexed (robots.txt, a `noindex` meta tag and an `X-Robots-Tag`
-header). One-time setup:
+The public handbook is deployed to Vercel on every push to main: by the
+`docs` workflow on GitHub (`.github/workflows/docs.yml`), or by the
+`handbook:vercel` job on a GitLab mirror. It is public and open to search
+engines (`site/public/robots.txt` allows every path). A fork that wants
+its own copy repeats this one-time setup:
 
 1. In Vercel, create a project (any name, framework "Other") without
    connecting a git repository; the CI job uploads the built site.
 2. Create an access token (Account Settings, Tokens) scoped to that team.
 3. Read the ids from the project's Settings, General: the Project ID, and
    the Team ID (or your user id for a personal account).
-4. In the repository's Settings, CI/CD, Variables, add `VERCEL_TOKEN`,
-   `VERCEL_ORG_ID` and `VERCEL_PROJECT_ID`, each masked and protected.
+4. Store the three values where your git host runs CI:
+   - GitHub: Settings, Secrets and variables, Actions, as repository
+     secrets `VERCEL_TOKEN`, `VERCEL_ORG_ID` and `VERCEL_PROJECT_ID`. The
+     `docs` workflow deploys on every push to main, and can be run by hand
+     from the Actions tab (docs, Run workflow).
+   - GitLab: Settings, CI/CD, Variables, the same three names, each masked
+     and protected. The `handbook:vercel` job deploys on every merge to
+     main.
 
-The next pipeline on main ends with `handbook:vercel: N script bundles
-deployed to <url>`. Without the three variables the job does not run.
+The deploy ends with `handbook: N script bundles deployed to <url>` on
+GitHub, or `handbook:vercel: N script bundles deployed to <url>` on GitLab.
+Without the secrets nothing is deployed and the log says which are missing.
 Add a custom domain in the Vercel project if the default one is not wanted.
 
 ## The developer guide on Vercel
@@ -218,19 +274,21 @@ Add a custom domain in the Vercel project if the default one is not wanted.
 hooks, the guard, the skills, the scripts and the scaffolding work inside,
 with terminal replays and recipes for changing each part. It is built from
 the repository itself (`bin/gen-devguide.py`, checked by `make lint-docs`)
-and deployed by the `devguide:vercel` job to its own Vercel project, public
-by link and never indexed, like the handbook. One-time setup:
+and deployed to its own Vercel project by the `devguide` job of the `docs`
+workflow on GitHub (or `devguide:vercel` on GitLab), public and indexed
+like the handbook. One-time setup:
 
 1. In Vercel, create a second project (framework "Other"), without a git
    repository.
-2. In the repository's CI/CD variables, add `VERCEL_DEVGUIDE_PROJECT_ID`
-   (masked and protected). `VERCEL_TOKEN` and `VERCEL_ORG_ID` are shared
-   with the handbook job.
-3. Optionally add `DEVGUIDE_REPO_URL`, the repository's web address; the
-   guide then links every source file it names.
+2. Add `VERCEL_DEVGUIDE_PROJECT_ID` beside the handbook's secrets (GitHub
+   repository secret, or a masked and protected GitLab variable).
+   `VERCEL_TOKEN` and `VERCEL_ORG_ID` are shared with the handbook.
+3. On GitLab, optionally add `DEVGUIDE_REPO_URL`, the repository's web
+   address, so the guide links every source file it names. On GitHub the
+   `docs` workflow sets it from the repository itself.
 
-The next pipeline on main ends with `devguide:vercel: N script bundles
-deployed to <url>`. To build or deploy by hand:
+The next run on main ends with `devguide: N script bundles deployed to
+<url>` (on GitLab, `devguide:vercel: ...`). To build or deploy by hand:
 
 ```bash
 make devguide
@@ -242,15 +300,19 @@ Re-record the terminal replays after a change to what they show:
 
 ## The docs as wiki pages
 
-The `pages` job publishes the handbook site only where the git host
-serves GitLab Pages (a self-managed GitLab needs its administrator to
-enable it). Without Pages, export the docs and the four task flows to the
-project wiki. Enable the wiki (Settings, General, Visibility), create any
-first page in the web UI so the wiki repository exists, then:
+On a GitLab mirror, the `pages` job can also publish the handbook to
+GitLab Pages where the host serves it (a self-managed GitLab needs its
+administrator to enable it). Where neither Vercel nor Pages is available,
+export the docs and the four task flows to the project wiki. The export
+uses GitLab's wiki page names (`home`, `_sidebar`); a GitHub wiki looks
+for `Home` and `_Sidebar` instead, so rename those two there. Enable the
+wiki (GitHub: Settings, General, Features, Wikis; GitLab: Settings,
+General, Visibility), create any first page in the web UI so the wiki
+repository exists, then:
 
 ```bash
 git clone <repository ssh url without .git>.wiki.git ../bearing-wiki
-make wiki WIKI_DIR=../bearing-wiki REPO_URL=https://<host>/<group>/<project>
+make wiki WIKI_DIR=../bearing-wiki REPO_URL=https://github.com/<owner>/<repo>   # or https://<gitlab host>/<group>/<project>
 cd ../bearing-wiki && git add -A && git commit -m "docs: export from <commit>" && git push
 ```
 
@@ -267,10 +329,12 @@ an edit made in the wiki is overwritten by the next export.
   harness; plugins load at start. If `claude plugin list` does not show
   `bearing@bearing`, rerun `install.sh` and read its summary for a `FAILED`
   line.
-- A skill does not fire on a phrase: name it (`merge-request`) or ask "use the
-  merge-request skill". Command skills never fire on their own. If an auto skill
-  should have fired, open a change on Bearing adding the phrase to its
-  description.
+- A skill does not fire on a phrase: type it (`/bearing:merge-request`)
+  or ask "use the merge-request skill". On a machine with many skill packs
+  it may be listed by name only; see [Keep the skill listing
+  lean](#keep-the-skill-listing-lean). If it should have fired, open an
+  issue or a pull request on <https://github.com/Deepta-AI/bearing> adding
+  the phrase to its description.
 - The doctor says MISSING but you use GitHub: it accepts either host's CI
   and change template; MISSING means neither exists. Set
   `BEARING_GIT_HOST=github` and run `onboard-repo` again.
@@ -281,10 +345,10 @@ an edit made in the wiki is overwritten by the next export.
 - The guard blocked a command you know is safe: it fails closed on
   anything it cannot tokenise and looks through `sudo`, `env`, `sh -c`,
   `xargs` and `git -C`. Run the command in your own terminal. A wrong
-  verb is fixed in `bin/brg-guard` in the kit, never in
+  verb is fixed in `plugins/bearing/bin/brg-guard` in the kit, never in
   `settings.local.json`.
-- The marketplace add fails on the SSH URL: clone the repo first and pass
-  the path: `bash install.sh --remote ~/bearing`.
+- The marketplace add fails on a fork's SSH URL: clone the fork first and
+  pass the path: `bash install.sh --remote ~/bearing`.
 - `git push` is refused inside the harness: that is the standard working.
   Run the printed command in your own terminal.
 - The ticket step says `tracker: none`: `BEARING_TRACKER` is unset or none,

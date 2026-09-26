@@ -22,7 +22,7 @@ t_end
 
 t_begin "status counts skills, evals and measured verdicts"
 assert_exit 0 python3 "$SE" status
-n=$(ls "$KIT"/skills/*/SKILL.md | wc -l | tr -d ' ')
+n=$(ls "$KIT"/plugins/*/skills/*/SKILL.md | wc -l | tr -d ' ')
 e=$(ls "$KIT"/evals/*/evals.json 2>/dev/null | wc -l | tr -d ' ')
 assert_contains "$T_OUT" "skill-evals: $n skills, $e with evals,"
 t_end

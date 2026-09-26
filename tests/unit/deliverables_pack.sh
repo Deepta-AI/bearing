@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# tests/unit/deliverables_pack.sh: skills/client-deliverables/scripts/pack.py and
+# tests/unit/deliverables_pack.sh: plugins/bearing/skills/client-deliverables/scripts/pack.py and
 # md2docx.py. A small repository is packed into the twelve folders: versioned
 # Word documents with a cover and history, CSV from the named tables, folder
 # READMEs, the top README of current versions, the changelog and the
@@ -10,7 +10,7 @@
 # openpyxl through uv; without uv the pack must fail and say why.
 set -u
 . "$(dirname "$0")/../lib/assert.sh"
-P="$KIT/skills/client-deliverables/scripts/pack.py"
+P="$KIT/plugins/bearing/skills/client-deliverables/scripts/pack.py"
 
 repo() { # a repository with a few Bearing artifacts
   mkdir -p "$1/docs/product" "$1/docs/testing" "$1/docs/design" "$1/.bearing"

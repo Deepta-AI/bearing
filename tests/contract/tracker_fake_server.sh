@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# tests/contract/tracker_fake_server.sh: bin/brg-tracker against
+# tests/contract/tracker_fake_server.sh: plugins/bearing/bin/brg-tracker against
 # tests/contract/fake_tracker.py, one python3 HTTP stub that answers the URL
 # shapes of Jira, GitLab, GitHub and the REST tracker protocol and logs every request
 # line and header. For each BEARING_TRACKER the same ten commands run (config,
@@ -24,7 +24,7 @@
 # quote and a backslash reaches the server byte for byte.
 set -u
 . "$(dirname "$0")/../lib/assert.sh"
-TR="$KIT/bin/brg-tracker"
+TR="$KIT/plugins/bearing/bin/brg-tracker"
 FAKE="$KIT/tests/contract/fake_tracker.py"
 work="$(tmpdir)"
 fakecfg="$(tmpdir)"

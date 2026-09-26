@@ -16,7 +16,8 @@ import { ScriptPage, Scripts } from "./pages/Scripts";
 import { Session } from "./pages/Session";
 import { SkillPage, Skills, SkillsWork } from "./pages/Skills";
 import { Start } from "./pages/Start";
-import "./styles/tokens.css";
+import "@ui/tokens.css";
+import "@ui/base.css";
 import "./styles/app.css";
 
 const router = createBrowserRouter(

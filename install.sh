@@ -6,19 +6,22 @@
 #                   [--remote <git url>] [--uninstall]
 #
 # Idempotent. Steps, by profile:
-#   minimal   the Bearing plugin from this checkout (or --remote), the user
-#             env file ~/.config/bearing/bearing.env (from templates/user,
+#   minimal   the Bearing marketplace from this checkout (or --remote) and its
+#             three plugins: bearing (required), bearing-backend and
+#             bearing-apps (the stack conventions); the user env file
+#             ~/.config/bearing/bearing.env (from plugins/bearing/templates/user,
 #             mode 600, never overwritten), the personal CLAUDE.md if absent,
 #             then brg-doctor
-#   standard  minimal plus Superpowers (official marketplace), gstack (GitHub)
-#             and GSD Core (npx, non-interactive, --global --claude); the default
-#   full      standard plus bin/brg-install-packs (the open-source skill packs
-#             named as main choices per stage; see docs/THIRD_PARTY.md)
+#   standard  minimal plus Superpowers (official marketplace), gstack and GSD
+#             Core at the pins in plugins/bearing/bin/pinned-packs.txt; the default
+#   full      standard plus plugins/bearing/bin/brg-install-packs (the
+#             open-source skill packs the workflow steps call; see
+#             docs/THIRD_PARTY.md)
 # --dry-run prints every action and touches nothing. --no-claude skips every
 # claude CLI step and the plugin install: it only refreshes the kit checkout,
-# writes the env file and prints the bin/brg-harness instruction for other
-# coding harnesses. --uninstall removes the plugin and marketplace, asks
-# before removing the env file, removes ~/.claude/CLAUDE.md only while it is
+# writes the env file and prints the brg-harness instruction for other
+# coding harnesses. --uninstall removes the three plugins and the
+# marketplace, asks before removing the env file, removes ~/.claude/CLAUDE.md only while it is
 # still the untouched template, and prints how to unhook each repository.
 # Prints a count of what it installed, what was already present, what it
 # skipped and what failed; exits 1 when anything failed.
@@ -37,7 +40,7 @@ while [ $# -gt 0 ]; do
     --skip-superpowers) skip_sp=1; shift;;
     --skip-packs) skip_packs=1; shift;;
     --remote) remote="$2"; shift 2;;
-    -h|--help) sed -n '2,24p' "$0" | sed 's/^# \{0,1\}//'; exit 0;;
+    -h|--help) sed -n '2,27p' "$0" | sed 's/^# \{0,1\}//'; exit 0;;
     *) echo "unknown option: $1" >&2; exit 2;;
   esac
 done
@@ -59,7 +62,28 @@ mode_note=""; [ "$dry" -eq 0 ] || mode_note=" (dry run: nothing is changed)"
 # marketplace list` (a "❯ bearing" line, or a plain "bearing" first field),
 # never a substring such as "smart".
 marketplace_present() { claude plugin marketplace list 2>/dev/null | grep -Eq "^[[:space:]]*(❯[[:space:]]*)?$1[[:space:]]*\$"; }
-plugin_present() { claude plugin list 2>/dev/null | grep -q "$1"; }
+# plugin_present <id or name>: a plugin id (name@marketplace) matches only on
+# its own, so bearing@bearing is not found in bearing-apps@bearing; a bare
+# pack name such as superpowers matches anywhere in the list.
+plugin_present() {
+  case "$1" in
+    *@*) claude plugin list 2>/dev/null | grep -Eq "(^|[^A-Za-z0-9_-])$1([^A-Za-z0-9_-]|\$)";;
+    *) claude plugin list 2>/dev/null | grep -q "$1";;
+  esac
+}
+# The marketplace's plugins: bearing is required, the stack plugins optional.
+PLUGINS="bearing bearing-backend bearing-apps"
+PK="$KIT/plugins/bearing"
+# pin <kind> <source>: the pin column of that row in pinned-packs.txt (every
+# external fetch is pinned there), or empty.
+pin() { awk -F'|' -v k="$1" -v s="$2" '$1==k && $2==s {print $3; exit}' "$PK/bin/pinned-packs.txt" 2>/dev/null; }
+# git_fetch_at <url> <commit> <dir>: a checkout of exactly that commit (branch
+# main at it, so gstack's own upgrader can pull later); no partial dir is left.
+git_fetch_at() {
+  { mkdir -p "$3" && git -C "$3" init -q && git -C "$3" remote add origin "$1" \
+    && git -C "$3" fetch -q --depth 1 origin "$2" && git -C "$3" checkout -q -B main FETCH_HEAD \
+    && [ "$(git -C "$3" rev-parse HEAD)" = "$2" ]; } || { rm -rf "$3"; return 1; }
+}
 
 # ---------------------------------------------------------------- uninstall
 if [ "$uninstall" -eq 1 ]; then
@@ -72,9 +96,11 @@ if [ "$uninstall" -eq 1 ]; then
     printf '%s [y/N] ' "$1"; read -r ans </dev/tty || true
     [ "$ans" = y ] || [ "$ans" = Y ]
   }
-  ask "Remove the Bearing plugin and its marketplace from Claude Code?" || { echo "uninstall: cancelled, nothing removed"; exit 0; }
+  ask "Remove the Bearing plugins (bearing, bearing-backend, bearing-apps) and their marketplace from Claude Code?" || { echo "uninstall: cancelled, nothing removed"; exit 0; }
   if [ "$no_claude" -eq 1 ] || ! command -v claude >/dev/null; then skip "claude CLI steps (no claude)"; else
-    if plugin_present 'bearing'; then runq claude plugin uninstall bearing@bearing && { echo "removed    plugin bearing@bearing"; removed=$((removed+1)); } || fail "claude plugin uninstall bearing@bearing"; else echo "absent     plugin bearing@bearing"; fi
+    for p in $PLUGINS; do
+      if plugin_present "$p@bearing"; then runq claude plugin uninstall "$p@bearing" && { echo "removed    plugin $p@bearing"; removed=$((removed+1)); } || fail "claude plugin uninstall $p@bearing"; else echo "absent     plugin $p@bearing"; fi
+    done
     if marketplace_present bearing; then runq claude plugin marketplace remove bearing && { echo "removed    marketplace bearing"; removed=$((removed+1)); } || fail "claude plugin marketplace remove bearing"; else echo "absent     marketplace bearing"; fi
   fi
   if [ -f "$ENVF" ]; then
@@ -82,7 +108,7 @@ if [ "$uninstall" -eq 1 ]; then
   else echo "absent     $ENVF"; fi
   if [ -f "$HOME/.claude/CLAUDE.md" ]; then
     # Only a byte-identical copy is the untouched template; any edit keeps it.
-    if cmp -s "$HOME/.claude/CLAUDE.md" "$KIT/templates/user/CLAUDE.md"; then
+    if cmp -s "$HOME/.claude/CLAUDE.md" "$PK/templates/user/CLAUDE.md"; then
       run rm -f "$HOME/.claude/CLAUDE.md" && { echo "removed    ~/.claude/CLAUDE.md (still the untouched template)"; removed=$((removed+1)); }
     else echo "kept       ~/.claude/CLAUDE.md (edited by you)"; kept=$((kept+1)); fi
   else echo "absent     ~/.claude/CLAUDE.md"; fi
@@ -144,9 +170,11 @@ if [ "$no_claude" -eq 1 ]; then
 else
   if marketplace_present bearing; then had "marketplace bearing"; else
     if runq claude plugin marketplace add "${remote:-$KIT}"; then did "marketplace bearing (${remote:-$KIT})"; else fail "claude plugin marketplace add ${remote:-$KIT}"; fi; fi
-  if plugin_present 'bearing'; then
-    runq claude plugin update bearing@bearing || true; had "plugin Bearing (updated)"; else
-    if runq claude plugin install bearing@bearing; then did "plugin bearing"; else fail "claude plugin install bearing@bearing"; fi; fi
+  for p in $PLUGINS; do
+    if plugin_present "$p@bearing"; then
+      runq claude plugin update "$p@bearing" || true; had "plugin $p (updated)"; else
+      if runq claude plugin install "$p@bearing"; then did "plugin $p"; else fail "claude plugin install $p@bearing"; fi; fi
+  done
 fi
 
 # ------------------------------------------------------- third-party packs
@@ -158,40 +186,44 @@ else
     if runq claude plugin install superpowers@claude-plugins-official; then did "superpowers"; else fail "claude plugin install superpowers@claude-plugins-official"; fi; fi
 
   if [ "$skip_gstack" -eq 1 ]; then skip "gstack"; else
-    gdir="$HOME/.claude/skills/gstack"
-    if [ -d "$gdir/.git" ]; then
-      if ! runq git -C "$gdir" pull --ff-only; then fail "gstack: update failed (git pull --ff-only in $gdir; see git -C $gdir status)"
-      elif ! runq bash -c "cd '$gdir' && ./setup"; then fail "gstack: update failed (./setup in $gdir exited non-zero)"
-      else had "gstack (updated to $(cat "$gdir/VERSION" 2>/dev/null || echo '?'))"; fi
-    else
-      if ! runq git clone --single-branch --depth 1 https://github.com/garrytan/gstack.git "$gdir"; then fail "gstack: clone failed (https://github.com/garrytan/gstack.git)"
-      elif ! runq bash -c "cd '$gdir' && ./setup"; then fail "gstack: setup failed (./setup in $gdir exited non-zero)"
-      else did "gstack $(cat "$gdir/VERSION" 2>/dev/null || echo '')"; fi
-    fi
+    gdir="$HOME/.claude/skills/gstack"; gurl=https://github.com/garrytan/gstack.git; gsha="$(pin clone garrytan/gstack)"
+    if [ -z "$gsha" ]; then fail "gstack: no clone|garrytan/gstack row in $PK/bin/pinned-packs.txt"
+    elif [ -d "$gdir/.git" ]; then
+      # An install is left as it is: gstack's own upgrader (/gstack-upgrade)
+      # moves it, and install.sh never pulls an unpinned branch.
+      ghead="$(git -C "$gdir" rev-parse HEAD 2>/dev/null || echo unknown)"
+      if [ "$ghead" = "$gsha" ]; then had "gstack $(cat "$gdir/VERSION" 2>/dev/null || echo '?') (pinned ${gsha:0:12})"
+      else had "gstack $(cat "$gdir/VERSION" 2>/dev/null || echo '?') at ${ghead:0:12}, not the pinned ${gsha:0:12} (left as it is; /gstack-upgrade moves it)"; fi
+    elif [ -e "$gdir" ]; then fail "gstack: $gdir exists and is not a git checkout"
+    elif ! runq git_fetch_at "$gurl" "$gsha" "$gdir"; then fail "gstack: fetch failed ($gurl at ${gsha:0:12})"
+    elif ! runq bash -c "cd '$gdir' && ./setup"; then fail "gstack: setup failed (./setup in $gdir exited non-zero)"
+    else did "gstack $(cat "$gdir/VERSION" 2>/dev/null || echo '') (pinned ${gsha:0:12})"; fi
   fi
 
   if [ "$skip_gsd" -eq 1 ]; then skip "GSD Core"; else
     if ls "$HOME/.claude/skills" 2>/dev/null | grep -qi '^gsd' || plugin_present 'gsd'; then had "GSD Core"; else
       # GSD Core wants node 24+; it prints an engine warning on older nodes but installs.
-      if runq npx --yes @opengsd/gsd-core@latest --global --claude; then did "GSD Core (global, Claude Code)"; else skip "GSD Core (installer failed; rerun: npx @opengsd/gsd-core@latest --global --claude)"; fi
+      gsd_v="$(pin npm @opengsd/gsd-core)"
+      if [ -z "$gsd_v" ]; then fail "GSD Core: no npm|@opengsd/gsd-core row in $PK/bin/pinned-packs.txt"
+      elif runq npx --yes "@opengsd/gsd-core@$gsd_v" --global --claude; then did "GSD Core $gsd_v (global, Claude Code)"; else skip "GSD Core (installer failed; rerun: npx @opengsd/gsd-core@$gsd_v --global --claude)"; fi
     fi
   fi
 fi
 
-echo "== open-source skill packs (main choices per stage; see docs/THIRD_PARTY.md)"
-if [ "$profile" != full ]; then skip "skill packs (profile $profile; --profile full or bin/brg-install-packs)"
+echo "== open-source skill packs (called by workflow steps; see docs/THIRD_PARTY.md)"
+if [ "$profile" != full ]; then skip "skill packs (profile $profile; --profile full or plugins/bearing/bin/brg-install-packs)"
 elif [ "$no_claude" -eq 1 ]; then skip "skill packs (--no-claude)"
 elif [ "$skip_packs" -eq 1 ]; then skip "skill packs"
-elif [ "$dry" -eq 1 ]; then echo "would run  bash $KIT/bin/brg-install-packs"
-elif bash "$KIT/bin/brg-install-packs"; then did "skill packs (bin/brg-install-packs)"
-else fail "skill packs: rerun bin/brg-install-packs after fixing the cause"; fi
+elif [ "$dry" -eq 1 ]; then echo "would run  bash $PK/bin/brg-install-packs"
+elif bash "$PK/bin/brg-install-packs"; then did "skill packs (plugins/bearing/bin/brg-install-packs)"
+else fail "skill packs: rerun plugins/bearing/bin/brg-install-packs after fixing the cause"; fi
 
 # ------------------------------------------------------- user configuration
 echo "== user configuration"
 if [ -f "$ENVF" ]; then had "$ENVF"
 else
-  if [ "$dry" -eq 1 ]; then echo "would copy $KIT/templates/user/bearing.env -> $ENVF (mode 600)"; did "$ENVF"
-  else mkdir -p "$CONF_DIR"; ( umask 077; cp "$KIT/templates/user/bearing.env" "$ENVF" ); did "$ENVF (set BEARING_TRACKER and the rest; none is a valid tracker)"; fi
+  if [ "$dry" -eq 1 ]; then echo "would copy $PK/templates/user/bearing.env -> $ENVF (mode 600)"; did "$ENVF"
+  else mkdir -p "$CONF_DIR"; ( umask 077; cp "$PK/templates/user/bearing.env" "$ENVF" ); did "$ENVF (set BEARING_TRACKER and the rest; none is a valid tracker)"; fi
 fi
 # Record the profile so doctor knows which packs this machine should have.
 if [ "$dry" -eq 1 ]; then echo "would set BEARING_PROFILE=$profile in $ENVF"
@@ -208,17 +240,17 @@ fi
 echo "== personal CLAUDE.md"
 if [ "$no_claude" -eq 1 ]; then skip "~/.claude/CLAUDE.md (--no-claude)"
 elif [ -f "$HOME/.claude/CLAUDE.md" ]; then had "~/.claude/CLAUDE.md"; else
-  if [ "$dry" -eq 1 ]; then echo "would copy $KIT/templates/user/CLAUDE.md -> ~/.claude/CLAUDE.md"; did "~/.claude/CLAUDE.md"
-  else mkdir -p "$HOME/.claude"; cp "$KIT/templates/user/CLAUDE.md" "$HOME/.claude/CLAUDE.md"; did "~/.claude/CLAUDE.md (edit the first line)"; fi
+  if [ "$dry" -eq 1 ]; then echo "would copy $PK/templates/user/CLAUDE.md -> ~/.claude/CLAUDE.md"; did "~/.claude/CLAUDE.md"
+  else mkdir -p "$HOME/.claude"; cp "$PK/templates/user/CLAUDE.md" "$HOME/.claude/CLAUDE.md"; did "~/.claude/CLAUDE.md (edit the first line)"; fi
 fi
 
 echo "== doctor"
 if [ "$no_claude" -eq 1 ]; then skip "brg-doctor (checks the Claude Code install; --no-claude)"
-elif [ "$dry" -eq 1 ]; then echo "would run  bash $KIT/bin/brg-doctor"
-else bash "$KIT/bin/brg-doctor" || true; fi
+elif [ "$dry" -eq 1 ]; then echo "would run  bash $PK/bin/brg-doctor"
+else bash "$PK/bin/brg-doctor" || true; fi
 
 echo "install.sh: $installed installed, $present already present, $skipped skipped, $failed failed$mode_note"
 if [ "$no_claude" -eq 1 ]; then
-  echo "next: in each repository run  bash $KIT/bin/brg-harness <cursor|codex|gemini|copilot|opencode|windsurf|cline|zed|kiro|all> --dir <repo>"
+  echo "next: in each repository run  bash $PK/bin/brg-harness <cursor|codex|gemini|copilot|opencode|windsurf|cline|zed|kiro|all> --dir <repo>"
 else echo "Restart Claude Code to load new plugins."; fi
 [ "$failed" -eq 0 ] || exit 1

@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# tests/unit/progress.sh: skills/session-handoff/scripts/progress.py writes
+# tests/unit/progress.sh: plugins/bearing/skills/session-handoff/scripts/progress.py writes
 # docs/progress/<ID>.md from the template (comments removed), updates only
 # the named fields, indexes every file with a count per status (and reads
 # unmerged branches with --refs), fails on zero files, and check catches an
 # unknown status and a missing field. bash 3.2 safe.
 set -u
 . "$(dirname "$0")/../lib/assert.sh"
-P="$KIT/skills/session-handoff/scripts/progress.py"
+P="$KIT/plugins/bearing/skills/session-handoff/scripts/progress.py"
 TODAY="$(date -u +%Y-%m-%d)"
 
 repo() { # a git repository on a task branch, printed

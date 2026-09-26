@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# tests/unit/checklists.sh: bin/brg-checklists names the universal
+# tests/unit/checklists.sh: plugins/bearing/bin/brg-checklists names the universal
 # checklist first and one per detected stack, from repository markers, a
 # diff range or files, with package.json deciding the JavaScript lane; every
 # path it prints exists; it fails on zero files; and brg-guard session lists
 # the checklists so any review in the session sees them.
 set -u
 . "$(dirname "$0")/../lib/assert.sh"
-CL="$KIT/bin/brg-checklists"
+CL="$KIT/plugins/bearing/bin/brg-checklists"
 
 t_begin "files map to lanes, universal first, every path exists"
 d="$(tmpdir)"; mkdir -p "$d/web" "$d/mobile" "$d/api"
@@ -15,7 +15,7 @@ printf '{"dependencies":{"expo":"54","react-native":"0.81"}}' > "$d/mobile/packa
 printf '{"dependencies":{"fastify":"5"}}' > "$d/api/package.json"
 assert_exit 0 bash -c "cd '$d' && '$CL' --files web/app/page.tsx mobile/app/index.tsx api/src/server.ts db/migrations/001.sql infra/main.tf lib/main.dart svc/main.go"
 first="$(printf '%s\n' "$T_OUT" | head -1)"
-assert_contains "$first" "skills/branch-review/references/universal-checklist.md"
+assert_contains "$first" "plugins/bearing/skills/branch-review/references/universal-checklist.md"
 for s in nextjs react-native node database infra flutter go; do assert_contains "$T_OUT" "skills/$s/references/review-checklist.md"; done
 assert_contains "$T_OUT" "brg-checklists: 8 checklists from 7 files"
 for p in $(printf '%s\n' "$T_OUT" | grep '^/'); do assert_file "$p"; done

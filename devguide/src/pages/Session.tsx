@@ -7,7 +7,7 @@ import { data } from "../lib/data";
 
 /**
  * One session, event by event. The branch, file names and prompt are an
- * example; every line a hook prints is the guard's own wording (bin/brg-guard
+ * example; every line a hook prints is the guard's own wording (plugins/bearing/bin/brg-guard
  * session, task-id, check-file, stop-gate, precompact).
  */
 type Row = { who: "hook" | "you" | "model" | "tool"; tag?: string; text: string; tone?: "bad" | "good" };
@@ -15,7 +15,7 @@ const FILM: { frame: Omit<Frame, "visual">; rows: Row[] }[] = [
   {
     frame: {
       title: "SessionStart",
-      where: "hooks/scripts/session-start.sh → brg-guard session --id <id> --source startup",
+      where: "plugins/bearing/hooks/scripts/session-start.sh → brg-guard session --id <id> --source startup",
       body: (
         <>
           <p>
@@ -38,7 +38,7 @@ const FILM: { frame: Omit<Frame, "visual">; rows: Row[] }[] = [
   {
     frame: {
       title: "UserPromptSubmit",
-      where: "hooks/scripts/inject-task-id.sh → brg-guard task-id \"<prompt>\"",
+      where: "plugins/bearing/hooks/scripts/inject-task-id.sh → brg-guard task-id \"<prompt>\"",
       body: (
         <p>
           You ask for the encoder. The branch carries <code>TASK-142</code> and the prompt does not, so the guard adds one line. It never blocks; when the prompt
@@ -54,7 +54,7 @@ const FILM: { frame: Omit<Frame, "visual">; rows: Row[] }[] = [
   {
     frame: {
       title: "PreToolUse, allowed",
-      where: "hooks/scripts/block-publish.sh → brg-guard command \"<command>\"",
+      where: "plugins/bearing/hooks/scripts/block-publish.sh → brg-guard command \"<command>\"",
       body: (
         <p>
           Before every Bash call the guard reads the command. <code>go test ./internal/export/...</code> matches no rule, so the guard exits 0, logs{" "}
@@ -70,7 +70,7 @@ const FILM: { frame: Omit<Frame, "visual">; rows: Row[] }[] = [
   {
     frame: {
       title: "PostToolUse, a problem",
-      where: "hooks/scripts/format-file.sh → brg-guard format, then brg-guard check-file",
+      where: "plugins/bearing/hooks/scripts/format-file.sh → brg-guard format, then brg-guard check-file",
       body: (
         <>
           <p>
@@ -111,7 +111,7 @@ const FILM: { frame: Omit<Frame, "visual">; rows: Row[] }[] = [
   {
     frame: {
       title: "PreCompact",
-      where: "hooks/scripts/precompact.sh → brg-guard precompact <transcript>",
+      where: "plugins/bearing/hooks/scripts/precompact.sh → brg-guard precompact <transcript>",
       body: (
         <p>
           The context fills up. Before Claude Code summarises it, the guard writes <code>.bearing/state/&lt;branch&gt;.compact.md</code>: the uncommitted
@@ -141,7 +141,7 @@ const FILM: { frame: Omit<Frame, "visual">; rows: Row[] }[] = [
   {
     frame: {
       title: "Stop, sent back",
-      where: "hooks/scripts/stop-summary.sh → brg-guard stop-gate --id <id>",
+      where: "plugins/bearing/hooks/scripts/stop-summary.sh → brg-guard stop-gate --id <id>",
       body: (
         <>
           <p>
@@ -214,7 +214,7 @@ export function Session() {
         { id: "state", label: "The state directory" },
         { id: "telemetry", label: "Gate telemetry" },
       ]}
-      sources={["hooks/hooks.json", "hooks/scripts/lib.sh", "hooks/scripts/session-start.sh", "hooks/scripts/format-file.sh", "hooks/scripts/stop-summary.sh", "bin/brg-guard"]}
+      sources={["plugins/bearing/hooks/hooks.json", "plugins/bearing/hooks/scripts/lib.sh", "plugins/bearing/hooks/scripts/session-start.sh", "plugins/bearing/hooks/scripts/format-file.sh", "plugins/bearing/hooks/scripts/stop-summary.sh", "plugins/bearing/bin/brg-guard"]}
     >
       <H2 id="film">The session</H2>
       <Stepper label="A session, event by event" frames={frames} visual={(i) => <Transcript upto={i} />} interval={5200} />
@@ -256,7 +256,7 @@ export function Session() {
         The decision logic lives in the guard so that Cursor, Codex, Gemini CLI and the rest can call the same logic through their own adapters (see{" "}
         <Link to="/harnesses">Other harnesses</Link>).
       </p>
-      <Code cap="hooks/scripts/lib.sh, the part every adapter uses">{`HOOK_JSON="$(cat 2>/dev/null || true)"     # the event, read once
+      <Code cap="plugins/bearing/hooks/scripts/lib.sh, the part every adapter uses">{`HOOK_JSON="$(cat 2>/dev/null || true)"     # the event, read once
 
 json_field() {                              # json_field tool_input.command
   if command -v jq >/dev/null 2>&1; then

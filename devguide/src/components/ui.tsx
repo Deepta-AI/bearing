@@ -1,9 +1,9 @@
-import { useEffect, useState, type ReactNode } from "react";
-import { Link, useLocation } from "react-router";
+import { Callout, CodeBlock, DocPage, type Toc } from "@ui";
+import type { ReactNode } from "react";
+import { Link } from "react-router";
 import { scriptByName, skillByName, srcHref } from "../lib/data";
-import { ORDER } from "../lib/nav";
 
-export type Toc = { id: string; label: string }[];
+export type { Toc };
 
 /** A chapter: title, lede, an on-this-page rail with scroll position, and the files it describes. */
 export function Page({
@@ -23,58 +23,19 @@ export function Page({
   full?: boolean;
   children: ReactNode;
 }) {
-  const { hash, pathname } = useLocation();
-  const [on, setOn] = useState("");
-  useEffect(() => {
-    if (hash) document.getElementById(decodeURIComponent(hash.slice(1)))?.scrollIntoView();
-    else window.scrollTo(0, 0);
-  }, [hash, pathname]);
-  useEffect(() => {
-    if (!toc?.length) return;
-    const els = toc.map((t) => document.getElementById(t.id)).filter(Boolean) as HTMLElement[];
-    const io = new IntersectionObserver(
-      (entries) => {
-        const vis = entries.filter((e) => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
-        if (vis[0]) setOn(vis[0].target.id);
-      },
-      { rootMargin: "-70px 0px -65% 0px" },
-    );
-    els.forEach((e) => io.observe(e));
-    return () => io.disconnect();
-  }, [toc]);
-  const aside = !full && ((toc && toc.length > 1) || (sources && sources.length > 0));
+  const aside =
+    sources && sources.length > 0 ? (
+      <div className="src">
+        <span className="t">Source files</span>
+        {sources.map((s) => (
+          <Src key={s} path={s} />
+        ))}
+      </div>
+    ) : undefined;
   return (
-    <div className={aside ? "page" : "page full"}>
-      <article>
-        {crumb && <div className="crumb">{crumb}</div>}
-        <h1>{title}</h1>
-        {lede && <p className="lede">{lede}</p>}
-        {children}
-        <Pager />
-      </article>
-      {aside && (
-        <nav className="onpage" aria-label="On this page">
-          {toc && toc.length > 1 && (
-            <>
-              <h2>On this page</h2>
-              {toc.map((t) => (
-                <a key={t.id} href={`#${t.id}`} className={on === t.id ? "on" : undefined}>
-                  {t.label}
-                </a>
-              ))}
-            </>
-          )}
-          {sources && sources.length > 0 && (
-            <div className="src">
-              <h2>Source files</h2>
-              {sources.map((s) => (
-                <Src key={s} path={s} />
-              ))}
-            </div>
-          )}
-        </nav>
-      )}
-    </div>
+    <DocPage crumb={crumb} title={title} lede={lede} toc={toc} full={full} aside={aside}>
+      {children}
+    </DocPage>
   );
 }
 
@@ -87,61 +48,16 @@ export function H2({ id, children }: { id: string; children: ReactNode }) {
   return <h2 id={id}>{children}</h2>;
 }
 
-function Pager() {
-  const { pathname } = useLocation();
-  const i = ORDER.findIndex((o) => o.to === pathname);
-  if (i < 0) return null;
-  const prev = ORDER[i - 1];
-  const next = ORDER[i + 1];
-  return (
-    <nav className="pager" aria-label="Chapters">
-      {prev && (
-        <Link to={prev.to}>
-          <small>Previous</small>
-          {prev.label}
-        </Link>
-      )}
-      {next && (
-        <Link className="next" to={next.to}>
-          <small>Next</small>
-          {next.label}
-        </Link>
-      )}
-    </nav>
-  );
-}
-
 /** A code block with a copy button. */
 export function Code({ children, cap }: { children: string; cap?: string }) {
-  const [copied, setCopied] = useState(false);
-  return (
-    <div className="copy">
-      {cap && <div className="cap">{cap}</div>}
-      <pre>{children}</pre>
-      <button
-        type="button"
-        onClick={() =>
-          navigator.clipboard?.writeText(children).then(
-            () => {
-              setCopied(true);
-              setTimeout(() => setCopied(false), 1400);
-            },
-            () => undefined,
-          )
-        }
-      >
-        {copied ? "Copied" : "Copy"}
-      </button>
-    </div>
-  );
+  return <CodeBlock cap={cap}>{children}</CodeBlock>;
 }
 
 export function Note({ tone, title, children }: { tone?: "jade" | "signal"; title?: string; children: ReactNode }) {
   return (
-    <div className={`note ${tone ?? ""}`}>
-      {title && <strong>{title}</strong>}
+    <Callout tone={tone === "jade" ? "ok" : tone === "signal" ? "bad" : "warn"} title={title}>
       {children}
-    </div>
+    </Callout>
   );
 }
 

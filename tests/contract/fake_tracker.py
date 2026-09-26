@@ -29,6 +29,7 @@ never logged):
 import argparse
 import json
 import re
+import socketserver
 import sys
 import threading
 import time
@@ -529,7 +530,7 @@ def main():
     ap.add_argument("--delay", type=float, default=0)
     ARGS = ap.parse_args()
     reset()
-    server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+    server = QuickServer(("127.0.0.1", 0), Handler)
     server.daemon_threads = True
     with open(ARGS.port_file, "w", encoding="utf-8") as fh:
         fh.write("%d\n" % server.server_address[1])
@@ -538,6 +539,16 @@ def main():
     except KeyboardInterrupt:
         pass
     return 0
+
+
+class QuickServer(ThreadingHTTPServer):
+    """HTTPServer.server_bind resolves its name with socket.getfqdn, a reverse
+    lookup that can stall for many seconds on a macOS runner before the port
+    file is written. The name is never used here, so skip the lookup."""
+
+    def server_bind(self):
+        socketserver.TCPServer.server_bind(self)
+        self.server_name, self.server_port = self.server_address[:2]
 
 
 if __name__ == "__main__":

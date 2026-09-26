@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# tests/unit/screen_states.sh: skills/screen-design/scripts/states_check.py
+# tests/unit/screen_states.sh: plugins/bearing/skills/screen-design/scripts/states_check.py
 # passes screens that render every state the flows inventory lists and
 # fails, with the reason, on a missing panel, a panel without a state-bar
 # button, a missing prototype, unfilled placeholders (the raw template),
@@ -7,7 +7,7 @@
 # less the states the page marks n/a.
 set -u
 . "$(dirname "$0")/../lib/assert.sh"
-CHK="$KIT/skills/screen-design/scripts/states_check.py"
+CHK="$KIT/plugins/bearing/skills/screen-design/scripts/states_check.py"
 
 # screen <file> <state>...: a prototype shaped like templates/screen.html.
 screen() {
@@ -71,7 +71,7 @@ assert_contains "$T_OUT" "0 of 1 screens with all inventory states"
 t_end
 
 t_begin "the raw template fails on its placeholders"
-d="$(tmpdir)"; cp "$KIT/skills/screen-design/templates/screen.html" "$d/S-01-raw.html"
+d="$(tmpdir)"; cp "$KIT/plugins/bearing/skills/screen-design/templates/screen.html" "$d/S-01-raw.html"
 assert_exit 1 python3 "$CHK" --screens "$d"
 assert_contains "$T_OUT" "unfilled placeholders"
 t_end

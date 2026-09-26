@@ -2,7 +2,7 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router";
 import { data, packKey, skillByName, type Flow, type FlowNode, type FlowStep } from "../lib/data";
-import { PackTag, SkillLink } from "./ui";
+import { PackTag } from "./ui";
 
 type Selection = Record<number, number[]>; // branch index -> chosen option indexes
 
@@ -93,28 +93,16 @@ function StepCard({
                   <p>{step.does}</p>
                 </div>
                 <div>
-                  <h4>Why this skill</h4>
+                  <h4>Why this step</h4>
                   <p>{step.why}</p>
                 </div>
                 <div>
                   <h4>You get</h4>
                   <p>{step.output}</p>
                 </div>
-                {step.alternates.length > 0 && (
-                  <div>
-                    <h4>Use instead when</h4>
-                    <div className="alts">
-                      {step.alternates.map((a) => (
-                        <div key={a.skill}>
-                          <SkillLink name={a.skill} /> <PackTag pack={a.pack} /> {a.when}.
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
                 <div className="acts">
                   <span className="muted">Type</span> <code>{step.skill}</code>
-                  {skillByName.has(step.skill.split(" ")[0]) && <Link to={`/skills/${step.skill.split(" ")[0]}`}>Why this over the alternative</Link>}
+                  {skillByName.has(step.skill.split(" ")[0]) && <Link to={`/skills/${step.skill.split(" ")[0]}`}>About this skill</Link>}
                 </div>
               </div>
             </motion.div>

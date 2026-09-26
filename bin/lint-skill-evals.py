@@ -26,6 +26,8 @@ import os
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(ROOT, "bin"))
+import kit_paths  # noqa: E402
 
 
 def check_evals(name, eval_dir, path, problems):
@@ -68,14 +70,16 @@ def check_evals(name, eval_dir, path, problems):
 
 
 def main():
-    skills_dir = sys.argv[1] if len(sys.argv) > 1 else os.path.join(ROOT, "skills")
+    # One skills directory when named (the tests), else every Bearing plugin's.
+    skills_dirs = [sys.argv[1]] if len(sys.argv) > 1 else [str(r) for r in kit_paths.skill_roots()]
     evals_dir = sys.argv[2] if len(sys.argv) > 2 else os.path.join(ROOT, "evals")
     pending_file = (
         sys.argv[3] if len(sys.argv) > 3 else os.path.join(evals_dir, ".pending")
     )
-    if not os.path.isdir(skills_dir):
+    missing = [d for d in skills_dirs if not os.path.isdir(d)]
+    if not skills_dirs or missing:
         print(
-            f"lint-evals: no skills directory at {skills_dir}, nothing checked",
+            f"lint-evals: no skills directory at {', '.join(missing) or 'any plugin'}, nothing checked",
             file=sys.stderr,
         )
         return 1
@@ -86,18 +90,20 @@ def main():
             for l in open(pending_file, encoding="utf-8")
             if l.strip() and not l.startswith("#")
         }
-    names = sorted(
-        d
-        for d in os.listdir(skills_dir)
-        if os.path.isfile(os.path.join(skills_dir, d, "SKILL.md"))
-    )
+    where = {
+        d: os.path.join(sd, d)
+        for sd in skills_dirs
+        for d in os.listdir(sd)
+        if os.path.isfile(os.path.join(sd, d, "SKILL.md"))
+    }
+    names = sorted(where)
     problems, with_evals, cases = [], 0, 0
     for name in names:
         d = os.path.join(evals_dir, name)
         path = os.path.join(d, "evals.json")
-        if os.path.isdir(os.path.join(skills_dir, name, "evals")):
+        if os.path.isdir(os.path.join(where[name], "evals")):
             problems.append(
-                f"{name}: skills/{name}/evals/ exists; evals live in evals/{name}/, away from the skill"
+                f"{name}: {os.path.relpath(where[name], ROOT)}/evals/ exists; evals live in evals/{name}/, away from the skill"
             )
         if os.path.isfile(path):
             with_evals += 1

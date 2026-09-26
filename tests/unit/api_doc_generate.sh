@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# tests/unit/api_doc_generate.sh: skills/openapi-spec/scripts/api_doc.py writes
+# tests/unit/api_doc_generate.sh: plugins/bearing/skills/openapi-spec/scripts/api_doc.py writes
 # docs/api/API.md from an OpenAPI spec: header (style, base path, versioning,
 # authentication, error code table), numbered conventions with reasons from
 # the style reference, one section per tag with Serves and the operation
@@ -7,8 +7,8 @@
 # fixture spec is JSON (valid YAML) so the test needs no PyYAML.
 set -u
 . "$(dirname "$0")/../lib/assert.sh"
-AD="$KIT/skills/openapi-spec/scripts/api_doc.py"
-STYLE="$KIT/skills/openapi-spec/references/api-style.md"
+AD="$KIT/plugins/bearing/skills/openapi-spec/scripts/api_doc.py"
+STYLE="$KIT/plugins/bearing/skills/openapi-spec/references/api-style.md"
 
 spec() { cat > "$1" <<'JSON'
 {

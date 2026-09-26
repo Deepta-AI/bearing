@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# tests/unit/gate_probe.sh: skills/gate-audit/scripts/probe_gates.py
+# tests/unit/gate_probe.sh: plugins/bearing/skills/gate-audit/scripts/probe_gates.py
 # runs each gate of a fixture repository in an emptied throwaway copy and
 # reports: a gate that fails on empty input and prints a count is clean; a
 # gate that passes on empty input, one that prints no count, and a hook
@@ -9,7 +9,7 @@
 # is never written. Zero gates, or zero gates probed, fails.
 set -u
 . "$(dirname "$0")/../lib/assert.sh"
-CHK="$KIT/skills/gate-audit/scripts/probe_gates.py"
+CHK="$KIT/plugins/bearing/skills/gate-audit/scripts/probe_gates.py"
 TAB="$(printf '\t')"
 
 # fixture <dir> <check prerequisites>: a Makefile with five gates, a script, a CI file, a hook.

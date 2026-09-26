@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# tests/unit/motion_check.sh: skills/motion-design/scripts/motion_check.py
+# tests/unit/motion_check.sh: plugins/bearing/skills/motion-design/scripts/motion_check.py
 # counts animations across web CSS, web scripts, React Native, Compose and
 # SwiftUI, and passes only when every one moves transform and opacity and
 # has a reduced-motion path (in the file or a shared tokens module). It
@@ -8,7 +8,7 @@
 # kit's own hero and banner templates pass.
 set -u
 . "$(dirname "$0")/../lib/assert.sh"
-CHK="$KIT/skills/motion-design/scripts/motion_check.py"
+CHK="$KIT/plugins/bearing/skills/motion-design/scripts/motion_check.py"
 
 # fixture <dir>: one clean file per stack plus a shared tokens module.
 fixture() {
@@ -68,7 +68,7 @@ assert_not_contains "$T_OUT" "problem:"
 t_end
 
 t_begin "the kit's hero and banner templates pass"
-assert_exit 0 run "$KIT/skills/motion-design/templates/hero.html" "$KIT/skills/motion-design/templates/banner.html"
+assert_exit 0 run "$KIT/plugins/bearing/skills/motion-design/templates/hero.html" "$KIT/plugins/bearing/skills/motion-design/templates/banner.html"
 assert_contains "$T_OUT" "0 properties outside transform and opacity, 0 without a reduced-motion path"
 t_end
 

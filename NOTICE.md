@@ -1,7 +1,8 @@
 # Notice
 
 Bearing is copyright (c) 2026 Ravi Teja Akella and is released under the
-MIT licence in `LICENSE`.
+MIT licence in `LICENSE`. Its home is
+<https://github.com/Deepta-AI/bearing>.
 
 Third-party skill packs, plugins and tools that the installer can add are
 not part of Bearing. Each keeps its own licence, recorded in

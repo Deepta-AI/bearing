@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# tests/unit/autopilot_state.sh: bin/brg-autopilot keeps the order and checks
+# tests/unit/autopilot_state.sh: plugins/bearing/bin/brg-autopilot keeps the order and checks
 # every gate on disk. A new run starts at repo; done on a stage whose gate is
 # not met fails and says what is missing; stages run in order; an ADR this
 # run wrote as Accepted fails the decide gate; three failed attempts block a
@@ -7,7 +7,7 @@
 # the report carries the digest; a second start on an open run is refused.
 set -u
 . "$(dirname "$0")/../lib/assert.sh"
-AP="$KIT/bin/brg-autopilot"; export AP
+AP="$KIT/plugins/bearing/bin/brg-autopilot"; export AP
 d="$(tmpdir)/run"
 ap() { python3 "$AP" "$@" --dir "$d"; }
 commit() { git -C "$d" add -A >/dev/null 2>&1; git -C "$d" -c user.email=t@e -c user.name=t commit -qm "$1" >/dev/null 2>&1; }
@@ -136,7 +136,7 @@ printf 'smoke: 12 requests checked, 1 failed\n' > "$d/.scratch/smoke-T-5.md"
 assert_exit 1 ap "done" dod
 assert_contains "$T_OUT" "smoke: 1 of 12 requests failed"
 printf 'smoke: 12 requests checked, 0 failed\n' > "$d/.scratch/smoke-T-5.md"
-touch -d '2001-01-01' "$d/.scratch/smoke-T-5.md"
+touch -t 200101010000 "$d/.scratch/smoke-T-5.md"
 assert_exit 1 ap "done" dod
 assert_contains "$T_OUT" "the smoke run is older than the last commit"
 touch "$d/.scratch/smoke-T-5.md"

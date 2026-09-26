@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# tests/unit/deps_supply_chain.sh: skills/dependency-audit/scripts/supply-chain.py
+# tests/unit/deps_supply_chain.sh: plugins/bearing/skills/dependency-audit/scripts/supply-chain.py
 # passes a repository whose lockfile is tracked and whose production
 # dependency closure has no install scripts; flags a postinstall in a
 # transitive production dependency but not in a devDependency; lists a
@@ -8,7 +8,7 @@
 # zero manifests. The node_modules trees are written here; nothing installs.
 set -u
 . "$(dirname "$0")/../lib/assert.sh"
-SC="$KIT/skills/dependency-audit/scripts/supply-chain.py"
+SC="$KIT/plugins/bearing/skills/dependency-audit/scripts/supply-chain.py"
 
 # pkg <dir> <name> <deps-json> [scripts-json]: node_modules/<name>/package.json
 pkg() {

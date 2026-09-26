@@ -32,7 +32,10 @@ import subprocess
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-GUARD = os.path.join(ROOT, "bin", "brg-guard")
+sys.path.insert(0, os.path.join(ROOT, "bin"))
+import kit_paths  # noqa: E402
+
+GUARD = os.path.join(ROOT, "plugins", "bearing", "bin", "brg-guard")
 ALLOW_FILE = os.path.join(ROOT, "bin", "lint-skill-tools.allow")
 SECTIONS = {"Inputs", "Steps", "Commands"}
 
@@ -240,23 +243,29 @@ def guard_blocks(cmd):
 
 def main():
     global ALLOW_FILE
-    skills_dir = sys.argv[1] if len(sys.argv) > 1 else os.path.join(ROOT, "skills")
+    # One skills directory when named (the tests), else every Bearing plugin's.
+    if len(sys.argv) > 1:
+        skills_dirs = [sys.argv[1]]
+    else:
+        skills_dirs = [str(r) for r in kit_paths.skill_roots()]
     if len(sys.argv) > 2:
         ALLOW_FILE = sys.argv[2]
     allow = load_allow()
     used = set()
-    if not os.path.isdir(skills_dir):
-        print(f"lint-tools: no skills directory at {skills_dir}, nothing checked", file=sys.stderr)
+    missing = [d for d in skills_dirs if not os.path.isdir(d)]
+    if not skills_dirs or missing:
+        print(f"lint-tools: no skills directory at {', '.join(missing) or 'any plugin'}, nothing checked", file=sys.stderr)
         return 1
-    names = sorted(
-        d
-        for d in os.listdir(skills_dir)
-        if os.path.isfile(os.path.join(skills_dir, d, "SKILL.md"))
+    found = sorted(
+        (d, os.path.join(sd, d))
+        for sd in skills_dirs
+        for d in os.listdir(sd)
+        if os.path.isfile(os.path.join(sd, d, "SKILL.md"))
     )
     n_skills = n_cmds = n_exempt = 0
     findings = []
-    for name in names:
-        text = open(os.path.join(skills_dir, name, "SKILL.md"), encoding="utf-8").read()
+    for name, sdir in found:
+        text = open(os.path.join(sdir, "SKILL.md"), encoding="utf-8").read()
         fm, body = frontmatter(text)
         tools = allowed_tools(fm)
         if tools is None:
@@ -289,7 +298,7 @@ def main():
                     continue
                 seen.add(key)
                 findings.append(
-                    f"skills/{name}/SKILL.md:{lineno + offset}: `{raw}` is not granted by allowed-tools"
+                    f"{os.path.relpath(os.path.join(sdir, 'SKILL.md'), ROOT)}:{lineno + offset}: `{raw}` is not granted by allowed-tools"
                 )
     for a in allow:
         if a not in used:

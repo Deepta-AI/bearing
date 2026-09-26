@@ -6,7 +6,7 @@
 # each fails on empty input and prints the count of what it checked.
 set -u
 . "$(dirname "$0")/../lib/assert.sh"
-SK="$KIT/skills"
+SK="$KIT/plugins/bearing/skills"
 
 # --- wer.py ---------------------------------------------------------------
 t_begin "wer: exact match scores zero; the normaliser ignores case, punctuation and the danda"

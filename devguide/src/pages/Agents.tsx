@@ -15,7 +15,7 @@ const CONTRACT: Record<string, string> = {
 const REVIEW: Frame[] = [
   {
     title: "Collect",
-    where: "skills/branch-review, in the main session",
+    where: "plugins/bearing/skills/branch-review, in the main session",
     body: (
       <p>
         The skill resolves the range (the argument, else <code>origin/develop...HEAD</code>, else main, else the last commit) and writes{" "}
@@ -29,8 +29,8 @@ const REVIEW: Frame[] = [
     where: "gstack /review, or reviewer without gstack",
     body: (
       <p>
-        The engine reads the diff with the universal checklist and each stack's review checklist and reports findings. gstack's review is the stronger finder
-        (parallel specialists, an adversarial pass), so it is the engine whenever it is installed; <code>reviewer</code> is the fallback.
+        The engine reads the diff with the universal checklist and each stack's review checklist and reports findings. gstack's review
+        (parallel specialists, an adversarial pass) is the engine whenever it is installed; <code>reviewer</code> is the fallback.
       </p>
     ),
   },
@@ -90,10 +90,13 @@ export function Agents() {
         ...data.agents.map((a) => ({ id: a.name, label: a.name })),
         { id: "review", label: "The review pipeline" },
       ]}
-      sources={data.agents.map((a) => `agents/${a.name}.md`)}
+      sources={data.agents.map((a) => `plugins/bearing/agents/${a.name}.md`)}
     >
       <H2 id="why">Why subagents</H2>
-      <p>Three properties make a subagent worth its cost:</p>
+      <p>
+        The plugin namespaces each one, so Claude Code knows them as <code>bearing:reviewer</code>, <code>bearing:critic</code> and so on; a skill names the
+        short form in its <code>agent:</code> field or starts one by that name. Three properties make a subagent worth its cost:
+      </p>
       <ul>
         <li>
           <strong>Isolation.</strong> It starts without the session's reasoning, so a verifier checks the code and not the argument.

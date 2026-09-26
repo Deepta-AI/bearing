@@ -165,7 +165,7 @@ export function Compass() {
         {h && (
           <>
             <div className="chain">
-              <span className="chip">hooks/hooks.json</span>
+              <span className="chip">plugins/bearing/hooks/hooks.json</span>
               <span aria-hidden="true">→</span>
               <Link className="chip sea" to={`/scripts/${h.script}`}>
                 {h.script}

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# tests/unit/stories_coverage.sh: skills/backlog/scripts/coverage_check.py
+# tests/unit/stories_coverage.sh: plugins/bearing/skills/backlog/scripts/coverage_check.py
 # passes a covered backlog and fails, with the reason, on an uncovered REQ,
 # a Covers naming an unknown REQ, a story-level REQ no AC names, an epic
 # without a journey, a missing matrix row or Why, a story missing its
@@ -8,7 +8,7 @@
 # lines, so a matrix that claims "covered" does not rescue a gap.
 set -u
 . "$(dirname "$0")/../lib/assert.sh"
-CHK="$KIT/skills/backlog/scripts/coverage_check.py"
+CHK="$KIT/plugins/bearing/skills/backlog/scripts/coverage_check.py"
 
 # fixture <dir>: a PRD with REQ-001..003 (004 withdrawn) and objective B1,
 # two stories with an index, tasks, questions, flows and a matrix.

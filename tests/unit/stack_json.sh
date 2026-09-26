@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# tests/unit/stack_json.sh: every skills/*/templates*/stack.json parses,
+# tests/unit/stack_json.sh: every plugins/*/skills/*/templates*/stack.json parses,
 # carries the keys brg-scaffold and brg-adopt require (id type stack databases
 # entrypoint rules_file install tool), has a lane-shaped id that the scaffold
 # lists as known, a unique id, a rules_file ending in .md backed by the
@@ -13,11 +13,11 @@ jget() { python3 -c 'import json,sys
 v=json.load(open(sys.argv[1])).get(sys.argv[2],"")
 print(v if isinstance(v,str) else "")' "$1" "$2"; }
 
-files="$(ls "$KIT"/skills/*/templates*/stack.json 2>/dev/null | sort)"
+files="$(ls "$KIT"/plugins/*/skills/*/templates*/stack.json 2>/dev/null | sort)"
 n=0; ids=""
 
 t_begin "the scaffold lists every id as known"
-assert_exit 2 bash "$KIT/bin/brg-scaffold" no-such-stack Probe --dir "$(tmpdir)/x"
+assert_exit 2 bash "$KIT/plugins/bearing/bin/brg-scaffold" no-such-stack Probe --dir "$(tmpdir)/x"
 assert_contains "$T_OUT" "unknown stack 'no-such-stack'. Known:"
 known="$T_OUT"
 t_end
@@ -43,7 +43,7 @@ for f in $files; do
   ids="$ids $id"
   rules="$(jget "$f" rules_file)"
   assert_eq 1 "$([ "${rules%.md}" != "$rules" ] && echo 1)" "$rel: rules_file '$rules' ends in .md"
-  assert_file "$KIT/skills/$skill/references/rules.md"
+  assert_file "$(dirname "$(dirname "$f")")/references/rules.md"
   assert_file "$(dirname "$f")/Makefile"
   assert_eq 1 "$(grep -Eq '^check:' "$(dirname "$f")/Makefile" 2>/dev/null && echo 1)" "$rel: the stack Makefile has a check target"
   t_end

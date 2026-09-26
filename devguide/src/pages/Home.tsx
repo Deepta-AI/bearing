@@ -7,23 +7,27 @@ import { data } from "../lib/data";
 export default function Home() {
   const c = data.counts;
   const manifest: [string, number | string, string, string, string][] = [
-    ["Skills", c.skills, "skills/*/SKILL.md", "/skills-work", `${c.commandSkills} you type, ${c.skills - c.commandSkills} the model picks, ${c.stackSkills} stack lanes`],
-    ["Subagents", c.agents, "agents/*.md", "/agents", "forked contexts with fewer tools than the session"],
-    ["Hook events", c.hooks, "hooks/hooks.json", "/session", "each a few lines of shell over one guard script"],
-    ["Guard rules", data.guardRules.length, "bin/brg-guard", "/guard", "the verbs an agent may not run"],
-    ["Scripts", c.scripts, "bin/, hooks/scripts/, skills/*/scripts/", "/scripts", `${c.scriptLines.toLocaleString("en")} lines of bash and Python`],
-    ["Stacks", c.stacks, "skills/*/templates*/stack.json", "/scaffold", "what brg-scaffold can build"],
+    ["Skills", c.skills, "plugins/*/skills/*/SKILL.md", "/skills-work", c.commandSkills
+      ? `${c.commandSkills} typed only, ${c.skills - c.commandSkills} also picked by the model, ${c.stackSkills} stack lanes`
+      : `every one picked by the model or typed as /bearing:<name>; ${c.stackSkills} stack lanes`],
+    ["Subagents", c.agents, "plugins/bearing/agents/*.md", "/agents", "bearing:<name>, forked contexts with fewer tools than the session"],
+    ["Hook events", c.hooks, "plugins/bearing/hooks/hooks.json", "/session", "each a few lines of shell over one guard script"],
+    ["Guard rules", data.guardRules.length, "plugins/bearing/bin/brg-guard", "/guard", "the verbs an agent may not run"],
+    ["Scripts", c.scripts, "bin/, plugins/bearing/hooks/scripts/, plugins/*/skills/*/scripts/", "/scripts", `${c.scriptLines.toLocaleString("en")} lines of bash and Python`],
+    ["Stacks", c.stacks, "plugins/*/skills/*/templates*/stack.json", "/scaffold", "what brg-scaffold can build"],
     ["Repository templates", c.templates, "templates/", "/scaffold", "the files every product repository commits"],
     ["Gates in make check", c.gates, "Makefile", "/gates", "each prints what it counted and fails on zero"],
     ["Test files", c.tests, "tests/", "/gates", `plus ${c.fixtures} fixtures`],
-    ["CI jobs", c.ciJobs, ".gitlab-ci.yml", "/gates", "including a scaffold of every stack, every morning"],
+    ["GitHub Actions jobs", c.ghJobs, ".github/workflows/", "/gates", `in ${c.ghWorkflows} workflows: checks, scaffolds, bash 3.2, macOS, the two sites`],
+    ["GitLab CI jobs", c.ciJobs, ".gitlab-ci.yml", "/gates", "the twin, for a GitLab mirror"],
   ];
   return (
     <Page full title="How Bearing works inside" lede={
       <>
-        Bearing is a Claude Code plugin that gives every stage of a product a skill, and makes the rules that must not bend (the agent never pushes, every
-        gate counts, everything traces) physical instead of polite. This guide is its service manual: what runs when, which file decides, and where to make
-        a change without breaking the rest.
+        Bearing is an open-source (MIT) Claude Code plugin that gives every stage of a product a skill, and makes the rules that must not bend (the agent
+        never pushes, every gate counts, everything traces) physical instead of polite. This guide is its service manual: what runs when, which file
+        decides, and where to make a change without breaking the rest. The source is at{" "}
+        <a href="https://github.com/Deepta-AI/bearing">github.com/Deepta-AI/bearing</a>.
       </>
     }>
       <p className="kicker">Every Bearing session passes the same six checkpoints. Pick one to see what fires.</p>

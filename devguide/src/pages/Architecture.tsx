@@ -9,13 +9,13 @@ const LAYERS = [
     name: "The plugin manifest",
     path: ".claude-plugin/",
     kind: "declares",
-    text: "marketplace.json names a marketplace called bearing that holds one plugin; plugin.json names the plugin and its version. Claude Code finds skills/, agents/ and hooks/hooks.json by convention next to it. Nothing else registers anything.",
+    text: "marketplace.json names a marketplace called bearing that holds three plugins; each plugin's own plugin.json names it and its version. Claude Code finds skills/, agents/ and hooks/hooks.json by convention inside each plugin folder. Nothing else registers anything.",
     to: "/install",
   },
   {
     n: "2",
     name: "Skills",
-    path: "skills/*/",
+    path: "plugins/*/skills/*/",
     kind: "the model reads",
     text: "Instructions for one step each. Only the name and description sit in every session; the body loads when the skill is invoked, and its references/ load only when a step says to read them.",
     to: "/skills-work",
@@ -23,7 +23,7 @@ const LAYERS = [
   {
     n: "3",
     name: "Subagents",
-    path: "agents/*.md",
+    path: "plugins/bearing/agents/*.md",
     kind: "the model reads, in a fork",
     text: "A fresh context with a narrower tool list. Reviewers get Read, Grep and Glob and nothing else; the test writer gets a worktree. They return a report, never a conversation.",
     to: "/agents",
@@ -31,7 +31,7 @@ const LAYERS = [
   {
     n: "4",
     name: "Hooks over the guard",
-    path: "hooks/ and bin/brg-guard",
+    path: "plugins/bearing/hooks/ and bin/brg-guard",
     kind: "the machine enforces",
     text: "Six events, each a few lines of shell that turn the event's JSON into arguments for one script. The guard decides; the adapter only translates. The same guard serves eight other harnesses.",
     to: "/session",
@@ -39,7 +39,7 @@ const LAYERS = [
   {
     n: "5",
     name: "Scripts",
-    path: "bin/brg-*",
+    path: "plugins/bearing/bin/brg-*",
     kind: "the machine does",
     text: "Deterministic work that a skill calls instead of improvising: scaffold, adopt, the tracker adapters, autopilot's gates, the checklists. A skill's allowed-tools grants exactly these calls.",
     to: "/scripts",
@@ -47,10 +47,10 @@ const LAYERS = [
 ];
 
 const WALLS = [
-  { key: "agents", name: "AGENTS.md, rule 2", kind: "prose", says: "Never push, open a merge request, merge, tag or deploy.", where: "templates/repo/AGENTS.md" },
-  { key: "deny", name: "settings.json deny", kind: "the harness", says: "Bash(git push:*) is in the deny list, so Claude Code refuses the call whatever the model intends.", where: "templates/repo/.claude/settings.json" },
-  { key: "guard", name: "PreToolUse guard", kind: "the hook", says: "brg-guard takes the command apart, so env, &&, $( ) or an alias do not hide it. Exit 2.", where: "hooks/scripts/block-publish.sh" },
-  { key: "prepush", name: ".githooks/pre-push", kind: "git", says: "A person must confirm at a terminal within 60 seconds. An agent has no terminal, so the read fails.", where: "templates/repo/.githooks/pre-push" },
+  { key: "agents", name: "AGENTS.md, rule 2", kind: "prose", says: "Never push, open a merge request, merge, tag or deploy.", where: "plugins/bearing/templates/repo/AGENTS.md" },
+  { key: "deny", name: "settings.json deny", kind: "the harness", says: "Bash(git push:*) is in the deny list, so Claude Code refuses the call whatever the model intends.", where: "plugins/bearing/templates/repo/.claude/settings.json" },
+  { key: "guard", name: "PreToolUse guard", kind: "the hook", says: "brg-guard takes the command apart, so env, &&, $( ) or an alias do not hide it. Exit 2.", where: "plugins/bearing/hooks/scripts/block-publish.sh" },
+  { key: "prepush", name: ".githooks/pre-push", kind: "git", says: "A person must confirm at a terminal within 60 seconds. An agent has no terminal, so the read fails.", where: "plugins/bearing/templates/repo/.githooks/pre-push" },
 ];
 
 function Walls() {
@@ -100,7 +100,7 @@ export function Architecture() {
         { id: "depth", label: "Defence in depth" },
         { id: "neutral", label: "Company-neutral by construction" },
       ]}
-      sources={[".claude-plugin/plugin.json", ".claude-plugin/marketplace.json", "hooks/hooks.json", "templates/repo/.claude/settings.json"]}
+      sources={[".claude-plugin/plugin.json", ".claude-plugin/marketplace.json", "plugins/bearing/hooks/hooks.json", "plugins/bearing/templates/repo/.claude/settings.json"]}
     >
       <H2 id="layers">The layers</H2>
       <div className="stack-diagram wide">
@@ -124,23 +124,23 @@ export function Architecture() {
       <H2 id="loading">How Claude Code loads them</H2>
       <ol className="steps">
         <li>
-          <strong>Install.</strong> <code>install.sh</code> runs <code>claude plugin marketplace add</code> on the kit's path or remote, then{" "}
-          <code>claude plugin install bearing@bearing</code>. Claude Code copies the plugin to <code>~/.claude/plugins/cache/bearing/bearing/{data.version}/</code>.
+          <strong>Install.</strong> <code>/plugin marketplace add Deepta-AI/bearing</code> (or <code>install.sh</code>, which runs{" "}
+          <code>claude plugin marketplace add</code> on the kit's checkout or remote), then <code>claude plugin install bearing@bearing</code>. Claude Code copies the plugin to <code>~/.claude/plugins/cache/bearing/bearing/{data.version}/</code>.
           That copy, not your checkout, is what runs.
         </li>
         <li>
-          <strong>Session start.</strong> Each auto skill's <code>name</code> and <code>description</code> enter the context (a command skill stays out of the
-          model's list until you type it; <code>lint-skills</code> caps a description at 300 characters), together with
+          <strong>Session start.</strong> Each skill's <code>name</code> and <code>description</code> enter the context in a listing Claude Code caps at about 1%
+          of the context window (<code>lint-skills</code> caps a description at 220 characters, job first, so a shortened listing still says what each skill
+          is for), together with
           the repository's <code>CLAUDE.md</code>, which imports <code>AGENTS.md</code> on its first line, and the rules in <code>.claude/rules/</code> that
           have no <code>paths:</code>. <code>lint-budget</code> holds this to about {data.settings.sessionTokens.toLocaleString("en")} tokens a session.
         </li>
         <li>
-          <strong>Hooks register.</strong> <code>hooks/hooks.json</code> is read; each command uses <code>${"${CLAUDE_PLUGIN_ROOT}"}</code>, which resolves to the
+          <strong>Hooks register.</strong> <code>plugins/bearing/hooks/hooks.json</code> is read; each command uses <code>${"${CLAUDE_PLUGIN_ROOT}"}</code>, which resolves to the
           cached copy. SessionStart fires at once.
         </li>
         <li>
-          <strong>A skill is invoked</strong> when you type its name (command skills, <code>disable-model-invocation: true</code>) or when the model matches
-          your words to a description (auto skills). Only then does the body load, and only then do its <code>allowed-tools</code> apply.
+          <strong>A skill is invoked</strong> when you type <code>/bearing:&lt;name&gt;</code> or when the model matches your words to a description. Only then does the body load, and only then do its <code>allowed-tools</code> apply.
         </li>
         <li>
           <strong>A path rule loads</strong> when the model touches a file its <code>paths:</code> globs match: <code>code.md</code> for <code>src/**</code>,{" "}
@@ -156,7 +156,7 @@ export function Architecture() {
 
       <H2 id="repo">What lands in a repository</H2>
       <p>
-        The plugin lives on the developer's machine. A product repository gets its own copy of the standard from <code>templates/repo/</code>, so it keeps
+        The plugin lives on the developer's machine. A product repository gets its own copy of the standard from <code>plugins/bearing/templates/repo/</code>, so it keeps
         working for a teammate on another harness, in CI, and on a clone where the plugin was never installed.
       </p>
       <div className="tablewrap">

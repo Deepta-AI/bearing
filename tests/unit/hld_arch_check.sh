@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# tests/unit/hld_arch_check.sh: skills/high-level-design/scripts/arch_check.py passes a
+# tests/unit/hld_arch_check.sh: plugins/bearing/skills/high-level-design/scripts/arch_check.py passes a
 # complete architecture set and fails on a section with no risks, nothing
 # deliberately left out, an ungraded or unsourced finding, Approved with an
 # open BLOCKER or an open conflict, an ADR missing from the index, a bad
@@ -7,7 +7,7 @@
 # no breach, a repo plan with a wrong name, path or stack, and empty input.
 set -u
 . "$(dirname "$0")/../lib/assert.sh"
-CHK="$KIT/skills/high-level-design/scripts/arch_check.py"
+CHK="$KIT/plugins/bearing/skills/high-level-design/scripts/arch_check.py"
 
 risks() { printf '\n**Risks this leaves open**\n\n- %s\n' "$1"; }
 

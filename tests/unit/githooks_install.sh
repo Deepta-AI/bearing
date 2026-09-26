@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# tests/unit/githooks_install.sh: templates/repo/.githooks/install.sh is
+# tests/unit/githooks_install.sh: plugins/bearing/templates/repo/.githooks/install.sh is
 # idempotent. A fresh clone gets core.hooksPath=.githooks and the three hooks
 # counted. When the value is already set it does not write .git/config at
 # all: Claude Code's sandbox mounts that file read-only, and an unconditional
@@ -12,7 +12,7 @@
 # permission bits.
 set -u
 . "$(dirname "$0")/../lib/assert.sh"
-HOOKS="$KIT/templates/repo/.githooks"
+HOOKS="$KIT/plugins/bearing/templates/repo/.githooks"
 
 # clone: a fresh repository holding the committed hooks, not yet installed.
 clone() {

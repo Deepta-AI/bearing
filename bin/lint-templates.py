@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """lint-templates: every document template tells its author what good looks like.
 
-A document template (a markdown file under skills/*/templates*/ or
-templates/repo/docs/templates/) must open with a guidance comment, and every
-## or ### section in it must carry a comment of its own with a "What:" line
+A document template (a markdown file under plugins/*/skills/*/templates*/
+or plugins/bearing/templates/repo/docs/templates/) must open with a
+guidance comment, and every ## or ### section in it must carry a comment of its own with a "What:" line
 (what goes there) and a "Good:" line (what a strong entry has). Skills delete
 the comments when they fill the section, so a finished document stays clean.
 
@@ -39,8 +39,8 @@ for line in open("bin/lint-templates.skip", encoding="utf-8"):
 
 paths = sorted(
     p
-    for p in glob.glob("skills/*/templates*/**/*.md", recursive=True)
-    + glob.glob("templates/repo/docs/templates/*.md")
+    for p in glob.glob("plugins/*/skills/*/templates*/**/*.md", recursive=True)
+    + glob.glob("plugins/bearing/templates/repo/docs/templates/*.md")
     if "/skeleton/" not in p and "/evals/" not in p
 )
 problems = []
@@ -78,18 +78,18 @@ for p in paths:
     if not first:
         problems.append(f"{p}: empty")
 
-# templates/repo/docs/templates/ holds copies a new repository gets; the skill
+# plugins/bearing/templates/repo/docs/templates/ holds copies a new repository gets; the skill
 # owning each template is the source, so a copy must match it byte for byte.
-for p in glob.glob("templates/repo/docs/templates/*.md"):
-    owners = glob.glob("skills/*/templates/" + os.path.basename(p))
+for p in glob.glob("plugins/bearing/templates/repo/docs/templates/*.md"):
+    owners = glob.glob("plugins/*/skills/*/templates/" + os.path.basename(p))
     if len(owners) != 1:
         problems.append(f"{p}: {len(owners)} skill templates named {os.path.basename(p)}; want exactly one source")
     elif open(p, encoding="utf-8").read() != open(owners[0], encoding="utf-8").read():
         problems.append(f"{p}: differs from its source {owners[0]} (copy it)")
 
 # The change-request templates a repository gets are copies of merge-request's.
-for p in ("templates/repo/.gitlab/merge_request_templates/Default.md", "templates/repo/.github/PULL_REQUEST_TEMPLATE.md"):
-    src = "skills/merge-request/templates/mr.md"
+for p in ("plugins/bearing/templates/repo/.gitlab/merge_request_templates/Default.md", "plugins/bearing/templates/repo/.github/PULL_REQUEST_TEMPLATE.md"):
+    src = "plugins/bearing/skills/merge-request/templates/mr.md"
     if not os.path.isfile(p) or open(p, encoding="utf-8").read() != open(src, encoding="utf-8").read():
         problems.append(f"{p}: differs from its source {src} (copy it)")
 

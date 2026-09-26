@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# tests/integration/adopt_idempotent.sh: bin/brg-adopt on a repository that
+# tests/integration/adopt_idempotent.sh: plugins/bearing/bin/brg-adopt on a repository that
 # already carries the standard. Scaffold go-api (tool-free PATH, so no
 # install step), delete Makefile and .gitlab-ci.yml, adopt twice: the first
 # run adds exactly those two, the second adds and conflicts nothing. Edit
@@ -16,8 +16,8 @@ set -u
 . "$(dirname "$0")/../lib/assert.sh"
 TOOLFREE="$(minimal_path bash sh git python3 make sed grep find cut sort uniq wc tr mktemp mv cp rm mkdir chmod ls cat basename dirname head tail stat touch env date awk cmp diff)"
 
-scaffold() { env -u BEARING_TRACKER -u BEARING_GIT_HOST -u BEARING_ORG_ID -u BEARING_KIT_REMOTE -u BEARING_TASK_ID_PREFIX PATH="$TOOLFREE" BEARING_ENV=/nonexistent bash "$KIT/bin/brg-scaffold" "$1" "$2" --dir "$3" --host "$4"; }
-adopt() { env -u BEARING_TRACKER -u BEARING_GIT_HOST -u BEARING_ORG_ID -u BEARING_KIT_REMOTE -u BEARING_TASK_ID_PREFIX PATH="$TOOLFREE" BEARING_ENV=/nonexistent bash "$KIT/bin/brg-adopt" "$@"; }
+scaffold() { env -u BEARING_TRACKER -u BEARING_GIT_HOST -u BEARING_ORG_ID -u BEARING_KIT_REMOTE -u BEARING_TASK_ID_PREFIX PATH="$TOOLFREE" BEARING_ENV=/nonexistent bash "$KIT/plugins/bearing/bin/brg-scaffold" "$1" "$2" --dir "$3" --host "$4"; }
+adopt() { env -u BEARING_TRACKER -u BEARING_GIT_HOST -u BEARING_ORG_ID -u BEARING_KIT_REMOTE -u BEARING_TASK_ID_PREFIX PATH="$TOOLFREE" BEARING_ENV=/nonexistent bash "$KIT/plugins/bearing/bin/brg-adopt" "$@"; }
 assert_absent() { _t_count; if [ -e "$1" ]; then _t_fail "should not exist: $1"; fi; }
 count_line() { printf '%s\n' "$1" | grep -c "^$2" || true; }
 runs=0
@@ -41,7 +41,7 @@ assert_contains "$T_OUT" ", conflicts 0 (core.hooksPath set)"
 assert_not_contains "$T_OUT" "note: CLAUDE.md does not start with @AGENTS.md"
 assert_file "$repo/Makefile"
 assert_file "$repo/.gitlab-ci.yml"
-assert_eq 1 "$(cmp -s "$repo/Makefile" "$KIT/skills/go/templates/Makefile" || echo 1)" "the adopted Makefile has its placeholders filled"
+assert_eq 1 "$(cmp -s "$repo/Makefile" "$KIT/plugins/bearing-backend/skills/go/templates/Makefile" || echo 1)" "the adopted Makefile has its placeholders filled"
 assert_eq 1 "$(grep -q '^# ProbeGo (Go service)' "$repo/Makefile" && echo 1)" "Makefile names the repository"
 assert_eq 0 "$(grep -c '__REPO_' "$repo/Makefile" "$repo/.gitlab-ci.yml" | awk -F: '{s+=$2} END {print s+0}')" "no placeholder left in the added files"
 t_end

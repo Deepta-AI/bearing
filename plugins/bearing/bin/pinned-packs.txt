@@ -1,0 +1,121 @@
+# Every external fetch Bearing makes, pinned. The one place a version or a
+# commit is set: install.sh, brg-install-packs, brg-harness and brg-doctor read
+# their pins from here, and tests/unit/pins_match.sh fails when a skill, a
+# script or a doc names a version this file does not hold, or an npx, uvx or
+# uv --with fetch without one. README.md "What Bearing runs on your machine"
+# lists each fetch.
+#
+# One row per pin, fields separated by |:
+#   kind|source|pin|path or use|installed name|licence
+#
+#   skill   a git repository at a full commit; the folder at <path> is copied
+#           to ~/.claude/skills/<name> (brg-install-packs, profile full)
+#   plugin  a git repository at a full commit, added as a local marketplace
+#           and <path> (plugin@marketplace) installed from it
+#   cli     a git repository at a full commit, installed through the skills
+#           CLI as <repo>#<commit>; <path> is the skill name (empty: every
+#           skill in the repository), <name> the folder under ~/.claude/skills
+#   clone   a git repository cloned at a full commit into <path> (gstack)
+#   npm     an npm package at an exact version, run through npx; <path> says
+#           which script or skill runs it
+#   pypi    a PyPI package at an exact version, run through uvx or uv --with
+#
+# Every SKILL.md of a skill or plugin row was read at its commit before it
+# was listed. The cli and clone rows pin the head of each repository's default
+# branch on 26 Sep 2026, the branch the packs were chosen from; read the new
+# files before moving one. Changing a commit means reading the new files again;
+# docs/THIRD_PARTY.md records why each one is here and which Bearing skill it
+# serves. Changing an npm or pypi version means changing the same literal in
+# the skill that runs it; tests/unit/pins_match.sh names every place.
+#
+# Left out on reading: expo eas-update, eas-app-stores and expo-dev-client (they publish OTA
+# updates, submit to the stores or need EAS cloud builds), the openai/skills repository as a whole
+# (deprecated; only its Apache-2.0 security-threat-model folder is used).
+
+skill|trailofbits/skills|32e34f8173796e3566a51aee877dc96bc5191f64|plugins/supply-chain-risk-auditor/skills/supply-chain-risk-auditor|supply-chain-risk-auditor|CC-BY-SA-4.0
+skill|trailofbits/skills|32e34f8173796e3566a51aee877dc96bc5191f64|plugins/agentic-actions-auditor/skills/agentic-actions-auditor|agentic-actions-auditor|CC-BY-SA-4.0
+skill|trailofbits/skills|32e34f8173796e3566a51aee877dc96bc5191f64|plugins/property-based-testing/skills/property-based-testing|property-based-testing|CC-BY-SA-4.0
+plugin|trailofbits/skills|32e34f8173796e3566a51aee877dc96bc5191f64|insecure-defaults@trailofbits|insecure-defaults|CC-BY-SA-4.0
+skill|getsentry/skills|c2f99a5b04b4cd992ec3022d7c2c3e23e938d241|skills/gha-security-review|gha-security-review|Apache-2.0
+skill|openai/skills|49f948faa9258a0c61caceaf225e179651397431|skills/.curated/security-threat-model|security-threat-model|Apache-2.0
+skill|android/skills|b1f707d90904129b5972b3cc6436b568583effe5|build-system/agp/agp-9-upgrade|agp-9-upgrade|Apache-2.0
+skill|android/skills|b1f707d90904129b5972b3cc6436b568583effe5|navigation/navigation-3|navigation-3|Apache-2.0
+skill|android/skills|b1f707d90904129b5972b3cc6436b568583effe5|system/edge-to-edge|edge-to-edge|Apache-2.0
+skill|android/skills|b1f707d90904129b5972b3cc6436b568583effe5|security/android-intent-security|android-intent-security|Apache-2.0
+skill|android/skills|b1f707d90904129b5972b3cc6436b568583effe5|performance/r8-analyzer|r8-analyzer|Apache-2.0
+skill|android/skills|b1f707d90904129b5972b3cc6436b568583effe5|testing/testing-setup|android-testing-setup|Apache-2.0
+skill|flutter/agent-plugins|e89522a8b0c23d282e0acc9538dd0b2cd164358b|skills/flutter-apply-architecture-best-practices|flutter-apply-architecture-best-practices|BSD-3-Clause
+skill|flutter/agent-plugins|e89522a8b0c23d282e0acc9538dd0b2cd164358b|skills/flutter-add-widget-test|flutter-add-widget-test|BSD-3-Clause
+skill|flutter/agent-plugins|e89522a8b0c23d282e0acc9538dd0b2cd164358b|skills/flutter-add-integration-test|flutter-add-integration-test|BSD-3-Clause
+skill|flutter/agent-plugins|e89522a8b0c23d282e0acc9538dd0b2cd164358b|skills/flutter-setup-declarative-routing|flutter-setup-declarative-routing|BSD-3-Clause
+skill|flutter/agent-plugins|e89522a8b0c23d282e0acc9538dd0b2cd164358b|skills/flutter-setup-localization|flutter-setup-localization|BSD-3-Clause
+skill|flutter/agent-plugins|e89522a8b0c23d282e0acc9538dd0b2cd164358b|skills/flutter-fix-layout-issues|flutter-fix-layout-issues|BSD-3-Clause
+skill|flutter/agent-plugins|e89522a8b0c23d282e0acc9538dd0b2cd164358b|skills/dart-run-static-analysis|dart-run-static-analysis|BSD-3-Clause
+skill|twostraws/SwiftUI-Agent-Skill|be297ff80dddec529af1f9b1f1f114aab6c9d11c|swiftui-pro/skills/swiftui-pro|swiftui-pro|MIT
+skill|samber/cc-skills-golang|19a0626ae8565d27a7b7bdf59d8d99d94d7e284c|skills/golang-code-style|golang-code-style|MIT
+skill|samber/cc-skills-golang|19a0626ae8565d27a7b7bdf59d8d99d94d7e284c|skills/golang-error-handling|golang-error-handling|MIT
+skill|samber/cc-skills-golang|19a0626ae8565d27a7b7bdf59d8d99d94d7e284c|skills/golang-concurrency|golang-concurrency|MIT
+skill|samber/cc-skills-golang|19a0626ae8565d27a7b7bdf59d8d99d94d7e284c|skills/golang-context|golang-context|MIT
+skill|samber/cc-skills-golang|19a0626ae8565d27a7b7bdf59d8d99d94d7e284c|skills/golang-testing|golang-testing|MIT
+skill|samber/cc-skills-golang|19a0626ae8565d27a7b7bdf59d8d99d94d7e284c|skills/golang-security|golang-security|MIT
+skill|samber/cc-skills-golang|19a0626ae8565d27a7b7bdf59d8d99d94d7e284c|skills/golang-database|golang-database|MIT
+skill|samber/cc-skills-golang|19a0626ae8565d27a7b7bdf59d8d99d94d7e284c|skills/golang-observability|golang-observability|MIT
+skill|samber/cc-skills-golang|19a0626ae8565d27a7b7bdf59d8d99d94d7e284c|skills/golang-safety|golang-safety|MIT
+skill|samber/cc-skills-golang|19a0626ae8565d27a7b7bdf59d8d99d94d7e284c|skills/golang-performance|golang-performance|MIT
+skill|hashicorp/agent-skills|c2d65dfe492f74d360d35b859b88932222470bd8|plugins/terraform/skills/terraform-style-guide|terraform-style-guide|MPL-2.0
+skill|hashicorp/agent-skills|c2d65dfe492f74d360d35b859b88932222470bd8|plugins/terraform/skills/terraform-test|terraform-test|MPL-2.0
+skill|hashicorp/agent-skills|c2d65dfe492f74d360d35b859b88932222470bd8|plugins/terraform/skills/refactor-module|terraform-refactor-module|MPL-2.0
+skill|supabase/agent-skills|8331f910845103c08d51f6ca1d86ebb7d1f745e3|skills/supabase-postgres-best-practices|supabase-postgres-best-practices|MIT
+skill|expo/skills|cd752143d19e5a9aa71b4aaaf1cfc59226c77d6a|plugins/expo/skills/expo-upgrade|expo-upgrade|MIT
+skill|expo/skills|cd752143d19e5a9aa71b4aaaf1cfc59226c77d6a|plugins/expo/skills/expo-router|expo-router|MIT
+skill|grafana/skills|1ccacf29049fde66637fe01ab93a83a772da323b|skills/grafana-k6/k6|k6|Apache-2.0
+plugin|AccessLint/skills|2e9d7336678302d0bc08848e92542560295b34d3|accesslint@accesslint|accesslint|MIT
+
+# Skills through the skills CLI, each at a commit (brg-install-packs, profile full).
+cli|vercel-labs/agent-skills|063bee94c3f4df8453406c830b0a7df0f2860278|vercel-react-best-practices|vercel-react-best-practices|see-repository
+cli|vercel-labs/agent-skills|063bee94c3f4df8453406c830b0a7df0f2860278|vercel-react-view-transitions|vercel-react-view-transitions|see-repository
+cli|vercel-labs/agent-skills|063bee94c3f4df8453406c830b0a7df0f2860278|web-design-guidelines|web-design-guidelines|see-repository
+cli|educlopez/ui-craft|ceecc8e1fb0c2befda73da996435900d6dd0c1ac||ui-craft|MIT
+cli|phuryn/pm-skills|8607e3b077817f89bf4a9b623246219734ac3be0|create-prd|create-prd|MIT
+cli|phuryn/pm-skills|8607e3b077817f89bf4a9b623246219734ac3be0|user-stories|user-stories|MIT
+cli|phuryn/pm-skills|8607e3b077817f89bf4a9b623246219734ac3be0|job-stories|job-stories|MIT
+cli|phuryn/pm-skills|8607e3b077817f89bf4a9b623246219734ac3be0|test-scenarios|test-scenarios|MIT
+cli|phuryn/pm-skills|8607e3b077817f89bf4a9b623246219734ac3be0|release-notes|release-notes|MIT
+cli|phuryn/pm-skills|8607e3b077817f89bf4a9b623246219734ac3be0|prioritization-frameworks|prioritization-frameworks|MIT
+cli|phuryn/pm-skills|8607e3b077817f89bf4a9b623246219734ac3be0|sprint-plan|sprint-plan|MIT
+cli|phuryn/pm-skills|8607e3b077817f89bf4a9b623246219734ac3be0|pre-mortem|pre-mortem|MIT
+cli|phuryn/pm-skills|8607e3b077817f89bf4a9b623246219734ac3be0|customer-journey-map|customer-journey-map|MIT
+cli|phuryn/pm-skills|8607e3b077817f89bf4a9b623246219734ac3be0|outcome-roadmap|outcome-roadmap|MIT
+cli|addyosmani/agent-skills|2686b620fc1fed2e8f60c704839c766b8594c6b6|documentation-and-adrs|documentation-and-adrs|MIT
+cli|addyosmani/agent-skills|2686b620fc1fed2e8f60c704839c766b8594c6b6|api-and-interface-design|api-and-interface-design|MIT
+cli|addyosmani/agent-skills|2686b620fc1fed2e8f60c704839c766b8594c6b6|observability-and-instrumentation|observability-and-instrumentation|MIT
+cli|addyosmani/agent-skills|2686b620fc1fed2e8f60c704839c766b8594c6b6|debugging-and-error-recovery|debugging-and-error-recovery|MIT
+cli|dash0hq/agent-skills|b809d934546a57c740b567014f5a0c67b906ebb5|otel-instrumentation|otel-instrumentation|Apache-2.0
+cli|petrkindlmann/qa-skills|b3bb61bd268b147476252c6ed5a0440c87b97441|test-reliability|test-reliability|MIT
+cli|petrkindlmann/qa-skills|b3bb61bd268b147476252c6ed5a0440c87b97441|selector-drift-recovery|selector-drift-recovery|MIT
+cli|petrkindlmann/qa-skills|b3bb61bd268b147476252c6ed5a0440c87b97441|ai-test-generation|ai-test-generation|MIT
+cli|conventional-changelog/conventional-changelog|f90c80e9fe02146c1018fa1d78dea738809ab102|conventional-commit-message|conventional-commit-message|ISC
+cli|trailofbits/skills|32e34f8173796e3566a51aee877dc96bc5191f64|differential-review|differential-review|CC-BY-SA-4.0
+
+# gstack, cloned at a commit (install.sh, profile standard or full). Its own
+# ./setup then installs its dependencies from its bun.lock.
+clone|garrytan/gstack|2a113ae7e623f590095bcaaa0cc581c9a10a6632|~/.claude/skills/gstack|gstack|MIT
+
+# npm packages run through npx, each at an exact version.
+npm|skills|1.7.0|brg-install-packs, brg-harness, upgrade-tools|skills|MIT
+npm|@opengsd/gsd-core|1.14.0|install.sh, brg-doctor, doctor|gsd-core|MIT
+npm|@playwright/cli|0.1.21|brg-install-packs|playwright-cli|Apache-2.0
+npm|@redocly/cli|2.54.3|openapi-spec|redocly-cli|MIT
+npm|@cyclonedx/cyclonedx-npm|6.0.1|license-compliance|cyclonedx-npm|Apache-2.0
+npm|@modelcontextprotocol/inspector|2.8.0|mcp-server|mcp-inspector|see-package
+npm|clinic|13.0.0|performance|clinic|MIT
+npm|lighthouse|13.5.0|performance|lighthouse|Apache-2.0
+npm|tsx|4.23.15|llm-eval|tsx|MIT
+npm|shadcn|4.21.0|bearing-apps react, nextjs|shadcn|MIT
+
+# PyPI packages run through uvx or uv run --with, each at an exact version.
+pypi|schemathesis|4.28.0|openapi-spec (templates/api-conformance.mk)|schemathesis|MIT
+pypi|pyyaml|6.0.3|openapi-spec (scripts/api_doc.py)|pyyaml|MIT
+pypi|python-docx|1.2.0|client-deliverables (scripts/md2docx.py, scripts/pack.py)|python-docx|MIT
+pypi|openpyxl|3.1.5|client-deliverables (scripts/pack.py)|openpyxl|MIT
+pypi|pytest-repeat|0.9.4|test-heal|pytest-repeat|MPL-2.0

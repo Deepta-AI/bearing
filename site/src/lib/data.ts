@@ -2,6 +2,7 @@ import raw from "../data/handbook.json";
 
 export type Skill = {
   name: string;
+  plugin?: string;
   category: string;
   invocation: "command" | "auto";
   what: string;
@@ -9,9 +10,8 @@ export type Skill = {
   phrases: string[];
   args: string;
 };
-export type Row = { stage: string; skill: string; from: string; output: string; alternate: string };
+export type Row = { stage: string; skill: string; from: string; output: string };
 export type Stage = { title: string; when: string; rows: Row[] };
-export type Alt = { skill: string; pack: string; when: string };
 export type FlowStep = {
   kind: "step";
   id: string;
@@ -21,7 +21,6 @@ export type FlowStep = {
   does: string;
   output: string;
   why: string;
-  alternates: Alt[];
   optional?: boolean;
 };
 export type FlowBranch = {
@@ -36,31 +35,6 @@ export type FlowNode =
   | { kind: "phase"; title: string }
   | { kind: "link"; title: string; flow: string };
 export type Flow = { id: string; title: string; tagline: string; when: string; steps: FlowNode[] };
-export type Verdict = "bearing-stronger" | "alternative-stronger" | "different-job" | "no-alternative" | "unverified";
-export type Comparison = {
-  best_alternative: { name: string; pack: string; installed: boolean; invoke?: string } | null;
-  verdict: Verdict;
-  why: string;
-  use_alternative_when: string;
-  use_bearing_when: string;
-  recommendation: "keep" | "supersede" | "feed-rules";
-  confidence: "high" | "medium" | "low";
-  measured?: Measured;
-};
-
-export type MeasuredArm = { pass_rate: number; tokens: number; seconds: number };
-export type Measured = {
-  date: string;
-  model: string;
-  iteration: number;
-  cases: number;
-  runs_per_arm: number;
-  arms: Partial<Record<"with_skill" | "with_the_alternative" | "without_skill", MeasuredArm>>;
-  result: "bearing ahead" | "rival ahead" | "within 10 points";
-  closest: string;
-  margin: number;
-};
-
 export type DefaultFile = {
   path: string;
   source?: string;
@@ -80,10 +54,8 @@ type Data = {
   skills: Skill[];
   categories: string[];
   stages: Stage[];
-  alternates: Record<string, string>;
   notes: string[];
   flows: Flow[];
-  comparisons: Record<string, Comparison>;
   defaultFiles: Scope[];
   config: { key: string; meaning: string; default: string }[];
   roles: { role: string; blurb: string; rows: { stage: string; row: string }[] }[];
@@ -122,26 +94,17 @@ export function rowsFor(name: string) {
   return out;
 }
 
-/** Flow steps that use this skill as the main or an alternate. */
+/** Flow steps that run this skill. */
 export function flowUses(name: string) {
-  const out: { flow: Flow; step: FlowStep; asAlternate: boolean }[] = [];
+  const out: { flow: Flow; step: FlowStep }[] = [];
   const bare = (s: string) => s.split(" ")[0].replace(/^\//, "");
   const visit = (flow: Flow, nodes: FlowNode[]) => {
     for (const n of nodes) {
       if (n.kind === "step") {
-        if (bare(n.skill) === bare(name)) out.push({ flow, step: n, asAlternate: false });
-        else if (n.alternates.some((a) => bare(a.skill) === bare(name))) out.push({ flow, step: n, asAlternate: true });
+        if (bare(n.skill) === bare(name)) out.push({ flow, step: n });
       } else if (n.kind === "branch") n.options.forEach((o) => visit(flow, o.steps));
     }
   };
   data.flows.forEach((f) => visit(f, f.steps));
   return out;
 }
-
-export const verdictLabel: Record<Verdict, string> = {
-  "bearing-stronger": "bearing is the stronger choice",
-  "alternative-stronger": "Use the alternative",
-  "different-job": "Different job",
-  "no-alternative": "No alternative installed",
-  unverified: "Alternative not installed",
-};

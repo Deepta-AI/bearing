@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# tests/integration/scaffold_each_stack.sh: bin/brg-scaffold for every stack
-# id found in skills/*/templates*/stack.json. Each scaffold runs with a
+# tests/integration/scaffold_each_stack.sh: plugins/bearing/bin/brg-scaffold for every stack
+# id found in plugins/*/skills/*/templates*/stack.json. Each scaffold runs with a
 # PATH that holds git, python3, make and coreutils but no stack toolchain, so
 # the install step is skipped deterministically (no network, no lockfile) and
 # the assertions are about the templates: exit 0, no unfilled placeholders, a
@@ -14,7 +14,7 @@
 # finds zero packages. The full make check per stack is the CI scaffold job.
 set -u
 . "$(dirname "$0")/../lib/assert.sh"
-SCAFFOLD="$KIT/bin/brg-scaffold"
+SCAFFOLD="$KIT/plugins/bearing/bin/brg-scaffold"
 TOOLFREE="$(minimal_path bash sh git python3 make sed grep find cut sort uniq wc tr mktemp mv cp rm mkdir chmod ls cat basename dirname head tail stat touch env date awk xargs cmp diff)"
 
 # scaffold <stack> <Name> <dir> <host>: brg-scaffold under the tool-free PATH,
@@ -28,7 +28,7 @@ assert_exec() { _t_count; if [ -x "$1" ]; then :; else _t_fail "not executable: 
 assert_absent() { _t_count; if [ -e "$1" ]; then _t_fail "should not exist: $1"; fi; }
 pascal() { printf '%s' "$1" | awk -F- '{for(i=1;i<=NF;i++) printf "%s%s", toupper(substr($i,1,1)), substr($i,2)}'; }
 
-ids="$(grep -h '"id"' "$KIT"/skills/*/templates*/stack.json | sed -E 's/.*"id": *"([^"]+)".*/\1/' | sort)"
+ids="$(grep -h '"id"' "$KIT"/plugins/*/skills/*/templates*/stack.json | sed -E 's/.*"id": *"([^"]+)".*/\1/' | sort)"
 n=0
 for id in $ids; do
   n=$((n+1))
@@ -47,6 +47,10 @@ for id in $ids; do
   assert_eq "@AGENTS.md" "$(head -1 "$repo/CLAUDE.md")" "$id CLAUDE.md first line"
   assert_file "$repo/AGENTS.md"
   assert_file "$repo/.claude/settings.json"; assert_json "$repo/.claude/settings.json"
+  # The shared settings enable bearing and the plugin that carries this stack.
+  owner="$(bash "$KIT/plugins/bearing/bin/brg-kit-paths" --owner "$id")"
+  assert_contains "$(cat "$repo/.claude/settings.json")" "\"bearing@bearing\": true" "$id enables bearing"
+  assert_contains "$(cat "$repo/.claude/settings.json")" "\"$owner@bearing\": true" "$id enables $owner"
   assert_file "$repo/.gitlab-ci.yml"
   assert_file "$repo/.github/workflows/ci.yml"
   assert_file "$repo/.gitlab/merge_request_templates/Default.md"

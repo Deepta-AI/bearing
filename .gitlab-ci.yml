@@ -4,13 +4,15 @@
 #                    plugin validate` needs the Claude CLI, which the shared
 #                    runners do not have. Run `make validate` locally before
 #                    tagging a release.
-#   kit:scaffold:*   each stack template scaffolded with bin/brg-scaffold,
-#                    then `make setup && make check` inside the result, in
-#                    that stack's own image. This is the full gate the
+#   kit:scaffold:*   each stack template scaffolded with
+#                    plugins/bearing/bin/brg-scaffold, then `make setup &&
+#                    make check` inside the result, in that stack's own
+#                    image. This is the full gate the
 #                    tests skip (tests/integration/scaffold_each_stack.sh
 #                    proves the templates; this proves the toolchains).
-#   kit:bash32       bin/brg-guard, the CLI --help paths and the unit tests
-#                    under bash 3.2, the macOS default, in the bash:3.2 image.
+#   kit:bash32       plugins/bearing/bin/brg-guard, the CLI --help paths and
+#                    the unit tests under bash 3.2, the macOS default, in
+#                    the bash:3.2 image.
 #   kit:macos        BSD sed, BSD stat and the stock bash on a real Mac. It
 #                    cannot run on the shared Linux runners: it needs a
 #                    runner tagged macos, so it is gated on BEARING_MACOS_RUNNER
@@ -20,14 +22,13 @@
 #   site:build       the handbook site builds (merge requests that touch it)
 #   pages            the handbook site on GitLab Pages, where the host serves
 #                    Pages (a self-managed GitLab may not).
-#   handbook:vercel  the same site on Vercel, public by link and never
-#                    indexed (robots.txt, a noindex meta tag and header).
+#   handbook:vercel  the same site on Vercel, public and indexable.
 #                    Runs on main only when VERCEL_TOKEN, VERCEL_ORG_ID and
 #                    VERCEL_PROJECT_ID are set as masked CI/CD variables.
 #   devguide:build   the developer guide (devguide/, how Bearing works
 #                    inside) builds (merge requests that touch it)
-#   devguide:vercel  the developer guide on its own Vercel project, public by
-#                    link and never indexed, like the handbook. Runs on main
+#   devguide:vercel  the developer guide on its own Vercel project, public
+#                    like the handbook. Runs on main
 #                    only when VERCEL_TOKEN, VERCEL_ORG_ID and
 #                    VERCEL_DEVGUIDE_PROJECT_ID are set. DEVGUIDE_REPO_URL
 #                    (optional) is the repository's web URL; when set, the
@@ -54,7 +55,7 @@ kit:check:
     - apt-get update -qq && apt-get install -y -qq --no-install-recommends shellcheck jq make git curl ca-certificates >/dev/null
   script:
     # make check minus validate (needs the Claude CLI; see the header).
-    - make lint-skills lint-tools lint-evals lint-json lint-shell lint-prose lint-neutral lint-version lint-budget lint-templates lint-docs test
+    - make lint-skills lint-tools lint-evals lint-json lint-shell lint-prose lint-neutral lint-version lint-budget lint-templates lint-plugin-size lint-docs test
 
 # One scaffold job per stack, every one blocking. node-api, next-app and
 # data-pipeline were allow_failure until they went green on 25 Sep 2026.
@@ -64,7 +65,7 @@ kit:check:
   variables:
     GIT_DEPTH: "1"
   script:
-    - bash bin/brg-scaffold "$STACK" "$NAME" --dir /tmp/x --host both
+    - bash plugins/bearing/bin/brg-scaffold "$STACK" "$NAME" --dir /tmp/x --host both
     - cd /tmp/x && make setup && make check
 
 kit:scaffold:go-api:
@@ -135,11 +136,11 @@ kit:bash32:
     - git config --global --add safe.directory '*'
     - bash --version | head -1
   script:
-    - bash bin/brg-guard --version
-    - bash bin/brg-guard command "git status"
-    - bash bin/brg-scaffold --help >/dev/null
-    - bash bin/brg-adopt --help >/dev/null
-    - bash bin/brg-jira --help >/dev/null
+    - bash plugins/bearing/bin/brg-guard --version
+    - bash plugins/bearing/bin/brg-guard command "git status"
+    - bash plugins/bearing/bin/brg-scaffold --help >/dev/null
+    - bash plugins/bearing/bin/brg-adopt --help >/dev/null
+    - bash plugins/bearing/bin/brg-jira --help >/dev/null
     - n=0; for t in tests/unit/*.sh; do bash "$t" || exit 1; n=$((n+1)); done; [ "$n" -gt 0 ] || exit 1; echo "bash32:" "$n" "unit test files passed under $(bash --version | head -1)"
 
 kit:macos:
@@ -155,7 +156,7 @@ kit:macos:
     - command -v jq >/dev/null || brew install jq
   script:
     - make lint-shell test
-    - bash bin/brg-scaffold go-api McProbe --dir /tmp/x
+    - bash plugins/bearing/bin/brg-scaffold go-api McProbe --dir /tmp/x
 
 site:build:
   stage: validate
@@ -167,7 +168,7 @@ site:build:
     - make site
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-      changes: [site/**/*, docs/flows.json, docs/comparisons.json, bin/gen-guide.py, skills/**/SKILL.md]
+      changes: [site/**/*, ui/**/*, docs/flows.json, docs/default-files.json, bin/gen-guide.py, bin/kit_paths.py, plugins/*/skills/**/SKILL.md, plugins/bearing/templates/**/*]
 
 pages:
   stage: deploy
@@ -221,7 +222,7 @@ handbook:vercel:
       npx --yes "$VERCEL_CLI" whoami --token "$VERCEL_TOKEN"
     # The site is served at the root of its Vercel domain, so no base path.
     # site/public/vercel.json lands in dist and makes Vercel serve the folder
-    # as it is: no build there, every path rewritten to the app, noindex.
+    # as it is: no build there, every path rewritten to the app.
     - |
       export HANDBOOK_BASE=/
       make site
@@ -251,7 +252,7 @@ devguide:build:
     - make devguide
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-      changes: [devguide/**/*, bin/gen-devguide.py, bin/gen-guide.py, bin/brg-guard, bin/brg-autopilot, skills/**/SKILL.md, agents/*.md, hooks/**/*, Makefile]
+      changes: [devguide/**/*, ui/**/*, bin/gen-devguide.py, bin/gen-guide.py, bin/kit_paths.py, plugins/bearing/bin/brg-guard, plugins/bearing/bin/brg-autopilot, plugins/*/skills/**/SKILL.md, plugins/bearing/agents/*.md, plugins/bearing/hooks/**/*, Makefile]
 
 devguide:vercel:
   stage: deploy

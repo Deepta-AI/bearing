@@ -65,7 +65,7 @@ export function Autopilot() {
         { id: "limits", label: "Attempts, blocks, resume" },
         { id: "refuses", label: "What it never does" },
       ]}
-      sources={["bin/brg-autopilot", "skills/autopilot/SKILL.md", "skills/start-task/SKILL.md", "skills/session-handoff/SKILL.md", "skills/merge-request/SKILL.md"]}
+      sources={["plugins/bearing/bin/brg-autopilot", "plugins/bearing/skills/autopilot/SKILL.md", "plugins/bearing/skills/start-task/SKILL.md", "plugins/bearing/skills/session-handoff/SKILL.md", "plugins/bearing/skills/merge-request/SKILL.md"]}
     >
       <H2 id="loop">The task loop by hand</H2>
       <div className="loop wide">
@@ -98,7 +98,7 @@ export function Autopilot() {
           </h4>
           <p>
             Committed, and in the MR. For teammates and fresh clones: status (started, in progress, blocked, in review), done, next, blockers. Written only
-            through <code>skills/session-handoff/scripts/progress.py</code>, so its format holds.
+            through <code>plugins/bearing/skills/session-handoff/scripts/progress.py</code>, so its format holds.
           </p>
         </div>
       </div>

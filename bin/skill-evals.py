@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""skill-evals: run a Bearing skill's evals against no skill and its best
-alternative, graded blind, and record the measured result.
+"""skill-evals: run a Bearing skill's evals against no skill, graded blind,
+and record the measured result for the maintainers.
 
 The cases live in evals/<name>/evals.json, away from the skill so a run that
 follows the skill cannot read its grading (skill-creator's case schema;
@@ -11,13 +11,18 @@ arm inside it, in the layout skill-creator's aggregate_benchmark.py reads.
 
 Arms:
   with_skill            reads the kit's SKILL.md from this checkout and follows it
-  with_the_alternative  loads the best alternative from docs/comparisons.json
-                        (skipped when there is none, or it is another Bearing skill)
   without_skill         no skill at all
-Folders are named arm-1..arm-3 until grading is done, so the grader does not
+  with_the_alternative  optional, maintainers only: runs when the untracked
+                        .scratch/private/comparisons.json exists and names an
+                        installed skill for this one (never another Bearing
+                        skill). Nothing committed names such a skill.
+Folders are named arm-1..arm-N until grading is done, so the grader does not
 know which arm produced what; `unblind` renames them. The benchmark's delta is
-the first two configurations in sorted order: with_skill against the
-alternative when there is one, else against no skill.
+the first two configurations in sorted order.
+
+Results go to .scratch/private/comparisons.json (git ignores .scratch/), never
+to a tracked file: the measured numbers are an internal audit, not something
+the docs or the sites publish.
 
   skill-evals.py prepare <skill> [--iteration N]   workspace, fixtures, prompts
   skill-evals.py reset <run dir>...               rebuild interrupted runs from the fixture
@@ -26,8 +31,8 @@ alternative when there is one, else against no skill.
                                                    one blind grader brief per case
   skill-evals.py unblind <skill> [--iteration N]   arm-k -> arm name
   skill-evals.py measure <skill> [--iteration N] --model <id>
-                                                   benchmark + comparisons.json
-  skill-evals.py status                            where the 98 stand
+                                                   benchmark + the private results file
+  skill-evals.py status                            where every skill stands
 
 Each command prints the count of what it handled and exits 1 on zero.
 """
@@ -43,8 +48,12 @@ import subprocess
 import sys
 
 KIT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(KIT, "bin"))
+import kit_paths  # noqa: E402
+
 WS = os.path.join(KIT, ".scratch", "skill-evals")
-COMPARISONS = os.path.join(KIT, "docs", "comparisons.json")
+# Internal and untracked: .scratch/ is in .gitignore.
+COMPARISONS = os.path.join(KIT, ".scratch", "private", "comparisons.json")
 ARMS = ["with_skill", "with_the_alternative", "without_skill"]
 
 
@@ -69,16 +78,20 @@ def slug(s):
 
 
 def bearing_skills():
-    """The Bearing skills: every directory under skills/ that holds a SKILL.md."""
-    root = os.path.join(KIT, "skills")
-    return sorted(
-        d for d in os.listdir(root) if os.path.isfile(os.path.join(root, d, "SKILL.md"))
-    )
+    """The Bearing skills: every directory holding a SKILL.md under a Bearing
+    plugin's skills/ (bearing, bearing-backend, bearing-apps)."""
+    return [d.name for d in kit_paths.skill_dirs()]
+
+
+def private():
+    """The maintainers' untracked results file, or {} when there is none."""
+    return load(COMPARISONS) if os.path.isfile(COMPARISONS) else {}
 
 
 def alternative(skill):
-    """The invoke name of the best alternative, or None when there is no arm for it."""
-    c = load(COMPARISONS).get(skill, {})
+    """The invoke name for the optional third arm, or None when there is none:
+    no private file, no entry, not installed, or another Bearing skill."""
+    c = private().get(skill, {})
     b = c.get("best_alternative") or {}
     inv = (b.get("invoke") or "").strip()
     if not inv or not b.get("installed") or inv.lstrip("/") in bearing_skills():
@@ -151,14 +164,18 @@ The request:
 ---
 """
     if arm == "with_skill":
-        how = f"""How to work: read {KIT}/skills/{skill}/SKILL.md and follow it as your procedure, reading the
-files it points to. Wherever it says ${{CLAUDE_PLUGIN_ROOT}}, use {KIT}. Do not use the Skill tool
-for any Bearing skill (bearing:<name>; the installed copy is an older version); read the file instead. Do not load any
+        sdir = kit_paths.skill_dir(skill)
+        proot = sdir.parent.parent
+        how = f"""How to work: read {sdir}/SKILL.md and follow it as your procedure, reading the
+files it points to. Wherever it says ${{CLAUDE_PLUGIN_ROOT}}, use {proot}. Do not use the Skill tool
+for any Bearing skill (bearing:<name>, bearing-backend:<name> or bearing-apps:<name>; the installed
+copy is an older version); read the file under {KIT}/plugins instead. Do not load any
 other skill. Never open anything under {KIT}/evals/: it holds the grading for this
 run, and reading it spoils the run."""
     elif arm == "with_the_alternative":
         how = f"""How to work: load the skill `{alt}` with the Skill tool and follow it as your procedure. Do not
-load or read any Bearing skill (bearing:<name>), and do not read anything under {KIT}."""
+load or read any Bearing skill (bearing:, bearing-backend: or bearing-apps:<name>), and do not read
+anything under {KIT}."""
     else:
         how = f"""How to work: use your own judgement. Do not use the Skill tool, and do not read any SKILL.md
 file or anything under {KIT} or ~/.claude."""
@@ -460,8 +477,8 @@ def measure(a):
         if margin <= -0.10
         else "within 10 points"
     )
-    c = load(COMPARISONS)
-    c[a.skill]["measured"] = {
+    c = private()
+    c.setdefault(a.skill, {})["measured"] = {
         "date": datetime.date.today().isoformat(),
         "model": a.model,
         "iteration": a.iteration,
@@ -472,6 +489,7 @@ def measure(a):
         "closest": best,
         "margin": round(margin, 3),
     }
+    os.makedirs(os.path.dirname(COMPARISONS), exist_ok=True)
     dump(COMPARISONS, c)
     print(
         f"skill-evals: {a.skill} measured on {cases} cases: "
@@ -482,7 +500,7 @@ def measure(a):
 
 
 def status(a):
-    c = load(COMPARISONS)
+    c = private()
     skills = bearing_skills()
     if not skills:
         die("skill-evals: 0 skills found")

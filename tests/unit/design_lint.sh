@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# tests/unit/design_lint.sh: skills/design-system/templates/design-lint.sh,
+# tests/unit/design_lint.sh: plugins/bearing/skills/design-system/templates/design-lint.sh,
 # the lint make check runs over a UI. A clean feature passes with its counts;
 # a hardcoded colour, an arbitrary text size, a raw <table>/<button>/<input>
 # where src/components/ui has the component, and a one-off font family each
@@ -7,7 +7,7 @@
 # raw-element rule; an allowance lets a counted debt pass; zero files fail.
 set -u
 . "$(dirname "$0")/../lib/assert.sh"
-LINT="$KIT/skills/design-system/templates/design-lint.sh"
+LINT="$KIT/plugins/bearing/skills/design-system/templates/design-lint.sh"
 
 repo() { # a React src tree with one clean feature file
   local d; d="$(tmpdir)"

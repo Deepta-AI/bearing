@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# tests/unit/llm_callsites.sh: skills/llm-gateway/scripts/llm_callsites_check.py
+# tests/unit/llm_callsites.sh: plugins/bearing/skills/llm-gateway/scripts/llm_callsites_check.py
 # counts provider call sites from the code and passes only when every one
 # is inside the gateway module. It fails, with file:line, on an Anthropic
 # call, an SDK import or another provider outside llm/, and on empty input
 # (no code file, zero call sites). node_modules and recordings are skipped.
 set -u
 . "$(dirname "$0")/../lib/assert.sh"
-CHK="$KIT/skills/llm-gateway/scripts/llm_callsites_check.py"
+CHK="$KIT/plugins/bearing/skills/llm-gateway/scripts/llm_callsites_check.py"
 
 # fixture <dir>: a Python gateway with its provider, a TS gateway, two callers.
 fixture() {

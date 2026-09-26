@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# tests/unit/feature_flags_check.sh: skills/feature-flags/scripts/flags_check.py
+# tests/unit/feature_flags_check.sh: plugins/bearing/skills/feature-flags/scripts/flags_check.py
 # passes when the Go flags module and the register agree, every flag has an
 # owner and a future removal date, and code reads flags only through the
 # module; fails on each mismatch direction, a removed flag still in code, a
@@ -7,7 +7,7 @@
 # module, and on empty input.
 set -u
 . "$(dirname "$0")/../lib/assert.sh"
-CHK="$KIT/skills/feature-flags/scripts/flags_check.py"
+CHK="$KIT/plugins/bearing/skills/feature-flags/scripts/flags_check.py"
 
 # fixture <dir>: a Go service with two flags, a register and one handler.
 fixture() {
@@ -85,7 +85,7 @@ t_end
 t_begin "zero flags in both, with sources scanned, is a valid pass"
 d="$(tmpdir)/zero"; fixture "$d"
 printf 'package flags\n\ntype Flag string\n' > "$d/internal/flags/flags.go"
-sed -i.bak '/^| new_checkout\|^| kill_rec/d' "$d/docs/operations/flags.md"
+sed -i.bak -e '/^| new_checkout/d' -e '/^| kill_rec/d' "$d/docs/operations/flags.md"
 assert_exit 0 run "$d"
 assert_contains "$T_OUT" "feature-flags: 0 flags in internal/flags/flags.go, 0 in the register"
 t_end

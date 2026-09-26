@@ -16,7 +16,7 @@ export function Trackers() {
   return (
     <Page
       title="Trackers"
-      lede="Skills never call a tracker's API. They call bin/brg-tracker with one of eleven verbs, and it hands the call to one adapter chosen by BEARING_TRACKER. Adding a tracker means one new script, not a change to any skill."
+      lede="Skills never call a tracker's API. They call plugins/bearing/bin/brg-tracker with one of eleven verbs, and it hands the call to one adapter chosen by BEARING_TRACKER. Adding a tracker means one new script, not a change to any skill."
       toc={[
         { id: "shape", label: "The shape" },
         { id: "verbs", label: "Verbs and adapters" },
@@ -25,7 +25,7 @@ export function Trackers() {
         { id: "safety", label: "Credentials and retries" },
         { id: "tested", label: "Tested against fakes" },
       ]}
-      sources={["bin/brg-tracker", "bin/brg-jira", "bin/brg-gitlab", "bin/brg-github", "bin/brg-rest", "docs/TRACKERS.md", "tests/contract/fake_tracker.py"]}
+      sources={["plugins/bearing/bin/brg-tracker", "plugins/bearing/bin/brg-jira", "plugins/bearing/bin/brg-gitlab", "plugins/bearing/bin/brg-github", "plugins/bearing/bin/brg-rest", "docs/TRACKERS.md", "tests/contract/fake_tracker.py"]}
     >
       <H2 id="shape">The shape</H2>
       <div className="fanout wide">
@@ -131,7 +131,7 @@ export function Harnesses() {
         { id: "vendored", label: "The vendored guard" },
         { id: "honest", label: "What is and is not enforced" },
       ]}
-      sources={["bin/brg-harness", "skills/harness-setup/references/harness-matrix.md", "tests/integration/harness_each.sh"]}
+      sources={["plugins/bearing/bin/brg-harness", "plugins/bearing/skills/harness-setup/references/harness-matrix.md", "tests/integration/harness_each.sh"]}
     >
       <H2 id="idea">One guard, many adapters</H2>
       <p>
@@ -183,7 +183,7 @@ export function Harnesses() {
         <p>
           A prefix policy such as Codex's execpolicy or Zed's regexes sees <code>env git push</code> as a command starting with <code>env</code>. Only the hook
           over the guard strips wrappers. Where a harness has no hook (Zed), Bearing says so rather than pretending. The per-harness truth is in{" "}
-          <code>skills/harness-setup/references/harness-matrix.md</code>, and the Codex and Cursor adapters are marked unverified until run against the real tools.
+          <code>plugins/bearing/skills/harness-setup/references/harness-matrix.md</code>, and the Codex and Cursor adapters are marked unverified until run against the real tools.
         </p>
       </Note>
     </Page>
@@ -196,6 +196,7 @@ export function Install() {
       title="Install, doctor, packs"
       lede="install.sh puts the plugin, the packs and one config file on a machine; brg-doctor proves what is there; brg-install-packs brings in the third-party skills the workflow names as main choices, each pinned."
       toc={[
+        { id: "paths", label: "Plugin only or full install" },
         { id: "profiles", label: "Profiles" },
         { id: "steps", label: "What install.sh does" },
         { id: "env", label: "bearing.env" },
@@ -203,8 +204,17 @@ export function Install() {
         { id: "packs", label: "Third-party packs" },
         { id: "uninstall", label: "Uninstall" },
       ]}
-      sources={["install.sh", "bin/brg-doctor", "bin/brg-install-packs", "bin/pinned-packs.txt", "templates/user/bearing.env", "docs/INSTALL.md"]}
+      sources={["install.sh", "plugins/bearing/bin/brg-doctor", "plugins/bearing/bin/brg-install-packs", "plugins/bearing/bin/pinned-packs.txt", "plugins/bearing/templates/user/bearing.env", "docs/INSTALL.md"]}
     >
+      <H2 id="paths">Plugin only or full install</H2>
+      <p>
+        <code>/plugin marketplace add Deepta-AI/bearing</code> then <code>/plugin install bearing@bearing</code> inside Claude Code gives the whole plugin: the
+        skills, the agents, <code>plugins/bearing/hooks/hooks.json</code> and the <code>bin/</code> scripts the hooks and skills call, from Claude Code's cache. What only{" "}
+        <code>install.sh</code> adds: <code>bearing.env</code>, the personal <code>CLAUDE.md</code>, the packs for the profile, the doctor run, and a checkout
+        at <code>~/bearing</code> that <code>--no-claude</code> and other harnesses work from. Without an env file every script falls back to its defaults,
+        so the tracker is <code>none</code>.
+      </p>
+
       <H2 id="profiles">Profiles</H2>
       <Defs
         rows={[
@@ -225,14 +235,14 @@ export function Install() {
           nvm, fnm or Volta if not on PATH; jq, make and python3 warned about when missing.
         </li>
         <li>
-          <strong>The kit.</strong> A git checkout is refreshed with <code>pull --ff-only</code>, the <code>bearing</code> marketplace is added (the checkout, or <code>--remote</code>), and{" "}
-          <code>bearing@bearing</code> is installed or updated.
+          <strong>The kit.</strong> The <code>bearing</code> marketplace is added (the checkout, or <code>--remote</code>) and <code>bearing@bearing</code> is
+          installed or updated. With <code>--no-claude</code> there is no plugin step; the checkout is refreshed with <code>pull --ff-only</code> instead.
         </li>
         <li>
           <strong>Packs.</strong> Superpowers from the official marketplace, gstack cloned and set up, GSD Core through npx; on full, brg-install-packs.
         </li>
         <li>
-          <strong>Configuration.</strong> <code>~/.config/bearing/bearing.env</code> from <code>templates/user/bearing.env</code> with mode 600 and never
+          <strong>Configuration.</strong> <code>~/.config/bearing/bearing.env</code> from <code>plugins/bearing/templates/user/bearing.env</code> with mode 600 and never
           overwritten. The personal <code>~/.claude/CLAUDE.md</code>{" "}
           only if absent.
         </li>
@@ -260,7 +270,7 @@ BEARING_TRACKER_EMAIL=
 BEARING_TRACKER_TOKEN=
 BEARING_TRACKER_DONE_STATUS=Done
 BEARING_TRACKER_MAX_PAGES=20
-BEARING_KIT_REMOTE=             # your fork; install, scaffold and adopt read it
+BEARING_KIT_REMOTE=             # a fork's git url; install, scaffold and adopt read it
 BEARING_ORG_ID=com.example      # reverse domain for mobile ids`}</Code>
       <p>
         Every script reads it with the same parser, and <code>tests/unit/load_env.sh</code> compares the seven copies of that parser so they cannot drift.{" "}
@@ -292,7 +302,7 @@ BEARING_ORG_ID=com.example      # reverse domain for mobile ids`}</Code>
           <strong>Playwright</strong>: <code>npx @playwright/cli install --skills -g</code>.
         </li>
         <li>
-          <strong>Pinned packs</strong>: <code>bin/pinned-packs.txt</code> rows of <code>kind|repo|commit|path|name|licence</code>, fetched at that exact
+          <strong>Pinned packs</strong>: <code>plugins/bearing/bin/pinned-packs.txt</code> rows of <code>kind|repo|commit|path|name|licence</code>, fetched at that exact
           commit into <code>~/.cache/bearing-packs</code> and copied to <code>~/.claude/skills/&lt;name&gt;</code> with a <code>.bearing-pack</code> provenance
           file, so a skill installed by someone else is never overwritten.
         </li>

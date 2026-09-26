@@ -11,7 +11,7 @@
 # needs a review for a UI. dod refuses a profile the code contradicts.
 set -u
 . "$(dirname "$0")/../lib/assert.sh"
-AP="$KIT/bin/brg-autopilot"
+AP="$KIT/plugins/bearing/bin/brg-autopilot"
 ap() { python3 "$AP" "$@" --dir "$d"; }
 commit() { git -C "$d" add -A >/dev/null 2>&1; git -C "$d" -c user.email=t@e -c user.name=t commit -qm "$1" >/dev/null 2>&1; }
 
@@ -71,7 +71,7 @@ archset() {
     > "$r/docs/architecture/repo-plan.json"
 }
 # datamodel <repo>: the data-model templates, which model_check passes as shipped.
-datamodel() { cp "$KIT/skills/data-model/templates/"{schema.sql,data-dictionary.csv,data-model.md} "$1/docs/design/"; }
+datamodel() { cp "$KIT/plugins/bearing/skills/data-model/templates/"{schema.sql,data-dictionary.csv,data-model.md} "$1/docs/design/"; }
 
 t_begin "the stage list runs architecture, ux, test cases and test automation in order"
 assert_exit 0 python3 "$AP" stages
@@ -107,7 +107,7 @@ cp "$ARCH_MODEL" "$d/docs/architecture/architecture.json"
 assert_exit 1 ap "done" architecture
 assert_contains "$T_OUT" "diagram_check failed"
 assert_contains "$T_OUT" "0 SVG files"
-python3 "$KIT/skills/architecture-diagram/scripts/render.py" --model "$d/docs/architecture/architecture.json" \
+python3 "$KIT/plugins/bearing/skills/architecture-diagram/scripts/render.py" --model "$d/docs/architecture/architecture.json" \
   --out "$d/docs/architecture/diagrams" --no-png >/dev/null
 assert_exit 0 ap "done" architecture
 assert_contains "$T_OUT" "1 C4 file(s), 1 mermaid diagram(s); diagram-check: 3 diagrams, 26 nodes, 27 connections"
@@ -232,7 +232,7 @@ assert_exit 1 ap "done" ux
 assert_contains "$T_OUT" "bundle check failed"
 assert_contains "$T_OUT" "2 screens (1 features), 8 state panels"
 assert_contains "$T_OUT" "2 problems"
-BUNDLE="$KIT/skills/screen-design/scripts/bundle.py"
+BUNDLE="$KIT/plugins/bearing/skills/screen-design/scripts/bundle.py"
 python3 "$BUNDLE" audit --design "$d/docs/design" --flows-root "$d/docs/design/flows" >/dev/null
 python3 "$BUNDLE" gallery --design "$d/docs/design" >/dev/null
 assert_exit 0 ap "done" ux
@@ -277,7 +277,7 @@ assert_contains "$T_OUT" "gallery_check failed: screen-gallery: 2 screens from d
 gallery_screen "$d/web/src/features/orders/screens/S-02-done.screen.tsx" S-02 loading empty error success
 assert_exit 1 ap "done" ux
 assert_contains "$T_OUT" "no scripts/design-lint.sh (design-system)"
-mkdir -p "$d/scripts"; cp "$KIT/skills/design-system/templates/design-lint.sh" "$d/scripts/design-lint.sh"
+mkdir -p "$d/scripts"; cp "$KIT/plugins/bearing/skills/design-system/templates/design-lint.sh" "$d/scripts/design-lint.sh"
 printf 'export const Bad = () => <button type="button">Go</button>;\n' > "$d/web/src/features/orders/Bad.tsx"
 assert_exit 1 ap "done" ux
 assert_contains "$T_OUT" "design-lint failed"

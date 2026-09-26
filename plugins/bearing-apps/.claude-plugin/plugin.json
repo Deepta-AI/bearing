@@ -1,0 +1,20 @@
+{
+  "name": "bearing-apps",
+  "version": "0.6.0",
+  "description": "Bearing stack conventions and repository templates for apps: React, Next.js, React Native (Expo), Flutter, native iOS and native Android. Needs the bearing plugin.",
+  "author": {
+    "name": "Ravi Teja Akella"
+  },
+  "homepage": "https://github.com/Deepta-AI/bearing",
+  "repository": "https://github.com/Deepta-AI/bearing",
+  "license": "MIT",
+  "keywords": [
+    "react",
+    "nextjs",
+    "react-native",
+    "expo",
+    "flutter",
+    "ios",
+    "android"
+  ]
+}

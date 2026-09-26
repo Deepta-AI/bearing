@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# tests/unit/design_evidence.sh: skills/design-critique/scripts/evidence.py
+# tests/unit/design_evidence.sh: plugins/bearing/skills/design-critique/scripts/evidence.py
 # check passes six real-shaped PNGs per page with a dark theme that applied,
 # and fails, with the reason, on a missing width, a PNG at the wrong width,
 # a file that is not a PNG, a dark shot identical to light, equal computed
@@ -7,7 +7,7 @@
 # absent. No browser is needed: the PNGs are written here.
 set -u
 . "$(dirname "$0")/../lib/assert.sh"
-EV="$KIT/skills/design-critique/scripts/evidence.py"
+EV="$KIT/plugins/bearing/skills/design-critique/scripts/evidence.py"
 
 # png <path> <width> <salt>: a PNG signature and IHDR of that width; the salt
 # changes the bytes so light and dark differ.

@@ -1,0 +1,84 @@
+# Bearing docs on Vercel: the twin of handbook:vercel and devguide:vercel in
+# .gitlab-ci.yml.
+#
+#   handbook   site/ (the handbook: every stage, skill and flow) built and
+#              deployed to its Vercel project.
+#   devguide   devguide/ (how Bearing works inside) built and deployed to
+#              its own Vercel project; it links every source file it names
+#              to this repository.
+#
+# Runs on every push to main and by hand (Actions, docs, Run workflow). Each
+# job first checks that the generated data is current (make lint-docs), so a
+# stale site is never published. Repository secrets, set once under
+# Settings, Secrets and variables, Actions:
+#   VERCEL_TOKEN                  an access token scoped to the Vercel team
+#   VERCEL_ORG_ID                 the team id (team_...)
+#   VERCEL_PROJECT_ID             the handbook project (prj_...)
+#   VERCEL_DEVGUIDE_PROJECT_ID    the developer guide project (prj_...)
+# A job whose secrets are missing prints what is missing and deploys nothing.
+name: docs
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: docs-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  VERCEL_CLI: vercel@59.26.0
+  VERCEL_TELEMETRY_DISABLED: "1"
+
+jobs:
+  handbook:
+    runs-on: ubuntu-latest
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - uses: pnpm/action-setup@v4
+        with: { version: 10 }
+      - name: secrets
+        id: secrets
+        run: bash .github/scripts/vercel-preflight.sh handbook VERCEL_PROJECT_ID
+      - if: steps.secrets.outputs.ready == 'true'
+        run: make lint-docs
+      - if: steps.secrets.outputs.ready == 'true'
+        name: build and deploy
+        run: |
+          export HANDBOOK_BASE=/
+          make site
+          bash .github/scripts/vercel-deploy.sh handbook site/dist
+
+  devguide:
+    runs-on: ubuntu-latest
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_DEVGUIDE_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - uses: pnpm/action-setup@v4
+        with: { version: 10 }
+      - name: secrets
+        id: secrets
+        run: bash .github/scripts/vercel-preflight.sh devguide VERCEL_DEVGUIDE_PROJECT_ID
+      - if: steps.secrets.outputs.ready == 'true'
+        run: make lint-docs
+      - if: steps.secrets.outputs.ready == 'true'
+        name: build and deploy
+        run: |
+          export DEVGUIDE_BASE=/ VITE_REPO_URL="${{ github.server_url }}/${{ github.repository }}"
+          make devguide
+          bash .github/scripts/vercel-deploy.sh devguide devguide/dist

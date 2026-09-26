@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# tests/unit/vapt_findings.sh: skills/vapt-report/scripts/collect_findings.py
+# tests/unit/vapt_findings.sh: plugins/bearing/skills/vapt-report/scripts/collect_findings.py
 # reads the newest claude-security results with their revision stamp and the
 # newest gstack /cso report, merges findings at the same file and line
 # (higher severity wins, both sources named), fails on a claude-security scan
@@ -7,7 +7,7 @@
 # --allow-stale, and fails when no scanner report exists.
 set -u
 . "$(dirname "$0")/../lib/assert.sh"
-COL="$KIT/skills/vapt-report/scripts/collect_findings.py"
+COL="$KIT/plugins/bearing/skills/vapt-report/scripts/collect_findings.py"
 
 cs() { # cs <root> <sha>: a claude-security report of that commit
   local d="$1/CLAUDE-SECURITY-20260923-101010"; mkdir -p "$d"

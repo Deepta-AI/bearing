@@ -8,22 +8,38 @@ export function GetStarted() {
       title="Get started"
       lede="Install once per machine, then put a repository on the standard and start a task. Each step ends with a line you can check; if yours differs, Troubleshooting has the fix."
       toc={[
+        { id: "plugin", label: "The plugin only" },
         { id: "install", label: "Install on this machine" },
         { id: "repo", label: "Put a repository on the standard" },
         { id: "task", label: "Start a task" },
         { id: "profiles", label: "Install profiles" },
       ]}
     >
+      <p>
+        Bearing is open source under the MIT licence, at{" "}
+        <a href="https://github.com/Deepta-AI/bearing">github.com/Deepta-AI/bearing</a>. There are two ways in.
+      </p>
+      <h2 id="plugin">The plugin only</h2>
+      <p>Inside Claude Code 2.1 or newer:</p>
+      <Code>{`/plugin marketplace add Deepta-AI/bearing
+/plugin install bearing@bearing`}</Code>
+      <p>
+        That gives every skill, the seven subagents, and the hooks with the guard behind them. It writes no env file (the tracker stays{" "}
+        <code>none</code> until you copy <code>plugins/bearing/templates/user/bearing.env</code> to <code>~/.config/bearing/bearing.env</code>), installs no companion
+        packs and leaves no checkout at <code>~/bearing</code>. For those, use the full install below.
+      </p>
+
       <h2 id="install">Install on this machine</h2>
       <p>
-        You need a coding harness (Claude Code 2.1 or newer for the plugin), git, Node 22 or newer, make and jq, and SSH access to the git host that
-        holds your fork of the kit.
+        The full install needs a coding harness (Claude Code 2.1 or newer for the plugin), git, Node 22 or newer, make and jq. It adds the env file,
+        a personal <code>CLAUDE.md</code> starter, the companion packs for the profile, and a doctor run. A team on a fork clones the fork and sets{" "}
+        <code>BEARING_KIT_REMOTE</code>.
       </p>
       <div className="steps">
         <div className="stepcard">
           <div className="n">Step 1</div>
           <h3>Clone and install</h3>
-          <Code>{`git clone <your fork url> ~/bearing
+          <Code>{`git clone https://github.com/Deepta-AI/bearing ~/bearing
 bash ~/bearing/install.sh`}</Code>
           <p className="expect">
             Last line: <code>install.sh: N installed, M already present, K skipped, 0 failed</code>
@@ -36,7 +52,7 @@ bash ~/bearing/install.sh`}</Code>
             Edit <code>~/.config/bearing/bearing.env</code>. It lives outside every repository with mode 600. <code>BEARING_TRACKER=none</code> is a valid
             answer.
           </p>
-          <Code>{`~/bearing/bin/brg-tracker config`}</Code>
+          <Code>{`~/bearing/plugins/bearing/bin/brg-tracker config`}</Code>
           <p className="expect">
             First line: <code>tracker: none (from file)</code> or your tracker's name.
           </p>
@@ -45,7 +61,7 @@ bash ~/bearing/install.sh`}</Code>
           <div className="n">Step 3</div>
           <h3>Restart and check</h3>
           <p>Plugins load when the harness starts. Then, in any repository:</p>
-          <Code>{`doctor`}</Code>
+          <Code>{`/bearing:doctor`}</Code>
           <p className="expect">
             Last line: <code>brg-doctor: N checks, 0 missing, M optional</code>. A <code>MISSING</code> line names its own fix.
           </p>
@@ -54,8 +70,8 @@ bash ~/bearing/install.sh`}</Code>
 
       <h2 id="repo">Put a repository on the standard</h2>
       <p>A new repository is scaffolded for its stack; an existing one is adopted without overwriting anything, and each conflict is written beside the file as <code>.bearing-new</code>.</p>
-      <Code>{`new-repo go-api InvoiceService   # a new repository
-onboard-repo --stack react-web          # an existing one`}</Code>
+      <Code>{`/bearing:new-repo go-api InvoiceService       # a new repository
+/bearing:onboard-repo --stack react-web      # an existing one`}</Code>
       <p className="muted">
         Stacks: {data.stacks.join(", ")}.
       </p>
@@ -65,10 +81,11 @@ onboard-repo --stack react-web          # an existing one`}</Code>
       </p>
 
       <h2 id="task">Start a task</h2>
-      <Code>{`start-task TASK-142 InvoiceTotals`}</Code>
+      <Code>{`/bearing:start-task TASK-142 InvoiceTotals`}</Code>
       <p>
         It creates <code>feature/TASK-142-InvoiceTotals</code> and the state file the next session resumes from, and ends with <code>Next:</code>{" "}
-        and the skill to run. From there, follow the <Link to="/flows/feature">feature flow</Link> or ask <code>workflow</code> what comes next.
+        and the skill to run. From there, follow the <Link to="/flows/feature">feature flow</Link> or ask <code>/bearing:workflow</code> what comes next. You
+        can also just say what you want ("start task TASK-142"); Claude loads the matching skill.
       </p>
 
       <h2 id="profiles">Install profiles</h2>
@@ -78,7 +95,7 @@ bash ~/bearing/install.sh --profile minimal   # the plugin and the env file only
 bash ~/bearing/install.sh --dry-run           # print what it would do, touch nothing
 bash ~/bearing/install.sh --no-claude         # for another harness only`}</Code>
       <p>
-        The installer is idempotent and never overwrites your env file. Upgrade with <code>upgrade-tools</code>; uninstall with{" "}
+        The installer is idempotent and never overwrites your env file. Upgrade with <code>/bearing:upgrade-tools</code>; uninstall with{" "}
         <code>bash ~/bearing/install.sh --uninstall</code>. Every option is in <code>docs/INSTALL.md</code>.
       </p>
     </Page>
@@ -110,7 +127,6 @@ export function Concepts() {
 │   description: Prepare the Merge Request for the
 │     current branch ... Use when asked to
 │     "prepare the MR", "open a merge request" ...
-│   disable-model-invocation: true
 │   allowed-tools: Read, Bash(make:*), Bash(git diff:*)
 │   ---
 │   ## Inputs    what it needs, where it looks, the fallback
@@ -125,7 +141,9 @@ export function Concepts() {
             <b>Description</b>What it does, then "Use when" and the phrases a developer would say. Too vague and it never fires; too broad and it fires on everything.
           </div>
           <div>
-            <b>Typed or automatic</b>Typed skills carry <code>disable-model-invocation: true</code> and run only when you type them. Automatic ones load when your request matches.
+            <b>Asked for or typed</b>Every Bearing skill loads when your request matches its description, and every one can be typed as{" "}
+            <code>/bearing:&lt;name&gt;</code>. With many packs installed, Claude Code may list some skills by name only; the install guide's "Keep the
+            skill listing lean" section says what to trim.
           </div>
           <div>
             <b>Works alone</b>Every input names a fallback: another place to look, one question, or a minimal version. Another skill is the fuller path, never a prerequisite.
@@ -139,10 +157,11 @@ export function Concepts() {
       <h2 id="terms">The words you will meet</h2>
       <div className="list">
         <div>
-          <b>Slash command</b>A skill you type: <code>merge-request</code>, <code>/office-hours</code>. In Claude Code every skill is reachable as <code>/name</code>.
+          <b>Slash command</b>A skill you type: <code>/bearing:merge-request</code>, <code>/office-hours</code>. In Claude Code a plugin's skills are
+          reachable as <code>/plugin:name</code>, so every Bearing skill is <code>/bearing:&lt;name&gt;</code>.
         </div>
         <div>
-          <b>Subagent</b>A separate agent with a clean context and its own tool limits. The reviewer, verifier, security auditor, explorer and critic are read-only; the test writer works in a worktree; the doc writer edits only <code>docs/</code>.
+          <b>Subagent</b>A separate agent with a clean context and its own tool limits, named like <code>bearing:reviewer</code>. The reviewer, verifier, security auditor, explorer and critic are read-only; the test writer works in a worktree; the doc writer edits only <code>docs/</code>.
         </div>
         <div>
           <b>Hook</b>A script the harness runs at a moment: session start, before a shell command, after an edit. Hooks enforce what prose cannot, such as never pushing.
@@ -161,11 +180,11 @@ export function Concepts() {
       <h2 id="writing">Writing one</h2>
       <ol>
         <li>Pick one job you re-explain every week. One job per skill.</li>
-        <li>Check first whether an installed skill already does it better. If one does, use it and pass it your rules instead of writing another.</li>
+        <li>Check first whether an installed skill already does the job. If one does, use it and pass it your rules instead of writing another.</li>
         <li>
-          Run <code>new-skill</code>: it scaffolds the folder to the conventions and runs the lints, then hands the skill to{" "}
-          <code>skill-creator</code>, which runs your cases with and without the skill and grades both. A skill that does not beat the no-skill run is
-          not added.
+          Run <code>/bearing:new-skill</code>: it scaffolds the folder to the conventions and runs the lints, then hands the skill to{" "}
+          <code>skill-creator</code>, which runs your cases with and without the skill and grades both. A skill that does not pass more of its cases
+          than the no-skill run is not added.
         </li>
         <li>Add to the Gotchas every time the skill surprises you.</li>
       </ol>
@@ -224,7 +243,7 @@ export function Security() {
           <b>Credentials never enter a repository or the conversation</b>They live in the env file (mode 600). Tracker adapters pass tokens to curl through a config file on a pipe, never on the command line. Repository settings deny reading <code>.env</code>, keys, keystores and cloud credentials.
         </div>
         <div>
-          <b>One verb table, fail closed</b><code>bin/brg-guard</code> blocks {data.guardVerbs} verbs: push, history rewrites, branch and tag deletion, merges and releases on glab and gh, package publishing, image pushes, terraform apply and destroy, and deploy tools. It sees through <code>sudo</code>, <code>env</code>, <code>sh -c</code>, <code>eval</code>, <code>xargs</code> and <code>git -C</code>, and refuses a command it cannot read. Every hook and deny list is generated from that one table.
+          <b>One verb table, fail closed</b><code>plugins/bearing/bin/brg-guard</code> blocks {data.guardVerbs} verbs: push, history rewrites, branch and tag deletion, merges and releases on glab and gh, package publishing, image pushes, terraform apply and destroy, and deploy tools. It sees through <code>sudo</code>, <code>env</code>, <code>sh -c</code>, <code>eval</code>, <code>xargs</code> and <code>git -C</code>, and refuses a command it cannot read. Every hook and deny list is generated from that one table.
         </div>
         <div>
           <b>Read-only agents</b>The reviewer, verifier, security auditor, explorer and critic run under the guard's read-only mode: a command passes only when every program in it only reads.
@@ -240,7 +259,8 @@ export function Security() {
         </div>
       </div>
       <p className="muted">
-        A weakness in the kit itself goes privately to the contact in <code>NOTICE.md</code>, per <code>SECURITY.md</code>.
+        A weakness in the kit itself goes privately through GitHub's vulnerability reporting on{" "}
+        <a href="https://github.com/Deepta-AI/bearing/security/advisories/new">Deepta-AI/bearing</a>, per <code>SECURITY.md</code>.
       </p>
     </Page>
   );
@@ -249,14 +269,14 @@ export function Security() {
 export function Packs() {
   const packs = [
     ["sp", "Superpowers", "Discipline", "brainstorming, writing-plans, executing-plans, test-driven-development, systematic-debugging, verification-before-completion, writing-skills.", "Not used: branch-finishing defaults that push; merge-request covers that step."],
-    ["gs", "gstack", "Judgement and live checks", "/office-hours, /plan-ceo-review, /plan-eng-review, /design-consultation, /review, /investigate, /qa, /cso, /design-review, /canary, /retro.", "Denied on work repositories: cookie import, cross-model skills, pair-agent, deploy skills."],
-    ["gsd", "GSD Core", "Work that spans sessions", "gsd-new-project, gsd-plan-phase, gsd-execute-phase, gsd-verify-work, gsd-pause-work, gsd-debug.", "Denied on work repositories: gsd-ship, cross-AI convergence."],
+    ["gs", "gstack", "Judgement and live checks", "/office-hours, /plan-ceo-review, /plan-eng-review, /design-consultation, /review, /investigate, /qa, /cso, /design-review, /canary, /retro.", "Denied in repositories on the standard: cookie import, cross-model skills, pair-agent, deploy skills."],
+    ["gsd", "GSD Core", "Work that spans sessions", "gsd-new-project, gsd-plan-phase, gsd-execute-phase, gsd-verify-work, gsd-pause-work, gsd-debug.", "Denied in repositories on the standard: gsd-ship, cross-AI convergence."],
     ["bi", "Official and Anthropic", "Depth where it matters", "claude-security (verified security scanning), skill-creator (skill evals), frontend-design, mcp-server-dev.", "Installed by the full profile or the marketplace."],
   ];
   return (
     <Page
       title="Packs and cost"
-      lede="The kit builds on open-source packs and writes only what they do not cover better. Where a pack's skill is stronger, the workflow names it as the main choice."
+      lede="The kit works alongside open-source packs. Where a step calls a pack's skill, the workflow names it and Bearing adds its own gates around it."
       toc={[
         { id: "packs", label: "What comes from where" },
         { id: "cost", label: "What it costs in context" },
@@ -281,8 +301,10 @@ export function Packs() {
       </p>
       <h2 id="cost">What it costs in context</h2>
       <p>
-        Only descriptions are always loaded: about {data.skills.length} skills at under 300 characters each is roughly 7k tokens a session, before
-        any skill body. A body loads only when its description matches, and its references only when a step reads them. The repository's AGENTS.md
+        Only names and descriptions are always loaded: {data.skills.length} Bearing skills at 220 characters or fewer each is at most about{" "}
+        {Math.round((data.skills.length * 240) / 4000)}k tokens a session, before any skill body. Claude Code caps that listing at about 1% of the
+        context window; past the cap, some skills are listed by name only, which is why every Bearing name says its job (docs/INSTALL.md, "Keep the
+        skill listing lean"). A body loads only when its description matches, and its references only when a step reads them. The repository's AGENTS.md
         is about 1.5k tokens; stack detail lives in path-scoped rules that cost nothing until a matching file is opened.
       </p>
       <ul>
@@ -323,7 +345,7 @@ export function Harnesses() {
     >
       <h2 id="setup">Set one up</h2>
       <Code>{`bash ~/bearing/install.sh --no-claude
-~/bearing/bin/brg-harness cursor     # or codex, gemini, copilot, opencode, windsurf, cline, zed, kiro`}</Code>
+~/bearing/plugins/bearing/bin/brg-harness cursor     # or codex, gemini, copilot, opencode, windsurf, cline, zed, kiro`}</Code>
       <p>
         It converts the path-scoped rules to that harness's rule files, points its instructions at AGENTS.md, vendors the guard with its hook
         adapters under <code>.bearing/</code> (commit them), and installs the skills into its skills folder.
@@ -367,13 +389,16 @@ export function Versioning() {
           <b>What a version means</b>A minor release adds skills, adapters, template files or guard verbs; nothing you use changes meaning. A major release renames or removes a skill, changes a hook contract or what a gate counts. Patches fix without adding.
         </div>
         <div>
-          <b>Pinning</b>Each repository's settings name the marketplace by your fork's URL. The vendored guard carries the version it came from, and <code>doctor</code> says when the installed kit has moved past it.
+          <b>Pinning</b>Each repository's settings name the marketplace by the kit's git URL: the public repository, or your fork when{" "}
+          <code>BEARING_KIT_REMOTE</code> points at one. The vendored guard carries the version it came from, and <code>doctor</code> says when the installed kit has moved past it.
         </div>
         <div>
-          <b>Upgrading</b><code>upgrade-tools</code> updates the kit and the packs, prints versions before and after, and reruns the doctor. Read <code>CHANGELOG.md</code> for the versions you cross.
+          <b>Upgrading</b><code>/bearing:upgrade-tools</code> updates the kit and the packs, prints versions before and after, and reruns the doctor. Read <code>CHANGELOG.md</code> for the versions you cross.
         </div>
         <div>
-          <b>Where to report</b>Bugs and proposals go to the contact in <code>NOTICE.md</code> or a merge request on the fork. A vulnerability in the kit goes privately, per <code>SECURITY.md</code>.
+          <b>Where to report</b>Bugs and proposals go to an issue or a pull request on{" "}
+          <a href="https://github.com/Deepta-AI/bearing">github.com/Deepta-AI/bearing</a> (<code>CONTRIBUTING.md</code> has the flow). A vulnerability in
+          the kit goes privately, per <code>SECURITY.md</code>.
         </div>
       </div>
     </Page>
@@ -382,13 +407,13 @@ export function Versioning() {
 
 const FAQ: [string, React.ReactNode][] = [
   ["doctor says the plugin is missing right after install", <>Restart the harness; plugins load at start. If it is still missing, <code>claude plugin list</code> should show <code>bearing@bearing</code>; if not, rerun <code>install.sh</code> and read its summary line.</>],
-  ["A skill did not fire on my phrase", <>Name it: type <code>merge-request</code>, or say "use the merge-request skill". Typed skills never fire on their own by design. For an automatic one, propose your phrase as a change to its description.</>],
+  ["A skill did not fire on my phrase", <>Name it: type <code>/bearing:merge-request</code>, or say "use the merge-request skill". On a machine with many skill packs, Claude Code may list it by name only; trim what you load (docs/INSTALL.md, "Keep the skill listing lean"). If the phrase should have worked, propose it as a pull request to the skill's description.</>],
   ["make check says gates were skipped", <>A tool a gate needs is not installed; the skipped names are listed. Install it (<code>make doctor</code> names it), or locally run <code>BEARING_ALLOW_SKIP=1 make check</code> to see the rest. CI never skips.</>],
-  ["The guard blocked a command I know is safe", <>It fails closed: a command it cannot read is refused. Run it yourself in a terminal. If a verb is wrong for the team, change the table in <code>bin/brg-guard</code> in the kit; every adapter regenerates from it.</>],
-  ["git push is refused inside the harness", <>That is the standard working. <code>merge-request</code> prints the push command; run it in your own terminal, where the pre-push hook asks for the branch name.</>],
+  ["The guard blocked a command I know is safe", <>It fails closed: a command it cannot read is refused. Run it yourself in a terminal. If a verb is wrong for the team, change the table in <code>plugins/bearing/bin/brg-guard</code> in the kit; every adapter regenerates from it.</>],
+  ["git push is refused inside the harness", <>That is the standard working. <code>/bearing:merge-request</code> prints the push command; run it in your own terminal, where the pre-push hook asks for the branch name.</>],
   ["The ticket step says tracker: none", <><code>BEARING_TRACKER</code> is unset or <code>none</code>, so ticket writes are skipped. That is valid. Fill the env file to connect one and check with <code>brg-tracker config</code>.</>],
-  ["The doctor says MISSING on GitHub files", <>It accepts either host. Set <code>BEARING_GIT_HOST=github</code> and run <code>onboard-repo</code> again; it copies only that host's files.</>],
-  ["The marketplace add fails on the SSH URL", <>Clone the repository first and pass the path: <code>bash install.sh --remote ~/bearing</code>, or set <code>BEARING_KIT_REMOTE</code> to a URL your machine can reach.</>],
+  ["The doctor says MISSING on GitHub files", <>It accepts either host. Set <code>BEARING_GIT_HOST=github</code> and run <code>/bearing:onboard-repo</code> again; it copies only that host's files.</>],
+  ["The marketplace add fails on a fork's SSH URL", <>Clone the fork first and pass the path: <code>bash install.sh --remote ~/bearing</code>, or set <code>BEARING_KIT_REMOTE</code> to a URL your machine can reach.</>],
   ["GSD Core warns about the Node version", <>GSD Core wants Node 24; the rest of the kit is fine on 22. Upgrade Node, or install with <code>--skip-gsd</code> and add it later.</>],
 ];
 
@@ -412,7 +437,7 @@ export function Rules() {
     <Page title="Rules" lede="What the workflow never bends, and what enforces each rule.">
       <div className="list rules">
         <div>
-          <b>The strongest skill wins</b>Every step uses the strongest skill available, whichever pack it comes from. A Bearing skill is used only where nothing installed does the step better; each skill page shows the comparison.
+          <b>One skill per step</b>Every step names the one skill the workflow runs, whichever pack provides it. Where that is another pack's skill, Bearing calls it and adds its own gates.
         </div>
         <div>
           <b>The agent never pushes</b>No push, merge, tag, deploy or change request from the agent. Hooks and permissions enforce it; you run the printed command.
@@ -421,7 +446,7 @@ export function Rules() {
           <b>Gates count what they checked</b>Every check fails on empty input and prints how many things it verified. A pass over zero items is a bug.
         </div>
         <div>
-          <b>Reviews are verified</b>Code review runs gstack /review with the team's checklists, and an independent agent confirms every Critical and High before it is reported.
+          <b>Reviews are verified</b>Code review runs gstack /review with the stack checklists, and an independent agent confirms every Critical and High before it is reported.
         </div>
         <div>
           <b>Everything traces</b>Requirement to story to criterion to test case to commit to ticket. <code>traceability</code> proves the chain and fails on a gap.

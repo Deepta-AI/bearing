@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# tests/unit/data_model_check.sh: skills/data-model/scripts/model_check.py
+# tests/unit/data_model_check.sh: plugins/bearing/skills/data-model/scripts/model_check.py
 # (schema.sql, data-dictionary.csv and data-model.md agree: every table and
 # column in both, a Why per column, COMMENT ON everywhere, named CHECKs, FK
 # order, enums first, headline counts) and scripts/apply_check.sh (SKIPPED
@@ -7,9 +7,9 @@
 # passing fixture, so they cannot drift apart either.
 set -u
 . "$(dirname "$0")/../lib/assert.sh"
-MC="$KIT/skills/data-model/scripts/model_check.py"
-AC="$KIT/skills/data-model/scripts/apply_check.sh"
-TPL="$KIT/skills/data-model/templates"
+MC="$KIT/plugins/bearing/skills/data-model/scripts/model_check.py"
+AC="$KIT/plugins/bearing/skills/data-model/scripts/apply_check.sh"
+TPL="$KIT/plugins/bearing/skills/data-model/templates"
 
 fixture() { # fixture <dir>: the three template files, as a skill run writes them
   cp "$TPL/schema.sql" "$TPL/data-dictionary.csv" "$TPL/data-model.md" "$1/"

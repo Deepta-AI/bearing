@@ -10,24 +10,24 @@ const RECIPES: Recipe[] = [
   {
     id: "skill",
     title: "Add a skill",
-    when: "A step nothing installed does well, or a procedure the team repeats.",
-    touch: ["skills/<name>/SKILL.md", "evals/<name>/evals.json", "bin/gen-guide.py (CATEGORY, STAGES)", "docs/comparisons.json", "CHANGELOG.md"],
+    when: "A step the workflow has no skill for, or a procedure the team repeats.",
+    touch: ["plugins/<plugin>/skills/<name>/SKILL.md", "evals/<name>/evals.json", "bin/gen-guide.py (CATEGORY, STAGES)", "CHANGELOG.md"],
     steps: [
       <>
         Run <S name="new-skill" /> <code>&lt;name&gt;</code> in the kit checkout. It interviews you one question at a time: what it does, three to five
-        trigger phrases, command or auto, each input with its fallback, the tools, the gotchas.
+        trigger phrases, each input with its fallback, the tools, the gotchas.
       </>,
       <>
         It writes <code>SKILL.md</code> from the template. Keep it under 140 lines; put long checklists in <code>references/</code> and files to copy in{" "}
         <code>templates/</code>.
       </>,
       <>
-        Give it a category in <code>CATEGORY</code> and, if it is the main skill for a stage, a row in <code>STAGES</code> in <code>bin/gen-guide.py</code>.
-        Add its verdict against the best alternative to <code>docs/comparisons.json</code>; <code>gen-guide.py</code> fails on a skill without one.
+        Give it a category in <code>CATEGORY</code> and, if it is the skill for a stage, a row in <code>STAGES</code> in <code>bin/gen-guide.py</code>;{" "}
+        <code>gen-guide.py</code> fails on a skill without a category.
       </>,
       <>
         Write <code>evals/&lt;name&gt;/evals.json</code> with two or three realistic prompts and checkable expectations, and run them through
-        skill-creator against a no-skill baseline. A skill that does not beat the baseline is not added.
+        skill-creator against a no-skill baseline. A skill that does not pass more of its cases than the baseline is not added.
       </>,
       <>
         <code>make docs</code>, then <code>make check</code>. Add the CHANGELOG line under Unreleased.
@@ -39,15 +39,15 @@ const RECIPES: Recipe[] = [
     id: "skill-edit",
     title: "Change a skill",
     when: "A skill misses a step, triggers wrongly, or runs a command it has no grant for.",
-    touch: ["skills/<name>/SKILL.md", "evals/<name>/evals.json"],
+    touch: ["plugins/<plugin>/skills/<name>/SKILL.md", "evals/<name>/evals.json"],
     steps: [
       <>
         Edit the body. A new command in Inputs, Steps or Commands needs a grant in <code>allowed-tools</code>, or a row in{" "}
         <code>bin/lint-skill-tools.allow</code> when the skill only prints it for you.
       </>,
       <>
-        A description change moves triggering for every session. Keep "Use when" and three to five quoted phrases, 300 characters at most, and rerun the
-        description optimiser with near-miss prompts from neighbouring skills.
+        A description change moves triggering for every session. Lead with the job, keep "Use when" and at least two quoted phrases, 220 characters at most (Claude Code
+        keeps the start when it shortens a crowded listing), and rerun the description optimiser with near-miss prompts from neighbouring skills.
       </>,
       <>If the skill has evals, rerun them; add a case for the failure that prompted the change.</>,
       <>
@@ -60,10 +60,10 @@ const RECIPES: Recipe[] = [
     id: "guard-rule",
     title: "Add or change a guard rule",
     when: "An agent ran something it should not have, or a safe command was refused.",
-    touch: ["bin/brg-guard (verb_rows)", "tests/unit/guard_deny_table.sh", "templates/repo/.claude/settings.json"],
+    touch: ["plugins/bearing/bin/brg-guard (verb_rows)", "tests/unit/guard_deny_table.sh", "plugins/bearing/templates/repo/.claude/settings.json"],
     steps: [
       <>
-        Add the row to <code>verb_rows</code> in <code>bin/brg-guard</code> as <code>tool|pattern|label</code>, using the <Link to="/guard#patterns">pattern language</Link>
+        Add the row to <code>verb_rows</code> in <code>plugins/bearing/bin/brg-guard</code> as <code>tool|pattern|label</code>, using the <Link to="/guard#patterns">pattern language</Link>
         . Prefer the narrowest pattern: <code>helm|upgrade</code>, not <code>helm|</code>.
       </>,
       <>
@@ -72,7 +72,7 @@ const RECIPES: Recipe[] = [
         one on a line.
       </>,
       <>
-        Add the matching <code>Bash(...)</code> deny entry to <code>templates/repo/.claude/settings.json</code>. Run <code>brg-harness all</code> in a test
+        Add the matching <code>Bash(...)</code> deny entry to <code>plugins/bearing/templates/repo/.claude/settings.json</code>. Run <code>brg-harness all</code> in a test
         repository to see the derived policies for the other harnesses.
       </>,
       <>
@@ -86,7 +86,7 @@ const RECIPES: Recipe[] = [
     id: "hook",
     title: "Change a hook",
     when: "A new event to act on, or a change in what an event prints or blocks.",
-    touch: ["hooks/hooks.json", "hooks/scripts/<adapter>.sh", "bin/brg-guard", "tests/fixtures/hooks/", "tests/unit/guard_harness_gates.sh"],
+    touch: ["plugins/bearing/hooks/hooks.json", "plugins/bearing/hooks/scripts/<adapter>.sh", "plugins/bearing/bin/brg-guard", "tests/fixtures/hooks/", "tests/unit/guard_harness_gates.sh"],
     steps: [
       <>
         Put the logic in a <code>brg-guard</code> subcommand, not in the adapter. The adapter only reads fields with <code>json_field</code> and calls the
@@ -113,7 +113,7 @@ const RECIPES: Recipe[] = [
     id: "stack",
     title: "Add a stack",
     when: "A new language or platform lane for scaffold, adopt, review and conventions.",
-    touch: ["skills/<lane>/SKILL.md", "skills/<lane>/templates/stack.json", "skills/<lane>/templates/skeleton/", "skills/<lane>/references/", "bin/brg-checklists", ".gitlab-ci.yml"],
+    touch: ["plugins/<plugin>/skills/<lane>/SKILL.md", "plugins/<plugin>/skills/<lane>/templates/stack.json", "plugins/<plugin>/skills/<lane>/templates/skeleton/", "plugins/<plugin>/skills/<lane>/references/", "plugins/bearing/bin/brg-checklists", ".github/workflows/ci.yml", ".gitlab-ci.yml"],
     steps: [
       <>
         Create the lane skill with the stack sections: When this skill is active, Layout, On a foreign layout, Rules that matter most, Commands, Gotchas.
@@ -131,20 +131,21 @@ const RECIPES: Recipe[] = [
         stack's markers to <S name="brg-checklists" /> so reviews pick it up.
       </>,
       <>
-        Add a <code>kit:scaffold:&lt;id&gt;</code> job in <code>.gitlab-ci.yml</code> with the stack's own image. <code>scaffold_each_stack.sh</code> finds the
+        If its toolchain runs on a Linux runner, add an entry to the <code>scaffold</code> matrix in <code>.github/workflows/ci.yml</code> and a{" "}
+        <code>kit:scaffold:&lt;id&gt;</code> job with the stack's own image in <code>.gitlab-ci.yml</code>. <code>scaffold_each_stack.sh</code> finds the
         stack by itself.
       </>,
     ],
-    gates: ["lint-skills", "lint-json", "test (scaffold_each_stack, stack_json, gate_selfaudit)", "kit:scaffold:<id> in CI"],
+    gates: ["lint-skills", "lint-json", "test (scaffold_each_stack, stack_json, gate_selfaudit)", "scaffold (<id>) in CI"],
   },
   {
     id: "tracker",
     title: "Add a tracker",
-    when: "A team uses a tracker the four adapters do not cover.",
-    touch: ["bin/brg-<tracker>", "bin/brg-tracker", "tests/contract/fake_tracker.py", "templates/user/bearing.env", "docs/TRACKERS.md"],
+    when: "A tracker none of the adapters covers, and a small server speaking the REST tracker protocol in docs/TRACKERS.md is not an option.",
+    touch: ["plugins/bearing/bin/brg-<tracker>", "plugins/bearing/bin/brg-tracker", "tests/contract/fake_tracker.py", "plugins/bearing/templates/user/bearing.env", "docs/TRACKERS.md"],
     steps: [
       <>
-        Write <code>bin/brg-&lt;tracker&gt;</code> with the same verbs, exit codes (0, 1, 2 usage, 3 skipped) and one line per action. Copy the{" "}
+        Write <code>plugins/bearing/bin/brg-&lt;tracker&gt;</code> with the same verbs, exit codes (0, 1, 2 usage, 3 skipped) and one line per action. Copy the{" "}
         <code>load_env</code> parser exactly; <code>load_env.sh</code> compares every copy.
       </>,
       <>
@@ -152,7 +153,7 @@ const RECIPES: Recipe[] = [
         <code>BEARING_TRACKER_MAX_PAGES</code>.
       </>,
       <>
-        Route it in <S name="brg-tracker" />, add its keys to <code>templates/user/bearing.env</code> and its section to <code>docs/TRACKERS.md</code>.
+        Route it in <S name="brg-tracker" />, add its keys to <code>plugins/bearing/templates/user/bearing.env</code> and its section to <code>docs/TRACKERS.md</code>.
       </>,
       <>
         Teach <code>fake_tracker.py</code> its API and add cases to <code>tracker_fake_server.sh</code>: retry, paging, a quoted token, a slow call.
@@ -164,14 +165,14 @@ const RECIPES: Recipe[] = [
     id: "template",
     title: "Change a repository template",
     when: "Every product repository should get a new rule, file or hook.",
-    touch: ["templates/repo/", "skills/git-hooks/templates/.githooks (for hooks)"],
+    touch: ["plugins/bearing/templates/repo/", "plugins/bearing/skills/git-hooks/templates/.githooks (for hooks)"],
     steps: [
       <>
-        Edit under <code>templates/repo/</code>. <code>AGENTS.md</code>, <code>CLAUDE.md</code> and the unscoped rules are paid for in every session;{" "}
+        Edit under <code>plugins/bearing/templates/repo/</code>. <code>AGENTS.md</code>, <code>CLAUDE.md</code> and the unscoped rules are paid for in every session;{" "}
         <code>lint-budget</code> holds them to their byte budgets. Prefer a rule with <code>paths:</code>.
       </>,
       <>
-        A git hook lives twice: <code>templates/repo/.githooks</code> and <code>skills/git-hooks/templates/.githooks</code>. <code>lint-skills</code> fails
+        A git hook lives twice: <code>plugins/bearing/templates/repo/.githooks</code> and <code>plugins/bearing/skills/git-hooks/templates/.githooks</code>. <code>lint-skills</code> fails
         when they differ, so copy the change to both.
       </>,
       <>
@@ -186,8 +187,8 @@ const RECIPES: Recipe[] = [
   {
     id: "docs",
     title: "Change the handbook or this guide",
-    when: "A stage's main skill changes, a flow changes, or a chapter here is wrong.",
-    touch: ["bin/gen-guide.py", "docs/flows.json", "docs/comparisons.json", "site/src/", "bin/gen-devguide.py", "devguide/src/"],
+    when: "A stage's skill changes, a flow changes, or a chapter here is wrong.",
+    touch: ["bin/gen-guide.py", "docs/flows.json", "site/src/", "ui/", "bin/gen-devguide.py", "devguide/src/"],
     steps: [
       <>
         Data comes from generators; never edit <code>site/src/data/handbook.json</code>, <code>docs/SKILLS.md</code>, <code>docs/WORKFLOW.md</code> or{" "}
@@ -198,7 +199,7 @@ const RECIPES: Recipe[] = [
         <code>python3 devguide/scripts/record.py &lt;session&gt;</code>.
       </>,
       <>
-        <code>make site</code> and <code>make devguide</code> build both; <code>make wiki</code> exports the docs where the git host has no Pages.
+        <code>make site</code> and <code>make devguide</code> build both; <code>make wiki</code> exports the docs where neither Vercel nor GitLab Pages serves them.
       </>,
     ],
     gates: ["lint-docs", "lint-prose", "test (deterministic)"],
@@ -261,7 +262,7 @@ export function Change() {
         { id: "where", label: "Where does this change go?" },
         { id: "traps", label: "Traps" },
       ]}
-      sources={["CONTRIBUTING.md", "skills/new-skill/SKILL.md", "Makefile"]}
+      sources={["CONTRIBUTING.md", "plugins/bearing/skills/new-skill/SKILL.md", "Makefile"]}
     >
       <H2 id="loop">The loop for any change</H2>
       <Code>{`git switch -c feat/<Name>               # or fix/, chore/, docs/ (feat/DevGuide)
@@ -272,7 +273,7 @@ make docs                               # when skills, flows or docs sources cha
 make harness-eval ONLY=<scenario>       # when a hook or the guard changed
 # CHANGELOG.md: a line under [Unreleased]
 git commit -m "feat(guard): refuse helm rollback"
-# you push and open the merge request`}</Code>
+# you push to your fork and open the pull request`}</Code>
       <p>
         Working on the kit inside Claude Code, the kit's own guard and hooks are active, so the agent cannot push your branch either. That is the point: it
         prepares, you ship.
@@ -293,9 +294,9 @@ git commit -m "feat(guard): refuse helm rollback"
           </thead>
           <tbody>
             <tr><td>The agent to never do X</td><td>a guard rule, a settings deny entry, and a git hook if a person should not either</td><td>a sentence in a skill</td></tr>
-            <tr><td>The agent to do a step better</td><td>that skill's Steps and Gotchas</td><td>AGENTS.md, which every session pays for</td></tr>
-            <tr><td>Every repository to follow a rule</td><td>templates/repo/.claude/rules/ with paths:</td><td>a skill nobody triggers</td></tr>
-            <tr><td>A check the model must not eyeball</td><td>a script in skills/&lt;name&gt;/scripts/ that prints a count</td><td>"verify that..." in prose</td></tr>
+            <tr><td>The agent to do a step differently</td><td>that skill's Steps and Gotchas</td><td>AGENTS.md, which every session pays for</td></tr>
+            <tr><td>Every repository to follow a rule</td><td>plugins/bearing/templates/repo/.claude/rules/ with paths:</td><td>a skill nobody triggers</td></tr>
+            <tr><td>A check the model must not eyeball</td><td>a script in plugins/&lt;plugin&gt;/skills/&lt;name&gt;/scripts/ that prints a count</td><td>"verify that..." in prose</td></tr>
             <tr><td>A company, host or tracker detail</td><td>bearing.env, NOTICE.md, or a separate plugin with its own prefix</td><td>anything under skills/ (lint-neutral)</td></tr>
             <tr><td>A different main skill for a stage</td><td>STAGES in bin/gen-guide.py, then make docs</td><td>docs/WORKFLOW.md by hand</td></tr>
           </tbody>
@@ -314,7 +315,8 @@ git commit -m "feat(guard): refuse helm rollback"
         </li>
         <li>
           <strong>bash 3.2.</strong> No associative arrays, no <code>mapfile</code>, no <code>${"${x,,}"}</code>, no <code>readarray</code>; BSD sed and stat
-          on a Mac. <code>kit:bash32</code> catches most of it; <code>shellcheck</code> the rest.
+          on a Mac. The <code>bash32</code> and <code>macos</code> CI jobs catch most of it; <code>shellcheck</code> the
+          rest.
         </li>
         <li>
           <strong>A skill that depends on another.</strong> It will be run alone. Give every input a fallback.
@@ -335,9 +337,9 @@ const RELEASE: Frame[] = [
   { title: "Bump VERSION", where: "VERSION, .claude-plugin/plugin.json, .claude-plugin/marketplace.json (twice)", body: <p>Four places hold the version. <code>make lint-version</code> fails until all four match. A new version is also what makes installed machines refresh their cached copy.</p> },
   { title: "Regenerate", where: "make docs", body: <p>The handbook data, docs/SKILLS.md, docs/WORKFLOW.md, the repository skills maps and this guide's data carry the version. Commit them.</p> },
   { title: "Validate locally", where: "make validate, make check, make harness-eval", body: <p>CI cannot run <code>claude plugin validate --strict</code>, so you do. Run the harness eval if any hook or the guard changed since the last release.</p> },
-  { title: "Merge", where: "the merge request", body: <p>The pipeline runs kit:check, kit:bash32, every scaffold job and the site builds. On main, the pages and Vercel jobs publish the handbook and this guide.</p> },
+  { title: "Merge", where: "the pull request", body: <p>The ci workflow runs check, the scaffolds, bash32 and macos. On main, the docs workflow publishes the handbook and this guide to Vercel (on a GitLab mirror, the pages and Vercel jobs).</p> },
   { title: "Tag and push", where: "your terminal", body: <p>A person tags: <code>git tag -a vX.Y.Z -m "bearing X.Y.Z"</code>, then pushes main with tags. The kit never does this for you.</p> },
-  { title: "Roll out", where: "upgrade-tools on each machine", body: <p><S name="upgrade-tools" /> updates every installed source with versions before and after, and reruns the doctor.</p> },
+  { title: "Roll out", where: "upgrade-tools on each machine", body: <p><S name="upgrade-tools" /> updates every installed source with versions before and after, and reruns the doctor. A plugin-only install takes <code>claude plugin update bearing@bearing</code>.</p> },
 ];
 
 export function Release() {
@@ -350,7 +352,7 @@ export function Release() {
         { id: "sites", label: "Publishing the two sites" },
         { id: "history", label: "Versions so far" },
       ]}
-      sources={["CHANGELOG.md", "VERSION", ".claude-plugin/plugin.json", ".gitlab-ci.yml"]}
+      sources={["CHANGELOG.md", "VERSION", ".claude-plugin/plugin.json", ".github/workflows/docs.yml", ".gitlab-ci.yml"]}
     >
       <H2 id="steps">The seven steps</H2>
       <Stepper label="Releasing Bearing" frames={RELEASE} interval={3000} />
@@ -363,10 +365,11 @@ export function Release() {
       <Code cap="build them locally">{`make site        # site/dist
 make devguide    # devguide/dist`}</Code>
       <p>
-        On main, the <code>handbook:vercel</code> and <code>devguide:vercel</code> jobs deploy each to its own Vercel project when the project's variables are
-        set as masked CI/CD variables: <code>VERCEL_TOKEN</code> and <code>VERCEL_ORG_ID</code> shared, and <code>VERCEL_PROJECT_ID</code> and{" "}
-        <code>VERCEL_DEVGUIDE_PROJECT_ID</code> for each site. Both are public by link and never indexed: a robots.txt, a noindex meta tag and an{" "}
-        <code>X-Robots-Tag</code> header.
+        On a push to main, the <code>docs</code> workflow on GitHub (<code>.github/workflows/docs.yml</code>) deploys each to its own Vercel project from
+        repository secrets: <code>VERCEL_TOKEN</code> and <code>VERCEL_ORG_ID</code> shared, and <code>VERCEL_PROJECT_ID</code> and{" "}
+        <code>VERCEL_DEVGUIDE_PROJECT_ID</code> for each site. Each job checks the generated data first (<code>make lint-docs</code>) and deploys nothing
+        while its secrets are missing. On a GitLab mirror the <code>handbook:vercel</code> and <code>devguide:vercel</code> jobs do the same from masked
+        CI/CD variables. Both sites are public and open to search engines.
       </p>
       <Note title="Deploying by hand">
         <p>

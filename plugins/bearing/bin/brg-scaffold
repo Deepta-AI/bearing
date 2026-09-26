@@ -1,0 +1,251 @@
+#!/usr/bin/env bash
+# brg-scaffold: create a repository from the Bearing templates.
+#
+#   brg-scaffold <stack> <PascalName> [--dir <path>] [--module <go module>]
+#                [--host gitlab|github|both] [--tracker PREFIX|none]
+#                [--lead @user] [--group @group] [--databases "PostgreSQL"]
+#                [--org com.example] [--kit-remote <url>] [--check]
+#
+# Defaults for --host, --tracker, --org and --kit-remote come from BEARING_GIT_HOST,
+# BEARING_TASK_ID_PREFIX, BEARING_ORG_ID and BEARING_KIT_REMOTE in
+# ~/.config/bearing/bearing.env (then both, the BEARING_TRACKER name or none,
+# com.example and the kit's own git remote). Explicit flags win.
+# --host gitlab copies .gitlab-ci.yml and .gitlab/ only; github copies .github/
+# only; both copies both sets. A host file the templates do not ship yet is
+# skipped with a note. Stacks are discovered from skills/*/templates*/
+# stack.json in every Bearing plugin present (bin/brg-kit-paths); a stack
+# whose plugin is not installed names the plugin to install. The shared
+# repo files come from templates/repo, then the stack's templates, then the
+# stack's skeleton. Placeholders (__REPO_NAME__ and
+# friends) are substituted in every text file. When the stack's toolchain
+# (stack.json "tool") is installed, its "install" command runs once so the
+# lockfile exists before the first commit; that step never fails the scaffold.
+# Prints the count of files written and fails if zero.
+set -euo pipefail
+
+KIT="$(cd "$(dirname "$0")/.." && pwd)"
+usage() { sed -n '2,23p' "$0" | sed 's/^# \{0,1\}//'; exit "${1:-2}"; }
+ENV_FILE="${BEARING_ENV:-${XDG_CONFIG_HOME:-$HOME/.config}/bearing/bearing.env}"
+# ~/.config/bearing/bearing.env: KEY=value lines; a variable already set in the
+# environment is never overridden. Supplies the defaults below.
+load_env() {
+  [ -f "$ENV_FILE" ] || return 0
+  local line key val
+  while IFS= read -r line || [ -n "$line" ]; do
+    case "${line#"${line%%[![:space:]]*}"}" in ''|'#'*) continue;; esac
+    case "$line" in *=*) ;; *) continue;; esac
+    key="${line%%=*}"; key="${key//[[:space:]]/}"; val="${line#*=}"
+    printf '%s' "$key" | grep -Eq '^[A-Z_][A-Z0-9_]*$' || continue
+    val="${val#"${val%%[![:space:]]*}"}"
+    case "$val" in
+      \"*) val="${val#\"}"; val="${val%%\"*}";;
+      \'*) val="${val#\'}"; val="${val%%\'*}";;
+      *) val="${val%%[[:space:]]#*}"; val="${val%"${val##*[![:space:]]}"}";;
+    esac
+    [ -n "${!key+x}" ] && continue
+    export "$key=$val"
+  done < "$ENV_FILE"
+}
+load_env
+
+# sed_i FILE SED-ARGS...: in-place edit that works with BSD and GNU sed. Writes
+# a temp file next to the original and moves it over, keeping the mode.
+sed_i() {
+  local f="$1" tmp mode; shift
+  tmp="$(mktemp "$f.XXXXXX")"
+  # GNU stat takes -c; BSD stat (macOS) takes -f. GNU's -f is something else
+  # and succeeds, so the GNU form must be tried first.
+  mode="$(stat -c '%a' "$f" 2>/dev/null || stat -f '%Lp' "$f" 2>/dev/null || echo 644)"
+  sed "$@" "$f" > "$tmp" && chmod "$mode" "$tmp" && mv "$tmp" "$f" || { rm -f "$tmp"; return 1; }
+}
+
+# enable_stack_plugin <settings.json> <stack>: the repository's shared
+# settings enable the plugin that carries its stack skill (bearing-backend or
+# bearing-apps) beside bearing@bearing, so a fresh clone offers both.
+enable_stack_plugin() {
+  local f="$1" o tmp
+  o="$(bash "$KIT/bin/brg-kit-paths" --owner "$2")"
+  [ "$o" != bearing ] && [ -f "$f" ] || return 0
+  grep -q "\"$o@bearing\"" "$f" && return 0
+  tmp="$(mktemp "$f.XXXXXX")"
+  awk -v o="$o" '{print} /^    "bearing@bearing": true,$/ {print "    \"" o "@bearing\": true,"}' "$f" > "$tmp" && mv "$tmp" "$f"
+}
+
+[ $# -ge 1 ] || usage
+case "$1" in -h|--help) usage 0;; esac
+[ $# -ge 2 ] || usage
+stack="$1"; name="$2"; shift 2
+dir=""; module=""; lead="@lead"; group="@engineering"; databases=""; run_check=0; org="${BEARING_ORG_ID:-com.example}"
+tracker="${BEARING_TASK_ID_PREFIX:-}"
+host="${BEARING_GIT_HOST:-both}"; host_src="default"; [ -z "${BEARING_GIT_HOST:-}" ] || host_src="BEARING_GIT_HOST"
+kit_remote="${BEARING_KIT_REMOTE:-$(git -C "$KIT" remote get-url origin 2>/dev/null || printf 'file://%s' "$KIT")}"
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --dir) dir="$2"; shift 2;;
+    --module) module="$2"; shift 2;;
+    --host) host="$2"; host_src="--host"; shift 2;;
+    --tracker) tracker="$2"; shift 2;;
+    --lead) lead="$2"; shift 2;;
+    --group) group="$2"; shift 2;;
+    --databases) databases="$2"; shift 2;;
+    --org) org="$2"; shift 2;;
+    --kit-remote) kit_remote="$2"; shift 2;;
+    --check) run_check=1; shift;;
+    -h|--help) usage 0;;
+    *) echo "unknown option: $1" >&2; usage;;
+  esac
+done
+host="$(printf '%s' "$host" | tr '[:upper:]' '[:lower:]')"
+case "$host" in gitlab|github|both) ;; *) echo "--host must be gitlab, github or both (got '$host')" >&2; exit 2;; esac
+
+printf '%s' "$name" | grep -Eq '^[A-Z][A-Za-z0-9]+$' || { echo "name must be PascalCase (got '$name')" >&2; exit 2; }
+slug="$(printf '%s' "$name" | sed -E 's/([a-z0-9])([A-Z])/\1-\2/g' | tr '[:upper:]' '[:lower:]')"
+dir="${dir:-./$slug}"
+
+# Find the stack in every Bearing plugin present (bin/brg-kit-paths): the
+# stack templates ship in bearing-backend and bearing-apps.
+stack_files="$(bash "$KIT/bin/brg-kit-paths" --skills | while IFS= read -r r; do for f in "$r"/*/templates*/stack.json; do [ -f "$f" ] && echo "$f"; done; done || true)"
+stack_json=""
+while IFS= read -r f; do
+  [ -n "$f" ] || continue
+  if grep -q "\"id\": *\"$stack\"" "$f"; then stack_json="$f"; break; fi
+done <<EOF_STACKS
+$stack_files
+EOF_STACKS
+if [ -z "$stack_json" ]; then
+  owner="$(bash "$KIT/bin/brg-kit-paths" --owner "$stack")"
+  if [ "$owner" != bearing ]; then echo "stack '$stack': $(bash "$KIT/bin/brg-kit-paths" --install-hint "$stack"); nothing written" >&2; exit 2; fi
+  known="$(printf '%s\n' "$stack_files" | while IFS= read -r f; do [ -n "$f" ] && grep -h '"id"' "$f" | sed -E 's/.*"id": *"([^"]+)".*/\1/'; done | tr '\n' ' ' || true)"
+  echo "unknown stack '$stack'. Known: ${known:-none (install bearing-backend@bearing or bearing-apps@bearing for the stack templates)}" >&2; exit 2
+fi
+stack_dir="$(dirname "$stack_json")"
+skill_dir="$(dirname "$stack_dir")"
+python3 -c 'import json,sys; json.load(open(sys.argv[1]))' "$stack_json" 2>/dev/null || { echo "$stack_json is not valid JSON" >&2; exit 1; }
+# jget KEY: one string value from stack.json (empty when absent or not a string).
+jget() { python3 -c 'import json,sys
+v=json.load(open(sys.argv[1])).get(sys.argv[2],"")
+print(v if isinstance(v,str) else "")' "$stack_json" "$1"; }
+for k in id type stack databases entrypoint rules_file; do
+  [ -n "$(jget "$k")" ] || { echo "$stack_json: required key '$k' is missing or empty" >&2; exit 1; }
+done
+s_type="$(jget type)"; s_stack="$(jget stack)"; s_db="${databases:-$(jget databases)}"; s_entry="$(jget entrypoint)"; s_rules="$(jget rules_file)"
+s_install="$(jget install)"; s_tool="$(jget tool)"
+
+# .bearing/ alone is a run's state (brg-autopilot starts before the repository
+# exists), so a directory holding only that counts as empty.
+if [ -e "$dir" ] && [ -n "$(ls -A "$dir" 2>/dev/null | grep -vx '.bearing')" ]; then
+  echo "target '$dir' exists and is not empty; use brg-adopt for an existing repository" >&2; exit 1
+fi
+mkdir -p "$dir"
+dir="$(cd "$dir" && pwd)"
+echo "host: $host ($host_src)"
+
+# 1. Shared repo files (dotfiles included), with the stack's plugin enabled.
+cp -R "$KIT/templates/repo/." "$dir/"
+enable_stack_plugin "$dir/.claude/settings.json" "$stack"
+# 2. Stack config files (everything except skeleton/ and stack.json).
+for f in "$stack_dir"/* "$stack_dir"/.[!.]*; do
+  [ -e "$f" ] || continue
+  b="$(basename "$f")"
+  case "$b" in
+    skeleton|stack.json) continue;;
+    .gitignore.append) cat "$f" >> "$dir/.gitignore.append"; continue;;
+  esac
+  if [ -d "$f" ]; then mkdir -p "$dir/$b"; cp -R "$f/." "$dir/$b/"; else cp "$f" "$dir/$b"; fi
+done
+# 3. Skeleton.
+[ -d "$stack_dir/skeleton" ] && cp -R "$stack_dir/skeleton/." "$dir/"
+# 3b. Host files: keep only the chosen host's CI and templates; a set the
+#     templates do not ship yet is noted, never an error.
+case "$host" in
+  gitlab) rm -rf "$dir/.github";;
+  github) rm -rf "$dir/.gitlab-ci.yml" "$dir/.gitlab";;
+esac
+host_have=""
+case "$host" in gitlab|both)
+  if [ -f "$dir/.gitlab-ci.yml" ]; then host_have="$host_have .gitlab-ci.yml"; else echo "note: .gitlab-ci.yml is not in the $stack templates yet; skipped"; fi
+  if [ -d "$dir/.gitlab" ]; then host_have="$host_have .gitlab/"; else echo "note: .gitlab/ is not in the shared templates yet; skipped"; fi;;
+esac
+case "$host" in github|both)
+  if [ -d "$dir/.github" ]; then
+    host_have="$host_have .github/"
+    ls "$dir/.github/workflows"/*.yml >/dev/null 2>&1 || echo "note: .github/workflows/*.yml is not in the $stack templates yet; skipped"
+  else echo "note: .github/ is not in the templates yet; skipped"; fi;;
+esac
+echo "host files:${host_have:- none}"
+# 4. Stack rules.
+if [ -f "$skill_dir/references/rules.md" ] && [ -n "$s_rules" ]; then
+  mkdir -p "$dir/.claude/rules"; cp "$skill_dir/references/rules.md" "$dir/.claude/rules/$s_rules"
+fi
+# 5. .gitignore merge.
+if [ -f "$dir/.gitignore.append" ]; then
+  touch "$dir/.gitignore"; cat "$dir/.gitignore.append" >> "$dir/.gitignore"; rm "$dir/.gitignore.append"
+fi
+
+# 6. Placeholders. A run's state under .bearing/ (brg-autopilot's log is open
+#    in the running session) is not ours: never rewritten, never counted.
+module="${module:-example.com/$slug}"
+if [ -n "$tracker" ] && [ "$tracker" != none ]; then tracker_label="$tracker-###"; else tracker_label="${BEARING_TRACKER:-none}"; fi
+escape() { printf '%s' "$1" | sed -e 's/[\/&|]/\\&/g'; }
+count=0
+while IFS= read -r -d '' f; do
+  if grep -Iq . "$f" 2>/dev/null; then
+    sed_i "$f" \
+      -e "s|__STACK__|$(escape "$s_stack")|g" \
+      -e "s|__REPO_TYPE__|$(escape "$s_type")|g" \
+      -e "s|__DATABASES__|$(escape "$s_db")|g" \
+      -e "s|__ENTRYPOINT__|$(escape "$s_entry")|g" \
+      -e "s|__TRACKER__|$(escape "$tracker_label")|g" \
+      -e "s|__LEAD__|$(escape "${lead#@}")|g" \
+      -e "s|__TEAM_GROUP__|$(escape "${group#@}")|g" \
+      -e "s|__ORG_ID__|$(escape "$org")|g" \
+      -e "s|__KIT_REMOTE__|$(escape "$kit_remote")|g" \
+      -e "s|__REPO_NAME__|$(escape "$name")|g" \
+      -e "s|__REPO_SLUG__|$(escape "$slug")|g" \
+      -e "s|__MODULE__|$(escape "$module")|g"
+  fi
+  count=$((count+1))
+done < <(find "$dir" -type f -not -path '*/.git/*' -not -path "$dir/.bearing/*" -print0)
+[ "$count" -gt 0 ] || { echo "0 files written; the templates are missing" >&2; exit 1; }
+
+# 6b. Placeholders in file and directory names (deepest first so parents rename last).
+renamed=0
+while IFS= read -r -d '' pth; do
+  b="$(basename "$pth")"; d="$(dirname "$pth")"
+  nb="$(printf '%s' "$b" | sed -e "s|__REPO_NAME__|$name|g" -e "s|__REPO_SLUG__|$slug|g")"
+  if [ "$nb" != "$b" ]; then mv "$pth" "$d/$nb"; renamed=$((renamed+1)); fi
+done < <(find "$dir" -depth -not -path '*/.git/*' -not -path "$dir/.bearing/*" -name '*__REPO_*' -print0)
+
+# 6c. Lockfile: run the stack's install command when its toolchain is here.
+#     Never fails the scaffold; CI installs unfrozen until the lockfile exists.
+if [ -z "$s_install" ]; then
+  echo "lockfile: n/a (stack.json for $stack declares no install command)"
+elif [ -n "$s_tool" ] && ! command -v "$s_tool" >/dev/null 2>&1; then
+  echo "lockfile: not created ($s_tool not installed); CI installs unfrozen until you run $s_install"
+else
+  ilog="$(mktemp "${TMPDIR:-/tmp}/brg-scaffold-install.XXXXXX")"
+  if (cd "$dir" && bash -c "$s_install") >"$ilog" 2>&1; then
+    echo "lockfile: created by $s_install"; rm -f "$ilog"
+  else
+    echo "lockfile: not created ($s_install failed, log at $ilog); CI installs unfrozen until you run $s_install"
+  fi
+fi
+
+# 7. Git and hooks.
+if [ ! -d "$dir/.git" ]; then git -C "$dir" init -q -b main 2>/dev/null || git -C "$dir" init -q; fi
+chmod +x "$dir"/.githooks/commit-msg "$dir"/.githooks/pre-commit "$dir"/.githooks/pre-push "$dir"/.githooks/install.sh 2>/dev/null || true
+git -C "$dir" config core.hooksPath .githooks
+
+# __BACKEND__ is a deliberate marker in the infra backend files (tech-decision key cloud chooses); every other __NAME__ is an unfilled placeholder.
+# Installed dependencies and build output are not files this script wrote;
+# library code such as "/* @__PURE__ */" in node_modules looks like a
+# placeholder and failed every react-web scaffold once pnpm had installed.
+skip_dirs=(--exclude-dir=.git --exclude-dir=.bearing --exclude-dir=node_modules --exclude-dir=.pnpm-store --exclude-dir=.venv --exclude-dir=venv --exclude-dir=vendor --exclude-dir=dist --exclude-dir=build --exclude-dir=.gradle --exclude-dir=Pods --exclude-dir=.dart_tool --exclude-dir=.next --exclude-dir=.expo --exclude-dir=__pycache__)
+left="$( { grep -rn -E '(^|[^A-Za-z0-9])__[A-Z_]+__([^A-Za-z0-9]|$)' "$dir" "${skip_dirs[@]}" 2>/dev/null || true; } | { grep -v '__BACKEND__' || true; } | cut -d: -f1 | sort -u | wc -l | tr -d ' ')"
+echo "brg-scaffold: $count files written to $dir (stack $stack, host $host, $renamed paths renamed, $left files with unfilled placeholders)"
+[ "$left" -eq 0 ] || grep -rn -E '(^|[^A-Za-z0-9])__[A-Z_]+__([^A-Za-z0-9]|$)' "$dir" "${skip_dirs[@]}" | grep -v '__BACKEND__' | head -5
+
+if [ "$run_check" -eq 1 ]; then
+  echo "brg-scaffold: running make check"
+  ( cd "$dir" && make check )
+fi

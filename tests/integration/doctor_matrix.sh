@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# tests/integration/doctor_matrix.sh: bin/brg-doctor inside a scaffolded
+# tests/integration/doctor_matrix.sh: plugins/bearing/bin/brg-doctor inside a scaffolded
 # repository, with a fake HOME (no XDG_CONFIG_HOME) and a PATH of coreutils
 # plus a stub claude that prints a version and a plugin list, so the machine
 # section passes deterministically and the repository section is what varies.
@@ -13,7 +13,7 @@
 # real env file is never read: every HOME is a fake one.
 set -u
 . "$(dirname "$0")/../lib/assert.sh"
-DOCTOR="$KIT/bin/brg-doctor"
+DOCTOR="$KIT/plugins/bearing/bin/brg-doctor"
 VERSION="$(tr -d '[:space:]' < "$KIT/VERSION")"
 TOOLFREE="$(minimal_path bash sh git python3 make jq sed grep find cut sort uniq wc tr mktemp mv cp rm mkdir chmod ls cat basename dirname head tail stat touch env date awk cmp diff)"
 
@@ -27,7 +27,7 @@ cat > "$TOOLFREE/claude" <<'EOF'
 #!/bin/sh
 case "$1" in
   --version) echo "2.1.0 (Claude Code)";;
-  plugin) echo "bearing@bearing 0.1.0"; echo "superpowers@claude-plugins-official 4.0.0";;
+  plugin) echo "bearing@bearing 0.1.0"; echo "bearing-backend@bearing 0.1.0"; echo "superpowers@claude-plugins-official 4.0.0";;
 esac
 exit 0
 EOF
@@ -48,7 +48,7 @@ runs=0
 
 base="$(tmpdir)/probe-doc"
 t_begin "scaffold the repository under test"
-assert_exit 0 env -u BEARING_TRACKER -u BEARING_GIT_HOST PATH="$TOOLFREE" BEARING_ENV=/nonexistent bash "$KIT/bin/brg-scaffold" go-api ProbeDoc --dir "$base" --host both
+assert_exit 0 env -u BEARING_TRACKER -u BEARING_GIT_HOST PATH="$TOOLFREE" BEARING_ENV=/nonexistent bash "$KIT/plugins/bearing/bin/brg-scaffold" go-api ProbeDoc --dir "$base" --host both
 t_end
 
 t_begin "both hosts: every check ok, exit 0"
@@ -56,6 +56,8 @@ assert_exit 0 doctor_in "$base"; runs=$((runs+1))
 assert_contains "$T_OUT" "brg-doctor (kit $VERSION)"
 assert_contains "$T_OUT" "ok        claude 2.1.0 (Claude Code)"
 assert_contains "$T_OUT" "ok        plugin Bearing installed"
+assert_contains "$T_OUT" "ok        plugin bearing-backend installed"
+assert_contains "$T_OUT" "optional  plugin bearing-apps not installed; its stack skills and templates are unavailable (claude plugin install bearing-apps@bearing)"
 assert_contains "$T_OUT" "ok        plugin superpowers installed"
 assert_contains "$T_OUT" "ok        gstack 9.9.9"
 assert_contains "$T_OUT" "optional  bearing.env missing"
@@ -146,7 +148,7 @@ bare="$(tmpdir)"
 barepath="$(minimal_path bash sh git make jq python3 sed grep cut sort uniq wc tr ls cat basename dirname head tail stat awk)"
 assert_exit 1 env -u XDG_CONFIG_HOME -u BEARING_PROFILE HOME="$bare" PATH="$barepath" bash "$DOCTOR"; runs=$((runs+1))
 assert_contains "$T_OUT" "MISSING   claude CLI not on PATH"
-assert_contains "$T_OUT" "MISSING   plugin Bearing not installed (bash $KIT/install.sh)"
+assert_contains "$T_OUT" "MISSING   plugin Bearing not installed (claude plugin install bearing@bearing, or bash install.sh from the Bearing checkout)"
 assert_contains "$T_OUT" "optional  gstack not installed (see docs/INSTALL.md); optional for profile unset"
 assert_contains "$T_OUT" "MISSING   ~/.claude/CLAUDE.md missing"
 assert_eq 1 "$(count_line "$T_OUT" 'brg-doctor: ')" "one summary line"

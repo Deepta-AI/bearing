@@ -1,5 +1,5 @@
 {
-  "_about": "The four task flows the handbook draws: greenfield, bug fix, feature addition, inherited codebase. Each step names the strongest skill for that moment (whatever pack it comes from), why, what it produces, and the alternates. bin/gen-guide.py validates every skill name against the kit and the known-skills list and copies this file into the site's data. Edit here, then run make docs.",
+  "_about": "The four task flows the handbook draws: greenfield, bug fix, feature addition, inherited codebase. Each step names the skill the workflow runs at that moment (whatever pack provides it), why the step matters and what it produces. bin/gen-guide.py validates every skill name against the kit and the known-skills list and copies this file into the site's data. Edit here, then run make docs.",
   "flows": [
     {
       "id": "greenfield",
@@ -19,14 +19,7 @@
           "pack": "gstack",
           "does": "Asks the forcing questions (who is desperate for this, what is the narrowest wedge, what would make it fail) before a line is written.",
           "output": "A go or no-go with reasons, and the narrowest version worth building.",
-          "why": "No other installed skill interrogates demand and scope this hard; the PRD skills assume the idea is already right.",
-          "alternates": [
-            {
-              "skill": "/plan-ceo-review",
-              "pack": "gstack",
-              "when": "you already have a plan and want its scope challenged"
-            }
-          ]
+          "why": "It asks who needs this and what the narrowest version is before any document is written."
         },
         {
           "kind": "step",
@@ -36,14 +29,7 @@
           "pack": "bearing",
           "does": "Turns whatever the brief is (a doc, a ticket, notes) into numbered, testable REQ statements with sources, goals and open questions.",
           "output": "docs/product/PRD.md with REQ-nnn statements.",
-          "why": "Every later step (stories, test cases, traceability) keys on the REQ ids it assigns.",
-          "alternates": [
-            {
-              "skill": "create-prd",
-              "pack": "pm-skills",
-              "when": "you are writing product strategy from scratch rather than normalising a brief"
-            }
-          ]
+          "why": "Every later step (stories, test cases, traceability) keys on the REQ ids it assigns."
         },
         {
           "kind": "step",
@@ -53,14 +39,7 @@
           "pack": "bearing",
           "does": "Judges each statement (seed, criterion, variant, duplicate, split), writes shippable stories with Given/When/Then criteria, and proves coverage.",
           "output": "Epics, US- stories with AC- criteria, a coverage matrix a script checks, user flows.",
-          "why": "Its coverage check fails on any requirement no criterion covers; the alternatives write stories without proving coverage.",
-          "alternates": [
-            {
-              "skill": "user-stories",
-              "pack": "pm-skills",
-              "when": "you need stories from a feature idea with no PRD"
-            }
-          ]
+          "why": "Its coverage check fails on any requirement no criterion covers."
         },
         {
           "kind": "phase",
@@ -74,8 +53,7 @@
           "pack": "bearing",
           "does": "One decision at a time: options, a recommendation with reasons and the condition that would flip it. You decide; an ADR records it.",
           "output": "docs/adr/ entries and a decision log.",
-          "why": "Nothing is chosen silently, and the ADRs stop the question being reopened next month.",
-          "alternates": []
+          "why": "Nothing is chosen silently, and the ADRs stop the question being reopened next month."
         },
         {
           "kind": "step",
@@ -85,14 +63,7 @@
           "pack": "bearing",
           "does": "Agrees goals and non-goals first, then flows, architecture, data, interfaces, failure modes and scaling numbers.",
           "output": "docs/design/<name>-hld.md",
-          "why": "It produces the document the team builds from; the review below is the loop that tests it.",
-          "alternates": [
-            {
-              "skill": "gsd-spec-phase",
-              "pack": "GSD Core",
-              "when": "the work is planned in GSD phases"
-            }
-          ]
+          "why": "It produces the document the team builds from; the review below is the loop that tests it."
         },
         {
           "kind": "step",
@@ -102,8 +73,7 @@
           "pack": "gstack",
           "does": "An engineering manager's pass over the plan: architecture, data flow, edge cases, test coverage, with a complexity stop.",
           "output": "A reviewed plan with the issues it found.",
-          "why": "An independent review loop; writing a design and grading it in the same pass finds little.",
-          "alternates": []
+          "why": "An independent review loop; writing a design and grading it in the same pass finds little."
         },
         {
           "kind": "step",
@@ -113,14 +83,7 @@
           "pack": "bearing",
           "does": "STRIDE per entry point; every mitigation is a file and line, a story, or a new story.",
           "output": "docs/security/threat-model-<name>.md",
-          "why": "The VAPT report at release links its findings to these threat ids.",
-          "alternates": [
-            {
-              "skill": "/cso",
-              "pack": "gstack",
-              "when": "code already exists and you want its STRIDE pass alongside the audit"
-            }
-          ]
+          "why": "The VAPT report at release links its findings to these threat ids."
         },
         {
           "kind": "branch",
@@ -138,14 +101,7 @@
                   "pack": "bearing",
                   "does": "Screen inventory, a state table with copy, a storyboard and flow diagrams with no dead ends.",
                   "output": "docs/design/flows/",
-                  "why": "Every later design step reads its state table.",
-                  "alternates": [
-                    {
-                      "skill": "/plan-design-review",
-                      "pack": "gstack",
-                      "when": "you want a designer's review of a plan that already exists"
-                    }
-                  ]
+                  "why": "Every later design step reads its state table."
                 },
                 {
                   "kind": "step",
@@ -155,14 +111,7 @@
                   "pack": "gstack",
                   "does": "Researches the landscape and proposes a complete system: type, colour, spacing, motion.",
                   "output": "DESIGN.md",
-                  "why": "It researches before proposing, which a template cannot.",
-                  "alternates": [
-                    {
-                      "skill": "frontend-design",
-                      "pack": "Anthropic",
-                      "when": "you are designing one page rather than a product"
-                    }
-                  ]
+                  "why": "It researches the product and its field before proposing a direction."
                 },
                 {
                   "kind": "step",
@@ -172,14 +121,7 @@
                   "pack": "bearing",
                   "does": "Tokens in oklch, one binding per stack, a component contract and a design lint that fails on stray values.",
                   "output": "docs/design/tokens.json and per-stack bindings",
-                  "why": "The only option with deterministic gates (a lint and a contrast check).",
-                  "alternates": [
-                    {
-                      "skill": "tokens",
-                      "pack": "ui-craft",
-                      "when": "you only need an audit of existing tokens"
-                    }
-                  ]
+                  "why": "It ships deterministic gates: a token lint and a contrast check."
                 },
                 {
                   "kind": "step",
@@ -189,14 +131,7 @@
                   "pack": "bearing",
                   "does": "One HTML prototype per screen with every state switchable, checked by a script against the state table.",
                   "output": "docs/design/screens/",
-                  "why": "A developer builds from it without inventing a state.",
-                  "alternates": [
-                    {
-                      "skill": "/design-html",
-                      "pack": "gstack",
-                      "when": "you want one production-quality page"
-                    }
-                  ]
+                  "why": "A developer builds from it without inventing a state."
                 },
                 {
                   "kind": "step",
@@ -206,14 +141,7 @@
                   "pack": "bearing",
                   "does": "Scores ten categories with evidence from screenshots at three widths in both themes.",
                   "output": "docs/design/reviews/",
-                  "why": "It works on static prototypes; switch to gstack /design-review once the app runs.",
-                  "alternates": [
-                    {
-                      "skill": "/design-review",
-                      "pack": "gstack",
-                      "when": "the app runs in a browser"
-                    }
-                  ]
+                  "why": "It works on static prototypes; switch to gstack /design-review once the app runs."
                 }
               ]
             },
@@ -228,14 +156,7 @@
                   "pack": "bearing",
                   "does": "One metric, the task class, the cheapest approach that could work with the next one up rejected, model tier, cost and risks.",
                   "output": "docs/design/genai-<name>.md",
-                  "why": "It forces the cheaper rung to be rejected with a reason.",
-                  "alternates": [
-                    {
-                      "skill": "gsd-ai-integration-phase",
-                      "pack": "GSD Core",
-                      "when": "the work is planned in GSD phases"
-                    }
-                  ]
+                  "why": "It forces the cheaper rung to be rejected with a reason."
                 },
                 {
                   "kind": "step",
@@ -245,14 +166,7 @@
                   "pack": "bearing",
                   "does": "A person-labelled golden set, deterministic graders first, then a judge, wired to make eval.",
                   "output": "evals/ and a regression gate",
-                  "why": "Without it every prompt change is a guess.",
-                  "alternates": [
-                    {
-                      "skill": "gsd-eval-review",
-                      "pack": "GSD Core",
-                      "when": "you are auditing evals after the fact"
-                    }
-                  ]
+                  "why": "Without it every prompt change is a guess."
                 }
               ]
             }
@@ -270,8 +184,7 @@
           "pack": "bearing",
           "does": "Creates the repository for the chosen stack with the Makefile gate, CI, git hooks, AGENTS.md and the docs tree.",
           "output": "A repository whose make check passes on the first commit.",
-          "why": "Nothing else scaffolds the standard's gate, hooks and CI together.",
-          "alternates": []
+          "why": "It scaffolds the standard's gate, hooks and CI together."
         },
         {
           "kind": "step",
@@ -281,14 +194,7 @@
           "pack": "bearing",
           "does": "OpenTelemetry per stack, a local Grafana stack, a RED dashboard, burn-rate alerts with a runbook each.",
           "output": "observability/, monitoring/, docs/observability/slos.md",
-          "why": "It ships the templates and checks the runbook count equals the alert count.",
-          "alternates": [
-            {
-              "skill": "observability-and-instrumentation",
-              "pack": "addyosmani",
-              "when": "you want to define what working means before instrumenting"
-            }
-          ]
+          "why": "It ships the templates and checks the runbook count equals the alert count."
         },
         {
           "kind": "phase",
@@ -302,14 +208,7 @@
           "pack": "GSD Core",
           "does": "Research, requirements and a phased roadmap with state files, so the build survives across sessions.",
           "output": ".planning/ with a roadmap and phases",
-          "why": "A greenfield build spans many sessions; GSD's state machine is built for that.",
-          "alternates": [
-            {
-              "skill": "writing-plans",
-              "pack": "Superpowers",
-              "when": "the first milestone fits in one or two sessions"
-            }
-          ]
+          "why": "A greenfield build spans many sessions; GSD's state machine is built for that."
         },
         {
           "kind": "link",
@@ -328,14 +227,7 @@
           "pack": "claude-security",
           "does": "A researcher per component and three verifiers per finding, with the vote counted outside the model.",
           "output": "CLAUDE-SECURITY-<ts>/ with verified findings and the scanned commit",
-          "why": "The deepest verified scanner installed.",
-          "alternates": [
-            {
-              "skill": "/cso",
-              "pack": "gstack",
-              "when": "you need a faster pass; run with --comprehensive"
-            }
-          ]
+          "why": "It scans the codebase and verifies each finding before reporting it."
         },
         {
           "kind": "step",
@@ -345,8 +237,7 @@
           "pack": "bearing",
           "does": "Turns the scanner's findings into the VAPT report, links them to the threat model and decides the release.",
           "output": "docs/security/VAPT-<version>.md",
-          "why": "The scanners find; this writes the position the release ships with.",
-          "alternates": []
+          "why": "The scanners find; this writes the position the release ships with."
         },
         {
           "kind": "step",
@@ -356,14 +247,7 @@
           "pack": "bearing",
           "does": "Next version from the commits, the changelog section, the version bump and the tag command for you to run.",
           "output": "CHANGELOG, VERSION, a printed tag command",
-          "why": "It prepares; you tag and push.",
-          "alternates": [
-            {
-              "skill": "release-notes",
-              "pack": "pm-skills",
-              "when": "you need notes for customers"
-            }
-          ]
+          "why": "It prepares; you tag and push."
         },
         {
           "kind": "step",
@@ -373,8 +257,7 @@
           "pack": "bearing",
           "does": "One runbook per alert, named as the alert fires: meaning, diagnosis commands, remediation, rollback.",
           "output": "docs/runbooks/",
-          "why": "An alert without a runbook pages someone into guessing.",
-          "alternates": []
+          "why": "An alert without a runbook pages someone into guessing."
         },
         {
           "kind": "step",
@@ -384,8 +267,7 @@
           "pack": "gstack",
           "does": "Watches the live app after the deploy for errors, performance regressions and page failures.",
           "output": "A canary report",
-          "why": "It watches the running app; nothing in Bearing does.",
-          "alternates": []
+          "why": "It watches the running app after the deploy."
         }
       ]
     },
@@ -403,8 +285,7 @@
           "pack": "bearing",
           "does": "Creates the bugfix/ branch from the right base and the state file the next session resumes from.",
           "output": "bugfix/<ID>-<Name> and .bearing/state/<branch>.md",
-          "why": "The task id on the branch threads through every commit and the MR.",
-          "alternates": []
+          "why": "The task id on the branch threads through every commit and the MR."
         },
         {
           "kind": "branch",
@@ -421,8 +302,7 @@
                   "pack": "bearing",
                   "does": "Severity, a UTC timeline, roles, the runbook step for the person on call, and comms from templates.",
                   "output": "A live incident doc",
-                  "why": "Stabilise first; the fix follows on a hotfix branch.",
-                  "alternates": []
+                  "why": "Stabilise first; the fix follows on a hotfix branch."
                 }
               ]
             },
@@ -447,19 +327,7 @@
                   "pack": "mattpocock",
                   "does": "Builds a command that goes red on the bug before anything else, then bisects history or diffs old against new, minimises the case and ranks falsifiable hypotheses.",
                   "output": "The breaking change and the root cause, with the red command that proves it.",
-                  "why": "For a regression, a red-capable loop plus git bisect finds the cause mechanically; it refuses to theorise before the loop exists.",
-                  "alternates": [
-                    {
-                      "skill": "systematic-debugging",
-                      "pack": "Superpowers",
-                      "when": "no known-good version exists to bisect against"
-                    },
-                    {
-                      "skill": "/freeze",
-                      "pack": "gstack",
-                      "when": "you want edits held to one directory while you hunt"
-                    }
-                  ]
+                  "why": "For a regression, a red-capable loop plus git bisect finds the cause mechanically; it refuses to theorise before the loop exists."
                 }
               ]
             },
@@ -474,19 +342,7 @@
                   "pack": "Superpowers",
                   "does": "Reproduce, trace, form one hypothesis at a time and test it, before any fix is written.",
                   "output": "The root cause, with the evidence that proves it.",
-                  "why": "It refuses a fix before a cause, which is the failure mode of every other approach.",
-                  "alternates": [
-                    {
-                      "skill": "/investigate",
-                      "pack": "gstack",
-                      "when": "you want a scope freeze and a hard stop after three failed hypotheses"
-                    },
-                    {
-                      "skill": "gsd-debug",
-                      "pack": "GSD Core",
-                      "when": "the hunt will span sessions"
-                    }
-                  ]
+                  "why": "It refuses a fix before the cause is found."
                 }
               ]
             }
@@ -500,8 +356,7 @@
           "pack": "Superpowers",
           "does": "A regression test that fails for the reason the bug exists, run and seen red before the fix.",
           "output": "A red test named after the bug or the task id.",
-          "why": "A test written after the fix usually passes whether or not the fix is right.",
-          "alternates": []
+          "why": "A test written after the fix usually passes whether or not the fix is right."
         },
         {
           "kind": "step",
@@ -511,8 +366,7 @@
           "pack": "Superpowers",
           "does": "The smallest change that turns the test green, then the suite.",
           "output": "A green test and a green suite.",
-          "why": "Same discipline, second half.",
-          "alternates": []
+          "why": "Same discipline, second half."
         },
         {
           "kind": "step",
@@ -522,14 +376,7 @@
           "pack": "bearing",
           "does": "Walks the definition of done with evidence, and proves the regression test fails without the fix in a throwaway worktree.",
           "output": "A done or not-done verdict with evidence per item.",
-          "why": "The red proof shows the test actually guards the bug.",
-          "alternates": [
-            {
-              "skill": "verification-before-completion",
-              "pack": "Superpowers",
-              "when": "as the always-on habit before claiming anything works"
-            }
-          ]
+          "why": "The red proof shows the test actually guards the bug."
         },
         {
           "kind": "step",
@@ -539,14 +386,7 @@
           "pack": "bearing",
           "does": "Runs gstack /review with the stack checklists passed in, then an independent verifier on every Critical and High.",
           "output": "Ranked, verified findings.",
-          "why": "gstack /review finds; the verifier, who never saw its reasoning, confirms.",
-          "alternates": [
-            {
-              "skill": "/review",
-              "pack": "gstack",
-              "when": "you do not need the independent verification"
-            }
-          ]
+          "why": "gstack /review finds; the verifier, who never saw its reasoning, confirms."
         },
         {
           "kind": "branch",
@@ -563,14 +403,7 @@
                   "pack": "gstack",
                   "does": "Security audit of the branch with an independent verifier per finding.",
                   "output": ".gstack/security-reports/",
-                  "why": "A fix in a sensitive path can open a new hole.",
-                  "alternates": [
-                    {
-                      "skill": "claude-security",
-                      "pack": "claude-security",
-                      "when": "you want the deepest verified scan"
-                    }
-                  ]
+                  "why": "A fix in a sensitive path can open a new hole."
                 }
               ]
             },
@@ -588,14 +421,7 @@
           "pack": "bearing",
           "does": "Checks the gate and the commits, fills the MR template and prints the push command.",
           "output": "The MR description; you push.",
-          "why": "It prepares everything and never pushes.",
-          "alternates": [
-            {
-              "skill": "/ship",
-              "pack": "gstack",
-              "when": "on a repository where the agent may push"
-            }
-          ]
+          "why": "It prepares everything and never pushes."
         },
         {
           "kind": "step",
@@ -606,14 +432,7 @@
           "optional": true,
           "does": "A blameless postmortem with numbers, a UTC timeline, the root cause chain and owned follow-ups.",
           "output": "docs/postmortems/",
-          "why": "Only when it was an incident; a follow-up with no owner never happens.",
-          "alternates": [
-            {
-              "skill": "retro",
-              "pack": "pm-skills",
-              "when": "for a sprint retrospective instead"
-            }
-          ]
+          "why": "Only when it was an incident; a follow-up with no owner never happens."
         }
       ]
     },
@@ -635,8 +454,7 @@
           "pack": "bearing",
           "does": "Creates the feature/ branch and the state file, and restates the acceptance criteria.",
           "output": "feature/<ID>-<Name> and .bearing/state/<branch>.md",
-          "why": "The task id threads through every commit and the MR.",
-          "alternates": []
+          "why": "The task id threads through every commit and the MR."
         },
         {
           "kind": "step",
@@ -646,14 +464,7 @@
           "pack": "bearing",
           "does": "Entry points, one request's flow and the files that matter, every claim at path:line.",
           "output": "A short map you can check.",
-          "why": "Quick and checkable; change code you have read, not code you assume.",
-          "alternates": [
-            {
-              "skill": "gsd-map-codebase",
-              "pack": "GSD Core",
-              "when": "it is your first time in the repository and you want a map that persists"
-            }
-          ]
+          "why": "Quick and checkable; change code you have read, not code you assume."
         },
         {
           "kind": "branch",
@@ -670,14 +481,7 @@
                   "pack": "Superpowers",
                   "does": "Questions one at a time until intent, constraints and success are pinned down, then a design.",
                   "output": "A spec",
-                  "why": "It stops a vague ask becoming a confident wrong build.",
-                  "alternates": [
-                    {
-                      "skill": "grilling",
-                      "pack": "mattpocock",
-                      "when": "you want to be interrogated harder on an existing plan"
-                    }
-                  ]
+                  "why": "It stops a vague ask becoming a confident wrong build."
                 }
               ]
             },
@@ -699,19 +503,7 @@
           "pack": "Superpowers",
           "does": "Bite-sized tasks with exact files, tests and commands a fresh session can execute.",
           "output": "A plan document",
-          "why": "Small verified steps beat one large change.",
-          "alternates": [
-            {
-              "skill": "gsd-plan-phase",
-              "pack": "GSD Core",
-              "when": "the feature spans several sessions"
-            },
-            {
-              "skill": "codebase-design",
-              "pack": "mattpocock",
-              "when": "the change adds or reshapes a module and its interface"
-            }
-          ]
+          "why": "Small verified steps keep each change reviewable."
         },
         {
           "kind": "step",
@@ -722,8 +514,7 @@
           "optional": true,
           "does": "Architecture, edge cases and test coverage, with a stop when the plan touches too many files.",
           "output": "A reviewed plan",
-          "why": "Cheap before code, expensive after.",
-          "alternates": []
+          "why": "Cheap before code, expensive after."
         },
         {
           "kind": "branch",
@@ -741,8 +532,7 @@
                   "pack": "bearing",
                   "does": "Options, a recommendation, your decision, an ADR.",
                   "output": "docs/adr/",
-                  "why": "Nothing is chosen silently.",
-                  "alternates": []
+                  "why": "Nothing is chosen silently."
                 }
               ]
             },
@@ -757,8 +547,7 @@
                   "pack": "bearing",
                   "does": "The states and copy for each new or changed screen.",
                   "output": "docs/design/flows/",
-                  "why": "Every state is designed, not improvised.",
-                  "alternates": []
+                  "why": "Every state is designed, not improvised."
                 },
                 {
                   "kind": "step",
@@ -768,8 +557,7 @@
                   "pack": "bearing",
                   "does": "Every screen in every state, checked against the state table.",
                   "output": "docs/design/screens/",
-                  "why": "The developer builds from it.",
-                  "alternates": []
+                  "why": "The developer builds from it."
                 }
               ]
             },
@@ -784,14 +572,7 @@
                   "pack": "bearing",
                   "does": "Writes the OpenAPI contract before handlers, or reports drift with counts.",
                   "output": "api/openapi.yaml",
-                  "why": "Clients and handlers agree before code.",
-                  "alternates": [
-                    {
-                      "skill": "api-and-interface-design",
-                      "pack": "addyosmani",
-                      "when": "you are designing a module boundary rather than an HTTP API"
-                    }
-                  ]
+                  "why": "Clients and handlers agree before code."
                 }
               ]
             },
@@ -806,8 +587,7 @@
                   "pack": "bearing",
                   "does": "A migration for the repository's tool with a tested Down and a lock-safety header.",
                   "output": "A migration file",
-                  "why": "A migration you cannot roll back is a one-way door.",
-                  "alternates": []
+                  "why": "A migration you cannot roll back is a one-way door."
                 }
               ]
             },
@@ -822,8 +602,7 @@
                   "pack": "bearing",
                   "does": "Default off, an owner, a removal date and a kill switch.",
                   "output": "A typed flag",
-                  "why": "Ship dark, turn on when ready.",
-                  "alternates": []
+                  "why": "Ship dark, turn on when ready."
                 }
               ]
             },
@@ -838,8 +617,7 @@
                   "pack": "bearing",
                   "does": "Adds the feature's events to the event sheet and wires typed emit helpers.",
                   "output": "docs/analytics/ and emit code",
-                  "why": "An event not in the sheet is a bug.",
-                  "alternates": []
+                  "why": "An event not in the sheet is a bug."
                 }
               ]
             }
@@ -857,14 +635,7 @@
           "pack": "bearing",
           "does": "Numbered cases per acceptance criterion with negative and boundary rows, then the oracles that prove each one.",
           "output": "docs/testing/test-cases.md",
-          "why": "A script fails the run when any criterion has no case or a case has no oracle.",
-          "alternates": [
-            {
-              "skill": "ai-test-generation",
-              "pack": "qa-skills",
-              "when": "you start from a spec with no backlog"
-            }
-          ]
+          "why": "A script fails the run when any criterion has no case or a case has no oracle."
         },
         {
           "kind": "step",
@@ -874,14 +645,7 @@
           "pack": "Superpowers",
           "does": "Red, green, refactor for each behaviour; the stack rules load on their own.",
           "output": "Tested code",
-          "why": "The strongest discipline installed for writing code.",
-          "alternates": [
-            {
-              "skill": "tdd",
-              "pack": "mattpocock",
-              "when": "you prefer its variant of the loop"
-            }
-          ]
+          "why": "A failing test comes first, so the code is written to make it pass."
         },
         {
           "kind": "step",
@@ -891,14 +655,7 @@
           "pack": "bearing",
           "does": "One test per case named by its id, an assertion per oracle, and a check that every id, label and route it uses exists.",
           "output": "Tests in the stack's own suite",
-          "why": "It rejects invented selectors before they fail for the wrong reason.",
-          "alternates": [
-            {
-              "skill": "gsd-add-tests",
-              "pack": "GSD Core",
-              "when": "the feature was built as a GSD phase"
-            }
-          ]
+          "why": "It rejects invented selectors before they fail for the wrong reason."
         },
         {
           "kind": "phase",
@@ -912,14 +669,7 @@
           "pack": "bearing",
           "does": "Every item with evidence: gate output, tests, schemas, errors, observability, events, scope, commits.",
           "output": "A verdict",
-          "why": "An item without evidence is a fail.",
-          "alternates": [
-            {
-              "skill": "verification-before-completion",
-              "pack": "Superpowers",
-              "when": "as the always-on habit"
-            }
-          ]
+          "why": "An item without evidence is a fail."
         },
         {
           "kind": "step",
@@ -929,14 +679,7 @@
           "pack": "bearing",
           "does": "gstack /review with the stack checklists, then an independent verifier on every Critical and High.",
           "output": "Verified findings",
-          "why": "gstack /review is the strongest finder installed; the verifier, who never saw its reasoning, confirms each Critical and High.",
-          "alternates": [
-            {
-              "skill": "/review",
-              "pack": "gstack",
-              "when": "you skip the verification"
-            }
-          ]
+          "why": "gstack /review finds; the verifier, who never saw its reasoning, confirms each Critical and High."
         },
         {
           "kind": "branch",
@@ -954,14 +697,7 @@
                   "pack": "gstack",
                   "does": "Security audit of the diff, each finding independently verified.",
                   "output": ".gstack/security-reports/",
-                  "why": "A new path is a new attack surface.",
-                  "alternates": [
-                    {
-                      "skill": "claude-security",
-                      "pack": "claude-security",
-                      "when": "you want the deepest scan"
-                    }
-                  ]
+                  "why": "A new path is a new attack surface."
                 }
               ]
             },
@@ -976,14 +712,7 @@
                   "pack": "gstack",
                   "does": "Drives the running app, finds bugs and fixes them with before and after evidence.",
                   "output": "A QA report",
-                  "why": "It exercises the real app, not the source.",
-                  "alternates": [
-                    {
-                      "skill": "/qa-only",
-                      "pack": "gstack",
-                      "when": "you want the report without fixes"
-                    }
-                  ]
+                  "why": "It exercises the real app, not the source."
                 }
               ]
             }
@@ -1001,14 +730,7 @@
           "pack": "bearing",
           "does": "The gate, the commit audit and the filled template; you push.",
           "output": "The MR description and the push command",
-          "why": "It prepares; the engineer pushes.",
-          "alternates": [
-            {
-              "skill": "/ship",
-              "pack": "gstack",
-              "when": "on a repository where the agent may push"
-            }
-          ]
+          "why": "It prepares; the engineer pushes."
         },
         {
           "kind": "step",
@@ -1019,8 +741,7 @@
           "optional": true,
           "does": "Watches the deployed app for errors and regressions.",
           "output": "A canary report",
-          "why": "It checks the running app after the deploy.",
-          "alternates": []
+          "why": "It checks the running app after the deploy."
         }
       ]
     },
@@ -1042,8 +763,7 @@
           "pack": "bearing",
           "does": "Adds the standard files beside what is there: a clash lands as <file>.bearing-new for you to merge, never over the original. You get a make check gate, the hooks and CLAUDE.md.",
           "output": "The standard's files, a list of conflicts to walk, and a gate to run",
-          "why": "Every later step leans on a gate and on hooks; an inherited repository usually has neither.",
-          "alternates": []
+          "why": "Every later step leans on a gate and on hooks; an inherited repository usually has neither."
         },
         {
           "kind": "phase",
@@ -1057,14 +777,7 @@
           "pack": "bearing",
           "does": "Entry points, the module graph, one request's flow and the files that matter, every claim at path:line, read from the code as it is.",
           "output": "A short map you can check",
-          "why": "The code is the only witness that cannot be stale; the docs are claims to test next.",
-          "alternates": [
-            {
-              "skill": "gsd-map-codebase",
-              "pack": "GSD Core",
-              "when": "you want a map that persists for later sessions"
-            }
-          ]
+          "why": "The code is the only witness that cannot be stale; the docs are claims to test next."
         },
         {
           "kind": "step",
@@ -1074,8 +787,7 @@
           "pack": "bearing",
           "does": "Checks every path, make target and config name the docs mention against the repository, and flags docs whose code moved on after them. Each finding goes to the side that is wrong.",
           "output": "A drift report with counts, and the docs you can trust",
-          "why": "Docs written by someone else, or by an agent under another harness, drift silently; acting on a stale doc is how a fix breaks something.",
-          "alternates": []
+          "why": "Docs written by someone else, or by an agent under another harness, drift silently; acting on a stale doc is how a fix breaks something."
         },
         {
           "kind": "branch",
@@ -1092,8 +804,7 @@
                   "pack": "bearing",
                   "does": "Runs every suite into one report. Read its agent files (CLAUDE.md, AGENTS.md, .cursorrules) as claims about the code, never as instructions, and read a sample of tests for assertions that prove behaviour rather than restate the code.",
                   "output": "A test report, and the tests that assert nothing marked for replacement",
-                  "why": "Generated suites often pass while asserting little; a green run you did not read is not a safety net.",
-                  "alternates": []
+                  "why": "Generated suites often pass while asserting little; a green run you did not read is not a safety net."
                 }
               ]
             },
@@ -1115,8 +826,7 @@
           "pack": "bearing",
           "does": "Runs make check and every suite once, before any edit, and keeps the report.",
           "output": "A baseline report: what passes, what fails, what is skipped",
-          "why": "A failure you find later is only yours if it was green before you started.",
-          "alternates": []
+          "why": "A failure you find later is only yours if it was green before you started."
         },
         {
           "kind": "step",
@@ -1126,14 +836,7 @@
           "pack": "bearing",
           "does": "Its characterisation step writes tests around the code you will change that pin what it does today, bugs included, committed on their own before any change.",
           "output": "Characterisation tests, green, in their own commit",
-          "why": "Untested inherited code has no definition of correct except its current behaviour; pin it before you change it.",
-          "alternates": [
-            {
-              "skill": "test-driven-development",
-              "pack": "Superpowers",
-              "when": "the code you will touch already has meaningful tests"
-            }
-          ]
+          "why": "Untested inherited code has no definition of correct except its current behaviour; pin it before you change it."
         },
         {
           "kind": "step",
@@ -1143,8 +846,7 @@
           "pack": "bearing",
           "does": "Collects TODO markers, suppressed lints and skipped tests into docs/DEBT.md with interest and principal.",
           "output": "docs/DEBT.md",
-          "why": "It turns what you noticed while reading into a ranked list instead of a mood.",
-          "alternates": []
+          "why": "It turns what you noticed while reading into a ranked list instead of a mood."
         },
         {
           "kind": "phase",

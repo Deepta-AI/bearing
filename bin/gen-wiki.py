@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """gen-wiki: export the kit's docs as GitLab (or GitHub) wiki pages.
 
-For hosts where the handbook site cannot be published (no GitLab Pages),
-the same content goes to the project wiki as plain markdown:
+For hosts where the handbook site cannot be published (no Vercel project
+and no GitLab Pages), the same content goes to the project wiki as plain
+markdown. The page names follow GitLab's wiki; a GitHub wiki wants Home
+and _Sidebar for the two special pages:
 
   home.md                 README.md
   Workflow.md             docs/WORKFLOW.md (the stage map)
@@ -152,10 +154,6 @@ def render_steps(steps, flow_titles, depth=0):
             )
             out.append(f"{pad}  - Output: {esc(s['output'])}")
             out.append(f"{pad}  - Why: {esc(s['why'])}")
-            for a in s.get("alternates", []):
-                out.append(
-                    f"{pad}  - Instead: `{a['skill']}` ({a['pack']}) when {esc(a['when'])}"
-                )
         elif kind == "branch":
             out.append(f"{pad}- **{esc(s['question'])}**")
             for o in s["options"]:

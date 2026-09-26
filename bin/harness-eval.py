@@ -55,6 +55,8 @@ import tempfile
 import time
 
 KIT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# The hooks under test ship in the bearing plugin (plugins/bearing).
+PLUGIN = os.path.join(KIT, "plugins", "bearing")
 CLAUDE = os.environ.get("BRG_CLAUDE", "claude")
 PROJECTS = os.environ.get(
     "BRG_CLAUDE_PROJECTS", os.path.expanduser("~/.claude/projects")
@@ -101,7 +103,7 @@ class Run:
             "-p",
             prompt,
             "--plugin-dir",
-            KIT,
+            PLUGIN,
             "--setting-sources",
             "project,local",
             "--permission-mode",
@@ -459,7 +461,7 @@ def s_sandbox(root):
         },
     )
     settings = json.load(
-        open(os.path.join(KIT, "templates", "repo", ".claude", "settings.json"))
+        open(os.path.join(PLUGIN, "templates", "repo", ".claude", "settings.json"))
     )
     settings.pop("enabledPlugins", None)  # only the kit under test, via --plugin-dir
     settings.pop("extraKnownMarketplaces", None)

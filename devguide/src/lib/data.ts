@@ -4,6 +4,7 @@ import rec from "../data/recordings.json";
 export type SkillFile = { path: string; lines: number };
 export type Skill = {
   name: string;
+  plugin: string;
   category: string;
   what: string;
   when: string;
@@ -80,6 +81,7 @@ export type Internals = {
   check: string[];
   ciHeader: string;
   ci: { name: string; stage: string; extends: string; image: string }[];
+  gh: { file: string; name: string; header: string; jobs: { name: string; runsOn: string; matrix: number }[] }[];
   tests: Test[];
   stacks: Stack[];
   templates: SkillFile[];
@@ -146,5 +148,8 @@ export const GROUP_LABEL: Record<string, string> = {
 export const REPO_URL: string = (import.meta.env.VITE_REPO_URL as string | undefined) ?? "";
 export function srcHref(path: string, line?: number) {
   if (!REPO_URL) return "";
-  return `${REPO_URL.replace(/\/$/, "")}/-/blob/main/${path}${line ? `#L${line}` : ""}`;
+  const base = REPO_URL.replace(/\/$/, "");
+  // GitHub file URLs have no "/-" segment; GitLab's do.
+  const blob = /github\.com/.test(base) ? "/blob/main/" : "/-/blob/main/";
+  return `${base}${blob}${path}${line ? `#L${line}` : ""}`;
 }

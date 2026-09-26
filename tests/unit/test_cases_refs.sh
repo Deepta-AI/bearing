@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
-# tests/unit/test_cases_refs.sh: skills/test-cases/scripts/cases_check.py
+# tests/unit/test_cases_refs.sh: plugins/bearing/skills/test-cases/scripts/cases_check.py
 # (every AC has a live case, every case has tagged oracles, a P1 case has two
 # categories including not:, every story and threat has a risk and every risk
 # has the cases its level needs; --steps gives every manual and e2e case its
 # steps; --plan quotes the gate and places every case in a scenario) and
-# skills/test-automation/scripts/ref_check.py
+# plugins/bearing/skills/test-automation/scripts/ref_check.py
 # (test ids, names and routes a generated test uses exist in the source), each
 # with its empty-input failure.
 set -u
 . "$(dirname "$0")/../lib/assert.sh"
-CC="$KIT/skills/test-cases/scripts/cases_check.py"
-RC="$KIT/skills/test-automation/scripts/ref_check.py"
+CC="$KIT/plugins/bearing/skills/test-cases/scripts/cases_check.py"
+RC="$KIT/plugins/bearing/skills/test-automation/scripts/ref_check.py"
 
 backlog() { cat > "$1" <<'MD'
 ### US-01-001 Sign in

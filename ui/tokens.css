@@ -1,0 +1,85 @@
+/* Bearing documentation tokens, shared by the handbook (site/) and the
+   developer guide (devguide/). Cool slate neutrals, one accent per site:
+   jade for the handbook, sea blue for the developer guide. Every colour is
+   light-dark() so one declaration covers both themes; data-theme on <html>
+   pins a theme, otherwise the system decides. */
+
+:root {
+  color-scheme: light dark;
+
+  /* neutrals, hue 255: a chart-paper grey, never cream */
+  --bg: light-dark(oklch(0.985 0.004 255), oklch(0.178 0.014 256));
+  --bg-sunk: light-dark(oklch(0.963 0.007 255), oklch(0.155 0.013 256));
+  --surface: light-dark(oklch(1 0 0), oklch(0.215 0.016 256));
+  --surface-2: light-dark(oklch(0.975 0.005 255), oklch(0.245 0.018 256));
+  --ink: light-dark(oklch(0.24 0.028 258), oklch(0.95 0.008 255));
+  --ink-2: light-dark(oklch(0.39 0.026 258), oklch(0.83 0.014 255));
+  --muted: light-dark(oklch(0.5 0.022 258), oklch(0.71 0.018 255));
+  --line: light-dark(oklch(0.905 0.01 255), oklch(0.3 0.018 256));
+  --line-2: light-dark(oklch(0.83 0.014 255), oklch(0.39 0.022 256));
+
+  /* the accent: jade by default, sea on the developer guide */
+  --accent: light-dark(oklch(0.5 0.1 176), oklch(0.77 0.11 176));
+  --accent-ink: light-dark(oklch(0.43 0.09 176), oklch(0.83 0.1 176));
+  --accent-wash: light-dark(oklch(0.95 0.03 176), oklch(0.29 0.045 176));
+  --on-accent: light-dark(oklch(0.99 0 0), oklch(0.18 0.02 256));
+
+  /* meaning, the same on both sites */
+  --ok: light-dark(oklch(0.5 0.1 172), oklch(0.77 0.11 172));
+  --ok-wash: light-dark(oklch(0.95 0.035 172), oklch(0.29 0.05 172));
+  --bad: light-dark(oklch(0.53 0.19 27), oklch(0.73 0.16 28));
+  --bad-wash: light-dark(oklch(0.955 0.03 27), oklch(0.3 0.06 28));
+  --gate: light-dark(oklch(0.67 0.13 75), oklch(0.8 0.12 80));
+  --gate-ink: light-dark(oklch(0.48 0.1 70), oklch(0.85 0.11 82));
+  --gate-wash: light-dark(oklch(0.955 0.04 85), oklch(0.31 0.05 80));
+  --info: light-dark(oklch(0.49 0.13 258), oklch(0.77 0.1 250));
+  --info-wash: light-dark(oklch(0.95 0.025 258), oklch(0.29 0.05 258));
+
+  /* the packs a skill comes from */
+  --sp: light-dark(oklch(0.5 0.17 300), oklch(0.74 0.14 300));
+  --gs: light-dark(oklch(0.56 0.12 65), oklch(0.8 0.12 75));
+  --gsd: light-dark(oklch(0.5 0.15 258), oklch(0.74 0.12 258));
+  --bi: light-dark(oklch(0.5 0.02 258), oklch(0.72 0.02 258));
+
+  /* code */
+  --code-bg: light-dark(oklch(0.948 0.01 255), oklch(0.27 0.02 256));
+  --pre-bg: light-dark(oklch(0.235 0.025 258), oklch(0.135 0.013 256));
+  --pre-ink: light-dark(oklch(0.93 0.01 255), oklch(0.9 0.01 255));
+  --pre-dim: light-dark(oklch(0.7 0.02 255), oklch(0.66 0.02 255));
+  --pre-line: light-dark(oklch(0.33 0.025 258), oklch(0.26 0.016 256));
+
+  --focus: var(--accent);
+  --scrim: light-dark(oklch(0.25 0.03 258 / 0.36), oklch(0.05 0.01 256 / 0.6));
+  --shadow-1: 0 1px 2px light-dark(oklch(0.3 0.03 258 / 0.06), oklch(0 0 0 / 0.3));
+  --shadow-2: 0 1px 2px light-dark(oklch(0.3 0.03 258 / 0.06), oklch(0 0 0 / 0.3)),
+    0 10px 28px -12px light-dark(oklch(0.3 0.03 258 / 0.22), oklch(0 0 0 / 0.65));
+  --shadow-3: 0 2px 4px light-dark(oklch(0.3 0.03 258 / 0.08), oklch(0 0 0 / 0.35)),
+    0 24px 60px -16px light-dark(oklch(0.25 0.04 258 / 0.35), oklch(0 0 0 / 0.75));
+
+  /* type: two families only */
+  --font: "Hanken Grotesk", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --t-xs: 0.78rem;
+  --t-sm: 0.875rem;
+  --t-md: 1rem;
+  --t-lg: 1.15rem;
+  --t-xl: 1.45rem;
+  --t-2xl: clamp(1.75rem, 1.3rem + 1.5vw, 2.4rem);
+
+  /* space, radii, frame */
+  --s1: 0.25rem; --s2: 0.5rem; --s3: 0.75rem; --s4: 1rem; --s5: 1.5rem; --s6: 2rem; --s7: 3rem; --s8: 4.5rem;
+  --r1: 4px; --r2: 7px; --r3: 11px; --r4: 16px;
+  --top: 60px;
+  --nav: 272px;
+  --toc: 224px;
+  --measure: 74ch;
+}
+
+:root[data-site="devguide"] {
+  --accent: light-dark(oklch(0.49 0.13 258), oklch(0.77 0.1 250));
+  --accent-ink: light-dark(oklch(0.45 0.13 258), oklch(0.83 0.085 250));
+  --accent-wash: light-dark(oklch(0.95 0.025 258), oklch(0.29 0.05 258));
+}
+
+:root[data-theme="light"] { color-scheme: light; }
+:root[data-theme="dark"] { color-scheme: dark; }

@@ -46,7 +46,7 @@ export function Guard() {
   return (
     <Page
       title="The guard"
-      lede={`bin/brg-guard is ${g.lines.toLocaleString("en")} lines of bash 3.2 that decide whether a shell command may run. It is the one piece of Bearing that must be right, so it is built to refuse whatever it cannot read.`}
+      lede={`plugins/bearing/bin/brg-guard is ${g.lines.toLocaleString("en")} lines of bash 3.2 that decide whether a shell command may run. It is the one piece of Bearing that must be right, so it is built to refuse whatever it cannot read.`}
       toc={[
         { id: "walk", label: "Watch it read a command" },
         { id: "pipeline", label: "The pipeline" },
@@ -57,7 +57,7 @@ export function Guard() {
         { id: "subcommands", label: "Every subcommand" },
         { id: "which", label: "Which wall refused me?" },
       ]}
-      sources={["bin/brg-guard", "tests/unit/guard_deny_table.sh", "tests/unit/guard_readonly.sh", "tests/unit/guard_latency.sh"]}
+      sources={["plugins/bearing/bin/brg-guard", "tests/unit/guard_deny_table.sh", "tests/unit/guard_readonly.sh", "tests/unit/guard_latency.sh"]}
     >
       <H2 id="walk">Watch it read a command</H2>
       <p>Pick an example. Each step names the function in the guard that does it; the final verdict and message are what the guard really printed.</p>
@@ -131,7 +131,7 @@ scp|@remote|scp to a remote          scp with any host:path argument`}</Code>
       <H2 id="rules">The {data.guardRules.length} rules</H2>
       <p>
         Straight from <code>brg-guard --verbs</code> when this site was built. <S name="brg-harness" /> derives the Codex execpolicy, the Gemini exclusions
-        and the Zed regexes from the same output, and the handbook states its count. The deny list in <code>templates/repo/.claude/settings.json</code> is
+        and the Zed regexes from the same output, and the handbook states its count. The deny list in <code>plugins/bearing/templates/repo/.claude/settings.json</code> is
         kept by hand beside it, so a new rule usually wants a matching <code>Bash(...)</code> deny entry too.
       </p>
       <RuleTable />

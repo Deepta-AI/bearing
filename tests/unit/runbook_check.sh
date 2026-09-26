@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# tests/unit/runbook_check.sh: bin/brg-runbook-check counts alert rules from
+# tests/unit/runbook_check.sh: plugins/bearing/bin/brg-runbook-check counts alert rules from
 # the files and passes only when every one links to a runbook that exists
 # under docs/runbooks/. It fails, with the reason, on a rule with no
 # runbook_url, on a URL whose runbook is not on disk, on an unroutable rule
@@ -8,7 +8,7 @@
 # health-checks counts nothing.
 set -u
 . "$(dirname "$0")/../lib/assert.sh"
-CHK="$KIT/bin/brg-runbook-check"
+CHK="$KIT/plugins/bearing/bin/brg-runbook-check"
 
 # fixture <dir>: two rule files, block and flow style, three runbooks.
 fixture() {
@@ -96,7 +96,7 @@ t_end
 t_begin "the kit's alerts template parses to five alerts"
 d="$(tmpdir)/tpl"; mkdir -p "$d/docs/runbooks"
 for r in ErrorBudgetBurnFast ErrorBudgetBurnSlow LatencyP95High NoTraffic TargetDown; do : > "$d/docs/runbooks/__SERVICE__$r.md"; done
-assert_exit 0 bash "$CHK" --root "$d" "$KIT/skills/observability/templates/alerts.yaml"
+assert_exit 0 bash "$CHK" --root "$d" "$KIT/plugins/bearing/skills/observability/templates/alerts.yaml"
 assert_contains "$T_OUT" "runbook-check: 5 alerts, 5 with runbooks, 0 missing"
 t_end
 
@@ -106,7 +106,7 @@ assert_exit 1 bash "$CHK" --root "$d"
 assert_contains "$T_OUT" "0 rule files read, nothing checked"
 assert_exit 1 bash "$CHK" --root "$d" "$d/nope.yaml"
 assert_contains "$T_OUT" "no such rule file or directory"
-assert_exit 1 bash "$CHK" --root "$d" "$KIT/skills/health-checks/templates/blackbox.yml"
+assert_exit 1 bash "$CHK" --root "$d" "$KIT/plugins/bearing/skills/health-checks/templates/blackbox.yml"
 assert_contains "$T_OUT" "runbook-check: 0 alerts, 0 with runbooks, 0 missing"
 assert_contains "$T_OUT" "nothing checked"
 fixture "$d"

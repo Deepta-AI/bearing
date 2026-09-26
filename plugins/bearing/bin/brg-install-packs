@@ -1,0 +1,125 @@
+#!/usr/bin/env bash
+# brg-install-packs: install the open-source skills the workflow steps call,
+# at user scope, idempotently. Other packs are documented in
+# docs/THIRD_PARTY.md with their own install commands and are not installed
+# here, so a session is not loaded with skills no step calls.
+#
+#   brg-install-packs [--skip-official] [--skip-skills-cli] [--skip-playwright] [--skip-pinned]
+#   Skill names are the SKILL.md names in each repository (npx skills@<pin> add <repo> -l lists them).
+#
+# Sources, every one but the first pinned in bin/pinned-packs.txt: the
+# official Claude Code marketplace (claude plugin install; it has no version
+# pin), the skills CLI at its pinned npm version installing each cli row at
+# its commit (<repo>#<commit>), the Playwright agent CLI at its pinned npm
+# version (install --skills), and the skill and plugin rows: repositories
+# fetched at a fixed commit into ~/.cache/bearing-packs, their skill folders
+# copied to ~/.claude/skills. Prints a count of installed, present and skipped
+# entries.
+set -uo pipefail
+skip_official=0; skip_cli=0; skip_pw=0; skip_pin=0
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --skip-official) skip_official=1; shift;;
+    --skip-skills-cli) skip_cli=1; shift;;
+    --skip-playwright) skip_pw=1; shift;;
+    --skip-pinned) skip_pin=1; shift;;
+    -h|--help) sed -n '2,17p' "$0" | sed 's/^# \{0,1\}//'; exit 0;;
+    *) echo "unknown option: $1" >&2; exit 2;;
+  esac
+done
+installed=0; present=0; skipped=0; failed=0
+did() { echo "installed  $*"; installed=$((installed+1)); }
+had() { echo "present    $*"; present=$((present+1)); }
+skip() { echo "skipped    $*"; skipped=$((skipped+1)); }
+fail() { echo "FAILED     $*"; failed=$((failed+1)); }
+PINNED="$(dirname "$0")/pinned-packs.txt"
+# pin <kind> <source>: the pin column of that row in pinned-packs.txt, or empty.
+pin() { awk -F'|' -v k="$1" -v s="$2" '$1==k && $2==s {print $3; exit}' "$PINNED" 2>/dev/null; }
+SKILLS_V="$(pin npm skills)"; PW_V="$(pin npm @playwright/cli)"
+
+# 1. Official marketplace plugins (Anthropic-maintained or vetted).
+OFFICIAL="frontend-design code-review claude-security mattpocock-skills mcp-server-dev playwright"
+if [ "$skip_official" -eq 1 ]; then skip "official marketplace plugins"; else
+  list="$(claude plugin list 2>/dev/null || true)"
+  for p in $OFFICIAL; do
+    if printf '%s' "$list" | grep -q "$p@claude-plugins-official"; then had "$p (official)"; continue; fi
+    if claude plugin install "$p@claude-plugins-official" >/dev/null 2>&1; then did "$p (official)"; else fail "$p (official): claude plugin install $p@claude-plugins-official"; fi
+  done
+fi
+
+# 2. Skills from git repositories through the skills CLI, user scope: the cli
+#    rows of pinned-packs.txt (repo|commit|skill|folder under ~/.claude/skills),
+#    each installed as <repo>#<commit> by the skills CLI at its pinned version.
+if [ "$skip_cli" -eq 1 ]; then skip "skills CLI packs"; else
+  command -v npx >/dev/null || { fail "npx not found; install node 22+"; skip "skills CLI packs"; }
+  [ -n "$SKILLS_V" ] || { fail "no npm|skills row in $PINNED; the skills CLI has no pinned version"; skip "skills CLI packs"; }
+  if command -v npx >/dev/null && [ -n "$SKILLS_V" ]; then
+    # The loop reads from a process substitution, not a pipe, so the counters
+    # it bumps are the script's own and the summary and exit code are real.
+    entries=0
+    while IFS='|' read -r _kind repo sha skill folder _lic; do
+      [ -n "$repo" ] || continue
+      entries=$((entries+1))
+      if ls -d "$HOME/.claude/skills/$folder" "$HOME/.claude/skills/"*"$folder"* >/dev/null 2>&1; then had "$repo ${skill:+($skill)}"; continue; fi
+      args=(add "$repo#$sha" -a claude-code -g -y)
+      [ -n "$skill" ] && args+=(--skill "$skill")
+      if npx --yes "skills@$SKILLS_V" "${args[@]}" </dev/null >/dev/null 2>&1; then did "$repo@${sha:0:12} ${skill:+($skill)}"; else
+        avail="$(npx --yes "skills@$SKILLS_V" add "$repo#$sha" -l </dev/null 2>/dev/null | grep -oE '^[[:space:]]*- [a-z0-9._-]+' | tr -d ' -' | tr '\n' ' ')"
+        fail "$repo ${skill:+($skill)}: npx skills@$SKILLS_V ${args[*]}  (available: ${avail:-unknown})"; fi
+    done < <(grep -E '^cli\|' "$PINNED" 2>/dev/null)
+    [ "$entries" -gt 0 ] || fail "no cli rows in $PINNED; nothing was checked"
+  fi
+fi
+
+# 3. Playwright's own agent skill (run, debug, generate, heal, trace).
+if [ "$skip_pw" -eq 1 ]; then skip "playwright-cli skill"; else
+  if ls -d "$HOME/.claude/skills/playwright-cli"* >/dev/null 2>&1; then had "playwright-cli skill"; else
+    if [ -z "$PW_V" ]; then fail "playwright-cli skill: no npm|@playwright/cli row in $PINNED"
+    elif command -v npx >/dev/null && npx --yes "@playwright/cli@$PW_V" install --skills -g </dev/null >/dev/null 2>&1; then did "playwright-cli skill (@playwright/cli@$PW_V)"; else skip "playwright-cli skill (npx @playwright/cli@$PW_V install --skills -g did not complete; optional)"; fi
+  fi
+fi
+
+# 4. Pinned packs: the skill and plugin rows, each repository at the commit
+#    bin/pinned-packs.txt names. A skill folder is copied with a .bearing-pack
+#    provenance file; a folder that exists without one is someone else's and
+#    is left alone. A plugin row adds the checkout as a local marketplace, so
+#    the plugin is pinned too.
+CACHE="${BEARING_PACK_CACHE:-$HOME/.cache/bearing-packs}"
+if [ "$skip_pin" -eq 1 ]; then skip "pinned packs"; else
+  rows=0
+  while IFS='|' read -r kind repo sha path name lic; do
+    rows=$((rows+1))
+    dir="$CACHE/$(printf '%s' "$repo" | tr '/' '_')@${sha:0:12}"
+    if [ "$(git -C "$dir" rev-parse HEAD 2>/dev/null)" != "$sha" ]; then
+      rm -rf "$dir"; mkdir -p "$dir"
+      if ! { git -C "$dir" init -q && git -C "$dir" remote add origin "https://github.com/$repo.git" \
+             && git -C "$dir" fetch -q --depth 1 origin "$sha" && git -C "$dir" checkout -q FETCH_HEAD; } </dev/null >/dev/null 2>&1 \
+         || [ "$(git -C "$dir" rev-parse HEAD 2>/dev/null)" != "$sha" ]; then
+        fail "$name: could not fetch $repo at ${sha:0:12}"; continue
+      fi
+    fi
+    if [ "$kind" = plugin ]; then
+      plugin="${path%@*}"; market="${path#*@}"
+      if claude plugin list 2>/dev/null | grep -q "$plugin@$market"; then had "$name ($repo, plugin)"; continue; fi
+      claude plugin marketplace add "$dir" </dev/null >/dev/null 2>&1 || true
+      if claude plugin install "$plugin@$market" </dev/null >/dev/null 2>&1; then did "$name ($repo@${sha:0:12}, plugin)"; else fail "$name: claude plugin install $plugin@$market (marketplace $dir)"; fi
+      continue
+    fi
+    dest="$HOME/.claude/skills/$name"
+    if [ -f "$dest/.bearing-pack" ] && grep -q "^commit=$sha\$" "$dest/.bearing-pack"; then had "$name ($repo)"; continue; fi
+    if [ -e "$dest" ] && [ ! -f "$dest/.bearing-pack" ]; then skip "$name: $dest exists and is not from bearing"; continue; fi
+    [ -f "$dir/$path/SKILL.md" ] || { fail "$name: no SKILL.md at $repo/$path"; continue; }
+    rm -rf "$dest"; mkdir -p "$(dirname "$dest")"; cp -RL "$dir/$path" "$dest" || { fail "$name: copy failed (a link in $repo/$path does not resolve)"; continue; }
+    # The installed name can differ from the folder's (testing-setup is too
+    # generic beside other packs); the frontmatter name follows the folder.
+    sed -i.bak "1,/^---\$/{s/^name:.*/name: $name/;}" "$dest/SKILL.md" 2>/dev/null; rm -f "$dest/SKILL.md.bak"
+    printf 'repo=%s\ncommit=%s\npath=%s\nlicence=%s\n' "$repo" "$sha" "$path" "$lic" > "$dest/.bearing-pack"
+    did "$name ($repo@${sha:0:12}, $lic)"
+  done < <(grep -E '^(skill|plugin)\|' "$PINNED" 2>/dev/null)
+  [ "$rows" -gt 0 ] || fail "pinned packs: $PINNED has no skill or plugin rows; nothing was checked"
+  echo "pinned: $rows skill and plugin rows read from $(basename "$PINNED")"
+fi
+
+echo "packs: $installed installed, $present present, $failed failed"
+echo "brg-install-packs: $installed installed, $present present, $skipped skipped, $failed failed. Restart Claude Code to load new skills."
+[ "$failed" -eq 0 ] || exit 1

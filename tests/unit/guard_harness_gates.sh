@@ -194,7 +194,7 @@ assert_contains "$(cat "$st_repo_log")" "stop-gate	reminded"
 rm -f "$repo/z.txt"
 t_end
 
-HS="$KIT/hooks/scripts"
+HS="$KIT/plugins/bearing/hooks/scripts"
 t_begin "Claude adapters: a gate's exit 2 becomes decision block"
 T_IN='{"session_id":"S1","stop_hook_active":false}'
 assert_exit 0 bash -c "cd '$repo' && bash '$HS/stop-summary.sh'"

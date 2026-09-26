@@ -5,11 +5,10 @@
   "installCommand": "",
   "outputDirectory": ".",
   "cleanUrls": true,
-  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }],
-  "headers": [
+  "rewrites": [
     {
       "source": "/(.*)",
-      "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }]
+      "destination": "/index.html"
     }
   ]
 }

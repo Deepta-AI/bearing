@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# tests/unit/screen_gallery.sh: skills/screen-design/scripts/gallery_check.py,
+# tests/unit/screen_gallery.sh: plugins/bearing/skills/screen-design/scripts/gallery_check.py,
 # the gate for screens as code on the default react-shadcn stack. Every
 # inventory screen needs a src/features/*/screens/<id>-*.screen.tsx whose
 # states map holds every inventory state; a screen file whose id is not in
@@ -7,7 +7,7 @@
 # <textarea>/<dialog> in a screen file, and zero screen files all fail.
 set -u
 . "$(dirname "$0")/../lib/assert.sh"
-CHK="$KIT/skills/screen-design/scripts/gallery_check.py"
+CHK="$KIT/plugins/bearing/skills/screen-design/scripts/gallery_check.py"
 
 flows() {
   mkdir -p "$(dirname "$1")"

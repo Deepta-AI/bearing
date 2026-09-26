@@ -60,7 +60,7 @@ assert_contains " $(printf '%s' "$kit_gates" | tr '\n' ' ') " " test " "the test
 assert_contains " $(printf '%s' "$kit_gates" | tr '\n' ' ') " " lint-shell " "lint-shell is a gate of check"
 t_end
 
-for mk in "$KIT"/skills/*/templates*/Makefile; do
+for mk in "$KIT"/plugins/*/skills/*/templates*/Makefile; do
   [ -f "$mk" ] || continue
   rel="${mk#"$KIT"/}"
   makefiles=$((makefiles+1))

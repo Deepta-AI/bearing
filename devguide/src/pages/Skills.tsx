@@ -37,8 +37,8 @@ function SectionBar({ s }: { s: Skill }) {
 
 function Lifecycle() {
   const steps = [
-    ["In every session", "Name and description only. A command skill is hidden from the model entirely."],
-    ["Triggered", "You type /start-task, or your words match a description's quoted phrases."],
+    ["In every session", "Name and description only, inside a listing capped at about 1% of the context window; past the cap some skills show by name only."],
+    ["Triggered", "You type /bearing:start-task, or your words match a description's quoted phrases."],
     ["Body loads", "SKILL.md below the frontmatter enters the context; allowed-tools now bound the session's tool calls for this skill."],
     ["Inputs resolved", "Each input from its first place, else its fallback, else one question. Never another skill as a prerequisite."],
     ["Steps run", "Reading references/ only when a step says so; calling bin/ scripts through granted Bash patterns."],
@@ -82,29 +82,26 @@ export function SkillsWork() {
         { id: "anatomy", label: "Anatomy of SKILL.md" },
         { id: "frontmatter", label: "The frontmatter" },
         { id: "lifecycle", label: "From trigger to output" },
-        { id: "kinds", label: "Command, auto, stack" },
+        { id: "kinds", label: "Step skills and stack skills" },
         { id: "sections", label: "The section contract" },
         { id: "tools", label: "allowed-tools and lint-tools" },
         { id: "files", label: "references, templates, scripts" },
         { id: "forks", label: "Forked skills" },
         { id: "evals", label: "Evals" },
-        { id: "packs", label: "Main or alternate" },
+        { id: "packs", label: "One skill per stage" },
         { id: "map", label: "Where the skills are" },
       ]}
-      sources={["skills/new-skill/templates/SKILL.template.md", "bin/lint-skill-tools.py", "bin/lint-skill-evals.py", "bin/skill-evals.py", "bin/gen-guide.py"]}
+      sources={["plugins/bearing/skills/new-skill/templates/SKILL.template.md", "bin/lint-skill-tools.py", "bin/lint-skill-evals.py", "bin/skill-evals.py", "bin/gen-guide.py"]}
     >
       <H2 id="anatomy">Anatomy of SKILL.md</H2>
-      <p>A real skill, shortened, with what each part is for. New skills start from <code>skills/new-skill/templates/SKILL.template.md</code>, which has the same shape.</p>
+      <p>A real skill, shortened, with what each part is for. New skills start from <code>plugins/bearing/skills/new-skill/templates/SKILL.template.md</code>, which has the same shape.</p>
       <div className="anno wide">
         <pre className="anno-src">{`---
 name: start-task
-description: Start work on a task: create the branch
-  (feature|bugfix|hotfix|chore|docs/<ID>-<PascalName>) from the
-  right base, write the state and progress files, restate the
-  criteria. Use when someone says "start TASK-142", "begin the
-  task", "create a branch for", "pick up ticket" or pastes a
-  task id.
-disable-model-invocation: true
+description: 'Starts work on a ticket: creates the branch from
+  the right base with the task id, writes state and progress
+  notes, restates the criteria. Use when asked to "start
+  TASK-142", "pick up this ticket" or "create a branch".'
 argument-hint: "<TASK-ID> [PascalName] [--type feature|...]"
 allowed-tools: Read, Write, Edit, Grep, Glob,
   Bash(bash *bin/brg-tracker *), Bash(git status:*),
@@ -132,8 +129,8 @@ Branch: feature/TASK-142-InvoiceTotals
 - the ways this goes wrong`}</pre>
         <ol className="anno-notes">
           <li><b>name</b> must equal the folder. <code>lint-skills</code> checks it.</li>
-          <li><b>description</b> is the trigger. What it does, then "Use when" and three to five quoted phrases, 300 characters at most.</li>
-          <li><b>disable-model-invocation</b> makes it a command: only a person starts it. Commands need an <b>argument-hint</b>.</li>
+          <li><b>description</b> is the trigger. The job first, then "Use when" and at least two quoted phrases, 220 characters at most, because the start is what survives a shortened listing.</li>
+          <li><b>argument-hint</b> shows in the slash menu when you type <code>/bearing:start-task</code>. No Bearing skill sets <code>disable-model-invocation</code>: it would hide the skill from the model entirely.</li>
           <li><b>allowed-tools</b> is least privilege. Scripts appear as exact Bash patterns, never a bare <code>Bash</code> or <code>bash:*</code>.</li>
           <li><b>Inputs</b> is the independence contract: each input's first place and its fallback.</li>
           <li><b>Output contract</b> is a fixed block with counts, so a caller can check the result.</li>
@@ -174,20 +171,21 @@ Branch: feature/TASK-142-InvoiceTotals
       <H2 id="lifecycle">From trigger to output</H2>
       <Lifecycle />
 
-      <H2 id="kinds">Command, auto, stack</H2>
+      <H2 id="kinds">Step skills and stack skills</H2>
       <div className="cols">
         <div className="card">
-          <h4>Command skills ({data.counts.commandSkills})</h4>
+          <h4>Two ways in ({sk.length})</h4>
           <p>
-            Steps with side effects a person should choose to start: a branch, an MR description, a scaffold. <code>disable-model-invocation: true</code>{" "}
-            removes them from the model's list, so they cost nothing per session.
+            Every skill can be typed as <code>/bearing:&lt;name&gt;</code> and picked by the model when your words match. Side effects stay safe because the
+            guard and the settings refuse what a person must do (push, merge, tag, deploy), not because the skill is hidden.
+            {data.counts.commandSkills ? ` ${data.counts.commandSkills} set disable-model-invocation and are typed only.` : ""}
           </p>
         </div>
         <div className="card">
-          <h4>Auto skills ({sk.length - data.counts.commandSkills})</h4>
+          <h4>Why names and descriptions are short</h4>
           <p>
-            The model may pick them when your words match. Their description is paid for in every session, which is why it is capped at 300 characters and
-            tuned against near-miss phrases.
+            Every description is paid for in every session, and Claude Code caps the listing. So each name says its job (<code>definition-of-done</code>, not{" "}
+            <code>dod</code>), and each description leads with the job and its phrases in 220 characters or fewer, tuned against near-miss prompts.
           </p>
         </div>
         <div className="card">
@@ -258,7 +256,7 @@ license-compliance|npm ci|named as a reproducible-build flag in the release note
         </li>
         <li>
           <strong>templates/</strong> are copied: a PRD skeleton, a runbook, and for stack skills the whole repository layer with a <code>stack.json</code>.
-          A template a skill fills lives in its own folder, never only under <code>templates/repo/</code>, so the skill works alone.
+          A template a skill fills lives in its own folder, never only under <code>plugins/bearing/templates/repo/</code>, so the skill works alone.
         </li>
         <li>
           <strong>scripts/</strong> are checks the model must not do by eye. There are {skillScripts.length}, for example{" "}
@@ -266,7 +264,7 @@ license-compliance|npm ci|named as a reproducible-build flag in the release note
             <span key={s.path}>
               {i ? ", " : ""}
               <Link to={`/skills/${s.skill}`}>
-                <code>{s.path.replace("skills/", "")}</code>
+                <code>{s.path.replace(/^plugins\/[^/]+\/skills\//, "")}</code>
               </Link>
             </span>
           ))}
@@ -289,14 +287,14 @@ license-compliance|npm ci|named as a reproducible-build flag in the release note
 
       <H2 id="evals">Evals</H2>
       <p>
-        A skill that does not beat a no-skill baseline is prose the model already follows. Each measured skill has <code>evals/&lt;name&gt;/evals.json</code>{" "}
+        A skill that does not pass more of its cases than a no-skill baseline is prose the model already follows. Each measured skill has <code>evals/&lt;name&gt;/evals.json</code>{" "}
         (kept outside the skill folder, so a run that follows the skill never reads its own grading) in skill-creator's schema: prompts, fixture repositories
         under <code>files/</code>, and expectations a grader can check.
       </p>
       <p>
         {data.counts.evals} skills have evals; {data.evalsPending.length} predate the rule and sit on <code>evals/.pending</code>. <code>lint-evals</code> fails a
         new skill without evals, and fails a pending row for a skill that now has them, so the list only shrinks. <S name="skill-evals.py" /> prepares blind
-        arms (with the skill, with the best alternative, with nothing), then unblinds and measures after grading.
+        arms (with the skill and with nothing), then unblinds and measures after grading; results stay in the maintainer's <code>.scratch/</code>.
       </p>
       <div className="bar" style={{ height: 12 }} role="img" aria-label={`${data.counts.evals} of ${data.counts.skills} skills have evals`}>
         <span style={{ width: `${(data.counts.evals / data.counts.skills) * 100}%`, background: "var(--jade)" }} />
@@ -305,17 +303,15 @@ license-compliance|npm ci|named as a reproducible-build flag in the release note
         {data.counts.evals} of {data.counts.skills} skills measured
       </p>
 
-      <H2 id="packs">Main or alternate</H2>
+      <H2 id="packs">One skill per stage</H2>
       <p>
-        Bearing's rule is that the strongest skill for a step is the main one, whatever pack it comes from. <code>STAGES</code> in{" "}
-        <code>bin/gen-guide.py</code> names one main skill per stage and an alternate; <code>docs/comparisons.json</code> records a verdict for every{" "}
-        Bearing skill against its best alternative (bearing-stronger, alternative-stronger, different-job, no-alternative, unverified). A{" "}
-        Bearing skill exists only where nothing installed does the step better, or where it wraps a stronger engine (as <S name="branch-review" />{" "}
-        wraps gstack's review and adds independent verification).
+        <code>STAGES</code> in <code>bin/gen-guide.py</code> names one skill per stage row, whatever pack provides it. Where a row names another pack's
+        skill, Bearing calls it and adds its own gates (as <S name="branch-review" /> runs gstack's review and adds independent verification). Every
+        name a row uses must be a Bearing skill or appear in <code>docs/known-skills.txt</code>.
       </p>
-      <Note title="Changing which skill is main">
+      <Note title="Changing a stage's skill">
         <p>
-          Edit <code>STAGES</code> or <code>ALTERNATES</code> in <code>bin/gen-guide.py</code>, run <code>make docs</code>, and commit the regenerated{" "}
+          Edit <code>STAGES</code> in <code>bin/gen-guide.py</code>, run <code>make docs</code>, and commit the regenerated{" "}
           <code>docs/WORKFLOW.md</code> and site data. <code>lint-docs</code> fails if you forget.
         </p>
       </Note>
@@ -354,8 +350,7 @@ export function Skills() {
         <input type="search" placeholder="Filter by name or words" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Filter skills" />
         {[
           ["", "All"],
-          ["command", "Command"],
-          ["auto", "Auto"],
+          ...(data.counts.commandSkills ? [["command", "Typed only"]] : []),
           ["stack", "Stack"],
           ["evals", "Measured"],
         ].map(([k, l]) => (
@@ -384,7 +379,7 @@ export function Skills() {
             <p>{s.what}</p>
             <SectionBar s={s} />
             <div className="chips">
-              <span className={`chip ${s.invocation === "command" ? "brass" : "sea"}`}>{s.invocation}</span>
+              {s.invocation === "command" && <span className="chip brass">typed only</span>}
               {s.kind === "stack" && <span className="chip">stack</span>}
               <span className="chip">{s.files.length} files</span>
               {s.evals && <span className="chip jade">evals</span>}
@@ -426,10 +421,10 @@ export function SkillPage() {
         ...(s.gotchas.length ? [{ id: "gotchas", label: "Gotchas" }] : []),
         { id: "files", label: "Files" },
       ]}
-      sources={[`skills/${s.name}/SKILL.md`, ...(s.evals ? [`evals/${s.name}/evals.json`] : [])]}
+      sources={[`plugins/${s.plugin}/skills/${s.name}/SKILL.md`, ...(s.evals ? [`evals/${s.name}/evals.json`] : [])]}
     >
       <div className="chips">
-        <span className={`chip ${s.invocation === "command" ? "brass" : "sea"}`}>{s.invocation === "command" ? "command: you type it" : "auto: the model may pick it"}</span>
+        <span className={`chip ${s.invocation === "command" ? "brass" : "sea"}`}>{s.invocation === "command" ? `typed only: /bearing:${s.name}` : `/bearing:${s.name}, or picked by the model`}</span>
         {s.kind === "stack" && <span className="chip">stack skill</span>}
         <span className="chip">{s.lines} lines</span>
         <span className="chip">{s.files.length} files</span>

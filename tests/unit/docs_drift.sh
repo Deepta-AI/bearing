@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# tests/unit/docs_drift.sh: skills/docs-drift/scripts/docs_drift.py
+# tests/unit/docs_drift.sh: plugins/bearing/skills/docs-drift/scripts/docs_drift.py
 # flags a broken link, a missing backticked path and an undefined make
 # target; leaves URLs, placeholders, gitignored paths and a make that is an
 # argument alone; warns on an env var no code reads and on a doc whose code
@@ -7,7 +7,7 @@
 # fails on a repository with no docs.
 set -u
 . "$(dirname "$0")/../lib/assert.sh"
-CHK="$KIT/skills/docs-drift/scripts/docs_drift.py"
+CHK="$KIT/plugins/bearing/skills/docs-drift/scripts/docs_drift.py"
 
 # fixture <dir>: a git repository with a Makefile, one source file reading
 # DATABASE_URL, a README full of claims and one doc under docs/.
