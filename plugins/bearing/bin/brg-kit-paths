@@ -89,7 +89,14 @@ case "${1:---skills}" in
   --plugins) plugins ;;
   --skill)
     [ -n "${2:-}" ] || { echo "brg-kit-paths: --skill needs a name" >&2; exit 2; }
-    found="$(plugins | while IFS="$(printf '\t')" read -r _ r; do [ -f "$r/skills/$2/SKILL.md" ] && { echo "$r/skills/$2"; break; }; done)"
+    # Read the whole list first: breaking out of a loop fed by a pipe would
+    # leave plugins() writing into a closed pipe ("printf: write error").
+    list="$(plugins)"; found=""
+    while IFS="$(printf '\t')" read -r _ r; do
+      [ -f "$r/skills/$2/SKILL.md" ] && { found="$r/skills/$2"; break; }
+    done <<EOF_LIST
+$list
+EOF_LIST
     [ -n "$found" ] && { echo "$found"; exit 0; }
     hint "$2" >&2; exit 1 ;;
   --owner) [ -n "${2:-}" ] || { echo "brg-kit-paths: --owner needs a name" >&2; exit 2; }; owner_of "$2" ;;

@@ -5,12 +5,12 @@
   "commandSkills": 0,
   "stackSkills": 12,
   "scripts": 76,
-  "scriptLines": 23611,
+  "scriptLines": 23618,
   "hooks": 6,
   "agents": 7,
   "makeTargets": 24,
   "gates": 14,
-  "tests": 65,
+  "tests": 66,
   "fixtures": 21,
   "stacks": 13,
   "templates": 38,
@@ -13976,7 +13976,7 @@
    "name": "brg-kit-paths",
    "lang": "bash",
    "group": "quality",
-   "lines": 100,
+   "lines": 107,
    "header": "brg-kit-paths: where the Bearing plugins are on this machine. Bearing ships\nas three plugins from one marketplace: bearing (required: the workflow,\nagents, hooks, bin and templates), bearing-backend and bearing-apps (the\nstack conventions and their templates). A script that looks for a stack\ntemplate or checklist asks here instead of assuming one skills/ folder.\n\n  brg-kit-paths [--skills]        skill roots, one absolute path per line,\n                                  bearing first (the default)\n  brg-kit-paths --plugins         \"name<TAB>root\" per plugin found\n  brg-kit-paths --skill <name>    the directory of one skill, from any\n                                  Bearing plugin; exit 1 naming the plugin\n                                  to install when it is not there\n  brg-kit-paths --owner <name>    the plugin that ships a skill or a stack\n                                  id (go, go-api, react-web ...), found or not\n  brg-kit-paths --install-hint <name>\n                                  one line: \"<name> is in <plugin>, which is\n                                  not installed: /plugin install <plugin>@bearing\"\n  brg-kit-paths --version         the bearing plugin's version\n\nWhere it looks, for each sibling plugin, first hit wins:\n  BEARING_PLUGIN_DIRS  colon-separated plugin roots (tests, other harnesses);\n                       when set, only these are used besides bearing itself\n  <bearing>/../<name>  the repository layout (plugins/<name>)\n  <bearing>/../../<name>/<version>  the Claude Code cache layout\n                       (~/.claude/plugins/cache/<marketplace>/<name>/<version>),\n                       the same version as bearing first, else the newest\nA root counts only when it holds .claude-plugin/plugin.json naming it.\nExit 1 when not even the bearing plugin's own skills are found. bash 3.2 safe.",
    "functions": [
     "owner_of",
@@ -16216,9 +16216,16 @@
    "asserts": 40
   },
   {
+   "path": "tests/unit/pins_match.py",
+   "kind": "unit",
+   "lines": 82,
+   "header": "",
+   "asserts": 0
+  },
+  {
    "path": "tests/unit/pins_match.sh",
    "kind": "unit",
-   "lines": 140,
+   "lines": 56,
    "header": "tests/unit/pins_match.sh: every external fetch Bearing makes is pinned, and pinned in one place (plugins/bearing/bin/pinned-packs.txt). 1. Every row of pinned-packs.txt is well formed: git rows (skill, plugin, cli, clone) pin a full commit, npm and pypi rows an exact version. 2. Every npx, pnpm dlx, uvx or uv --with fetch in what the plugins run (install.sh, plugins/*/bin, each skill's SKILL.md, references/, scripts/ and the two templates a skill runs itself) names an exact version, and that version is the one pinned-packs.txt holds. `npx expo` is exempt: it runs the repository's own locked e…",
    "asserts": 10
   },
