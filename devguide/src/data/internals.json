@@ -10586,7 +10586,7 @@
     },
     {
      "path": "templates/skeleton/src/lib/api.test.ts",
-     "lines": 107
+     "lines": 109
     },
     {
      "path": "templates/skeleton/src/lib/api.ts",
@@ -16910,7 +16910,7 @@
   {
    "path": "tests/unit/design_pairs.sh",
    "kind": "unit",
-   "lines": 87,
+   "lines": 94,
    "header": "tests/unit/design_pairs.sh: plugins/bearing/skills/design-critique/scripts/pairs.py computes text and field-edge contrast in light, data-theme dark and prefers-color-scheme dark from the CSS a page loads; passes a page where every pair holds, fails a muted token, a raw background that does not follow the theme (and names the background as the fault), a dark token set in one dark block only, a font nothing loads, a focus ring under 3:1 on the panel it is drawn on and an outline removed with nothing in its place; ratio recomputes a colour typed by hand; fails on zero pages.",
    "asserts": 27
   },
