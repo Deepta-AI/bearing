@@ -1,0 +1,17 @@
+/* Queuewell tokens. Source of truth for colour and type (ADR-0007). */
+:root {
+  --font-ui: "Atkinson Hyperlegible", system-ui, sans-serif;
+
+  --surface: #FFFFFF;
+  --surface-2: #F1F5F4;
+  --ink: #10231F;
+  --ink-muted: #6B7280;
+  --accent: #1E40AF;
+  --accent-ink: #FFFFFF;
+  --danger: #B42318;
+  --line: #D0D5DD;
+
+  --radius-panel: 12px;
+  --radius-control: 8px;
+  --shadow-keypad: 0 2px 8px rgb(16 35 31 / 0.12);
+}

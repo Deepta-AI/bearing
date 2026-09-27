@@ -1,0 +1,15 @@
+{
+  "expo": {
+    "name": "Basket",
+    "slug": "basket",
+    "version": "2.3.0",
+    "orientation": "portrait",
+    "scheme": "basket",
+    "userInterfaceStyle": "automatic",
+    "runtimeVersion": { "policy": "appVersion" },
+    "ios": { "bundleIdentifier": "com.example.basket", "supportsTablet": false },
+    "android": { "package": "com.example.basket", "permissions": [] },
+    "plugins": ["expo-router", "expo-secure-store"],
+    "experiments": { "typedRoutes": true }
+  }
+}

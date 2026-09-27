@@ -1,0 +1,31 @@
+stages: [test]
+
+api:
+  stage: test
+  image: golang:1.25
+  script:
+    - cd services/api
+    - test -z "$(gofmt -l .)"
+    - go vet ./...
+    - go test ./...
+
+worker:
+  stage: test
+  image: python:3.12
+  script:
+    - cd services/worker
+    - pip install pytest
+    - python -m pytest -m "not integration"
+
+worker-integration:
+  stage: test
+  image: python:3.12
+  services:
+    - postgres:16
+  variables:
+    POSTGRES_PASSWORD: ci
+    DATABASE_URL: postgres://postgres:ci@postgres:5432/postgres
+  script:
+    - cd services/worker
+    - pip install pytest
+    - python -m pytest -m integration

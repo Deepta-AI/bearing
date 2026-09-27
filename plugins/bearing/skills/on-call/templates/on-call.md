@@ -9,16 +9,20 @@
 
 Owner: <rotation>   Paging tool: <name | none named>   Last reviewed: <YYYY-MM-DD>
 
-Findings: <rotation under four people | none>
+Status: Proposed (awaiting team agreement)
+
+Findings: <rotation under four people, routing divergences, burn-rate drift | none>
 
 ## Rotation
 
 <!-- What: primary and secondary rotations, one-week shifts, a fixed handover
-     weekday and hour, the time zone; follow-the-sun when the team spans two.
-     Good: members are a rotation name and a headcount, never a person's
-     name. A rotation under four people is a burnout schedule: say so on the
-     Findings line at the top of the document, not in a footnote.
-     Example: "| primary | 5 people: payments-oncall | 1 week | Monday 10:00 | Asia/Kolkata |" -->
+     weekday and hour, every time zone it touches (converted for the start
+     date's clocks); follow-the-sun only when each zone has three or more.
+     Good: members counted from who is available on the start date (leave
+     and departures dropped), with the load (on call 2 weeks in every N).
+     A rotation under four people is a burnout schedule: say so on the
+     Findings line at the top of the document, with the fix.
+     Example: "| primary | 5 people: payments-oncall | 1 week | Monday 10:00 IST (05:30 Lisbon in winter) | Asia/Kolkata |" -->
 
 | Rotation | Members | Shift | Handover | Time zone |
 | --- | --- | --- | --- | --- |
@@ -48,14 +52,15 @@ Findings: <rotation under four people | none>
      responds. Use docs/operations/severity.md when the repository has one.
      Good: Sev 1 and 2 page primary; Sev 3 goes to a named service channel
      for the next business day; Sev 4 is a ticket. Replace <channel> with a
-     real channel. A paging alert without a runbook is routed to the channel
-     until the runbook exists.
+     real channel. Compare with the Alertmanager route tree, including its
+     default receiver, and list every divergence. A paging alert without a
+     runbook gets one before go-live; a Sev 1 is never rerouted to hide it.
      Example: "| 3 | minor, workaround exists | #payments-alerts | next business day |" -->
 
 | Sev | Meaning | Route | Response |
 | --- | --- | --- | --- |
 | 1 | users blocked or data at risk | page primary now | acknowledge in 5 min, incident declared (`incident`) |
-| 2 | degraded for many users | page primary now | acknowledge in 5 min |
+| 2 | degraded for many users | page primary (hours from the severity scale) | acknowledge in 5 min |
 | 3 | minor, workaround exists | <channel> | next business day |
 | 4 | cosmetic | ticket | backlog |
 
@@ -65,16 +70,16 @@ Every alert rule carries `severity` and, when it pages, `runbook_url`.
 
 <!-- What: one row per SLO from docs/observability/slos.md, with the budget
      per 30 days and the two burn-rate alerts.
-     Good: the budget is computed from the target (99.9 percent over 30 days
-     is 43 minutes); fast burn (14.4x over 1 h) pages, slow burn (6x over
-     6 h) opens a ticket. Without slos.md the defaults stay "proposed" until
-     the owner confirms them on a named date.
+     Good: the budget is computed from the target: failed requests
+     ((1 - target) x requests in 30 days) and the full-outage minutes
+     ((1 - target) x 43,200); each burn alert's threshold is its burn rate x
+     (1 - target), checked against the rule files. Without slos.md the
+     defaults stay "proposed" until the owner confirms them on a named date.
      Example: "Status: confirmed by the payments service owner on 2026-09-21" -->
 
 | Service | SLO | Window | Budget | Fast burn (page) | Slow burn (ticket) |
 | --- | --- | --- | --- | --- | --- |
-| <service> | 99.9% availability | 30 d | 43 min | 14.4x over 1 h | 6x over 6 h |
-| <service> | p95 < 300 ms reads, 800 ms writes | 30 d | 5% of requests | | |
+| <service> | <target> availability | 30 d | <failed requests> (<minutes> full outage) | 14.4 x <1 - target> over 1 h | 6 x <1 - target> over 6 h |
 
 Status: proposed | confirmed by <owner> on <date>
 
@@ -91,6 +96,7 @@ Status: proposed | confirmed by <owner> on <date>
 - 50% consumed: the weekly review adds one reliability item to the next sprint.
 - 100% consumed: feature freeze on the service. Only reliability, security and
   incident-driven changes merge until the burn rate stays under 1x for 7 days.
+  <every exception an ADR or policy requires, for example security fixes>
 - The freeze is lifted by the service owner in the weekly review, in writing.
 
 ## Handover

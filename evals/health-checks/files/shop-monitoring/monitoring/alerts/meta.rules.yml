@@ -1,0 +1,9 @@
+groups:
+  - name: meta
+    rules:
+      - alert: Watchdog
+        expr: vector(1)
+        labels: { severity: none }
+        annotations:
+          summary: Always firing; proves the alert pipeline works end to end.
+          runbook_url: https://gitlab.example.com/shop/shop/-/blob/main/docs/runbooks/Watchdog.md

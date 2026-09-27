@@ -57,7 +57,7 @@ Symbols before: <S>   after: <T>   Bump: <major | minor | patch> (commits said <
      Example: "pnpm changeset publish (from CI, npm --provenance via OIDC)" -->
 
 ```
-git add -A && git commit -m "chore(release): <name>@<new>"
+git add <each file the release changed> && git commit -m "chore(release): <name>@<new>"
 git tag -a <name>@<new> -m "<name>@<new>"
 <publish command>
 ```

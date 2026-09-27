@@ -1,0 +1,11 @@
+{
+ "version": 1,
+ "date": "2026-09-16T05:30:00Z",
+ "mode": "diff",
+ "scope": "git diff v1.3.0..v1.4.0",
+ "findings": [
+  {"id": 1, "severity": "HIGH", "confidence": 9, "category": "authz", "title": "Download route has no tenant scoping", "file": "internal/files/handler.go", "line": 22, "exploit_scenario": "The download route is registered behind the session check only; an authenticated user of another tenant requests /files/<id>/download and receives the file.", "recommendation": "Compare the file's TenantID with the session tenant before writing the body.", "verification": "verified"},
+  {"id": 2, "severity": "LOW", "confidence": 7, "category": "info-disclosure", "title": "Preview error returns internal path to the client", "file": "internal/files/handler.go", "line": 70, "exploit_scenario": "GET /files/<own id>/preview while the renderer is down returns 'preview failed: renderer unavailable at /opt/filedrop/bin/thumbd: <id>'.", "recommendation": "Log the error server side and return a generic 500 message.", "verification": "verified"},
+  {"id": 3, "severity": "HIGH", "confidence": 6, "category": "authz", "title": "Preview renders files of other tenants", "file": "internal/files/handler.go", "line": 63, "exploit_scenario": "An authenticated user of tenant B requests GET /files/<tenant A file id>/preview; the handler loads the file by id and renders it.", "recommendation": "Check the file's TenantID against the session tenant before rendering.", "verification": "self-verified"}
+ ]
+}

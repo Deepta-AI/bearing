@@ -1,0 +1,8 @@
+@media print {
+  .app-header, .chart, .button { display: none; }
+  .modal-backdrop { position: static; background: none; }
+  .modal { box-shadow: none; border: 0; }
+  body { font-size: 11pt; }
+  table { border-collapse: collapse; width: 100%; }
+  th, td { border-bottom: 1px solid var(--color-border); }
+}

@@ -86,6 +86,28 @@ assert_exit 0 python3 "$CHK" --screens "$d"
 assert_contains "$T_OUT" "baseline five (no flows file)"
 t_end
 
+t_begin "a repo's own mockups pass as they are: data-target, #state= links, 'no slots' is 'no-slots'"
+d="$(tmpdir)"
+cat > "$d/flows.md" <<'MD'
+## 2. Interaction states
+
+### S-01 Pick a slot
+
+| state | when |
+|-------|------|
+| success | slots listed |
+| no slots | closed day |
+| slot_taken | 409 |
+
+## 4. Navigation
+MD
+{ echo '<button data-target="success">Slots</button><button data-target="no-slots">None</button>'
+  echo '<a href="#state=slot-taken">x</a>'
+  for s in success no-slots slot-taken; do echo "<section data-state=\"$s\">copy</section>"; done; } > "$d/S-01-pick-slot.html"
+assert_exit 0 python3 "$CHK" --screens "$d" --flows "$d/flows.md"
+assert_contains "$T_OUT" "1 of 1 screens with all inventory states, 0 problems"
+t_end
+
 t_begin "an empty inventory fails"
 d="$(tmpdir)"
 assert_exit 1 python3 "$CHK" --screens "$d"

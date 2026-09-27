@@ -5,9 +5,11 @@ Status: Accepted (March 2025)
 ## Context
 
 Migrations run from the pre-deploy job (`make migrate`) while the previous
-release is still serving traffic. In February 2025 an `ALTER TABLE invoices`
-queued behind the nightly report's read transaction and, while it waited for
-its ACCESS EXCLUSIVE lock, blocked every write to invoices for 9 minutes.
+release is still serving traffic. The pipeline kills the pre-deploy job
+after 15 minutes and then does not roll the release out. In February 2025
+an `ALTER TABLE invoices` queued behind the nightly report's read
+transaction and, while it waited for its ACCESS EXCLUSIVE lock, blocked
+every write to invoices for 9 minutes.
 
 ## Decision
 

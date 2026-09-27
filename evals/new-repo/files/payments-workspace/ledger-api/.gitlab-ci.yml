@@ -1,0 +1,15 @@
+image: golang:1.25-bookworm
+
+stages: [check, build]
+
+check:
+  stage: check
+  script:
+    - make check
+
+build:
+  stage: build
+  script:
+    - make build
+  artifacts:
+    paths: [bin/api]

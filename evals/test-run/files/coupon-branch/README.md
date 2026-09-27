@@ -10,5 +10,7 @@ Install the tools with `pip install -r requirements-dev.txt`.
 - `make test-integration`: tests under `tests/integration`, need Postgres in `DATABASE_URL`
 - `make lint`: byte-compiles `src` and `tests`
 
+The database schema is in `migrations/`, applied in file order.
+
 Test cases are listed in `docs/testing/test-cases.md`; quarantined tests in
 `docs/testing/quarantine.md`.

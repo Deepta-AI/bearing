@@ -1,0 +1,10 @@
+{
+  "bucket": "dispatch-proofs",
+  "rules": [
+    {
+      "id": "expire-proofs",
+      "prefix": "proofs/",
+      "expiration_days": 365
+    }
+  ]
+}

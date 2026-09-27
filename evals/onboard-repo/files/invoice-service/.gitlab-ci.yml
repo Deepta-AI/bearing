@@ -1,0 +1,23 @@
+image: node:22-alpine
+
+variables:
+  TZ: "UTC"
+
+stages: [check]
+
+lint:
+  stage: check
+  script:
+    - npm run lint
+
+test:
+  stage: check
+  variables:
+    FULL_PROPERTY_TESTS: "1"
+  script:
+    - npm test
+
+migrations:
+  stage: check
+  script:
+    - npm run check:migrations

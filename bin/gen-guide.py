@@ -100,6 +100,7 @@ CATEGORY = {
         "release",
         "app-store-release",
         "refactor",
+        "simplify-code",
         "tech-debt",
     ],
     "quality": [
@@ -630,6 +631,12 @@ STAGES = [
                 "refactor",
                 "bearing",
                 "tests green first, one mechanical transform per commit, make check between, a diff ceiling",
+            ),
+            (
+                "Cut code a change does not need",
+                "simplify-code",
+                "bearing",
+                "every unit in scope inventoried, each cut reasoned, tests green after every step, behaviour changes proposed",
             ),
             (
                 "Something is slow",

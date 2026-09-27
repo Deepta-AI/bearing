@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS merchants (
 CREATE TABLE IF NOT EXISTS orders (
   id INTEGER PRIMARY KEY,
   merchant_id INTEGER NOT NULL REFERENCES merchants(id),
+  refunded_paise INTEGER NOT NULL DEFAULT 0,
   total_paise INTEGER NOT NULL,
   status TEXT NOT NULL DEFAULT 'paid'
 );

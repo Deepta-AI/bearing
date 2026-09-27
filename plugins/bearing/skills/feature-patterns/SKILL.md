@@ -1,6 +1,6 @@
 ---
 name: feature-patterns
-description: 'Plans one common feature mechanism (uploads, search, realtime, caching, rate limits, payments, notifications, multitenancy) with tests. Use when asked to "add file uploads", "add search" or "rate limiting".'
+description: 'Plans one common feature mechanism before code: uploads, search, realtime, caching, rate limits, payments, notifications, multitenancy. Use when asked to "add file uploads", "add realtime" or "rate limiting".'
 argument-hint: "[uploads|search|realtime|cache|rate_limit|payments|notifications|multitenancy]"
 allowed-tools: Read, Write, Grep, Glob, Bash(ls:*), Bash(mkdir -p:*), Bash(date:*)
 ---

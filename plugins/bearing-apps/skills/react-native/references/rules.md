@@ -20,6 +20,9 @@ paths: ["app/**/*.tsx", "src/**/*.ts", "src/**/*.tsx"]
   string. Deep links are parsed and never bypass the auth gate.
 - Permissions at the moment of use after a rationale; `blocked` opens
   settings.
+- Cursor APIs use `useInfiniteQuery`; a failed next page keeps the loaded
+  rows. Create POSTs carry an idempotency key made once per user intent;
+  the submit is disabled while pending. Sign out clears the query cache.
 - Every screen: loading, error with retry, empty. Errors mapped to copy
   once; no raw message in a `Text`; no floating promise in a handler.
 - `accessibilityRole` on every pressable, `accessibilityLabel` when the

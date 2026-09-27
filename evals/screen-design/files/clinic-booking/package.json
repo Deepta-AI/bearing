@@ -1,0 +1,16 @@
+{
+  "name": "clinic-booking",
+  "private": true,
+  "main": "expo-router/entry",
+  "type": "module",
+  "scripts": {
+    "start": "expo start",
+    "test": "node --no-warnings --test \"src/**/*.test.js\""
+  },
+  "dependencies": {
+    "expo": "~53.0.20",
+    "expo-router": "~5.1.4",
+    "react": "19.0.0",
+    "react-native": "0.79.5"
+  }
+}

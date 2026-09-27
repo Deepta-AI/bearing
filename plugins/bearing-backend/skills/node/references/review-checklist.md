@@ -28,6 +28,15 @@ For each item, either find the concrete failure or write "none found".
   in a loop.
 - A transaction opened in a repository or a route; a transaction spanning
   an outbound call.
+- An aggregate (`count`, `sum`) or `numeric` used as a number: pg returns
+  it as a string whatever `sql<number>` says.
+- A read-check-write (balance, remaining amount, stock) without a row lock
+  or a single conditional statement; a bare transaction at READ COMMITTED
+  does not stop it.
+- A money-moving POST without an idempotency key; a downstream call made
+  inside a transaction or fired without an outbox or retry.
+- A SQL file without its journal entry (the migrator skips it); a
+  migration run on boot.
 - A migration edited by hand, a `drizzle/meta` file changed without
   `drizzle-kit generate`, a new filter without an index decision, a
   destructive change without an expand-and-contract plan.

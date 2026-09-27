@@ -1,0 +1,3 @@
+# Shared staging database, so everyone tests against the same data.
+DATABASE_URL=postgres://dispatch_app:St4ging-Dispatch-2026@db.staging.internal.example:5432/dispatch
+RIDER_API_TOKEN=rider-staging-6f1d0c9a2b7e4c58

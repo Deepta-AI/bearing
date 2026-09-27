@@ -1,6 +1,6 @@
 ---
 name: node
-description: 'Conventions for Node services: Node 24, TypeScript, Fastify 5, Zod 4, Drizzle ORM, pino, OpenTelemetry, vitest, pnpm. Use when writing, reviewing or scaffolding "Fastify", "Drizzle" or "a Node API" code.'
+description: 'Node house rules (Node 24, TypeScript, Fastify 5, Zod, Drizzle, pino, vitest, pnpm). Load before writing or changing Node or TypeScript backend code. Use when asked for "a Fastify route", "a Node API".'
 allowed-tools: Read, Grep, Glob, Bash(pnpm install:*), Bash(pnpm run:*), Bash(pnpm exec:*), Bash(pnpm audit:*), Bash(make:*), Bash(npm run:*)
 ---
 
@@ -19,7 +19,9 @@ vitest with `app.inject`, ESLint flat config, Prettier, pnpm, and a
 - Source files: the repository as it is; no scaffold is needed. A
   different layout is handled under "On a foreign layout".
 - Gate: `make check` when a Makefile has that target; else the native
-  commands under Commands, one by one.
+  commands under Commands, one by one. When `node_modules` is missing and
+  nothing can be fetched, do not try an install (not `--offline`, not in a
+  copy): say the gate was not run and why, and claim nothing it would prove.
 - `references/guidelines.md` and `references/review-checklist.md` ship
   with this skill. `bearing:new-repo` and `bearing:ci-pipeline` are suggestions for a
   repository without a Makefile or a pipeline, never prerequisites.
@@ -29,7 +31,10 @@ vitest with `app.inject`, ESLint flat config, Prettier, pnpm, and a
 - Writing or changing `.ts` files in a server: apply `references/guidelines.md`.
   Read it once per session, then work.
 - Reviewing a diff with Node files: apply `references/review-checklist.md`
-  and report in the reviewer format.
+  and report every finding as severity (Critical, High, Medium, Low), `file:line`, the claim, a concrete failure scenario and the fix, then list what was checked and found clean and what was not reviewed.
+  Rank by consequence (money, another tenant's data, lost writes first),
+  check each proposed fix against the trap it claims to close (see
+  "Traps"), and end with a verdict: ready, or not ready and why.
 - Scaffolding (`new-repo node-api <Name>`): `templates/` holds the
   skeleton and configs; `bin/brg-scaffold` in the bearing plugin copies them. Do not hand-copy.
 - Generating CI (`bearing:ci-pipeline`): `templates/.gitlab-ci.yml` is the source.
@@ -89,6 +94,64 @@ change. Say which rule was relaxed and why.
    traces, within `SHUTDOWN_TIMEOUT_MS`; `process.exit` appears only in
    `src/server.ts`.
 
+## Traps a strong generalist still misses
+
+Check each one on every change and every review; each has shipped.
+
+- **pg returns int8 and numeric as strings.** `count(*)`, `sum()` over an
+  integer or bigint column and every `numeric` arrive as `'2000'`;
+  `sql<number>` is a type assertion, not a conversion, so
+  `'2000' + 1000` is `'20001000'` and the comparison after it is wrong.
+  Convert in the query (`.mapWith(Number)`, `::int`) or at the edge;
+  above 2^53 keep a string or `bigint` (and `JSON.stringify` throws on a
+  `bigint`).
+- **Check-then-write races.** Read a total, compare, insert: two requests
+  both pass. A transaction alone does not help at Postgres's default READ
+  COMMITTED. Lock the parent row (`SELECT ... FOR UPDATE`), re-check in
+  one conditional statement or constraint, or run SERIALIZABLE with a
+  retry.
+- **Money-moving POSTs are idempotent.** An `Idempotency-Key` per account,
+  the first response stored and replayed in the same transaction as the
+  write; a reused key with a different body is rejected, not replayed.
+- **Side effects after a write.** Never fire and forget (an unhandled
+  rejection ends the process by default), never call the network inside a
+  transaction (locks held across it), and a bare `await` after commit
+  turns a downstream failure into a 500 for a write that happened. Write
+  an outbox row or a pending state in the same transaction and let a
+  worker retry. Every `fetch` gets `AbortSignal.timeout(ms)`: it has no
+  overall deadline of its own.
+- **Ownership at every hop.** Every lookup by id carries the account
+  condition, including child lists (`/parents/:id/children` checks the
+  parent is the caller's, live and not soft-deleted, and answers the same
+  404 as an unknown id, not an empty 200 list). A
+  negative test needs its positive twin: the owner gets 200 for the same
+  id, or the 404 may come from an unmatched route.
+- **Keyset paging on timestamps.** Order and cursor on `(ts, id)` in the
+  same direction; keep the cursor at stored precision (a JS `Date`
+  truncates Postgres microseconds, so rows repeat or vanish between
+  pages). Text timestamps compare as text: look at the stored values
+  before trusting `ORDER BY`, because an imported `2026-06-05 09:30:00`
+  sorts before `2026-06-05T08:00:00.000Z`. Normalise in the query or with
+  a data migration, and index what the query actually orders by.
+- **Query-string coercion.** `z.coerce.boolean()` turns `"false"` into
+  `true` and `z.coerce.number()` turns `""` into `0`; use `z.enum`,
+  `z.stringbool()` or an explicit transform. Out-of-range input is a 400,
+  never a silent clamp, unless the API says otherwise.
+- **Migrations that never run.** The Drizzle migrator applies only what
+  `drizzle/meta/_journal.json` lists; a hand-written SQL file is skipped
+  and the table is missing in production. A migration applied anywhere is
+  never edited.
+- **Redaction is by path.** pino's `redact: ['req.headers.authorization']`
+  covers Fastify's serialized request, not `request.log.info({ headers })`
+  logged by hand; log ids, never headers or bodies.
+- **Unit tests that reach out.** A fake that stubs the database but lets a
+  real `fetch` run touches the network and can fail the suite through an
+  unhandled rejection; a hand-rolled fake cannot show a race or a
+  string-typed sum, so those need an integration test.
+- **Leave the tree clean.** A database file, log or server started to
+  check the work is removed, and only the process ids you started are
+  stopped.
+
 ## Commands
 
 Each target is used when the Makefile has it; the command after the
@@ -109,9 +172,11 @@ make build           # tsc -p tsconfig.build.json into dist/
 
 ## Gotchas
 
-- The project is ESM (`"type": "module"`, `NodeNext`): relative imports
-  carry the `.js` suffix even in `.ts` files, and there is no `__dirname`;
-  use `import.meta.dirname`.
+- Import suffixes follow the repository: compiled by `tsc` under
+  `NodeNext`, relative imports carry `.js` even in `.ts` files; run
+  directly by Node's type stripping (or `allowImportingTsExtensions`),
+  they carry `.ts`. Copy what the neighbouring imports do. ESM has no
+  `__dirname`; use `import.meta.dirname`.
 - `startTelemetry` must run before `pg`, `pino` and `http` load, so
   `src/server.ts` imports the app dynamically after calling it. An ESM-only
   dependency needs the loader hook (`@opentelemetry/instrumentation/hook.mjs`)

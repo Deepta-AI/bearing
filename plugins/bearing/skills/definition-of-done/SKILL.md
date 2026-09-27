@@ -1,8 +1,8 @@
 ---
 name: definition-of-done
-description: 'Checks the current branch against the Definition of Done with evidence per item: gate, tests, docs, scope, commits, a smoke run of the app. Use when asked "am I done", "is this ready to merge" or "definition of done".'
+description: 'Checks a branch or ticket against the Definition of Done, with evidence per item: gate, tests, docs, scope, commits, smoke run. Use when asked "am I done", "is this story complete" or "ready to merge?"'
 argument-hint: "[base branch, default: the state file's Base line, else develop, else main]"
-allowed-tools: Read, Grep, Glob, Write, Skill, Bash(make:*), Bash(docker compose:*), Bash(curl:*), Bash(playwright-cli:*), Bash(pnpm exec playwright:*), Bash(git status:*), Bash(git diff:*), Bash(git log:*), Bash(git remote:*), Bash(git rev-parse:*), Bash(git show:*), Bash(go vet:*), Bash(go test:*), Bash(pnpm test:*), Bash(uv run pytest:*), Bash(pytest:*), Bash(python3 -m pytest:*), Bash(./gradlew test:*), Bash(swift test:*), Bash(tail -40), Bash(bash *skills/definition-of-done/scripts/red_proof.sh *), Bash(bash *bin/brg-state-path*), Bash(python3 *skills/prose-lint/scripts/prose_check.py*)
+allowed-tools: Read, Grep, Glob, Write, Skill, Bash(make:*), Bash(docker compose:*), Bash(curl:*), Bash(playwright-cli:*), Bash(pnpm exec playwright:*), Bash(git status:*), Bash(git am:*), Bash(git checkout:*), Bash(git switch:*), Bash(git branch:*), Bash(git worktree:*), Bash(git diff:*), Bash(git log:*), Bash(git remote:*), Bash(git rev-parse:*), Bash(git show:*), Bash(go vet:*), Bash(go test:*), Bash(go run:*), Bash(go build:*), Bash(pnpm test:*), Bash(uv run pytest:*), Bash(pytest:*), Bash(python3 -m pytest:*), Bash(./gradlew test:*), Bash(swift test:*), Bash(tail -40), Bash(bash *skills/definition-of-done/scripts/red_proof.sh *), Bash(bash *bin/brg-state-path*), Bash(python3 *skills/prose-lint/scripts/prose_check.py*)
 ---
 
 # definition-of-done
@@ -48,7 +48,11 @@ The list below is the standard's; it needs no file in the repository.
    for item 1.
 3. Walk the list. For each:
    1. gate: the tail above; `make check` must end with `check: passed`,
-      a native command must exit 0.
+      a native command must exit 0. Then run the gate on the base too and
+      compare what each checked (files linted, tests collected: `pytest
+      --collect-only -q`, `go test -list . ./...`): a branch that passes by
+      making the gate check less (an exclude, a skip, a narrowed path) has
+      not passed it.
    2. tests: open the test files in the diff; for a bugfix branch there
       must be a test that names the bug or the task id, and it must be
       proven red without the fix. A bugfix branch is a `bugfix/` or
@@ -68,6 +72,12 @@ The list below is the standard's; it needs no file in the repository.
       by hand (the base version of the function in a scratch copy, or
       those assertions alone) and report whether they would have failed;
       a red proof is only an assertion failing on the bug's input.
+      For every branch, a test in the diff counts only if the gate runs
+      it: find each new test's name in the gate's collected or verbose
+      output. A file the runner never collects (a name outside pytest.ini
+      `python_files`, a Go build tag, a `skip`, `xfail`, `t.Skip` or
+      `.only`) leaves its behaviour untested; run it directly and report
+      what it does.
    3. schemas: every new or changed handler, route, screen or message has
       a schema at the boundary (grep for the schema next to the handler).
    4. errors: new error paths wrap and map; grep for bare `err` returns,
@@ -80,7 +90,12 @@ The list below is the standard's; it needs no file in the repository.
       `traceback` in a response. A not-found from the store that reaches
       the client as a 500 is a fail.
    5. observability: a new endpoint or job logs with a request id and has
-      a metric; say which lines.
+      a metric; say which lines. Judge by what the repository already has:
+      a middleware that wraps the whole mux covers a new route, and where
+      the repository has no metrics anywhere this is `n/a` with that
+      reason (a gap to note, not this branch's failure). The same holds
+      for every item: never fail a branch for a practice its repository
+      does not have.
    6. analytics: if events were added, they are in the event sheet.
    7. no new dependency (diff of package.json, go.mod, pyproject, gradle,
       Package.swift), no `eslint-disable`, `nolint`, `noqa`, `@Suppress`,
@@ -128,7 +143,9 @@ The list below is the standard's; it needs no file in the repository.
        `brg-autopilot smoke-request --id <ID>` and end the turn; the
        launcher runs it and writes `.scratch/smoke-<ID>.md`. Nothing
        runnable: `n/a: nothing to run` naming what was looked for.
-4. Print the table, then the verdict: `done` only if no `fail`.
+4. Print the table, then the verdict: `done` only if no `fail`. Each
+   failing row names the file and the function, route or line, so the
+   author can act without searching, and says what was run to show it.
 
 ## Output contract
 

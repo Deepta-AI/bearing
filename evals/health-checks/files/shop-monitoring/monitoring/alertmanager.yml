@@ -1,0 +1,21 @@
+route:
+  receiver: shop-slack
+  group_by: [alertname, service]
+  routes:
+    - matchers: [severity="critical"]
+      receiver: shop-pager
+    - matchers: [alertname="Watchdog"]
+      receiver: watchdog
+      repeat_interval: 1m
+
+receivers:
+  - name: shop-slack
+    slack_configs:
+      - channel: "#shop-alerts"
+        api_url_file: /etc/alertmanager/secrets/slack-url
+  - name: shop-pager
+    pagerduty_configs:
+      - routing_key_file: /etc/alertmanager/secrets/pager-key
+  - name: watchdog
+    webhook_configs:
+      - url: http://deadman.monitoring.svc:8080/ping

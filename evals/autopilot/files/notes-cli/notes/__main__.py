@@ -9,7 +9,7 @@ def main(argv):
         print(f"added {n['id']}")
         return 0
     if argv == ["list"]:
-        for n in store.load():
+        for n in store.notes():
             print(f"{n['id']}: {n['text']}")
         return 0
     print("usage: python -m notes add TEXT | list", file=sys.stderr)

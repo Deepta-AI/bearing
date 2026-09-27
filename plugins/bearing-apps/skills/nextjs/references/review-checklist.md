@@ -20,7 +20,14 @@ For each item, either find the concrete failure or write "none found".
 
 ## Server actions and route handlers
 - An action that acts before `requireSession()`; an authorisation check by
-  role only, not by resource ownership (IDOR).
+  role only, not by resource ownership (IDOR); a tenant id taken from a
+  hidden input or a `.bind` argument instead of the session.
+- An exported function in a `"use server"` file that no form uses, or that
+  takes a tenant id as a parameter: callable by anyone with any value.
+- `requireSession()`, `redirect()` or `notFound()` inside a `try` whose
+  `catch` returns an error state: the redirect is swallowed.
+- A batch action that stops or throws on the first failure and does not
+  say which items changed.
 - An action that reads `formData.get(...)` without a Zod parse; a raw
   error or stack returned to the form.
 - An action that talks to a database directly instead of the API, or that

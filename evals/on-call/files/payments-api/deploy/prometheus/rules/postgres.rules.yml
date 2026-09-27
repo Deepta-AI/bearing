@@ -1,0 +1,22 @@
+groups:
+  - name: payments-postgres
+    rules:
+      - alert: PostgresConnectionsExhausted
+        expr: sum(pg_stat_activity_count{job="postgres"}) / max(pg_settings_max_connections{job="postgres"}) > 0.9
+        for: 5m
+        labels:
+          severity: page
+          service: payments-api
+        annotations:
+          summary: "payments database above 90% of max_connections"
+          runbook_url: docs/runbooks/PostgresConnectionsExhausted.md
+
+      - alert: PostgresReplicationLag
+        expr: max(pg_replication_lag_seconds{job="postgres"}) > 30
+        for: 5m
+        labels:
+          severity: page
+          service: payments-api
+        annotations:
+          summary: "payments database replica is more than 30 s behind"
+          runbook_url: docs/runbooks/PostgresReplicationLag.md

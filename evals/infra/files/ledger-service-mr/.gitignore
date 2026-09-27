@@ -1,0 +1,6 @@
+.terraform/
+.plans/
+*.tfstate
+*.tfstate.*
+terraform.tfvars
+/bin/

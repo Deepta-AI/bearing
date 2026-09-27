@@ -1,6 +1,6 @@
 ---
 name: high-level-design
-description: 'Writes a High Level Design (HLD): goals and non-goals agreed first, then architecture, data, interfaces, failure modes, scaling, rollout. Use when asked for an "HLD", "system design", "high level design" or "design doc".'
+description: 'Writes a High Level Design (HLD): goals and non-goals agreed first, then architecture, data, interfaces, failure modes, rollout. Use when asked for an "HLD", "system design" or "an architecture overview".'
 argument-hint: "<title> [path to PRD or notes] [--continue after the goal is agreed]"
 allowed-tools: Read, Write, Grep, Glob, Skill, Agent, Bash(python3 *skills/high-level-design/scripts/arch_check.py*), Bash(bash *bin/brg-kit-paths*)
 ---
@@ -70,7 +70,13 @@ A section the revision changes is re-sourced, not edited from the old
 text: re-read the code, README and ADRs behind it as step 4 asks, and
 recompute its numbers. The previous version's conclusions are claims to
 check, not inputs; one that no longer holds, or never did, is a row in
-the changes table.
+the changes table. Check what was actually built before writing about
+cutover: grep for the old design's handlers, tables and flags, because a
+design that was approved but never built has no data or jobs to migrate.
+Change what the request changes and what it invalidates, nothing else;
+a problem noticed elsewhere in the old design goes under open questions,
+not into a redesign nobody asked for. Tenets and decisions you touch
+must agree with the revised text.
 
 **Decisions first.** Before building, run `tech-decision` for the keys
 compute, messaging, database, analytics store, cache, search, auth, api
@@ -111,11 +117,15 @@ listed under "ADRs needed", with no ADR written for it.
    - failure modes: one row per component with what fails, how it is
      noticed, what the user sees, how it recovers; an unknown cell is
      `UNDEFINED`;
-   - scaling and limits: expected load, first bottleneck, and the number
-     at which the design stops working; a limit shared with other
-     traffic (a provider plan, a pool, a table) is budgeted net of that
-     traffic, and a limit enforced per process is multiplied by the
-     number of processes the design runs;
+   - scaling and limits: expected load, the worst window (see Traps,
+     peaks), first bottleneck, and the number at which the design stops
+     working; a limit shared with other traffic (a provider plan, a
+     pool, a table) is budgeted net of that traffic at the same hour,
+     and a limit enforced per process is multiplied by the number of
+     processes the design runs. When no design choice meets a
+     requirement inside today's limits, say so with the arithmetic and
+     name who must decide (a bigger plan under a new ADR, or a PRD
+     change); never meet it silently by reinterpreting the requirement;
    - security and privacy: auth model, authorisation per resource, PII
      touched, secrets needed;
    - observability: logs, metrics, traces, alerts with runbook names;
@@ -124,7 +134,9 @@ listed under "ADRs needed", with no ADR written for it.
    - rollout and rollback: flags, phases, migration order, how to back
      out at each phase, and what happens to work in flight at each
      cutover (queued jobs, pending rows, open sessions) going forward
-     and going back.
+     and going back. The back-out target exists today or is built in
+     this plan; "fall back to the old path" when the old path was never
+     built is not a back-out.
    Architecture, data, external integrations, scaling, security,
    observability, analytics and rollout each end with
    "**Risks this leaves open**" and at least one bullet.
@@ -176,6 +188,56 @@ listed under "ADRs needed", with no ADR written for it.
     Fix every problem it prints and rerun until `Gate: passed`; a
     problem you cannot fix goes in the contract. Print the output
     contract.
+
+## Traps
+
+What separates a design that survives review from one that reads well.
+Check each against the draft before step 9; each one that applies gets a
+sentence in the section named, with the repository's numbers.
+
+- **Peaks (scaling).** Size for the worst window, not the average or the
+  first burst you find. Overlay every family of due times (each offset
+  from each cluster of start times: a 24 hour reminder for tomorrow's
+  09:00 lands with today's 2 hour reminders for 11:00) and the shared
+  limit's other traffic at that same hour. Compute the count, divide by
+  the net rate, compare with the requirement.
+- **Check then act (failure modes).** A condition that guards a side
+  effect (status, opt-out, a switch, a version) is read at the moment of
+  the side effect, or the state change and the queued work change in one
+  transaction. A check at enqueue or claim time leaves a window as long
+  as the queue ahead of it; state the window or close it. A message
+  payload is a snapshot, not the truth; re-read the row.
+- **Side effect then record (failure modes).** For every external call
+  followed by a local write (send then mark done, publish then commit
+  the offset), a crash between them gives a duplicate or a loss. Say
+  which the design accepts, make the retry policy agree, and name the
+  idempotency key if the provider has one (an assumption until sourced).
+- **Two systems, one change (data).** A database write plus a publish or
+  a call is not atomic. Use an outbox read by a relay that retries, or
+  state which orphan or loss results.
+- **Parallelism (scaling).** More workers over a table need a claim (row
+  lock with skip, or a status change before work); more consumers over
+  a per-process limiter multiply the rate.
+- **Retries are bounded by usefulness (failure modes).** Every retry
+  has a deadline after which the work is dropped (a reminder after the
+  appointment is noise). A retry that blocks an ordered partition or
+  queue holds up everything behind it; say where retries wait.
+- **Late arrivals (flows).** Work created after its due time (a booking
+  inside the reminder window) is sent at once, skipped, or partly sent;
+  pick one.
+- **Controls (rollout).** A pilot list, kill switch or transport flag
+  is operator owned and separate from any setting users own. Reusing a
+  user's switch (a clinic's own on/off) for a pilot overwrites their
+  choice and cannot be told apart from it later; check every default.
+- **Growth (data).** Each new row stream gets a rows-a-day number and a
+  retention rule, especially rows in a table something polls.
+- **The numbers agree with each other.** Batch sizes, lease or stale
+  claim timeouts, poll intervals and retry deadlines are checked against
+  the rate the design states (a lease shorter than the time to send the
+  batch it claims resends or drops the tail).
+- **Authority the code lacks (security).** A requirement that names a
+  role (an admin, an owner) needs an auth model; if the routes are open
+  today, say so and list it as needed, never as existing.
 
 ## Output contract
 

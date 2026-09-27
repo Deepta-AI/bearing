@@ -1,0 +1,9 @@
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+
+check:
+  image: python:3.12-slim
+  script:
+    - pip install pytest
+    - make check

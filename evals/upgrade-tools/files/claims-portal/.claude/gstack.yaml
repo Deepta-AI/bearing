@@ -1,0 +1,4 @@
+# gstack settings for this repository.
+# ADR-0003: no skill runs unless someone asks for it.
+proactive: false
+telemetry: off

@@ -90,7 +90,7 @@ assert_exit 0 ap "done" decide
 assert_exit 0 ap status
 assert_contains "$T_OUT" "profile: ui=yes data=no api=yes deploy=yes"
 assert_exit 0 ap report
-assert_contains "$(cat "$d/docs/autopilot/r.md")" "| profile | ui=yes data=no api=yes deploy=yes ui_stack=react-shadcn |"
+assert_contains "$(cat "$d/docs/autopilot/r.md")" "| profile | ui=yes data=no api=yes deploy=yes ui_stack=react-shadcn scope=full |"
 t_end
 
 t_begin "architecture needs a C4 file with at least one diagram"
@@ -138,11 +138,44 @@ assert_exit 0 ap "done" design
 assert_contains "$T_OUT" "HLD 1, LLD 1, data model, API contract, deployment with 1 diagram(s)"
 t_end
 
-t_begin "a profile without data, API or deployment needs only the HLD and LLD"
-at design; profile no no no no
+t_begin "a full-scope profile without data, API or deployment needs only the HLD and LLD"
+at design; ap profile --ui no --data no --api no --deploy no --scope full --why fixture >/dev/null
 archset "$d"; printf '# LLD\n' > "$d/docs/design/x-lld.md"
 assert_exit 0 ap "done" design
 assert_contains "$T_OUT" "HLD 1, LLD 1; profile: data=no api=no deploy=no"
+t_end
+
+t_begin "lean scope: a change to an existing repository, or a product with nothing but code, owes one design note"
+at architecture; profile no no no no
+assert_exit 0 ap "done" architecture
+assert_contains "$T_OUT" "scope lean (no ui, data, api or deploy): no C4 set"
+assert_exit 1 ap "done" design
+assert_contains "$T_OUT" "no design note written this run"
+mkdir -p "$d/docs/design"; printf '# Search\nshort\n' > "$d/docs/design/search.md"
+assert_exit 1 ap "done" design
+python3 -c "print('# Search\n\n' + 'The search command reads the store through notes() and prints matches. ' * 4)" > "$d/docs/design/search.md"
+assert_exit 0 ap "done" design
+assert_contains "$T_OUT" "design note docs/design/search.md"
+# an existing repository is lean whatever the profile says, unless the profile says full
+at architecture; python3 - "$d/.bearing/state/autopilot.json" <<'PY2'
+import json, sys
+st = json.load(open(sys.argv[1])); st["existing"] = True; json.dump(st, open(sys.argv[1], "w"))
+PY2
+profile yes yes yes yes
+assert_exit 0 ap "done" architecture
+assert_contains "$T_OUT" "a change to an existing repository"
+at architecture; ap profile --ui no --data no --api no --deploy no --scope full --why x >/dev/null
+assert_exit 1 ap "done" architecture
+assert_contains "$T_OUT" "no docs/architecture/*-c4.md"
+t_end
+
+t_begin "start marks a repository that already had code as existing, and an empty one as not"
+d="$(tmpdir)/fresh"; mkdir -p "$d"
+assert_exit 0 ap start "a word counter"
+assert_eq "False" "$(python3 -c "import json;print(json.load(open('$d/.bearing/state/autopilot.json'))['existing'])")" "empty directory"
+d="$(tmpdir)/old"; git init -q -b main "$d"; printf 'x = 1\n' > "$d/app.py"; commit init
+assert_exit 0 ap start "add a flag"
+assert_eq "True" "$(python3 -c "import json;print(json.load(open('$d/.bearing/state/autopilot.json'))['existing'])")" "repository with code"
 t_end
 
 # ux fixtures: the shapes the checker tests pass (ux_flows_check, design_contrast, screen_states).

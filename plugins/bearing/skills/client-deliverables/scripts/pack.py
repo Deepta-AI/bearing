@@ -9,7 +9,7 @@ twelve numbered folders, and writes deliverables/<Project>_ProjectDocumentation/
     the cover block and version history (md2docx.py), plus any CSV the
     manifest asks for (a Markdown table whose first header cell matches),
     plus copied companions (JSON models, SQL, diagrams, HTML screens);
-  - a README per folder (what it holds, which skill fills it, its files);
+  - a README per folder (what it holds and its files; no internal tool names);
   - the top README (what is where, the current version of every artifact)
     and CHANGELOG.md (every version, newest first);
   - <Project>_DeliveryChecklist_<date>.xlsx from templates/delivery-checklist.json;
@@ -33,7 +33,7 @@ Needs python-docx and openpyxl: run it as
 
 Usage: pack.py [--manifest M] [--out DIR] [--project P] [--customer C]
                [--prepared-by E] [--summary TEXT] [--date YYYY-MM-DD]
-               [--import-checklist FILE.xlsx] [--no-docx]
+               [--import-checklist FILE.xlsx] [--no-docx] [--hold FILE:LINE ...]
 Prints one line per artifact and a counts line; exits 1 when no artifact
 source exists, when a Word document or the workbook could not be written,
 or when the manifest names a folder outside the twelve.
@@ -125,21 +125,29 @@ def change_summary(old, sections, rows, listed=()):
     s_old, r_old = set(old.get("sections", [])), old.get("rows", {})
     if not old.get("lists"):  # recorded before list-item ids were counted
         rows = {k: v for k, v in rows.items() if k not in listed}
-    added = len(set(sections) - s_old) + len(set(rows) - set(r_old))
-    retired = len(s_old - set(sections)) + len(set(r_old) - set(rows))
-    expanded = sum(1 for k, v in rows.items() if k in r_old and r_old[k] != v)
+    # the history row is read by the client: name what changed, not a count
+    def names(ids, secs):
+        items = sorted(ids) + [f"section {x}" for x in secs]
+        return ", ".join(items[:6]) + (f" and {len(items) - 6} more" if len(items) > 6 else "")
+
+    added = names(set(rows) - set(r_old), [x for x in sections if x not in s_old])
+    retired = names(set(r_old) - set(rows), [x for x in s_old if x not in sections])
+    changed = names([k for k, v in rows.items() if k in r_old and r_old[k] != v], [])
     parts = [
-        f"{n} {w}"
-        for n, w in ((added, "added"), (expanded, "expanded"), (retired, "retired"))
+        f"{w} {n}"
+        for w, n in (("added", added), ("changed", changed), ("retired", retired))
         if n
     ]
-    return ", ".join(parts) or "wording changed"
+    return "; ".join(parts) or "wording changed"
 
 
-def md_table(path, first_header):
-    """The table whose first header cell is first_header, as rows."""
+def md_table(path, first_header, drop=()):
+    """The table whose first header cell is first_header, as rows; lines in
+    drop (1-based, held back from the client) are skipped."""
     rows, on = [], False
-    for line in open(path, encoding="utf-8"):
+    for n, line in enumerate(open(path, encoding="utf-8"), 1):
+        if n in drop:
+            continue
         if not line.startswith("|"):
             if on and rows:
                 break
@@ -162,6 +170,44 @@ def write_csv(rows, path):
             w.writerow([re.sub(r"`", "", c) for c in r])
 
 
+LEFTOVER_RE = re.compile(
+    r"\bTBD\b|\bTODO\b|\bUNDEFINED\b|\bassumption:|\(internal\)|\binternal(?: only| note)?:|\binternal only\b|\bteam only\b|\bnot for (?:the )?(?:client|customer)\b|\bdo not share\b|<(?!br\b|b\b|i\b|u\b|sup\b|sub\b|details\b|summary\b|kbd\b)[a-z][a-z -]*>|^\s*Status:\s*Draft\b", re.I | re.M
+)
+
+
+def leftovers(paths):
+    """Lines a client should not read as settled, or at all: TBD, TODO,
+    UNDEFINED, 'assumption:', a <placeholder>, a Draft status, and a line
+    marked internal, team only or not for the client. HTML comments are
+    skipped (the pack strips them). Returns [(path, line, text)]."""
+    found = []
+    for p in paths:
+        if not p.endswith(".md"):
+            continue
+        text = open(p, encoding="utf-8", errors="replace").read()
+        text = re.sub(r"<!--.*?-->", lambda m: "\n" * m.group(0).count("\n"), text, flags=re.S)
+        fence = False
+        for n, line in enumerate(text.split("\n"), 1):
+            if line.strip().startswith("```"):
+                fence = not fence
+                continue
+            if not fence and LEFTOVER_RE.search(line):
+                found.append((p, n, line.strip()[:100]))
+    return found
+
+
+def project_from_prd():
+    """The project's own name: the PRD title ("# PRD: Orders hub"), never the
+    checkout folder, which is often "repo", "src" or a ticket key."""
+    for p in ("docs/product/PRD.md",):
+        if os.path.isfile(p):
+            for line in open(p, encoding="utf-8", errors="replace"):
+                m = re.match(r"^#\s+(?:PRD\s*[:-]\s*)?(.+?)\s*$", line)
+                if m:
+                    return re.sub(r"(?i)^product requirements( document)?\s*[:-]\s*", "", m.group(1))
+    return ""
+
+
 def git_author():
     try:
         return subprocess.run(
@@ -174,10 +220,12 @@ def git_author():
 # ------------------------------------------------------------- checklist
 
 
-def evidence_found(ev):
-    for item in ev:
-        pat, _, needle = item.partition("|")
-        for f in glob.glob(pat, recursive=True):
+def evidence_one(item):
+    """The first file an evidence item finds: "glob" or "glob|text"; a list
+    is alternatives."""
+    for alt in item if isinstance(item, list) else [item]:
+        pat, _, needle = alt.partition("|")
+        for f in sorted(glob.glob(pat, recursive=True)):
             if not os.path.isfile(f):
                 continue
             if (
@@ -188,14 +236,35 @@ def evidence_found(ev):
     return ""
 
 
-def import_checklist(xlsx, state):
+def evidence_found(task):
+    """The files that complete a task, or []. By default any one item is
+    enough; a task naming several artifacts ("HLD, LLD, ... filed") has
+    "all": true and needs every item, or one file would complete it."""
+    ev = task.get("evidence", [])
+    if task.get("all"):
+        found = [evidence_one(i) for i in ev]
+        return found if ev and all(found) else []
+    f = next((x for x in (evidence_one(i) for i in ev) if x), "")
+    return [f] if f else []
+
+
+HOLDING = ("Blocked", "In Progress")
+
+
+def import_checklist(xlsx, state, aliases=None):
+    """Read a filled workbook into the state. aliases maps a task's former
+    name to its current one, so a renamed task keeps what a person set."""
+    aliases = aliases or {}
     import openpyxl
 
     ws = openpyxl.load_workbook(xlsx)["Project Checklist"]
     n = 0
     for r in ws.iter_rows(min_row=5, values_only=True):
         if isinstance(r[0], int) and r[2]:
-            cur = state.setdefault(r[2], {})
+            cur = state.setdefault(aliases.get(r[2], r[2]), {})
+            prev = cur.get("machine_status") or (
+                cur.get("status") if cur.get("by") == "evidence" else None
+            )
             for k, v in zip(
                 ("status", "owner", "target", "remarks"), (r[4], r[5], r[6], r[7])
             ):
@@ -206,8 +275,10 @@ def import_checklist(xlsx, state):
                         else (v.date().isoformat() if hasattr(v, "date") else str(v))
                     )
             # a status a person chose; an untouched "Not Started" is no choice,
-            # and "Completed" is only evidence's when evidence set it
-            if r[4] and r[4] != "Not Started" and not (cur.get("by") == "evidence" and r[4] == "Completed"):
+            # and a status this script wrote (evidence, or held by a person's
+            # status) read back unchanged is still the script's
+            machine = cur.get("by") in ("evidence", "held") and r[4] == prev
+            if r[4] and r[4] != "Not Started" and not machine:
                 cur["by"] = "person"
             n += 1
     return n
@@ -222,23 +293,53 @@ def checklist(out_dir, project, date, state_path, template):
     if not tpl or not tpl.get("tasks"):
         raise RuntimeError(f"no tasks in {template}")
     state = read_json(state_path, {})
-    auto = 0
+    for t in tpl["tasks"]:  # a renamed task keeps its state
+        for old in t.get("was", []):
+            if old in state and not state.get(t["task"]):
+                state[t["task"]] = state.pop(old)
+            state.pop(old, None)
+    # a file a person's Blocked or In Progress task stands on completes
+    # nothing else: "HLD filed" is not Completed while "Prepare the HLD" is
+    # Blocked, even though the HLD file exists
+    held_by = {}
+    for t in tpl["tasks"]:
+        cur = state.get(t["task"], {})
+        if cur.get("by") == "person" and cur.get("status") in HOLDING:
+            for item in t.get("evidence", []):
+                f = evidence_one(item)
+                if f:
+                    held_by.setdefault(f, (t["task"], cur["status"], cur.get("owner", "")))
+    auto, held = 0, []
     for t in tpl["tasks"]:
         cur = state.setdefault(t["task"], {})
         if cur.get("by") == "person":
             continue
-        found = evidence_found(t.get("evidence", []))
-        if found:
+        found = evidence_found(t)
+        hold = next((held_by[f] for f in found if f in held_by), None)
+        if hold:
+            who = f", {hold[2]}" if hold[2] else ""
+            cur.update(
+                {
+                    "status": hold[1],
+                    "machine_status": hold[1],
+                    "by": "held",
+                    "remarks": f"{', '.join(found)} exists, but '{hold[0]}' is {hold[1]}{who}",
+                }
+            )
+            held.append((t["task"], hold))
+        elif found:
             cur.update(
                 {
                     "status": "Completed",
+                    "machine_status": "Completed",
                     "by": "evidence",
-                    "remarks": f"evidence: {found}",
+                    "remarks": f"evidence: {', '.join(found)}",
                 }
             )
             auto += 1
-        elif cur.get("by") == "evidence":
+        elif cur.get("by") in ("evidence", "held"):
             cur.update({"status": "Not Started", "by": "", "remarks": ""})
+            cur.pop("machine_status", None)
     os.makedirs(os.path.dirname(state_path), exist_ok=True)
     json.dump(
         state, open(state_path, "w", encoding="utf-8"), indent=1, ensure_ascii=False
@@ -329,7 +430,7 @@ def checklist(out_dir, project, date, state_path, template):
     sm.column_dimensions["A"].width = 38
     path = os.path.join(out_dir, f"{project}_DeliveryChecklist_{date}.xlsx")
     wb.save(path)
-    return path, n, auto, sum(1 for v in state.values() if v.get("by") == "person")
+    return path, n, auto, sum(1 for v in state.values() if v.get("by") == "person"), held
 
 
 # ------------------------------------------------------------- the pack
@@ -376,6 +477,8 @@ def main():
     ap.add_argument("--date", default=datetime.date.today().isoformat())
     ap.add_argument("--import-checklist", default="")
     ap.add_argument("--no-docx", action="store_true")
+    ap.add_argument("--hold", action="append", default=[], metavar="FILE:LINE",
+                    help="leave this source line out of the client copies; the source is not edited")
     a = ap.parse_args()
 
     manifest_path = (
@@ -388,7 +491,9 @@ def main():
         print(f"pack: cannot read the manifest {manifest_path}", file=sys.stderr)
         return 1
     company = read_json(".bearing/company.json", {})
-    project = pascal(a.project or man.get("project") or os.path.basename(os.getcwd()))
+    project = pascal(
+        a.project or man.get("project") or project_from_prd() or os.path.basename(os.getcwd())
+    )
     customer = a.customer or man.get("customer", "")
     prepared = (
         a.prepared_by
@@ -417,7 +522,13 @@ def main():
     try:
         if a.import_checklist:
             state = read_json(state_path, {})
-            n_imp = import_checklist(a.import_checklist, state)
+            tpl_path = man.get("checklist") or os.path.join(KIT_TEMPLATES, "delivery-checklist.json")
+            aliases = {
+                old: t["task"]
+                for t in read_json(tpl_path, {}).get("tasks", [])
+                for old in t.get("was", [])
+            }
+            n_imp = import_checklist(a.import_checklist, state, aliases)
             os.makedirs(os.path.dirname(state_path), exist_ok=True)
             json.dump(
                 state,
@@ -451,6 +562,14 @@ def main():
         "missing": 0,
     }
     failures = []
+    packed = []
+    hold = {}
+    for h in a.hold:
+        f, _, n = h.rpartition(":")
+        if not (f and n.isdigit() and os.path.isfile(f) and 0 < int(n) <= len(open(f, encoding="utf-8", errors="replace").read().split("\n"))):
+            print(f"pack: --hold {h}: no such file and line", file=sys.stderr)
+            return 1
+        hold.setdefault(os.path.normpath(f), set()).add(int(n))
     for art in man.get("artifacts", []):
         srcs = expand(art["source"])
         if not srcs:
@@ -458,7 +577,11 @@ def main():
             print(f"pack: {art['key']}: no source ({art['source']}), left out")
             continue
         counts["artifacts"] += 1
+        packed += srcs
         digest, sections, rows, listed = fingerprint(srcs)
+        held_here = sorted(f"{s}:{n}" for s in srcs for n in hold.get(os.path.normpath(s), ()))
+        if held_here:  # the client copy differs from the source, so it versions apart
+            digest = hashlib.sha256((digest + "|".join(held_here)).encode()).hexdigest()
         rec = versions["artifacts"].get(art["key"])
         if rec is None or rec.get("sha256") != digest:
             v = 1 if rec is None else rec["version"] + 1
@@ -493,6 +616,9 @@ def main():
                 # the client's Markdown copy loses HTML comments, as the Word
                 # document does: they hold template guidance and internal notes
                 text = open(s, encoding="utf-8", errors="replace").read()
+                drop = hold.get(os.path.normpath(s), set())
+                if drop:
+                    text = "\n".join(ln for n, ln in enumerate(text.split("\n"), 1) if n not in drop)
                 open(dst, "w", encoding="utf-8").write(re.sub(r"<!--.*?-->\n?", "", text, flags=re.S))
             else:
                 shutil.copy2(s, dst)
@@ -511,6 +637,7 @@ def main():
                     rec["history"][-1]["date"],
                     art.get("about", ""),
                     list(reversed(rec["history"])),
+                    drop_lines=hold.get(os.path.normpath(srcs[0]), set()),
                 )
                 counts["docx"] += 1
                 written[art["folder"]].append(name)
@@ -519,11 +646,8 @@ def main():
         for c in art.get("csv", []):
             rows_ = []
             for s in srcs:
-                rows_ += (
-                    md_table(s, c["table"])
-                    if not rows_
-                    else md_table(s, c["table"])[1:]
-                )
+                t = md_table(s, c["table"], hold.get(os.path.normpath(s), set()))
+                rows_ += t if not rows_ else t[1:]
             if len(rows_) > 1:
                 write_csv(rows_, os.path.join(folder, c["file"]))
                 counts["csv"] += 1
@@ -565,8 +689,6 @@ def main():
             "",
             info.get("holds", ""),
             "",
-            f"Filled by: {info.get('filled_by', 'the team, by hand')}.",
-            "",
         ]
         lines += ["## Files", ""] + ([f"- `{x}`" for x in files] or ["Nothing yet."])
         open(os.path.join(out, f, "README.md"), "w", encoding="utf-8").write(
@@ -581,8 +703,8 @@ def main():
         "",
         f"{customer or 'Customer not recorded'} · delivered by {prepared or 'not recorded'}",
         "",
-        "Generated by client-deliverables from the repository. **Upload the whole folder to the project's Drive.** "
-        "It is rebuilt in full each time, so replace rather than merge; CHANGELOG.md carries the history.",
+        "Built from the project repository. Each issue replaces the whole folder; "
+        "CHANGELOG.md carries the history of every document.",
         "",
         "## What is here",
         "",
@@ -642,8 +764,13 @@ def main():
     )
     cl = "checklist: not written"
     try:
-        path, n, auto, person = checklist(out, project, a.date, state_path, template)
-        cl = f"checklist: {n} tasks, {auto} completed from evidence, {person} set by people"
+        path, n, auto, person, held = checklist(out, project, a.date, state_path, template)
+        cl = (
+            f"checklist: {n} tasks, {auto} completed from evidence, {person} set by people, "
+            f"{len(held)} held by a person's status"
+        )
+        for task, (by, status, _owner) in held:
+            print(f"pack: held '{task}': {status}, as '{by}' (not Completed from evidence)")
         print(f"pack: {path}")
     except Exception as e:
         failures.append(f"delivery checklist: {e}")
@@ -655,11 +782,20 @@ def main():
     except OSError as e:
         failures.append(f".gitignore: {e}")
 
+    # every rebuild ships every document, so every leftover is in the pack now
+    left = [x for x in leftovers(packed) if x[1] not in hold.get(os.path.normpath(x[0]), set())]
+    for path, n, text in left:
+        print(f"pack: leftover {path}:{n}: {text}")
+    for f, ns in sorted(hold.items()):
+        for n in sorted(ns):
+            print(f"pack: held back {f}:{n} from the client copies (source unchanged)")
+
     for f in failures:
         print(f"problem: {f}")
     print(
         f"pack: {counts['artifacts']} artifacts ({counts['bumped']} new versions, {counts['missing']} without a source), "
-        f"{counts['docx']} Word documents, {counts['csv']} CSV, {counts['copied']} files copied, {cl}; {out}"
+        f"{counts['docx']} Word documents, {counts['csv']} CSV, {counts['copied']} files copied, "
+        f"{len(left)} leftovers in the client files, {cl}; {out}"
     )
     return 1 if failures else 0
 

@@ -1,0 +1,16 @@
+{
+ "skill_name": "adr",
+ "evals": [
+  {
+   "id": 1,
+   "name": "basic",
+   "prompt": "Write an ADR for moving session storage from Redis to Postgres.",
+   "expected_output": "docs/adr gains one Proposed ADR with the options considered.",
+   "files": [],
+   "expectations": [
+    "Exactly one new file under docs/adr/, numbered after the highest existing ADR",
+    "Its status is Proposed"
+   ]
+  }
+ ]
+}

@@ -36,11 +36,12 @@ regression as healed.
 | Class | Evidence that proves it | Allowed action |
 | --- | --- | --- |
 | Locator drift | The element is not found, and the rendered tree shows the same control with a different role, name, test id or position; the app diff touches that component's markup only; the row's expected result still appears | Propose the most stable locator |
+| Copy drift | An expected string no longer appears, and a story or task in the app diff names the new copy ("reads Place order, it was Pay now"); every other oracle in the row holds | Update the expected string to the story's copy, cite the story, and update or report the TC row that still states the old copy |
 | Timing | The test passes on retry, or with a condition wait in place of a sleep; the assertion raced a network call, an animation or a background job; the message is a timeout, not a wrong value | Replace the wait with a condition |
 | Test data | A 4xx from a fixture, a unique constraint, an expired date, a seed that assumed an empty table; the same test passes with a fresh builder value | Fix the builder or the fixture |
 | Environment | Connection refused, a missing binary, an unset variable, a port in use, a database without migrations; the test passes once the service is up, without any edit | Document the fix; run the Makefile target that provides it |
 | Visual change | `toHaveScreenshot` failed and the diff image shows a change the app diff made on purpose: a story or task in the commit names the new look, and every oracle in the row other than the baseline still holds | Run `make test-visual-update` and put the new baseline, with the story id, in a commit of its own for a person to look at; never with a code change |
-| Real regression | The control is gone, the expected value no longer appears, or the behaviour in the row's expected result is not what the product does; the app diff changed the behaviour, not the markup | None. Report |
+| Real regression | The control is gone, the expected value no longer appears with no story naming the change, or the behaviour in the row's expected result is not what the product does; the app diff changed the behaviour, not the markup. Includes intermittent wrong values from nondeterminism the diff added to the product (map order, unordered query, async ordering) | None. Report, with a reproduction that fails reliably |
 
 Two classes at once means read again. Still unclear: real regression
 until proven otherwise. A test that fails with a wrong value (received
@@ -55,7 +56,7 @@ expected result, what the product did instead and the file:line, and the
 report suggests the task to open. The agent does not open it.
 
 Signs that a "heal" is hiding a regression: the assertion's expected
-value changed; `toBeVisible` became `toBeAttached` or `toHaveCount(1)`
+value changed with no story or task naming the new value; `toBeVisible` became `toBeAttached` or `toHaveCount(1)`
 became `toHaveCount(0)`; an exact match became a substring; a status code
 range widened; the test now asserts what the code does instead of what
 the row says; a baseline png updated in a commit that names no story or
@@ -106,8 +107,13 @@ the test is here.
 
 ## Data rules
 
-Make the data unique per run (a run id in the email, a clock injected for
-dates) or make the fixture create what it assumes. Never fix by ordering
+Make the data unique by construction (a counter, the test name, a run id
+in the email; a clock injected for dates) or make the fixture create what
+it assumes. A wider random range is not a fix: ids drawn from 100 values
+collide about 3% of the time for three draws, and from a million values
+still collide, just rarely enough to be missed. A package-level store or
+client shared by tests is order dependence waiting for the shuffle: give
+each test its own. Never fix by ordering
 tests, by sharing state between tests, or by truncating a table the test
 does not own.
 
@@ -121,8 +127,22 @@ target should provide or check it.
 
 ## Confirm, then prove nothing else broke
 
-Re-run the healed test twice on the same commit; two passes confirm. Then
-run the whole suite it belongs to once. A new failure means the heal
-broke something: revert it and report. One pass and one failure is flaky;
-after one more attempt with the next plausible class, quarantine it with
-a tag, a task id and a deadline. Never delete a quarantined test.
+Locator, copy, environment and visual heals: two runs in which the
+locator resolves to the one intended control. A healed locator that
+lets the test reach an assertion which then fails has done its job: the
+heal stays and the new failure is classified on its own, usually a
+regression the old locator was hiding.
+
+Timing and data heals: at least 50 consecutive passes and at least 3/p,
+where p is the failure rate seen before (history or the reproduction),
+under the conditions that reproduced it. Zero failures in N runs only
+bounds the rate below 3/N at 95% confidence, so 50 clean runs say
+nothing about a 1% flake.
+
+Then show the healed test still fails when the behaviour it guards
+breaks (a one-line break by hand, undone afterwards), and run the whole
+suite it belongs to as the gate runs it. A test that passed before and
+fails now means the heal broke it: revert it and report. After one more
+attempt with the next plausible class, a heal that still fails
+sometimes is quarantined with a tag, a task id and a deadline. Never
+delete a quarantined test.

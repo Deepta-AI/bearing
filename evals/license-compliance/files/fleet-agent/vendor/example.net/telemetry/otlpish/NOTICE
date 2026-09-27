@@ -1,0 +1,8 @@
+otlpish
+Copyright 2021-2025 The Otlpish Project Authors
+
+This product includes software developed at the Telemetry Guild
+(https://telemetry-guild.example.net/).
+
+Portions of the protobuf wire encoder are derived from wirefmt,
+Copyright 2018 Wirefmt Contributors, licensed under the Apache License 2.0.

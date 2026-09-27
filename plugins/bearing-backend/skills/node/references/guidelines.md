@@ -13,7 +13,9 @@
 - A module under 400 lines; a function under 30. Split by domain, not by
   layer, once it grows.
 - ESM throughout: `"type": "module"`, `module: NodeNext`, relative imports
-  with the `.js` suffix, `import.meta.dirname` instead of `__dirname`.
+  with the `.js` suffix when `tsc` compiles (`.ts` when Node runs the
+  sources directly; follow the repository), `import.meta.dirname` instead
+  of `__dirname`.
 
 ## HTTP with Fastify
 

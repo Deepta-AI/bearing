@@ -1,0 +1,6 @@
+{
+  "permissions": {
+    "allow": ["Bash(make *)", "Bash(node --test*)", "Bash(git status)", "Bash(git diff*)"],
+    "deny": ["Bash(git push*)", "Read(./.env)", "Read(./.env.*)"]
+  }
+}

@@ -1,0 +1,42 @@
+openapi: 3.0.3
+info:
+  title: shipments-api
+  version: "1"
+paths:
+  /v1/shipments:
+    get:
+      parameters:
+        - {name: status, in: query, schema: {type: string, enum: [created, in_transit, delivered]}}
+        - {name: limit, in: query, schema: {type: integer, minimum: 1, default: 50}}
+      responses:
+        "200":
+          description: A page of shipments
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  shipments: {type: array, items: {$ref: "#/components/schemas/Shipment"}}
+  /v1/shipments/{id}:
+    get:
+      parameters:
+        - {name: id, in: path, required: true, schema: {type: string}}
+      responses:
+        "200":
+          description: One shipment
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Shipment"}
+        "404": {description: No shipment with that id}
+components:
+  schemas:
+    Shipment:
+      type: object
+      properties:
+        id: {type: string}
+        status: {type: string}
+        carrier:
+          type: object
+          properties:
+            code: {type: string}
+            name: {type: string}

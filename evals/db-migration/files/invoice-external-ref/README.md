@@ -11,6 +11,7 @@ when an invoice is paid.
   (`goose create <name> sql` then `goose fix`). The latest is `00012`.
 - `docs/adr`: decisions. Read 0004 before writing a migration.
 - `docs/capacity.md`: table sizes.
+- `docs/payments.md`: how payment links and the provider's callbacks work.
 
 ## Commands
 

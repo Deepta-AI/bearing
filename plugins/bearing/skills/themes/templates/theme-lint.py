@@ -6,11 +6,24 @@ Usage:
   python3 scripts/theme-lint.py [--tokens docs/design/tokens.json]
       [--themes docs/design/themes] [--preview docs/design/themes/preview.html
       --template scripts/preview.html] [--strict-hex]
+  python3 scripts/theme-lint.py --css src/styles/tokens.css [--css more.css]
+      [--prefix --color-] [--pair fg:bg[:min] ...]
 
 Exit 1 when any theme fails, when zero themes were found, or when a base
 mode in tokens.json fails. Prints one line per theme and a final count
 line: theme-lint: T themes, R roles overridden, P pairs checked, F failures.
 Installed by themes as scripts/theme-lint.py.
+
+--css mode reads the app's own stylesheet instead of tokens.json: custom
+properties on :root are the light theme, those under
+@media (prefers-color-scheme: dark) or [data-theme="dark"] the dark one,
+and any other [data-theme="x"] / [data-tenant="x"] block a theme of its
+own laid over light (or over dark when the selector also names dark).
+Hex, rgb() and oklch() values and var() references resolve; @media print
+is skipped. Roles are the property names without the prefix; the standard
+pairs run where both roles exist, and --pair adds a component pair (for
+example badge-paid-text:badge-paid-bg). It never writes a file. Exit 1
+when zero themes or zero pairs were checked, or on any failure.
 """
 
 import argparse
@@ -263,6 +276,141 @@ def lint_theme(
     }
 
 
+# ---------------------------------------------------------------- --css mode
+
+NAMED = {"white": "#ffffff", "black": "#000000"}
+
+
+def css_blocks(text):
+    """Yield (at-rule context, selector, declarations) for every rule."""
+    text = re.sub(r"/\*.*?\*/", "", text, flags=re.S)
+    out = []
+
+    def walk(s, ctx):
+        i = 0
+        while i < len(s):
+            j = s.find("{", i)
+            if j < 0:
+                return
+            head = s[i:j].strip().split(";")[-1].strip()
+            depth, k = 1, j + 1
+            while k < len(s) and depth:
+                depth += {"{": 1, "}": -1}.get(s[k], 0)
+                k += 1
+            body = s[j + 1 : k - 1]
+            if head.startswith("@"):
+                walk(body, ctx + [head])
+            else:
+                out.append((ctx, head, body))
+            i = k
+
+    walk(text, [])
+    return out
+
+
+def theme_of(ctx, selector):
+    """Theme name for a rule, or None when it is not a theme block."""
+    at = " ".join(ctx).lower()
+    if "print" in at:
+        return None
+    dark_media = "prefers-color-scheme" in at and "dark" in at
+    selector = re.sub(r":not\([^)]*\)", "", selector)
+    names = re.findall(r"\[data-(?:theme|tenant|brand)\s*=\s*['\"]?([\w-]+)", selector)
+    names += re.findall(r"\.theme-([\w-]+)", selector)
+    if not names and not re.search(r"(^|[\s,]):root|(^|[\s,])html\b", selector):
+        return None
+    if dark_media and "dark" not in names:
+        names.append("dark")
+    return "+".join(sorted(set(names))) or "light"
+
+
+def css_value(v, props, depth=0):
+    v = v.strip().replace("!important", "").strip()
+    m = re.match(r"^var\(\s*(--[\w-]+)\s*(?:,\s*(.+))?\)$", v)
+    if m and depth < 10:
+        if m.group(1) in props:
+            return css_value(props[m.group(1)], props, depth + 1)
+        return css_value(m.group(2), props, depth + 1) if m.group(2) else None
+    v = NAMED.get(v.lower(), v)
+    if re.match(r"^#[0-9a-fA-F]{3}([0-9a-fA-F]{3})?([0-9a-fA-F]{2})?$", v):
+        h = v.lstrip("#")
+        h = "".join(c * 2 for c in h) if len(h) == 3 else h[:6]
+        return hex_to_linear(h), "#" + h.lower(), len(v) == 9
+    m = re.match(r"^rgba?\(\s*([\d.]+)[\s,]+([\d.]+)[\s,]+([\d.]+)\s*(?:[,/]\s*([\d.]+%?))?\s*\)$", v)
+    if m:
+        rgb = [float(m.group(n)) / 255.0 for n in (1, 2, 3)]
+        lin = tuple(degamma(c) for c in rgb)
+        return lin, linear_to_hex(lin), m.group(4) not in (None, "1", "100%")
+    if v.startswith("oklch("):
+        L, C, h, alpha = parse_oklch(v)
+        lin = oklch_to_linear(L, C, h)
+        return lin, linear_to_hex(lin), alpha not in (None, "1", "100%")
+    return None
+
+
+def css_mode(args):
+    blocks = []
+    for path in args.css:
+        with open(path) as f:
+            blocks += css_blocks(f.read())
+    themes = {}
+    for ctx, selector, body in blocks:
+        name = theme_of(ctx, selector)
+        if name is None:
+            continue
+        decls = dict(
+            (k.strip(), v.strip())
+            for k, v in re.findall(r"(--[\w-]+)\s*:\s*([^;]+)", body)
+        )
+        if decls:
+            themes.setdefault(name, {}).update(decls)
+    base = themes.get("light", {})
+    pairs = list(PAIRS)
+    for p in args.pair:
+        parts = p.split(":")
+        pairs.append((parts[0], parts[1], float(parts[2]) if len(parts) > 2 else 4.5, "extra"))
+    total_pairs = failures = 0
+    for name in sorted(themes, key=lambda n: (n != "light", n != "dark", n)):
+        props = dict(base)
+        if name != "light" and "dark" in name.split("+") and name != "dark":
+            props.update(themes.get("dark", {}))
+        props.update(themes[name])
+        colours, problems, checked = {}, [], 0
+        for prop in props:
+            if prop.startswith(args.prefix):
+                c = css_value(props[prop], props)
+                if c:
+                    colours[prop[len(args.prefix):]] = c
+        for fg, bg, minimum, cls in pairs:
+            if fg not in colours or bg not in colours or cls == "note":
+                continue
+            if colours[fg][2] or colours[bg][2]:
+                problems.append("%s on %s: translucent, check the composite by hand" % (fg, bg))
+                continue
+            ratio = contrast(colours[fg][0], colours[bg][0])
+            checked += 1
+            if ratio < minimum:
+                problems.append(
+                    "%s %s on %s %s is %.2f:1, needs %.1f:1"
+                    % (fg, colours[fg][1], bg, colours[bg][1], ratio, minimum)
+                )
+        missing = [p for p in args.pair if not all(r in colours for r in p.split(":")[:2])]
+        problems += ["pair %s: a role is not defined in this theme" % p for p in missing]
+        total_pairs += checked
+        failures += len(problems)
+        print("%s: %d colour roles, %d pairs, %d failures" % (name, len(colours), checked, len(problems)))
+        for p in problems:
+            print("  - " + p)
+    print(
+        "theme-lint: %d themes, %d pairs checked, %d failures (css: %s)"
+        % (len(themes), total_pairs, failures, ", ".join(args.css))
+    )
+    if not themes or total_pairs == 0:
+        print("theme-lint: nothing checked; no theme blocks or no pairs with both roles defined", file=sys.stderr)
+        sys.exit(1)
+    sys.exit(1 if failures else 0)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--tokens", default="docs/design/tokens.json")
@@ -274,7 +422,12 @@ def main():
         action="store_true",
         help="fail when a hex fallback drifts from its oklch",
     )
+    ap.add_argument("--css", action="append", default=[], help="lint this stylesheet's custom properties instead of tokens.json")
+    ap.add_argument("--prefix", default="--color-", help="custom property prefix of a colour role (--css mode)")
+    ap.add_argument("--pair", action="append", default=[], help="extra pair fg:bg[:min] (--css mode)")
     args = ap.parse_args()
+    if args.css:
+        css_mode(args)
 
     with open(args.tokens) as f:
         tokens = json.load(f)

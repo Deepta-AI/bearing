@@ -1,0 +1,18 @@
+# example.net/cli/flagx v1.4.0
+## explicit; go 1.21
+example.net/cli/flagx
+# example.net/codec/msgpk v1.8.3
+## explicit; go 1.20
+example.net/codec/msgpk
+# example.net/sys/diskstat v0.4.1
+## explicit; go 1.22
+example.net/sys/diskstat
+# example.net/telemetry/otlpish v0.9.2
+## explicit; go 1.22
+example.net/telemetry/otlpish
+# example.net/testing/assertx v1.2.0
+## explicit; go 1.21
+example.net/testing/assertx
+# example.net/util/backoff v1.0.0
+## explicit; go 1.20
+example.net/util/backoff

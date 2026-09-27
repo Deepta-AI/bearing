@@ -23,13 +23,18 @@ alone on a modal. Count must be zero; this check cannot be `open`.
 
 Every error cell in the state tables has a recovery flow: retry, edit the
 input, or leave with the work kept. The copy names what happened and what
-to do. "Something went wrong" fails. Errors that lose typed input fail.
+to do next, as a control or a pointer on that screen, even when the
+answer is that nothing more is needed. "Something went wrong" fails.
+Errors that lose typed input fail. A batch keeps the failed items for a
+retry of those alone.
 
 ## F4. State coverage per screen
 
-Every screen has loading, empty, error, success and partial rows. A row
-that cannot occur reads `n/a: reason`. Offline is present when the
-feature writes data or targets a phone. Empty states carry an action.
+Every screen has loading, empty, error and success rows (the gate checks
+these). Partial is present when the screen shows a list, a batch or data
+from more than one source; offline when the feature writes data or
+targets a phone. A row that cannot occur reads `n/a: reason`. Empty
+states carry an action.
 
 ## F5. Copy is written, not described
 
@@ -55,7 +60,8 @@ inventory, not a note.
 
 Every story id from the source appears in at least one screen row, and
 every acceptance criterion that describes a state or an error has a cell
-that shows it. List uncovered ids.
+that shows it. List uncovered ids. A criterion the code contradicts is
+covered by its F13 row, not by designing the criterion as if it held.
 
 ## F9. Goodwill drains
 
@@ -81,3 +87,16 @@ one the sheet does not carry.
 Every open question has an owner, a date and the "if deferred" column
 filled. A question with no consequence written is not open; it is either
 decided or deleted.
+
+## F13. Spec matches code
+
+Against the ledger from step 2: every rejection the handlers can return
+has its own error cell; every number in copy or examples (durations,
+limits, caps, prices, totals) is the code's value or is read from the
+record; every route, page and endpoint the flow relies on exists or is
+marked `new` or a dependency; every spec-to-code conflict is an open
+question with what ships if deferred. Every entry from outside (a link,
+a notification) has a path for each session state, and every count shown
+before an action matches what the server will do on that date. On a
+re-issue, every review note, sign-off and ticket citing a changed or
+removed screen is listed.

@@ -1,6 +1,6 @@
 ---
 name: nextjs
-description: 'Conventions for Next.js: Next 16 App Router, React 19, server components, server actions with Zod, Tailwind v4, shadcn/ui, Playwright. Use when writing, reviewing or scaffolding "Next.js" or "App Router" code.'
+description: 'Next.js house rules (App Router, React 19, server components, server actions with Zod, Tailwind, shadcn/ui). Load before writing or changing Next.js code. Use when asked for "an App Router page", "a new route".'
 allowed-tools: Read, Grep, Glob, Bash(pnpm install:*), Bash(pnpm run:*), Bash(pnpm exec:*), Bash(pnpm audit:*), Bash(make:*), Bash(npm run:*)
 ---
 
@@ -36,7 +36,7 @@ API already exists.
 - Writing or changing `.ts` or `.tsx` files under `src/app` or a Next
   project: apply `references/guidelines.md`. Read it once per session.
 - Reviewing a diff with Next files: apply `references/review-checklist.md`
-  and report in the reviewer format.
+  and report as under "Reviewing" below.
 - Scaffolding (`new-repo next-app <Name>`): `templates/` holds the
   skeleton and configs; `bin/brg-scaffold` in the bearing plugin copies them. Do not hand-copy.
 - Generating CI (`bearing:ci-pipeline`): `templates/.gitlab-ci.yml` is the source.
@@ -71,7 +71,11 @@ in an ADR, never inside a feature change. Rule 4 in its written form needs
 `cacheComponents`; an app without it (Next 15, or 16 not yet migrated)
 keeps the fetch-level model, where every `fetch` names its cache and a
 mutation calls `revalidateTag` or `revalidatePath`. A Next 15 app keeps
-`middleware.ts`. Say which rule was relaxed.
+`middleware.ts`. Keep the majors the repository pins and write their API:
+Next 15 has no `updateTag`, `"use cache"`, `cacheLife` or `cacheTag`; Zod 3
+has `parsed.error.flatten()` and `z.string().email()`, where Zod 4 has
+`z.flattenError`, `z.prettifyError` and `z.email()`. Check `package.json`
+before the first line. Say which rule was relaxed.
 
 ## Rules that matter most
 
@@ -80,7 +84,12 @@ mutation calls `revalidateTag` or `revalidatePath`. A Next 15 app keeps
    it can. A page marked client because one button needs state is a finding.
 2. Every server action authorises before it validates and validates before
    it acts: `requireSession()`, then `schema.safeParse(formData)`, then the
-   work through the API. An action is a public POST endpoint.
+   ownership check, then the work through the API. An action is a public
+   POST endpoint. The tenant (customer, organisation) comes from the
+   session only; a resource id from the form or a bound argument is input,
+   so the action loads that resource and compares its owner with the
+   session before it writes, whenever the backend does not scope the call
+   itself (a service token that can reach every tenant never does).
 3. Nothing secret reaches the client: server values are read only through
    `src/env.server.ts` (which imports `server-only`); `NEXT_PUBLIC_` is for
    public values and is inlined at build time.
@@ -100,7 +109,9 @@ mutation calls `revalidateTag` or `revalidatePath`. A Next 15 app keeps
    copied in with the CLI and used as-is. Arbitrary values are a finding.
 8. `make check` = Prettier check, ESLint (zero warnings), `tsc --noEmit`,
    vitest with coverage floors, `pnpm audit`. CI adds `next build` and
-   Playwright. `next/image` for images, `next/font/local` for fonts.
+   Playwright. `pnpm audit` needs the registry: offline, `vuln` records a
+   skip, never a pass. With no `node_modules` and no network nothing can
+   run; do not try an install, say which checks were not run. `next/image` for images, `next/font/local` for fonts.
 
 ## Commands
 
@@ -122,6 +133,54 @@ make bundle-budget    # gzipped JavaScript under BUNDLE_BUDGET_KB (after make bu
 make lighthouse       # Lighthouse CI: LCP, CLS, TBT and score from lighthouserc.json
 pnpm dlx shadcn@4.21.0 add button   # add a shadcn component
 ```
+
+## Traps a careful generalist still misses
+
+- Every exported function in a `"use server"` file is a POST endpoint,
+  callable from any browser with any arguments, whether or not a form uses
+  it. A helper such as `removeInvoices(orgId, ids)` exported beside the
+  actions is an open door; keep helpers unexported or in a `server-only`
+  module.
+- `action.bind(null, orgId)` in a server component does not make `orgId`
+  trusted: the bound value travels through the browser, and the action is
+  an endpoint any client can call with any first argument. Hidden inputs
+  are the same. Neither carries authority; read the tenant from the
+  session inside the action.
+- `redirect()` and `notFound()` work by throwing. A `try` around
+  `requireSession()` or around code that redirects turns "signed out" into
+  a generic error message; keep them outside the `try` or call
+  `unstable_rethrow(e)` first in the `catch`.
+- React 19 resets an uncontrolled form when its action settles, so a
+  failed save wipes what the user typed and shows the old `defaultValue`.
+  Return the submitted values in the error state and render them as the
+  defaults (key the form on the state so they apply).
+- Tags match exactly: the mutation expires the string the read declared
+  (`invoices:<orgId>`, not `invoices`), for every cached read the write
+  changed (lists, summaries, counts).
+- A `"use cache"` entry is keyed on its arguments only. Anything it reads
+  from module scope or a closure over request data is shared by every
+  caller: one tenant's result served to another.
+- Batch actions: one ledger failure in `Promise.all` throws away the
+  outcome of the rest. Settle each item, return which succeeded and which
+  failed, expire the tags anyway, and keep the batch size bounded.
+- A read schema stays loose for legacy rows; the write schema carries the
+  current rules. A legacy row the write rules reject cannot be edited in
+  place: say so on the page and refuse it in the action.
+- Tests prove the boundary, not the mock: the "another tenant" test stubs
+  the API (or `fetch`) to return a resource owned by someone else and
+  asserts no write was sent. Stubbing your own ownership helper to say
+  "not yours" tests nothing.
+
+## Reviewing
+
+Verdict first (merge, merge after fixes, do not merge), blocking findings
+before the rest. Each finding: severity, file and function or line, a
+failure scenario a user or attacker would hit, the fix. When the request
+carries a deadline, say what the smallest safe release is. Read the
+docs and ADRs in the repository before the diff: they say who the backend
+trusts and what may never happen. Report no finding the code does not
+support, list what was checked and found clean, and say which checks
+were not run.
 
 ## Gotchas
 

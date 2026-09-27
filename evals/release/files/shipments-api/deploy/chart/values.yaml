@@ -1,0 +1,10 @@
+replicaCount: 2
+
+image:
+  repository: registry.example.com/platform/shipments-api
+  # Empty means the chart's appVersion.
+  tag: ""
+
+resources:
+  limits:
+    memory: 256Mi

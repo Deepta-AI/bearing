@@ -1,0 +1,18 @@
+groups:
+  - name: orders-api
+    rules:
+      - alert: OrdersHighErrorRate
+        expr: |
+          sum(rate(http_requests_total{job="orders-api",code=~"5.."}[5m]))
+            / sum(rate(http_requests_total{job="orders-api"}[5m])) > 0.05
+        for: 10m
+        labels:
+          severity: page
+        annotations:
+          summary: orders-api 5xx above 5 percent for 10 minutes
+      - alert: OrdersAPIPodRestarting
+        expr: increase(kube_pod_container_status_restarts_total{namespace=~"orders-.*",container="api"}[15m]) > 2
+        labels:
+          severity: warning
+        annotations:
+          summary: orders-api container restarting

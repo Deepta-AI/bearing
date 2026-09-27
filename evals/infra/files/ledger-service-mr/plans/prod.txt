@@ -1,0 +1,136 @@
+Pipeline #88412, job plan:prod, branch feat/ledger-worker, commit @PLAN_COMMIT@
+
+module.ledger_api_sa.google_service_account.main: Refreshing state... [id=projects/example-ledger-prod/serviceAccounts/ledger-api@example-ledger-prod.iam.gserviceaccount.com]
+random_password.db: Refreshing state... [id=none]
+google_secret_manager_secret.db_password: Refreshing state... [id=projects/example-ledger-prod/secrets/ledger-db-password]
+google_secret_manager_secret.payout_api_key: Refreshing state... [id=projects/example-ledger-prod/secrets/payout-partner-api-key]
+module.database.google_sql_database_instance.main: Refreshing state... [id=ledger-db]
+module.database.google_sql_database.ledger: Refreshing state... [id=projects/example-ledger-prod/instances/ledger-db/databases/ledger]
+module.database.google_sql_user.app: Refreshing state... [id=ledger_app//ledger-db]
+
+Terraform used the selected providers to generate the following execution
+plan. Resource actions are indicated with the following symbols:
+  + create
+-/+ destroy and then create replacement
+
+Terraform will perform the following actions:
+
+  # module.database.google_sql_database.ledger must be replaced
+-/+ resource "google_sql_database" "ledger" {
+      ~ charset         = "UTF8" -> (known after apply)
+      ~ collation       = "en_US.UTF8" -> (known after apply)
+      ~ id              = "projects/example-ledger-prod/instances/ledger-db/databases/ledger" -> (known after apply)
+      ~ instance        = "ledger-db" -> "ledger-prod-db" # forces replacement
+        name            = "ledger"
+      ~ project         = "example-ledger-prod" -> (known after apply)
+      ~ self_link       = "https://sqladmin.googleapis.com/sql/v1beta4/projects/example-ledger-prod/instances/ledger-db/databases/ledger" -> (known after apply)
+        # (1 unchanged attribute hidden)
+    }
+
+  # module.database.google_sql_database_instance.main must be replaced
+-/+ resource "google_sql_database_instance" "main" {
+      ~ available_maintenance_versions = [] -> (known after apply)
+      ~ connection_name                = "example-ledger-prod:asia-south1:ledger-db" -> (known after apply)
+      ~ create_time                    = "2026-03-02T09:14:51.311Z" -> (known after apply)
+      ~ deletion_protection            = true -> false
+      ~ dns_name                       = "" -> (known after apply)
+      ~ first_ip_address               = "10.30.200.3" -> (known after apply)
+      ~ id                             = "ledger-db" -> (known after apply)
+      ~ ip_address                     = [
+          - {
+              - ip_address     = "10.30.200.3"
+              - type           = "PRIVATE"
+                # (1 unchanged attribute hidden)
+            },
+        ] -> (known after apply)
+      + master_instance_name           = (known after apply)
+      ~ name                           = "ledger-db" -> "ledger-prod-db" # forces replacement
+      ~ private_ip_address             = "10.30.200.3" -> (known after apply)
+      ~ project                        = "example-ledger-prod" -> (known after apply)
+      ~ psc_service_attachment_link    = "" -> (known after apply)
+      + public_ip_address              = (known after apply)
+      ~ self_link                      = "https://sqladmin.googleapis.com/sql/v1beta4/projects/example-ledger-prod/instances/ledger-db" -> (known after apply)
+      ~ server_ca_cert                 = (sensitive value)
+      ~ service_account_email_address  = "p123456789012-ab1cd2@gcp-sa-cloud-sql.iam.gserviceaccount.com" -> (known after apply)
+        # (4 unchanged attributes hidden)
+
+      ~ settings {
+          ~ activation_policy            = "ALWAYS" -> (known after apply)
+          ~ connector_enforcement        = "NOT_REQUIRED" -> (known after apply)
+          ~ disk_size                    = 10 -> (known after apply)
+          ~ disk_type                    = "PD_SSD" -> (known after apply)
+          ~ edition                      = "ENTERPRISE" -> (known after apply)
+          ~ user_labels                  = {} -> (known after apply)
+          ~ version                      = 41 -> (known after apply)
+            # (8 unchanged attributes hidden)
+
+          ~ backup_configuration {
+              ~ start_time                     = "21:00" -> (known after apply)
+                # (5 unchanged attributes hidden)
+
+                # (1 unchanged block hidden)
+            }
+
+          ~ ip_configuration {
+              - enable_private_path_for_google_cloud_services = false -> null
+                # (3 unchanged attributes hidden)
+            }
+
+          ~ location_preference {
+              ~ zone                   = "asia-south1-a" -> (known after apply)
+                # (2 unchanged attributes hidden)
+            }
+        }
+    }
+
+  # module.database.google_sql_user.app must be replaced
+-/+ resource "google_sql_user" "app" {
+      ~ id                      = "ledger_app//ledger-db" -> (known after apply)
+      ~ instance                = "ledger-db" -> "ledger-prod-db" # forces replacement
+        name                    = "ledger_app"
+      ~ project                 = "example-ledger-prod" -> (known after apply)
+      ~ sql_server_user_details = [] -> (known after apply)
+        # (3 unchanged attributes hidden)
+    }
+
+  # module.ledger_worker_sa.google_project_iam_member.project["roles/cloudsql.client"] will be created
+  + resource "google_project_iam_member" "project" {
+      + etag    = (known after apply)
+      + id      = (known after apply)
+      + member  = (known after apply)
+      + project = "example-ledger-prod"
+      + role    = "roles/cloudsql.client"
+    }
+
+  # module.ledger_worker_sa.google_project_iam_member.project["roles/logging.logWriter"] will be created
+  + resource "google_project_iam_member" "project" {
+      + etag    = (known after apply)
+      + id      = (known after apply)
+      + member  = (known after apply)
+      + project = "example-ledger-prod"
+      + role    = "roles/logging.logWriter"
+    }
+
+  # module.ledger_worker_sa.google_project_iam_member.project["roles/secretmanager.secretAccessor"] will be created
+  + resource "google_project_iam_member" "project" {
+      + etag    = (known after apply)
+      + id      = (known after apply)
+      + member  = (known after apply)
+      + project = "example-ledger-prod"
+      + role    = "roles/secretmanager.secretAccessor"
+    }
+
+  # module.ledger_worker_sa.google_service_account.main will be created
+  + resource "google_service_account" "main" {
+      + account_id   = "ledger-worker"
+      + disabled     = false
+      + display_name = "ledger-worker"
+      + email        = (known after apply)
+      + id           = (known after apply)
+      + member       = (known after apply)
+      + name         = (known after apply)
+      + project      = "example-ledger-prod"
+      + unique_id    = (known after apply)
+    }
+
+Plan: 7 to add, 0 to change, 3 to destroy.

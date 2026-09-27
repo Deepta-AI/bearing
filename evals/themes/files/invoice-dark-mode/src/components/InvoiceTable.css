@@ -1,0 +1,8 @@
+.invoice-table { width: 100%; border-collapse: collapse; }
+.invoice-table th { text-align: left; color: var(--color-text-muted); font-weight: 500; }
+.invoice-table td, .invoice-table th { padding: var(--space-2); border-bottom: 1px solid var(--color-border); }
+.invoice-table tbody tr:hover { background: #f2f4f8; cursor: pointer; }
+.badge { border-radius: 999px; padding: 2px 8px; font-size: 12px; }
+.badge--paid { background: #e6f4ea; color: #1e6b2f; }
+.badge--overdue { background: #fdecea; color: #a61b1b; }
+.badge--draft { background: var(--color-warning-subtle); color: #6b4a00; }

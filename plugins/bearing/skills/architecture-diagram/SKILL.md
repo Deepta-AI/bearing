@@ -45,13 +45,25 @@ list is part of the deliverable.
 
 **Revising.** When the output file already exists, this run is a
 revision: read `${CLAUDE_PLUGIN_ROOT}/skills/adr/references/revision-protocol.md`
-and follow it (version line, changes table, superseding ADR,
-critic on changed sections, downstream list). Redraw only the diagrams
+and follow it (version line, changes table, downstream list; an ADR
+the change contradicts is named, not written). Redraw only the diagrams
 whose sources the reason for the revision touches (the files it names,
 or `git diff` since the document last changed); every other diagram
 block stays byte for byte, even when a fresh read of the code would draw
-it differently. Such a drift goes in the output under Noticed, for the
-user to ask for, never silently into the file. The changes table
+it differently. Kept is not checked: before leaving a block alone, list
+what the change moved (a store, table, column, key, topic, env var,
+route) and grep each kept block for it. Every message or edge that
+still names a moved thing is re-read against the code at both ends
+(the query in the caller against the schema or store it now hits; the
+topic string in the producer against the consumer). A mismatch stays
+out of the kept block and goes in the document as a note under that
+diagram, and under Noticed, quoting both lines ("Billing.Charge still
+reads invoices.amount; migration 0031 renamed it amount_cents"). A reader of the document never sees the chat.
+Also compare image tags across the manifests: when production pins a
+release older than the code drawn, the header says so ("drawn from the
+code at 3.2; the gateway manifest still deploys 3.1") instead of naming one
+release for everything. Never write or edit an ADR or another design
+document in a revision; name the ones it made stale. The changes table
 compares each redrawn diagram's element and edge counts with v<n> and
 names what appeared or went.
 
@@ -72,16 +84,38 @@ names what appeared or went.
 3. Context (`C4Context`): the system, its users (from auth roles and the
    PRD), external systems (hosts in config). One `Rel` per real call.
 4. Container (`C4Container`): one box per compose service or k8s
-   workload, plus each store and queue. Edges come from env vars that
-   point at a host and from client code; an edge with only a name behind
-   it is drawn dashed and listed as unconfirmed.
+   workload, plus each store and queue. An edge is confirmed only when
+   all three hold, otherwise it is dashed and listed as unconfirmed
+   with the one that failed:
+   - reachable: the client is constructed in a binary's `main` (or
+     what it wires); a client package nothing under `cmd/` imports is
+     dead code, however complete it looks;
+   - resolvable in that environment: an in-cluster host needs a k8s
+     `Service` of that name in the manifests (a StatefulSet's
+     `serviceName` and a Deployment's name are not Services); in
+     compose, a service of that name; an external host needs nothing;
+   - matched: for a queue or outbox, the topic string at the producer
+     equals the one at a consumer, compared literally, not from
+     comments. A topic produced and never consumed, or consumed and
+     never produced, is drawn and stated in the document ("invoice.voided:
+     no consumer, rows stay pending"), not left for the reader to spot.
+   Dev-only services (mail catchers, local stubs) stay out of the
+   production view, or carry "local only" in their own label.
 5. Component (`C4Component`): for the chosen container (default: the one
    with most modules), one box per package; edges from imports. Skip
    packages under 30 lines and say so in the legend.
 6. Sequence (`sequenceDiagram`): for each `--flow`, or the two busiest
    routes, follow handler to service to repository to external call.
-   Add an `alt` branch wherever the code has one; a flow with no error
-   handling on the path gets the note `no error branch in code`.
+   Name participants by the type and method the code uses
+   (`billing.Handler.Charge`), not the container. Add an `alt` branch
+   for every status the handler can return (400, 502, 500 alike) and
+   show the worker or consumer that picks the work up afterwards; a flow
+   with no error handling on the path gets the note `no error branch in
+   code`. Mark the transaction boundary. An external side effect before
+   the commit (a charge, an email, a POST to a partner) followed by a
+   step that can fail is a dual write: draw that failure branch and say
+   what the world is left in ("partner holds the booking, caller got a
+   500, no local row, nothing cancels it"). That is the fact a new developer most needs.
 7. Write `docs/architecture/<kebab-scope>-c4.md`: the four diagrams, a
    legend (box and edge styles, what was skipped), a sources table
    (element, file, line) and the unconfirmed list. Then check the file:
@@ -141,6 +175,13 @@ Revision: v<n> -> v<n+1>, sections changed C, ADRs superseded S, downstream D | 
   draw prod and note dev-only services in the legend.
 - Do not draw an edge because two services "obviously" talk. If no
   client call, env var or queue name links them, it is unconfirmed.
+- The README, HLD and ADRs are claims to check, not sources. Where they
+  disagree with the code, draw the code and list each disagreement in
+  the document; leave those files unedited. A technology label that
+  only the README gives ("Vue app") is marked as the README's claim.
+- A gap in the manifests (no workload for a service compose runs, no
+  Ingress or proxy config for a route) is stated as a gap, not filled
+  with the usual setup.
 - Mermaid C4 ignores unknown element types silently. Use only the
   shapes in `templates/c4.md`.
 - Do not redraw by hand what `--flow` can trace; a sequence with no

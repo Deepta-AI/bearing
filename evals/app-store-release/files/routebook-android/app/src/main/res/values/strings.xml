@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">RouteBook</string>
+    <string name="tracking_notification">Sharing your location with dispatch while this route is active</string>
+</resources>

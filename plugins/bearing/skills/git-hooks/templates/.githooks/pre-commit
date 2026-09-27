@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# pre-commit: format and lint the staged files only, block secrets and
-# forbidden files. Fast: it never runs the whole suite.
+# pre-commit: check the staged files only (what the commit will contain, not
+# the working tree), block secrets, forbidden and oversized files. Fast: it
+# never runs the test suite; pre-push runs the gate.
 HOOK_NAME=pre-commit
 # shellcheck source=lib.sh
 . "$(dirname "$0")/lib.sh"
@@ -72,6 +73,16 @@ for f in "${files[@]}"; do
 done
 [ -z "$placeholders" ] || hook_fail "sandbox placeholder file(s) staged:$placeholders (empty, left by the Claude Code sandbox); unstage them: git restore --staged$placeholders"
 
+# Oversized files, measured on the staged blob (lib.sh MAX_FILE_KB).
+if [ "$MAX_FILE_KB" -gt 0 ]; then
+  big=""
+  for f in "${files[@]}"; do
+    size="$(git cat-file -s ":$f" 2>/dev/null || echo 0)"
+    [ "$size" -le $((MAX_FILE_KB * 1024)) ] || big="$big $f ($((size / 1024)) KiB)"
+  done
+  [ -z "$big" ] || hook_fail "file(s) over ${MAX_FILE_KB} KiB staged:$big"
+fi
+
 # 2. Secret patterns in the added lines of the staged diff. Documented
 # placeholders (.env.example and friends) and the hooks themselves, which
 # spell the patterns out, are excluded from the scan.
@@ -90,10 +101,23 @@ if [ -n "$scan_files" ]; then
 fi
 
 # 3. Format and lint what is staged, by extension, with what the repo has.
+# gofmt reads the staged blob, so a file fixed in the working tree but not
+# re-added still fails, and an unstaged edit in progress does not. The other
+# tools read the working tree; a file with unstaged changes is named.
+partial="$(git diff --name-only | grep -Fxf <(printf '%s\n' "${files[@]}") || true)"
+[ -z "$partial" ] || hook_note "staged and also modified since (linters other than gofmt read the working copy): $(printf '%s' "$partial" | tr '\n' ' ')"
 go_files="$(by_ext '\.go$')"
-if [ -n "$go_files" ] && command -v gofmt >/dev/null; then
-  unformatted="$(run_on "$go_files" gofmt -l)"
-  [ -z "$unformatted" ] || hook_fail "gofmt: $(printf '%s' "$unformatted" | tr '\n' ' ') (run make fix)"
+if [ -n "$go_files" ]; then
+  if command -v gofmt >/dev/null; then
+    unformatted=""
+    while IFS= read -r f; do
+      out="$(git show ":$f" | gofmt -l 2>&1)" || out="syntax error"
+      [ -z "$out" ] || unformatted="$unformatted $f"
+    done <<< "$go_files"
+    [ -z "$unformatted" ] || hook_fail "gofmt, staged version:$unformatted (gofmt -w the file, then git add it)"
+  else
+    hook_note "gofmt not on PATH (GUI clients often run hooks with a short PATH); Go files not format-checked"
+  fi
 fi
 ts_files="$(by_ext '\.(ts|tsx|js|jsx|json|css|md)$')"
 if [ -n "$ts_files" ] && [ -x node_modules/.bin/prettier ]; then
@@ -121,11 +145,14 @@ if [ -n "$tf_files" ] && command -v terraform >/dev/null; then
   run_on "$tf_files" terraform fmt -check >/dev/null || hook_fail "terraform fmt: run make fix"
 fi
 
-# 4. Em dashes in prose files.
+# 4. Em dashes in staged prose (lib.sh NO_EM_DASH).
 prose="$(by_ext '\.(md|txt)$')"
-if [ -n "$prose" ]; then
-  dashes="$(run_on "$prose" grep -l '—' 2>/dev/null || true)"
-  [ -z "$dashes" ] || hook_fail "em dash in: $(printf '%s' "$dashes" | tr '\n' ' ')"
+if [ "$NO_EM_DASH" = 1 ] && [ -n "$prose" ]; then
+  dashes=""
+  while IFS= read -r f; do
+    git show ":$f" | grep -qF "$EM_DASH" && dashes="$dashes $f"
+  done <<< "$prose"
+  [ -z "$dashes" ] || hook_fail "em dash in:$dashes"
 fi
 
 hook_note "$count staged file(s) checked"

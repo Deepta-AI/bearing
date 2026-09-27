@@ -1,0 +1,16 @@
+{
+ "skill_name": "python",
+ "evals": [
+  {
+   "id": 1,
+   "name": "basic",
+   "prompt": "Add a FastAPI endpoint that lists a customer's invoices.",
+   "expected_output": "A router endpoint with auth on the router, a Pydantic response model and a pytest test.",
+   "files": [],
+   "expectations": [
+    "The endpoint's router carries the auth dependency",
+    "A pytest test covers the endpoint"
+   ]
+  }
+ ]
+}

@@ -1,0 +1,11 @@
+KAVERI OFFICE SUPPLIES
+GSTIN: 29ABCDE1234F1Z5
+Tax Invoice No: KOS/26-27/0930          Date: 30-09-2026
+Bill to: Anvaya Clinics, Bengaluru
+
+1. Printer toner, 3 cartridges            7,800.00
+                              IGST 18%    1,404.00
+                              Total       9,204.00
+
+Bank: account 001234567890, IFSC EXMP0001234
+Queries: billing@kaveri-office.example, +91 90000 20017

@@ -25,10 +25,11 @@ line height, letter spacing, box-shadow, filter, backdrop-filter, and
 tokens assign hover colour to `duration.instant`. Per stack that is: the
 properties in a transition, a keyframes body, a keyframe or animate object
 or a useAnimatedStyle body; `useNativeDriver` false or absent on RN
-Animated (the native driver only runs transform and opacity) and every
-LayoutAnimation; Compose `animateContentSize`, expand/shrink transitions,
-and an animated value used in a size, padding or offset modifier; SwiftUI
-an animated state used in `.frame(` or `.padding(`.
+Animated (the native driver only runs transform and opacity; LayoutAnimation
+is counted but allowed, since the native side runs it); Compose
+`animateContentSize`, expand/shrink transitions, and an animated value
+used in a size, padding or offset modifier; SwiftUI an animated state used
+in `.frame(` or `.padding(`.
 
 A reduced-motion path exists when the file holds a guard
 (prefers-reduced-motion, matchMedia, useReducedMotion, reducedMotion,
@@ -276,8 +277,10 @@ def scan_js(s, path, text):
     for m in re.finditer(
         r"\bLayoutAnimation\.(configureNext|easeInEaseOut|linear|spring)\(", text
     ):
+        # LayoutAnimation runs the next layout pass on the native side: it is
+        # the core way to close a gap after a row leaves without animating
+        # height from JavaScript, so it counts as an animation, not a problem.
         s.anim(path, text, m.start(), "LayoutAnimation", m.group(0))
-        s.prop(path, text, m.start(), "LayoutAnimation", "layout")
 
 
 def scan_kotlin(s, path, text):

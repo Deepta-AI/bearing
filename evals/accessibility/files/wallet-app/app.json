@@ -1,0 +1,10 @@
+{
+  "expo": {
+    "name": "Pocketline",
+    "slug": "pocketline",
+    "scheme": "pocketline",
+    "version": "1.8.0",
+    "orientation": "portrait",
+    "plugins": ["expo-router"]
+  }
+}

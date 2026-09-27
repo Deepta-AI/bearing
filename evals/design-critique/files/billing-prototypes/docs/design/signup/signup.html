@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Create your Tallybook account</title>
+<link rel="stylesheet" href="../tokens.css">
+<style>
+  body { margin: 0; background: var(--surface); color: var(--text); font-family: var(--font-ui); font-size: 16px; }
+  .wrap { max-width: 26rem; padding: var(--s7) var(--s5); }
+  .brand { font-weight: 600; font-size: 20px; margin-bottom: var(--s6); }
+  h1 { font-size: 28px; font-weight: 600; margin: 0 0 var(--s2); }
+  .lede { color: var(--text-muted); margin: 0 0 var(--s5); }
+  form { display: grid; gap: var(--s3); }
+  input { font: 16px var(--font-ui); padding: var(--s3); border: 1px solid var(--border); border-radius: var(--r-control); background: var(--bg); color: var(--text); }
+  input:focus, button:focus { outline: none; }
+  .error { color: var(--overdue); font-size: 14px; margin: 0; }
+  button { font: 600 15px var(--font-ui); height: 32px; padding: 0 var(--s4); border-radius: var(--r-control); border: 0; background: var(--accent); color: var(--on-accent); cursor: pointer; justify-self: start; }
+  button:hover { filter: brightness(0.95); }
+  .alt { margin-top: var(--s5); font-size: 14px; color: var(--text-muted); }
+  .alt a { color: var(--text); }
+</style>
+</head>
+<body>
+<main class="wrap">
+  <div class="brand">Tallybook</div>
+  <h1>Create your account</h1>
+  <p class="lede">Send your first invoice in a few minutes.</p>
+  <form>
+    <input type="email" name="email" placeholder="Work email" autocomplete="email" value="asha@northfield.example">
+    <p class="error">Oops! Something went wrong.</p>
+    <input type="password" name="password" placeholder="Password" autocomplete="new-password">
+    <input type="text" name="studio" placeholder="Studio name" autocomplete="organization">
+    <button type="submit">Submit</button>
+  </form>
+  <p class="alt">Already have an account? <a href="#">Sign in</a></p>
+</main>
+</body>
+</html>

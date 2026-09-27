@@ -1,0 +1,5 @@
+PORT=8080
+DATABASE_URL=postgres://payments:payments@localhost:5432/payments
+LEDGER_URL=http://localhost:9090
+LOG_LEVEL=info
+SHUTDOWN_TIMEOUT_MS=10000

@@ -4,7 +4,8 @@
 # terminal), all appear in a flowchart and all have the four required
 # states; fails on a dead end, an unflowed screen, a flowchart screen not
 # in the inventory, a missing state, n/a without a reason, a screen with no
-# state table, and on empty input. It reads the highest flows-v<n>.md.
+# state table, a dialog with no way back, and on empty input. It reads
+# the highest flows-v<n>.md and skips screens marked removed.
 set -u
 . "$(dirname "$0")/../lib/assert.sh"
 CHK="$KIT/plugins/bearing/skills/ux-flows/scripts/flows_check.py"
@@ -38,7 +39,7 @@ t_begin "a complete package passes with its counts"
 d="$(tmpdir)/ok"; fixture "$d/docs/design/flows/orders/flows.md"
 assert_exit 0 run "$d"
 assert_contains "$T_OUT" "Dead ends: 0"
-assert_contains "$T_OUT" "ux-flows: 1 files, 3 screens (1 terminal), 2 flowcharts, 5 edges, 0 dead ends, 0 unflowed, 3 state tables, 0 missing states, 0 problems"
+assert_contains "$T_OUT" "ux-flows: 1 files, 3 screens (1 terminal, 0 removed), 1 dialogs (0 without a way back), 2 flowcharts, 5 edges, 0 dead ends, 0 unflowed, 3 state tables, 0 missing states, 0 problems"
 t_end
 
 t_begin "a dead end, an unflowed screen and an unknown screen fail"
@@ -58,7 +59,7 @@ t_begin "a %% terminal marker in a flowchart also ends a flow"
 d="$(tmpdir)/marker"; f="$d/docs/design/flows/orders/flows.md"; fixture "$f"
 sed -i.bak 's/| terminal: the flow ends here |/| none |/; s/^flowchart TD$/flowchart TD\n  %% terminal: S-03 the receipt is the end/' "$f"
 assert_exit 0 run "$d"
-assert_contains "$T_OUT" "3 screens (1 terminal)"
+assert_contains "$T_OUT" "3 screens (1 terminal, 0 removed)"
 t_end
 
 t_begin "missing, blank and reasonless n/a states fail; so does no state table"
@@ -80,6 +81,27 @@ assert_contains "$T_OUT" "S-02 state 'empty' is missing or blank"
 assert_contains "$T_OUT" "S-02 state 'error' is n/a without a reason"
 assert_contains "$T_OUT" "S-02 state 'success' is missing or blank"
 assert_contains "$T_OUT" "S-03 has no state table"
+t_end
+
+t_begin "a dialog with no cancel, back or close in Exits fails"
+d="$(tmpdir)/dialog"; f="$d/docs/design/flows/orders/flows.md"; fixture "$f"
+sed -i.bak 's/| cancel, confirm |/| confirm to S-03 |/' "$f"
+assert_exit 1 run "$d"
+assert_contains "$T_OUT" "S-02 is a dialog with no cancel, back or close in its Exits"
+assert_contains "$T_OUT" "1 dialogs (1 without a way back)"
+t_end
+
+t_begin "a removed screen is skipped; a combined state row fills each state; a Screens heading is read"
+d="$(tmpdir)/removed"; f="$d/docs/design/flows/orders/flows-v2.md"; fixture "$f"
+sed -i.bak 's/^| S-03 | Done .*$/&\n| S-04 | Old step | gone | US-01-001 | none | none | removed in v2 |/; s/^## 1\. Screen inventory$/## Screens/' "$f"
+python3 - "$f" <<'PY2'
+import sys
+p = sys.argv[1]; s = open(p).read()
+s = s.replace('| loading | skeleton | "Loading orders" |\n| empty | one invitation | "No orders yet" |\n', '| Loading, Empty | n/a: a single action on known data | |\n', 1)
+open(p, "w").write(s)
+PY2
+assert_exit 0 run "$d"
+assert_contains "$T_OUT" "3 screens (1 terminal, 1 removed)"
 t_end
 
 t_begin "the highest version is the one checked"

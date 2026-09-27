@@ -1,7 +1,10 @@
 # Contrast: the formula and the pairs
 
 `theme-lint.py` implements this page. Read it to understand a failure,
-or to add a pair when a new role appears in `tokens.json`.
+or to add a pair when a new role appears in `tokens.json`. With
+`--css <stylesheet>` it reads the app's own custom properties (hex,
+rgb or oklch) and `--pair fg:bg[:min]` adds the pairs a component
+paints that no standard role covers.
 
 ## The formula (WCAG 2.x)
 
@@ -68,6 +71,12 @@ text inside a tinted callout, a ring around a control. `border` (the
 hairline) is not checked because a divider is not a UI boundary a user
 must perceive; `border-strong` (input edges) is. A new component that
 paints a new combination adds a row here and a tuple in `PAIRS`.
+
+The standard pairs are the floor, not the list. An app also paints
+status text on its own tint (badges), muted text inside a card
+(`surface`, not `bg`), chart marks and axis labels on the card the
+chart sits in (marks 3:1, labels 4.5:1), and rings and borders on every
+surface they touch. Those pairs belong in the check for that app.
 
 ## Fixing a failure
 

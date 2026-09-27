@@ -16,8 +16,9 @@ here pushes, merges or deploys; the run stops at a prepared merge request.
                                                 one row of the decision digest
   brg-autopilot report [--dir D]                write docs/autopilot/<run>.md (the MR carries it)
   brg-autopilot status [--dir D]                the stages, attempts and decisions so far
-  brg-autopilot profile --ui|--data|--api|--deploy yes|no --why W [--dir D]
+  brg-autopilot profile --ui|--data|--api|--deploy yes|no [--scope lean|full] --why W [--dir D]
                                                 what the product has; decides which stages apply
+                                                and how much document each one needs
   brg-autopilot stages                          the stage names, in order
   brg-autopilot launch "<statement>" [--dir D] [--print]
                                                 run it headless: claude -p with autopilot,
@@ -59,14 +60,14 @@ STAGES = [
     ("decide", "tech-decision (auto: the recommendation, recorded Proposed), then brg-autopilot profile",
      "every decision this run took is in the digest, no ADR this run wrote says Accepted, and the "
      "product profile (ui, data, api, deploy) is recorded"),
-    ("architecture", "architecture-diagram",
-     "at least one docs/architecture/*-c4.md with a mermaid diagram"),
-    ("design", "high-level-design, then data-model (profile data), openapi-spec (profile api), "
-     "deployment-architecture (profile deploy), then low-level-design",
-     "docs/design/*-hld.md and *-lld.md; by profile, docs/design/data-model.md, api/openapi.yaml and "
-     "docs/architecture/deployment.md with a mermaid diagram"),
-    ("ux", "profile ui: ux-flows, design-directions --unattended, design-system, motion-design, "
-     "then screen-design",
+    ("architecture", "architecture-diagram (scope full); lean: nothing, the existing shape stands",
+     "scope full: at least one docs/architecture/*-c4.md with a mermaid diagram; lean: nothing"),
+    ("design", "scope full: high-level-design, then data-model (profile data), openapi-spec (profile api), "
+     "deployment-architecture (profile deploy), then low-level-design; lean: low-level-design as one note",
+     "scope full: docs/design/*-hld.md and *-lld.md; by profile, docs/design/data-model.md, api/openapi.yaml "
+     "and docs/architecture/deployment.md with a mermaid diagram; lean: one docs/design/*.md written this run"),
+    ("ux", "profile ui, scope full: ux-flows, design-directions --unattended, design-system, motion-design, "
+     "then screen-design; lean: the existing screens and design system are the precedent",
      "profile ui: flows passing flows_check and tokens passing contrast; on react-shadcn (the default) "
      "a direction chosen from 3 scored variants, docs/design/motion.md, every screen in the design "
      "gallery passing gallery_check, and design-lint; on another stack HTML screens passing states_check"),
@@ -244,7 +245,8 @@ DEFAULT_UI_STACK = "react-shadcn"
 
 def profile_text(st):
     pr = st.get("profile") or {}
-    return " ".join(f"{k}={pr.get(k, '?')}" for k in PROFILE_KEYS) + f" ui_stack={ui_stack(st)}"
+    return (" ".join(f"{k}={pr.get(k, '?')}" for k in PROFILE_KEYS) + f" ui_stack={ui_stack(st)}"
+            + f" scope={scope(st)}")
 
 
 def ui_stack(st):
@@ -254,6 +256,32 @@ def ui_stack(st):
 
 def wants(st, key):
     return (st.get("profile") or {}).get(key) == "yes"
+
+
+def scope(st):
+    """How much document the run owes. lean: a change to a repository that
+    already had code when the run started, or a new product with no UI,
+    data, API or deployment (a CLI, a library); full otherwise, or when the
+    profile says so. A 12-line search command once came with 25 documents
+    (C4 set, tenets, HLD, test plan) and a reviewer had to wade through 1,145
+    lines to find it."""
+    pr = st.get("profile") or {}
+    if pr.get("scope") in ("lean", "full"):
+        return pr["scope"]
+    if st.get("existing"):
+        return "lean"
+    if pr and not any(wants(st, k) for k in PROFILE_KEYS):
+        return "lean"
+    return "full"
+
+
+def scope_why(st):
+    pr = st.get("profile") or {}
+    if pr.get("scope") in ("lean", "full"):
+        return "set in the profile"
+    if st.get("existing"):
+        return "a change to an existing repository"
+    return "no ui, data, api or deploy"
 
 
 def diagrams(d, rel):
@@ -272,6 +300,8 @@ def rels(d, pattern):
 
 
 def g_architecture(d, st):
+    if scope(st) == "lean":
+        return True, f"scope lean ({scope_why(st)}): no C4 set; the existing shape stands"
     files = rels(d, "docs/architecture/*-c4.md")
     if not files:
         return False, "no docs/architecture/*-c4.md (architecture-diagram)"
@@ -289,6 +319,14 @@ def g_architecture(d, st):
 
 
 def g_design(d, st):
+    if scope(st) == "lean":
+        notes = [f for f in rels(d, "docs/design/*.md")
+                 if os.path.getmtime(os.path.join(d, f)) >= st["started_epoch"]
+                 and len(read(d, f).strip()) >= 200]
+        if not notes:
+            return False, ("scope lean: no design note written this run (one docs/design/<name>.md: what "
+                           "changes, where, the rules it follows, what it leaves alone)")
+        return True, f"scope lean ({scope_why(st)}): design note {', '.join(notes)}"
     h = rels(d, "docs/design/*-hld.md")
     l_ = rels(d, "docs/design/*-lld.md")
     missing = [] if h else ["docs/design/*-hld.md (high-level-design)"]
@@ -325,6 +363,8 @@ def g_design(d, st):
 def g_ux(d, st):
     if not wants(st, "ui"):
         return True, "no UI in the profile"
+    if scope(st) == "lean":
+        return True, "scope lean: the existing screens and design system are the precedent"
     flows = rels(d, "docs/design/flows/*/flows*.md")
     if not flows:
         return False, "no docs/design/flows/*/flows*.md (ux-flows)"
@@ -649,6 +689,12 @@ def next_stage(st):
     return None, "done"
 
 
+def existing_repo(d):
+    if not os.path.isdir(os.path.join(d, ".git")) or not git(d, "rev-parse", "-q", "--verify", "HEAD"):
+        return False
+    return any(not not_work(d, f) for f in git(d, "ls-files").splitlines())
+
+
 def cmd_start(a):
     d = a.dir
     if os.path.isfile(state_path(d)):
@@ -668,6 +714,8 @@ def cmd_start(a):
         # where an upstream the engineer pushed stood when the run began; the
         # mr gate refuses only a move during the run
         "upstream_at_start": upstream_sha(d),
+        # a repository with commits and files before the run: a change, scope lean
+        "existing": existing_repo(d),
     }
     os.makedirs(d, exist_ok=True)
     save(d, st)
@@ -790,6 +838,8 @@ def cmd_profile(a):
     st = load(a.dir)
     st["profile"] = {k: getattr(a, k) for k in PROFILE_KEYS}
     st["profile"]["ui_stack"] = a.ui_stack
+    if a.scope != "auto":
+        st["profile"]["scope"] = a.scope
     text = profile_text(st)
     st["decisions"] = [x for x in st["decisions"] if x["key"] != "profile"]
     st["decisions"].append({"key": "profile", "choice": text, "alternatives": "-", "why": a.why,
@@ -1073,6 +1123,10 @@ def main():
     p.add_argument("--ui-stack", default=DEFAULT_UI_STACK,
                    help="react-shadcn (default: React, shadcn/ui, Tailwind, screens as code) or the stack "
                         "the implementer chose (html prototypes for any other)")
+    p.add_argument("--scope", default="auto", choices=["auto", "lean", "full"],
+                   help="auto (default): lean for a change to an existing repository or a product with no "
+                        "ui, data, api or deploy; full otherwise. full when a change adds a service, a store, "
+                        "an external integration or a new UI area")
     p.add_argument("--why", required=True)
     p = add("launch", cmd_launch, "statement")
     p.add_argument("--print", action="store_true")

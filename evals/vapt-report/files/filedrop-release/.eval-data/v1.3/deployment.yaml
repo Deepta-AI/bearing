@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: filedrop-api
+  namespace: filedrop
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: filedrop-api
+  template:
+    metadata:
+      labels:
+        app: filedrop-api
+    spec:
+      containers:
+        - name: api
+          image: registry.example.test/filedrop/api:v1.3.0
+          ports:
+            - containerPort: 8080
+          env:
+            - name: APP_ENV
+              value: production
+            - name: ADDR
+              value: ":8080"
+            - name: AVSCAN_URL
+              value: http://avscan.filedrop.svc:9400/scan

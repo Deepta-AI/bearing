@@ -8,7 +8,11 @@
 # (ok) and a stale one (MISSING); the final "brg-doctor: N checks, M missing"
 # line must equal the ok and MISSING lines counted, and the exit code must be
 # 1 exactly when M > 0. Also: a .yaml workflow counts as CI; a core.hooksPath
-# of .husky passes only when its three hooks chain .githooks/; Superpowers and
+# of .husky passes only when its three hooks chain .githooks/ with their
+# arguments, keep its exit status and are executable; a hook committed 100644
+# or not executable is MISSING; make setup calling a missing script is
+# MISSING; a lower-case pull_request_template.md counts; a CI with no make and
+# a .gitignore that swallows .claude/rules/ are MISSING; Superpowers and
 # gstack are optional unless BEARING_PROFILE is standard or full. The developer's
 # real env file is never read: every HOME is a fake one.
 set -u
@@ -90,14 +94,60 @@ t_end
 t_begin "core.hooksPath elsewhere: chained passes, unchained is MISSING"
 hk="$(tmpdir)/probe-husky"; cp -R "$base" "$hk"; mkdir -p "$hk/.husky"
 git -C "$hk" config core.hooksPath .husky
-for h in commit-msg pre-commit; do printf '#!/bin/sh\n.githooks/%s "$@" || exit $?\n' "$h" > "$hk/.husky/$h"; done
+for h in commit-msg pre-commit; do printf '#!/bin/sh\n.githooks/%s "$@" || exit $?\n' "$h" > "$hk/.husky/$h"; chmod +x "$hk/.husky/$h"; done
 assert_exit 1 doctor_in "$hk"; runs=$((runs+1))
 assert_contains "$T_OUT" "MISSING   core.hooksPath=.husky and 2 of 3 of its hooks call .githooks/<hook>"
 assert_tally "$T_OUT" 1
 printf '#!/bin/sh\n.githooks/pre-push "$@" || exit $?\n' > "$hk/.husky/pre-push"
+assert_exit 1 doctor_in "$hk"; runs=$((runs+1))
+assert_contains "$T_OUT" "pre-push is not executable" "git skips a non-executable husky hook"
+chmod +x "$hk/.husky/pre-push"
 assert_exit 0 doctor_in "$hk"; runs=$((runs+1))
 assert_contains "$T_OUT" "ok        core.hooksPath=.husky, its 3 hooks chain .githooks/"
 assert_tally "$T_OUT" 0
+printf '#!/bin/sh\n.githooks/commit-msg "$@" || true\n' > "$hk/.husky/commit-msg"
+assert_exit 1 doctor_in "$hk"; runs=$((runs+1))
+assert_contains "$T_OUT" "commit-msg calls it but discards its exit status" "|| true makes the chain advisory"
+assert_tally "$T_OUT" 1
+printf '#!/bin/sh\n.githooks/commit-msg || exit $?\n' > "$hk/.husky/commit-msg"
+assert_exit 1 doctor_in "$hk"; runs=$((runs+1))
+assert_contains "$T_OUT" "commit-msg calls it without passing its arguments"
+t_end
+
+t_begin "a hook git will skip: committed 100644, or not executable here"
+hm="$(tmpdir)/probe-mode"; cp -R "$base" "$hm"
+git -C "$hm" add .githooks
+git -C "$hm" update-index --chmod=-x .githooks/pre-push
+assert_exit 1 doctor_in "$hm"; runs=$((runs+1))
+assert_contains "$T_OUT" "pre-push committed as 100644 (git update-index --chmod=+x .githooks/pre-push, then commit)"
+assert_tally "$T_OUT" 1
+git -C "$hm" update-index --chmod=+x .githooks/pre-push; chmod -x "$hm/.githooks/pre-push"
+assert_exit 1 doctor_in "$hm"; runs=$((runs+1))
+assert_contains "$T_OUT" "pre-push not executable in this clone (chmod +x .githooks/pre-push)"
+assert_tally "$T_OUT" 1
+t_end
+
+t_begin "make setup: a missing script and an ignored error are MISSING"
+ms="$(tmpdir)/probe-setup"; cp -R "$base" "$ms"
+awk '/^setup:/ && !d { print "setup: ## hooks"; print "\t-bash scripts/install-hooks.sh"; print "\t@echo hooks installed"; print ""; print "setup-old:"; d=1; next } { print }' "$ms/Makefile" > "$ms/Makefile.new" && mv "$ms/Makefile.new" "$ms/Makefile"
+assert_exit 1 doctor_in "$ms"; runs=$((runs+1))
+assert_contains "$T_OUT" "MISSING   make setup calls scripts/install-hooks.sh, which does not exist (and 1 recipe line(s) ignore errors)"
+assert_tally "$T_OUT" 1
+t_end
+
+t_begin "a lower-case pull_request_template.md counts; a CI without make is MISSING"
+lc="$(tmpdir)/probe-lc"; cp -R "$base" "$lc"; rm -rf "$lc/.gitlab-ci.yml" "$lc/.gitlab"
+mv "$lc/.github/PULL_REQUEST_TEMPLATE.md" "$lc/.github/pull_request_template.md"
+assert_exit 0 doctor_in "$lc"; runs=$((runs+1))
+assert_contains "$T_OUT" "ok        change template present (.github/pull_request_template.md)"
+printf 'on: [push]\njobs:\n  t:\n    runs-on: ubuntu-latest\n    steps:\n      - run: npm test\n' > "$lc/.github/workflows/ci.yml"
+assert_exit 1 doctor_in "$lc"; runs=$((runs+1))
+assert_contains "$T_OUT" "MISSING   CI never runs make, so make check is not enforced in CI"
+assert_tally "$T_OUT" 1
+printf '.claude/*\n!.claude/settings.json\n' >> "$lc/.gitignore"
+assert_exit 1 doctor_in "$lc"; runs=$((runs+1))
+assert_contains "$T_OUT" "MISSING   .gitignore ignores .claude/rules/"
+assert_tally "$T_OUT" 2
 t_end
 
 t_begin "GitHub files only: ok"
@@ -112,7 +162,7 @@ t_begin "neither host: CI and template MISSING, exit 1"
 none="$(tmpdir)/probe-none"; cp -R "$base" "$none"; rm -rf "$none/.gitlab-ci.yml" "$none/.gitlab" "$none/.github"
 assert_exit 1 doctor_in "$none"; runs=$((runs+1))
 assert_contains "$T_OUT" "MISSING   CI missing: no .gitlab-ci.yml and no .github/workflows/*.yml or *.yaml (ci-pipeline)"
-assert_contains "$T_OUT" "MISSING   MR/PR template missing: no .gitlab/merge_request_templates/Default.md and no .github/PULL_REQUEST_TEMPLATE.md (onboard-repo)"
+assert_contains "$T_OUT" "MISSING   MR/PR template missing: no .gitlab/merge_request_templates/*.md and no pull_request_template.md (any case) in .github/, docs/ or the root (onboard-repo)"
 assert_tally "$T_OUT" 2
 t_end
 
@@ -197,5 +247,5 @@ assert_contains "$T_OUT" "profile: minimal (environment;" "the environment wins 
 machine_tally "$T_OUT" 0
 t_end
 
-echo "doctor_matrix: $runs brg-doctor runs over 7 repository states and 3 profiles"
+echo "doctor_matrix: $runs brg-doctor runs over 10 repository states and 3 profiles"
 t_summary

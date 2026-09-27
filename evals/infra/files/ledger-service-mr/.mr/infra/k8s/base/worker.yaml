@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ledger-worker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ledger-worker
+  template:
+    metadata:
+      labels:
+        app: ledger-worker
+    spec:
+      serviceAccountName: ledger-worker
+      containers:
+        - name: worker
+          image: asia-south1-docker.pkg.dev/example-ledger-shared/ledger/worker
+          command: ["/ledger-worker"]
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef: { name: ledger-db, key: url }
+          resources:
+            requests: { cpu: 100m, memory: 128Mi }
+            limits: { cpu: 500m, memory: 256Mi }
+          livenessProbe:
+            httpGet: { path: /healthz, port: 8080 }
+            periodSeconds: 10
+          readinessProbe:
+            httpGet: { path: /readyz, port: 8080 }
+          securityContext:
+            runAsNonRoot: true
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            capabilities: { drop: [ALL] }

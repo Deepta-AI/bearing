@@ -1,0 +1,28 @@
+{
+  "expo": {
+    "name": "Basket",
+    "slug": "basket",
+    "version": "2.4.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "basket",
+    "ios": {
+      "bundleIdentifier": "com.example.basket",
+      "buildNumber": "32",
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Basket uses your location to show grocery stores near you."
+      }
+    },
+    "android": {
+      "package": "com.example.basket",
+      "versionCode": 41,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/icon.png",
+        "backgroundColor": "#1F6F5C"
+      },
+      "permissions": ["CAMERA", "ACCESS_COARSE_LOCATION", "ACCESS_FINE_LOCATION"]
+    },
+    "plugins": ["expo-router", "expo-secure-store", "@sentry/react-native/expo"]
+  }
+}

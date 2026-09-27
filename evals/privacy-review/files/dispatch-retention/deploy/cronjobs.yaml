@@ -1,0 +1,37 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: dispatch-purge-pings
+spec:
+  schedule: "15 1 * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: worker
+              image: registry.example/dispatch-worker:1.14.2
+              args: ["purge-pings"]
+              envFrom:
+                - secretRef:
+                    name: dispatch-db
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: dispatch-stale-deliveries
+spec:
+  schedule: "*/10 * * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: worker
+              image: registry.example/dispatch-worker:1.14.2
+              args: ["stale-deliveries"]
+              envFrom:
+                - secretRef:
+                    name: dispatch-db

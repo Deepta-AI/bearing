@@ -1,7 +1,21 @@
-# Licence policy read by scripts/license-gate.py. Two flat lists of
-# SPDX identifiers plus exceptions. An expression like "MIT OR GPL-2.0"
-# passes when any OR branch is allowed; "A AND B" fails when any
-# AND branch is denied. Anything not listed is unknown and fails.
+# Licence policy read by scripts/license-gate.py (hand-parsed, no PyYAML).
+# SPDX identifiers, matched case-insensitively. "A OR B" passes when any
+# branch is allowed; "A AND B" fails when any branch is denied; "X WITH
+# exc" is judged as X unless the whole string is listed. Anything not
+# listed is unknown and fails for runtime components.
+#
+# These defaults suit a product distributed to customers as a proprietary
+# binary, image or bundle without source. Revisit them when the product
+# is only run as a hosted service (GPL obligations then mostly do not
+# trigger; AGPL and SSPL still do) or when source ships to customers.
+
+# dev: allow  -> dev-scope components (npm "dev": true, CycloneDX scope
+#                "excluded") are reported but never fail the gate. True only
+#                when the build that ships leaves them out (npm ci
+#                --omit=dev, a multi-stage image); say where that is shown.
+# dev: check  -> dev components are judged like runtime ones.
+dev: allow
+
 allow:
   - MIT
   - ISC
@@ -18,6 +32,16 @@ allow:
   - MPL-2.0
   - BlueOak-1.0.0
   - CC-BY-4.0
+  - BSL-1.0
+
+# Strong copyleft would put the product's own source under the licence.
+# LGPL is denied by default not because it is forbidden but because it
+# carries duties a notice file does not meet: the customer must be able to
+# replace the library (dynamic linking, or for a static build such as Go
+# or Rust, the product's object files or source for relinking), plus the
+# library's source offer. Allow it only per version, as an exception, once
+# someone owns those duties. Note BSL-1.0 (Boost) is permissive and allowed;
+# BUSL-1.1 (Business Source) is not open source and is denied.
 deny:
   - GPL-2.0-only
   - GPL-2.0-or-later
@@ -33,6 +57,9 @@ deny:
   - BUSL-1.1
   - CC-BY-NC-4.0
   - EUPL-1.2
-# Exceptions: one line per package, "name@version: reason (owner, date)".
+
+# Exceptions: one line per package version, "name@version: reason (owner,
+# date)". A bare name is refused. Only a person who read the package and
+# owns the decision writes one; never add one to make the gate pass.
 exceptions:
-  # some-package@1.2.3: dev-only tool, never shipped (a.person, 2026-01-01)
+  # some-package@1.2.3: licence field empty; LICENSE in the tarball is MIT (a.person, 2026-01-01)

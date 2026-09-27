@@ -1,0 +1,16 @@
+/* tiny-datepicker 2.3.1, dist/datepicker.css, MIT licence.
+   Copied from the package unchanged. Do not edit: the whole file is
+   replaced when the package is upgraded. */
+.tdp-calendar {
+  background: #ffffff;
+  border: 1px solid #e4e7ec;
+  padding: 10px;
+  font-size: 14px;
+}
+.tdp-day:hover {
+  background: #eef4ff;
+}
+.tdp-day.is-selected {
+  background: #2e90fa;
+  color: #ffffff;
+}

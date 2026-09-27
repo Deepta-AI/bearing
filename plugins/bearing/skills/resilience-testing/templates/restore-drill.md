@@ -11,14 +11,35 @@ Claimed: RTO <t>, RPO <t>
      measures the real RTO and RPO against the claims above. The engineer
      runs the commands and fills the times; nothing is invented. -->
 
+## Before the drill
+
+<!-- What: what the repository already says about the backup, checked
+     before anyone restores: coverage, whether the job still succeeds, the
+     RPO basis, RTO plausibility, whether the last "restore test" was one,
+     and the default target of any existing restore script.
+     Good: each line cites the file; a schema missing from the dump or a
+     client older than the server major is stated as the likely result.
+     Example: "Dump runs pg_dump -n public; billing schema (migration 0003)
+     is in no backup." -->
+
+- Coverage (schemas and tables dumped vs migrations):
+- Job health (client vs server version, failure alert, newest backup age):
+- RPO basis (WAL archiving on? dump interval and duration):
+- RTO plausibility (download + restore + index build vs claim):
+- Previous "restore test" (a restore, or a listing?):
+- Existing restore tooling (default target, --clean):
+
 ## Procedure
 
 <!-- What: the commands to locate the latest backup, restore it into a
      scratch instance, verify it and tear it down, with start and finish
      times in UTC.
      Good: every step has a command someone can paste; the restore target is
-     never the live instance; row counts and checksum are compared with the
-     numbers recorded at backup time.
+     never the live instance; the restore command names the scratch
+     target explicitly and runs with no live credentials; verification
+     names every schema and compares against a reference fixed at the
+     snapshot time (counts recorded at dump time, or live counts of rows
+     created before the snapshot).
      Example: | 3. Restore | `pg_restore -d drill_0912 -j 4 latest.dump` |
      09:14 | 09:47 | 33 min, 2 warnings on extension owner | -->
 
@@ -30,7 +51,7 @@ Claimed: RTO <t>, RPO <t>
 | 4. Verify row counts | `<count query>` vs recorded <n> | | | |
 | 5. Verify checksum | `<checksum command>` vs recorded <sum> | | | |
 | 6. Application smoke test | `<one request against the scratch>` | | | |
-| 7. Tear down | `<command>` | | | |
+| 7. Tear down and delete the copy | `<command>` | | | |
 
 ## Measured
 

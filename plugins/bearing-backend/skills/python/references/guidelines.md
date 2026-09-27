@@ -28,11 +28,22 @@
   work. A repository never calls `commit()`.
 - Every list query is bounded: `limit` with a validated maximum, a stable
   `order_by`. An unbounded `select` is a finding.
+- Keyset paging orders by columns that cannot be NULL, or handles NULL
+  explicitly: SQL comparisons with NULL are unknown, so a NULL sort key
+  drops the row from every page after the first and breaks the cursor.
+  Before choosing the sort key, read its nullability in the schema and
+  query the data (seed, fixtures) for real NULLs; a comment such as "NULL
+  only while draft" is a claim, not a constraint. Then exclude those rows
+  with a stated reason, order by `COALESCE(col, fallback)` (and index
+  that expression), or pick a NOT NULL column, and test paging through
+  such a row.
 - Relationships that are needed are loaded explicitly with `selectinload`
   or a join in the repository. `lazy="raise"` on every relationship so a
   missed load fails loudly instead of doing a hidden query.
 - `expire_on_commit=False` on the session factory; objects stay usable after
   the transaction ends.
+- Migrations are safe to re-run: `IF NOT EXISTS` on DDL whenever the
+  runner could apply a file and crash before recording it.
 - Migrations: Alembic, one concern per file, a working `downgrade`, an index
   decision comment for every new filter. Autogenerate output is a draft: read
   every line, delete the noise, name every constraint through the
@@ -52,6 +63,19 @@
 - Pure ASGI middleware, not `BaseHTTPMiddleware`: the latter breaks
   streaming responses and contextvars.
 - `docs_url` and `redoc_url` are off in production.
+- An inbound webhook follows the Webhooks section of
+  `review-checklist.md` from the first line: raw-body signature before
+  parsing, fail closed without a secret, event id recorded with the
+  effect, the sender's contract read for routing and amount semantics.
+
+## Documents are part of the change
+
+- The API contract, README and ADRs are read before the code, and the new
+  code follows the code where they disagree only after checking which one
+  is right. A contract document that is wrong about the surface you are
+  changing is corrected in the same change (the clients are built from
+  it), and the final message says so; one that is wrong elsewhere is
+  reported, not rewritten.
 
 ## Async
 
@@ -79,7 +103,7 @@
 
 - `Settings(BaseSettings)` in `app/core/config.py` with typed fields,
   `Literal` for enumerations, defaults for everything that is safe to
-  default and no default for secrets. Construction fails fast and names
+  default and no default for secrets; secrets are `SecretStr`. Construction fails fast and names
   every bad variable at once.
 - `get_settings()` is `lru_cache`d and is the one allowed module-level
   singleton. Tests build `Settings(_env_file=None, ...)` explicitly.

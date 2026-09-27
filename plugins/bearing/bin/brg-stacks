@@ -1,0 +1,83 @@
+#!/usr/bin/env bash
+# brg-stacks: the stacks a repository holds and where, one "<stack><TAB><dir>"
+# line each (dir "." for the root), from marker files up to three folders
+# deep. SessionStart prints them with the skill to load for each, because a
+# headless trigger eval showed Claude starts coding without loading a stack's
+# conventions however the skill's description reads.
+#
+#   brg-stacks [dir]      the repository at dir (default: the current one)
+#
+# Markers: go.mod (go); pyproject.toml, requirements.txt (python, or
+# data-pipeline beside dbt_project.yml or a dags/ folder); package.json by its
+# dependencies (nextjs, react-native, react, or node when it names a server
+# framework or ORM; a tooling-only package.json is no stack); pubspec.yaml
+# (flutter); a Gradle build naming com.android (android); Package.swift or an
+# .xcodeproj (ios); *.tf, kustomization.yaml, Chart.yaml (infra). Files come
+# from git (tracked and unignored), so node_modules and vendor never count; a
+# folder inside another listed folder of the same stack is folded into it.
+# The last line is "brg-stacks: N marker files examined, stacks: ..."; exit 1
+# when no file was examined. bash 3.2 safe.
+set -u
+root="${1:-}"
+[ -n "$root" ] || root="$(git rev-parse --show-toplevel 2>/dev/null)" || { echo "brg-stacks: not a git repository" >&2; exit 1; }
+cd "$root" || exit 1
+
+# js_lane <package.json>: the lane its dependencies name, or nothing.
+js_lane() {
+  if grep -q '"next"' "$1"; then echo nextjs
+  elif grep -qE '"(expo|react-native)"' "$1"; then echo react-native
+  elif grep -q '"react"' "$1"; then echo react
+  elif grep -qE '"(fastify|express|hono|koa|@nestjs/core|drizzle-orm|prisma|@prisma/client)"' "$1"; then echo node
+  fi
+}
+
+files="$(git ls-files --cached --others --exclude-standard 2>/dev/null | awk -F/ 'NF<=4')"
+examined=0
+pairs=""
+while IFS= read -r f; do
+  [ -n "$f" ] || continue
+  d="$(dirname "$f")"; b="$(basename "$f")"; lane=""
+  case "$b" in
+    go.mod) lane=go ;;
+    pyproject.toml|requirements.txt)
+      if [ -f "$d/dbt_project.yml" ] || [ -d "$d/dags" ]; then lane=data-pipeline; else lane=python; fi ;;
+    dbt_project.yml) lane=data-pipeline ;;
+    package.json) lane="$(js_lane "$f")" ;;
+    pubspec.yaml) lane=flutter ;;
+    build.gradle.kts|build.gradle|settings.gradle.kts) grep -qs 'com.android' "$f" && lane=android ;;
+    Package.swift) lane=ios ;;
+    project.pbxproj) lane=ios; d="$(dirname "$d")" ;;
+    kustomization.yaml|Chart.yaml) lane=infra ;;
+    *.tf) lane=infra ;;
+    *) continue ;;
+  esac
+  examined=$((examined+1))
+  [ -n "$lane" ] && pairs="$pairs$lane	$d
+"
+done <<EOF
+$files
+EOF
+
+# Unique pairs, then drop a folder that sits inside another of the same stack.
+pairs="$(printf '%s' "$pairs" | sort -u)"
+out=""
+while IFS='	' read -r lane d; do
+  [ -n "$lane" ] || continue
+  inner=0
+  while IFS='	' read -r l2 d2; do
+    [ "$l2" = "$lane" ] && [ "$d2" != "$d" ] || continue
+    case "$d/" in "$d2"/*) inner=1 ;; esac
+    [ "$d2" = "." ] && inner=1
+  done <<EOF
+$pairs
+EOF
+  [ "$inner" -eq 0 ] && out="$out$lane	$d
+"
+done <<EOF
+$pairs
+EOF
+printf '%s' "$out"
+stacks="$(printf '%s' "$out" | cut -f1 | sort -u | tr '\n' ' ' | sed 's/ $//')"
+echo "brg-stacks: $examined marker files examined, stacks: ${stacks:-none}"
+[ "$examined" -gt 0 ] || exit 1
+exit 0

@@ -1,7 +1,7 @@
 ---
 name: python
-description: 'Conventions for Python services: Python 3.14, FastAPI, Pydantic v2, SQLAlchemy 2 async, Alembic, structlog, uv, ruff, pytest. Use when writing, reviewing or scaffolding "FastAPI", "Pydantic" or "Python service" code.'
-allowed-tools: Read, Grep, Glob, Bash(uv run pytest:*), Bash(uv run ruff:*), Bash(uv run mypy:*), Bash(make:*)
+description: 'Python house rules (3.14, FastAPI, Pydantic v2, async SQLAlchemy, Alembic, uv, ruff, pytest). Load before writing or changing any Python code. Use when asked for "a Celery task", "a Python service".'
+allowed-tools: Read, Grep, Glob, Bash(uv run pytest:*), Bash(uv run ruff:*), Bash(uv run mypy:*), Bash(make:*), Bash(pytest:*), Bash(ruff:*), Bash(mypy:*), Bash(python3 -m pytest:*), Bash(poetry run:*), Bash(git diff:*), Bash(git log:*), Bash(git show:*)
 ---
 
 # python
@@ -26,8 +26,12 @@ pytest-asyncio and httpx, pip-audit in CI.
 
 - Writing or changing `.py` files: apply `references/guidelines.md`. Read it
   once per session, then work.
-- Reviewing a diff with Python files: apply `references/review-checklist.md`
-  and report in the reviewer format.
+- Reviewing a diff with Python files: read the repository's docs first,
+  then apply `references/review-checklist.md`. Report every finding as
+  severity (Critical, High, Medium, Low), `file:line`, the claim, a
+  concrete failure scenario and the fix; then what was checked and found
+  clean, what was not reviewed, and whether the gate was run. Prove each
+  finding before reporting it (see the checklist's first paragraph).
 - Scaffolding (`new-repo python-api <Name>`): `templates/` holds the
   skeleton and configs; `bin/brg-scaffold` in the bearing plugin copies them. Do not hand-copy. A
   command-line tool (no server, no database) is `new-repo python-cli
@@ -98,6 +102,26 @@ make migrate-verify  # up, snapshot, every Down, up again, diff the schema (CI i
 make migrate-new name=add_invoices   # alembic revision --autogenerate -m add_invoices
 make test-integration                # pytest tests/integration (needs Postgres)
 ```
+
+## Checks a green test suite does not make
+
+Tests written by the same hand share its assumptions. Before calling a
+change or a review done:
+
+- Read the contract the code serves (API doc, provider doc, ADR) and
+  diff it against the code: routing, units, delta vs running total,
+  delivery guarantees, deadlines. Fix a doc that is wrong about the
+  surface you changed; report the rest.
+- Every column you order, page, join or filter on: is it nullable in the
+  schema, and does the data hold NULLs the comment says cannot happen?
+- Worst-case latency: retries times timeouts plus sleeps, against the
+  caller's deadline.
+- Failure paths: a bad signature, a redelivery, a malformed body, an
+  unknown id, another tenant's id. Each has a test or a stated reason.
+- A claim about a library (a default, a timeout, a lock) is checked in its
+  source or with a probe, not recalled.
+- Say which checks ran and which did not (a migration applied only to the
+  test database was not applied anywhere else).
 
 ## Gotchas
 

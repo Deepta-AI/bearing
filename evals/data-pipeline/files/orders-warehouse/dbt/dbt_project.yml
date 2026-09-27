@@ -1,0 +1,27 @@
+name: pipeline
+version: "1.0.0"
+config-version: 2
+profile: pipeline
+
+model-paths: ["models"]
+macro-paths: ["macros"]
+test-paths: ["tests"]
+
+# The partition window, end exclusive. The DAG passes the run's data
+# interval; these defaults make a plain `dbt run` cover everything.
+vars:
+  start_date: "2024-01-01"
+  end_date: "2100-01-01"
+
+models:
+  pipeline:
+    staging:
+      +materialized: view
+      +schema: staging
+    intermediate:
+      +materialized: view
+      +schema: intermediate
+    marts:
+      +materialized: table
+      +schema: marts
+      +tags: ["daily"]

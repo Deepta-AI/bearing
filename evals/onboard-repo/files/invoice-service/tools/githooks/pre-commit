@@ -1,0 +1,10 @@
+#!/bin/sh
+# Team pre-commit hook. `make setup` points core.hooksPath here.
+# Applied migrations are append-only: editing one breaks every database that
+# already ran it. Add a new numbered file instead.
+edited=$(git diff --cached --name-only --diff-filter=MD -- migrations/)
+if [ -n "$edited" ]; then
+  echo "pre-commit: applied migrations are append-only; changed: $edited" >&2
+  exit 1
+fi
+npm run --silent lint && npm run --silent check:migrations

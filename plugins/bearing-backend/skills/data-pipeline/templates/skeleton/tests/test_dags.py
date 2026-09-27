@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import pendulum
 import pytest
 
 
@@ -35,3 +36,11 @@ def test_daily_orders_runs_before_it_tests(dagbag) -> None:
 
     assert dag.get_task("dbt_test").upstream_task_ids == {"dbt_run"}
     assert dag.catchup is False
+
+
+def test_every_dag_run_gets_a_data_interval_with_length(dagbag) -> None:
+    # A cron string in Airflow 3 gives start == end: an empty window, a green run, no rows.
+    run_after = pendulum.datetime(2026, 1, 2, 1, tz="UTC")
+    for dag_id, dag in dagbag.dags.items():
+        interval = dag.timetable.infer_manual_data_interval(run_after=run_after)
+        assert interval.end > interval.start, f"{dag_id}: zero-length data interval"

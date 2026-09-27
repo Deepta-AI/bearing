@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# Runs the whole gate before every commit.
+set -e
+gofmt -l . | grep . && { echo "run make fix"; exit 1; }
+go vet ./...
+go test -count=1 ./...

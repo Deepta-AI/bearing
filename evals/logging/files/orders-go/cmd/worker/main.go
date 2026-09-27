@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log"
 	"time"
 
@@ -11,7 +12,7 @@ func main() {
 	svc := orders.NewService(orders.NewMemStore())
 	n := orders.Notifier{}
 	for {
-		done, err := svc.FulfilPending(n)
+		done, err := svc.FulfilPending(context.Background(), n)
 		if err != nil {
 			log.Printf("fulfil failed: %v", err)
 		}

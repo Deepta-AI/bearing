@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# Strip trailing whitespace from staged Python and SQL files and re-stage them.
+files=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(py|sql)$' || true)
+for f in $files; do
+  python3 scripts/strip_ws.py "$f"
+  git add "$f"
+done
+exit 0

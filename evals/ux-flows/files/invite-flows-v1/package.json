@@ -1,0 +1,10 @@
+{
+  "name": "crewbook",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "start": "node --no-warnings src/server/app.js",
+    "test": "node --no-warnings --test"
+  }
+}

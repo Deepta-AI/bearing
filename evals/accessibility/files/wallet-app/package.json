@@ -1,0 +1,25 @@
+{
+  "name": "pocketline-mobile",
+  "version": "1.8.0",
+  "private": true,
+  "main": "expo-router/entry",
+  "scripts": {
+    "start": "expo start",
+    "typecheck": "tsc --noEmit",
+    "test": "jest"
+  },
+  "jest": { "preset": "jest-expo" },
+  "dependencies": {
+    "@expo/vector-icons": "^14.0.4",
+    "expo": "~52.0.11",
+    "expo-router": "~4.0.9",
+    "react": "18.3.1",
+    "react-native": "0.76.3"
+  },
+  "devDependencies": {
+    "@types/react": "~18.3.12",
+    "jest": "^29.7.0",
+    "jest-expo": "~52.0.2",
+    "typescript": "^5.6.3"
+  }
+}

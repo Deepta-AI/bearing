@@ -52,10 +52,11 @@ guide is wrong.
 
 <!-- What: the display, body, UI, data and code faces, how they load,
      the size scale and the weights.
-     Good: each face has a reason; never Inter, Space Grotesk, Roboto,
-     Arial, Helvetica, Open Sans, Lato, Montserrat or Poppins as display
-     or body; three to five sizes on one scale; two UI weights, a third
-     only for display; sizes match the tokens.
+     Good: each face has a reason; a face the direction names is kept,
+     and a default face (Inter, Roboto, Arial, system-ui) is chosen only
+     when the direction names it; three to five sizes on one scale; two
+     UI weights, a third only for display; sizes match the tokens; how
+     each face loads (self-hosted files, or still to do).
      Example: "Body: Source Serif 4 because long appointment notes stay
      readable at 16px." -->
 

@@ -3,8 +3,10 @@
 # reads the newest claude-security results with their revision stamp and the
 # newest gstack /cso report, merges findings at the same file and line
 # (higher severity wins, both sources named), fails on a claude-security scan
-# of another commit or a /cso report older than --since unless
-# --allow-stale, and fails when no scanner report exists.
+# of another commit or a /cso report older than --commit-time (else --since)
+# unless --allow-stale, prints each source's coverage, flags same-file
+# same-area rows at other lines as possible duplicates without merging them,
+# ignores its own output folder, and fails when no scanner report exists.
 set -u
 . "$(dirname "$0")/../lib/assert.sh"
 COL="$KIT/plugins/bearing/skills/vapt-report/scripts/collect_findings.py"
@@ -54,6 +56,24 @@ printf 'not json\n' >> "$d"/CLAUDE-SECURITY-*/CLAUDE-SECURITY-RESULTS.jsonl
 assert_exit 1 python3 "$COL" --root "$d" --out "$d/o.json"
 assert_contains "$T_OUT" "no revision stamp"
 assert_contains "$T_OUT" "line 3 of"
+t_end
+
+t_begin "coverage is printed and a /cso report older than the release commit is stale"
+d="$(tmpdir)"; cs "$d" "$SHA"; cso "$d" "2026-09-23T10:10:10Z"
+printf '{"revision":{"commit":"%s","base":"v1.0.0","scope":"changes"},"verification":{"status":"verified"}}\n' "$SHA" > "$d"/CLAUDE-SECURITY-*/CLAUDE-SECURITY-REVISION-${SHA:0:12}.json
+assert_exit 1 python3 "$COL" --root "$d" --commit "$SHA" --since 2026-09-01T00:00:00Z --commit-time 2026-09-24T09:00:00Z --out "$d/.scratch/o.json"
+assert_contains "$T_OUT" "coverage: claude-security changes since v1.0.0"
+assert_contains "$T_OUT" "coverage: /cso comprehensive full"
+assert_contains "$T_OUT" "/cso: .gstack/security-reports/2026-09-23-101010.json is stale (dated 2026-09-23T10:10:10Z; release is 0123456789ab committed 2026-09-24T09:00:00Z)"
+assert_eq "*" "$(cat "$d/.scratch/.gitignore")"
+t_end
+
+t_begin "same file and area at another line is flagged, not merged"
+d="$(tmpdir)"; cs "$d" "$SHA"; cso "$d" "2026-09-23T10:10:10Z"
+sed -i 's/"file":"api\/invoice.go","line":42,"exploit/"file":"api\/invoice.go","line":17,"exploit/' "$d/.gstack/security-reports/2026-09-23-101010.json"
+assert_exit 0 python3 "$COL" --root "$d" --commit "$SHA" --out "$d/o.json"
+assert_contains "$T_OUT" "4 findings (Critical 1, High 1, Medium 1, Low 1), 0 merged duplicates"
+assert_contains "$T_OUT" "check: possible duplicate, api/invoice.go lines 17 and 42"
 t_end
 
 t_begin "no scanner report fails"

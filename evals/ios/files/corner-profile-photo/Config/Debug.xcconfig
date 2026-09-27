@@ -1,0 +1,3 @@
+// Debug talks to staging. Config/Local.xcconfig (git-ignored) may override.
+API_BASE_URL = https:/$()/staging-api.corner.example
+#include? "Local.xcconfig"

@@ -1,0 +1,15 @@
+KAVERI OFFICE SUPPLIES
+GSTIN: 29ABCDE1234F1Z5
+Tax Invoice No: KOS/26-27/0926          Date: 26-09-2026
+Bill to: Anvaya Clinics, Coimbatore
+
+1. Filing cabinets, 4 units, installed on site    22,000.00
+                              IGST 18%             3,960.00
+                              Total               25,960.00
+
+Installation carried out by our partner Nilgiri Facility Services
+(GSTIN 33PQRST6789K1Z2); site queries to accounts@nilgiri-fs.example.
+
+Payment due: 26-10-2026
+Bank: account 001234567890, IFSC EXMP0001234
+Queries: billing@kaveri-office.example

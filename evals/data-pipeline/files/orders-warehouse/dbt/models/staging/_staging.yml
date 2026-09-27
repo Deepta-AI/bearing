@@ -1,0 +1,22 @@
+version: 2
+
+models:
+  - name: stg_orders
+    description: One row per order, renamed and cast from raw.orders.
+    columns:
+      - name: order_id
+        description: Order primary key.
+        data_tests: [not_null]
+      - name: status
+        description: Current order status.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ["placed", "shipped", "delivered", "cancelled"]
+
+  - name: stg_merchants
+    description: One row per merchant, the latest landed version.
+    columns:
+      - name: merchant_id
+        description: Merchant primary key.
+        data_tests: [unique, not_null]

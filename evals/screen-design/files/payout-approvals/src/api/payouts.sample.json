@@ -1,0 +1,75 @@
+{
+  "items": [
+    {
+      "id": "po_01J8Z3K2",
+      "vendor_id": "ven_0142",
+      "vendor_name": "Sharda Packaging Works",
+      "invoice_ref": "SPW/2026/0917",
+      "amount_paise": 1234567,
+      "status": "pending",
+      "due_on": "2026-09-30",
+      "created_at": "2026-09-24T05:12:00Z",
+      "first_approver": null,
+      "rejection_reason": null,
+      "failure_reason": null
+    },
+    {
+      "id": "po_01J8Z3M9",
+      "vendor_id": "ven_0077",
+      "vendor_name": "Konkan Freight Lines",
+      "invoice_ref": "KFL-88213",
+      "amount_paise": 72500000,
+      "status": "awaiting_second_approval",
+      "due_on": "2026-09-29",
+      "created_at": "2026-09-23T09:40:00Z",
+      "first_approver": {
+        "id": "usr_31",
+        "name": "A. Menon",
+        "approved_at": "2026-09-25T06:02:00Z"
+      },
+      "rejection_reason": null,
+      "failure_reason": null
+    },
+    {
+      "id": "po_01J8Z3Q4",
+      "vendor_id": "ven_0203",
+      "vendor_name": "Deccan Office Supplies",
+      "invoice_ref": "DOS-4471",
+      "amount_paise": 8990000,
+      "status": "pending",
+      "due_on": "2026-10-03",
+      "created_at": "2026-09-25T11:30:00Z",
+      "first_approver": null,
+      "rejection_reason": null,
+      "failure_reason": null
+    },
+    {
+      "id": "po_01J8Z3R2",
+      "vendor_id": "ven_0311",
+      "vendor_name": "Malabar Print House",
+      "invoice_ref": "MPH/26/0452",
+      "amount_paise": 50000000,
+      "status": "pending",
+      "due_on": "2026-10-01",
+      "created_at": "2026-09-25T13:20:00Z",
+      "first_approver": null,
+      "rejection_reason": null,
+      "failure_reason": null
+    },
+    {
+      "id": "po_01J8Z3T7",
+      "vendor_id": "ven_0019",
+      "vendor_name": "Nilgiri Facility Services",
+      "invoice_ref": "NFS/SEP/26/12",
+      "amount_paise": 150000000,
+      "status": "pending",
+      "due_on": "2026-09-28",
+      "created_at": "2026-09-22T04:05:00Z",
+      "first_approver": null,
+      "rejection_reason": null,
+      "failure_reason": null
+    }
+  ],
+  "total": 5,
+  "page": 1
+}

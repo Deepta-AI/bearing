@@ -1,0 +1,26 @@
+{
+  "name": "basket",
+  "version": "2.4.0",
+  "private": true,
+  "main": "expo-router/entry",
+  "scripts": {
+    "start": "expo start",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "@amplitude/analytics-react-native": "^1.4.9",
+    "@react-native-async-storage/async-storage": "1.23.1",
+    "@sentry/react-native": "~6.3.0",
+    "expo": "~52.0.11",
+    "expo-camera": "~16.0.8",
+    "expo-location": "~18.0.4",
+    "expo-router": "~4.0.9",
+    "expo-secure-store": "~14.0.0",
+    "react": "18.3.1",
+    "react-native": "0.76.3"
+  },
+  "devDependencies": {
+    "eslint": "^8.57.0",
+    "typescript": "~5.3.3"
+  }
+}

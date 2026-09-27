@@ -15,7 +15,9 @@ tokens-css writes one custom property per token (--color-<role>, --space-<n>,
 :root and on any [data-theme="light"] element, the dark roles on any
 [data-theme="dark"] element and under prefers-color-scheme, so a page can show
 both themes side by side. Colours resolve through themes's theme-lint.py,
-the kit's one colour calculator: hex first, oklch second.
+the kit's one colour calculator: hex in the theme blocks, oklch only in an
+@supports (color: oklch(0 0 0)) block, because a custom property holding
+hex then oklch keeps the oklch and falls back to nothing.
 
 build fills the template's foundations (every role swatch, type role, space,
 radius, elevation and duration, read from tokens.json), draws each component's
@@ -84,18 +86,22 @@ def read_tokens(path):
 
 
 def colour_decls(tl, tokens, mode, problems):
+    """Two lists for one mode: the sRGB hex declarations every browser reads,
+    and the oklch overrides. They never share a declaration block: a custom
+    property is not parsed until it is used, so `--x: #hex; --x: oklch()` keeps
+    the oklch value and a browser without oklch (Safari before 15.4) gets no
+    colour at all. The oklch set goes in an @supports block instead."""
     resolver = tl.Resolver(tokens, False)
-    out = []
+    srgb, wide = [], []
     for role, ref in sorted(tokens["color"]["roles"].get(mode, {}).items()):
         got = resolver.value(ref, "%s.%s" % (mode, role), problems)
         if got is None:
             continue
         _, hexv, ok, _ = got
-        line = "--color-%s: %s;" % (role, hexv)
+        srgb.append("--color-%s: %s;" % (role, hexv))
         if ok:
-            line += " --color-%s: %s;" % (role, ok)
-        out.append(line)
-    return out
+            wide.append("--color-%s: %s;" % (role, ok))
+    return srgb, wide
 
 
 def static_decls(t):
@@ -169,8 +175,8 @@ def tokens_css(args):
         print("tokens-css: 0 custom properties, nothing written", file=sys.stderr)
         return 1
     problems = []
-    light = colour_decls(tl, t, "light", problems)
-    dark = colour_decls(tl, t, "dark", problems)
+    light, light_wide = colour_decls(tl, t, "light", problems)
+    dark, dark_wide = colour_decls(tl, t, "dark", problems)
     static = static_decls(t)
     for p in problems:
         print("problem: %s" % p)
@@ -206,6 +212,17 @@ def tokens_css(args):
         )
         + "}\n"
     )
+    if light_wide or dark_wide:
+        css += (
+            "/* oklch where the browser has it; the hex above is what Safari\n"
+            "   before 15.4 and other old engines render. */\n"
+            "@supports (color: oklch(0 0 0)) {\n"
+            + block(':root, [data-theme="light"]', light_wide)
+            + block('[data-theme="dark"]', dark_wide)
+            + "@media (prefers-color-scheme: dark) {\n"
+            + block(':root:not([data-theme="light"])', dark_wide)
+            + "}\n}\n"
+        )
     css += (
         ":focus-visible { outline: var(--focus-width, 2px) solid var(--color-focus);"
         " outline-offset: var(--focus-offset, 2px); }\n"

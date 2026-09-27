@@ -12,7 +12,7 @@
      (`MIT OR GPL-2.0`), since the gate judges it, not a reader.
      Example: | lodash | 4.17.21 | MIT | allowed | runtime | yes | | -->
 
-Generated from `docs/compliance/sbom.cdx.json` on <YYYY-MM-DD> by `scripts/license-gate.py`.
+Generated from `<package-lock.json or sbom.cdx.json>` on <YYYY-MM-DD> by `scripts/license-gate.py`.
 Policy: `docs/compliance/license-policy.yml`. Result: <N> components, allowed <A>, denied <D>, unknown <U>.
 
 | Component | Version | Licence (SPDX) | Verdict | Scope | Attribution required | Note |

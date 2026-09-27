@@ -1,0 +1,9 @@
+{
+  "name": "shop-product-pages",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "test": "node --no-warnings --test"
+  }
+}

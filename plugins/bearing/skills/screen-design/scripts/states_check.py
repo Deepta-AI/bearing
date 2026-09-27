@@ -9,8 +9,12 @@ success, partial) unless the page carries <!-- n/a: <state> because ... -->.
 
 A screen's prototype is <screens dir>/<id>-<name>.html (S-01-orders.html).
 Its states are the values of data-state="..." on its panels; each panel also
-needs a state-bar button (data-state-target) so the state is reachable, and
-the file must hold no unfilled {{PLACEHOLDER}}.
+needs a control that reaches it (data-state-target="...", a repo's own
+data-target="...", or an href="#state=..." link), and the file must hold no
+unfilled {{PLACEHOLDER}}. State names compare case-blind with spaces and
+underscores read as hyphens, so the flows' "no slots" is the page's
+"no-slots": a repository's existing mockups are checked as they are, never
+rewritten to suit this gate.
 
 Usage: states_check.py --screens <dir> [--flows <flows.md>] [--only S-01,S-03]
 Prints one line per problem and the counts; exits 1 on any problem, or when
@@ -24,6 +28,11 @@ import re
 import sys
 
 BASELINE = ["loading", "empty", "error", "success", "partial"]
+
+
+def norm(state):
+    """One spelling per state: lower case, spaces and underscores as hyphens."""
+    return re.sub(r"[\s_]+", "-", state.strip().lower())
 
 
 def inventory(flows_path):
@@ -50,7 +59,7 @@ def inventory(flows_path):
             continue
         if cells[1].lower().startswith("n/a"):
             continue
-        state = re.sub(r"[`*]", "", cells[0]).strip().lower()
+        state = norm(re.sub(r"[`*]", "", cells[0]))
         if state and state not in screens[cur]:
             screens[cur].append(state)
     return screens
@@ -105,19 +114,23 @@ def main():
         html = open(path, encoding="utf-8").read()
         name = os.path.basename(path)
         panels = re.findall(r'\bdata-state="([^"]+)"', html)
-        targets = set(re.findall(r'\bdata-state-target="([^"]+)"', html))
+        targets = set(
+            norm(t)
+            for t in re.findall(r'\bdata-(?:state-)?target="([^"]+)"', html)
+            + re.findall(r'href="#state=([^"&]+)"', html)
+        )
         panels_total += len(panels)
         if want is None:
             exempt = set(
                 s.lower() for s in re.findall(r"<!--\s*n/a:\s*([a-z-]+)\b", html, re.I)
             )
             want = [s for s in BASELINE if s not in exempt]
-        have = set(p.lower() for p in panels)
+        have = set(norm(p) for p in panels)
         missing = [s for s in want if s not in have]
         for s in missing:
             problems.append(f'{sid} ({name}): no data-state="{s}" panel')
         for p in panels:
-            if p not in targets:
+            if norm(p) not in targets:
                 problems.append(
                     f"{sid} ({name}): panel {p} has no state-bar button (data-state-target)"
                 )

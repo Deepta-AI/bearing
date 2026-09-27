@@ -1,0 +1,1 @@
+Faster startup on older phones. Store names show again in the nearby list.

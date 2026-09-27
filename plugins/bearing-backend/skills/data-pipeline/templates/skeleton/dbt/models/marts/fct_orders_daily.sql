@@ -3,14 +3,16 @@
         materialized='incremental',
         unique_key=['order_date', 'country'],
         incremental_strategy='delete+insert',
-        on_schema_change='fail'
+        on_schema_change='fail',
+        pre_hook="{{ delete_window('order_date') }}"
     )
 }}
 
 -- Mart: orders per day and country. Incremental by partition: the window
 -- [start_date, end_date) comes from vars, the DAG passes one day, a backfill
--- passes a range, and delete+insert on the unique key makes any re-run of
--- the same window idempotent. Never --full-refresh in production.
+-- passes a range. The pre-hook deletes the whole window first, so a country
+-- whose orders all vanished loses its row; delete+insert on the unique key
+-- alone would keep it. Never --full-refresh in production.
 with orders as (
     select
         enriched.order_date,

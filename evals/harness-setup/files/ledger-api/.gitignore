@@ -1,0 +1,5 @@
+/bin/
+.env
+# Cursor: share the rules, keep everything else personal
+.cursor/*
+!.cursor/rules/

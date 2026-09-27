@@ -1,6 +1,6 @@
 ---
 name: react-native
-description: 'Conventions for React Native: Expo SDK 57, expo-router, TypeScript, TanStack Query, Zustand, Zod, NativeWind, EAS, Maestro. Use when writing, reviewing or scaffolding "React Native", "Expo" or "NativeWind" code.'
+description: 'React Native house rules (Expo, expo-router, TanStack Query, Zustand, Zod, NativeWind, EAS). Load before writing or changing React Native or Expo code. Use when asked for "an Expo screen", "an EAS build".'
 allowed-tools: Read, Grep, Glob, Skill, Bash(pnpm run:*), Bash(pnpm test:*), Bash(npx expo doctor:*), Bash(npx expo export:*), Bash(make:*)
 ---
 
@@ -40,7 +40,7 @@ animated or measured styles.
 - Writing or changing `.ts`/`.tsx` files under `app/` or `src/`: apply
   `references/guidelines.md`. Read it once per session, then work.
 - Reviewing a diff with mobile files: apply `references/review-checklist.md`
-  and report in the reviewer format.
+  and report every finding as severity (Critical, High, Medium, Low), `file:line`, the claim, a concrete failure scenario and the fix, then list what was checked and found clean and what was not reviewed.
 - Scaffolding (`new-repo react-native <Name>`): `templates/` holds the
   skeleton and configs; `bin/brg-scaffold` in the bearing plugin copies them. Do not hand-copy.
 - Generating CI (`bearing:ci-pipeline`): `templates/.gitlab-ci.yml` is the source.
@@ -122,6 +122,95 @@ was relaxed and why.
    least 44 points.
 9. `make check` = Prettier check, ESLint, `tsc --noEmit`, Jest. CI runs the
    same target.
+
+## Traps a strong generalist still ships
+
+Each of these passes a code read and fails a real customer. Check the ones
+the task touches, in the code you write and in any diff you review.
+
+Reading the repository
+- Docs disagree. The API reference and its changelog beat a README line;
+  an Accepted ADR beats both. Read the changelog to its newest entry: a
+  status, field or limit added there and missing from the body is still
+  live. Say which document you followed and correct or flag the stale one.
+- A `z.enum` over a server-owned value (status, type) turns one new value
+  into a failed page for that customer. Accept every value the docs and
+  changelog name, and render an unknown one as a neutral label
+  (`.catch()`, or `z.string()` with a known-label map), never a throw.
+
+Paginated lists (`useInfiniteQuery`)
+- `getNextPageParam` returns `undefined` when the cursor is null; the list
+  calls `fetchNextPage` from `onEndReached` only when `hasNextPage &&
+  !isFetchingNextPage` (it fires several times per scroll).
+- A failed next page sets `isError` while `data` still holds the pages
+  already loaded. Check `data` before `isError`, show the page error as a
+  footer with retry (`isFetchNextPageError`), and never replace 60 loaded
+  rows with a full-screen error.
+- Refetch on focus refetches every loaded page in sequence: a customer 20
+  pages deep makes 20 requests on each return to the app. Set `maxPages`,
+  or a `staleTime` with a reason, on long histories.
+- Keys come from the item id; flatten pages once (`select` or `useMemo`).
+
+Deep links and sessions
+- A signed-out customer who opens a link must land on that target after
+  sign in. The gate passes the path it blocked (`usePathname` plus params)
+  to sign in as a `next` param; sign in accepts `next` only as an in-app
+  path (one leading `/`, no `//`, no scheme, not an auth route, ideally
+  matched against the routes that may be linked) and `router.replace`s to
+  it, else to home.
+- A cold-start deep link has no screen under it: export `unstable_settings
+  = { initialRouteName: '(tabs)' }` from the group layout so Back returns
+  to the tabs instead of closing the app.
+- Sign out clears the query cache (`queryClient.clear()`, and any persisted
+  cache). Otherwise the next person to sign in on a shared phone sees the
+  previous customer's data until the refetch lands.
+
+Writes
+- A submit is a `useMutation`; the button is disabled while `isPending`,
+  and a failure shows a message with retry.
+- A POST that creates something carries an idempotency key generated once
+  per user intent (when the form opens or on first submit), kept across
+  retries, and replaced only after success. A key made per request does
+  not stop the duplicate a timeout-then-retry creates.
+- Required choices are required: never default a missing reason or
+  selection to a value the customer did not pick.
+- Show an action only when the server will accept it (a return window, a
+  status): compute it from the data, and map the refusal (422) to copy.
+
+Uploads and media
+- Files go to a presigned URL the API issues; the app never holds a
+  storage key or signing secret, never builds a bucket URL, and sends the
+  server's upload id back, not a key it made up. `Date.now()` in a key
+  collides under `Promise.all`.
+- Camera photos at `quality: 1` are often over 5 MB. Resize (expo-image-
+  manipulator when installed) or lower `quality`, then check the size
+  (`asset.fileSize` can be undefined; stat the file) against the server's
+  limit before asking for the URL.
+
+Native changes
+- A new native module (expo-image-picker, MMKV, anything with a config
+  plugin) needs its plugin entry and usage strings in `app.json`; iOS
+  terminates the app the first time the camera or library is opened
+  without `NSCameraUsageDescription` or `NSPhotoLibraryUsageDescription`.
+- With expo-updates and `runtimeVersion: { policy: "appVersion" }`, a new
+  native module under an unchanged `version` lets an `eas update` reach
+  binaries that lack it: the import throws, at launch when it sits in a
+  layout. Bump `version` (or use the `fingerprint` policy) and ship a
+  store build before any update that needs it.
+
+Tests that count
+- A test of a schema or a URL helper does not test the feature. Test the
+  hook with `renderHook` and a fresh `QueryClient` (`retry: false`) with
+  the `api.ts` module mocked (next page requested with the cursor, stops
+  at null), and the screen with Testing Library (rows render, an invalid
+  id shows the error and calls nothing).
+
+Reviews
+- Report only what the branch introduced: diff against the merge base and
+  check each finding's line is in that diff. A defect on an untouched line
+  of a touched file is pre-existing; list it separately as such.
+- A secret already committed is compromised: deleting it is not enough,
+  it is rotated. It blocks the merge.
 
 ## Commands
 

@@ -22,6 +22,7 @@ from datetime import timedelta
 import pendulum
 from airflow.providers.standard.operators.bash import BashOperator
 from airflow.sdk import dag
+from airflow.timetables.interval import CronDataIntervalTimetable
 
 # Paths come from the environment so the same file runs on a laptop
 # (./dbt, ./profiles.yml) and in the runner image (/app/dbt, /app).
@@ -41,7 +42,11 @@ PARTITION_VARS = (
 @dag(
     dag_id="daily_orders",
     description="dbt run and test for the orders marts, one day per run",
-    schedule="@daily",
+    # The interval timetable gives each run the previous day as its data
+    # interval. A plain cron string or "@daily" in Airflow 3 is a
+    # CronTriggerTimetable whose interval has zero length: the window would
+    # be empty and every run would write nothing.
+    schedule=CronDataIntervalTimetable("0 1 * * *", timezone="UTC"),
     start_date=pendulum.datetime(2026, 1, 1, tz="UTC"),
     catchup=False,
     max_active_runs=1,

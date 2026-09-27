@@ -1,0 +1,30 @@
+{
+  "cli": {
+    "version": ">= 16.0.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal"
+    },
+    "preview": {
+      "distribution": "internal",
+      "channel": "preview",
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://api.staging.basket.example.com",
+        "EXPO_PUBLIC_UPLOAD_BUCKET_URL": "https://basket-staging-returns.s3.ap-south-1.amazonaws.com",
+        "EXPO_PUBLIC_UPLOAD_SIGNING_SECRET": "d3b07384d113edec49eaa6238ad5ff00c86a5b8e"
+      }
+    },
+    "production": {
+      "autoIncrement": true,
+      "channel": "production",
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://api.basket.example.com",
+        "EXPO_PUBLIC_UPLOAD_BUCKET_URL": "https://basket-returns.s3.ap-south-1.amazonaws.com",
+        "EXPO_PUBLIC_UPLOAD_SIGNING_SECRET": "7c4a8d09ca3762af61e59520943dc26494f8941b"
+      }
+    }
+  }
+}

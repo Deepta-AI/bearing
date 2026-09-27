@@ -4,7 +4,12 @@
 # owner and a future removal date, and code reads flags only through the
 # module; fails on each mismatch direction, a removed flag still in code, a
 # missing owner, a missing or past date, a key or FLAG_ read outside the
-# module, and on empty input.
+# module, a removed flag still read by a client file or set in deploy
+# config, a FLAG_ setting for no flag, and on empty input. Reads a team's
+# register without an "Active flags" heading as it is, lists client reads
+# and per-environment values (naming deployed files that leave a flag
+# unset), fails on a false, 0 or off setting a lenient parser reads as on,
+# and exempts test files.
 set -u
 . "$(dirname "$0")/../lib/assert.sh"
 CHK="$KIT/plugins/bearing/skills/feature-flags/scripts/flags_check.py"
@@ -48,7 +53,7 @@ run() { (cd "$1" && python3 "$CHK" --today 2026-09-23); }
 t_begin "module, register and code agree"
 d="$(tmpdir)/ok"; fixture "$d"
 assert_exit 0 run "$d"
-assert_contains "$T_OUT" "feature-flags: 2 flags in internal/flags/flags.go, 2 in the register, 0 mismatches, 0 past their removal date, 1 removal tasks tbd, 0 reads outside the module in 1 source files, 0 problems"
+assert_contains "$T_OUT" "feature-flags: 2 flags in internal/flags/flags.go, 2 in the register, 0 mismatches, 0 past their removal date, 1 removal tasks tbd, 0 reads outside the module in 1 source files, 0 client reads, 0 config files, 0 problems"
 t_end
 
 t_begin "a flag on one side only and a removed flag still in code are mismatches"
@@ -80,6 +85,64 @@ assert_contains "$T_OUT" "problem: internal/http/job.go:3: reads a FLAG_ variabl
 assert_contains "$T_OUT" "problem: internal/http/job.go:4: reads flag kill_recommendations outside the module"
 assert_contains "$T_OUT" "problem: internal/http/web.ts:1: reads a FLAG_ variable outside the module"
 assert_contains "$T_OUT" "3 reads outside the module in 3 source files"
+t_end
+
+t_begin "a register without an Active heading and with its own column names is read as it is"
+d="$(tmpdir)/ownreg"; fixture "$d"
+cat > "$d/docs/operations/flags.md" <<'MD'
+# Feature flags register
+
+| Flag | Default | Owner | On means | Removal ticket | Target date | Added |
+| --- | --- | --- | --- | --- | --- | --- |
+| new_checkout | off | payments-oncall | new flow | PROJ-12 | 2026-12-21 | 2026-09-22 |
+| kill_recommendations | off | growth-oncall | empty list | PROJ-13 | 2027-09-22 | 2026-09-22 |
+MD
+assert_exit 0 run "$d"
+assert_contains "$T_OUT" "2 in the register, 0 mismatches, 0 past their removal date, 0 removal tasks tbd"
+t_end
+
+t_begin "a removed flag still read by a client file or set in deploy config fails; values and client reads are listed"
+d="$(tmpdir)/removed"; fixture "$d"
+mkdir -p "$d/static" "$d/deploy" "$d/config" "$d/tests"
+printf 'var f = window.FLAGS || {};\nif (f["old_search"]) { go(); }\nif (f["new_checkout"]) { pay(); }\n' > "$d/static/app.js"
+printf 'REGION=eu\nFLAG_OLD_SEARCH=true\nFLAG_NEW_CHECKOUT=false\nFLAG_NEW_CHEKOUT=true\n' > "$d/deploy/eu.env"
+printf 'REGION=us\nFLAG_NEW_CHECKOUT=true\n' > "$d/deploy/us.env"
+printf 'FLAG_NEW_CHECKOUT=false\n' > "$d/.env.example"
+printf 'env:\n  - name: FLAG_KILL_RECOMMENDATIONS\n    value: "false"\n' > "$d/deploy/k8s.yaml"
+printf '{"acct_1": {"old_search": false}}\n' > "$d/config/overrides.json"
+printf 'def test_x():\n    assert "new_checkout"\n' > "$d/tests/test_flags.py"
+assert_exit 1 run "$d"
+assert_contains "$T_OUT" "problem: static/app.js:2: reads removed flag old_search"
+assert_contains "$T_OUT" "problem: deploy/eu.env:2: sets removed flag old_search"
+assert_contains "$T_OUT" "problem: deploy/eu.env:4: sets FLAG_NEW_CHEKOUT, which is not a flag in the module"
+assert_contains "$T_OUT" "problem: config/overrides.json:1: names removed flag old_search"
+assert_contains "$T_OUT" "values: new_checkout: .env.example:1=false, deploy/eu.env:3=false, deploy/us.env:2=true, unset (default) in deploy/k8s.yaml (differs between deployed environments)"
+assert_contains "$T_OUT" "values: kill_recommendations: deploy/k8s.yaml:2=false, unset (default) in deploy/eu.env, deploy/us.env (differs between deployed environments)"
+assert_contains "$T_OUT" "client read: static/app.js:3: new_checkout"
+assert_not_contains "$T_OUT" "config names: config/overrides.json"
+assert_not_contains "$T_OUT" "tests/test_flags.py"
+assert_contains "$T_OUT" "1 client reads, 5 config files, 4 problems"
+t_end
+
+t_begin "an override map naming an active flag is listed as another value source"
+d="$(tmpdir)/override"; fixture "$d"
+mkdir -p "$d/config"
+printf '{"acct_7": [{"flag": "new_checkout", "on": false}]}\n' > "$d/config/flag_overrides.json"
+assert_exit 0 run "$d"
+assert_contains "$T_OUT" "config names: config/flag_overrides.json:1: new_checkout"
+t_end
+
+t_begin "a module that reads any non-empty value as on makes every false, 0 or off setting a problem"
+d="$(tmpdir)/lenient"; fixture "$d"
+mkdir -p "$d/deploy"
+printf '\nfunc lookup(k string) bool { return os.Getenv(k) != "" }\n' >> "$d/internal/flags/flags.go"
+printf 'FLAG_NEW_CHECKOUT=false\nFLAG_KILL_RECOMMENDATIONS=true\n' > "$d/deploy/eu.env"
+printf 'data:\n  FLAG_KILL_RECOMMENDATIONS: "off"\n  FLAG_NEW_CHECKOUT: ""\n' > "$d/deploy/shared.yaml"
+assert_exit 1 run "$d"
+assert_contains "$T_OUT" "problem: deploy/eu.env:1: FLAG_NEW_CHECKOUT=false reads as ON: internal/flags/flags.go:13 treats any non-empty value as on"
+assert_contains "$T_OUT" "problem: deploy/shared.yaml:2: FLAG_KILL_RECOMMENDATIONS=off reads as ON"
+assert_not_contains "$T_OUT" "deploy/eu.env:2: FLAG_KILL"
+assert_not_contains "$T_OUT" "shared.yaml:3: FLAG_NEW_CHECKOUT"
 t_end
 
 t_begin "zero flags in both, with sources scanned, is a valid pass"

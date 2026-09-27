@@ -34,18 +34,24 @@ screenshot present. The table rows keep the shape
 - `text-wrap: balance` on headings; absent is polish.
 - `font-variant-numeric: tabular-nums` where figures align; absent on a
   column of numbers is medium.
+- Every face the CSS names is loaded (`@font-face` or a font link); a
+  face that never loads is high: every screen shows the fallback.
 - Display face is not Inter, Space Grotesk, Roboto, Arial or a system
   stack: hit is high (also a slop hit).
 - One UI face and one mono across every screen; a second face carrying
   body text is high (two type systems read as two products).
 - Body 16 px or more; smaller is high. Captions 12 px or more.
-- Curly quotes, real ellipsis; straight or three dots is polish.
+- Curly quotes, real ellipsis; straight or three dots is polish, except
+  in copy the flows give, which stays character for character.
 - Grep: `font-family`, `font-size`, `font-weight`, `text-wrap`, `tabular`.
 
 ## 3. Colour (10%)
 
-- Contrast AA in both themes: body 4.5:1, large 3:1, controls 3:1.
-  Compute from the tokens; a failure is high per theme.
+- Contrast AA in light and in both dark paths: body 4.5:1, large (24 px,
+  or 18.66 px bold) 3:1, field edges and focus rings 3:1 against their
+  surround. Computed by `scripts/pairs.py`, per surface; a failure is high
+  per theme. A raw colour in a page that fails in dark is high.
+- A token overridden in one dark block and not the other is high.
 - The accent has one job and the page says which. Accent on decoration
   is medium.
 - 60/30/10 holds: count surfaces. A page that is mostly accent is high.
@@ -57,7 +63,7 @@ screenshot present. The table rows keep the shape
 - Semantic colours carry a word; colour-only status is high.
 - Grep: `:root`, `prefers-color-scheme`, `data-theme`, `#000`, `#fff`.
 
-## 4. Spacing rhythm (15%)
+## 4. Spacing rhythm (10%)
 
 - One scale. List every padding, margin and gap value; anything off the
   scale is medium, three or more is high.
@@ -70,7 +76,8 @@ screenshot present. The table rows keep the shape
 ## 5. Interaction states (10%)
 
 - Hover on every control; missing is medium.
-- `:focus-visible` ring on every control; `outline: none` without a
+- `:focus-visible` ring on every control, 3:1 against the surface it is
+  drawn on (`pairs.py` measures it); `outline: none` without a
   replacement is high.
 - Active, disabled (`opacity` plus `cursor: not-allowed`), loading
   (skeleton matches layout), empty (invitation plus action), error (what
@@ -86,7 +93,8 @@ screenshot present. The table rows keep the shape
 - Navigation collapses to a sheet or drawer below 768; a sidebar that
   squeezes the content is high. Tables become cards or scroll in their
   own container; a table that overflows the page is high.
-- Touch targets 44 px at 375; smaller is medium per control class.
+- Touch targets 44 px at 375, computed (a fixed `height` wins over
+  padding); smaller is medium per control class.
 - Viewport meta present, no `user-scalable=no`; hit is high.
 - Grep: `@media`, `min-width`, `max-width`, `overflow-x`, `user-scalable`.
 
@@ -107,6 +115,11 @@ screenshot present. The table rows keep the shape
   Learn more are medium each.
 - Errors say what happened and what to do; vague or apologetic is high.
 - Empty states invite; "No items" alone is medium.
+- Copy matches the flows word for word where the flows give it; a
+  divergent label or message is medium, a state shown on the wrong page
+  (an error on the default screen) is high.
+- Sample data agrees with itself (status and dates, totals and lines);
+  a contradiction the reader will notice is high.
 - No lorem ipsum, no "Welcome to", no happy talk; hit is high.
 - Instructions longer than one sentence are medium and name the control
   they compensate for.
@@ -123,7 +136,7 @@ screenshot present. The table rows keep the shape
 - `color-scheme` set on `html` when dark exists; absent is polish.
 - Grep: `<label`, `aria-`, `role=`, `alt=`, `<main`, `tabindex`.
 
-## 11. Consistency across screens (10%)
+## 10. Consistency across screens (10%)
 
 Judged over every screen in the review together, not page by page.
 
@@ -140,7 +153,7 @@ Judged over every screen in the review together, not page by page.
 - Grep: raw `<table`, `<button`, `<input` outside `components/ui`;
   `font-family`; arbitrary `text-[`, `p-[`, `gap-[` values.
 
-## 10. AI slop detector (5%, any hit caps at 3)
+## 11. AI slop detector (5%, any hit caps at 3)
 
 Hard rules: cream plus serif plus terracotta; near-black plus acid
 green; purple-to-blue gradient hero; Inter or Space Grotesk as display;

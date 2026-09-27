@@ -2,13 +2,16 @@
 # brg-doctor: verify the Bearing installation on this machine and, when run
 # inside a repository, in that repository. Prints one line per check and a
 # summary; exits 1 when any required check is missing. Accepts either git
-# host: CI is .gitlab-ci.yml or .github/workflows/*.yml or *.yaml, the change
-# template is .gitlab/merge_request_templates/Default.md or
-# .github/PULL_REQUEST_TEMPLATE.md. The third-party packs (Superpowers, gstack)
+# host: CI is .gitlab-ci.yml or .github/workflows/*.yml or *.yaml and must run
+# make check; the change template is .gitlab/merge_request_templates/*.md or
+# pull_request_template.md in any case (GitHub's rule). The third-party packs (Superpowers, gstack)
 # are required only when BEARING_PROFILE (environment, then bearing.env) is
 # standard or full; unset or minimal makes them optional, so a
 # `install.sh --profile minimal` machine can pass. core.hooksPath passes as
-# .githooks, or as another directory whose three hooks each call .githooks/.
+# .githooks, or as another directory whose three hooks each call .githooks/
+# with their arguments and keep its exit status. A hook counts only when git
+# would run it: present, executable, and committed as 100755; make setup
+# counts only when every script its dry run calls exists.
 set -u
 KIT="$(cd "$(dirname "$0")/.." && pwd)"
 KIT_VERSION="$(bash "$KIT/bin/brg-kit-paths" --version 2>/dev/null)"; KIT_VERSION="${KIT_VERSION:-?}"
@@ -94,30 +97,98 @@ if [ -n "$root" ] && [ "$in_kit" -eq 0 ]; then
   else fail "CLAUDE.md missing (onboard-repo)"; fi
   [ -f "$root/.claude/settings.json" ] && pass ".claude/settings.json present" || fail ".claude/settings.json missing (onboard-repo)"
   n="$(ls "$root/.claude/rules" 2>/dev/null | grep -c '\.md$' || true)"; [ "${n:-0}" -gt 0 ] && pass ".claude/rules: $n rule files" || fail ".claude/rules empty (onboard-repo --stack <id>)"
+  # A .gitignore that swallows .claude/rules (".claude/*" to hide local
+  # settings) means rule files written by the fix never reach other clones.
+  if git -C "$root" check-ignore -q .claude/rules/probe.md 2>/dev/null; then
+    fail ".gitignore ignores .claude/rules/ ($(git -C "$root" check-ignore -v .claude/rules/probe.md 2>/dev/null | cut -f1)), so rule files are never committed (add !.claude/rules/ after that line)"
+  fi
+  # Hooks: git runs a hook only from the effective hooks directory, under its
+  # exact name, and only when it is executable; a non-executable hook is
+  # skipped with a hint nobody reads. A local chmod does not travel: the mode
+  # other clones get is the one in the index (100755).
   hp="$(git -C "$root" config core.hooksPath 2>/dev/null || true)"; hp="${hp%/}"
   case "$hp" in
     .githooks|./.githooks|"$root/.githooks") pass "core.hooksPath=.githooks";;
     '') fail "core.hooksPath not set (bash .githooks/install.sh)";;
-    *) chained=0
+    *) case "$hp" in /*) hd="$hp";; *) hd="$root/$hp";; esac
+       # Husky 9 sets core.hooksPath to .husky/_, whose generated wrappers run
+       # the hooks the team edits in .husky/; judge those.
+       ud="$hd"; [ "$(basename "$hd")" = "_" ] && ud="$(dirname "$hd")"
+       chained=0; notes=""
        for hk in commit-msg pre-commit pre-push; do
-         case "$hp" in /*) hf="$hp/$hk";; *) hf="$root/$hp/$hk";; esac
-         grep -q "\.githooks/$hk" "$hf" 2>/dev/null && chained=$((chained+1))
+         hf="$ud/$hk"
+         line="$(grep -E "\.githooks/$hk([^A-Za-z0-9_-]|$)" "$hf" 2>/dev/null | grep -vE '^[[:space:]]*#' | head -1)"
+         if [ -z "$line" ]; then notes="$notes; $hk does not call .githooks/$hk"; continue; fi
+         if printf '%s' "$line" | grep -Eq '\|\|[[:space:]]*(true|:)([[:space:];]|$)|;[[:space:]]*(true|:)[[:space:]]*$|&[[:space:]]*$'; then
+           notes="$notes; $hk calls it but discards its exit status"; continue; fi
+         if ! printf '%s' "$line" | grep -Eq '\$(\{)?(@|1|\*)'; then
+           notes="$notes; $hk calls it without passing its arguments (\"\$@\")"; continue; fi
+         if [ "$ud" = "$hd" ] && [ ! -x "$hf" ]; then notes="$notes; $hk is not executable"; continue; fi
+         chained=$((chained+1))
        done
        [ "$chained" -eq 3 ] && pass "core.hooksPath=$hp, its 3 hooks chain .githooks/" \
-         || fail "core.hooksPath=$hp and $chained of 3 of its hooks call .githooks/<hook> (add \".githooks/<hook> \"\$@\" || exit \$?\" to each, or set core.hooksPath .githooks by hand)";;
+         || fail "core.hooksPath=$hp and $chained of 3 of its hooks call .githooks/<hook>${notes} (in each, \".githooks/<hook> \"\$@\" || exit \$?\"; setting core.hooksPath .githooks by hand drops that tool's own hooks, and a package prepare script may set it back)";;
   esac
-  h="$(ls "$root/.githooks" 2>/dev/null | grep -cE '^(commit-msg|pre-commit|pre-push)$' || true)"; [ "${h:-0}" -eq 3 ] && pass "3 git hooks present" || fail "git hooks incomplete ($h of 3)"
-  if [ -f "$root/Makefile" ] || [ -f "$root/makefile" ]; then grep -qE '^check:' "$root"/[Mm]akefile 2>/dev/null && pass "make check target" || fail "Makefile has no check target"; else fail "no Makefile"; fi
-  # CI and change template: either host counts.
-  ci=""
-  [ ! -f "$root/.gitlab-ci.yml" ] || ci=".gitlab-ci.yml"
-  gh_wf="$(ls "$root/.github/workflows"/*.yml "$root/.github/workflows"/*.yaml 2>/dev/null | head -1)"
-  [ -z "$gh_wf" ] || ci="${ci:+$ci, }.github/workflows/$(basename "$gh_wf")"
-  [ -n "$ci" ] && pass "CI present ($ci)" || fail "CI missing: no .gitlab-ci.yml and no .github/workflows/*.yml or *.yaml (ci-pipeline)"
+  hbad=""
+  for hk in commit-msg pre-commit pre-push; do
+    f="$root/.githooks/$hk"
+    if [ ! -f "$f" ]; then hbad="$hbad; $hk absent"; continue; fi
+    mode="$(git -C "$root" ls-files -s -- ".githooks/$hk" 2>/dev/null | awk '{print $1; exit}')"
+    if [ -n "$mode" ] && [ "$mode" != 100755 ]; then hbad="$hbad; $hk committed as $mode (git update-index --chmod=+x .githooks/$hk, then commit)"
+    elif [ ! -x "$f" ]; then hbad="$hbad; $hk not executable in this clone (chmod +x .githooks/$hk)"; fi
+  done
+  [ -z "$hbad" ] && pass "3 git hooks present and executable" || fail "git hooks will not all run${hbad}; git skips a hook that is absent or not executable"
+  mk=""; [ -f "$root/Makefile" ] && mk="$root/Makefile"; [ -n "$mk" ] || { [ -f "$root/makefile" ] && mk="$root/makefile"; }
+  if [ -n "$mk" ]; then
+    grep -qE '^check:' "$mk" && pass "make check target" || fail "Makefile has no check target"
+    # make setup: a dry run names every script it calls; each must exist, and
+    # a '-' recipe line hides a failure behind a zero exit.
+    if grep -qE '^setup:' "$mk"; then
+      dry="$(cd "$root" && make --no-print-directory -n setup 2>&1 || true)"
+      gone=""
+      for w in $(printf '%s\n' "$dry" | grep -oE '[A-Za-z0-9_./-]+\.(sh|bash|py)' | sort -u); do
+        case "$w" in /*) [ -f "$w" ] || gone="$gone $w";; *) [ -f "$root/$w" ] || gone="$gone $w";; esac
+      done
+      ign="$(awk '/^setup:/{s=1;next} s && /^\t/{ if ($0 ~ /^\t[@+]*-/) n++; next } s{exit} END{print n+0}' "$mk")"
+      if [ -n "$gone" ]; then fail "make setup calls$gone, which does not exist${ign:+ (and $ign recipe line(s) ignore errors)}"
+      elif [ "${ign:-0}" -gt 0 ]; then fail "make setup has $ign recipe line(s) starting with '-', so a failed step still exits 0"
+      else pass "make setup: every script it calls exists (dry run)"; fi
+    fi
+  else fail "no Makefile"; fi
+  # CI and change template: either host counts, and CI must run the gate.
+  ci=""; cifiles=""
+  [ ! -f "$root/.gitlab-ci.yml" ] || { ci=".gitlab-ci.yml"; cifiles="$root/.gitlab-ci.yml"; }
+  for wf in "$root/.github/workflows"/*.yml "$root/.github/workflows"/*.yaml; do
+    [ -f "$wf" ] || continue
+    case "$ci" in *.github/workflows/*) ;; *) ci="${ci:+$ci, }.github/workflows/$(basename "$wf")";; esac
+    cifiles="$cifiles $wf"
+  done
+  if [ -n "$ci" ]; then
+    pass "CI present ($ci)"
+    # The gate is enforced only if CI runs it. A CI that runs other make
+    # targets (a matrix of the gates) may cover it; one that runs no make at
+    # all does not.
+    # shellcheck disable=SC2086
+    cimk="$(grep -hvE '^[[:space:]]*#' $cifiles 2>/dev/null | grep -oE '(make|\$\(MAKE\))([[:space:]]+-[^[:space:]]+)*[[:space:]]+[A-Za-z0-9_$.{}-]+' | awk '{print $NF}' | sort -u | tr '\n' ' ')"
+    case " $cimk " in
+      *" check "*) pass "CI runs make check";;
+      "  ") fail "CI never runs make, so make check is not enforced in CI ($ci); make the CI step run make check";;
+      *) optional "CI runs make ${cimk% } but not make check itself; confirm those cover every target check runs";;
+    esac
+  else fail "CI missing: no .gitlab-ci.yml and no .github/workflows/*.yml or *.yaml (ci-pipeline)"; fi
   tpl=""
-  [ ! -f "$root/.gitlab/merge_request_templates/Default.md" ] || tpl=".gitlab/merge_request_templates/Default.md"
-  [ ! -f "$root/.github/PULL_REQUEST_TEMPLATE.md" ] || tpl="${tpl:+$tpl, }.github/PULL_REQUEST_TEMPLATE.md"
-  [ -n "$tpl" ] && pass "change template present ($tpl)" || fail "MR/PR template missing: no .gitlab/merge_request_templates/Default.md and no .github/PULL_REQUEST_TEMPLATE.md (onboard-repo)"
+  for f in "$root"/.gitlab/merge_request_templates/*.md; do [ -f "$f" ] && tpl="${tpl:+$tpl, }${f#"$root"/}"; done
+  # GitHub reads pull_request_template.md in any case from .github/, docs/ or
+  # the root, or a PULL_REQUEST_TEMPLATE/ directory of them.
+  for d in .github docs .; do
+    [ -d "$root/$d" ] || continue
+    for n in $(ls -a "$root/$d" 2>/dev/null | grep -ix 'pull_request_template\(\.md\)\?'); do
+      p="$root/$d/$n"; r="${p#"$root"/}"; r="${r#./}"
+      if [ -f "$p" ]; then tpl="${tpl:+$tpl, }$r"
+      elif ls "$p"/*.md >/dev/null 2>&1; then tpl="${tpl:+$tpl, }$r/"; fi
+    done
+  done
+  [ -n "$tpl" ] && pass "change template present ($tpl)" || fail "MR/PR template missing: no .gitlab/merge_request_templates/*.md and no pull_request_template.md (any case) in .github/, docs/ or the root (onboard-repo)"
   grep -q '\.bearing/state' "$root/.gitignore" 2>/dev/null && pass ".gitignore ignores .bearing/state" || fail ".gitignore lacks .bearing/state (onboard-repo)"
   # Vendored guard: its version stamp must match the installed kit.
   vg="$root/.bearing/bin/brg-guard"

@@ -1,0 +1,21 @@
+groups:
+  - name: ledger
+    rules:
+      - alert: LedgerApiHigh5xx
+        expr: sum(rate(http_requests_total{job="ledger-api",code=~"5.."}[5m])) / sum(rate(http_requests_total{job="ledger-api"}[5m])) > 0.02
+        for: 10m
+        labels:
+          severity: page
+        annotations:
+          summary: ledger-api 5xx above 2 percent
+          description: More than 2 percent of ledger-api requests failed over 10 minutes.
+          runbook_url: https://gitlab.example.com/ledger/ledger-service/-/blob/main/docs/runbooks/ledger-api-5xx.md
+      - alert: LedgerWorkerLag
+        expr: max(ledger_pending_postings_oldest_age_seconds{job="ledger-worker"}) > 300
+        for: 10m
+        labels:
+          severity: page
+        annotations:
+          summary: ledger-worker is more than 5 minutes behind
+          description: The oldest pending posting has waited more than 5 minutes for 10 minutes.
+          runbook_url: https://gitlab.example.com/ledger/ledger-service/-/blob/main/docs/runbooks/ledger-worker-lag.md

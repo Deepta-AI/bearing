@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: billing-api
+spec:
+  replicas: 2
+  revisionHistoryLimit: 0
+  selector:
+    matchLabels: { app: billing-api }
+  template:
+    metadata:
+      labels: { app: billing-api }
+    spec:
+      containers:
+        - name: api
+          image: registry.example.com/riverton/billing-api:latest
+          imagePullPolicy: Always
+          ports: [{ containerPort: 8000 }]
+          envFrom:
+            - secretRef: { name: billing-api-env }
+          readinessProbe:
+            httpGet: { path: /healthz, port: 8000 }

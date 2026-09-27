@@ -1,6 +1,6 @@
 ---
 name: infra
-description: 'Conventions for infrastructure code: Terraform modules and remote state, per-environment directories, tflint, Trivy, kustomize, plan-only CI. Use when writing or reviewing "Terraform", "k8s manifests" or "infra".'
+description: 'Infrastructure house rules (Terraform modules, remote state, per-env dirs, tflint, Trivy, kustomize, plan-only CI). Load before changing Terraform or k8s. Use when asked about "remote state", "a kustomize overlay".'
 allowed-tools: Read, Grep, Glob, Skill, Bash(terraform fmt:*), Bash(terraform validate:*), Bash(terraform plan:*), Bash(tflint:*), Bash(trivy config:*), Bash(kustomize build:*), Bash(make:*)
 ---
 
@@ -40,7 +40,7 @@ bearing plugin).
 - Writing or changing `.tf`, `.tfvars`, `k8s/**` or monitoring files: apply
   `references/guidelines.md`. Read it once per session, then work.
 - Reviewing a diff with infrastructure files: apply
-  `references/review-checklist.md` and report in the reviewer format.
+  `references/review-checklist.md` and report every finding as severity (Critical, High, Medium, Low), `file:line`, the claim, a concrete failure scenario and the fix, then list what was checked and found clean and what was not reviewed.
   A plan that destroys or replaces anything is the first line of the review.
 - Pack skills (hashicorp/agent-skills), when installed, cover three
   narrow jobs; load them with the Skill tool: `terraform-test` to
@@ -110,6 +110,69 @@ Makefile targets. Say which rule was relaxed and why.
    `apply`, `destroy` or `kubectl apply`.
 9. `make check` = fmt-check, validate, lint, sec, kustomize, shell. CI runs
    the same targets.
+
+## Traps that look fine on reading
+
+Each of these passes a read of the diff and `make check`; each has taken
+data or production down. Check them on every change and every review.
+
+- **Compute per environment, from the code.** Ranges, names and sizes are
+  read from each `envs/<env>` root on its own; roots drift (a prod-only
+  second pod range, a qa override), and a README address plan or a
+  pattern from dev is a claim, not the source. A new CIDR is checked
+  against every range that root and its modules declare.
+- **A cloud name is not a Terraform address.** Changing `name` on a
+  Cloud SQL instance, bucket, secret, cluster or disk forces replacement:
+  a new empty resource and the old one destroyed with its data. `moved`,
+  `state mv` and `import` change only addresses; they cannot rename
+  anything in the cloud. The fix is to keep the existing name (or a
+  planned migration), and deletion protection stays on.
+- **Data residency is per attribute.** A region on the resource does not
+  place its copies. Set them: Cloud SQL `backup_configuration.location`
+  (the default is a multi-region), Secret Manager `user_managed`
+  replication (automatic is global), bucket and dataset `location`, KMS
+  key ring location, replica regions.
+- **Private IP needs private service access.** One reserved
+  `VPC_PEERING` range per VPC from that environment's own block, a
+  `google_service_networking_connection`, and the instance depends on
+  the connection. Cloud SQL for PostgreSQL 16 and later defaults to the
+  Enterprise Plus edition, which rejects `db-custom-*` tiers: set
+  `edition = "ENTERPRISE"` with them (point-in-time log retention is at
+  most 7 days on Enterprise).
+- **Generated secrets land in state.** `random_password.result`,
+  `google_sql_user.password` and `secret_data` are stored in clear in
+  the state file. Write-only arguments (`password_wo`, `secret_data_wo`,
+  Terraform 1.11+) and ephemeral resources avoid it, but only on
+  versions the repository's pins allow. Either stay within the pins and
+  say the state holds the secret (state readers are secret readers), or
+  propose the upgrade as its own change. Never raise `required_version`,
+  a provider constraint or `.terraform-version` as a side effect; any
+  provider added or bumped means the committed lock files must be
+  regenerated with `terraform init`, and the report says so.
+- **Authoritative IAM removes grants.** `*_iam_policy` owns a resource's
+  whole policy and `*_iam_binding` owns every member of one role: an apply
+  strips members granted elsewhere, and two bindings for the same role
+  overwrite each other forever. Use `*_iam_member` unless this code owns
+  the role outright. Grant at the resource (one secret, one bucket), not
+  the project, when the resource supports it.
+- **Manifests must match the code they run.** A probe's port and path
+  exist only if the process serves them (find the listener and handlers);
+  an alert's metric exists only if something exports it with those
+  labels. A worker with no HTTP server and an HTTP probe never becomes
+  Ready; an alert on a metric nobody exports never fires.
+- **Render, then read.** A kustomize `images:` entry applies only when its
+  `name` equals the image string in the base exactly; a mismatch is
+  silent and ships the base image untagged (`latest`). Read the image,
+  replicas and namespace lines of `kubectl kustomize` for every overlay;
+  a resource count proves nothing.
+- **A plan is evidence only for the commit it came from.** Before
+  trusting a posted plan, match its commit to the branch head and check
+  there is one for every environment the change touches. Commits after
+  the plan, or a missing environment, are unreviewed; read them as if
+  no plan existed. The summary line (`N to destroy`) is read first.
+- **Say what ran.** Name each gate that ran with its result and each that
+  could not run, with the reason checked (is the binary really missing?).
+  No commit unless asked; never set a git author or committer identity.
 
 ## Commands
 

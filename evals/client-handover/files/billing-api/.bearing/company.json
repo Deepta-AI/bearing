@@ -1,0 +1,14 @@
+{
+  "name": "Brightline",
+  "legal_name": "Brightline Software Private Limited",
+  "id": "brightline",
+  "domain": "brightline.example.com",
+  "git": { "host": "gitlab.example.com", "group": "brightline", "ssh_host": "gitlab.example.com" },
+  "tracker": { "name": "rest", "key_shape": "BIL-N", "url": "https://tracker.example.com" },
+  "security_contact": "security@brightline.example.com",
+  "copyright": { "holder": "Brightline Software Private Limited", "since": 2025 },
+  "license": "proprietary",
+  "delivering_entity": "Brightline Software Private Limited",
+  "entities": ["Brightline Software Private Limited", "Northgate Labs Private Limited"],
+  "headers": false
+}

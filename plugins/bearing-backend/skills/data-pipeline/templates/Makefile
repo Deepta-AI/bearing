@@ -143,6 +143,7 @@ dbt-docs: ## Generate the catalogue and lineage (dbt/target/manifest.json, catal
 
 backfill: ## Rebuild the incremental marts for [start, end): make backfill start=2026-01-01 end=2026-02-01
 	@[ -n "$(start)" ] && [ -n "$(end)" ] || { echo "usage: make backfill start=YYYY-MM-DD end=YYYY-MM-DD (end exclusive)" >&2; exit 2; }
+	@expr "$(start)" \< "$(end)" >/dev/null || { echo "backfill: empty range, start $(start) is not before end $(end); nothing rebuilt" >&2; exit 2; }
 	@$(ENV_LOAD) $(DBT) run --select tag:daily --vars '{"start_date": "$(start)", "end_date": "$(end)"}'
 	@$(ENV_LOAD) $(DBT) test --select tag:daily --vars '{"start_date": "$(start)", "end_date": "$(end)"}'
 	@echo "backfill: window $(start) to $(end) rebuilt by partition (never --full-refresh in production)"

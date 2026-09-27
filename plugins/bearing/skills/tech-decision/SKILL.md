@@ -75,7 +75,9 @@ the decision gets made, and it records through `adr`'s template.
    it, the condition that would flip the recommendation, any fact the
    repository does not give that would change the answer (budget, who
    would operate it, a volume) with the assumption made about it, and
-   the question. Then stop and wait for the answer. Use the host's question
+   the question. Run the checks in "Before recommending" first; their
+   results are the reasons, not an appendix. Then stop and wait for the
+   answer. Use the host's question
    tool when it exists, so the user picks from the list.
 4. If the user picks against the recommendation, accept it in one
    sentence, note the consequence they are accepting, and continue.
@@ -86,9 +88,11 @@ the decision gets made, and it records through `adr`'s template.
    repository template) with the next number, context, the options shown,
    the decision and its consequences, status Accepted; and a row in
    `docs/decisions.md` from `templates/decisions.md` (key, choice,
-   recommended, reason, ADR, date), plus the ADR's index row in
-   `docs/architecture/decisions.md` as `adr` step 6 writes it (area,
-   reversibility). A key the user explicitly puts off
+   recommended, reason, ADR, date), plus a row in the ADR index only when
+   the repository already keeps one (`docs/architecture/decisions.md` as
+   `adr` step 6 writes it, or its own). Never create an index, a notes
+   file or a directory the repository does not have: the ADR directory is
+   the record. A key the user explicitly puts off
    gets a log row with status Deferred and the date. A key nobody
    answered is not a decision: when the user invoked this skill to
    decide it, write its ADR with status Proposed (awaiting the user) and
@@ -100,6 +104,53 @@ the decision gets made, and it records through `adr`'s template.
 6. Return the decisions to the calling skill in the shape below so it can
    build with them.
 
+## Before recommending
+
+The checks a senior engineer makes and a fluent answer skips. Each one
+that applies goes into the question block and the ADR.
+
+- Size the win from the repository's numbers. Split the failure into its
+  causes and compute the share the option can remove at best (share of
+  the problem times the share it addresses) and what remains after a
+  perfect fix. State the residual and put the flip condition on it. A
+  cause of a different kind needs a different fix: fuzzy matching fixes
+  typos, not synonyms or products that are not stocked.
+- Convert load into the unit the option is sized in (per second at peak)
+  and show the arithmetic. A number not in the repository is labelled an
+  estimate, never stated as measured.
+- Read where each number came from: environment, hardware, multiplier,
+  window. Compare it with a recorded trigger exactly as the ADR words it
+  (production, for a week); a staging test or a one-hour spike does not
+  fire it, but say what it does tell you.
+- Look in the code for a cheaper cause before new infrastructure: a
+  connection opened per request, a blocking call inside an async handler,
+  a vendor call inside the request, a missing index, a query per row.
+- Count the load the option adds to what it shares (the same database at
+  its measured CPU) and how that load is bounded.
+- Test each claim made for the user's pick against how the thing works.
+  Delivery guarantees stop at the system's edge: exactly-once in a broker
+  covers its own reads and writes, not an HTTP call to a vendor.
+- Asynchronous work (queues, retries, outboxes, webhooks) is not designed
+  until it answers all of these:
+  1. The enqueue commits with the state change (same transaction, or an
+     outbox row); a publish after the commit loses messages.
+  2. Where the consumer runs on the compute already chosen (a
+     request-scoped container cannot host a loop left running after the
+     response).
+  3. A call to a vendor without an idempotency key that timed out is
+     ambiguous: how it is resolved (the vendor's request id, a status or
+     delivery-report check, no automatic resend) and who accepts the
+     residual risk.
+  4. The retry schedule and the terminal state when the window ends
+     (failed, alerted, handed to someone); every sweep or re-enqueue
+     honours that cutoff.
+  5. The dispatch rate is capped at the vendor's limit, so the backlog
+     built up during an outage does not arrive all at once on recovery.
+  6. A message delivered twice to the consumer does nothing twice.
+- Replacing an accepted decision: the new ADR says it supersedes the old
+  one once accepted; the old ADR is not edited while the new one is only
+  Proposed.
+
 ## Output contract
 
 ```
@@ -107,17 +158,19 @@ the decision gets made, and it records through `adr`'s template.
 | Key | Choice | Recommended | Why | Evidence |
 | database | PostgreSQL | (settled) | already in use | ADR-0001; go.mod pgx |
 | messaging | Kafka | RabbitMQ | user chose Kafka for replay; accepts ops cost | ADR-0008 (Accepted) |
-| cache | (awaiting) | none yet | p95 140 ms is under the 300 ms budget | not recorded |
-Next pass: search, analytics store
+| cache | none | (settled) | ADR-0004 trigger not met: prod p95 90 ms < 250 ms | ADR-0004 |
+| analytics store | (awaiting) | Postgres | 2M events a month, far under the threshold | ADR-0009 (Proposed) |
+Next pass: search, observability
 ```
 
 ## Gotchas
 
 - One question per turn. A wall of ten questions gets guessed answers.
 - The recommendation is specific to the facts in step 2, never the
-  catalogue's default alone. If the facts are unknown, ask for them
-  first (expected requests per second, data size, team size, budget,
-  compliance, existing accounts).
+  catalogue's default alone. A fact the repository does not give that
+  would change it (budget for a hosted service, who would operate a new
+  service, whether data may leave the cloud account) is asked, or the
+  assumption is stated.
 - A deferred decision is written down as deferred with a date, not
   silently defaulted; a key nobody answered is reported as awaiting, not
   recorded as decided.

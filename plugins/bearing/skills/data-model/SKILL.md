@@ -40,10 +40,19 @@ a data dictionary and an ERD.
 
 ## Steps
 
-**Revising.** When the output file already exists, this run is a
-revision: read `${CLAUDE_PLUGIN_ROOT}/skills/adr/references/revision-protocol.md`
-and follow it (version line, changes table, superseding ADR,
-critic on changed sections, downstream list). In a revision the Migrations line counts only the migrations the changed rows require, each named for `db-migration` with its expand and contract steps.
+**Revising.** When `docs/design/data-model.md` (or the data model the
+repository already has) exists, this run is a revision: read
+`${CLAUDE_PLUGIN_ROOT}/skills/adr/references/revision-protocol.md` and
+follow it. The existing document is approved work a reviewer will diff:
+edit it in place, keep its layout, headings, numbering and wording, and
+change only the rows the new stories touch. Do not move it onto this
+skill's template, and create companion files (`schema.sql`, dictionary,
+ERD) only if the repository already has them; the gate then runs on what
+exists or reads "n/a (revision of a document without companions)".
+Applied migrations are history: every change is a new migration after the
+highest number, planned against the live table's size and locks. In a
+revision the Migrations line counts only the migrations the changed rows
+require, each named for `db-migration` with its expand and contract steps.
 
 **Decisions first.** Before building, run `tech-decision` for the keys
 database and analytics store, and only for the stores this scope needs.
@@ -66,7 +75,8 @@ ${CLAUDE_PLUGIN_ROOT}/skills/tech-decision/references/decision-protocol.md.
    stories and zero entities in the code: ask the one question under
    Inputs and model from the answer.
 2. Entities: one row each with owner (service or module), lifecycle
-   (created by, changed by, ended by: delete, archive, expiry), the
+   (created by, changed by, ended by: delete, archive, expiry; every
+   writer path), the
    `US-nn-nnn` ids it serves, PII yes or no, retention. An entity no
    story reads or writes is cut and listed under "not modelled".
 3. Relationships: one row per foreign key with its cardinality, FK
@@ -97,10 +107,12 @@ ${CLAUDE_PLUGIN_ROOT}/skills/tech-decision/references/decision-protocol.md.
      partition key, TTL, the version column for `ReplacingMergeTree`,
      and the materialised views with their `TO` targets.
 6. Enumerations: one row per enum with its values and why the set is
-   closed. Retention: one row per table with a lifetime, its rule, the
-   mechanism that enforces it (batched hard delete, TTL, partition drop)
-   or `UNDEFINED`, and its Basis: `stated` (cite the story or policy) or
-   `assumption`. Then the personal-data columns, each with its kind.
+   closed. Retention: one row per table with a lifetime, its rule and the
+   mechanism that enforces it (batched hard delete, TTL, partition drop).
+   A lifetime no story, PRD or policy states is `UNDEFINED`, with an owner
+   question; a number you would suggest goes in that question, never in
+   the lifetime cell and never into a purge job, TTL or partition scheme.
+   Then the personal-data columns, each with its kind.
 7. Migration plan in order, each item named and numbered the way the
    repository's existing migrations are (next free number, same tool and
    file style; claim no convention the repository does not have), with
@@ -110,8 +122,8 @@ ${CLAUDE_PLUGIN_ROOT}/skills/tech-decision/references/decision-protocol.md.
    `schema.sql`.
 8. Rule check: walk the applicable rules of each reference. Every rule is
    followed or has a line `deviation: <rule>, <why>`. Count both.
-9. Write the four files, all from this skill's templates, replacing the
-   worked example: `docs/design/data-model.md` (headline line: store,
+9. Write the four files (a new model; for a revision see Revising), from
+   this skill's templates, replacing the worked example: `docs/design/data-model.md` (headline line: store,
    tables, columns, indexes, personal-data columns);
    `docs/design/schema.sql` (one `BEGIN;` ... `COMMIT;`, enum types first,
    tables in foreign-key order, a `-- Serves US-...` comment before each
@@ -123,7 +135,8 @@ ${CLAUDE_PLUGIN_ROOT}/skills/tech-decision/references/decision-protocol.md.
    the gate are "n/a (no postgres store)".
 10. Review: fork `critic` with the paths of `data-model.md` and
     `schema.sql` and the stories file, asking it to argue against the
-    schema from the acceptance criteria and grade each finding BLOCKER
+    schema from the acceptance criteria and the Design checks below, and
+    grade each finding BLOCKER
     (the schema cannot serve a criterion, or does not apply), MAJOR (a
     criterion is served wrongly or a guarantee is missing), MINOR or NIT,
     each with the table, the failure and the fix. Fix what can be fixed in
@@ -142,6 +155,60 @@ ${CLAUDE_PLUGIN_ROOT}/skills/tech-decision/references/decision-protocol.md.
     SKIPPED without Docker). Paste both lines under "Applying this" and
     print the output contract.
 
+## Design checks
+
+A strong generalist gets the tables right and misses these. Walk each one
+against the model before writing; each that applies is a row, a
+constraint or an open concern, never silence.
+
+- **Every writer, every column.** List each path that writes a table
+  (front desk, online, reschedule, admin, jobs). For every `NOT NULL`
+  column, name where each path gets the value; a new path with no source
+  (a fee a receptionist used to type) is a gap in the model, not in the
+  code. A rule enforced by application cleanup must hold on every path,
+  or move into the database (constraint, trigger, one shared function).
+- **Tenant-safe references.** A single-column FK lets a row point at
+  another tenant's parent. Add `UNIQUE (tenant_id, id)` to the parent (a
+  new migration on an existing table) and reference `(tenant_id, x_id)`,
+  or say why not.
+- **Requirements the existing tables do not carry.** A story that needs a
+  column on an existing table (a default per doctor, a currency per
+  clinic) adds it by a new migration; never by editing an applied one.
+  Check each ADR's wording against the real scope: an ADR written for one
+  country ("paise") does not settle currency for clinics in three.
+- **Predicates are immutable.** Index, constraint and generated-column
+  expressions cannot call `now()`. Anything that expires (a hold, a code,
+  a lease) needs a sweeper, a check inside the writing transaction, or a
+  trigger; state which, and the longest time an expired row can still
+  block.
+- **Derived rows follow their parent.** For each row created from another
+  (a reminder from an appointment), say what cancel, reschedule and
+  delete do to it, and reset the exact column the worker's index reads.
+- **Lifetimes compose.** A parent purged at N years must take its
+  children (`ON DELETE CASCADE` or deleted first in the same batch), and a
+  child with its own longer rule blocks the parent. A person's erasure
+  request against a table another table must keep (clinical, financial)
+  means `RESTRICT` plus erasing the non-required fields, never `CASCADE`
+  into records the law says to keep.
+- **Size from the rule, then decide.** Steady-state rows = yearly rate x
+  retention (plus growth). Use the number: batched delete below about
+  10^7 rows, time partitions or BRIN above, and say what partitioning
+  costs (PostgreSQL 16 cannot put an exclusion constraint on a
+  partitioned table).
+- **Time is local where people are.** A "day" is bounded in the tenant's
+  zone (`tenants.timezone`), converted at query time; store `timestamptz`.
+- **Ambiguous numbers are read aloud.** "Retried up to 3 times" is 3 or 4
+  attempts; state the reading, make the limit match it and ask.
+- **Hot-table changes.** On a table over about 10^6 rows: `NOT VALID` then
+  `VALIDATE` for CHECK and FK, `CREATE INDEX CONCURRENTLY` outside a
+  transaction (goose: `-- +goose NO TRANSACTION`), and note that an
+  exclusion constraint can be neither built concurrently nor added `NOT
+  VALID`, so changing one is a maintenance window.
+- **Uniqueness has a lifecycle.** Case-insensitive uniqueness is
+  `lower(col)` or `citext`; scope it (per tenant or global) from the
+  story, and say what happens to a closed or soft-deleted row (partial
+  index on open rows, or reopen).
+
 ## Output contract
 
 ```
@@ -153,7 +220,7 @@ Stores: postgres, ... (ADR: ADR-nnnn | ADR needed)
 Entities: N (not modelled: K)
 Tables: N   Collections: N   CH tables: N
 Indexes: N (query shapes without index: K)
-PII columns: N (UNDEFINED retention: K, assumption basis: A)
+PII columns: N (UNDEFINED retention: K)
 Migrations: N (hot-table batches: K)
 Rules checked: N   Deviations: K
 - deviation: ...
@@ -184,8 +251,8 @@ Revision: v<n> -> v<n+1>, sections changed C, ADRs superseded S, downstream D | 
   and in their own ERD diagram.
 - An open BLOCKER from the review means the model is not ready; say so in
   the output contract instead of calling the run done.
-- Retention with Basis `assumption` is a decision owed by a person, not a
-  default. Count it; never promote it to `stated`.
+- An unstated retention is a decision owed by a person, not a default.
+  Count it as UNDEFINED; never promote a suggestion to the rule.
 - The files this skill writes are the four under `docs/design/`. An
   ADR, a glossary, a sibling LLD or a migration file is outside the
   request: name what else goes stale under the downstream list instead

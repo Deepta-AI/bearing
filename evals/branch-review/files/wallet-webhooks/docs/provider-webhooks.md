@@ -27,6 +27,9 @@ A receiver accepts the delivery when any `v1` entry matches its secret.
 
 - At least once. The same event (same `id`) can arrive more than once, and
   two deliveries of one event can arrive at the same time.
+- Deliveries are not ordered. A `payment.refunded` can arrive before the
+  `payment.succeeded` of the same payment, for example when the first
+  delivery of the `payment.succeeded` failed and is being retried.
 - A delivery counts as failed on any non-2xx response or no response within
   10 seconds. Failed deliveries are retried with backoff for up to 72 hours.
 - New event types are added without notice. Receivers should acknowledge

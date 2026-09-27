@@ -1,0 +1,11 @@
+# Scheduled jobs (run by the platform scheduler in the app image).
+jobs:
+  - name: sync-newsletter
+    schedule: "0 2 * * *"
+    command: ["python3", "-m", "jobs.sync_newsletter", "/data/mealbox.db"]
+  - name: winback
+    schedule: "0 9 * * 1"
+    command: ["python3", "-m", "jobs.winback", "/data/mealbox.db"]
+  - name: backup
+    schedule: "30 2 * * *"
+    command: ["sh", "deploy/backup.sh"]

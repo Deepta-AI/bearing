@@ -91,7 +91,8 @@ Per stack the tokens are read from the generated theme file
   equals 0 (read once, then `LocalReducedMotion`); iOS
   `accessibilityReduceMotion` from the environment. The fallback keeps
   the end state and the meaning: fade instead of slide, cut instead of
-  fade, static instead of loop.
+  fade, static instead of loop. An in-app "reduce animations" setting
+  is read by the same function and ORed with the OS value.
 - Accessibility: no autoplaying loop longer than 5 seconds without a
   visible pause control; nothing flashes more than 3 times per second;
   motion never blocks input (a press works mid-animation); a
@@ -153,7 +154,10 @@ transition; two shared elements read as chaos. Reduced: cross-fade.
 `standard`; a new row fades in; a removed row fades out at `fast`
 before the others move. Web: FLIP through Motion One `animate` with
 `layout`, or Framer Motion `layout` prop. React Native: Reanimated
-`Layout` transitions (`LinearTransition`) plus `FadeIn` and `FadeOut`.
+`Layout` transitions (`LinearTransition`) plus `FadeIn` and `FadeOut`;
+without Reanimated, core `Animated` on the native driver for the
+leaving row and `LayoutAnimation` in the same tick as the removal for
+the gap.
 Android: `Modifier.animateItem()` in `LazyColumn`. iOS: `withAnimation`
 around the array change with `.animation(.default, value:)`. Reduced:
 no movement, fades only.
@@ -253,8 +257,10 @@ data actually needs to load. Reduced: cut.
 and offers replay; a visible pause control if any part loops. See
 `templates/banner.html`. Reduced: final frame.
 
-**Number count-up.** From 0 to the value at `deliberate`, easing
-`standard`, tabular figures so the width does not jitter, and the
+**Number count-up.** From 0 to the value at `deliberate` on first
+load, from the previous value on a refresh (a value that was missing
+appears at once), easing `standard`, every frame through the product's
+formatter, tabular figures so the width does not jitter, and the
 final value in the DOM from the start for screen readers
 (`aria-live` off during the count). Web: `requestAnimationFrame` or
 Motion One `animate(0, n, { onUpdate })`. Reduced: the final number.

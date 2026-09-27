@@ -7,9 +7,13 @@ import (
 	"example.com/orders-api/internal/db"
 )
 
+// maxBody caps a create request body.
+const maxBody = 64 << 10
+
 // CreateHandler decodes the body and writes it straight to the store.
 func CreateHandler(s *db.Store) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		r.Body = http.MaxBytesReader(w, r.Body, maxBody)
 		var o db.Order
 		if err := json.NewDecoder(r.Body).Decode(&o); err != nil {
 			http.Error(w, "bad json", http.StatusBadRequest)

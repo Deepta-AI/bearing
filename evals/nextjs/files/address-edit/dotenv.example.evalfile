@@ -1,0 +1,5 @@
+# Copy to .env.local for next dev.
+API_URL=http://localhost:8080
+# Service token for the commerce API. Server only; never NEXT_PUBLIC_.
+API_TOKEN=
+SESSION_SECRET=

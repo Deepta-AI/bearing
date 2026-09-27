@@ -7,101 +7,167 @@ allowed-tools: Read, Write, Edit, Grep, Glob, Bash(ls:*), Bash(mkdir -p:*), Bash
 
 # resilience-testing
 
-A failure-mode table is a claim. This skill turns each row into a fault
-with an expected behaviour, hands the engineer the command to inject it,
-records what was observed, and keeps the restore date honest.
+A failure-mode table, an RPO and a "last restore test" date are claims.
+This skill turns each claim into a test an engineer can run, and first
+predicts the result from the repository: most claims fail on paper before
+anyone injects a fault, and those findings are worth more than the plan.
 
 Not this: `deployment-architecture` writes the RPO, RTO and DR
 claims; `incident` runs a live incident. This skill tests the claims.
 
 ## Inputs
 
-- failure modes: section "Failure modes" of `docs/architecture/HLD.md`
-  or `docs/design/*-hld.md`; if absent, ask once for the top five
-  ("a dependency, a store, a disk, a certificate, a network: what fails
-  and what should happen?"); nothing: stop with "0 failure modes".
-- topology and stores: `docs/architecture/deployment.md` (stores,
-  backups, RPO, RTO, last restore test, DR steps), compose files, `k8s/`;
-  if absent, faults are written against the HLD's component names and
-  every backup fact is `unconfirmed`.
-- platform for tooling: compose (`docker-compose*.yml`), Kubernetes
-  (`k8s/`, `helm/`), managed cloud (`terraform/`); unknown: the options
-  are listed and none is chosen.
-- previous runs: `docs/resilience/RESILIENCE_PLAN.md` and
-  `docs/resilience/restore-drill-*.md`; appended to, never overwritten.
-- observed results for `record`: the fault name and the observed text
-  from the engineer; nothing else is invented.
-- templates in this skill: `templates/RESILIENCE_PLAN.md`,
-  `templates/restore-drill.md`.
+- mode: `plan` (faults), `drill` (backup restore), `dr` (DR walk),
+  `record`. Pick from the request: "restore", "backup", "RPO" mean drill.
+- claims: the "Failure modes" section of `docs/architecture/HLD.md` or
+  `docs/design/*-hld.md`; the store table and DR section of
+  `docs/architecture/deployment.md`; runbooks under `docs/runbooks/`.
+- the truth to check claims against: code (timeouts, error mapping,
+  health handlers, retries, side effects), manifests (probes, per
+  environment config, backup jobs, database config), alert rules,
+  compose files, scripts. Read these before writing a single expectation.
+- previous runs: `docs/resilience/`; appended to, never overwritten.
+- templates: `templates/RESILIENCE_PLAN.md`, `templates/restore-drill.md`.
+
+Missing claims do not stop the run. No HLD: derive the failure modes from
+the dependencies the code actually calls (every store, queue and external
+API) and mark each "no claim, proposed". A drill needs only the stores,
+from deployment.md or the manifests. Stop only when the repository names
+no dependency and no store at all, and print "0 dependencies found".
 
 ## Steps
 
-1. Load the failure modes. Print "N failure modes from <source>". Zero:
-   stop non-zero.
-2. `plan`: one fault per failure mode, plus any of the five standard
-   faults the HLD lacks, written as "HLD gap": kill a dependency (stop
-   the container or scale the deployment to 0), add latency (Toxiproxy
-   `latency` toxic 2000 ms, or `tc qdisc add dev eth0 root netem delay
-   2000ms` in the pod), fill a disk (`fallocate -l <size>` on the data
-   volume to 95 percent), expire a certificate (a staging cert issued
-   with `-days 1`), partition the network (Toxiproxy `timeout` toxic, or
-   a NetworkPolicy denying egress). Per fault: component, injection
-   command per platform, expected behaviour copied from the HLD (what
-   the user sees, which alert fires, how it recovers, within how long),
-   blast radius, abort condition, revert command. Write
-   `docs/resilience/RESILIENCE_PLAN.md` from `templates/RESILIENCE_PLAN.md`.
-   Print the fault count and the gap count.
-3. `drill`: per store, the restore procedure: locate the latest backup
-   (command), restore into a scratch instance (never the live one),
-   verify with a row count and a checksum against the numbers recorded
-   at backup time, measure wall time (that is the measured RTO), compare
-   the backup timestamp with the restore start (that is the measured
-   RPO). Write `docs/resilience/restore-drill-<date>.md` from
-   `templates/restore-drill.md` with the fields for the engineer. When
-   the numbers come back, fill them and set `Last restore test: <date>`
-   on the store's row in `deployment.md` when present. Print stores
-   drilled of stores.
-4. `dr`: walk the DR section of `deployment.md` step by step; print each
-   step's command; a step without a command is a finding. Measured RTO
-   is declared loss to healthy; measured RPO is the data age at recovery.
-   Claimed against measured, per scenario (zone loss, region loss).
-5. Tooling, one recommendation per platform, install and smoke command
-   printed, never installed here: Toxiproxy in front of Postgres and
-   Redis on compose; `tc netem` inside a container for latency and loss;
-   Litmus or Chaos Mesh on Kubernetes; Gremlin or AWS FIS on a managed
-   cloud.
-6. `record <fault> "<observed>"`: append observed text, result (pass
-   only when every expected column matches), date and who ran it.
-7. Print the table and the counts.
+1. **Inventory.** List every dependency the code calls and every store,
+   with where each runs per environment. Resolve each environment's real
+   host from its overlay or config file, not from the docs. Print
+   "N dependencies, S stores, from <sources>".
+2. **Blast radius per environment.** If staging (or any test
+   environment) points at a host, bucket or cluster that production also
+   uses, a fault on that resource is a production fault. Say so first.
+   Faults on a shared resource are rewritten to act only on the test
+   environment's own path to it (egress NetworkPolicy in the staging
+   namespace, a proxy in front of it, DNS override), moved to a local
+   instance, or blocked until the environment has its own. Never plan to
+   stop, fill, restart or partition the shared resource itself.
+3. **Predict from the repo, per claim** (the step a generalist skips).
+   For each failure mode write Claimed (from the doc), Predicted (from
+   code and config, with file and line) and a verdict: holds, fails, or
+   unknown. Check at least:
+   - Health checks: what does the readiness and liveness handler test? A
+     probe that pings a dependency turns that dependency's outage into
+     every pod leaving the Service (readiness period x failureThreshold
+     seconds) and restarting (liveness period x failureThreshold),
+     taking down endpoints that do not need the dependency. Compute the
+     seconds from the manifest.
+   - Error mapping: the status code the handler really returns on that
+     dependency's error, and whether the documented fallback exists
+     (a cache error that returns 500 has no fallback).
+   - Timeouts: client, query, server read and write, ingress. A fault
+     that slows a dependency must exceed the claimed bound and reach
+     the configured timeout, or it proves nothing; state both numbers.
+   - Refused versus silent: a stopped process refuses connections fast;
+     a partition drops packets and every call hangs until some timeout
+     fires. Code with no query or dial timeout hangs, exhausts its pool,
+     and queues. Plan both kinds where they would differ.
+   - Side effects across the fault: an external call that commits (card
+     authorisation, email, message publish) followed by a local write
+     that can fail leaves an orphan (a hold with no order). A client
+     timeout does not mean the remote call failed; without an
+     idempotency key a retry doubles it. Name the compensation or its
+     absence, and add the check (orphans in the provider's sandbox).
+   - Alerts: every alert the claim names exists in the rules, with its
+     `for:` and severity; "pages within 1 minute" needs a paging rule
+     whose window plus `for:` fits. An alert computed from the service's
+     own request metrics goes silent when the pods are out of rotation:
+     the errors are served by the ingress and the unready pods may not be
+     scraped. Say which alert would really fire, if any.
+   - Retries and queues: a retry storm during a kill hides the real
+     failure; name the counter to watch.
+4. **`plan`.** One fault per failure mode and per unclaimed dependency.
+   Per fault: component, injection command per platform, expected
+   behaviour (status code or header, the alert by name, seconds to
+   recover), the prediction and verdict from step 3, blast radius naming
+   the environments it touches, abort condition, revert command. Where
+   the claim gives no recovery time, propose one in seconds and mark it
+   proposed. An external provider is never broken at the provider:
+   inject on the service's side (egress policy, proxy, DNS). A
+   hypothesis with no injection you can write is a finding, not a fault
+   row. Order the runs so faults predicted to fail are fixed or
+   accepted first; running a fault already known to fail only measures
+   the outage. Write `docs/resilience/RESILIENCE_PLAN.md` from the
+   template. Observed and result fields stay empty.
+5. **`drill`.** Before the procedure, audit the backup:
+   - Coverage: what the job really dumps (`-n`, `-t`, `--exclude`,
+     database list) against every schema and table in the migrations.
+     A schema outside the dump is data no backup holds.
+   - Does it run: client version against server major (pg_dump refuses
+     a newer server major), `set -e` and failure alerting on the job,
+     and whether retention by count hides a job that stopped (seven old
+     dumps still "look healthy" in a listing).
+   - RPO basis: continuous archiving claimed? Check `archive_mode`,
+     `archive_command` and the runbook history. Without it the RPO is
+     the dump interval plus the dump duration, and more when a night
+     fails.
+   - RTO plausibility: download plus restore plus index build of the
+     on-disk size, against the claim. A restore usually takes longer
+     than the dump; say when the claim looks unreachable.
+   - History: is the recorded "last restore test" a restore? A bucket
+     listing or a size check is not.
+   - Restore tooling: read any existing restore script's default
+     target; one that defaults to the live URL with `--clean` drops live
+     tables. The drill's own restore command names the scratch target
+     explicitly and runs from a pod or shell that holds no live
+     credentials.
+   Then the procedure, one pasteable command per step: locate the newest
+   backup and its snapshot time; provision a scratch instance of the
+   same major version, sized for the on-disk database (not the dump),
+   isolated from app traffic; restore (roles and grants are not in a
+   single-database dump: use `--no-owner --no-acl` or restore globals);
+   verify per table, naming every schema, against a reference fixed at
+   the snapshot time (counts recorded at dump time, or live counts
+   limited to rows created before the snapshot); smoke query; tear down
+   and delete the copy (it is production data). RTO is recovery start
+   to verified database; RPO is the snapshot time against the simulated
+   loss. Write `docs/resilience/restore-drill-<date>.md` from the
+   template. Set `Last restore test` only after a real restore; a wrong
+   date may be corrected to "never".
+6. **`dr`.** Walk the DR section step by step; each step's command, or
+   the missing command as a finding. Claimed against measured per
+   scenario (zone loss, region loss).
+7. **Tooling**, recommended with its install and smoke command, never
+   installed: Toxiproxy or `tc netem` on compose; Chaos Mesh or Litmus
+   on Kubernetes, or a NetworkPolicy for a partition; Gremlin or AWS FIS
+   on a managed cloud. Drill manifests the engineer will apply go under
+   `docs/resilience/`, not into the deploy tree.
+8. **`record <fault> "<observed>"`**: append the engineer's text, the
+   result (pass only when every expected column matches), date, who ran
+   it.
 
 ## Output contract
 
+The final message leads with what the repository already says about the
+outcome, most consequential first, each with file and line; then:
+
 ```
-## Resilience: <repo> (N failure modes from <source>)
-| Fault | Component | Injection | Expected | Observed | Result | Date |
-...
-Faults: N planned, R run, P pass, F fail, N-R not run   HLD gaps: G
-Restore drill: <d> of <s> stores; RTO measured <t> (claimed <t>), RPO measured <t> (claimed <t>) | not run
-DR test: zone RTO <m>/<c>, RPO <m>/<c>; region RTO <m>/<c>, RPO <m>/<c> | not run
-Tooling: <choice> (<install command>)
+## Resilience: <repo> (N dependencies, S stores, from <sources>)
+Predicted to fail before running: <claim -> reason>, ...
+| Fault | Component | Injection | Expected | Predicted | Observed | Result |
+Faults: N planned, 0 run | R run, P pass, F fail
+Restore drill: prepared, not run | RTO <m> (claimed <c>), RPO <m> (claimed <c>)
 Paths: docs/resilience/RESILIENCE_PLAN.md [, docs/resilience/restore-drill-<date>.md]
-Next for the engineer: <injection command for the first not-run fault>
+Next for the engineer: <the first thing to fix or run>
 ```
 
 ## Gotchas
 
-- Never injects a fault, in any environment. The command is printed; the
-  engineer runs it in a scratch or staging environment first, and in
-  production only with an owner watching the abort condition.
-- A backup that has never been restored is a hope. The date recorded is
-  the date of a restore, and the RTO is the time it took.
-- Restoring into the live instance is how a backup destroys data. Always
-  a scratch instance, then a swap.
-- "Degrades gracefully" is not an expectation. Name the status code, the
-  fallback, the alert and the seconds to recover.
-- A retry storm during a dependency kill hides the real failure mode;
-  watch retry counts and queue depth while the fault is on.
-- A certificate drill uses a short-lived staging cert; a production
-  certificate is never touched.
+- Never injects a fault, never connects to a real store, never runs a
+  restore script. Commands are printed for a scratch or staging
+  environment, production only with an owner watching the abort.
+- The gaps are findings. In a request for a plan or drill, leave code,
+  manifests and backup jobs unchanged unless asked; propose the fix.
+- Nothing is reported as observed until the engineer ran it. A local
+  rehearsal on fakes or synthetic data is labelled as such.
+- "Degrades gracefully" is not an expectation. Name the code, the
+  alert, the seconds.
 - A fault that passed once is not proven; the plan carries a cadence
   (quarterly) and a re-run after every change to the component.

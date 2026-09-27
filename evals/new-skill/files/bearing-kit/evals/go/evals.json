@@ -1,0 +1,16 @@
+{
+ "skill_name": "go",
+ "evals": [
+  {
+   "id": 1,
+   "name": "basic",
+   "prompt": "Add a GET /orders/{id} handler to the orders service.",
+   "expected_output": "A handler on the net/http mux wrapped in requireAuth with a table-driven httptest test.",
+   "files": [],
+   "expectations": [
+    "The route is wrapped in requireAuth",
+    "go test passes"
+   ]
+  }
+ ]
+}

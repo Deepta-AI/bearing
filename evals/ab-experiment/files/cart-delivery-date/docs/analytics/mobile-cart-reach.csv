@@ -1,0 +1,7 @@
+window_weeks,window_start,window_end,platform,distinct_devices,weekly_cart_viewers_summed
+1,2026-09-14,2026-09-20,mobile,6030,6030
+2,2026-09-07,2026-09-20,mobile,10650,12020
+3,2026-08-31,2026-09-20,mobile,14700,18100
+4,2026-08-24,2026-09-20,mobile,18300,24060
+5,2026-08-17,2026-09-20,mobile,21600,30100
+6,2026-08-10,2026-09-20,mobile,24700,35970

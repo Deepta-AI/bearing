@@ -1,0 +1,11 @@
+# XcodeGen writes both from project.yml; never commit them.
+*.xcodeproj
+App/Info.plist
+Config/Local.xcconfig
+.env
+.build/
+DerivedData/
+fastlane/report.xml
+*.p12
+*.p8
+*.mobileprovision

@@ -144,6 +144,15 @@ written, a count printed, a refusal on empty input).
 - `make harness-eval` drives real Claude Code sessions against the hooks
   (push, deploy, edit lint, stop gate, compaction). It needs the claude
   CLI and is not part of `make check`.
+- `make trigger-eval` checks that a plain request loads the right skill.
+  Each skill has three requests that should load it and two near misses
+  that should not, in `evals/triggers.json`. Each request runs in a fresh
+  headless session with only the three plugins loaded;
+  `SOURCES=user,project,local` runs with everything installed on your
+  machine instead. `make lint-triggers` (part of `make check`) holds the
+  file to every skill and refuses a request that copies a phrase quoted
+  in the skill's own description. When you add a skill, add its requests;
+  when you change a description, run `make trigger-eval ONLY=<name>`.
 
 ## Testing a change
 

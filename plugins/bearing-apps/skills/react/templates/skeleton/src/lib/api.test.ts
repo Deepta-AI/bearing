@@ -62,6 +62,26 @@ describe("apiFetch", () => {
     expect(error.message).toBe("GET /things/x: 404 Not Found");
   });
 
+  it("accepts 204 No Content when the schema allows no body", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() => Promise.resolve(new Response(null, { status: 204 }))),
+    );
+
+    await expect(apiFetch("/things/a1", z.undefined(), { method: "DELETE" })).resolves.toBeUndefined();
+  });
+
+  it("rejects a 204 when the schema expects a body", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() => Promise.resolve(new Response(null, { status: 204 }))),
+    );
+
+    const error = await failure(apiFetch("/things/a1", schema));
+
+    expect(error.code).toBe("invalid_response");
+  });
+
   it("rejects a body that is not JSON", async () => {
     vi.stubGlobal(
       "fetch",

@@ -1,7 +1,7 @@
 ---
 name: ios
-description: 'Conventions for native iOS: Swift 6, SwiftUI, Observation, Swift Concurrency, SwiftPM, XcodeGen, SwiftData, Swift Testing, Fastlane. Use when writing, reviewing or scaffolding "Swift", "SwiftUI" or "iOS" code.'
-allowed-tools: Read, Grep, Glob, Skill, Bash(swift build:*), Bash(swift test:*), Bash(swiftlint:*), Bash(swiftformat --lint:*), Bash(xcodebuild -list:*), Bash(xcodebuild test:*), Bash(make:*)
+description: 'iOS house rules (Swift 6, SwiftUI, Observation, Swift Concurrency, SwiftData, Swift Testing). Load before writing or changing Swift or iOS code. Use when asked for "an iPhone screen", "SwiftData models".'
+allowed-tools: Read, Grep, Glob, Edit, Write, Skill, Bash(git diff:*), Bash(git log:*), Bash(git show:*), Bash(swift build:*), Bash(swift test:*), Bash(swiftlint:*), Bash(swiftformat --lint:*), Bash(xcodebuild -list:*), Bash(xcodebuild test:*), Bash(make:*)
 ---
 
 # ios
@@ -31,7 +31,7 @@ TestFlight. Minimum iOS 17.
   manifest or the String Catalog: apply `references/guidelines.md`. Read it
   once per session, then work.
 - Reviewing a diff with Swift files: apply `references/review-checklist.md`
-  and report in the reviewer format.
+  and report every finding as severity (Critical, High, Medium, Low), `file:line`, the claim, a concrete failure scenario and the fix, then list what was checked and found clean and what was not reviewed.
 - Scaffolding (`new-repo ios <Name>`): `templates/` holds the skeleton
   and configs; `bin/brg-scaffold` in the bearing plugin copies them. Do not hand-copy. The
   scaffold fills placeholders in file contents only; `make setup` (or
@@ -109,6 +109,66 @@ rule was relaxed and why.
    entry for every permission.
 8. `make check` = swiftformat lint, SwiftLint strict, `swift test` in the
    package, plus `xcodebuild build` where Xcode exists. CI runs the same.
+
+## Traps a strong generalist misses
+
+These are the defects that pass a careful read of the docs and still
+ship. Check each one that the change touches.
+
+- Location (CoreLocation stays in `App/` behind a protocol; the package
+  gets a plain coordinate type):
+  - Ask for when-in-use only, from the screen that needs it. Set
+    `desiredAccuracy` to what survives the rounding the app applies
+    (`kCLLocationAccuracyKilometer` for 2 decimal places); a precise fix
+    costs seconds and battery for nothing.
+  - Bridge with continuations that resume exactly once. Do not wait for
+    an authorization callback when the status is already determined (none
+    comes, the task hangs). Ignore the `.notDetermined` report that
+    `locationManagerDidChangeAuthorization` sends when the delegate is set.
+    Clear the stored continuation before resuming it, and resume a waiting
+    caller on cancellation.
+  - The delegate fires on the run loop of the thread that created the
+    manager: create it on the main actor and mark the delegate methods
+    `nonisolated`, hopping back to the main actor.
+  - `.denied` can be fixed in the app's Settings page, so offer
+    `UIApplication.openSettingsURLString`. `.restricted` (parental or
+    device management) cannot, so explain it and show no Settings button.
+  - "Never persisted" includes the HTTP cache: `URLSession.shared` stores
+    GET responses in the on-disk `URLCache`, keyed by the full URL,
+    coordinates included. Send those requests through an ephemeral or
+    cache-less session (`urlCache = nil`) scoped to that feature, not by
+    changing every feature's session; a per-request cache policy changes
+    what is read, not what is stored. Logging `url.absoluteString`
+    leaks the query too.
+  - Show a distance computed from a rounded point as approximate: 2
+    decimal places moves the point by up to about 0.8 km.
+- Photos and uploads:
+  - `PhotosPicker`'s `Data` is the original asset: usually HEIC, full
+    resolution, with EXIF including the GPS position where it was taken.
+    Never upload it as is. Decode, downscale, re-encode as JPEG; the
+    re-encode drops the metadata. A camera photo is 12 MP (4032 x 3024)
+    or 48 MP (8064 x 6048), so any server pixel limit is exceeded by
+    default.
+  - `UIGraphicsImageRenderer` uses the screen scale unless its format sets
+    `scale = 1`: drawing into a 2048 point canvas on a 3x phone makes a
+    6144 px image. Check the byte limit after encoding and step the
+    quality down until it fits; fail with a typed error, never send.
+  - Decoding and resizing a 48 MP image on the main actor freezes the
+    screen; do it off the main actor with the image as `Sendable` data.
+  - The camera needs `NSCameraUsageDescription` (the app is terminated
+    without it) and `UIImagePickerController.isSourceTypeAvailable(.camera)`
+    (false on the Simulator and on restricted devices). `PhotosPicker`
+    needs no photo library permission. Uploaded photos are collected data
+    in the privacy manifest.
+- Scope: a shared change the feature needs (a log line, a session, an
+  `AppError` case) stays as narrow as the feature; a change in behaviour
+  for existing screens is proposed, not slipped in.
+- Reviews: list every `!` unwrap, `try!` and `as!` the diff adds by
+  searching the diff, not from memory, and give each its input that
+  crashes. Quote line numbers from the file, not from the diff hunk.
+- Reporting: name each gate that did not run (`make generate` or
+  XcodeGen, `make check`, `xcodebuild`) and why, rather than "tests not
+  run".
 
 ## Commands
 

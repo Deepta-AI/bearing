@@ -12,9 +12,11 @@
 | --- | --- |
 | Metric | <p95 latency / cpu / heap / lcp / startup> |
 | Condition | <load, data size, device, network, build type> |
+| Objective | <number and the file it comes from, for example docs/slo.md> |
+| Production size | <numbers and the file they come from> |
 | Date | <YYYY-MM-DD> |
-| Commit before | <sha> |
-| Commit after | <sha> |
+| Base commit | <sha the before was measured on> |
+| Change | <uncommitted on branch X; the engineer commits> |
 | Task | <KEY or none> |
 
 ## Measurement
@@ -34,6 +36,8 @@
 | After | `<same command>` | N | | | |
 
 Delta (median): <Z%>. Noise band from the before runs: <min..max>.
+Against the objective: <met with margin / not met, because ...>.
+Measured on: <machine, local server or benchmark, data size>; production not observed.
 
 ## Profile
 
@@ -68,6 +72,10 @@ Delta (median): <Z%>. Noise band from the before runs: <min..max>.
      Tests: 214 passed." -->
 
 <frame>: <cause>. Change: <one paragraph>. Files: <list>. Tests: N passed.
+
+<!-- Repeat this paragraph for each change, each with its own measured
+     delta and the proof the output is unchanged (byte-identical output at
+     the production size, near-miss tests for a rewritten check). -->
 
 ## Not tried
 

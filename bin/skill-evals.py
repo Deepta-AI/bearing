@@ -44,6 +44,7 @@ import os
 import random
 import re
 import shutil
+import site
 import subprocess
 import sys
 
@@ -60,6 +61,14 @@ ARMS = ["with_skill", "with_the_alternative", "without_skill"]
 def die(msg):
     print(msg, file=sys.stderr)
     sys.exit(1)
+
+
+def meta_path(case_dir):
+    """Where a case's assertions wait until grading: .scratch/skill-evals/_meta/<skill>/<iteration>/<case>.json."""
+    rel = os.path.relpath(os.path.abspath(case_dir), WS)
+    p = os.path.join(WS, "_meta", rel + ".json")
+    os.makedirs(os.path.dirname(p), exist_ok=True)
+    return p
 
 
 def load(path):
@@ -103,6 +112,20 @@ def alternative(skill):
     return inv
 
 
+def skill_file(inv):
+    """The SKILL.md of an installed copy of the skill, preferring ~/.claude/skills, or None."""
+    name = inv.lstrip("/").split(":")[-1]
+    for root in (
+        os.path.expanduser("~/.claude/skills"),
+        os.path.expanduser("~/.claude/plugins"),
+    ):
+        for dp, dns, fns in os.walk(root):
+            dns[:] = [d for d in dns if not d.startswith(".") and d != "node_modules"]
+            if os.path.basename(dp) == name and "SKILL.md" in fns:
+                return os.path.join(dp, "SKILL.md")
+    return None
+
+
 def user_only(inv):
     """True when every installed copy of the skill is user-invocable only."""
     name = inv.lstrip("/").split(":")[-1]
@@ -143,6 +166,39 @@ def git(repo, *args):
     )
 
 
+def run_home(run_dir):
+    """The run's own HOME, with a git identity that is not the operator's."""
+    home = os.path.join(run_dir, "scratch", "home")
+    os.makedirs(home, exist_ok=True)
+    with open(os.path.join(home, ".gitconfig"), "w", encoding="utf-8") as f:
+        f.write("[user]\n\tname = Eval Run\n\temail = eval-run@localhost.invalid\n")
+    return home
+
+
+def run_env(run_dir):
+    # A run inherits the operator's shell: without these, its commits carry the
+    # operator's name and email from ~/.gitconfig, a skill's tooling writes
+    # session files into the real home, and pnpm fills the shared store from the
+    # network even with offline set. The new HOME would also hide the pub and npm caches
+    # that let a run build offline, so those point back at the real ones (Go keeps its
+    # per-run caches, set in executor_prompt).
+    home = run_home(run_dir)
+    real = os.path.expanduser("~")
+    return f"""Run every shell command with HOME={home} (it holds this run's git identity), GIT_CONFIG_NOSYSTEM=1,
+PYTHONUSERBASE={site.getuserbase()} (so installed Python tools still import), npm_config_offline=true and
+npm_config_registry=http://127.0.0.1:9/ (unreachable on purpose), pnpm_config_offline=true and
+pnpm_config_registry=http://127.0.0.1:9/ (pnpm 11 ignores the npm_config_ names), COREPACK_ENABLE_NETWORK=0
+(corepack otherwise downloads package managers), and keep the machine's offline caches visible:
+GOPROXY=off, PUB_CACHE={real}/.pub-cache, npm_config_cache={real}/.npm
+(read them, never clear them), npm_config_logs_dir={home}/npm-logs (npm writes logs beside its cache otherwise), RUFF_CACHE_DIR={home}/ruff-cache. Never set a git author or committer yourself (no
+`-c user.name`, `-c user.email`, `--author` or GIT_AUTHOR_* values), and never write under the real home directory or /tmp
+(keep every scratch file inside this run folder). Other runs work on this machine at the same time: a server you start
+listens on a port you picked free (bind port 0, or check the port is unused and retry another), you talk only to servers
+you started, and you stop every process you started before you reply. Do not use the Playwright or browser MCP tools
+(one browser is shared by every run and writes outside this folder); to look at a page, launch your own headless browser
+from a script with its output inside this run folder."""
+
+
 def executor_prompt(skill, arm, alt, case, repo, run_dir):
     common = f"""You are one run of a skill evaluation. A user typed the request below in the repository at
   {repo}
@@ -156,7 +212,22 @@ the user), never Accepted or approved, and names no person as having decided or 
 Never push, deploy or publish anything; nothing outside the repository may change. Do not install
 packages from the network. If a procedure starts helper agents, run each in the foreground and wait
 for its result (never in the background): a background helper's completion notice does not reach
-you, and a run that waits for one never finishes.
+you, and a run that waits for one never finishes. Keep your scratch files under {run_dir}/scratch,
+never a shared temp folder, and for Go set GOMODCACHE={run_dir}/cache/gomod and
+GOCACHE={run_dir}/cache/gobuild (with GOTOOLCHAIN=local), so no other run's cache is read or changed.
+If the repository has an Android or Gradle build, do not run ./gradlew or Gradle at all (the wrapper downloads
+its distribution before it reads --offline and none is installed here) and say that build was not run;
+otherwise do not mention Gradle.
+Run every command with BEARING_ENV=/dev/null and no BEARING_TRACKER or BEARING_GIT_HOST set, so no real
+tracker or host configuration is read. {run_env(run_dir)}
+Never run a command that changes or contacts a cluster or cloud (kubectl apply/delete/rollout or any kubectl call that
+reaches a server, helm install/upgrade, terraform apply, a make deploy target, a cloud CLI): to test a guard or script that
+would call one, put a fake binary of that name first on PATH inside this run's scratch folder. Offline rendering and
+validation are fine and expected (kubectl kustomize, helm template, terraform validate, the repository's make check).
+Never stop a process by name or pattern (pkill -f, killall): other runs share this machine; stop only
+process ids you started. Never connect to a database, container or service you did not start in this run: other projects'
+containers run on this machine. If you start a container, pick a port you first confirmed is free,
+check that your container is the one listening before using it, and remove it when you finish.
 
 The request:
 ---
@@ -173,7 +244,16 @@ copy is an older version); read the file under {KIT}/plugins instead. Do not loa
 other skill. Never open anything under {KIT}/evals/: it holds the grading for this
 run, and reading it spoils the run."""
     elif arm == "with_the_alternative":
-        how = f"""How to work: load the skill `{alt}` with the Skill tool and follow it as your procedure. Do not
+        sf = skill_file(alt)
+        # A subagent's Skill tool may not list every user skill; the file is
+        # the same procedure, so a refusal must not end the run.
+        fallback = (
+            f" If the Skill tool does not know it, read {sf} and the files it points to\n"
+            "instead and follow that; either way this arm's procedure is that skill."
+            if sf
+            else ""
+        )
+        how = f"""How to work: load the skill `{alt}` with the Skill tool and follow it as your procedure.{fallback} Do not
 load or read any Bearing skill (bearing:, bearing-backend: or bearing-apps:<name>), and do not read
 anything under {KIT}."""
     else:
@@ -207,8 +287,10 @@ def prepare(a):
         name = case.get("name") or f"case-{case['id']}"
         ed = os.path.join(it, f"eval-{case['id']}-{slug(name)}")
         os.makedirs(ed)
+        # The assertions stay out of the run-visible tree until grade-prompt, so a
+        # run that looks around its own folder cannot read its grading.
         dump(
-            os.path.join(ed, "eval_metadata.json"),
+            meta_path(ed),
             {
                 "eval_id": case["id"],
                 "eval_name": name,
@@ -240,7 +322,7 @@ def prepare(a):
 def build_repo(fixture, repo):
     """Copy the fixture to repo and commit it as the tag `fixture`."""
     if fixture and os.path.isdir(fixture):
-        shutil.copytree(fixture, repo)
+        shutil.copytree(fixture, repo, ignore=shutil.ignore_patterns("__pycache__", ".pytest_cache", ".ruff_cache", ".mypy_cache", "node_modules"))
     else:
         os.makedirs(repo)
     # A fixture keeps files a secret scanner or the guard would refuse (an
@@ -257,7 +339,18 @@ def build_repo(fixture, repo):
         # The fixture builds its own history (branches, remote-tracking refs,
         # an uncommitted edit) and removes the script; the state it leaves is
         # the starting point the grader diffs against.
-        subprocess.run(["bash", ".eval-setup.sh"], cwd=repo, check=True)
+        # The script sets its own authors; the environment pins a neutral
+        # identity for any commit that does not, so none carries the operator's.
+        env = dict(
+            os.environ,
+            GIT_CONFIG_GLOBAL=os.devnull,
+            GIT_CONFIG_NOSYSTEM="1",
+            GIT_AUTHOR_NAME="eval",
+            GIT_AUTHOR_EMAIL="eval@localhost",
+            GIT_COMMITTER_NAME="eval",
+            GIT_COMMITTER_EMAIL="eval@localhost",
+        )
+        subprocess.run(["bash", ".eval-setup.sh"], cwd=repo, check=True, env=env)
         git(repo, "tag", "fixture")
         return
     branch = "main"
@@ -326,11 +419,18 @@ def grade_prompt(a):
         die(
             "skill-evals: skill-creator not found; its agents/grader.md is the grading method"
         )
-    n = 0
+    n = waiting = 0
     for ed in sorted(os.listdir(it)) if os.path.isdir(it) else []:
         d = os.path.join(it, ed)
-        if not os.path.isfile(os.path.join(d, "eval_metadata.json")):
+        if not os.path.isfile(os.path.join(d, "arms.json")):
             continue
+        # Every run is finished (checked below), so the assertions can now sit
+        # where the grader and aggregate_benchmark.py read them.
+        if not os.path.isfile(os.path.join(d, "eval_metadata.json")):
+            if not os.path.isfile(meta_path(d)):
+                die(
+                    f"skill-evals: {ed}: no eval_metadata.json in the case or {meta_path(d)}"
+                )
         blinds = sorted(b for b in os.listdir(d) if b.startswith("arm-"))
         missing = [
             b
@@ -338,14 +438,23 @@ def grade_prompt(a):
             if not os.path.isfile(os.path.join(d, b, "run-1", "transcript.md"))
         ]
         if missing:
-            die(f"skill-evals: {ed}: no transcript.md yet in {', '.join(missing)}")
+            # A case still running is skipped, not fatal: a finished case sorted
+            # after it must still get its brief.
+            print(
+                f"skill-evals: {ed}: skipped, no transcript.md yet in {', '.join(missing)}"
+            )
+            waiting += 1
+            continue
+        if not os.path.isfile(os.path.join(d, "eval_metadata.json")):
+            shutil.copyfile(meta_path(d), os.path.join(d, "eval_metadata.json"))
         meta = load(os.path.join(d, "eval_metadata.json"))
         exp = "\n".join(f"{i + 1}. {e}" for i, e in enumerate(meta["assertions"]))
         arms = "\n".join(f"- {b}: {os.path.join(d, b, 'run-1')}" for b in blinds)
         text = f"""You grade one case of a skill evaluation, blind. Read {sc}/agents/grader.md and follow its
 method (steps 1 to 7). Several runs got the same request; grade each run on its own, to the same
-standard. Do not try to work out how a run was produced, and do not read arms.json or anything
-outside the run folders listed below and the files they contain.
+standard. Do not try to work out how a run was produced: do not read arms.json, any run's
+prompt.txt (it names the procedure the run followed), or anything outside the run folders
+listed below and the files they contain.
 
 The request each run received:
 ---
@@ -361,7 +470,10 @@ changed, including files it created):
 {arms}
 
 You may run read-only commands and the repository's own checks (for example `make check`, `go test ./...`,
-`python3 <script>`) inside a run's repository; do not edit, add or delete any file there. An
+`python3 <script>`) inside a run's repository; do not edit, add or delete any file there. Run every command
+with HOME set to a folder in your scratchpad, npm_config_offline=true, npm_config_registry=http://127.0.0.1:9/, pnpm_config_offline=true, pnpm_config_registry=http://127.0.0.1:9/, COREPACK_ENABLE_NETWORK=0,
+PYTHONUSERBASE={site.getuserbase()} and PUB_CACHE={os.path.expanduser("~")}/.pub-cache (read only, so installed tools resolve),
+never run a deploy command for real, and never write under the real home directory or /tmp. An
 expectation about a check passing is graded by running it yourself, never by the transcript's word.
 The burden of proof is on the expectation: no evidence is a fail. A file with the right name and the
 wrong content is a fail.
@@ -375,8 +487,10 @@ run: the run folder name and passed/total.
             f.write(text)
         n += 1
     if n == 0:
-        die(f"skill-evals: 0 cases under {it}")
-    print(f"skill-evals: {n} grader briefs written")
+        die(
+            f"skill-evals: 0 grader briefs written under {it} ({waiting} cases still running)"
+        )
+    print(f"skill-evals: {n} grader briefs written, {waiting} cases still running")
     return 0
 
 

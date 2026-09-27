@@ -1,0 +1,60 @@
+{
+ "skill_name": "simplify-code",
+ "evals": [
+  {
+   "id": 1,
+   "name": "link-expiry-branch",
+   "prompt": "The link expiry feature on this branch was written with an AI assistant and it is far bigger than it needs to be. Go through all of it, work out what actually needs to be there, and cut the rest. Don't commit, I'll review the diff.",
+   "expected_output": "The branch's own additions shrink to what the feature needs: the one-implementation Expirer interface, its factory, the ExpirerOptions nobody sets, the unused Remaining, the recover-and-repanic, the unsigned ttl<0 check, the map nil check Open already rules out, the Handler mutex that re-locks a Store that locks itself, the second sort of an already sorted list, the export loop's re-check of what Store.Expired already filters, the min and TrimSuffix reimplementations, the start/done log lines and the comments that restate code are gone, with the expiry rule written once; the URL validation (partners call the API directly), the -export-expired flag the nightly archive script runs, the trailing-slash handling for the printed QR codes, inclusive expiry, the 30-day cap and capTTL's overflow guard (a huge ttl_seconds must still cap at 30 days, which a plain min over time.Duration(seconds)*time.Second does not) all still work; kept code stays where it is (links.MaxTTL is not moved); make check passes; nothing is committed; the final message gives before and after line counts, each cut with its reason, what was kept on purpose and why, and prints the commit command.",
+   "files": [
+    "files/linkd"
+   ],
+   "expectations": [
+    "`make check` passes when the grader runs it in the output repository with GOTOOLCHAIN=local",
+    "The run made no commit: `feature/LNK-14-link-expiry` and `main` still point at the commits the `fixture` tag and origin/main name, and the changes sit uncommitted (staged or unstaged, either is fine); the final message prints a commit command for the developer rather than running one",
+    "None of these remain defined anywhere in the repository: the Expirer interface, ExpirerOptions, NewExpirer, clockExpirer, a Remaining method, minDuration and trimTrailingSlash (`git grep -nE 'Expirer|ExpirerOptions|NewExpirer|clockExpirer|Remaining\\(|minDuration|trimTrailingSlash'` finds nothing in .go files); the tests that only exercised them (the factory's return type, the OnExpire callback, Remaining) are gone with them and no other test was deleted",
+    "The trailing-slash handling uses `strings.TrimSuffix` or equivalent standard code, and no hand-written helper that duplicates the standard library or the builtin `min` remains or is added",
+    "Huge TTLs still cap instead of overflowing: POST /links with ttl_seconds 10000000000 and with ttl_seconds 18446744073709551615 each return 201 with expires_at exactly 30 days after creation, and GET of that code then returns 302 (the fixture's capTTL compares the seconds before multiplying; replacing it with min(time.Duration(seconds)*time.Second, MaxTTL) overflows and gives an expiry in the past, so the link is 410 at once)",
+    "The dead defences are gone: the handler no longer compares the unsigned ttl_seconds with zero for negativity, Store.Put no longer re-creates a map that Open always creates, the create handler no longer has a deferred recover that only panics again, and Handler no longer has a mutex of its own around store calls (Store already takes its own lock in Put, Get and Expired)",
+    "The debug log lines \"create: start\", \"create: done\", \"get: start\" and \"get: done\" are gone while the \"put %s: %v\" error log and the \"linkd listening on %s\" startup log are unchanged; comments that only restate the next line are gone (for example \"save the link\", \"write the response\", \"look up the link\", \"loop over all links\", \"sort the expired links by code\", \"skip links that never expire\"), while doc comments on exported names and comments that say why may stay",
+    "The expiry rule (a link with a non-zero ExpiresAt is expired from that instant, inclusive) is decided in one place used by both the HTTP handler and Store.Expired; the -export-expired loop in cmd/linkd no longer re-checks ExpiresAt on what Store.Expired returns, and Store.Expired no longer sorts a list that s.sorted() already returned in code order",
+    "The URL validation still rejects bad input at the boundary: POST /links with {\"url\":\"example.com\"} and with {\"url\":\"ftp://example.com/x\"} each return 400 with the body text \"url must be an absolute http or https URL\"; the misleading comment that the web form already enforces it is removed or corrected (docs/api.md says partners call the endpoint directly)",
+    "The nightly archive still works: after `go build -o linkd ./cmd/linkd`, running `./linkd -data <file> -export-expired` on a links file holding one link whose expires_at is in the past and one without expires_at prints exactly the expired link as one JSON line and exits 0, the flag the script scripts/archive-expired.sh and ops/crontab rely on",
+    "Behaviour the branch's tests and docs pin is unchanged: GET /<code>/ with a trailing slash still redirects with 302, a link is 302 one second before expires_at and 410 at expires_at exactly, ttl_seconds of 90 days gives an expires_at 30 days on, a link created without ttl_seconds has no expires_at in the response or the data file, and an unknown code is 404",
+    "No test function or assertion from the fixture's internal/api/handler_test.go or TestStoreExpired was removed or weakened (added cases are fine), and the fixture's internal/api/handler_test.go checked out from the `fixture` tag passes against the simplified code",
+    "Kept code is not relocated: the 30-day cap is still the exported constant MaxTTL in package links, nothing that survives moves from one package to another, and the only new exported identifier, if any, is a single shared expiry check in package links",
+    "Files the branch did not touch are unchanged (web/index.html, internal/links/code.go, go.mod, Makefile, .gitignore), as are docs/api.md, scripts/archive-expired.sh and ops/crontab; go.mod gains no requirement",
+    "The final message gives line counts before and after (the branch diff against main, or the files in scope) consistent with the working tree, the test count before and after with the removed tests named, and each removal with a one-line reason",
+    "The final message says why each of these was kept, naming the evidence rather than a generic reason: the URL validation (partners call the API directly, docs/api.md), the -export-expired flag (scripts/archive-expired.sh, run from ops/crontab, calls it; naming that caller is enough) and the trailing-slash handling (the printed QR codes carry the slash)",
+    "The final message says which checks it ran and their results; nothing it did not run is reported as passing",
+    "No file written or edited contains an em dash character"
+   ]
+  },
+  {
+   "id": 2,
+   "name": "coupons-module",
+   "prompt": "shop/coupons.py came out of an AI assistant and it's about twice the size it should be. Simplify it. Leave it uncommitted so I can read the diff.",
+   "expected_output": "coupons.py loses the abstract validator with its single subclass and factory, the None-guarding upper-case helper and any inlined None guard, the strict parameter that does nothing, the docstrings and comments that echo the code, and the factory-only test; discount_for keeps its signature for code, subtotal and coupons, its CouponError messages and half-up rounding; load_coupons stays because scripts/coupon_report.py imports it, and that script, which passed strict positionally, is updated so its argument does not become coupons; the catch-all that logs and returns a zero discount is kept, because removing it changes what checkout does, and the final message explains that together with the malformed MONSOON entry it is hiding; the coupons data is untouched, no tool caches are left behind, make check and make coupon-report work, nothing is committed.",
+   "files": [
+    "files/cartsvc"
+   ],
+   "expectations": [
+    "`make check` passes when the grader runs it in the output repository",
+    "The run made no commit: history still ends at the `fixture` tag, the changes are uncommitted (staged or unstaged, either is fine), and the final message prints the commit command instead of running it",
+    "shop/coupons.py no longer defines CouponValidator, DefaultCouponValidator, get_validator or _safe_upper, has no abstract base class, and discount_for no longer takes a `strict` parameter; nothing in shop/coupons.py checks the code for None or substitutes an empty string for it (its callers, checkout.cart_total behind `if coupon` and the report over the file's keys, always pass a non-empty str)",
+    "`from shop.coupons import CouponError, discount_for, load_coupons` still works, discount_for still accepts `coupons=` as the fixture's tests call it, and reads data/coupons.json when it is not given",
+    "The marketing report still works: `make coupon-report` exits 0 and prints exactly the three lines \"FESTIVE25 500.00\", \"MONSOON 0.00\" and \"WELCOME10 200.00\" on stdout; scripts/coupon_report.py no longer passes a third positional argument to discount_for (left as it was, its True becomes `coupons` once strict is gone, and every line silently reads 0.00)",
+    "Coupon errors still reach checkout: discount_for(\"nope\", Decimal(\"100.00\"), coupons=...) raises CouponError \"unknown coupon NOPE\", a subtotal below the minimum raises \"FESTIVE25 needs a subtotal of at least 2000\", and cart_total([{\"price\": \"99.00\", \"qty\": 1}], \"BOGUS\") returns a zero discount, total 99.00 and the message \"unknown coupon BOGUS\"",
+    "Half-up rounding is unchanged: discount_for(\"WELCOME10\", Decimal(\"1.25\")) returns Decimal(\"0.13\") (Python's round() on a Decimal rounds half to even and gives 0.12; the README says half up, the way invoices print)",
+    "The catch-all is kept: discount_for(\"MONSOON\", Decimal(\"1000.00\")) still returns Decimal(\"0.00\") without raising, so checkout keeps working with the malformed entry, and the final message explains that removing or narrowing the catch-all would change behaviour (checkout would fail for that code) and leaves that decision to the developer",
+    "The final message reports that data/coupons.json's MONSOON entry has an invalid percent (\"12.5%\") which the catch-all silently turns into no discount, and data/coupons.json is byte-identical to the fixture",
+    "No comment or docstring in shop/coupons.py restates its name or the next line (for example \"look up the coupon\", \"return the coupon\", \"handle None\", \"open the file and parse it\", \"Path to the coupons file\", \"A coupon.\"), and there is no Args/Returns block; discount_for's docstring, if kept, carries only what the code does not make obvious (half-up rounding, which failures raise CouponError, and that any other failure gives no discount)",
+    "Every test in the fixture's tests/test_coupons.py except the one that only checks what get_validator returns still exists with no assertion removed or weakened (added tests are fine); the final message names the removed test and why",
+    "shop/checkout.py, README.md, the Makefile and data/coupons.json are unchanged; scripts/coupon_report.py differs from the fixture at most in its discount_for call; no dependency or new module was added",
+    "The run leaves nothing behind but its edits: `git status --porcelain --ignored` in the output repository lists only the edited files and __pycache__ directories, with no .ruff_cache, .mypy_cache, .pytest_cache, backup copies or scratch files",
+    "The final message gives shop/coupons.py's line count before and after, consistent with the working tree, and the test count before (8) and after",
+    "No file written or edited contains an em dash character"
+   ]
+  }
+ ]
+}

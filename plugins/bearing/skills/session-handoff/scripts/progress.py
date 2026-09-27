@@ -10,7 +10,8 @@ Each branch only ever writes its own file, so two branches never conflict.
       Upsert fields in docs/progress/<ID>.md, creating it from
       skills/session-handoff/templates/progress.md (guidance comments removed).
       Only the named fields change; Updated is set to today (UTC) on every
-      write; Started, Owner, Branch and Status get defaults on create.
+      write; Started, Owner (the latest commit's author), Branch and Status
+      get defaults on create.
       Scalars: --title --branch --status --owner --criteria --next --mr
       --ticket. Lists (repeat the flag; the given items replace the list,
       "none" clears it): --done --blocker --decision. Appending:
@@ -182,8 +183,11 @@ def cmd_write(a):
     created = not os.path.exists(path)
     if created:
         branch = (git(root, "branch", "--show-current") or "").strip() or "none"
+        # The author of the latest commit, from the repository, before the
+        # local git config: a machine's global name is not the task owner.
         owner = (
-            (git(root, "config", "user.name") or "").strip()
+            (git(root, "log", "-1", "--format=%an") or "").strip()
+            or (git(root, "config", "user.name") or "").strip()
             or os.environ.get("USER", "")
             or "unknown"
         )

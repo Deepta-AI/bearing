@@ -6,6 +6,8 @@ the gateway in front of this service has already authenticated.
 
 - `payments/api.py` holds the handlers. Each returns `(status, body)`.
 - `payments/orders.py` is the data access layer over SQLite.
+- `payments/settlement.py` computes what each merchant is paid out at the
+  end of the day; finance runs it from the nightly payout job.
 - `payments/gateway.py` talks to the card gateway; tests use `FakeGateway`.
 - `docs/api.md` is the public API reference for merchants' integrations.
 

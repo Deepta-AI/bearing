@@ -1,0 +1,6 @@
+# This repository holds the payments group's manifest and shared docs only.
+# Every repository listed in repos.yaml is cloned beside this file by
+# `make clone` and is its own git repository, so none of them is tracked here.
+/*/
+!/docs/
+!/scripts/

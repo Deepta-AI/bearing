@@ -1,0 +1,3 @@
+# Copy to terraform.tfvars (gitignored). Non-secret values only.
+project_id = "example-ledger-qa"
+region     = "asia-south1"

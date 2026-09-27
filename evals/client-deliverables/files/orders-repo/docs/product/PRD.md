@@ -16,3 +16,8 @@ Shop owners cannot see which invoices are overdue.
 - REQ-002: An invoice more than 30 days past due is marked overdue. TBD: the exact wording of the badge.
 
 <!-- Internal, not for Northwind: the estimate carries a 30% buffer for the billing-export risk. -->
+
+## 4. Delivery notes
+
+- Estimate basis (team only): 4 engineers for 6 weeks at a blended INR 3,200 per hour.
+- Release target: end of the first quarter after sign-off.

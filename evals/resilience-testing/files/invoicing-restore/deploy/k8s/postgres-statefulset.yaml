@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: pg
+  namespace: invoicing
+spec:
+  serviceName: invoicing-db
+  replicas: 1
+  selector:
+    matchLabels:
+      app: invoicing-db
+  template:
+    metadata:
+      labels:
+        app: invoicing-db
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16
+          args: ["-c", "config_file=/etc/postgresql/postgresql.conf"]
+          envFrom:
+            - secretRef:
+                name: invoicing-db-secrets
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+            - name: config
+              mountPath: /etc/postgresql
+      volumes:
+        - name: config
+          configMap:
+            name: invoicing-db-config
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 100Gi

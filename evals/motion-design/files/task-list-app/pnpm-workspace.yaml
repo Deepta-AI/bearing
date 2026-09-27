@@ -1,0 +1,3 @@
+# pnpm settings. Scripts refuse to run against missing or stale
+# dependencies instead of installing them first.
+verifyDepsBeforeRun: error

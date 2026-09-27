@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: filedrop-api
+  namespace: filedrop
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: filedrop-api
+  template:
+    metadata:
+      labels:
+        app: filedrop-api
+    spec:
+      containers:
+        - name: api
+          image: registry.example.test/filedrop/api:v1.4.0
+          ports:
+            - containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: filedrop-config
+          env:
+            - name: APP_ENV
+              value: production

@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en-IN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>S-04 Booked: booking mockup</title>
+<link rel="stylesheet" href="../../tokens.css">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--color-bg); color: var(--color-text); font-family: var(--font); }
+  .statebar { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 16px; border-bottom: 1px solid var(--color-border); background: var(--color-surface); }
+  .statebar button { min-height: 44px; padding: 0 14px; border: 1px solid var(--color-border); border-radius: 999px; background: var(--color-surface); color: var(--color-text); font: inherit; }
+  .statebar button[aria-pressed="true"] { border-color: var(--color-primary); font-weight: 600; }
+  .phone { width: 375px; min-height: 740px; margin: 24px auto; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 28px; overflow: hidden; display: flex; flex-direction: column; }
+  .appbar { padding: 16px; border-bottom: 1px solid var(--color-border); font-weight: 600; }
+  .content { flex: 1; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+  .muted { color: var(--color-text-muted); font-size: 14px; }
+  .slots { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .slot { min-height: 44px; display: grid; place-items: center; border: 1px solid var(--color-border); border-radius: var(--radius); color: var(--color-text); text-decoration: none; }
+  .skeleton { height: 44px; border-radius: var(--radius); background: var(--color-border); }
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  .field input { min-height: 44px; padding: 0 12px; border: 1px solid var(--color-border); border-radius: var(--radius); font: inherit; }
+  .field .err { color: var(--color-danger); font-size: 14px; }
+  .summary { border: 1px solid var(--color-border); border-radius: var(--radius); padding: 12px; display: grid; gap: 6px; }
+  .notice { border-left: 4px solid var(--color-danger); padding: 8px 12px; }
+  .actions { padding: 16px; border-top: 1px solid var(--color-border); display: grid; gap: 8px; }
+  .primary { min-height: 48px; display: grid; place-items: center; border-radius: var(--radius); background: var(--color-primary); color: var(--color-on-primary); font-weight: 600; text-decoration: none; }
+  .link { color: var(--color-link); font-weight: 600; }
+  .secondary { min-height: 48px; display: grid; place-items: center; border-radius: var(--radius); border: 1px solid var(--color-border); color: var(--color-text); text-decoration: none; }
+  a:focus-visible, button:focus-visible, input:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 2px; }
+  [data-state][hidden] { display: none; }
+</style>
+</head>
+<body>
+<nav class="statebar" aria-label="Mockup states">
+  <button type="button" data-target="success">Booked</button>
+</nav>
+<section class="phone" data-state="success" aria-label="Booked">
+  <header class="appbar">Booked</header>
+  <div class="content">
+    <p><strong>You are booked.</strong></p>
+    <div class="summary">
+      <strong>Indiranagar clinic</strong>
+      <span>Thu 1 Oct, 10:30</span>
+      <span>Booking BK-20417</span>
+    </div>
+    <p class="muted">We sent the details by SMS. Pay ₹500 at the clinic.</p>
+    <a class="link" href="#">Get directions to the clinic</a>
+  </div>
+  <div class="actions">
+    <a class="primary" href="#">View my bookings</a>
+  </div>
+</section>
+<script>
+  const buttons = document.querySelectorAll(".statebar button");
+  const panels = document.querySelectorAll("[data-state]");
+  function show(name) {
+    panels.forEach((p) => (p.hidden = p.dataset.state !== name));
+    buttons.forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.target === name)));
+  }
+  buttons.forEach((b) => b.addEventListener("click", () => show(b.dataset.target)));
+  show(new URLSearchParams(location.hash.slice(1)).get("state") || buttons[0].dataset.target);
+</script>
+</body>
+</html>

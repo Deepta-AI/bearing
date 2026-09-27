@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "deny": [
+      "Bash(git push:*)",
+      "Bash(make deploy-payments:*)",
+      "Bash(kubectl:*)",
+      "Read(./.env)"
+    ]
+  }
+}

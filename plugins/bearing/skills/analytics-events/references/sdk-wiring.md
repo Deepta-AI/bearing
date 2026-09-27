@@ -37,8 +37,13 @@ with an unknown event or a wrong property does not compile.
 - `src/analytics/` with the same shape; vendor client from
   `EXPO_PUBLIC_ANALYTICS_WRITE_KEY`.
 - `screen` from the expo-router navigation listener.
-- Offline queue with a bounded size (500 events) persisted in MMKV; the
-  queue is flushed on foreground and cleared on `reset()`.
+- Offline queue with a bounded size (500 events) persisted in MMKV,
+  appended under one lock (no concurrent read-modify-write); a flush
+  sends batches no larger than the collector accepts and removes only
+  the events it sent, only on a 2xx (`fetch` does not throw on 4xx or
+  5xx). Flushed on foreground, cleared on `reset()`.
+- The consent answer is persisted and restored at start-up before the
+  first `track`, or every later session sends nothing.
 - App lifecycle events from `AppState`.
 
 ## Android (Kotlin)

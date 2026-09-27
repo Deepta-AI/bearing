@@ -1,6 +1,7 @@
 package orders
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"log"
@@ -87,7 +88,7 @@ func (s *Service) All() []Order {
 
 // FulfilPending ships every pending order and tells the customer. A failed
 // notification does not stop the run; the first one is returned.
-func (s *Service) FulfilPending(n Notifier) (int, error) {
+func (s *Service) FulfilPending(ctx context.Context, n Notifier) (int, error) {
 	s.store.mu.Lock()
 	defer s.store.mu.Unlock()
 	done := 0
@@ -99,7 +100,7 @@ func (s *Service) FulfilPending(n Notifier) (int, error) {
 		o.Status = "fulfilled"
 		s.store.orders[id] = o
 		done++
-		if err := n.OrderShipped(o); err != nil && first == nil {
+		if err := n.OrderShipped(ctx, o); err != nil && first == nil {
 			first = fmt.Errorf("fulfil %s: %w", o.ID, err)
 		}
 	}

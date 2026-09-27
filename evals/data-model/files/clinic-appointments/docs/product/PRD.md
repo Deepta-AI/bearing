@@ -32,3 +32,7 @@ day before. Double bookings happen weekly and no-shows run at about 18%.
 Appointment records are clinical records and must be kept for 7 years
 after the appointment date. Nothing else in this feature has a retention
 rule agreed yet.
+
+A patient may ask their clinic to delete their personal data. The clinic
+must act on the request within 30 days, except for records a law requires
+it to keep.

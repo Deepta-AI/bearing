@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: orders-api
+  labels: { app: orders-api, env: prod }
+spec:
+  replicas: 6
+  selector:
+    matchLabels: { app: orders-api }
+  template:
+    metadata:
+      labels: { app: orders-api, env: prod }
+    spec:
+      containers:
+        - name: api
+          image: 111122223333.dkr.ecr.ap-south-1.amazonaws.com/orders-api:2026.08.3
+          env:
+            - name: LOG_LEVEL
+              value: debug  # temporary, INC-212 refund mismatch
+            - name: LOG_GROUP
+              value: /orders/app
+          resources:
+            requests: { cpu: "1", memory: 2Gi }
+            limits: { cpu: "2", memory: 4Gi }

@@ -7,15 +7,14 @@ license-compliance|make licenses|a target the skill adds to the Makefile
 license-compliance|npm ci|named as a reproducible-build flag in the release notes
 license-compliance|uv sync --frozen|named as a reproducible-build flag in the release notes
 secrets|make env-check|a target the skill adds to the Makefile
-doctor|claude plugin install|a fix line printed for the engineer
-doctor|npx @opengsd/gsd-core|a fix line printed for the engineer
+doctor|make setup|run only inside a throwaway clone to reproduce, never in the user's clone
+doctor|git update-index|a fix line printed for the engineer
+doctor|npm install|named as the step that resets core.hooksPath, never run
 gate-audit|git ls-files|an example of a gate pattern that passes on empty input
-git-hooks|git commit --no-verify|the emergency bypass the skill explains to the engineer
 mcp-server|claude mcp add|a registration line printed for the user
 postmortem|git log|output the caller pasted; the skill reads it, never runs it
 release|npm i|a README install line the skill greps for
 release|pnpm add|a README install line the skill greps for
 release|go get|a README install line the skill greps for
 workflow|git init|a next action named for the engineer
-workflow|make check|the Stop hook's recorded result, read, not run
 docs-drift|make test|a docs claim the skill checks against the recipe, never runs

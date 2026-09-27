@@ -1,0 +1,18 @@
+stages:
+  - check
+
+default:
+  image: python:3.12
+  before_script:
+    - pip install pytest
+
+checks:
+  stage: check
+  script:
+    - make lint test schema
+
+migrations:
+  stage: check
+  script:
+    - make migrations
+  allow_failure: true

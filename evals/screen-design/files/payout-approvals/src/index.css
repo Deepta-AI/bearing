@@ -1,0 +1,89 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* Design tokens. Source of truth for colour, radius and type (ADR-0004).
+   Screens use the role utilities (bg-primary, text-muted-foreground),
+   never a literal colour. */
+:root {
+  --radius: 0.5rem;
+  --background: oklch(0.99 0.003 270);
+  --foreground: oklch(0.21 0.02 270);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.21 0.02 270);
+  --muted: oklch(0.96 0.006 270);
+  --muted-foreground: oklch(0.50 0.02 270);
+  --primary: oklch(0.47 0.19 275);
+  --primary-foreground: oklch(0.99 0 0);
+  --secondary: oklch(0.95 0.01 275);
+  --secondary-foreground: oklch(0.30 0.05 275);
+  --accent: oklch(0.95 0.02 275);
+  --accent-foreground: oklch(0.30 0.08 275);
+  --destructive: oklch(0.55 0.21 27);
+  --destructive-foreground: oklch(0.99 0 0);
+  --success: oklch(0.55 0.13 155);
+  --warning: oklch(0.72 0.15 75);
+  --border: oklch(0.91 0.008 270);
+  --input: oklch(0.91 0.008 270);
+  --ring: oklch(0.47 0.19 275);
+  --sidebar: oklch(0.975 0.004 270);
+  --sidebar-foreground: oklch(0.30 0.02 270);
+}
+
+.dark {
+  --background: oklch(0.17 0.015 270);
+  --foreground: oklch(0.96 0.005 270);
+  --card: oklch(0.21 0.015 270);
+  --card-foreground: oklch(0.96 0.005 270);
+  --muted: oklch(0.26 0.015 270);
+  --muted-foreground: oklch(0.72 0.02 270);
+  --primary: oklch(0.68 0.16 275);
+  --primary-foreground: oklch(0.17 0.02 270);
+  --secondary: oklch(0.28 0.03 275);
+  --secondary-foreground: oklch(0.92 0.02 275);
+  --accent: oklch(0.30 0.05 275);
+  --accent-foreground: oklch(0.95 0.02 275);
+  --destructive: oklch(0.65 0.19 27);
+  --destructive-foreground: oklch(0.17 0.02 270);
+  --success: oklch(0.70 0.13 155);
+  --warning: oklch(0.80 0.14 75);
+  --border: oklch(0.30 0.015 270);
+  --input: oklch(0.30 0.015 270);
+  --ring: oklch(0.68 0.16 275);
+  --sidebar: oklch(0.19 0.015 270);
+  --sidebar-foreground: oklch(0.90 0.01 270);
+}
+
+@theme inline {
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+}
+
+@layer base {
+  * { @apply border-border outline-ring/50; }
+  body { @apply bg-background text-foreground font-sans antialiased; }
+}

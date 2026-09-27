@@ -1,0 +1,8 @@
+.dart_tool/
+build/
+coverage/
+*.g.dart
+*.freezed.dart
+lib/l10n/generated/
+android/
+ios/

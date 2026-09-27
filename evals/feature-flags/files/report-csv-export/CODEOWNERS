@@ -1,0 +1,5 @@
+# Review routing for merge requests.
+*                              @dana.k
+/internal/reports/             @dana.k @mo.r
+/deploy/                       @sre-team
+/deploy/analytics-shared.yaml  @platform-analytics

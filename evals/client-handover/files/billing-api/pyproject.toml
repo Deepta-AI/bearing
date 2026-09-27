@@ -1,0 +1,18 @@
+[project]
+name = "billing-api"
+version = "2.2.0.dev0"
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi==0.115.6",
+  "uvicorn==0.32.1",
+  "sqlalchemy==2.0.36",
+  "psycopg[binary]==3.2.3",
+  "httpx==0.28.1",
+]
+
+[project.optional-dependencies]
+dev = ["pytest==8.3.4"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]

@@ -137,7 +137,9 @@ lighthouse: ## Lighthouse CI against the production build: fails on the assertio
 vuln: ## pnpm audit at high and above over the committed lockfile (production deps)
 	@command -v $(PNPM) >/dev/null || $(call skip,vuln,pnpm); \
 	[ -f pnpm-lock.yaml ] || { echo "vuln: no pnpm-lock.yaml; run make setup and commit it" >&2; exit 1; }; \
-	$(PNPM) audit --audit-level=high --prod || exit 1; \
+	out=$$($(PNPM) audit --audit-level=high --prod 2>&1); rc=$$?; echo "$$out"; \
+	if [ $$rc -ne 0 ] && echo "$$out" | grep -qiE 'ENOTFOUND|EAI_AGAIN|ECONNREFUSED|ETIMEDOUT|fetch failed|AUDIT_ENDPOINT_NOT_EXISTS|BAD_RESPONSE'; then mkdir -p $(STATE); echo "vuln: SKIPPED (package registry unreachable; nothing audited)"; echo "vuln registry" >> $(SKIPPED); exit 0; fi; \
+	[ $$rc -eq 0 ] || exit 1; \
 	n=$$($(PNPM) ls --prod --depth 100 --parseable 2>/dev/null | grep -c node_modules || true); \
 	[ "$$n" -gt 0 ] || { echo "vuln: 0 packages audited" >&2; exit 1; }; echo "vuln: $$n packages checked"
 

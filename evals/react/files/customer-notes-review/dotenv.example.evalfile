@@ -1,0 +1,5 @@
+# Copy to .env for pnpm dev. Every VITE_ variable is public: it is built into the bundle.
+VITE_API_BASE_URL=http://localhost:8080
+# Summarisation provider, used by the notes summary button.
+VITE_SUMMARY_API_URL=https://api.summarise.example/v1/summarise
+VITE_SUMMARY_API_KEY=sk-live-replace-me

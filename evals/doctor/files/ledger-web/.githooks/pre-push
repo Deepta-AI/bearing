@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# pre-push: no push to main, branch name convention, then the full gate.
+HOOK_NAME=pre-push
+. "$(dirname "$0")/lib.sh"
+branch="$(git branch --show-current)"
+case "$branch" in
+  main) hook_fail "direct push to main is not allowed; open a pull request" ;;
+esac
+printf '%s' "$branch" | grep -Eq "$BRANCH_RE" || hook_fail "branch $branch does not match $BRANCH_RE"
+make check || hook_fail "make check failed"
+hook_note "branch $branch checked, make check passed"

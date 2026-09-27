@@ -1,0 +1,1910 @@
+[
+ {
+  "skill": "ab-experiment",
+  "should": [
+   "how many users do we need to test the new booking flow?",
+   "Product wants to compare the one-page checkout against the current three-step booking form. Set up the test on the existing flag, pick the metric and decide when we stop.",
+   "we ran two versions of the reminder message for three weeks, variant B looks better on confirmations, is that real or noise and should we ship it?"
+  ],
+  "near": [
+   {
+    "prompt": "put the new reschedule button behind a flag that defaults off",
+    "expect": "feature-flags"
+   },
+   {
+    "prompt": "add tracking events for each step of the booking funnel",
+    "expect": "analytics-events"
+   }
+  ]
+ },
+ {
+  "skill": "accessibility",
+  "should": [
+   "check the booking form for a11y problems",
+   "A hospital customer says blind users can't complete a booking in web/ using NVDA. Go through the booking pages and mobile/ screens, list what fails with file and line, and fix it.",
+   "patients using only a keyboard get stuck in the date picker and the focus disappears, plus contrast on the grey labels looks too weak"
+  ],
+  "near": [
+   {
+    "prompt": "score the new dashboard design at desktop and phone widths in light and dark and tell me what looks generic",
+    "expect": "design-critique"
+   },
+   {
+    "prompt": "the booking page takes 6 seconds to load on a phone, lighthouse performance is 40",
+    "expect": "performance"
+   }
+  ]
+ },
+ {
+  "skill": "adr",
+  "should": [
+   "we picked postgres advisory locks for slot holds, write that up",
+   "In the planning meeting we settled on moving reminders from cron to a queue with SQS. Capture that choice with the context and trade-offs under docs/adr/ so the next person knows why.",
+   "six months from now someone will ask why we're on sqlc and not gorm; put the reasoning somewhere permanent in the repo"
+  ],
+  "near": [
+   {
+    "prompt": "should we use SQS or RabbitMQ for the reminder queue? lay out the options, I haven't decided",
+    "expect": "tech-decision"
+   },
+   {
+    "prompt": "write a design doc for the new multi-clinic scheduling system covering architecture, failure modes and rollout",
+    "expect": "high-level-design"
+   }
+  ]
+ },
+ {
+  "skill": "analytics-events",
+  "should": [
+   "add tracking for when someone cancels an appointment",
+   "Marketing wants to know where patients drop out of booking. Define the events for each step, wire them through one typed module in web/ and mobile/, and check nothing sends ad hoc event names.",
+   "we have posthog calls scattered all over web/ with inconsistent names, and nobody knows which ones the dashboards actually rely on"
+  ],
+  "near": [
+   {
+    "prompt": "add request id to every log line in services/api",
+    "expect": "logging"
+   },
+   {
+    "prompt": "set up tracing and RED dashboards in grafana for the api",
+    "expect": "observability"
+   }
+  ]
+ },
+ {
+  "skill": "android",
+  "should": [
+   "write a kotlin viewmodel for the appointment list screen",
+   "We're adding a native Android companion app under mobile-android/ for clinic staff. Scaffold it with Compose screens, Hilt for DI and Room for the offline cache of today's appointments.",
+   "the staff app needs a new Jetpack screen for today's appointments, with its coroutine scopes set up properly and the gradle module wired in"
+  ],
+  "near": [
+   {
+    "prompt": "the play console rejected our staff app build for a missing data safety declaration, help me fix the listing and resubmit",
+    "expect": "app-store-release"
+   },
+   {
+    "prompt": "in mobile/ the booking screen overflows on small phones, fix the widget layout",
+    "expect": "flutter"
+   }
+  ]
+ },
+ {
+  "skill": "api-versioning",
+  "should": [
+   "retire the old /v1/bookings endpoint",
+   "The mobile app still calls GET /appointments?clinic= but we want everyone on /clinics/{id}/appointments. Mark the old one as going away, tell callers via headers, and only delete it once logs show no traffic.",
+   "partners integrate with our booking API and we need to change the response shape of slots without breaking them"
+  ],
+  "near": [
+   {
+    "prompt": "write the openapi contract for the booking endpoints in api/openapi.yaml",
+    "expect": "openapi-spec"
+   },
+   {
+    "prompt": "cut release 2.4.0 with the changelog and a version bump",
+    "expect": "release"
+   }
+  ]
+ },
+ {
+  "skill": "app-store-release",
+  "should": [
+   "get build 1.8 of the patient app onto testflight",
+   "Google rejected mobile/ version 2.3 for the health data declaration. Fix the listing and data safety form, bump the build number and plan a staged rollout.",
+   "we need fresh store screenshots and release notes for the new booking flow before sending the flutter app to apple and google this week"
+  ],
+  "near": [
+   {
+    "prompt": "prepare a release of the backend: version bump, changelog entry and tag commands",
+    "expect": "release"
+   },
+   {
+    "prompt": "set up fastlane lanes and flavours in mobile/ for dev and prod builds",
+    "expect": "flutter"
+   }
+  ]
+ },
+ {
+  "skill": "architecture-diagram",
+  "should": [
+   "c4 context and container views for clinic-booking please",
+   "New joiners keep asking how web/, services/api, services/worker and Postgres connect. Produce diagrams from what the code actually does, including the booking request path end to end.",
+   "i want a picture of what happens between the app, the api and the worker when a patient books a slot"
+  ],
+  "near": [
+   {
+    "prompt": "explain how the booking request is handled in services/api, with file and line references",
+    "expect": "explain-codebase"
+   },
+   {
+    "prompt": "document our environments, scaling and backups for the ops team",
+    "expect": "deployment-architecture"
+   }
+  ]
+ },
+ {
+  "skill": "auth",
+  "should": [
+   "add role based permissions for doctors vs receptionists",
+   "Right now any logged-in user can GET /appointments/{id} for any patient in services/api. Lock it down so users only see their own clinic's data and add tests for every role and resource.",
+   "patients should be able to sign in with google or a passkey instead of the emailed OTP we have now"
+  ],
+  "near": [
+   {
+    "prompt": "someone pushed the stripe secret key to main, what do we do",
+    "expect": "secrets"
+   },
+   {
+    "prompt": "do a STRIDE analysis of the new telehealth feature before we build it",
+    "expect": "threat-model"
+   }
+  ]
+ },
+ {
+  "skill": "autopilot",
+  "should": [
+   "take the waitlist idea all the way to an MR on your own",
+   "Here's the requirement: patients can join a waitlist and get auto-booked when a slot frees up. I'm heading out; go from this statement through requirements, design and tests to a merge request ready for my review, without asking me.",
+   "don't stop to check with me, just carry 'clinics can set holiday closures' through every step and leave me something mergeable by morning"
+  ],
+  "near": [
+   {
+    "prompt": "turn this brief about holiday closures into a PRD with numbered requirements",
+    "expect": "prd"
+   },
+   {
+    "prompt": "write the MR description for my current branch",
+    "expect": "merge-request"
+   }
+  ]
+ },
+ {
+  "skill": "background-jobs",
+  "should": [
+   "we need a nightly job to expire unpaid holds",
+   "services/worker sends reminder SMS from a cron script that sometimes runs twice and double-texts patients. Rework it so each reminder happens once, retries on failure with backoff, and stops cleanly on deploy.",
+   "when a booking commits we also need to notify the clinic, but if the notify call fails after the DB write we lose it; how do I make that reliable"
+  ],
+  "near": [
+   {
+    "prompt": "stripe is calling us with payment events, verify their signatures and handle duplicates",
+    "expect": "webhooks"
+   },
+   {
+    "prompt": "write the runbook for the alert that fires when the reminder queue backs up",
+    "expect": "runbook"
+   }
+  ]
+ },
+ {
+  "skill": "backlog",
+  "should": [
+   "break docs/prd/waitlist.md into stories",
+   "The PRD in docs/prd/telehealth.md is approved. Group it into epics and stories with Given-When-Then acceptance criteria, and show which requirements each story covers.",
+   "we have forty numbered requirements for the clinic admin module and need something the team can pick up in sprints"
+  ],
+  "near": [
+   {
+    "prompt": "how long will the telehealth stories take? give me points and a phase plan",
+    "expect": "estimate"
+   },
+   {
+    "prompt": "push the telehealth stories into jira as tickets",
+    "expect": "tracker-sync"
+   }
+  ]
+ },
+ {
+  "skill": "branch-review",
+  "should": [
+   "can you go through my branch before i open the MR",
+   "I just finished the appointment reschedule endpoint on feat/CB-212-reschedule, touches services/api/handlers/appointments.go and a new sqlc query. Give it a proper once-over for bugs and tell me whether it's mergeable.",
+   "a colleague sent me mr-88.patch for the worker retry logic, i want to know if anything in it is going to break prod before i approve"
+  ],
+  "near": [
+   {
+    "prompt": "write the MR description for this branch and give me the push command",
+    "expect": "merge-request"
+   },
+   {
+    "prompt": "run through the done checklist on my branch, tests, docs, commits, the lot, and tell me if every item has evidence",
+    "expect": "definition-of-done"
+   }
+  ]
+ },
+ {
+  "skill": "ci-pipeline",
+  "should": [
+   "our github actions build is red on every push, sort it out",
+   "We only have a lint workflow in .github/workflows right now. I need jobs for the Go api tests, the Python worker tests and the Next.js build, each calling the Makefile.",
+   "nothing runs automatically when someone pushes to this repo, i want tests and a manual deploy step wired up on github"
+  ],
+  "near": [
+   {
+    "prompt": "our CI test job went green even though the go test step found no packages, are any of our checks actually hollow like that?",
+    "expect": "gate-audit"
+   },
+   {
+    "prompt": "the pre-commit hook isn't running on my machine, commits go straight through",
+    "expect": "git-hooks"
+   }
+  ]
+ },
+ {
+  "skill": "client-deliverables",
+  "should": [
+   "need all our docs as word files for the client",
+   "The client wants the PRD, HLD, test plan and data dictionary delivered in their standard numbered folder structure with a docx per document and version history. Can you put that together from docs/?",
+   "the hospital's PMO asked for our documentation in a format they can file, word docs mostly, plus a checklist of what's been delivered"
+  ],
+  "near": [
+   {
+    "prompt": "the engagement ends next week, write up everything the client's own team needs to run this: environments, access, deploy steps, open debt, sign-off",
+    "expect": "client-handover"
+   },
+   {
+    "prompt": "convert docs/prd/booking.md into a single nicely formatted .docx",
+    "expect": null
+   }
+  ]
+ },
+ {
+  "skill": "client-handover",
+  "should": [
+   "our contract with the clinic ends friday, prep the handover",
+   "We're transferring clinic-booking to the client's in-house team at the end of the month. They need to know environments, who has access to what, how to deploy, the runbooks and the known debt, with a sign-off page.",
+   "after we leave, the customer's engineers will own this system and nobody from our side will be around to answer questions. what do they need in writing?"
+  ],
+  "near": [
+   {
+    "prompt": "i'm stopping for the day, jot down where i am on this branch so i can pick it up tomorrow",
+    "expect": "session-handoff"
+   },
+   {
+    "prompt": "export the whole docs folder into the client's numbered folders as word documents",
+    "expect": "client-deliverables"
+   }
+  ]
+ },
+ {
+  "skill": "cloud-cost",
+  "should": [
+   "aws bill jumped 40% last month, why?",
+   "I've got last month's AWS cost export at ~/Downloads/billing-2026-08.csv. Break it down by service and by staging vs prod and suggest where we can trim.",
+   "finance is asking what each booking request actually costs us in infrastructure and where the money goes"
+  ],
+  "near": [
+   {
+    "prompt": "write up what runs where: our environments, the k8s topology, scaling and backups, with a diagram",
+    "expect": "deployment-architecture"
+   },
+   {
+    "prompt": "shrink the worker node pool in infra/terraform/prod from 4 nodes to 2",
+    "expect": "infra"
+   }
+  ]
+ },
+ {
+  "skill": "company-attribution",
+  "should": [
+   "put a proprietary licence on this repo",
+   "This codebase is being delivered by Northwind Labs Private Limited. Set up the LICENSE, NOTICE, CODEOWNERS and SECURITY.md so ownership is clear, and fix the package metadata in web/package.json.",
+   "there's nothing in the repo saying which company owns it or who to contact about security issues"
+  ],
+  "near": [
+   {
+    "prompt": "which open source licences do our dependencies use, and are any of them GPL?",
+    "expect": "license-compliance"
+   },
+   {
+    "prompt": "generate an SBOM and third-party notices file for the mobile app",
+    "expect": "license-compliance"
+   }
+  ]
+ },
+ {
+  "skill": "computer-vision",
+  "should": [
+   "flag blurry or unreadable prescription photos on upload",
+   "Patients upload photos of their insurance cards in the mobile app. We want to pull the member id and policy number out of the image automatically in services/worker.",
+   "clinics send us scanned referral letters and a person retypes the patient details, can we automate that reliably?"
+  ],
+  "near": [
+   {
+    "prompt": "predict which patients are likely to no-show from their booking history",
+    "expect": "tabular-ml"
+   },
+   {
+    "prompt": "add an endpoint so users can upload a profile photo to S3",
+    "expect": "feature-patterns"
+   }
+  ]
+ },
+ {
+  "skill": "data-model",
+  "should": [
+   "design the tables for the new billing epic",
+   "We've got the stories for multi-clinic support in docs/prd/multi-clinic.md. Work out the entities, give me a runnable schema and a data dictionary explaining why each column exists.",
+   "before anyone writes code for referrals, i want the entities, their relationships and a diagram of them agreed"
+  ],
+  "near": [
+   {
+    "prompt": "add a nullable referral_source column to patients, migration plus rollback",
+    "expect": "db-migration"
+   },
+   {
+    "prompt": "is a partial index on appointments where status = 'booked' a good idea?",
+    "expect": "database"
+   }
+  ]
+ },
+ {
+  "skill": "data-pipeline",
+  "should": [
+   "write a dbt model for daily bookings per clinic",
+   "Analytics wants appointment no-show rates. Add a nightly Airflow job that loads the booking tables nightly into the warehouse and a dbt mart with tests on the keys.",
+   "we changed how cancellations are counted, and now last year's reporting tables need to be rebuilt month by month without redoing everything at once"
+  ],
+  "near": [
+   {
+    "prompt": "build a model that predicts which patients will no-show next week",
+    "expect": "tabular-ml"
+   },
+   {
+    "prompt": "the reminder emails in services/worker get sent twice when the job retries, make them idempotent",
+    "expect": "background-jobs"
+   }
+  ]
+ },
+ {
+  "skill": "database",
+  "should": [
+   "which index for appointments by doctor and date?",
+   "This query in services/api/queries/slots.sql does a seq scan on appointments once we pass a few million rows. Here's the EXPLAIN output, what should change?",
+   "we want to store audit events for every booking change, should that go in postgres or something like clickhouse?"
+  ],
+  "near": [
+   {
+    "prompt": "write the goose migration that adds a cancelled_at column to appointments with a down step",
+    "expect": "db-migration"
+   },
+   {
+    "prompt": "from the backlog, work out what tables we need for the waitlist feature and give me schema.sql and an ERD",
+    "expect": "data-model"
+   }
+  ]
+ },
+ {
+  "skill": "db-migration",
+  "should": [
+   "need a migration to add phone_verified to patients",
+   "Rename doctors.speciality to specialty in the Postgres schema. services/api uses goose, the table is large, and I need a working down step.",
+   "the worker's sqlalchemy models have a new timezone field that doesn't exist in the db yet"
+  ],
+  "near": [
+   {
+    "prompt": "what tables do we need for the telehealth feature, give me the full ERD",
+    "expect": "data-model"
+   },
+   {
+    "prompt": "the goose migration 0042 failed halfway in staging with a lock timeout, what happened?",
+    "expect": "database"
+   }
+  ]
+ },
+ {
+  "skill": "definition-of-done",
+  "should": [
+   "is CB-219 actually finished?",
+   "I think feat/CB-219-sms-reminders is complete. Before I ask for review, check it properly against our done criteria: tests, docs, scope, commit messages, and that the app still starts.",
+   "i want proof, not vibes, that nothing is left on this branch before it goes to the team"
+  ],
+  "near": [
+   {
+    "prompt": "review the diff on my branch for bugs and security issues",
+    "expect": "branch-review"
+   },
+   {
+    "prompt": "write me the MR description and the push command for this branch",
+    "expect": "merge-request"
+   }
+  ]
+ },
+ {
+  "skill": "dependency-audit",
+  "should": [
+   "any known CVEs in our packages?",
+   "web/package.json and services/worker/pyproject.toml haven't been touched in months. Check for vulnerable and outdated versions and apply the safe minor and patch upgrades with tests after each.",
+   "renovate has been opening PRs nobody merges and i've lost track of how stale our libraries are"
+  ],
+  "near": [
+   {
+    "prompt": "list the licence of every dependency and flag anything copyleft",
+    "expect": "license-compliance"
+   },
+   {
+    "prompt": "upgrade the flutter app from riverpod 2 to riverpod 3 and fix the breaking changes",
+    "expect": "flutter"
+   }
+  ]
+ },
+ {
+  "skill": "deployment-architecture",
+  "should": [
+   "where does all this actually run?",
+   "New on-call engineer joins Monday. Write up our environments from infra/terraform and infra/k8s: what runs in each, how it scales, backups, rollback and DR, with a diagram.",
+   "if prod dies at 3am, nobody knows which cluster, which database or how to roll back. get that on paper."
+  ],
+  "near": [
+   {
+    "prompt": "draw a sequence diagram of how a booking goes from the web app through the api to the worker",
+    "expect": "architecture-diagram"
+   },
+   {
+    "prompt": "prod was just deployed, check it's healthy and running the right version",
+    "expect": "verify-deploy"
+   }
+  ]
+ },
+ {
+  "skill": "design-critique",
+  "should": [
+   "rate the new booking screens honestly",
+   "The HTML prototype for the patient dashboard is in docs/design/dashboard/. Score it on hierarchy, spacing, type and colour, at phone and desktop widths, in dark and light.",
+   "the checkout page mockup feels off and generic but i can't say why, pick it apart"
+  ],
+  "near": [
+   {
+    "prompt": "give me three different visual looks for the booking flow so we can pick one",
+    "expect": "design-directions"
+   },
+   {
+    "prompt": "check the booking form for screen reader and keyboard problems against WCAG",
+    "expect": "accessibility"
+   }
+  ]
+ },
+ {
+  "skill": "design-directions",
+  "should": [
+   "show me a few distinct looks for the app",
+   "We haven't settled a visual style for web/ yet. Mock up the real booking and dashboard screens in several genuinely different styles, score them and let me choose.",
+   "the stakeholders can't agree on how the patient portal should feel, i want real alternatives side by side to decide"
+  ],
+  "near": [
+   {
+    "prompt": "we picked the calm clinical direction, now turn it into tokens and themes for next and flutter",
+    "expect": "design-system"
+   },
+   {
+    "prompt": "score the existing dashboard prototype and tell me what's wrong with it",
+    "expect": "design-critique"
+   }
+  ]
+ },
+ {
+  "skill": "design-system",
+  "should": [
+   "set up colour and spacing tokens for web and mobile",
+   "The approved direction is in docs/design/DESIGN.md. Turn it into tokens, generate the Tailwind theme for web/ and a ThemeData for mobile/, and add a lint that stops hex literals in components.",
+   "every component in web/ hardcodes its own hex colours and spacing, i want one source of truth that both apps follow"
+  ],
+  "near": [
+   {
+    "prompt": "add a dark mode on top of our existing tokens with contrast checks",
+    "expect": "themes"
+   },
+   {
+    "prompt": "propose three different visual styles for the portal",
+    "expect": "design-directions"
+   }
+  ]
+ },
+ {
+  "skill": "docs-drift",
+  "should": [
+   "does the README still match reality?",
+   "We renamed a bunch of make targets and moved services around last quarter. Go through README.md and docs/ and find anything that points to paths, targets or env vars that no longer exist.",
+   "new devs keep following setup steps that don't work anymore"
+  ],
+  "near": [
+   {
+    "prompt": "rewrite the README intro so it doesn't sound AI-generated",
+    "expect": "prose-lint"
+   },
+   {
+    "prompt": "does docs/api/openapi.yaml match the routes in services/api?",
+    "expect": "openapi-spec"
+   }
+  ]
+ },
+ {
+  "skill": "doctor",
+  "should": [
+   "is bearing set up right on this machine?",
+   "I installed the plugin yesterday but the commit-msg hook never fires in clinic-booking and the session doesn't seem to load the rules. Check what's missing.",
+   "something about my claude code kit feels half installed, the skills show up but the hooks don't do anything"
+  ],
+  "near": [
+   {
+    "prompt": "update all my claude code plugins and skill packs to the latest versions",
+    "expect": "upgrade-tools"
+   },
+   {
+    "prompt": "install the committed git hooks in this repo and set hooksPath",
+    "expect": "git-hooks"
+   }
+  ]
+ },
+ {
+  "skill": "estimate",
+  "should": [
+   "how many weeks for the backlog?",
+   "docs/product/backlog.md has the stories for the telehealth release. Put points on them and hours on the tasks, list your assumptions and give me a range, not one number.",
+   "the client wants a delivery date for phase two and i need something i can defend"
+  ],
+  "near": [
+   {
+    "prompt": "break the PRD in docs/prd/telehealth.md into epics and user stories",
+    "expect": "backlog"
+   },
+   {
+    "prompt": "push the sized stories into jira as tickets",
+    "expect": "tracker-sync"
+   }
+  ]
+ },
+ {
+  "skill": "explain-codebase",
+  "should": [
+   "walk me through this repo",
+   "I just joined and I'm looking at services/api. Where does a booking request enter, what does it touch on the way, and which files matter most?",
+   "where does the reminder sms actually get sent from? i can't find it"
+  ],
+  "near": [
+   {
+    "prompt": "draw a C4 container diagram of the whole system",
+    "expect": "architecture-diagram"
+   },
+   {
+    "prompt": "what should i work on next here, what's in flight on this branch?",
+    "expect": "workflow"
+   }
+  ]
+ },
+ {
+  "skill": "feature-flags",
+  "should": [
+   "gate the new waitlist thing so it's off by default",
+   "we're shipping the reschedule-appointment flow in services/api next week but product wants to switch it on per environment later. wire it so it's dark until we enable it, with tests for on and off",
+   "the old SMS reminder code path is still sitting behind FLAG_LEGACY_REMINDERS and everyone has had the new one for two months, can you rip out the toggle and the dead branch"
+  ],
+  "near": [
+   {
+    "prompt": "we want to show half the patients the new booking button colour and see if conversions go up, how many users do we need before we can call it",
+    "expect": "ab-experiment"
+   },
+   {
+    "prompt": "what does the isEnabled helper in web/lib/flags.ts return when the env var is missing?",
+    "expect": null
+   }
+  ]
+ },
+ {
+  "skill": "feature-patterns",
+  "should": [
+   "patients need to attach insurance card photos to a booking",
+   "clinics are hammering POST /appointments from their kiosk scripts. plan out how we throttle per clinic in services/api, including what the tests should look like",
+   "people keep asking to find doctors by name, specialty or neighbourhood from the web app and right now it's just a dropdown. how should we approach this before anyone writes code"
+  ],
+  "near": [
+   {
+    "prompt": "should we use Elasticsearch or Typesense for this, and write down the decision",
+    "expect": "tech-decision"
+   },
+   {
+    "prompt": "stripe is posting payment_intent.succeeded to us, build the endpoint that receives it and checks the signature",
+    "expect": "webhooks"
+   }
+  ]
+ },
+ {
+  "skill": "flutter",
+  "should": [
+   "add a riverpod provider for the clinic list in mobile/",
+   "In mobile/lib/features/booking, the slot picker page fetches with raw http calls. Rewrite it to use dio through the repository layer and add a widget test for the empty state.",
+   "the patient app needs a separate staging build pointing at the staging API with its own bundle id, how do I set that up in mobile/?"
+  ],
+  "near": [
+   {
+    "prompt": "add hindi and tamil to the whole product, web and mobile, with plural rules and an untranslated-key count",
+    "expect": "i18n"
+   },
+   {
+    "prompt": "prepare the next patient app submission for the app store: bump build number, update screenshots and the privacy nutrition labels",
+    "expect": "app-store-release"
+   }
+  ]
+ },
+ {
+  "skill": "gate-audit",
+  "should": [
+   "are our CI checks actually checking anything?",
+   "i just noticed the lint job in .github/workflows/ci.yml went green on a branch where services/worker had zero python files changed and no tests collected. go through every job, hook and make check target and tell me which ones would pass on nothing",
+   "i don't trust that `make check` means anything anymore, half of it feels like it would print ok even if the folder were empty"
+  ],
+  "near": [
+   {
+    "prompt": "add a CI job that runs flutter test for mobile/ on every merge request",
+    "expect": "ci-pipeline"
+   },
+   {
+    "prompt": "the pre-commit hook isn't running at all after i cloned, can you get it working again",
+    "expect": "git-hooks"
+   }
+  ]
+ },
+ {
+  "skill": "genai-design",
+  "should": [
+   "should the symptom triage bot be retrieval or an agent?",
+   "product wants an assistant that reads a patient's intake notes and suggests which specialist to book (see docs/prd/triage-assistant.md). before we write any code, work out the approach, which model size, what it costs per request and how we'd know it works",
+   "we have a vague idea about using AI to summarise doctor notes for patients. i need a writeup on how we'd do it, what's the cheaper alternative, latency and risks, before the planning meeting"
+  ],
+  "near": [
+   {
+    "prompt": "we already decided on the approach, now build the retrieval over docs/ policies with pgvector and citations",
+    "expect": "rag"
+   },
+   {
+    "prompt": "write the High Level Design for the whole new billing service, not AI related",
+    "expect": "high-level-design"
+   }
+  ]
+ },
+ {
+  "skill": "git-hooks",
+  "should": [
+   "my commit got bounced, why?",
+   "fresh clone of clinic-booking and nothing runs on commit. the hooks are in .githooks/ but core.hooksPath isn't set, get them installed and try each one",
+   "i want commit message format and formatting to be enforced locally before anything reaches origin, and a check before pushing"
+  ],
+  "near": [
+   {
+    "prompt": "do our CI jobs and hooks pass even when there's nothing to check? audit all of them",
+    "expect": "gate-audit"
+   },
+   {
+    "prompt": "write me a good commit message for the staged diff",
+    "expect": null
+   }
+  ]
+ },
+ {
+  "skill": "go",
+  "should": [
+   "add a GET /clinics/{id}/slots handler in services/api",
+   "services/api/internal/booking still builds SQL strings by hand. Move the queries to sqlc, keep pgx as the driver and add table driven tests for the handler with httptest.",
+   "wrap the errors properly and pass the request context through the new doctor endpoints in the api service"
+  ],
+  "near": [
+   {
+    "prompt": "add a nullable cancelled_reason column to appointments with a down step",
+    "expect": "db-migration"
+   },
+   {
+    "prompt": "the appointments endpoint p95 went from 80ms to 900ms, profile it and find out why",
+    "expect": "performance"
+   }
+  ]
+ },
+ {
+  "skill": "harness-setup",
+  "should": [
+   "half the team uses cursor, make this repo work for them",
+   "a contractor is joining next week and only uses OpenAI Codex CLI. our rules live in AGENTS.md and .claude/rules, can you add whatever codex needs so it follows the same conventions and hooks",
+   "can gemini cli pick up the same guardrails and skills claude has in this monorepo?"
+  ],
+  "near": [
+   {
+    "prompt": "check that the bearing plugin and its hooks are installed properly on my machine",
+    "expect": "doctor"
+   },
+   {
+    "prompt": "bring this old repo onto our team standard with the Makefile, hooks and CLAUDE.md",
+    "expect": "onboard-repo"
+   }
+  ]
+ },
+ {
+  "skill": "health-checks",
+  "should": [
+   "k8s needs liveness and readiness probes for the api",
+   "services/api has no endpoint the load balancer can hit, and when postgres goes away the pods keep taking traffic. add probes that check each dependency and wire them into infra/k8s",
+   "we only find out the booking site is down when a clinic calls us. i want something outside hitting it every minute and paging us"
+  ],
+  "near": [
+   {
+    "prompt": "set up tracing and RED dashboards in grafana for the api and worker",
+    "expect": "observability"
+   },
+   {
+    "prompt": "we just deployed to staging, check it came up and the smoke pages work",
+    "expect": "verify-deploy"
+   }
+  ]
+ },
+ {
+  "skill": "high-level-design",
+  "should": [
+   "need the overall architecture write-up for multi-clinic support",
+   "we're adding video consultations across api, worker, web and mobile. before anyone starts, write up the overall design: goals and non-goals first, then components, data flow, failure modes, scaling and rollout",
+   "leadership wants to see the big picture of how the new insurance-claims module fits into the platform before approving it"
+  ],
+  "near": [
+   {
+    "prompt": "take the notifications component from the HLD and break it down into types, error paths, queries and MR-sized tasks",
+    "expect": "low-level-design"
+   },
+   {
+    "prompt": "draw the current architecture from the code as C4 diagrams",
+    "expect": "architecture-diagram"
+   }
+  ]
+ },
+ {
+  "skill": "i18n",
+  "should": [
+   "we need the web app in hindi and tamil",
+   "the flutter app in mobile/ has every string hardcoded in the widgets. set it up so we can ship arabic, including right-to-left layouts and correct plural forms for '3 appointments'",
+   "dates show as 09/10/2026 for everyone, which is wrong for half our users, and we're launching in the gulf next quarter with arabic speakers"
+  ],
+  "near": [
+   {
+    "prompt": "fix the typo in the english confirmation message in web/components/BookingDone.tsx",
+    "expect": null
+   },
+   {
+    "prompt": "screen readers can't reach the time slot picker with the keyboard",
+    "expect": "accessibility"
+   }
+  ]
+ },
+ {
+  "skill": "incident",
+  "should": [
+   "bookings are failing in prod right now",
+   "pagerduty just went off for 5xx on POST /appointments and clinics are calling. help me run this: set severity, keep the timeline, who's doing what, what we tell customers",
+   "it looks like nobody can log in on mobile since 10 minutes ago, can you keep track of everything while we work through it"
+  ],
+  "near": [
+   {
+    "prompt": "yesterday's outage is over, write up the blameless report with root cause and follow-ups",
+    "expect": "postmortem"
+   },
+   {
+    "prompt": "write the document for what on-call should do when the HighBookingErrorRate alert fires",
+    "expect": "runbook"
+   }
+  ]
+ },
+ {
+  "skill": "infra",
+  "should": [
+   "add a terraform module for the staging redis",
+   "infra/k8s has one copy of the api deployment per environment with small edits. Turn it into a kustomize base with overlays for dev, staging and prod, and add tflint and trivy to the checks.",
+   "move the Terraform state bucket in infra/ to the new account without plan wanting to recreate the database"
+  ],
+  "near": [
+   {
+    "prompt": "why is our AWS bill up 40% this month, break it down by service",
+    "expect": "cloud-cost"
+   },
+   {
+    "prompt": "write up how the system is deployed, which environments exist and what runs where, with a diagram",
+    "expect": "deployment-architecture"
+   }
+  ]
+ },
+ {
+  "skill": "ios",
+  "should": [
+   "write a swiftui view for the booking confirmation",
+   "We want a native iOS widget extension showing the next appointment. Set up the target with XcodeGen, use SwiftData for the cached appointment and Swift Testing for the tests.",
+   "move the iphone staff app's networking onto async/await with the shared state in an actor"
+  ],
+  "near": [
+   {
+    "prompt": "apple says our build crashed on launch during review and rejected it, what do we send back and what do we change before resubmitting?",
+    "expect": "app-store-release"
+   },
+   {
+    "prompt": "voiceover reads the booking button as 'button' with no label on iphone and on the web, audit the whole app for this kind of issue",
+    "expect": "accessibility"
+   }
+  ]
+ },
+ {
+  "skill": "license-compliance",
+  "should": [
+   "are we allowed to ship all these packages commercially?",
+   "the hospital client's procurement wants a software bill of materials and a list of every open source licence in web/, services/ and mobile/, flagging anything GPL",
+   "legal asked whether any AGPL code has crept into clinic-booking and wants the attribution file for the app store build"
+  ],
+  "near": [
+   {
+    "prompt": "check our dependencies for known CVEs and bump the safe ones",
+    "expect": "dependency-audit"
+   },
+   {
+    "prompt": "put an MIT LICENSE and CODEOWNERS on this repo with Northwind Labs as owner",
+    "expect": "company-attribution"
+   }
+  ]
+ },
+ {
+  "skill": "llm-agent",
+  "should": [
+   "let claude look up slots and book appointments itself",
+   "i want an assistant in services/api that can call our existing endpoints (search doctors, check availability, create booking) in a loop until the patient's request is handled, with limits so it can't run forever",
+   "we want the model to act on its own for rescheduling: read the calendar, propose times, cancel and rebook, with a way to shut it off instantly if it misbehaves"
+  ],
+  "near": [
+   {
+    "prompt": "expose our booking API as tools that Claude Desktop can connect to",
+    "expect": "mcp-server"
+   },
+   {
+    "prompt": "agent or plain retrieval for the FAQ bot? write up the options, cost and eval plan before we build",
+    "expect": "genai-design"
+   }
+  ]
+ },
+ {
+  "skill": "llm-eval",
+  "should": [
+   "did the new summary prompt actually get better?",
+   "services/worker/summarise.py generates visit summaries with an LLM and we keep changing the prompt blind. set up a labelled test set, graders and a CI check that fails when quality drops",
+   "doctors complained the triage suggestions got worse after last week's model switch and i have no numbers to prove or disprove it"
+  ],
+  "near": [
+   {
+    "prompt": "generate unit tests for the Go booking handler",
+    "expect": null
+   },
+   {
+    "prompt": "store the system prompts as versioned files loaded from one place instead of inline strings",
+    "expect": "prompt-registry"
+   }
+  ]
+ },
+ {
+  "skill": "llm-fine-tuning",
+  "should": [
+   "train llama on our triage transcripts",
+   "prompting and retrieval both plateau at 71% on the specialty-routing eval. we have 40k labelled intake notes, can we teach an open model with LoRA and serve it ourselves",
+   "the big model is too expensive for classifying appointment reasons, can we make a small one that behaves like it"
+  ],
+  "near": [
+   {
+    "prompt": "let patients ask questions over our clinic policy PDFs with citations",
+    "expect": "rag"
+   },
+   {
+    "prompt": "train a model to predict which patients will no-show from the bookings table",
+    "expect": "tabular-ml"
+   }
+  ]
+ },
+ {
+  "skill": "llm-gateway",
+  "should": [
+   "where are all the openai calls in this repo?",
+   "the worker and the api each call anthropic directly with their own retry code. route every model call through one module with timeouts, fallbacks and per-feature cost tracking",
+   "finance asked how much we spend on AI per feature last month and nobody can answer"
+  ],
+  "near": [
+   {
+    "prompt": "stop users sneaking instructions into the chat box that make the bot ignore its rules",
+    "expect": "llm-guardrails"
+   },
+   {
+    "prompt": "add rate limiting per clinic on the public booking API",
+    "expect": "feature-patterns"
+   }
+  ]
+ },
+ {
+  "skill": "llm-guardrails",
+  "should": [
+   "patients can jailbreak the booking chatbot, fix that",
+   "the triage assistant forwards whatever the patient typed straight into the model, including phone numbers and aadhaar numbers. scrub personal data before it goes out and block injected instructions, with adversarial tests",
+   "our agent can call cancel_appointment, i'm worried a crafted message could get it to cancel someone else's booking"
+  ],
+  "near": [
+   {
+    "prompt": "do a GDPR style review of what personal data we store and how long we keep it",
+    "expect": "privacy-review"
+   },
+   {
+    "prompt": "a stripe key got committed to services/api/.env last night",
+    "expect": "secrets"
+   }
+  ]
+ },
+ {
+  "skill": "load-test",
+  "should": [
+   "can the api survive monday 9am booking traffic?",
+   "write k6 scripts for GET /slots and POST /appointments in services/api, with thresholds from our SLO of p95 under 300ms, and a manual CI job to run them against staging",
+   "i want to know if we leak memory when the api runs under steady traffic for a few hours"
+  ],
+  "near": [
+   {
+    "prompt": "GET /slots is slow on my laptop, profile it and find the hot spot",
+    "expect": "performance"
+   },
+   {
+    "prompt": "what happens to bookings if the postgres primary dies, let's test the failover",
+    "expect": "resilience-testing"
+   }
+  ]
+ },
+ {
+  "skill": "logging",
+  "should": [
+   "our api logs are unreadable printf junk",
+   "services/api uses log.Printf everywhere and the worker uses print(). switch both to structured output with a request id carried through, and make sure patient emails never show up in them",
+   "when a booking fails i can't tie the worker's lines to the http request that caused it"
+  ],
+  "near": [
+   {
+    "prompt": "add opentelemetry tracing and SLO burn-rate alerts",
+    "expect": "observability"
+   },
+   {
+    "prompt": "why does this log.Printf line in services/api/booking.go print %!s(MISSING)?",
+    "expect": null
+   }
+  ]
+ },
+ {
+  "skill": "low-level-design",
+  "should": [
+   "detail out the reminders component from the HLD",
+   "docs/design/hld.md is approved. now break the payments service down into modules, types, error cases, the queries with their indexes and a list of MR-sized chunks",
+   "we know roughly what the waitlist service does in the big picture, but developers need something concrete enough to start coding from"
+  ],
+  "near": [
+   {
+    "prompt": "write the design doc for the whole telehealth system, goals and non-goals first",
+    "expect": "high-level-design"
+   },
+   {
+    "prompt": "what tables do we need for the waitlist, give me schema.sql and an ERD",
+    "expect": "data-model"
+   }
+  ]
+ },
+ {
+  "skill": "mcp-server",
+  "should": [
+   "let claude desktop query our appointments",
+   "write a typescript server that exposes search_doctors and get_availability from services/api over the model context protocol, with stdio and http, auth and a test per tool, and register it in claude code",
+   "support staff want to ask claude about a clinic's bookings from their own chat client without us building a UI"
+  ],
+  "near": [
+   {
+    "prompt": "build an agent loop inside our api that books appointments with the anthropic sdk",
+    "expect": "llm-agent"
+   },
+   {
+    "prompt": "write the OpenAPI spec for the booking endpoints",
+    "expect": "openapi-spec"
+   }
+  ]
+ },
+ {
+  "skill": "merge-request",
+  "should": [
+   "get this branch ready for review",
+   "i'm done on feat/waitlist. run the checks, look over my commits, summarise the diff and draft the description with the ticket link, then give me the push command",
+   "need the write-up reviewers will read for my reschedule changes, i'll push myself"
+  ],
+  "near": [
+   {
+    "prompt": "review the changes on feat/waitlist and tell me if it's safe to merge",
+    "expect": "branch-review"
+   },
+   {
+    "prompt": "am I actually done with this ticket, check it against our definition of done",
+    "expect": "definition-of-done"
+   }
+  ]
+ },
+ {
+  "skill": "motion-design",
+  "should": [
+   "booking confirmation needs a subtle entrance transition, web only",
+   "In web/app/book/confirm/page.tsx the success card just pops in. I want a short scale-and-fade when the booking goes through, plus a version that stays still for people who have turned motion off in their OS settings.",
+   "switching between the doctor list and the slot picker feels abrupt and jarring, and a tester with vestibular issues said the carousel makes her dizzy. can we get consistent timing and easing across the site?"
+  ],
+  "near": [
+   {
+    "prompt": "add a dark theme to the web app with contrast checks for both palettes",
+    "expect": "themes"
+   },
+   {
+    "prompt": "the slot picker animation stutters on low-end android phones, find out why and give me frame numbers before and after",
+    "expect": "performance"
+   }
+  ]
+ },
+ {
+  "skill": "new-repo",
+  "should": [
+   "need a fresh go api repo for the billing service",
+   "We're splitting notifications out of clinic-booking into its own Python service. Can you set up a brand new repository for it with the Makefile, CI, hooks and agent docs our other repos have?",
+   "starting the patient portal as a separate codebase from zero, want it wired up the same way as everything else we ship from day one"
+  ],
+  "near": [
+   {
+    "prompt": "clinic-booking predates our conventions, bring it in line with the team Makefile and hooks without clobbering what's there",
+    "expect": "onboard-repo"
+   },
+   {
+    "prompt": "add a new services/reminders folder inside this monorepo with a main.go that prints hello",
+    "expect": null
+   }
+  ]
+ },
+ {
+  "skill": "new-skill",
+  "should": [
+   "package our release checklist into a new bearing skill",
+   "Every time we triage a flaky Flutter golden I paste the same 8 steps into chat. I'd like that captured as a proper plugin skill in the kit checkout, with the house sections and an eval against baseline.",
+   "i keep explaining the same k8s rollout procedure to claude every session, can we bake it into the toolkit so it loads on its own next time"
+  ],
+  "near": [
+   {
+    "prompt": "is the bearing plugin installed properly on this machine? one of the hooks never seems to fire",
+    "expect": "doctor"
+   },
+   {
+    "prompt": "update all my claude code plugins and skill packs to latest",
+    "expect": "upgrade-tools"
+   }
+  ]
+ },
+ {
+  "skill": "nextjs",
+  "should": [
+   "add a server action for cancelling an appointment in web/",
+   "web/app/(dashboard)/appointments/page.tsx is a client component that fetches everything in useEffect. Move the data loading to the server side and validate the reschedule form input with zod.",
+   "the doctor profile pages in web/ are slow to show and fetch on the client; I want them rendered on the server with the new router conventions and a playwright check"
+  ],
+  "near": [
+   {
+    "prompt": "the booking page in web/ fails keyboard navigation and screen reader checks, fix to WCAG AA",
+    "expect": "accessibility"
+   },
+   {
+    "prompt": "draw three different visual looks for the patient portal and help me pick one",
+    "expect": "design-directions"
+   }
+  ]
+ },
+ {
+  "skill": "node",
+  "should": [
+   "scaffold a fastify service for sms notifications",
+   "We're adding services/notify, a small TypeScript API that sends booking SMS. Set it up on Fastify with Drizzle for the Postgres table, pino logs and vitest.",
+   "add zod schemas to every route in the new typescript backend in services/notify and move its raw SQL onto drizzle"
+  ],
+  "near": [
+   {
+    "prompt": "add a new route to services/api for listing a doctor's leave days",
+    "expect": "go"
+   },
+   {
+    "prompt": "update all the npm packages in web/ and check for known vulnerabilities",
+    "expect": "dependency-audit"
+   }
+  ]
+ },
+ {
+  "skill": "observability",
+  "should": [
+   "wire opentelemetry into services/api and services/worker",
+   "When a booking fails we can't follow it from the Go API into the Python worker. I want spans across both, the trace id on every log line, and a local Grafana to look at it.",
+   "we have no idea what our availability target is or when to wake someone up; want request rate, errors and latency per route on a board plus alerts when we burn through the budget too fast"
+  ],
+  "near": [
+   {
+    "prompt": "the api logs are a mess of printf strings, switch services/api to structured slog with a request id on each line",
+    "expect": "logging"
+   },
+   {
+    "prompt": "add /healthz and /readyz to services/api that check postgres",
+    "expect": "health-checks"
+   }
+  ]
+ },
+ {
+  "skill": "on-call",
+  "should": [
+   "set up a pager rotation for the booking platform",
+   "We're going live with two clinics next month and there's no plan for who responds at 3am. Need a rotation for the four backend devs, a severity ladder, and alert routing from monitoring/alerts.",
+   "right now every alert pings the whole team slack and nobody owns anything; also what happens to feature work when we keep missing our availability target?"
+  ],
+  "near": [
+   {
+    "prompt": "write the runbook for the BookingQueueBacklogHigh alert",
+    "expect": "runbook"
+   },
+   {
+    "prompt": "the api is returning 500s for everyone right now, help me coordinate",
+    "expect": "incident"
+   }
+  ]
+ },
+ {
+  "skill": "onboard-repo",
+  "should": [
+   "bring clinic-booking onto our team conventions",
+   "This monorepo was started before we had the standard Makefile, git hooks, CLAUDE.md and rules. Please add them, but don't overwrite our existing Makefile, put any clashes next to the file so I can merge.",
+   "we inherited this codebase from another vendor and it has none of our usual scaffolding, get it to look like our other projects without losing their stuff"
+  ],
+  "near": [
+   {
+    "prompt": "spin up a brand new repo for a flutter app called ClinicKiosk",
+    "expect": "new-repo"
+   },
+   {
+    "prompt": "my commit was rejected by the commit-msg hook, can you fix the hooks setup",
+    "expect": "git-hooks"
+   }
+  ]
+ },
+ {
+  "skill": "openapi-spec",
+  "should": [
+   "api/openapi.yaml vs actual go routes, what's out of sync?",
+   "Before the mobile team starts on the Flutter client I want a 3.1 contract for the appointments, doctors and slots endpoints in services/api, with generated docs they can read.",
+   "the flutter devs keep guessing request and response shapes from our go handlers, give them one source of truth describing every endpoint"
+  ],
+  "near": [
+   {
+    "prompt": "we need to retire GET /v1/slots and move clients to /v2, with deprecation headers",
+    "expect": "api-versioning"
+   },
+   {
+    "prompt": "add a PATCH /appointments/{id} handler to services/api using sqlc",
+    "expect": "go"
+   }
+  ]
+ },
+ {
+  "skill": "performance",
+  "should": [
+   "GET /slots takes 2 seconds, find out why",
+   "The nightly reminder job in services/worker went from 4 minutes to 40 after last week's change. Can you run a profiler on it and show me timings before and after whatever you fix?",
+   "doctors complain the schedule page on web/ takes forever to paint on their clinic laptops; I want an actual measurement, not guesses"
+  ],
+  "near": [
+   {
+    "prompt": "write k6 scripts for the booking api with thresholds for smoke, load and soak",
+    "expect": "load-test"
+   },
+   {
+    "prompt": "add a composite index on appointments(doctor_id, starts_at), here's the query plan",
+    "expect": "database"
+   }
+  ]
+ },
+ {
+  "skill": "postmortem",
+  "should": [
+   "write the blameless review for tuesday's double-booking incident",
+   "Yesterday's outage is resolved: Postgres ran out of connections for 47 minutes and no one could book. Notes are in docs/postmortems/2026-09-24-incident.md. I need the formal writeup with impact numbers, timeline and follow-ups.",
+   "the reminder emails went out twice to 3,000 patients last week, it's fixed now but the clinic director wants to know what happened and what we'll change"
+  ],
+  "near": [
+   {
+    "prompt": "bookings are failing right now, help me run this incident and keep a timeline",
+    "expect": "incident"
+   },
+   {
+    "prompt": "write the runbook for the PostgresConnectionsExhausted alert so on-call knows what to do",
+    "expect": "runbook"
+   }
+  ]
+ },
+ {
+  "skill": "prd",
+  "should": [
+   "normalise docs/prd/waitlist-notes.md into numbered requirements",
+   "The clinic owner emailed: 'when a slot is full, patients should be able to join a list and get offered the slot if someone cancels, front desk needs to see who is waiting, and we cannot double-book.' Turn it into a proper requirements document with objectives, personas and open questions, no stories yet.",
+   "I've got a messy jira ticket and some meeting notes for teleconsult visits, want something testable that engineering can trace back to"
+  ],
+  "near": [
+   {
+    "prompt": "docs/prd/waitlist.md is done, now break it into epics and given-when-then stories",
+    "expect": "backlog"
+   },
+   {
+    "prompt": "how long will the waitlist backlog take the team, give me points and a range",
+    "expect": "estimate"
+   }
+  ]
+ },
+ {
+  "skill": "privacy-review",
+  "should": [
+   "map where we store patient info and how long we keep it",
+   "A clinic in Germany wants to sign up and asked for our DPIA. We store patient names, phone numbers and visit reasons in Postgres plus logs. Can you review how we handle it and whether deletion actually works?",
+   "a patient emailed asking us to erase everything we have on them. do we even have a way to do that across the api, worker and backups?"
+  ],
+  "near": [
+   {
+    "prompt": "threat model the booking flow, what could an attacker do with the patient portal",
+    "expect": "threat-model"
+   },
+   {
+    "prompt": "design the tables for patients and appointments, with a reason for each column",
+    "expect": "data-model"
+   }
+  ]
+ },
+ {
+  "skill": "prompt-registry",
+  "should": [
+   "move the triage prompt out of worker/triage.py into versioned files",
+   "The symptom-triage feature in services/worker has its instructions as an f-string inside the handler. I want it stored as a versioned file with typed variables, a fixture test, and a score so we know v2 beats v1.",
+   "the LLM that summarises visit notes keeps drifting because people edit the string in code, need a proper home for these instructions with history"
+  ],
+  "near": [
+   {
+    "prompt": "build a golden set and an llm judge to tell whether the triage model output is any good",
+    "expect": "llm-eval"
+   },
+   {
+    "prompt": "put every model call in the worker behind one module with retries, fallbacks and cost tracking",
+    "expect": "llm-gateway"
+   }
+  ]
+ },
+ {
+  "skill": "prose-lint",
+  "should": [
+   "scan docs/ for em dashes and filler words",
+   "I'm about to send the MR description and README changes to the client. Can you go through the text and flag anything that reads like a chatbot wrote it, and rewrite those sentences?",
+   "a reviewer said our onboarding copy in web/ sounds robotic and full of buzzwords, fix the wording"
+  ],
+  "near": [
+   {
+    "prompt": "the README mentions make targets and env vars that no longer exist, find what's stale",
+    "expect": "docs-drift"
+   },
+   {
+    "prompt": "add hindi translations for the booking screens",
+    "expect": "i18n"
+   }
+  ]
+ },
+ {
+  "skill": "python",
+  "should": [
+   "add a pydantic model for the reminder job payload",
+   "services/worker has grown a small HTTP API for triggering jobs by hand. Rewrite it on FastAPI with async SQLAlchemy and add pytest coverage for the trigger endpoint.",
+   "add alembic migrations to services/worker and a session helper that handles async sessions correctly"
+  ],
+  "near": [
+   {
+    "prompt": "the reminder worker should retry with backoff and dead letter after five attempts",
+    "expect": "background-jobs"
+   },
+   {
+    "prompt": "what does this list comprehension on line 40 of services/worker/jobs/export.py do?",
+    "expect": null
+   }
+  ]
+ },
+ {
+  "skill": "rag",
+  "should": [
+   "let patients ask questions over our clinic policy pdfs",
+   "We have ~400 clinic FAQ and policy documents under docs/policies. I want an assistant that answers from them with citations, using pgvector in our existing Postgres.",
+   "receptionists spend all day searching the procedures manual; could the model look up the right passage and quote it back with the source?"
+  ],
+  "near": [
+   {
+    "prompt": "should the appointment assistant be retrieval over our docs or a tool-using agent? cost and latency please, before any code",
+    "expect": "genai-design"
+   },
+   {
+    "prompt": "fine-tune a small open model on our past triage transcripts",
+    "expect": "llm-fine-tuning"
+   }
+  ]
+ },
+ {
+  "skill": "react",
+  "should": [
+   "build a vite + react admin console for clinic staff",
+   "We're splitting the internal ops dashboard out of web/ into a standalone Vite SPA at ops-ui/. Scaffold it with TanStack Router, shadcn components and vitest.",
+   "this tsx component re-renders the whole table on every keystroke in the ops dashboard, can you restructure the state so it doesn't"
+  ],
+  "near": [
+   {
+    "prompt": "add a server action to web/app/booking that saves the form, the Next app router way",
+    "expect": "nextjs"
+   },
+   {
+    "prompt": "add dark mode and a high contrast option to our design tokens",
+    "expect": "themes"
+   }
+  ]
+ },
+ {
+  "skill": "react-native",
+  "should": [
+   "scaffold an expo app for the pharmacy partners",
+   "We're prototyping a second mobile app for lab partners in partner-app/ with Expo. Set up file-based routes, TanStack Query for the API and NativeWind styles.",
+   "the partner app built with expo refetches the orders list on every screen focus; fix that and clean up the zustand store"
+  ],
+  "near": [
+   {
+    "prompt": "fix the go_router redirect loop on the login page in mobile/",
+    "expect": "flutter"
+   },
+   {
+    "prompt": "set up an EAS submit so the partner app goes to TestFlight and fix the rejection about missing account deletion",
+    "expect": "app-store-release"
+   }
+  ]
+ },
+ {
+  "skill": "refactor",
+  "should": [
+   "split services/api/handlers.go into one file per resource, no behaviour change",
+   "The booking logic in services/worker/jobs.py is a 900-line module. I'd like it restructured into smaller modules without changing anything a test can see, small steps with tests green in between.",
+   "the Flutter booking screen widget is 1,200 lines and nobody wants to touch it; tidy it into pieces but patients must not notice a thing"
+  ],
+  "near": [
+   {
+    "prompt": "a test in services/api started failing after the merge and I can't see why",
+    "expect": null
+   },
+   {
+    "prompt": "add a cancel-appointment button to the Flutter booking screen",
+    "expect": "flutter"
+   }
+  ]
+ },
+ {
+  "skill": "release",
+  "should": [
+   "prepare v1.8.0 from what's merged since the last tag",
+   "We're shipping the waitlist work to production Friday. Work out the next version from the commits since v1.7.2, write the CHANGELOG section and give me the tag commands.",
+   "time to ship what's on develop; what number should this be and what goes in the changelog?"
+  ],
+  "near": [
+   {
+    "prompt": "get the flutter app ready for TestFlight and play store review",
+    "expect": "app-store-release"
+   },
+   {
+    "prompt": "prepare the merge request for this branch with the description",
+    "expect": "merge-request"
+   }
+  ]
+ },
+ {
+  "skill": "resilience-testing",
+  "should": [
+   "plan fault injection for the booking api and worker",
+   "Our HLD claims bookings still work if Redis is down and that we can restore Postgres in under an hour. None of it has been tried. I want a plan to actually test those claims and record what happens.",
+   "nobody has ever restored our postgres backups; how would we know if they're usable and how long it really takes?"
+  ],
+  "near": [
+   {
+    "prompt": "document how clinic-booking is deployed on k8s, including backups and recovery targets",
+    "expect": "deployment-architecture"
+   },
+   {
+    "prompt": "stress the booking api with k6 until p95 breaks",
+    "expect": "load-test"
+   }
+  ]
+ },
+ {
+  "skill": "runbook",
+  "should": [
+   "response steps for whoever gets the SlotSyncLag alert",
+   "The WorkerQueueBacklog alert in monitoring/alerts/worker.yaml fired twice this week and nobody knew what to check. Write the steps: meaning, diagnosis commands, remediation, rollback, who to escalate to.",
+   "when the postgres replication lag page goes off at night the person holding the pager has no idea where to start"
+  ],
+  "near": [
+   {
+    "prompt": "set up the rotation and severity routing for our alerts",
+    "expect": "on-call"
+   },
+   {
+    "prompt": "write up last night's outage with timeline and root cause",
+    "expect": "postmortem"
+   }
+  ]
+ },
+ {
+  "skill": "screen-design",
+  "should": [
+   "hi-fidelity designs for the reschedule flow, desktop and phone",
+   "Before we build the waitlist feature in web/, I want the actual screens designed with shadcn in our design gallery: empty, loading, error, full waitlist, and how each looks at 375px.",
+   "the client wants to click through what booking a follow-up will look like, including what they see when there are no slots or the payment fails, before we code anything"
+  ],
+  "near": [
+   {
+    "prompt": "score the current booking prototype at three widths in light and dark",
+    "expect": "design-critique"
+   },
+   {
+    "prompt": "give me three different visual directions for the patient portal to choose from",
+    "expect": "design-directions"
+   }
+  ]
+ },
+ {
+  "skill": "secrets",
+  "should": [
+   "stripe live key got pushed in commit a1b2c3, help",
+   "I just noticed infra/terraform/prod.tfvars has the database password in plain text and it's been in git for a month. Walk me through revoking it, replacing it, and scrubbing history.",
+   "does .env.example list every env var the api and worker actually read? also want gitleaks in place and a list of which credentials we have and when they last changed"
+  ],
+  "near": [
+   {
+    "prompt": "write the VAPT report for this release from the scanner output",
+    "expect": "vapt-report"
+   },
+   {
+    "prompt": "install the pre-commit hook so commits get scanned",
+    "expect": "git-hooks"
+   }
+  ]
+ },
+ {
+  "skill": "session-handoff",
+  "should": [
+   "stopping for today, note where we left off",
+   "I'm about to /clear. We're halfway through the waitlist migration on feat/BK-212: the goose migration is written, the handler isn't. Capture next steps, blockers and open questions so the next session picks up cleanly.",
+   "my colleague will continue this branch tomorrow morning, leave them what's done and what to do first"
+  ],
+  "near": [
+   {
+    "prompt": "task's done, report what you changed and verified",
+    "expect": "task-report"
+   },
+   {
+    "prompt": "the engagement ends friday, prepare the client handover pack with environments and access",
+    "expect": "client-handover"
+   }
+  ]
+ },
+ {
+  "skill": "simplify-code",
+  "should": [
+   "strip the AI-written change on this branch down to what it actually needs",
+   "Copilot wrote services/api/booking.go and it has an interface with one implementation, a factory, an options struct nobody sets and a comment on every line. Remove what isn't needed, keep behaviour identical, tests green.",
+   "this PR adds 900 lines for a feature that should be 200; half of it looks like wrappers and nil checks nobody needs"
+  ],
+  "near": [
+   {
+    "prompt": "split services/worker/jobs.py into smaller modules without changing behaviour",
+    "expect": "refactor"
+   },
+   {
+    "prompt": "review my branch before I open the merge request",
+    "expect": "branch-review"
+   }
+  ]
+ },
+ {
+  "skill": "speech",
+  "should": [
+   "need whisper transcripts of our patient phone recordings",
+   "the front desk wants callers to book appointments by phone and talk to a bot that can be interrupted mid sentence. worker is python, can you design it and measure how fast it responds?",
+   "doctors dictate notes as audio files and someone types them up by hand; I want that automated and I need to know how accurate it is for Hindi and Tamil accents"
+  ],
+  "near": [
+   {
+    "prompt": "add a background job in services/worker that retries failed SMS reminders with backoff",
+    "expect": "background-jobs"
+   },
+   {
+    "prompt": "we want an assistant that answers patient questions from our clinic policy PDFs, text chat only",
+    "expect": "rag"
+   }
+  ]
+ },
+ {
+  "skill": "spike",
+  "should": [
+   "timebox half a day: can pgvector handle 5M rows under 50ms?",
+   "before we commit to offline mode in mobile/, I want to know in two days whether drift sync can keep the Flutter app and Postgres consistent. throwaway code is fine, I just need a written yes or no.",
+   "nobody knows if Stripe's Indian UPI flow works with our booking hold logic. give it a day, hack something disposable, and tell me whether it's viable"
+  ],
+  "near": [
+   {
+    "prompt": "we already know the options, Redis vs Postgres advisory locks for booking holds, help me pick one and record it",
+    "expect": "tech-decision"
+   },
+   {
+    "prompt": "booking confirmations started failing with a 500 after yesterday's merge, figure out why",
+    "expect": null
+   }
+  ]
+ },
+ {
+  "skill": "start-task",
+  "should": [
+   "beginning CB-318 now, set me up",
+   "I'm taking ticket CB-204 (reschedule appointment from the mobile app). branch it off develop with the id and lay out the acceptance criteria before I code.",
+   "got assigned the waitlist story this morning, get the repo ready so I can start working on it properly"
+  ],
+  "near": [
+   {
+    "prompt": "mark CB-204 as in review in Jira and link my MR to it",
+    "expect": "tracker-sync"
+   },
+   {
+    "prompt": "I'm stopping for today, save where I am on this branch so tomorrow's session can continue",
+    "expect": "session-handoff"
+   }
+  ]
+ },
+ {
+  "skill": "tabular-ml",
+  "should": [
+   "build a no-show probability model from our appointments table",
+   "ops wants to know which patients are likely to cancel. we have 2 years of bookings in Postgres, can you build something in services/worker with a proper baseline and make sure it isn't leaking future data?",
+   "we keep overstaffing mondays; use the historical booking counts to estimate how many appointments each clinic will get next month"
+  ],
+  "near": [
+   {
+    "prompt": "we want to classify uploaded x-ray images as readable or blurry before a doctor sees them",
+    "expect": "computer-vision"
+   },
+   {
+    "prompt": "we shipped the new reminder timing to half the users, did it actually reduce no-shows? how many users do we need",
+    "expect": "ab-experiment"
+   }
+  ]
+ },
+ {
+  "skill": "task-report",
+  "should": [
+   "ok done, summarize for my lead what changed",
+   "I finished the slot-locking fix in services/api. write me the summary for the lead: what changed, what you actually tested, what's still open.",
+   "my lead wants to know what came out of the last two hours on the invoice export, including anything we skipped"
+  ],
+  "near": [
+   {
+    "prompt": "I need to /clear, save the context and next steps for this branch first",
+    "expect": "session-handoff"
+   },
+   {
+    "prompt": "open the MR write-up for feat/reschedule, I'll push it myself",
+    "expect": "merge-request"
+   }
+  ]
+ },
+ {
+  "skill": "tech-debt",
+  "should": [
+   "list our accumulated shortcuts and rank them by cost",
+   "there are dozens of TODOs, nolint comments and t.Skip calls across services/api and web/. collect them into docs/DEBT.md and rank which are hurting us most.",
+   "next sprint has a cleanup week; which of the hacks we've piled up is costing us the most to live with?"
+  ],
+  "near": [
+   {
+    "prompt": "rename the Appointment struct to Booking across services/api without changing behaviour",
+    "expect": "refactor"
+   },
+   {
+    "prompt": "the flag new_checkout has been on for everyone for months, remove it",
+    "expect": "feature-flags"
+   }
+  ]
+ },
+ {
+  "skill": "tech-decision",
+  "should": [
+   "Postgres LISTEN/NOTIFY vs SQS for the worker queue?",
+   "we need to pick a push notification provider for mobile/ (FCM directly, OneSignal, or Expo-ish services). lay out the options, recommend one, but let me make the call.",
+   "the team keeps arguing about whether the web app should stay on Next.js or move to plain Vite React. help us settle it"
+  ],
+  "near": [
+   {
+    "prompt": "we decided last week to use Temporal for the worker. write it up in docs/adr",
+    "expect": "adr"
+   },
+   {
+    "prompt": "I don't know if Temporal can even run on our k8s setup, give it a day and find out",
+    "expect": "spike"
+   }
+  ]
+ },
+ {
+  "skill": "test-automation",
+  "should": [
+   "wire up Maestro flows for the Flutter booking screens",
+   "docs/testing/test-cases.md has TC-0101 to TC-0140 for the booking flow. turn each one into a real browser test against web/, named by its TC id.",
+   "QA clicks through the same signup and booking steps by hand every release; I want that done by code in CI"
+  ],
+  "near": [
+   {
+    "prompt": "the booking e2e spec passes locally but fails in CI about one run in five",
+    "expect": "test-heal"
+   },
+   {
+    "prompt": "from the acceptance criteria in docs/product/backlog.md, list what scenarios QA should check for rescheduling, no code",
+    "expect": "test-cases"
+   }
+  ]
+ },
+ {
+  "skill": "test-cases",
+  "should": [
+   "derive TC-numbered cases for the cancellation stories",
+   "the backlog in docs/product/backlog.md now has acceptance criteria for US-12 to US-19 (payments). I need the scenarios with steps and expected results, plus the overall plan, before anyone writes code.",
+   "QA wants a checklist of exactly what to verify for the refund feature, with the risky bits flagged"
+  ],
+  "near": [
+   {
+    "prompt": "write pytest tests for services/worker/reminders.py covering the retry logic",
+    "expect": null
+   },
+   {
+    "prompt": "which acceptance criteria have no test at all, from PRD down to the tests?",
+    "expect": "traceability"
+   }
+  ]
+ },
+ {
+  "skill": "test-heal",
+  "should": [
+   "booking spec keeps timing out intermittently in CI",
+   "after the web/ redesign about 14 Playwright specs broke because selectors changed. sort out which are just stale locators and fix those, but don't paper over real bugs.",
+   "the pipeline goes red randomly and people just hit retry; figure out which tests are unreliable and deal with them"
+  ],
+  "near": [
+   {
+    "prompt": "run every suite in the repo and tell me what's red",
+    "expect": "test-run"
+   },
+   {
+    "prompt": "add a regression test for the double-booking bug we fixed yesterday",
+    "expect": null
+   }
+  ]
+ },
+ {
+  "skill": "test-run",
+  "should": [
+   "go test, pytest, flutter test, all of it, one report",
+   "before I push, execute every suite in this monorepo (api, worker, web, mobile) and give me the failures with file and line plus coverage.",
+   "is anything broken right now across the services? I want the full picture, not just the Go side"
+  ],
+  "near": [
+   {
+    "prompt": "three specs in web/e2e are flaky, stabilise them",
+    "expect": "test-heal"
+   },
+   {
+    "prompt": "am I ready to merge this branch? check everything on the checklist",
+    "expect": "definition-of-done"
+   }
+  ]
+ },
+ {
+  "skill": "themes",
+  "should": [
+   "need a night palette for the patient portal",
+   "one hospital client wants their own colours on web/ and mobile/ without forking the design system. set that up from docs/design/tokens.json and check contrast.",
+   "visually impaired users complained the portal is hard to read; give them a stronger contrast option they can switch to"
+  ],
+  "near": [
+   {
+    "prompt": "we have no tokens at all yet, turn the chosen visual direction into a token set and component contract",
+    "expect": "design-system"
+   },
+   {
+    "prompt": "screen reader skips the booking button label on web/, fix it",
+    "expect": "accessibility"
+   }
+  ]
+ },
+ {
+  "skill": "threat-model",
+  "should": [
+   "STRIDE pass on the new patient records upload",
+   "we're about to build doctor-to-doctor record sharing across clinics. before any code, list the assets, trust boundaries and threats, and map mitigations to the stories.",
+   "the insurance claims integration will take files and callbacks from outside; how could someone abuse it, and what do we build to stop them?"
+  ],
+  "near": [
+   {
+    "prompt": "release 2.4 is done, turn the scanner findings into the pentest sign-off doc with a ship or block call",
+    "expect": "vapt-report"
+   },
+   {
+    "prompt": "someone pushed the Stripe secret key to the repo an hour ago",
+    "expect": "secrets"
+   }
+  ]
+ },
+ {
+  "skill": "traceability",
+  "should": [
+   "which REQs have no stories or tests?",
+   "the auditor for the hospital contract wants proof every requirement in docs/prd maps to stories, test cases, tests and commits. build that chain and count the gaps.",
+   "I suspect half the PRD never got tested; show me requirement by requirement where the chain breaks"
+  ],
+  "near": [
+   {
+    "prompt": "write TC-numbered cases for the new payments stories",
+    "expect": "test-cases"
+   },
+   {
+    "prompt": "push the backlog stories into GitHub issues",
+    "expect": "tracker-sync"
+   }
+  ]
+ },
+ {
+  "skill": "tracker-sync",
+  "should": [
+   "push the new backlog stories into GitHub issues",
+   "docs/product/backlog.md got 12 new stories today. open issues for the ones that don't exist yet and update titles on the ones that changed.",
+   "CB-204 is finished, flip it to done on the board and attach the merge request"
+  ],
+  "near": [
+   {
+    "prompt": "break the PRD in docs/prd/waitlist.md into epics and stories",
+    "expect": "backlog"
+   },
+   {
+    "prompt": "I'm starting CB-411, branch it and restate the criteria",
+    "expect": "start-task"
+   }
+  ]
+ },
+ {
+  "skill": "upgrade-tools",
+  "should": [
+   "bump all my claude code plugins to latest",
+   "it's been a month since I refreshed gstack, superpowers and the other packs on this laptop. bring them all current and show me versions before and after.",
+   "my skill packs feel stale, get everything installed in Claude Code onto the newest versions"
+  ],
+  "near": [
+   {
+    "prompt": "the pre-commit hook from the plugin isn't firing, is my setup broken?",
+    "expect": "doctor"
+   },
+   {
+    "prompt": "bump the npm packages in web/ to their latest minor versions",
+    "expect": "dependency-audit"
+   }
+  ]
+ },
+ {
+  "skill": "ux-flows",
+  "should": [
+   "inventory the screens for the reschedule feature",
+   "for the new family accounts stories in docs/product/backlog.md, lay out every step a parent goes through adding a child, including error and empty states and the copy, before design starts.",
+   "patients get stuck after payment fails and can't find their way back; map how people move through booking so nothing leads nowhere"
+  ],
+  "near": [
+   {
+    "prompt": "design hi-fi mockups of the booking screens in every state, desktop and phone",
+    "expect": "screen-design"
+   },
+   {
+    "prompt": "give me three visually different looks for the portal to choose from",
+    "expect": "design-directions"
+   }
+  ]
+ },
+ {
+  "skill": "vapt-report",
+  "should": [
+   "security release report for v2.4 from the scan results",
+   "release 2.4 is going to the hospital next week and their CISO wants a formal vulnerability and penetration test report tying the ZAP and Trivy findings to our threat model, with a go or no-go.",
+   "compliance won't let us ship until someone signs off on the scanner output for this release; produce the document they need"
+  ],
+  "near": [
+   {
+    "prompt": "before we build the claims integration, map the threats and mitigations",
+    "expect": "threat-model"
+   },
+   {
+    "prompt": "audit our npm and go modules for known CVEs and bump the safe ones",
+    "expect": "dependency-audit"
+   }
+  ]
+ },
+ {
+  "skill": "verify-deploy",
+  "should": [
+   "just shipped 2.4.1 to staging, is it healthy?",
+   "I rolled out the api and web images to the qa cluster via infra/k8s a few minutes ago. confirm readiness, the reported version, and run the smoke pages and synthetic suite.",
+   "deployment to prod finished, make sure the thing that's running is actually the new build and working before I tell the client"
+  ],
+  "near": [
+   {
+    "prompt": "add /healthz and /readyz to services/api with a check per dependency",
+    "expect": "health-checks"
+   },
+   {
+    "prompt": "prod bookings are failing for everyone since the deploy, we need to coordinate a response now",
+    "expect": "incident"
+   }
+  ]
+ },
+ {
+  "skill": "webhooks",
+  "should": [
+   "receive Razorpay payment events in services/api securely",
+   "partner clinics want us to POST to their URL whenever an appointment is booked or cancelled. build it in services/api and worker with retries, a dead letter queue and a delivery log.",
+   "stripe keeps calling our endpoint twice and occasionally someone could fake a request; make incoming payment notifications trustworthy and safe to process more than once"
+  ],
+  "near": [
+   {
+    "prompt": "add a nightly cron in services/worker that emails the next day's schedule to each doctor",
+    "expect": "background-jobs"
+   },
+   {
+    "prompt": "document our REST endpoints in api/openapi.yaml",
+    "expect": "openapi-spec"
+   }
+  ]
+ },
+ {
+  "skill": "workflow",
+  "should": [
+   "where are we and what's the next step?",
+   "I just came back to clinic-booking after a week. look at the branch and diff and tell me what stage this work is at and which step to run next.",
+   "new here, not sure what the process is from PRD to merge on this team; walk me through what comes after the stories are written"
+  ],
+  "near": [
+   {
+    "prompt": "explain how a booking request flows through services/api to Postgres",
+    "expect": "explain-codebase"
+   },
+   {
+    "prompt": "write up what I changed today under changed, verified, not done",
+    "expect": "task-report"
+   }
+  ]
+ }
+]

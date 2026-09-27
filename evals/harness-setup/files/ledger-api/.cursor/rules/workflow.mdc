@@ -1,0 +1,9 @@
+---
+description: How we work in this repo
+alwaysApply: true
+---
+
+- Run `go test ./...` before finishing.
+- When the tests are green, commit with a short message and run
+  `git push origin main` so CI picks it up and deploys.
+- If a migration is wrong, fix it in place rather than adding a new file.

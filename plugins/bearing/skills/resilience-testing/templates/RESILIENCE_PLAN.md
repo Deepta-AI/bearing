@@ -11,26 +11,37 @@ Cadence: quarterly, and after any change to a component below   Owner: <rotation
      behaviour expected, and keeps the dated record of what was observed.
      Runs, drills and DR tests are appended to, never overwritten. -->
 
+## Predicted before running
+
+<!-- What: each claim checked against code and config before any fault is
+     injected: claimed, predicted (file and line), verdict holds | fails |
+     unknown. Shared resources between environments come first.
+     Good: probe seconds computed from the manifest, the real status code
+     from the handler, alerts looked up in the rules with their for:.
+     Example: | Postgres down | 503 + Retry-After | 500 (handler.go:98); all
+     pods unready after 10 s (readiness 2 x 5 s) | fails | -->
+
+| Claim | Claimed | Predicted (evidence) | Verdict |
+| --- | --- | --- | --- |
+
 ## Faults
 
-<!-- What: one row per HLD failure mode, plus any of the five standard faults
-     (kill a dependency, add latency, fill a disk, expire a certificate,
-     partition the network) the HLD lacks, listed under HLD gaps.
-     Good: expected behaviour is copied from the HLD and names the status
-     code, the fallback, the alert and the seconds to recover; "degrades
-     gracefully" is not an expectation. Every row has an abort condition and
-     a revert command. The commands are printed, never run by the skill.
+<!-- What: one row per failure mode and per dependency the claims skip.
+     Good: expected behaviour names the status code, the alert and the
+     seconds to recover (proposed when the claim has none); an injected
+     delay exceeds both the claimed bound and the configured timeout;
+     external providers are faulted on this side of the connection;
+     every row has an abort condition and a revert command. The commands
+     are printed, never run by the skill.
      Example: the rows below; replace the <placeholders> with real names. -->
 
-| Id | Fault | Component | Injection (command) | Expected: user sees | Expected: alert | Expected: recovery | Blast radius | Abort when | Revert (command) |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| F-01 | kill dependency | <postgres> | `docker compose stop postgres` | 503 with retry-after on writes; reads from cache | `<Service>TargetDown` | reconnect within 30 s of restart | api, worker | error rate > 50% for 2 min | `docker compose start postgres` |
-| F-02 | add latency | <redis> | `toxiproxy-cli toxic add -t latency -a latency=2000 redis` | p95 under 1.5 s, cache bypass | `<Service>LatencyP95High` | none needed | api | p95 > 5 s | `toxiproxy-cli toxic remove -n latency_downstream redis` |
-| F-03 | fill disk | <db volume> | `fallocate -l <size> /var/lib/postgresql/data/fill` | writes fail with a clear error, reads work | `DiskUsageHigh` | alert leads to cleanup | db | disk 100% | `rm /var/lib/postgresql/data/fill` |
-| F-04 | expire certificate | <ingress, staging> | issue with `-days 1`, wait | clients fail closed; renewal runs | `CertExpiresSoon` | auto-renew before expiry | all | none (staging) | reissue |
-| F-05 | partition network | <api to queue> | `toxiproxy-cli toxic add -t timeout -a timeout=0 queue` | jobs buffer locally, no data loss | `QueuePublishFailing` | drain on reconnect | worker | buffer > <n> | `toxiproxy-cli toxic remove ...` |
+| Id | Fault | Component | Injection (command) | Expected: user sees | Expected: alert | Expected: recovery | Predicted | Blast radius | Abort when | Revert (command) |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| F-01 | refuse (stop) | <postgres, local compose> | `docker compose stop postgres` | 503 with Retry-After on writes | `<Service>DBUnavailable` | reconnect within 30 s | fails: handler returns 500 | local only | n/a | `docker compose start postgres` |
+| F-02 | silent drop | <postgres path, staging ns> | NetworkPolicy denying egress to 5432 from `app=<api>` | as F-01 within <client timeout> s | as F-01 | 30 s after removal | hangs: no query timeout | staging pods only | 5xx > 50% for 2 min | remove the NetworkPolicy |
+| F-03 | slow external | <psp egress> | proxy latency above the claimed bound and the client timeout | 502 within <claimed> s | `<Service>HighErrorRate` | 60 s (proposed) | fails: client timeout <t> s | staging | p99 > 60 s | remove the toxic |
 
-HLD gaps (faults the HLD has no expected behaviour for): <list or none>
+Findings that are not faults (no injection possible, or already known): <list or none>
 
 ## Runs
 

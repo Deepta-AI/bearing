@@ -119,6 +119,7 @@ own names (`/office-hours`, `brainstorming`).
 | Test cases first | `test-cases` | bearing | TC-nnnn cases traced to criteria |
 | Write code | `test-driven-development` | Superpowers | tested code; stack skills load on their own |
 | Restructure without changing behaviour | `refactor` | bearing | tests green first, one mechanical transform per commit, make check between, a diff ceiling |
+| Cut code a change does not need | `simplify-code` | bearing | every unit in scope inventoried, each cut reasoned, tests green after every step, behaviour changes proposed |
 | Something is slow | `performance` | bearing | before and after numbers from the stack's profiler, docs/performance/<name>.md |
 | A secret to add or rotate | `secrets` | bearing | docs/security/SECRETS.md inventory, rotation per type, leak response, gitleaks pre-commit |
 | Schema change | `db-migration` | bearing | migration with a tested Down |

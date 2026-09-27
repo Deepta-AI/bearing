@@ -1,0 +1,5 @@
+[
+  {"event": "invoice.issued", "invoice_id": "inv_1001", "customer_id": "cus_7", "amount_minor": 125000, "issued_at": "2026-09-01T10:00:00Z"},
+  {"event": "invoice.issued", "invoice_id": "inv_1002", "customer_id": "cus_9", "amount_minor": 49900, "issued_at": "2026-09-02T11:30:00Z"},
+  {"event": "invoice.voided", "invoice_id": "inv_1001", "customer_id": "cus_7", "amount_minor": 125000, "issued_at": "2026-09-01T10:00:00Z"}
+]

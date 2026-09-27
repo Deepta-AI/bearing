@@ -1,0 +1,29 @@
+invoice_month,service_description,sku_description,project_id,label_env,label_app,resource_name,location,usage_start_time,usage_end_time,cost,credits_total,credit_details,currency
+202608,Compute Engine,N2 Instance Core running in Mumbai,shop-prod,prod,gke-prod-pool,gke-shop-prod-prod-pool (6 x n2-standard-8),asia-south1,2026-08-01T00:00:00+05:30,2026-09-01T00:00:00+05:30,142800.00,-82850.00,SUSTAINED_USAGE_DISCOUNT|Sustained usage discount|-22850.00;PROMOTION|Startup program credit|-60000.00,INR
+202608,Compute Engine,N2 Instance Ram running in Mumbai,shop-prod,prod,gke-prod-pool,gke-shop-prod-prod-pool (6 x n2-standard-8),asia-south1,2026-08-01T00:00:00+05:30,2026-09-01T00:00:00+05:30,76600.00,-11450.00,SUSTAINED_USAGE_DISCOUNT|Sustained usage discount|-11450.00,INR
+202608,Kubernetes Engine,Regional Kubernetes Clusters,shop-prod,prod,gke,shop-prod,asia-south1,2026-08-01T00:00:00+05:30,2026-09-01T00:00:00+05:30,6150.00,0.00,,INR
+202608,Cloud SQL,Cloud SQL for PostgreSQL: Regional - vCPU in Mumbai,shop-prod,prod,postgres,pg-primary,asia-south1,2026-08-01T00:00:00+05:30,2026-09-01T00:00:00+05:30,48200.00,0.00,,INR
+202608,Cloud SQL,Cloud SQL for PostgreSQL: Regional - RAM in Mumbai,shop-prod,prod,postgres,pg-primary,asia-south1,2026-08-01T00:00:00+05:30,2026-09-01T00:00:00+05:30,21900.00,0.00,,INR
+202608,Cloud SQL,Cloud SQL for PostgreSQL: Regional - Standard storage in Mumbai,shop-prod,prod,postgres,pg-primary,asia-south1,2026-08-01T00:00:00+05:30,2026-09-01T00:00:00+05:30,9400.00,0.00,,INR
+202608,Cloud SQL,Cloud SQL for PostgreSQL: Backups in Mumbai,shop-prod,prod,postgres,pg-primary,asia-south1,2026-08-01T00:00:00+05:30,2026-09-01T00:00:00+05:30,2100.00,0.00,,INR
+202608,Cloud SQL,Cloud SQL for PostgreSQL: Zonal - vCPU in Delhi,shop-prod,prod,postgres-dr,pg-replica-dr,asia-south2,2026-08-01T00:00:00+05:30,2026-09-01T00:00:00+05:30,24100.00,0.00,,INR
+202608,Cloud SQL,Cloud SQL for PostgreSQL: Zonal - RAM in Delhi,shop-prod,prod,postgres-dr,pg-replica-dr,asia-south2,2026-08-01T00:00:00+05:30,2026-09-01T00:00:00+05:30,10950.00,0.00,,INR
+202608,Cloud SQL,Cloud SQL for PostgreSQL: Zonal - Standard storage in Delhi,shop-prod,prod,postgres-dr,pg-replica-dr,asia-south2,2026-08-01T00:00:00+05:30,2026-09-01T00:00:00+05:30,4700.00,0.00,,INR
+202608,Networking,Network Inter Region Data Transfer Out from Delhi to Mumbai,shop-prod,prod,,,asia-south2,2026-08-01T00:00:00+05:30,2026-09-01T00:00:00+05:30,31800.00,0.00,,INR
+202608,Networking,Network Inter Region Data Transfer Out from Mumbai to Delhi,shop-prod,prod,,,asia-south1,2026-08-01T00:00:00+05:30,2026-09-01T00:00:00+05:30,3200.00,0.00,,INR
+202608,Networking,Network Internet Data Transfer Out from Mumbai to Asia,shop-prod,prod,,,asia-south1,2026-08-01T00:00:00+05:30,2026-09-01T00:00:00+05:30,18400.00,0.00,,INR
+202608,Cloud Load Balancing,Global External Application Load Balancer forwarding rule,shop-prod,prod,ingress,shop-web-lb,global,2026-08-01T00:00:00+05:30,2026-09-01T00:00:00+05:30,4900.00,0.00,,INR
+202608,Cloud Logging,Log Volume,shop-prod,prod,,,global,2026-08-01T00:00:00+05:30,2026-09-01T00:00:00+05:30,7300.00,0.00,,INR
+202608,Cloud Storage,Standard Storage Mumbai,shop-prod,prod,assets,shop-prod-assets,asia-south1,2026-08-01T00:00:00+05:30,2026-09-01T00:00:00+05:30,5600.00,0.00,,INR
+202608,Compute Engine,E2 Instance Core running in Mumbai,shop-prod,,,month-end-invoicer (e2-standard-16),asia-south1,2026-08-01T00:00:00+05:30,2026-09-01T00:00:00+05:30,6650.00,0.00,,INR
+202608,Compute Engine,E2 Instance Ram running in Mumbai,shop-prod,,,month-end-invoicer (e2-standard-16),asia-south1,2026-08-01T00:00:00+05:30,2026-09-01T00:00:00+05:30,3150.00,0.00,,INR
+202608,Compute Engine,Static Ip Charge,shop-prod,,,legacy-ingress-ip (unattached),asia-south1,2026-08-01T00:00:00+05:30,2026-09-01T00:00:00+05:30,590.00,0.00,,INR
+202608,Compute Engine,N2 Instance Core running in Mumbai,shop-staging,staging,gke-staging-pool,gke-shop-staging-pool (3 x n2-standard-8),asia-south1,2026-08-01T00:00:00+05:30,2026-09-01T00:00:00+05:30,71400.00,-11420.00,SUSTAINED_USAGE_DISCOUNT|Sustained usage discount|-11420.00,INR
+202608,Compute Engine,N2 Instance Ram running in Mumbai,shop-staging,staging,gke-staging-pool,gke-shop-staging-pool (3 x n2-standard-8),asia-south1,2026-08-01T00:00:00+05:30,2026-09-01T00:00:00+05:30,38300.00,-5730.00,SUSTAINED_USAGE_DISCOUNT|Sustained usage discount|-5730.00,INR
+202608,Kubernetes Engine,Zonal Kubernetes Clusters,shop-staging,staging,gke,shop-staging,asia-south1,2026-08-01T00:00:00+05:30,2026-09-01T00:00:00+05:30,0.00,0.00,,INR
+202608,Cloud SQL,Cloud SQL for PostgreSQL: Zonal - vCPU in Mumbai,shop-staging,staging,postgres,pg-staging,asia-south1,2026-08-01T00:00:00+05:30,2026-09-01T00:00:00+05:30,8350.00,0.00,,INR
+202608,Cloud SQL,Cloud SQL for PostgreSQL: Zonal - RAM in Mumbai,shop-staging,staging,postgres,pg-staging,asia-south1,2026-08-01T00:00:00+05:30,2026-09-01T00:00:00+05:30,3700.00,0.00,,INR
+202608,Compute Engine,N2 Instance Core running in Mumbai,shop-dev,dev,gke-dev-pool,gke-shop-dev-pool (2 x n2-standard-4),asia-south1,2026-08-01T00:00:00+05:30,2026-09-01T00:00:00+05:30,23800.00,-3800.00,SUSTAINED_USAGE_DISCOUNT|Sustained usage discount|-3800.00,INR
+202608,Compute Engine,N2 Instance Ram running in Mumbai,shop-dev,dev,gke-dev-pool,gke-shop-dev-pool (2 x n2-standard-4),asia-south1,2026-08-01T00:00:00+05:30,2026-09-01T00:00:00+05:30,12750.00,-1900.00,SUSTAINED_USAGE_DISCOUNT|Sustained usage discount|-1900.00,INR
+202608,Cloud SQL,Cloud SQL for PostgreSQL: Zonal - vCPU in Mumbai,shop-dev,dev,postgres,pg-dev,asia-south1,2026-08-01T00:00:00+05:30,2026-09-01T00:00:00+05:30,3150.00,0.00,,INR
+202608,Cloud SQL,Cloud SQL for PostgreSQL: Zonal - RAM in Mumbai,shop-dev,dev,postgres,pg-dev,asia-south1,2026-08-01T00:00:00+05:30,2026-09-01T00:00:00+05:30,1350.00,0.00,,INR

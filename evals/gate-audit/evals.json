@@ -1,0 +1,81 @@
+{
+ "skill_name": "gate-audit",
+ "evals": [
+  {
+   "id": 1,
+   "name": "green-ci-audit-all-gates",
+   "prompt": "CI has been green on this branch the whole time, but I'm not convinced our checks actually check anything. Go through them and tell me which ones are real. Don't fix anything yet, I want the list first.",
+   "expected_output": "A read-only audit of every gate (make lint, test, schema, migrations, the CI jobs checks and migrations, the pre-commit hook) that finds: the migration check globs migrations/ while the files live in db/migrations/ and so checks 0 migrations, which hides that 0004_invoice_currency has no down script; the CI migration job is allow_failure despite the README; the test gate turns pytest's 'no tests collected' into success, and pytest collects only 3 of the 5 test functions in tests/ because tests/numbering_checks.py matches no test file pattern, hiding a test that fails today (next_invoice_id drops the zero padding); the schema gate validates the fixtures against a schema generated from those same fixtures while the real contract in docs/event-schema.json requires currency the fixtures lack (the code does emit it, so the fixtures are stale); the lint gate passes on zero files and compiles only src/, and no gate prints a count (pytest's count covers only what it collected); the pre-commit hook checks nothing, always exits 0 and re-stages whole files, which a scratch-copy run shows committing a hunk the developer left unstaged. It gives a verdict on every gate in its findings, its own totals agree with its table, it gives a concrete fix per gate, warns which hidden defects turn make check red once the gates are fixed, does not condemn the 3 collected tests, which assert real computed values, and changes nothing in the repository and makes no commit. python3 and pytest are available, so the gates can be run.",
+   "files": [
+    "files/invoice-service"
+   ],
+   "expectations": [
+    "The report's findings give a verdict with its reason for each of the seven gates, not only an inventory row: the four targets `make check` depends on (lint, test, schema, migrations), the CI job migrations, the CI job checks as a job in its own right (it blocks, and runs lint, test and schema but not migrations, so its verdict says what it covers and what it leaves out) and .githooks/pre-commit",
+    "The report describes no gate, CI job or file the repository does not have (remarking on whether the pre-commit hook is enabled, which the README asks for with core.hooksPath, is not an invented gate)",
+    "The report finds that scripts/check_migrations.sh looks for migrations/*.up.sql while the migrations live in db/migrations/, so in this repository today the gate examines 0 migrations and still prints \"migrations ok\"",
+    "The report finds that db/migrations/0004_invoice_currency.up.sql has no down migration (0001 to 0003 each have one), a defect the migration gate exists to catch and does not",
+    "The report points out that the CI job migrations has `allow_failure: true`, so it cannot block a merge, which contradicts the README's claim that the migration check blocks a merge; the blocking CI job checks runs only `make lint test schema`",
+    "The report finds that the test gate's `|| [ $$? -eq 5 ]` turns pytest's exit code 5 (no tests collected) into success, so the gate passes with zero tests",
+    "The report finds that tests/numbering_checks.py is never collected by the test gate (its name matches neither test_*.py nor *_test.py), so pytest runs 3 of the 5 test functions in tests/",
+    "The report finds that one of the uncollected tests fails when run: test_next_id_keeps_the_width expects next_invoice_id(\"inv_0099\") to return \"inv_0100\" and the code returns \"inv_100\"",
+    "The report finds that the schema gate is circular: scripts/gen_schema.py derives the schema from the first event in fixtures/events.json and scripts/validate_events.py then validates that same file against it, so the gate cannot catch a change that breaks the event contract",
+    "The report notices docs/event-schema.json, the contract with the ledger team, which requires currency, and that none of the 3 events in fixtures/events.json carries currency, so the fixtures would fail the real contract today",
+    "The report establishes that the code is not the part at fault for currency: src/billing/events.py's issued_event does emit currency, so it is the fixtures that are stale, and the fix updates the fixtures rather than the event code",
+    "The report finds that the lint gate (`find src -name '*.py' | xargs -r python3 -m py_compile`) exits 0 when it finds no files, checks syntax only, and compiles only src/, so tests/ and scripts/ (which the other gates run) are never linted",
+    "The report says which gates print no count of what they checked: the success lines \"lint ok\", \"schema ok\" and \"migrations ok\" do not say how many files, events or migrations were examined, and pytest's own count covers only the tests it collected, so its \"3 passed\" says nothing of the 2 it never ran",
+    "The report says .githooks/pre-commit checks nothing and always exits 0, so it cannot block a commit",
+    "The report finds the pre-commit hook's side effect: it rewrites each staged file on disk and runs `git add \"$f\"` on the whole file, so hunks the developer had deliberately left unstaged get committed",
+    "The pre-commit side effect is demonstrated, not only asserted: in a scratch copy outside the output repository, a Python file with one staged and one unstaged hunk goes through the hook (run directly or as the enabled hook) and the result shown is that the unstaged hunk ends up staged or committed",
+    "The report does not call the 3 collected unit tests fake or empty: they assert computed values (3499, 630 and 4129 for an invoice total; 1180 for the issued event; inv_1010 for the next id) and would fail on a wrong tax or total",
+    "The report gives a concrete fix for the migration gate: look in db/migrations (or make the path configurable) and fail when no migration is found",
+    "The report gives a concrete fix for the CI job migrations: remove `allow_failure: true` or run `make migrations` in the blocking checks job",
+    "The report gives a concrete fix for the test gate: drop the exit code 5 escape and make pytest collect tests/numbering_checks.py (rename it to match test_*.py, or set python_files)",
+    "The report gives a concrete fix for the schema gate: validate the fixtures (and ideally the emitted event) against docs/event-schema.json instead of a schema generated from the fixtures",
+    "The report warns that correcting the gates turns `make check` red on defects they were hiding, and names at least two of them: 0004 has no down migration, the fixtures lack currency, the zero-padding test fails; so those defects are fixed in the same change or first",
+    "The report does not treat `make check` or CI being green as evidence that a gate works",
+    "Every number the report states about the repository matches it (for example 4 up migrations and 3 down migrations, 3 fixture events, 3 collected tests of 5 defined, 4 make gates, 2 CI jobs)",
+    "The report's own counts agree with each other: any total it states (gates found, gates needing work, gates that are real) equals the rows or items it lists for that total, including any tool output it pastes",
+    "Each empty-input verdict is either demonstrated by a command the run executed (shown in the transcript) or stated as judged from reading the code; the report does not claim results from GitLab CI, which cannot run here",
+    "No tracked file is modified or deleted and no file is added to the repository other than ignored output of running the gates (build/, .pytest_cache/, __pycache__/): the request was for a list, not fixes",
+    "The run makes no git commit: the output repository's history still ends at the fixture commit"
+   ]
+  },
+  {
+   "id": 2,
+   "name": "sprint-gates-are-they-real",
+   "prompt": "Last sprint we added the SQL lint, a coverage floor and a commit-msg hook. Before I tell the team to rely on them: are they real checks? Just tell me, don't change anything.",
+   "expected_output": "A read-only audit of the three gates named: the SQL lint's pathspec queries/*.sql matches none of the 4 files in internal/store/queries/, so it checks nothing; 2 of the 4 queries read every column (list_orders.sql with SELECT *, order_lines.sql with SELECT ol.*) and the lint's pattern would catch only the first even at the right path; its CI job's rules:changes path never matches and the blocking CI job does not run it, against the README; the coverage floor is 10 against ADR 0003's accepted 70 percent and a measured total of 87.1 percent, deleting the orders tests (32.3 percent) still passes, and an unreadable total falls through to 'coverage ok'; the commit-msg hook rejects non-conventional subjects but also rejects git's own Merge and Revert subjects and the build, style and revert types, nothing installs it (no core.hooksPath anywhere) and CI does not check messages; the CHANGELOG 0.9.0 entry and ADR 0003's Consequences promise what none of the gates deliver; neither success line reports what it measured; a concrete fix for each with a warning that the corrected lint turns make check red on the two queries; the numbers measured or marked not run, nothing changed and no commit. Go 1.25 is available offline, so make check and go test run.",
+   "files": [
+    "files/orders-svc"
+   ],
+   "expectations": [
+    "The report gives a verdict on each of the three gates asked about: `make sql-lint` together with its CI job, `make cover` and .githooks/commit-msg",
+    "The report finds that scripts/sql_lint.sh lists files with `git ls-files 'queries/*.sql'`, which matches nothing because the query files live in internal/store/queries/, so the lint examines 0 of the 4 query files and prints \"sql-lint ok\"",
+    "The report names internal/store/queries/list_orders.sql as using SELECT *, which the lint would reject if it looked at the right path",
+    "The report finds that internal/store/queries/order_lines.sql also reads every column (`SELECT ol.*`) and that the lint's pattern `select[[:space:]]+\\*` does not match a qualified star, so even with the path fixed the lint catches 1 of the 2 queries it exists to reject",
+    "The report says the query fixes must land with the lint fix (in the same change or first), because the corrected lint fails on list_orders.sql and turns `make check` red",
+    "The report finds that the CI job sql-lint only runs under `rules: changes: queries/**/*.sql`, a path that matches none of the real query files, so it does not run on a merge request that changes a query",
+    "The report notes that the blocking CI job check runs `make vet test cover` and not sql-lint, contradicting the README's statement that CI runs the same gates",
+    "The report checks the written promises beyond the README against what the gates do and says which are false today: CHANGELOG.md 0.9.0 claims sql-lint rejects SELECT * in the query files with a CI job for it, that the coverage floor is ADR 0003's, and that the hook enforces Conventional Commits; ADR 0003's Consequences say a change that deletes tests fails the merge request",
+    "The report finds that the Makefile sets `COVER_MIN ?= 10` while docs/adr/0003-coverage-floor.md, status Accepted, decides a floor of 70 percent",
+    "The report states the current total coverage of ./internal/... as a number it measured (87.1 percent, allowing rounding) or says it did not run the measurement",
+    "The report shows the floor cannot catch the regression ADR 0003 names: with internal/orders/orders_test.go deleted, coverage falls to about 32 percent and `make cover` still prints \"coverage ok\"; measured in a scratch copy, or argued from the numbers and marked as not run",
+    "The report finds that the cover recipe passes when the total cannot be read: an empty or non-numeric $total makes `[ \"$total\" -lt 10 ]` an error, the if treats that as false, and the else branch prints \"coverage ok\"",
+    "The report recommends bringing the floor up to the ADR's decision (70 percent, or nearer current coverage since the ADR says the floor is raised as coverage grows), not rewriting the ADR to match the Makefile",
+    "The report finds that nothing in the repository installs the commit-msg hook (no `git config core.hooksPath` in the Makefile, a script or the README's steps), so it runs for nobody who has not set it up by hand, and that CI does not check commit messages either",
+    "The report does not call the commit-msg hook useless: its pattern does reject an empty or non-conventional subject such as \"updated stuff\"; if the run exercised it, it reports that result",
+    "The report finds that the hook's pattern also rejects legitimate subjects: the ones git itself writes for a merge (\"Merge branch ...\") and a revert ('Revert \"...\"'), and the Conventional Commits types build, style and revert, so once installed it blocks ordinary merges and a CI message check copied from it would fail those merge requests; the fix widens the pattern or exempts git-generated subjects",
+    "The report states as a defect of the gates as they stand today, not only as part of a proposed fix, that neither success line reports what it measured: \"sql-lint ok\" gives no count of files examined, so it reads the same for 0 files as for 4, and \"coverage ok\" gives no percentage, so it reads the same at 11 percent as at 87",
+    "The report gives a concrete fix for sql-lint: the internal/store/queries pathspec, failing when it finds zero files, and a pattern that also catches a qualified star such as `ol.*`",
+    "The report gives a concrete fix for the sql-lint CI job: a changes rule that matches internal/store/queries, or running sql-lint in the blocking check job",
+    "The report gives a concrete fix for the cover gate: COVER_MIN at the ADR's floor, failing when the total cannot be read, and printing the measured percentage",
+    "The report gives a concrete fix for the commit-msg hook: a make target or setup step that sets core.hooksPath, plus a CI check of commit messages",
+    "The report does not treat `make check` passing as evidence that these gates work",
+    "Every number the report states matches the repository or a command the run executed (4 query files, 2 reading every column, COVER_MIN 10, the ADR's 70 percent, 87.1 and about 32 percent coverage)",
+    "The report says which conclusions came from commands the run executed and which from reading, and does not claim GitLab CI behaviour was observed",
+    "No tracked file is modified or deleted and no file is added to the repository other than ignored output of running the gates (cover.out): the request was to report, not to change anything",
+    "The run makes no git commit: the output repository's history still ends at the fixture commit"
+   ]
+  }
+ ]
+}

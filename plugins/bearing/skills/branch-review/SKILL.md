@@ -2,7 +2,7 @@
 name: branch-review
 description: 'Code review of a branch, MR, patch or path with stack checklists, every Critical and High finding independently verified, and merge verdict. Use when asked to "review this", "review the MR" or "look over my changes".'
 argument-hint: "[commit range, patch file or path; default origin/develop...HEAD] [--engine gstack|bearing]"
-allowed-tools: Read, Grep, Glob, Skill, Agent, Bash(git diff:*), Bash(git log:*), Bash(git show:*), Bash(git status:*), Bash(git rev-parse:*), Bash(git remote:*), Bash(git worktree list:*), Bash(git archive *), Bash(git apply --check *), Bash(git apply --directory=.scratch/review/*), Bash(tar -x -C .scratch/review/*), Bash(make -C .scratch/review/*), Bash(rm -rf .scratch/review/*), Bash(ls:*), Bash(mkdir -p .scratch/review/*), Bash(bash *bin/brg-checklists *)
+allowed-tools: Read, Grep, Glob, Skill, Agent, Bash(git diff:*), Bash(git log:*), Bash(git show:*), Bash(git status:*), Bash(git rev-parse:*), Bash(git remote:*), Bash(git worktree list:*), Bash(git archive *), Bash(git apply --check *), Bash(git apply --directory=.scratch/review/*), Bash(tar -x -C .scratch/review/*), Bash(make -C .scratch/review/*), Bash(rm -rf .scratch/review/*), Bash(ls:*), Bash(mkdir -p .scratch/review/*), Bash(python3 .scratch/review/*), Bash(bash *bin/brg-checklists *), Write
 ---
 
 # branch-review
@@ -99,6 +99,30 @@ verification.
    Then hold the change to its own claims: the commit message, the docs
    it edits and the ADRs it touches. A claim the code does not keep is
    a finding.
+   Then read past the diff yourself; the engine and the agents mostly
+   read what changed, and the costliest bugs of a change sit in lines it
+   did not touch. For every table, column, function, setting and
+   external call the change adds or alters:
+   - who else reads or writes it (Grep the name across the repository,
+     including scripts, cron, reports and jobs), and whether each one
+     is still right with the change in place;
+   - whether the repository already models the concept the change
+     introduces (an existing column, helper, status or doc rule) that
+     the change bypasses or leaves stale;
+   - the invariant a reader would state in one sentence ("stock never
+     goes below zero", "a coupon is redeemed once") and the sequence of
+     normal calls, not only one call, that breaks it;
+   - the states the operation is allowed from, and what happens on each
+     failure after a side effect (commit, external call, message);
+   - defaults and absent inputs: a missing header, env var or field that
+     makes a check fail open;
+   - windows, TTLs, retries and limits compared across components and
+     documents, with the numbers computed from the code (a constant's
+     name and comment are not its value; `15 * 60 * 1000` in a field read
+     as seconds is 10 days);
+   - messages and callbacks that arrive twice, together, late or out of
+     order, where the code assumes once and in order.
+   A finding from this pass goes to step 5 like any other.
 5. Independent verification. For every open Critical and High, fork one
    `verifier` (Agent tool), all in one message so they run in
    parallel, at most 12; beyond that, the 12 most severe are verified and
@@ -106,13 +130,27 @@ verification.
    `path:line`, the one-sentence claim, the failure scenario and the path
    of `.scratch/review/<slug>/diff.patch` (or the path under review);
    never the engine's reasoning, its confidence or the other findings.
-6. Merge the verdicts. CONFIRMED stays at the verifier's severity.
+6. Reproduce what you can. For each confirmed Critical and High,
+   when the throwaway copy from step 3 runs, write a short probe under
+   `.scratch/review/<slug>/` that drives the failure through the public
+   entry point (the handler, the CLI, the endpoint function) with the
+   repository's own fixtures or seed data, and run it against the copy
+   (`python3 .scratch/review/<slug>/probe.py`, the probe putting `tree/`
+   first on its import path; or the stack's equivalent). Record the output line that shows the failure.
+   A probe that does not fail sends the finding back to Questions. Then
+   merge the verdicts. CONFIRMED stays at the verifier's severity.
    REFUTED moves to "Dropped" with the verifier's quoted defence.
    UNCERTAIN moves to "Questions". Medium and Low stay as the engine
    reported them, marked unverified. For each confirmed finding, say
    whether the project check from step 3 passes with it present; a
    suite that passes with a blocking bug is itself a finding (name the
-   test that looks as if it covers the case and why it cannot fail).
+   test that looks as if it covers the case and why it cannot fail:
+   a boundary value far from the threshold, one call where the bug
+   needs two, a principal who can never be refused).
+   Calibrate severity against the deployment the repository describes:
+   a race that one single-threaded writer (an ADR says so) cannot hit is
+   not blocking; the same money bug reached by two ordinary sequential
+   calls is.
 7. Check the commits in the range (for a patch file, its Subject line)
    against the conventions. Decide the
    verdict: any confirmed Critical or High, or a merge rule broken,
@@ -128,7 +166,7 @@ brg-checklists: <its counts line>
 Verified: C confirmed, R refuted, U uncertain of V Critical and High (K not verified)
 1. [Critical] path:line  claim   (verified, blocking)
    Failure: <the input or sequence, and what the user sees>
-   Evidence: <the verifier's deciding quote, path:line>
+   Evidence: <the verifier's deciding quote, path:line; the probe's output line>
    Tests: <passes with this bug | caught by name>
    Fix: <in words or a snippet; never applied>
 2. [Medium] path:line  claim   (unverified)
@@ -162,7 +200,8 @@ named ("switch on", "release").
   verification and is never labelled so.
 - A review is read only. gstack `/review` offers to fix; this skill tells
   it not to, and never edits a tracked file, commits, or creates a
-  branch or worktree. Fixes appear in the report; applying them is a
+  branch or worktree. Write is for notes and probes under
+  `.scratch/review/` only. Fixes appear in the report; applying them is a
   separate request.
 - Bearing's guard blocks `git worktree remove` and `git branch -D`, so a
   worktree or branch made to test a change outlives the run. The

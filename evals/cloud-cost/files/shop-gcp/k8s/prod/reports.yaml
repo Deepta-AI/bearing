@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: reports
+  labels: { app: reports, env: prod }
+spec:
+  replicas: 2
+  selector:
+    matchLabels: { app: reports }
+  template:
+    metadata:
+      labels: { app: reports, env: prod }
+    spec:
+      containers:
+        - name: reports
+          image: asia-south1-docker.pkg.dev/shop-prod/apps/reports:2026.07.5
+          env:
+            # moved off the primary during the July load test, see the load test notes
+            - name: DATABASE_HOST
+              value: 10.60.0.5
+            - name: DATABASE_NAME
+              value: shop
+          resources:
+            requests: { cpu: "1", memory: 2Gi }
+            limits: { cpu: "2", memory: 4Gi }

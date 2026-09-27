@@ -72,6 +72,20 @@ For each item, either find the concrete failure or write "none found".
 - A setting changed in Xcode and not in `project.yml`; `Info.plist` or the
   `.xcodeproj` committed.
 
+## Location and photos
+- A location continuation that can hang (waits for an authorization
+  callback when the status is already determined) or resume twice; a
+  `CLLocationManager` created off the main thread; `requestAlways` or a
+  background location mode nobody asked for.
+- Coordinates in a log line, `UserDefaults`, a file or the on-disk
+  `URLCache` of `URLSession.shared` (a GET with the point in its query).
+- `.restricted` handled as `.denied` with a Settings button that cannot
+  help.
+- A picked photo uploaded as its original bytes (HEIC labelled JPEG, EXIF
+  GPS sent to the server), a full-resolution upload against a pixel or
+  byte limit, a resize renderer at screen scale, decoding on the main
+  actor, the camera shown without `isSourceTypeAvailable`.
+
 ## Tests
 - A bug fix without a reproducing test.
 - A test with `sleep`, `XCTWaiter` on a fixed timeout, a real clock, a real

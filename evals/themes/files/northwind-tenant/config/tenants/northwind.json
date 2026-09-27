@@ -1,0 +1,22 @@
+{
+  "tenant": "northwind",
+  "displayName": "Northwind Family Clinics",
+  "domain": "myportal.northwindclinics.example",
+  "colors": {
+    "primary": "#00A3AD",
+    "primaryHover": "#008C95",
+    "buttonText": "#FFFFFF",
+    "link": "#00A3AD",
+    "textMuted": "#9AA0A6",
+    "background": "#F4FBFB"
+  },
+  "logo": "https://cdn.brandagency.example/northwind/logo-horizontal.svg",
+  "fonts": {
+    "display": "Playfair Display",
+    "body": "Lato",
+    "href": "https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600&family=Lato&display=swap"
+  },
+  "radius": "2px",
+  "customCss": ".button { text-transform: uppercase; letter-spacing: 0.08em; }",
+  "analytics": { "gtag": "G-NW4PORTAL1" }
+}

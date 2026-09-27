@@ -1,118 +1,90 @@
 # Estimate
 
-<!-- Template guidance: the size of the backlog as a set of written
-     assumptions with a number attached, so the lead and the client can
-     challenge each number. Points measure size and uncertainty, never days;
-     only the phase plan carries weeks. Every comment says what goes there
-     (What), what a strong entry has (Good) and an example (Example). Delete
-     each comment when you fill its section. -->
+<!-- Template guidance: what is left, what it costs in points, what the team
+     can deliver before the real deadline, and the verdict with its margin.
+     Every comment says what goes there (What), what a strong entry has
+     (Good) and an example (Example). Delete each comment when you fill its
+     section. -->
 
-Backlog: docs/product/backlog.md   Sized: <date>   Team: <n people, unconfirmed:>
-Velocity assumption: <points per week, unconfirmed: unless given>
+Backlog: docs/product/backlog.md   Sized: <date>   Team: <n people, source>
+Previous estimate: <date and total, and what that total counted, or none>
 
-## 1. Story sizes
+## 1. Verdict
 
-<!-- What: one row per live story with acceptance criteria: size, points,
-     the previous size, the drivers and its assumption ids.
-     Good: XS 1, S 2, M 3, L 5, XL 8; drivers named (boundary, schema or
-     migration, integration, new UI, over four AC, unconfirmed assumption);
-     two to four assumptions, each confirmed by a file or person or marked
-     unconfirmed:. An XL is flagged "split with backlog". Never shrink a
-     size to fit a date.
-     Example: "US-00-014 | Match a report to a patient | L | 5 | M | boundary,
-     integration | A3, A4, A5" -->
+<!-- What: the answer to the question asked, first.
+     Good: fits, fits only with cuts, or does not fit; the margin in points
+     at the mean pace and at the worst sprint's pace, per priority tier;
+     the proposed cuts by id or AC id and the fit after them; every cut
+     marked Proposed, awaiting product and the client.
+     Example: "Must 26 against capacity 24 at the mean pace (-2), 17 at the
+     worst (-9): even the Musts do not fit. Proposed: split AC-US-00-014-5
+     and -6 out of US-00-014 (Must 23, +1)." -->
 
-| Story | Title | Size | Points | Previous | Drivers | Assumptions |
+## 2. Scope
+
+<!-- What: which stories are remaining, which are excluded and why.
+     Good: done and withdrawn stories named with their points, never
+     re-sized; stories refused for missing AC; stories conditional on a
+     decision (an ADR or the PRD's out-of-scope list) kept out of the plan.
+     Example: "Excluded: US-00-001 to US-00-006 done (21 points);
+     US-00-009 withdrawn." -->
+
+## 3. Story sizes
+
+<!-- What: one row per remaining story.
+     Good: XS 1, S 2, M 3, L 5, XL 8; the previous size beside the new one;
+     drivers named, including what the code check found; assumptions that
+     would change the size, each confirmed by a file or marked unconfirmed:.
+     Never shrink a size to fit a date.
+     Example: "US-00-014 | Must | M 3 | L 5 | lab client is a stub (its
+     test asserts NotImplementedError), new inbound email route | A3, A4" -->
+
+| Story | Priority | Previous | Size | Points | Drivers | Assumptions |
 | --- | --- | --- | --- | --- | --- | --- |
-| US-00-001 | <title> | M | 3 | | boundary, UI | A1, A2 |
+| US-nn-nnn | Must | | M | 3 | | A1 |
 
-Assumptions (numbered, referenced above):
+Assumptions:
 
-- A1. <what is taken as true; confirmed by <file or person>, or unconfirmed:>
-- A2.
+- A1. <what is taken as true; confirmed by <file>, or unconfirmed:>
 
-## 2. Refused (no acceptance criteria)
+## 4. Capacity
 
-<!-- What: every story that has no AC-US- lines, so was not sized.
-     Good: lists each id; the refusal stays whatever the story's source, and
-     the verdict is partial while any row is here.
-     Example: "US-01-006 | add AC with backlog, then re-run" -->
+<!-- What: the window and what the team can deliver in it.
+     Good: completed (not committed) points per sprint from the log, mean
+     and worst; the window from the next sprint start to the freeze, not
+     go-live; person-days available after holidays and leave, with the
+     arithmetic; any previous velocity assumption checked against the log.
+     Example: "Completed 12, 9, 11 (mean 10.7, worst 9; committed 14 a
+     sprint). 2 sprints to the freeze on Fri 6 Mar: 4 people x 20 days =
+     80 person-days, minus 8 holiday and 10 leave = 62; 21.3 x 62/80 =
+     16.5 points." -->
 
-| Story | Action |
-| --- | --- |
-| <US-nn-nnn or none> | add AC with backlog, then re-run |
+## 5. Gaps and calendar risks
 
-## 3. Dependency graph
+<!-- What: what the backlog does not say and what points do not show.
+     Good: requirements with no story, data the AC assume but nothing
+     creates, claims the code contradicts, dependency cycles with a
+     proposed break, ADR conflicts; each external lead time with its
+     earliest start date, the time left to the freeze for the chain behind
+     it, the action that pulls it in and a trigger date.
+     Example: "Lab API keys: contract signed 2 Feb + 10 working days = 16
+     Feb; 3 weeks left for US-00-014 and US-00-016. Trigger: no keys by 18
+     Feb, both move out." -->
 
-<!-- What: a mermaid graph LR drawn from every Dependencies line, then the
-     cycles found by following the edges.
-     Good: stories with no edges still appear as nodes; a cycle, or a
-     dependency on a story not in the backlog, is a gap named with its ids,
-     never fixed silently.
-     Example: "Cycles: US-00-014 to US-00-016 to US-00-014" -->
+## 6. Plan
 
-```mermaid
-graph LR
-  US-00-001 --> US-00-002
-```
-
-Cycles: <none, or the ids in each cycle>
-
-## 4. Phase plan
-
-<!-- What: phases of one to two weeks, ordered by dependencies, then Must
-     before Should before Could, with points and a demo sentence each.
-     Good: the demo is something a user can perform at the end; one that
-     starts with "the backend" or "the schema" means re-slice vertically.
-     To meet a date, cut scope here and name the stories that moved out.
-     Example: "2 | 3 to 4 | US-00-014, US-00-016 | 8 | a receptionist files
-     a real lab report against the right patient" -->
-
-| Phase | Weeks | Stories | Points | Demo at the end |
-| --- | --- | --- | --- | --- |
-| 1 | 1 to 2 | US-00-001, US-00-002 | 5 | <a user can ...> |
-
-## 5. Risks
-
-<!-- What: what could make the estimate wrong, with likelihood, impact,
-     mitigation and the stories or phase it threatens.
-     Good: at least one per phase and one per third-party integration; the
-     mitigation is an action someone can take, not "monitor".
-     Example: "R2 | lab email formats differ by lab | high | US-00-014 grows
-     to XL | collect five sample reports before phase 2 | US-00-014, phase 2" -->
-
-| # | Risk | Likelihood | Impact | Mitigation | Threatens |
-| --- | --- | --- | --- | --- | --- |
-| R1 | | low / medium / high | | | US-nn-nnn, phase n |
-
-## 6. Total
-
-<!-- What: the sum of sized points, the band and the confidence.
-     Good: band 0.8 to 1.5 times the sum while assumptions are unconfirmed,
-     0.9 to 1.2 when all are confirmed; confidence is low over a third
-     unconfirmed, medium up to a third, high at none; weeks use the stated
-     velocity, marked unconfirmed: unless the user gave it.
-     Example: "Points: 64   Band: 51 to 96   Confidence: low (9 of 22
-     assumptions unconfirmed, 1 XL to split)" -->
-
-Points: P   Band: L to H   Confidence: low | medium | high
-Basis: <share of unconfirmed assumptions, XL stories still to split>
+<!-- What: an order that respects dependencies and the dates in section 5,
+     only when it adds information. Each phase ends with something a user
+     can do.
+     Good: every story placed after the stories it depends on; external
+     lead times start on or after their trigger dates; no sprint loaded
+     past its capacity from section 5.
+     Example: "Sprint 4: US-00-012 and the report layout agreed. Sprint 5:
+     US-00-014 once the lab keys land." -->
 
 ## 7. Task hours
 
-<!-- What: the hours for every task in docs/product/tasks.md, rolled up by
-     discipline and by story, next to the story's points.
-     Good: hours are 1, 2, 3, 4, 6 or 8 for one person of the named
-     discipline; a task over 8 is listed as "split", never written as a big
-     number; the roll-up line is the coverage gate's "tasks:" line copied
-     verbatim, or marked hand-summed: when the gate is not installed; a
-     story whose hours sit under 3 or over 12 per point is listed so the
-     two estimates can be reconciled.
-     Example: "US-00-014 | 5 | 38 | backend 22, frontend 8, qa 8 | 7.6 h a
-     point | ok" -->
-
-| Story | Points | Hours | By discipline | Hours per point | Check |
-| --- | --- | --- | --- | --- | --- |
-| US-nn-nnn | 3 | 20 | backend 12, qa 8 | 6.7 | ok / mismatch / split: US-nn-nnn-Dk |
-
-<the coverage_check "tasks:" line, verbatim, or hand-summed: <hours by discipline>>
+<!-- What: hours for tasks in docs/product/tasks.md, only if it exists.
+     Good: 1, 2, 3, 4, 6 or 8 per task for one person; over 8 is "split";
+     the coverage gate's "tasks:" line verbatim or hand-summed:; stories
+     under 3 or over 12 hours a point listed as mismatches. -->

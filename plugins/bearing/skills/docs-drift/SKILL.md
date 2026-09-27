@@ -2,7 +2,7 @@
 name: docs-drift
 description: 'Finds docs that no longer match the code (broken links and paths, gone make targets, unused env vars, stale pages) and fixes the stale side. Use when asked "are the docs up to date", "check the README" or "docs drift".'
 argument-hint: "[--root <dir>] [--strict] [--exclude <glob>]... [--stale-after N] [--report-only]"
-allowed-tools: Read, Edit, Grep, Glob, Skill, Bash(git log:*), Bash(python3 *skills/docs-drift/scripts/docs_drift.py*)
+allowed-tools: Read, Edit, Grep, Glob, Skill, Bash(git log:*), Bash(git diff:*), Bash(git merge-base:*), Bash(python3 *skills/docs-drift/scripts/docs_drift.py*)
 ---
 
 # docs-drift
@@ -25,13 +25,14 @@ Not this: `openapi-spec check` owns spec against routes;
 
 - Root: `--root`, else the repository root (the working directory).
 - Finder: `scripts/docs_drift.py` in this skill, Python 3 only. It reads
-  README.md, AGENTS.md and CLAUDE.md at the root and `docs/**/*.md`
-  (minus `docs/archive/`, vendored and build folders, `--exclude`
-  globs) and prints `path:line: kind: detail` lines and one summary line.
+  every `*.md` in the repository (CONTRIBUTING.md and a service's own
+  README included; minus `docs/archive/`, test fixtures, vendored and
+  build folders, `--exclude` globs), checks each doc's `make` claims
+  against the nearest Makefile above it, and prints `path:line: kind: detail` lines and one summary line.
   Kinds that fail: `broken-link`, `broken-path`, `broken-make`. Warnings:
   `env-unused`, `stale`, `make-unverified`, and `history` (a broken claim
-  inside `docs/adr/`, `docs/decisions/`, `docs/postmortems/` or
-  `docs/incidents/`); `--strict` fails on warnings too.
+  inside `docs/adr/`, `docs/decisions/`, `docs/postmortems/`,
+  `docs/incidents/` or a CHANGELOG); `--strict` fails on warnings too.
 - Staleness threshold: `--stale-after N` commits touching referenced code
   after the doc's own last commit; default 5. Skipped outside git.
 - Opt-outs the finder honours: `<!-- docs-drift: ignore -->` on or above a
@@ -39,20 +40,34 @@ Not this: `openapi-spec check` owns spec against routes;
   claim about another repository or a generated target layout, with the
   reason in the same comment.
 - Mode: `--report-only` edits nothing; otherwise docs this skill owns are
-  edited (the table in step 3).
+  edited (the table in step 4).
+- The change, when the request names one ("my branch", "this MR", "the
+  rename"): the base is the merge base with the default branch;
+  `git diff --find-renames --name-status <base>...HEAD` and
+  `git diff <base>...HEAD` list what moved, including what the user did
+  not mention.
 - History for a path: `git log --oneline -5 -- <path>` and, for a missing
   path, `git log --oneline --diff-filter=DR --name-status -3 -- <path>`
   to find where it went.
 
 ## Steps
 
-1. Run `python3 "${CLAUDE_PLUGIN_ROOT}/skills/docs-drift/scripts/docs_drift.py" --root <root> --json`
+1. When the request names a change, read its diff first (Inputs) and list
+   every old name it retired or value it changed: paths, make targets,
+   flags, env vars, defaults, output text. Grep each old name across the
+   whole repository, every file type, not only markdown: CI config,
+   compose files, scripts that call scripts, `--help` text and comments
+   carry the same claims, and the finder reads markdown only. A hit in
+   a doc is a finding for step 4. A hit in CI or other config (a job
+   still calling the removed script) breaks the build: it goes first
+   under Not done with the line, even though it is not a doc.
+2. Run `python3 "${CLAUDE_PLUGIN_ROOT}/skills/docs-drift/scripts/docs_drift.py" --root <root> --json`
    with `--strict`, `--exclude` and `--stale-after` passed through
    (`--report-only` is this skill's, not the script's). Print its
    summary line verbatim as Before. Zero
    docs found: stop non-zero with "0 docs found, nothing checked"; that
    is a repository with no docs to drift, not a pass.
-2. For each finding, read the doc line and the code it names. For a
+3. For each finding, read the doc line and the code it names. For a
    missing path or target, run the history commands under Inputs: a
    rename or a move gives the new name; a deletion gives the commit. For
    `stale`, run `git log --oneline <doc commit>..HEAD -- <paths>` from
@@ -70,8 +85,28 @@ Not this: `openapi-spec check` owns spec against routes;
    gate against config in the repository, a design's stated behaviour
    (ordering, validation, status codes) against the handler, and a
    postmortem or ADR action marked done against the code that should
-   carry it. Each is a finding, routed like the finder's in step 3.
-3. Decide which side is true, then route by owner:
+   carry it. Each is a finding, routed like the finder's in step 4.
+   Three claim types fail most often, and a reader only catches them by
+   computing the answer:
+   - Numbers and defaults (a row count, a limit, a timeout, a port, the
+     expected output line). The value is what the documented invocation
+     produces, so trace it through every layer that can set it: flag,
+     environment, Makefile `?=` or `export`, compose or CI env, then the
+     code default; check units (`64 << 10` is 64 KiB, not 1 MB). A
+     Makefile default overrides the script's own default for anyone
+     following a `make` step. Where it is safe, run the documented
+     command against scratch state (point the data path at a temp file)
+     and compare its real output with the doc's.
+   - Examples (a request body, a config snippet, a CLI call). Check each
+     field against what parses it: struct tags or schema, name matching
+     (Go's decoder matches field names case-insensitively and silently
+     drops unknown keys), required fields, and what the handler actually
+     writes back (status, body, headers). An example the code accepts
+     but ignores is wrong even though it "works".
+   - Copies. The same claim usually sits in several docs; grep for it and
+     fix or report every copy. Where two docs disagree, the code decides
+     which is right; fixing only the flagged one leaves a contradiction.
+4. Decide which side is true, then route by owner:
 
    | Doc | Owner | On drift |
    | --- | --- | --- |
@@ -81,7 +116,7 @@ Not this: `openapi-spec check` owns spec against routes;
    | `docs/design/` HLD, LLD | `high-level-design`, `low-level-design` | a revision |
    | `docs/adr/` | `adr` | never rewritten; a superseding ADR when the decision changed |
    | `docs/postmortems/`, CHANGELOG entries | history | never fixed; listed under Noticed |
-   | README, AGENTS.md, CLAUDE.md, other `docs/` | this skill | edited here |
+   | README, CONTRIBUTING, AGENTS.md, CLAUDE.md, other markdown | this skill | edited here |
 
    - Code is true (a rename, a moved file, a removed target, a variable
      renamed in config): the doc is behind. Edit the line when this skill
@@ -92,14 +127,18 @@ Not this: `openapi-spec check` owns spec against routes;
      the code line.
    - Unclear (no history, no design says either way): ask one question
      naming both sides, or under `--report-only` list it as undecided.
-4. Edits are the smallest change that makes the claim true again: the
+5. Edits are the smallest change that makes the claim true again: the
    new path, the target that replaced the old one, the variable the code
    reads. A claim that is no longer true of anything is removed with the
-   sentence that depends on it, not left as a dead reference.
-5. Rerun the command from step 1; print its summary line as After. A
-   broken finding still present that step 3 did not route to the engineer
+   sentence that depends on it, not left as a dead reference. Edit only
+   the lines that drifted; sections that still hold are not reworded.
+   A doc marked generated (a header, a docs target, a generator
+   script) is regenerated with its generator and the diff read, never
+   hand-edited.
+6. Rerun the command from step 2; print its summary line as After. A
+   broken finding still present that step 4 did not route to the engineer
    or an owner is a failure of this run, not a pass.
-6. Print the contract.
+7. Print the contract.
 
 ## Output contract
 
@@ -116,6 +155,7 @@ After: <docs-drift summary line, verbatim> | not rerun (--report-only)
 - <K> stale warnings read against their commits and still true: <docs>
 
 ### Not done
+- still calls the old name (not a doc): <file>:<line>: <old> (gone in <commit>)
 - code drifted from design: <doc>:<line> says <X>; <file>:<line> does <Y>
 - undecided: <doc>:<line> (<question asked or pending>)
 
@@ -131,7 +171,7 @@ in it says none.
 
 - A green run means every checkable claim holds, not that the docs are
   right. Prose about behaviour ("retries three times", "loads `.env`",
-  "runs the unit tests") is outside the finder; the read in step 2 is
+  "runs the unit tests") is outside the finder; the read in step 3 is
   what catches it, and a stale warning only says where to read first.
 - A history doc is never edited, but its claims about the present are
   still checked: a postmortem action marked done that the code lacks is
@@ -147,7 +187,5 @@ in it says none.
   created at runtime and not ignored will be. Add it to the ignore file
   if it is generated, or the opt-out comment if the doc describes another
   repository's layout.
-- Docs generated from code (a skills table, an API reference) drift only
-  when the generator is stale; regenerate, never hand-edit the output.
 - `env-unused` also fires on a name the doc spells wrong; check the code
   for a near miss before deleting the line.

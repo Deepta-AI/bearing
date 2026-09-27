@@ -1,6 +1,7 @@
 package orders
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -39,7 +40,7 @@ func (h Handler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 	fmt.Println("order created", o.ID)
 	go func() {
-		if err := h.Notify.OrderPlaced(o); err != nil {
+		if err := h.Notify.OrderPlaced(context.Background(), o); err != nil {
 			log.Printf("confirmation failed: %v", err)
 		}
 	}()

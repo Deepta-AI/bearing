@@ -1,0 +1,43 @@
+/* Tallybook tokens. Every prototype links this file. */
+:root {
+  color-scheme: light dark;
+  --bg: #ffffff;
+  --surface: #f6f7f9;
+  --border: #e3e6ea;
+  --text: #1f2430;
+  --text-muted: #8b93a1;     /* secondary lines: client names, due dates */
+  --accent: #d97706;         /* amber: the one primary action */
+  --on-accent: #ffffff;      /* text on an accent button */
+  --paid: #15803d;
+  --overdue: #b91c1c;
+  --font-ui: "IBM Plex Sans", sans-serif;
+  --font-mono: "IBM Plex Mono", monospace;
+  --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 24px; --s6: 32px; --s7: 48px;
+  --r-control: 6px;
+  --r-panel: 10px;
+}
+
+[data-theme="dark"] {
+  --bg: #14171c;
+  --surface: #1c2027;
+  --border: #2a303a;
+  --text: #e6e8eb;
+  --text-muted: #9aa3b2;
+  --accent: #f59e0b;
+  --on-accent: #14171c;
+  --paid: #4ade80;
+  --overdue: #f87171;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #14171c;
+    --surface: #1c2027;
+    --border: #2a303a;
+    --text: #e6e8eb;
+    --text-muted: #9aa3b2;
+    --accent: #f59e0b;
+    --on-accent: #14171c;
+    --paid: #4ade80;
+  }
+}

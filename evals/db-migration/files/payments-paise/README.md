@@ -11,7 +11,7 @@ this customer paid". One process, one SQLite database file in WAL mode.
   `make migrate` on the server, then restarts the app.
 - `tests/`: pytest. `tests/migrate.py` applies the goose files with the
   standard library so the tests need no goose binary.
-- `docs/`: decisions and operations notes.
+- `docs/`: decisions, operations notes and plans for the next MRs.
 
 ## Commands
 

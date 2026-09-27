@@ -1,0 +1,26 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: orders
+      POSTGRES_PASSWORD: orders
+      POSTGRES_DB: orders
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+  api:
+    build: .
+    environment:
+      DATABASE_URL: postgres://orders:orders@postgres:5432/orders?sslmode=disable
+      REDIS_ADDR: redis:6379
+      PSP_URL: http://psp-stub:9000
+    ports:
+      - "8080:8080"
+    depends_on: [postgres, redis]
+volumes:
+  pgdata:

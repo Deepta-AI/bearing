@@ -15,7 +15,15 @@ paths:
   Room and returns domain types. DTOs never reach the UI.
 - Tokens only as Tink ciphertext with a Keystore-wrapped keyset; never
   plaintext in DataStore or prefs, never a log, no `EncryptedSharedPreferences`.
-- No exported component beyond the launcher without a permission. Validate
+- Token ciphertext and the Tink keyset file are excluded from backup and
+  device transfer; backup stays on for everything else. On key loss,
+  delete both and rebuild the keyset.
+- Refresh is single flight and persists each rotated refresh token; only
+  a rejected refresh token (not offline, not a 5xx) signs the user out.
+  Sign out serializes with refresh without waiting on the network, and
+  clears every per-user store.
+- No exported component beyond the launcher and link handlers without a
+  permission; link handlers stay exported with narrow filters. Validate
   every deep link and intent extra before use.
 - Compose: `Route` collects, `Screen` is stateless; no side effects in
   composition; `remember` and `LaunchedEffect` keys name every input;

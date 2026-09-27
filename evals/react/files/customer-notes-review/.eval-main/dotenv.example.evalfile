@@ -1,0 +1,2 @@
+# Copy to .env for pnpm dev. Every VITE_ variable is public: it is built into the bundle.
+VITE_API_BASE_URL=http://localhost:8080

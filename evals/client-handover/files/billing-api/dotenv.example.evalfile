@@ -1,0 +1,5 @@
+DATABASE_URL=postgresql://billing:billing@localhost:5432/billing
+PAYMENT_GATEWAY_URL=https://sandbox.pay.example.com
+PAYMENT_GATEWAY_KEY=
+PAYMENT_WEBHOOK_SECRET=
+INVOICE_PDF_BUCKET=billing-invoices-dev

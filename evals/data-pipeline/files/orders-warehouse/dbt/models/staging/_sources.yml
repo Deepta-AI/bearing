@@ -1,0 +1,14 @@
+version: 2
+
+sources:
+  - name: raw
+    schema: raw
+    loaded_at_field: _loaded_at
+    freshness:
+      warn_after: {count: 26, period: hour}
+      error_after: {count: 36, period: hour}
+    tables:
+      - name: orders
+        description: Orders as landed by the loader. See docs/sources.md.
+      - name: merchants
+        description: Merchants as landed by the loader. See docs/sources.md.

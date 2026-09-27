@@ -1,0 +1,5 @@
+# Code owners. Every path needs at least one owner so merge requests get a reviewer.
+* __LEAD__
+/src/ __TEAM_GROUP__
+/mobile/ __TEAM_GROUP__ __LEAD__
+/.gitlab/ __LEAD__

@@ -1,0 +1,6 @@
+image: python:3.12-slim
+
+check:
+  script:
+    - pip install uv && uv sync
+    - uv run make check

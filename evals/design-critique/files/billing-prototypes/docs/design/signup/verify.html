@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Check your email</title>
+<link rel="stylesheet" href="../tokens.css">
+<style>
+  body { margin: 0; background: var(--surface); color: var(--text); font-family: var(--font-ui); font-size: 16px; }
+  .wrap { max-width: 26rem; padding: var(--s7) var(--s5); }
+  .brand { font-weight: 600; font-size: 20px; margin-bottom: var(--s6); }
+  h1 { font-size: 28px; font-weight: 600; margin: 0 0 var(--s2); }
+  .lede { color: var(--text-muted); margin: 0 0 var(--s5); }
+  label { display: block; font-weight: 600; margin-bottom: var(--s2); }
+  input { font: 20px var(--font-mono); letter-spacing: 0.3em; width: 10ch; padding: var(--s3); border: 1px solid var(--border); border-radius: var(--r-control); background: var(--bg); color: var(--text); }
+  input:focus, button:focus { outline: none; }
+  .row { display: flex; gap: var(--s3); align-items: center; margin-top: var(--s4); }
+  button { font: 600 15px var(--font-ui); height: 32px; padding: 0 var(--s4); border-radius: var(--r-control); border: 0; background: var(--accent); color: var(--on-accent); cursor: pointer; }
+  .row a { font-size: 14px; color: var(--text-muted); }
+</style>
+</head>
+<body>
+<main class="wrap">
+  <div class="brand">Tallybook</div>
+  <h1>Check your email</h1>
+  <p class="lede">We sent a 6 digit code to asha@northfield.example.</p>
+  <form>
+    <label for="code">Code</label>
+    <input id="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6">
+    <div class="row">
+      <button type="submit">Verify</button>
+      <a href="#">Resend code</a>
+    </div>
+  </form>
+</main>
+</body>
+</html>

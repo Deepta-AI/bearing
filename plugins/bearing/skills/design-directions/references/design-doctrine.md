@@ -1,7 +1,10 @@
 # Design doctrine
 
 The rules a variant is built by and a review scores against. Hard rules
-fail a page. The rest are how to make a choice that is a choice.
+fail a page. The rest are how to make a choice that is a choice. The
+project's own rules (accepted ADRs, the CSP, the hardware in the README)
+come first: where they are stricter or fix a number, they replace the
+number here.
 
 ## Hard rules
 
@@ -24,13 +27,15 @@ fail a page. The rest are how to make a choice that is a choice.
    reason ("accent L 0.62 for AA on both surfaces").
 10. Real content. Never lorem ipsum, never "Welcome to", never "Unlock
     the power of".
-11. Light and dark both designed: dark surfaces step up in lightness for
-    elevation, text is off-white, the accent is desaturated 10 to 20%.
+11. Light and dark both designed, unless the product has one theme:
+    dark surfaces step up in lightness for elevation, text is off-white,
+    the accent is desaturated 10 to 20%.
 12. `prefers-reduced-motion` turns every animation into a state change.
 13. Keyboard focus is visible on every control: `:focus-visible` with a
     2 px ring offset from the edge, never `outline: none` without one.
 14. Body text 16 px or larger and 4.5:1 contrast on both surfaces;
-    touch targets 44 px on a phone.
+    touch targets 44 px on a phone; field edges 3:1. The project's floor
+    wins when higher (a kiosk's 7:1 and 64 px).
 
 ## Anti-slop list (a hit is a finding)
 
@@ -62,12 +67,18 @@ Name the subject, its audience, and the page's single job. Distinctive
 choices come from the subject's world: its materials (paper, steel,
 glass, cloth), its instruments (a ledger, a gauge, a scoreboard, a
 chart), its vernacular (how its people actually write). The hero is a
-thesis: open with the most characteristic thing in that world.
+thesis: open with the most characteristic thing in that world. The world
+feeds the look; the users decide it. A direction that cannot say which
+user it serves first, in which conditions (desk, sun, arm's length), is
+decoration.
 
 ## Directions list
 
-Pick one row per variant. Faces are Google Fonts. Rows are starting
-points; the brief, not the row, decides.
+Pick one row per variant. Faces are open-licence families, most on
+Google Fonts and Fontsource; load them the way the project allows (a
+Fontsource package or self-hosted file where third-party hosts are
+forbidden or unreachable). Rows are starting points; the brief, not the
+row, decides.
 
 | Direction | Display face (examples) | Body | Temperature | Rhythm | Motion moment |
 | --- | --- | --- | --- | --- | --- |
@@ -124,7 +135,8 @@ one from another row.
 One orchestrated moment per page: an entrance sequence, a scroll reveal
 or a hover system, never all three. Transform and opacity only, 200 to
 700 ms, ease-out in, ease-in out, properties listed (no `transition:
-all`). Under reduced motion the end state renders immediately.
+all`), within the project's limit when it sets one. Under reduced
+motion the end state renders immediately.
 
 ## Copy
 

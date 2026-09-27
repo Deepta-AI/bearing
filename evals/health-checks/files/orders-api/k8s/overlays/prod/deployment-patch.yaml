@@ -1,0 +1,16 @@
+# prod: more replicas, and a quicker restart of a wedged pod (INC-388).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: orders-api
+spec:
+  replicas: 6
+  template:
+    spec:
+      containers:
+        - name: orders-api
+          livenessProbe:
+            httpGet: { path: /health, port: http }
+            periodSeconds: 5
+            timeoutSeconds: 1
+            failureThreshold: 2

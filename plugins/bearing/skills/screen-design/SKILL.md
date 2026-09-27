@@ -1,306 +1,322 @@
 ---
 name: screen-design
-description: 'Designs every screen in every state, desktop and phone: React and shadcn screens in the app''s design gallery, or HTML mockups. Use when asked to "design the screens", "hi-fi mockups" or "show every state".'
-argument-hint: "<feature> [--screens S-01,S-03] [--framework react-shadcn|react-native|compose|swiftui|web] [--round N] [--standalone]"
-allowed-tools: Read, Write, Edit, Grep, Glob, Bash(ls:*), Bash(mkdir:*), Bash(test:*), Bash(make:*), Bash(~/.claude/skills/gstack/browse/dist/browse:*), Bash(python3 *skills/screen-design/scripts/states_check.py*), Bash(python3 *skills/screen-design/scripts/gallery_check.py*), Bash(python3 *skills/screen-design/scripts/bundle.py*), Bash(python3 *skills/design-system/scripts/system_page.py*), Bash(python3 *skills/design-critique/scripts/evidence.py*), Bash(bash *bin/brg-kit-paths*)
+description: 'Designs every screen in every state (empty, error, loading), desktop and phone, as clickable React or HTML mockups before code. Use when asked to "design the screens", "hi-fi mockups" or "show every state".'
+argument-hint: "<feature> [--screens S-01,S-03] [--framework react-shadcn|react-native|flutter|compose|swiftui|web] [--round N] [--standalone]"
+allowed-tools: Read, Write, Edit, Grep, Glob, Bash(ls:*), Bash(mkdir:*), Bash(test:*), Bash(make:*), Bash(git log:*), Bash(git diff:*), Bash(git show:*), Bash(git status:*), Bash(~/.claude/skills/gstack/browse/dist/browse:*), Bash(python3 *skills/screen-design/scripts/states_check.py*), Bash(python3 *skills/screen-design/scripts/gallery_check.py*), Bash(python3 *skills/screen-design/scripts/bundle.py*), Bash(python3 *skills/design-system/scripts/system_page.py*), Bash(python3 *skills/design-critique/scripts/evidence.py*), Bash(python3 *skills/accessibility/scripts/contrast.py*), Bash(bash *bin/brg-kit-paths*)
 ---
 
 # screen-design
 
-On the default stack, React with shadcn/ui and Tailwind (react-web
-template), the design is code: each screen is a component in the app,
-assembled from `src/components/ui` and the tokens, with every state
-rendered from fixtures in the design gallery at `/__design`, which is
-also what a client clicks through. Nothing is translated afterwards, so
-every screen shares one component set, one type scale and one set of
-tokens by construction; screens drawn as separate HTML and translated
-by hand come out basic and unlike each other. The
-HTML design bundle below is the path for a stack the implementer chose
-instead.
+A screen design is what the developer builds from and what a reviewer
+clicks through to approve. It shows the product, not fragments: every
+state drawn as the whole screen inside the app's chrome, the desktop
+layout beside a 375 px arrangement designed for a phone, links that go
+where the flows say, and a short note per state on what changed and why.
+Most of the value is not in the drawing. It is in catching what the
+signed-off documents got wrong before a developer builds it: a flows file
+older than the PRD, a state the API can produce that nobody drew, a
+requirement the API cannot support, a client comment that breaks an ADR
+or the contrast floor. The doctrine in
+`../design-directions/references/design-doctrine.md` governs visual
+choices; read it before the first screen is planned.
 
-A screen design is the artefact the developer builds from and the thing a
-client clicks through to approve, so it shows the product, not a
-fragment: every state drawn as the whole screen inside the app's chrome,
-with a short note on what changed and why, the desktop layout beside a
-375 px arrangement designed for a phone, and links that go to the screen
-the flows say they go to. One manifest, `docs/design/design.json`, holds
-the brief, the directions, the sitemap, the navigation and its reason,
-every screen and what was raised while designing; a gallery and an
-audit are generated from it. Every screen links the one `tokens.css`.
-The doctrine in `../design-directions/references/design-doctrine.md`
-governs every choice; it is read in full before the first screen is
-planned.
+Two paths. On React with shadcn/ui (the react-web template) the design is
+code: each screen is a view composed from `src/components/ui` and the
+tokens, every state rendered from fixtures in the gallery at `/__design`,
+so nothing is translated later. On any other stack, or when the gallery
+cannot run for the reviewer, it is the HTML design bundle: one page per
+screen that opens from a file.
 
 ## Inputs
 
-- Feature: looks in `$1`; if absent, asks one question.
-- Screen inventory, states, copy and navigation: the newest
+- Feature: `$1`; if absent, one question.
+- Inventory, states, copy and navigation: the newest
   `docs/design/flows/<feature>/flows*.md` (sections 1, 2, 4 and 7); if
-  absent, screens from `docs/product/backlog.md` stories or
-  `docs/product/PRD.md`, and the navigation is proposed and listed as an
-  `ambiguity` concern; if absent, from the routes, screens and page
-  components in the code; if absent, asks once for a one-paragraph
-  brief. `--screens` limits the set; the default is every screen.
-- Manifest: `docs/design/design.json`, shaped by
-  `templates/design.schema.json`, read and updated in place (other
-  features' screens are kept); if absent, created in step 2.
-- Tokens: `docs/design/tokens.css`, the shared file every page links;
-  if absent and `docs/design/tokens.json` exists, generated with
-  `system_page.py tokens-css` from design-system; if both are
-  absent, written by hand in the same `--color-<role>` names from the
-  `:root` block of `docs/design/variants/<feature>/approved.json`, else
-  `DESIGN.md`, else one paragraph from the user, and headed `proposed`.
+  absent, the stories in `docs/product/backlog.md` or
+  `docs/product/PRD.md` (navigation proposed and raised as `ambiguity`);
+  if absent, the routes and screens in the code; if absent, one question
+  for a one-paragraph brief. `--screens` limits the set.
+- Requirements: `docs/product/PRD.md` with its version and changelog;
+  Accepted ADRs in `docs/adr/`; the API client and its types (statuses,
+  error codes, fields) for every call a screen makes.
+- Tokens: the file an ADR or README names as the source of colour (on
+  react-shadcn usually `src/index.css`); else `docs/design/tokens.css`;
+  else generated from `docs/design/tokens.json` with `system_page.py
+  tokens-css`; else written by hand from the approved variant, else
+  `DESIGN.md`, else the brief, headed `proposed`.
+- Existing mockups: pages already under `docs/design/screens/<feature>/`
+  and how they are made (a build script, a JSON source, a template, a
+  README note). A repository's own mockup system is used as it is.
+- Manifest: `docs/design/design.json` (`templates/design.schema.json`),
+  for a new HTML bundle or one already using it.
 - Component contract: `docs/design/components.md`; if absent,
-  `data-component` names come from the region's role (list, form,
-  dialog, toast) and the index says `no contract`.
-- Target: `--framework`; if absent, the ui stack in the autopilot profile
-  (`.bearing/state/autopilot.json`); if absent, detected: `react-native` or
-  `expo` in package.json is `react-native`; `androidx.compose` in a gradle
-  file is `compose`; `Package.swift` or an `.xcodeproj` is `swiftui`; a
-  React app, or no UI code yet, is `react-shadcn`, the default. Only
-  `react-shadcn` builds screens as code; every other target builds the
-  HTML design bundle.
-- Design gallery (react-shadcn): `src/design/screen.ts`, `Gallery.tsx`
-  and `registry.ts` from the react-web template (`web/src/...` when the
-  app lives in `web/`); absent in an older app: copy them from
+  `data-component` names come from the region's role and the index says
+  `no contract`.
+- Event sheet: `docs/analytics/EVENT_SHEET.md`; if absent, no
+  `data-event` attributes and the index says `no sheet`.
+- Target: `--framework`; else the ui stack in
+  `.bearing/state/autopilot.json`; else detected: `react-native` or `expo`
+  in package.json is `react-native`; `pubspec.yaml` with a `flutter:`
+  dependency is `flutter`; `androidx.compose` in a gradle file is
+  `compose`; `Package.swift` or an `.xcodeproj` is `swiftui`; a React web
+  app, or no UI code yet, is `react-shadcn`. Only `react-shadcn` builds
+  screens as code, and only when the gallery can run (step 8 of the
+  reconciliation below); every other target builds the HTML bundle.
+- Gallery files (react-shadcn): `src/design/screen.ts`, `Gallery.tsx`,
+  `registry.ts`; absent in an older app: copy them from
   `templates/skeleton/src/design/` in the `bearing-apps:react` skill
   (`bash "${CLAUDE_PLUGIN_ROOT}/bin/brg-kit-paths" --skill react` prints
-  its directory, or names the plugin to install) with the two gallery routes in `routes.tsx`, and say so. The component
-  inventory is `src/components/ui` (32 shadcn components in the template).
-- Event sheet: `docs/analytics/EVENT_SHEET.md`; if absent, no
-  `data-event` attributes are written and the index says `no sheet`.
-- Motion moment: the storyboard's "design answers with" column or the
-  chosen variant's moment; if absent, the slot stays empty.
+  its directory, or names the plugin to install) and say so; when that
+  plugin is absent, use the HTML bundle.
+- Previous rounds: `docs/design/screens/<feature>/CHANGES.md` and
+  `docs/design/feedback/`; `git log` on the mockup pages.
 - Screenshots: `~/.claude/skills/gstack/browse/dist/browse` when
-  executable; otherwise none are taken and the index says so.
-- Previous rounds: `docs/design/screens/<feature>/CHANGES.md`; if
-  absent, this is round 1.
+  executable; otherwise none are taken and the report says so.
 - Templates: `templates/screen.html`, `templates/index.html`,
   `templates/gallery.html`, `templates/design.schema.json`,
   `templates/DESIGN-SYNC.md`, `templates/CHANGES.md`.
 - Gates, Python 3 only: `scripts/gallery_check.py` (react-shadcn: every
   inventory screen has a `*.screen.tsx`, every state is a key of its
-  `states`, no raw element where a component exists),
-  `scripts/states_check.py` (HTML: every inventory state has a reachable
-  panel, no unfilled placeholder), `scripts/bundle.py`
-  (chrome, annotations, links, navigation edges, tokens, stories and a
-  real audit in design.json) and
+  `states`, no raw element where a component exists);
+  `scripts/states_check.py` (HTML: every inventory state has a panel and a
+  control that reaches it, no unfilled placeholder; reads a repo's own
+  `data-target` or `#state=` links and treats `no slots` as `no-slots`);
+  `scripts/bundle.py` (manifest audit, gallery, check);
   `${CLAUDE_PLUGIN_ROOT}/skills/design-critique/scripts/evidence.py`
-  (widths and themes). When ux-flows is absent from the plugin,
-  bundle.py prints "flows checks skipped" and counts 0 flows files.
-- `--standalone`: each screen carries a copy of tokens.css in
-  `<style data-tokens>` instead of the link, for sending one file on its
-  own; if absent, the link.
+  (widths and themes);
+  `${CLAUDE_PLUGIN_ROOT}/skills/accessibility/scripts/contrast.py`
+  (measured WCAG ratios).
+- `--standalone`: each page carries a copy of the tokens in
+  `<style data-tokens>` instead of the link, for sending one file.
 
 ## Steps
 
-### react-shadcn (the default)
+### Reconcile the sources before the first screen
 
-1. Read the inputs; print each as read or absent. Zero screens and no
-   brief: stop with "provide flows, stories, code with screens, or a brief".
-2. Per screen, a presentational view in
+Print each finding; each one either becomes a designed state or a
+concern (`ambiguity`, `missing-screen`, `undefined-state`, `dead-end`,
+`risk`) raised for its owner. Zero screens and no brief: stop with
+"provide flows, stories, code with screens, or a brief".
+
+1. Versions. The flows usually say which PRD version or date they were
+   written against. When the PRD is newer, read its changelog and every
+   requirement added or changed since; each that implies a state, a rule
+   or a screen is designed now and raised as `undefined-state` for
+   whoever owns the flows. Signed off does not mean complete.
+2. Precedence: an Accepted ADR, then the PRD, then the flows, then older
+   design notes. A design doc an ADR retired (an old palette, an old
+   layout rule) is never copied from, even when it is the more readable
+   file.
+3. States come from the contract as well as the flows table. For each
+   screen, list every status in the API's lifecycle it can display and
+   every error code its calls return (a 409 conflict, a 403 permission
+   or limit, a 422 validation). Each gets a state or a message that says
+   what happened and what to do; a generic error for a known code is a
+   miss. A requirement with no row in the flows (a confirmation, a
+   second step) gets its state too.
+4. What the screen must know before the action. When a requirement says
+   the person is "not offered" an action that would fail, but the API
+   only reveals the condition as an error from that action, the UI
+   cannot know it up front: that is an API gap. Design the state as if
+   the data existed, label the assumption on the state, raise it, and
+   never describe the missing field as existing.
+5. Rules that combine. Read the requirements that touch the same object
+   together (a threshold and a limit, a role and a count, two approvers
+   and one person who holds a limit) and check that every combination
+   can be satisfied. An impossible or undefined combination is raised
+   as a question, not settled silently by the design.
+6. Data as the product shows it. Values go through the repository's own
+   formatter (money in minor units, locale digit grouping, the time zone
+   its date formatter uses), and every fixture value is computed by that
+   rule, not typed by eye. Thresholds keep their boundary as written
+   ("or more" includes the boundary value). Lists are ordered as the
+   requirement says, not in fixture-file order.
+7. Navigation. An edge to a screen that is out of scope or not designed
+   is plain text in the design plus a `missing-screen` concern, never a
+   link or a route.
+8. Where the reviewer will open it. The react-shadcn gallery is the
+   deliverable only when it can run for that reviewer: dependencies are
+   installed (or may be installed) and someone will serve it. Otherwise
+   build the HTML bundle, which opens from a file, with the app's token
+   values copied into it and their source named in a comment; say that
+   views in the app follow once the dependencies install.
+
+### Scope: design files only
+
+- Write views, screen specs, mockup pages, the manifest and notes. Do not
+  change library code, API clients, tests, a mockup generator or its
+  template to make the design or a gate easier. A shared shell change
+  adds the new navigation entry and nothing more. A helper the design
+  wants (a formatter, a status mapper) is named as build work, not
+  written.
+- A repository's own mockup system is kept: extend its source, run its
+  build. When a gate here cannot read that system, run the gate on a
+  scratch copy or skip it and say so; never rewrite the system to fit
+  the gate.
+- No dependency is added; compose the existing components.
+
+### react-shadcn (screens as code)
+
+1. Per screen a presentational view in
    `src/features/<feature>/components/<Name>View.tsx`: props in, markup
-   out, no data fetching, built only from `src/components/ui` (Sidebar,
-   Table, Tabs, Card, Dialog, Sheet, DropdownMenu, Select, Command,
-   Tooltip, Skeleton, Progress, Badge, Breadcrumb, the form controls) and
-   layout utilities on the spacing scale; colours by role (`bg-card`,
-   `text-muted-foreground`), never a literal; one type scale (`text-xs` to
-   `text-2xl` as the tokens set them); a `Skeleton` layout for loading
-   that holds the success layout's shape; the motion moment from
-   `docs/design/motion.md` through `tw-animate-css` classes
-   (`animate-in fade-in slide-in-from-bottom-2`), never a second one.
-3. The shell once, for every screen: `SidebarProvider` with the app
-   sidebar and a header with the breadcrumb, collapsing to a `Sheet`
-   below `md` (the sidebar component does this with `useIsMobile`); the
-   navigation follows the flows' section 4 map.
-4. Per screen, `src/features/<feature>/screens/<id>-<name>.screen.tsx`
+   out, no fetching, built only from `src/components/ui` and layout
+   utilities on the spacing scale; colours by role (`bg-card`,
+   `text-muted-foreground`), never a literal; the type scale the tokens
+   set; a `Skeleton` loading layout that holds the success layout's
+   shape.
+2. The shell once for every screen, following the flows' navigation map,
+   with the feature's entry marked current. Change only the entry list
+   of an existing shell.
+3. Per screen `src/features/<feature>/screens/<id>-<name>.screen.tsx`
    exporting `screen: ScreenSpec` (`id`, `name`, `feature`, `job`,
-   `states`), one entry per inventory state rendering the view with
-   fixtures in the flows' copy. Fixtures use invented companies and
-   people on reserved domains (`example.com`, `example.in`), never a
-   real brand or person.
-5. Responsive by design, not by shrinking: at 375 the table becomes a
-   card list or scrolls in its own container, two columns stack, the
-   primary action stays in reach; at 1440 no half-width column beside
-   dead space.
-6. Gate: `python3 "${CLAUDE_PLUGIN_ROOT}/skills/screen-design/scripts/gallery_check.py" --src <src> --flows <newest flows file per feature>...`
-   until it exits 0, then `make check` (lint, typecheck, tests) and
-   `make design-lint`.
-7. Screenshots from the running gallery (`make dev`; the pages are
-   `<id>?state=<name>&chrome=0`):
+   `states`), one entry per state from the reconciliation, rendering the
+   view with fixtures in the flows' copy. Fixtures use invented companies
+   and people on reserved domains (`example.com`, `example.in`).
+4. Responsive by design: at 375 the table becomes a card list or scrolls
+   inside its own container with the key columns readable, two columns
+   stack, the primary action stays reachable without horizontal scroll;
+   at 1440 no half-width column beside dead space.
+5. Gates: `python3 "${CLAUDE_PLUGIN_ROOT}/skills/screen-design/scripts/gallery_check.py" --src <src> --flows <flows file>`
+   until it exits 0; then the repository's own checks that exist (`make
+   check`, `make design-lint`). A target that does not exist, or a build
+   that needs `node_modules` that are absent, is reported as not run.
+6. Screenshots from the running gallery when it runs
+   (`<id>?state=<name>&chrome=0`):
    `python3 "${CLAUDE_PLUGIN_ROOT}/skills/design-critique/scripts/evidence.py" shoot --base http://127.0.0.1:<port>/__design/ --out docs/design/screens/shots <id>?state=<state>&chrome=0...`
-   then `check`. `docs/design/screens/README.md` lists the screens, their
-   states and the gallery URL; the gallery is the index a reviewer opens.
-8. The feedback loop and the output contract as in steps 11 and 12 of the
-   HTML bundle below, with the gallery as the thing reviewed.
+   then `check`. `docs/design/screens/README.md` lists the screens,
+   states and the gallery URL.
 
-### HTML design bundle (another stack)
+### HTML design bundle
 
-1. Read the inputs; print each as read or absent. Zero screens and no
-   brief: stop with "provide flows, stories, code with screens, or a brief".
-2. Manifest. Create or update `docs/design/design.json` against the
-   schema: `brief` (surface, audience by role, must feel, avoid) from
-   DESIGN.md, the PRD or the brief; `directions` from the variants, the
-   approved one `chosen: true`, each losing one with its reason;
-   `stories` from the backlog ids this feature carries. The `sitemap` is
-   a tree with one section per feature and a leaf per inventory screen,
-   keyed `<feature>/S-nn`. The `navigation` is generated from every
-   flows file's section 4 map: the screens entered from a nav route or
-   with no parent are the top-level destinations; three to five become
-   the mobile bottom tab bar and the desktop side nav holds them all;
-   `why` says how deep the product is and how often each destination is
-   used; `source` names the flows files. A destination that no flows
-   file designs is kept out of the chrome and raised as a
-   `missing-screen` concern.
-3. Screen plan, one block per screen: its single job, platform (`web`,
-   `mobile` or `both`), the regions with their `data-component` names,
-   the states (the five, plus the screen's own from the flows table; an
-   `n/a` cell stays out with its reason), the copy per state, the
-   controls in tab order with their event names, and where the motion
-   moment lands (one screen). Then three lines no screen skips: the
-   links out, one per navigation-map edge from this screen, each to the
-   target's file; the current item in the chrome; and the 375 px
-   arrangement, saying what moves, what docks above the tab bar and
-   what drops to one line. A phone layout that only stacks the desktop
-   columns is not an arrangement.
-4. Generic-default pass per screen: write the default answer to the
-   same plan. Every matching line is revised and the change is noted.
-5. Tokens. When `docs/design/tokens.css` is absent and `tokens.json`
-   exists:
+1. When the repository already has mockups for the feature, extend them
+   in their own format and skip the manifest steps (9). Otherwise create
+   or update `docs/design/design.json` against the schema: `brief`,
+   `directions`, `stories`, a `sitemap` with a leaf per screen keyed
+   `<feature>/S-nn`, and a `navigation` generated from the flows'
+   section 4 maps (top-level destinations; three to five on the phone tab
+   bar; `why`; `source`).
+2. Screen plan, one block per screen: its single job, the regions with
+   `data-component` names, the states from the reconciliation, the copy
+   per state, controls in tab order with event names, the links out (one
+   per navigation edge), the current item in the chrome, and the 375 px
+   arrangement: what moves, what docks, what drops to one line. A phone
+   layout that only stacks the desktop columns is not an arrangement.
+   Write the generic default answer next to each block; revise every line
+   that matches it.
+3. Tokens: link the one tokens file; no page declares a colour. When
+   `docs/design/tokens.css` is absent and `tokens.json` exists:
    `python3 "${CLAUDE_PLUGIN_ROOT}/skills/design-system/scripts/system_page.py" tokens-css --tokens docs/design/tokens.json --out docs/design/tokens.css`.
-   Otherwise write it by hand as Inputs says. Record the source and any
-   role the source lacked. No screen declares a colour.
-6. Build `<id>-<name>.html` per screen from `templates/screen.html`: the
-   `../../tokens.css` link (or the `data-tokens` copy with
-   `--standalone`), the state bar with an All states button, and one
-   `[data-state]` panel per state. Each panel is the whole screen: an
-   annotation (`data-annotation`, one or two sentences on what changed
-   from the default and why), a desktop frame and a mobile frame
-   (`data-frame`), each holding its app chrome (`data-app-chrome`: the
-   top bar and side nav on desktop, the top bar and bottom tab bar on
-   the phone; `none: <reason>` only for a screen with no chrome by
-   design, such as a full-screen camera). The chrome's links go to the
-   designed screens' files with `aria-current` on the current one. Then
-   the flows' copy per state, `#state=<name>`, `#state=all` and
-   `#chrome=0` deep links, three layouts with no horizontal scroll and
-   no dead half column at 1440, a skip link, `:focus-visible` on every
-   control, 44 px targets, labels bound by `for`, `data-component` on
-   every region and control, `data-event` on controls the sheet names,
-   the motion moment in its slot behind the reduced-motion guard, fonts
-   from Google Fonts only, no other external resource. The only script
-   is the state, screenshot and theme switcher.
-7. Self-review, two passes, before anything is shown. First the
-   generic-default check from step 4 against the built page. Then the
-   screen-level checks: the three things the eye lands on are the
-   screen's job; every inventory state has a panel; every button is a
-   verb plus its object and every error says what happened and what to
-   do; the phone frame is arranged, not squeezed; no hit on the
-   anti-slop list. Fix each finding; count them. Then the states gate:
+4. Build `<id>-<name>.html` per screen from `templates/screen.html`: the
+   tokens link (or the `data-tokens` copy with `--standalone`), a state
+   bar, one `[data-state]` panel per state, each the whole screen: an
+   annotation (`data-annotation`), a desktop and a phone frame
+   (`data-frame`), each in its app chrome (`data-app-chrome`; `none:
+   <reason>` only for a screen with no chrome by design) with
+   `aria-current` on the current item. `#state=<name>`, `#state=all` and
+   `#chrome=0` deep links; a skip link, `:focus-visible` on every control,
+   44 px targets, labels bound by `for`, `data-event` only for names the
+   sheet has; fonts from Google Fonts only, no other external resource.
+5. Self-review before anything is shown: the three things the eye lands
+   on are the screen's job; every button is a verb and its object; every
+   error says what happened and what to do; the phone frame is arranged,
+   not squeezed. Fix and count the findings.
+6. States gate:
    `python3 "${CLAUDE_PLUGIN_ROOT}/skills/screen-design/scripts/states_check.py" --screens docs/design/screens/<feature> --flows <flows file>`
-   (drop `--flows` when the inventory came from stories, code or a brief;
-   the baseline five then apply, and a state the screen truly lacks is
-   marked `<!-- n/a: <state> because <reason> -->` in the page). Fix what
-   it reports and rerun until it exits 0.
-8. Screenshots when browse is executable, all screens in one command:
+   (drop `--flows` when the inventory came from stories, code or a
+   brief; a state the screen truly lacks is marked `<!-- n/a: <state>
+   because <reason> -->`). States the reconciliation added beyond the
+   flows are checked by reading, and listed.
+7. Screenshots when browse is executable:
    `python3 "${CLAUDE_PLUGIN_ROOT}/skills/design-critique/scripts/evidence.py" shoot --base docs/design/screens/<feature> --out docs/design/screens/<feature>/shots '<id>-<name>.html#chrome=0'...`
-   then the same with `check` in place of `shoot` (and no `--base`). It
-   shoots 375, 768 and 1440 in light and dark (`#chrome=0` shows the
-   phone frame below 720 px and the desktop frame above), records
-   console errors in `<id>-<name>.console.txt` (must be empty) and fails
-   when a width is missing or dark did not apply. Read every PNG; fix
-   overflow or collapse and re-shoot.
-9. Feature index `docs/design/screens/<feature>/index.html` from
+   then `check`. Read every PNG; fix overflow or collapse and re-shoot.
+8. Feature index `docs/design/screens/<feature>/index.html` from
    `templates/index.html`: per screen the job, a link per state, the
-   three screenshots (iframes when none), and the redlines: spacing
-   values used, type roles, token names, component names, events.
-10. Bundle. Add what was raised while designing to `concerns`, each
-    typed `ambiguity`, `missing-screen`, `undefined-state`, `dead-end` or
-    `risk`, with the screen key and, for a story no screen serves, the
-    story id in the detail. Then run the audit, which counts from the
-    files and writes the numbers into design.json:
-    `python3 "${CLAUDE_PLUGIN_ROOT}/skills/screen-design/scripts/bundle.py" audit --design docs/design`.
-    Fix every finding and rerun until it exits 0; never edit the
-    `audit` block by hand. Render the gallery:
-    `python3 "${CLAUDE_PLUGIN_ROOT}/skills/screen-design/scripts/bundle.py" gallery --design docs/design`.
-    Write `docs/design/DESIGN-SYNC.md` from `templates/DESIGN-SYNC.md`
-    with this bundle's counts. Then the gate:
-    `python3 "${CLAUDE_PLUGIN_ROOT}/skills/screen-design/scripts/bundle.py" check --design docs/design`,
-    which fails on a null or stale audit, on any finding, on a gallery
-    that misses a screen and on a missing DESIGN-SYNC.md. Say to open
-    `docs/design/index.html`.
-11. Feedback loop: ask for comments per screen. Apply each as a surgical
-    Edit (a token change lands in tokens.json or tokens.css, never in a
-    screen). Re-shoot the screens touched, bump `version` in
-    design.json, rerun audit, gallery and check. Append the round to
-    `CHANGES.md` with screen, comment, change and `file:line`. Stop when
-    the user says done, or after three rounds without a new comment.
-12. Print the output contract; name `design-critique` as next. The
-    push to a shared design system is the person's: DESIGN-SYNC.md says
-    how, and this skill never runs `/design-sync`.
+   screenshots (iframes when none) and the redlines (spacing, type roles,
+   token names, component names, events).
+9. Manifest only: add the concerns, then
+   `python3 "${CLAUDE_PLUGIN_ROOT}/skills/screen-design/scripts/bundle.py" audit --design docs/design`,
+   `python3 "${CLAUDE_PLUGIN_ROOT}/skills/screen-design/scripts/bundle.py" gallery --design docs/design`,
+   `docs/design/DESIGN-SYNC.md` from its template, and
+   `python3 "${CLAUDE_PLUGIN_ROOT}/skills/screen-design/scripts/bundle.py" check --design docs/design`
+   until it exits 0. Never edit the `audit` block by hand; never run
+   `/design-sync` (the push to a shared design system is the person's).
+
+### A review round (client or team comments)
+
+1. Find where the pages really come from. When they are generated (a
+   build script, a JSON source), rebuild with the repository's command
+   and `git diff` the pages: a line the rebuild changes is a hand edit
+   made to the output (`git log` on the page names who and why). Port
+   every such edit into the source first and rebuild until the diff is
+   empty. From then on edit the source and rebuild; an edit to a
+   generated page is lost at the next rebuild.
+2. Triage every comment before editing anything, against the PRD's scope,
+   the Accepted ADRs, the flows, what the code does (does the state the
+   client wants dropped actually occur, and for which inputs) and the
+   accessibility floor. Each gets a verdict: applied, applied with a
+   change, or not applied, with the reason and, when not applied, the
+   question back. A comment about a screen that does not exist: say so,
+   name the designed screen it most plausibly means from what it
+   describes, and ask; never invent the screen.
+3. Colour changes are measured, not eyeballed. Find every use of the
+   token, including tokens that alias it (`--color-focus:
+   var(--color-primary)`, borders, link text), and measure each rendered
+   pair with
+   `python3 "${CLAUDE_PLUGIN_ROOT}/skills/accessibility/scripts/contrast.py" FG:BG[:MIN]...`:
+   text 4.5:1 (3:1 at 24 px, or 18.66 px bold), focus rings and control
+   boundaries 3:1 against the colour next to them. Keep the requested
+   colour where it can pass and fix its partner (dark text on a light
+   brand green; the focus token on its own darker value); state the
+   ratios in the reply.
+4. When rewording a state that stays, keep its facts (every cause the
+   code has for it). A mockup change the app does not do yet (a time
+   format, a new control) is named as build work with the file that would
+   change.
+5. Change only what the comments need. After the rebuild, pages no
+   comment touches are byte-identical.
+6. Append the round to `CHANGES.md` (comment, verdict, change,
+   `file:line`), rerun the gates, re-shoot touched screens when browse is
+   executable. Stop when the user says done, or after three rounds with no
+   new comment.
 
 ## Output contract
 
 ```
-## Screen designs: <feature> (round <n>, bundle v<version> | screens as code)
-Target: react-shadcn (screens as code) | web | react-native | compose | swiftui
-Gallery: http://127.0.0.1:<port>/__design (react-shadcn) | n/a
-Path: docs/design/screens/<feature>/   Manifest: docs/design/design.json
-Inventory: flows | stories | code | brief   Framework: web | react | react-native | compose | swiftui
-Navigation: generated from <flows files> | proposed (ambiguity raised)   Desktop: <chrome>   Mobile: <chrome>
-Tokens: docs/design/tokens.css from tokens.json | approved variant | DESIGN.md | brief (proposed); linked | --standalone
-Contract: components.md | no contract
-Screens: <gallery_check.py or states_check.py counts line, verbatim>
-Bundle: <bundle.py check counts line, verbatim>
-Concerns: A ambiguity, M missing-screen, U undefined-state, D dead-end, R risk
-Events: E on controls | no sheet   Motion: 1 on <id>, reduced-motion guarded | none
-Focus: visible   Targets: 44 px
-Screenshots: <evidence.py check counts line, verbatim>, console errors 0 | not taken (browse absent)
-Review findings fixed: K (generic-default G, screen-level S)
-Gallery: docs/design/index.html (open the file)   Sync: docs/design/DESIGN-SYNC.md (a person runs /design-sync)
-Rounds: R (CHANGES.md)   Stopped: user said done | 3 rounds without comments
+## Screen designs: <feature> (round <n>)
+Target: react-shadcn (screens as code) | HTML bundle (<why>)   Open: <file to open, or command and URL>
+Sources: flows <file> (against PRD v<x>) | PRD v<y> | ADRs <ids> | API <files>
+Reconciled: <n> states added beyond the flows (<names>); gaps raised: <one line each, owner>
+Screens: <gate counts line, verbatim>
+Bundle: <bundle.py check counts line, verbatim> | not used (<reason>)
+Contrast: <contrast.py counts line, verbatim> | no colour changed
+Round: <per comment: verdict and reason> | first round
+Ran: <each command with its result>
+Not run: <build, typecheck, dev server, screenshots, each with its reason> | none
 Next: design-critique docs/design/screens/<feature>
 ```
 
 ## Gotchas
 
+- A known error code shown as "Something went wrong" is the most common
+  gap in a design; the developer then ships exactly that.
+- Designing around an API gap without saying so hands the developer a
+  screen that cannot be built as drawn.
+- A number, ratio or count in the report is one a script or a formatter
+  printed; a screenshot or rendered result not produced is not described.
 - On react-shadcn a raw `<table>`, `<button>` or `<input>` in a view is a
-  hand-styled page; gallery_check and design-lint both fail it. Compose
-  the component; extend it with a variant in `src/components/ui` when
-  the design needs one, never a one-off copy.
-- The view takes props and the route wires data: the same component
-  renders the gallery state and the live page, so a design change is one
-  edit.
-- The Screens, Bundle and Screenshots lines are the scripts' counts
-  lines. A number the scripts did not print is not written, and the
-  audit block in design.json is only ever written by `bundle.py audit`.
-- A state panel is the whole screen in its chrome, not a card floating
-  on a blank page. A reviewer who cannot see where the screen sits in
-  the product will ask, and a developer will guess.
-- The annotation says what changed from the default and why ("the list
-  keeps its header and filters while rows load, so the person can
-  change the filter before the data arrives"), not the state's name
-  again.
-- A link to a screen nobody designed reads as an unfinished screen in a
-  client review and becomes a route in the build. Out-of-scope
-  destinations are plain text in the chrome plus a `missing-screen`
-  concern, never an `href`.
+  hand-styled page; compose the component or extend it with a variant.
+- The view takes props and the route wires data: the gallery state and
+  the live page are one component.
+- The annotation says what changed from the default and why, not the
+  state's name again.
 - The 375 px frame is designed on its own terms: its order, the primary
-  action docked above the tab bar, context cut to one line. A squeezed
-  desktop fails the self-review even when it has no horizontal scroll.
-- Screens link `../../tokens.css`; a copied token block drifts the first
-  time the tokens change. `--standalone` is for sending one file, and
-  the audit still reads the copy as tokens, not as hard-coded colour.
-- The state bar and annotations are prototype chrome. `#chrome=0` hides
-  them for screenshots, and the review never scores them.
-- Never invent an event name. No sheet means no `data-event`; the
-  flows' `needs event:` markers stay in the redlines as text.
-- `data-component` names come from the contract verbatim. A region the
-  contract lacks is named by its role and listed in the index as a gap
-  for `design-system`.
-- One motion moment per feature, on the screen the flows point to. A
-  second animation is decoration; cut it.
-- Surgical edits in the loop. The user may have edited the file by
-  hand; a rewrite loses that and the round's `file:line` trail.
-- Never describe a screenshot that was not taken, and never push the
-  bundle: `/design-sync` shows a person the exact file list before
-  anything lands in a shared design system.
+  action within reach, context cut to one line.
+- Screens link one tokens file; a copied block drifts the first time the
+  tokens change. `--standalone` is for sending one file.
+- The state bar and annotations are prototype chrome; `#chrome=0` hides
+  them and the review never scores them.
+- Never invent an event name or a `data-component` name the contract
+  lacks; list the gap instead.
+- One motion moment per feature, behind the reduced-motion guard.
+- Changing a shared shell, a formatter or a generator "while there" turns
+  a design review into a code review nobody asked for.

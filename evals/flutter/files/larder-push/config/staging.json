@@ -1,0 +1,5 @@
+{
+  "FLAVOUR": "staging",
+  "API_BASE_URL": "https://api.staging.larder.example",
+  "LOG_LEVEL": "INFO"
+}

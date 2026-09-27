@@ -1,0 +1,12 @@
+groups:
+  - name: shop.api
+    rules:
+      - alert: HighErrorRate
+        expr: |
+          sum by (service) (rate(http_requests_total{code=~"5.."}[5m]))
+            / sum by (service) (rate(http_requests_total[5m])) > 0.05
+        for: 10m
+        labels: { severity: critical }
+        annotations:
+          summary: "{{ $labels.service }} 5xx above 5% for 10 minutes"
+          runbook_url: https://gitlab.example.com/shop/shop/-/blob/main/docs/runbooks/HighErrorRate.md

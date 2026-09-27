@@ -56,7 +56,20 @@
   from the earliest affected day.
 - `is_incremental()` runs an introspective query at compile time. Prefer
   the explicit window, which parses and lints offline; use
-  `is_incremental()` only where the window is not enough.
+  `is_incremental()` only where the window is not enough, and never to
+  drop the upper bound on the first build (a first build that reads all of
+  raw writes the partial current day).
+- The window delete: `pre_hook="{{ delete_window('<date column>') }}"`
+  (`macros/delete_window.sql`) clears `[start_date, end_date)` before the
+  insert, so a group or a day that vanished loses its row.
+- Lookback: the DAG widens the window backwards by as many days as the
+  source's rows can still change; each source documents its own.
+- A mart that keeps history older than raw's retention sets
+  `full_refresh: false` and is never rebuilt with vars reaching before the
+  oldest day raw holds in full.
+- dbt 1.9+ microbatch (`event_time`, `batch_size='day'`, `lookback`,
+  `begin`) replaces each day natively; the DAG passes
+  `--event-time-start`/`--event-time-end` from the data interval.
 
 ## Tests and data quality
 
@@ -90,8 +103,16 @@
   in Python inside the DAG.
 - The window is always `data_interval_start` and `data_interval_end`
   rendered by Airflow, never computed from `now()`.
-- Backfill: `airflow backfill create --dag-id <id> --from-date --to-date
-  --max-active-runs 1`, oldest first, watched to completion.
+- Schedule with `CronDataIntervalTimetable` (or `DeltaDataIntervalTimetable`)
+  when tasks read the data interval: in Airflow 3 a cron string or preset
+  is a `CronTriggerTimetable` with a zero-length interval.
+- Schedule after the sources land; a source landing later than the rest
+  gets its own DAG or a later task behind `dbt source freshness`, and its
+  models are excluded from the early run (tags are inherited from
+  `dbt_project.yml`).
+- Backfill: pause the DAG, then `airflow backfill create --dag-id <id>
+  --from-date --to-date --max-active-runs 1`, oldest first, watched to
+  completion, then unpause.
 
 ## Lineage and docs
 

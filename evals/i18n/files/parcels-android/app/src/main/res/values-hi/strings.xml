@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">पार्सल</string>
+
+    <string name="parcel_list_title">आपके पार्सल</string>
+    <string name="parcel_list_refresh">रीफ़्रेश करें</string>
+    <string name="parcel_status_label">स्थिति</string>
+    <string name="parcel_status_in_transit">रास्ते में</string>
+    <string name="parcel_status_out_for_delivery">डिलीवरी के लिए निकला</string>
+    <string name="parcel_status_delivered">डिलीवर हो गया</string>
+    <string name="parcel_detail_title">पार्सल %1$d</string>
+    <string name="parcel_detail_fee">डिलीवरी शुल्क</string>
+    <string name="parcel_detail_eta">%1$d मिनट में पहुँचेगा</string>
+
+    <string name="settings_title">सेटिंग</string>
+    <string name="settings_language">भाषा</string>
+    <string name="settings_contact_support">सहायता से संपर्क करें</string>
+
+    <string name="notification_channel_name">पार्सल अपडेट</string>
+    <string name="notification_track">ट्रैक करें</string>
+
+    <plurals name="parcels_in_transit">
+        <item quantity="one">%1$d पार्सल रास्ते में</item>
+        <item quantity="other">%1$d पार्सल रास्ते में</item>
+    </plurals>
+</resources>

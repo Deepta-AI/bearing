@@ -1,0 +1,6 @@
+replicaCount: 1
+image:
+  repository: registry.example.com/harbor/lab-intake
+ingress:
+  host: staging-intake.harborclinics.example.net
+envFromSecret: lab-intake-env

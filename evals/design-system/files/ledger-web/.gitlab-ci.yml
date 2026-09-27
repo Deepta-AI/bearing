@@ -1,0 +1,18 @@
+stages: [check, build]
+
+check:
+  stage: check
+  image: node:20-alpine
+  before_script:
+    - apk add --no-cache make
+  script:
+    - make check
+
+build:
+  stage: build
+  image: node:20-alpine
+  script:
+    - npm ci
+    - npm run build
+  artifacts:
+    paths: [dist/]

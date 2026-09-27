@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1080">
+<title>Check in</title>
+<link rel="stylesheet" href="/static/css/kiosk.css">
+</head>
+<body>
+<main>
+  <h1>Check in for your appointment</h1>
+  <form class="panel" method="post" action="/checkin">
+    <div class="field">
+      <label for="code">Booking code</label>
+      <p class="hint" id="code-hint">Your booking code is in the SMS we sent you. It has six letters and numbers.</p>
+      <input id="code" name="code" maxlength="6" autocomplete="off" aria-describedby="code-hint" required>
+    </div>
+    <div class="field">
+      <label for="year">Last two digits of your birth year</label>
+      <input id="year" name="year" inputmode="numeric" maxlength="2" autocomplete="off" required>
+    </div>
+    <button class="primary" type="submit">Check me in</button>
+  </form>
+</main>
+</body>
+</html>

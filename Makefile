@@ -4,12 +4,12 @@
 SHELL := /bin/bash
 KITP := plugins/bearing
 .DEFAULT_GOAL := help
-.PHONY: help site devguide wiki check check-file validate lint-skills lint-tools lint-evals lint-neutral lint-docs lint-json lint-shell lint-prose lint-version lint-budget lint-templates lint-plugin-size test install doctor docs harness-eval
+.PHONY: help site devguide wiki check check-file validate lint-skills lint-tools lint-evals lint-triggers lint-neutral lint-docs lint-json lint-shell lint-prose lint-version lint-budget lint-templates lint-plugin-size test install doctor docs harness-eval trigger-eval
 
 help: ## List targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-14s %s\n", $$1, $$2}'
 
-check: validate lint-skills lint-tools lint-evals lint-json lint-shell lint-prose lint-docs lint-neutral lint-version lint-budget lint-templates lint-plugin-size test ## The gate for this repository
+check: validate lint-skills lint-tools lint-evals lint-triggers lint-json lint-shell lint-prose lint-docs lint-neutral lint-version lint-budget lint-templates lint-plugin-size test ## The gate for this repository
 	@echo "check: passed"
 
 validate: ## claude plugin validate --strict: the marketplace, then each plugin, its skills and (bearing) its agents
@@ -64,6 +64,9 @@ lint-skills: ## Every skill in every plugin: hyphenated name (64 max) equal to i
 
 lint-tools: ## Every command a skill body runs is granted by its allowed-tools (bin/lint-skill-tools.allow lists print-only lines)
 	@python3 bin/lint-skill-tools.py
+
+lint-triggers: ## Every skill has trigger cases in evals/triggers.json (3 should, 2 near misses), none copying the description's quoted phrases
+	@python3 bin/lint-triggers.py
 
 lint-evals: ## Every skill has evals (evals/<name>/evals.json, away from the skill) or sits on the shrinking evals/.pending list
 	@python3 bin/lint-skill-evals.py
@@ -140,6 +143,9 @@ test: ## Unit and integration tests under tests/
 
 harness-eval: ## Real Claude Code sessions against the hooks: push, deploy, edit lint, stop gate (green and red), compaction (uses the claude CLI; not part of check)
 	python3 bin/harness-eval.py $(if $(ONLY),--only $(ONLY))
+
+trigger-eval: ## Real headless sessions: does each plain request load the right skill (evals/triggers.json; ONLY=skill,... J=4 SOURCES=user,project,local; uses the claude CLI; not part of check)
+	python3 bin/trigger-eval.py -j $(or $(J),4) $(if $(ONLY),--only $(ONLY)) $(if $(SOURCES),--sources $(SOURCES))
 
 install: ## Install on this machine
 	bash install.sh

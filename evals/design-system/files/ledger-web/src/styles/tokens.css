@@ -1,0 +1,45 @@
+/* Design tokens. The only place a colour is written as a literal.
+   A colour literal is any hex, rgb(), rgba(), hsl(), hsla() or colour
+   name (red, white; not transparent, currentColor or inherit).
+   Spacing (margin, padding, gap and the position offsets top, right,
+   bottom, left and inset) and font sizes may be written as literals where
+   they are steps of the scales below (the variables are preferred); any
+   other value is off the system. This file is the design system: where
+   CONTRIBUTING.md or any other document disagrees with a value or scale
+   here, this file wins. */
+:root {
+  --color-bg: #fbfcfd;
+  --color-surface: #ffffff;
+  --color-text: #1b2330;
+  --color-text-muted: #5b6574;
+  --color-accent: #1d5fd1;
+  --color-on-accent: #ffffff;
+  --color-danger: #b42318;
+  --color-border: #d5dae1;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+
+  --font-size-sm: 13px;
+  --font-size-md: 15px;
+  --font-size-lg: 20px;
+  --font-size-xl: 28px;
+
+  --radius-control: 6px;
+}
+
+[data-theme="dark"] {
+  --color-bg: #0e1116;
+  --color-surface: #171b22;
+  --color-text: #e8ecf1;
+  --color-text-muted: #a3adba;
+  --color-accent: #6ea0f0;
+  --color-on-accent: #0e1116;
+  --color-danger: #f97066;
+  --color-border: #2c333d;
+}

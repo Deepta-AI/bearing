@@ -1,0 +1,15 @@
+{
+  "acct_2210": [
+    {"flag": "new_pricing", "on": false, "until": "2026-08-31", "why": "Brightwell Ltd: quoted on the legacy table until their renewal (PRC-70)"}
+  ],
+  "acct_5004": [
+    {"flag": "bulk_invoice_download", "on": true, "until": "2026-12-31", "why": "early access (BIL-44)"}
+  ],
+  "acct_7731": [
+    {"flag": "new_pricing", "on": false, "until": "2027-01-31", "why": "Hartmann GmbH: contract fixes the legacy price table until renewal (PRC-102, account owner: sales-emea)"}
+  ],
+  "acct_9120": [
+    {"flag": "bulk_invoice_download", "on": true, "until": "2026-12-31", "why": "early access (BIL-44)"},
+    {"flag": "new_pricing", "on": false, "until": "2027-03-31", "why": "Oakridge Health: contract fixes the legacy price table until renewal (PRC-104, account owner: sales-us)"}
+  ]
+}

@@ -204,7 +204,9 @@
 - Terraform identifiers (resource and module labels, variables, outputs,
   locals) are lowercase with underscores, singular, and do not repeat the
   resource type; `main` when there is only one.
-- Cloud resource names: lowercase, hyphenated, `<repo>-<env>-<thing>`. Labels `env`,
-  `repo`, `managed_by = terraform` on everything that takes labels.
+- Cloud resource names: lowercase, hyphenated, `<repo>-<env>-<thing>`, for
+  new resources. An existing resource keeps its name: renaming most cloud
+  resources forces replacement, and no `moved` block prevents it. Labels
+  `env`, `repo`, `managed_by = terraform` on everything that takes labels.
 - Comments say why. A commented-out resource is deleted, not kept.
 - No em dashes in comments, descriptions or docs.

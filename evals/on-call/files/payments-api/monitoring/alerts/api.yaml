@@ -1,0 +1,48 @@
+groups:
+  - name: payments-api
+    rules:
+      - alert: ApiDown
+        expr: up{job="payments-api"} == 0
+        for: 2m
+        labels:
+          severity: page
+          service: payments-api
+        annotations:
+          summary: "payments-api target {{ $labels.instance }} is down"
+          runbook_url: docs/runbooks/ApiDown.md
+
+      - alert: HighLatency
+        expr: histogram_quantile(0.99, sum by (le) (rate(http_request_duration_seconds_bucket{job="payments-api"}[5m]))) > 0.5
+        for: 10m
+        labels:
+          severity: page
+          service: payments-api
+        annotations:
+          summary: "payments-api p99 latency above 500 ms"
+          runbook_url: docs/runbooks/HighLatency.md
+
+      - alert: PaymentsProviderErrors
+        expr: sum(rate(provider_requests_total{job="payments-api",result="error"}[5m])) / sum(rate(provider_requests_total{job="payments-api"}[5m])) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          service: payments-api
+        annotations:
+          summary: "More than 5% of card provider calls are failing"
+          runbook_url: docs/runbooks/PaymentsProviderErrors.md
+
+      - alert: CertificateExpiringSoon
+        expr: probe_ssl_earliest_cert_expiry{job="blackbox",instance="https://pay.example.test"} - time() < 14 * 86400
+        for: 1h
+        labels:
+          service: payments-api
+        annotations:
+          summary: "TLS certificate for pay.example.test expires in under 14 days"
+
+      - alert: PodRestarting
+        expr: increase(kube_pod_container_status_restarts_total{namespace="payments",container="payments-api"}[30m]) > 3
+        labels:
+          severity: warning
+          service: payments-api
+        annotations:
+          summary: "payments-api pod {{ $labels.pod }} restarted more than 3 times in 30 minutes"

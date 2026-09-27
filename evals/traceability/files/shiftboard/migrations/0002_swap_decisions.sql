@@ -1,0 +1,3 @@
+ALTER TABLE swaps ADD COLUMN decided_by TEXT;
+ALTER TABLE swaps ADD COLUMN reason TEXT;
+ALTER TABLE swaps ADD COLUMN decided_at TIMESTAMPTZ;

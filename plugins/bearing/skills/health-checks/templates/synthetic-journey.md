@@ -131,18 +131,26 @@ test("login and dashboard", async ({ page }) => {
 });
 ```
 
-## CI job (stage `verify`)
+## CI job (a stage that exists in `stages`)
 
 <!-- What: the scheduled CI job that runs the suite against qa and prod.
-     Good: runs only on schedule, matrix over qa and prod, allow_failure
-     false, JUnit report kept always; the skill prints the schedule and
-     variables for the engineer to create, never creates them.
+     Good: runs only on schedule, its stage is listed in `stages`, matrix
+     over the environments where the journey is safe, JUnit report kept
+     always; existing jobs that match schedule pipelines get a rule that
+     excludes them; a prod failure reaches the pager; the skill prints the
+     schedule and variables for the engineer to create, never creates them.
      Example: "Schedule: every 15 minutes on develop, variables
      SYNTHETIC_BASE_URL_QA and SYNTHETIC_BASE_URL_PROD masked." -->
 
 ```yaml
+stages: [lint, test, build, deploy, synthetic]   # add the stage if absent
+
+.not-scheduled: &not-scheduled                     # merge into every existing job's rules
+  - if: $CI_PIPELINE_SOURCE == "schedule"
+    when: never
+
 synthetic:
-  stage: verify
+  stage: synthetic
   allow_failure: false
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule"
@@ -151,13 +159,23 @@ synthetic:
       - SYNTHETIC_ENV: [qa, prod]
   script:
     - make synthetic
+  after_script:                                    # failure must page: push a metric an alert watches
+    - ./scripts/push-synthetic-result.sh "$SYNTHETIC_ENV" "$CI_JOB_STATUS"
   artifacts:
     when: always
     reports:
       junit: .reports/synthetic-*.xml
 ```
 
-Create the schedule in GitLab (every 15 minutes, target `develop`) with
+Alert on `synthetic_last_run_timestamp_seconds` older than two
+intervals (catches a stopped schedule) and page only when two
+consecutive prod runs failed (a `synthetic_consecutive_failures >= 2`
+gauge the push script keeps, or a retry inside the run): the metric
+changes once per run, so a `for: 5m` on a 15-minute job pages on one
+flaky run. qa failures get the non-paging severity. A failed scheduled
+pipeline alone notifies nobody.
+
+Create the schedule in GitLab (every 15 minutes, target the default branch) with
 `SYNTHETIC_BASE_URL_QA`, `SYNTHETIC_BASE_URL_PROD`, `SYNTHETIC_USER`,
 `SYNTHETIC_PASSWORD` as masked variables. The `make synthetic` target
 picks the URL by `SYNTHETIC_ENV`.

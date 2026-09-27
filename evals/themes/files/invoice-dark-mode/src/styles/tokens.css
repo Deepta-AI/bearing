@@ -1,0 +1,24 @@
+/* Design tokens. Light only today. Every component reads these. */
+:root {
+  --color-bg: #ffffff;
+  --color-surface: #f7f7f8;
+  --color-surface-raised: #ffffff;
+  --color-text: #1c1d21;
+  --color-text-muted: #5f6270;
+  --color-border: #e3e4e8;
+  --color-border-strong: #8a8d99;
+  --color-accent: #2f5bd3;
+  --color-accent-hover: #264bb0;
+  --color-on-accent: #ffffff;
+  --color-focus: #2f5bd3;
+  --color-danger: #c62828;
+  --color-success: #2e7d32;
+  --color-warning-subtle: #fff4e0;
+
+  --radius: 6px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 16px;
+  --space-4: 24px;
+  --font-body: 'Inter', system-ui, sans-serif;
+}

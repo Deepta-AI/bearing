@@ -1,0 +1,20 @@
+{
+  "name": "@example/fieldnotes-api",
+  "version": "1.4.0",
+  "description": "API behind the Fieldnotes inspection app",
+  "author": "Example Co <hello@example.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git@gitlab.example.com:example/fieldnotes.git"
+  },
+  "type": "module",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node --no-warnings --test"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

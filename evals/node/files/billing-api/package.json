@@ -1,0 +1,11 @@
+{
+  "name": "billing-api",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22.18" },
+  "scripts": {
+    "start": "node --no-warnings src/server.ts",
+    "test": "node --no-warnings --test 'test/**/*.test.ts'",
+    "migrate": "node --no-warnings scripts/migrate.ts"
+  }
+}

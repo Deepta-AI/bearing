@@ -1,0 +1,14 @@
+{
+  "name": "ledger-sync",
+  "version": "2.3.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=20.11" },
+  "bin": { "ledger-sync": "src/cli.js" },
+  "scripts": {
+    "test": "node --no-warnings --test"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.8.1"
+  }
+}

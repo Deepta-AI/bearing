@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# pre-commit: block forbidden files and obvious secrets in what is staged.
+HOOK_NAME=pre-commit
+. "$(dirname "$0")/lib.sh"
+files="$(git diff --cached --name-only --diff-filter=ACMR)"
+n="$(printf '%s\n' "$files" | grep -c . || true)"
+[ "$n" -gt 0 ] || { git diff --cached --quiet --diff-filter=D && hook_fail "0 staged files, nothing checked"; hook_note "deletions only"; exit 0; }
+printf '%s\n' "$files" | grep -Eq '(^|/)\.env$' && hook_fail ".env is staged"
+if printf '%s\n' "$files" | xargs grep -nE 'AKIA[0-9A-Z]{16}|-----BEGIN [A-Z ]*PRIVATE KEY' 2>/dev/null; then
+  hook_fail "possible secret staged"
+fi
+hook_note "$n staged files checked"

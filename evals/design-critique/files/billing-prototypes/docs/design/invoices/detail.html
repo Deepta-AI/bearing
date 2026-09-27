@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>INV-0042</title>
+<link rel="stylesheet" href="../tokens.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap">
+<style>
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: "Inter", sans-serif; font-size: 14px; }
+  .top { display: flex; justify-content: space-between; align-items: center; padding: var(--s5) var(--s6); border-bottom: 1px solid var(--border); }
+  .brand { font-weight: 600; font-size: 20px; }
+  .page { padding: var(--s6); max-width: 60rem; }
+  h1 { font-size: 28px; font-weight: 600; margin: 0 0 var(--s2); }
+  .meta { color: var(--text-muted); margin: 0 0 var(--s5); }
+  .summary { background: #fff; border: 1px solid var(--border); border-radius: var(--r-panel); padding: var(--s5); display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--s4); }
+  .summary dt { font-size: 13px; color: var(--text-muted); }
+  .summary dd { margin: var(--s1) 0 0; font-size: 20px; font-weight: 600; }
+  .lines { width: 100%; border-collapse: collapse; margin: var(--s5) 0; }
+  .lines td, .lines th { text-align: left; padding: var(--s2) 0; border-bottom: 1px solid var(--border); }
+  .lines td:last-child, .lines th:last-child { text-align: right; font-family: var(--font-mono); }
+  .actions { display: flex; gap: var(--s3); }
+  .btn { font: 600 15px "Inter", sans-serif; padding: var(--s2) var(--s4); border-radius: var(--r-control); border: 1px solid var(--border); background: var(--surface); color: var(--text); cursor: pointer; }
+  .btn-primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+  .btn-danger { color: var(--overdue); }
+  .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+</style>
+</head>
+<body>
+<header class="top">
+  <span class="brand">Tallybook</span>
+</header>
+<main class="page">
+  <h1>INV-0042</h1>
+  <p class="meta">Northfield Bakery, brand refresh phase 2. Sent 12 Sep 2026.</p>
+  <dl class="summary">
+    <div><dt>Amount</dt><dd>&#8377;1,84,000</dd></div>
+    <div><dt>Due</dt><dd>12 Oct 2026</dd></div>
+    <div><dt>Status</dt><dd>Overdue</dd></div>
+  </dl>
+  <table class="lines">
+    <thead><tr><th>Item</th><th>Amount</th></tr></thead>
+    <tbody>
+      <tr><td>Logo refinement and lockups</td><td>&#8377;64,000</td></tr>
+      <tr><td>Packaging system, 6 SKUs</td><td>&#8377;96,000</td></tr>
+      <tr><td>Signage artwork</td><td>&#8377;34,000</td></tr>
+    </tbody>
+  </table>
+  <div class="actions">
+    <button class="btn btn-primary" type="button">Send reminder</button>
+    <button class="btn btn-danger" type="button">Delete invoice</button>
+  </div>
+</main>
+</body>
+</html>

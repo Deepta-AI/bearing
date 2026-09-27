@@ -1533,6 +1533,25 @@ esac
       echo "Review checklists for this repository; any code review (gstack /review, branch-review) applies every item and reports it as a finding or checked, none found:"
       printf '%s\n' "$paths" | sed 's/^/  /'
     fi
+    # Each stack's conventions skill, named with where that stack lives: a
+    # trigger eval found Claude starts coding without loading them, whatever
+    # the description says. A stack whose plugin is missing gets the install
+    # line instead. Absent where the guard is vendored alone.
+    stacks="$(dirname "$0")/brg-stacks"; kp="$(dirname "$0")/brg-kit-paths"
+    if [ -x "$stacks" ] && [ -x "$kp" ] && found="$("$stacks" "$root" 2>/dev/null | grep -v '^brg-stacks:')" && [ -n "$found" ]; then
+      echo "Stacks in this repository. Before writing or changing code in one, load its conventions skill first (a code review goes to branch-review, which applies them):"
+      for lane in $(printf '%s\n' "$found" | cut -f1 | sort -u); do
+        dirs="$(printf '%s\n' "$found" | awk -F'\t' -v l="$lane" '$1 == l {print ($2 == "." ? "the root" : $2)}' | head -3 | tr '\n' ',' | sed -e 's/,$//' -e 's/,/, /g')"
+        more=$(( $(printf '%s\n' "$found" | awk -F'\t' -v l="$lane" '$1 == l' | wc -l) - 3 ))
+        [ "$more" -gt 0 ] && dirs="$dirs and $more more"
+        if "$kp" --skill "$lane" >/dev/null 2>&1; then
+          echo "  ${lane} (${dirs}): $("$kp" --owner "$lane"):${lane}"
+        else
+          owner="$("$kp" --owner "$lane")"
+          echo "  ${lane} (${dirs}): not installed, /plugin install ${owner}@bearing"
+        fi
+      done
+    fi
     snap="$root/.bearing/state/$(printf '%s' "$branch" | tr '/' '_').compact.md"
     if [ "$source" = "compact" ] && [ -f "$snap" ]; then
       echo "The context was just summarised. What stood before it (${snap#"$root"/}):"

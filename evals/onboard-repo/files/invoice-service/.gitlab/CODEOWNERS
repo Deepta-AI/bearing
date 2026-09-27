@@ -1,0 +1,5 @@
+# Reviews for invoice-service. GitLab reads this file.
+* @billing-backend
+
+/migrations/ @billing-backend @dba-oncall
+/src/money.js @billing-backend @dev.one

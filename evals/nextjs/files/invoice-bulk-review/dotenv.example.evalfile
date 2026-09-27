@@ -1,0 +1,9 @@
+LEDGER_API_URL=http://localhost:8090
+# Service credential for the ledger API: reads and writes every
+# organisation's invoices. Server only.
+LEDGER_API_KEY=
+SESSION_SECRET=
+NEXT_PUBLIC_SUPPORT_EMAIL=billing-help@example.com
+# Same value as LEDGER_API_KEY; the export button calls the ledger directly.
+NEXT_PUBLIC_LEDGER_API_KEY=
+NEXT_PUBLIC_LEDGER_API_URL=http://localhost:8090

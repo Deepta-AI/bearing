@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <string name="app_name">Parcels</string>
+    <string name="support_email" translatable="false">help@parcels.example</string>
+
+    <string name="parcel_list_title">Your parcels</string>
+    <string name="parcel_list_refresh">Refresh</string>
+    <string name="parcel_status_label">Status</string>
+    <string name="parcel_status_in_transit">In transit</string>
+    <string name="parcel_status_out_for_delivery">Out for delivery</string>
+    <string name="parcel_status_delivered">Delivered</string>
+    <string name="parcel_detail_title">Parcel %1$s</string>
+    <string name="parcel_detail_fee">Delivery fee</string>
+    <string name="parcel_detail_eta">Arriving in %1$d minutes</string>
+    <string name="parcel_delivered_at">Delivered at %1$s</string>
+    <string name="tracking_error_generic">We could not load your parcels. Try again.</string>
+
+    <string name="settings_title">Settings</string>
+    <string name="settings_language">Language</string>
+    <string name="settings_contact_support">Contact support</string>
+
+    <string name="notification_channel_name">Parcel updates</string>
+    <string name="notification_track">Track</string>
+
+    <plurals name="parcels_in_transit">
+        <item quantity="one">%1$d parcel on its way</item>
+        <item quantity="other">%1$d parcels on their way</item>
+    </plurals>
+</resources>

@@ -1,0 +1,90 @@
+{
+  "screens": [
+    {
+      "id": "S-01",
+      "file": "S-01-pick-slot.html",
+      "title": "Pick a slot",
+      "states": [
+        {
+          "name": "loading",
+          "label": "Loading",
+          "body": "    <p class=\"muted\">Indiranagar clinic, 12th Main Road</p>\n    <p><strong>Thu 1 Oct</strong></p>\n    <div class=\"slots\">\n      <div class=\"skeleton\"></div>\n      <div class=\"skeleton\"></div>\n      <div class=\"skeleton\"></div>\n      <div class=\"skeleton\"></div>\n      <div class=\"skeleton\"></div>\n      <div class=\"skeleton\"></div>\n      <div class=\"skeleton\"></div>\n      <div class=\"skeleton\"></div>\n      <div class=\"skeleton\"></div>\n    </div>"
+        },
+        {
+          "name": "success",
+          "label": "Slots",
+          "body": "    <p class=\"muted\">Indiranagar clinic, 12th Main Road</p>\n    <p><strong>Thu 1 Oct</strong></p>\n    <div class=\"slots\">\n      <a class=\"slot\" href=\"S-02-your-details.html\">09:00</a>\n      <a class=\"slot\" href=\"S-02-your-details.html\">09:30</a>\n      <a class=\"slot\" href=\"S-02-your-details.html\">10:30</a>\n      <a class=\"slot\" href=\"S-02-your-details.html\">11:00</a>\n      <a class=\"slot\" href=\"S-02-your-details.html\">11:30</a>\n      <a class=\"slot\" href=\"S-02-your-details.html\">12:00</a>\n      <a class=\"slot\" href=\"S-02-your-details.html\">14:00</a>\n      <a class=\"slot\" href=\"S-02-your-details.html\">14:30</a>\n      <a class=\"slot\" href=\"S-02-your-details.html\">15:30</a>\n      <a class=\"slot\" href=\"S-02-your-details.html\">16:00</a>\n      <a class=\"slot\" href=\"S-02-your-details.html\">16:30</a>\n    </div>"
+        },
+        {
+          "name": "no-slots",
+          "label": "No slots",
+          "body": "    <p class=\"muted\">Indiranagar clinic, 12th Main Road</p>\n    <p><strong>Sun 4 Oct</strong></p>\n    <p>No free slots on this day. The clinic is closed on Sundays and public holidays, and some days are fully booked.</p>",
+          "actions": "    <a class=\"secondary\" href=\"#state=success\">Show the next open day</a>"
+        },
+        {
+          "name": "error",
+          "label": "Error",
+          "body": "    <p class=\"muted\">Indiranagar clinic, 12th Main Road</p>\n    <p><strong>Thu 1 Oct</strong></p>\n    <p class=\"notice\">We could not load the slots. Check your connection and try again.</p>",
+          "actions": "    <a class=\"secondary\" href=\"#state=loading\">Try again</a>"
+        }
+      ]
+    },
+    {
+      "id": "S-02",
+      "file": "S-02-your-details.html",
+      "title": "Your details",
+      "states": [
+        {
+          "name": "default",
+          "label": "Form",
+          "body": "    <div class=\"field\"><label for=\"n1\">Full name</label><input id=\"n1\" value=\"Asha Rao\"></div>\n    <div class=\"field\"><label for=\"m1\">Mobile number</label><input id=\"m1\" inputmode=\"tel\" value=\"+91 98765 43210\"></div>",
+          "actions": "    <a class=\"primary\" href=\"#state=verifying\">Send OTP</a>"
+        },
+        {
+          "name": "invalid",
+          "label": "Invalid",
+          "body": "    <div class=\"field\"><label for=\"n2\">Full name</label><input id=\"n2\" value=\"Asha Rao\"></div>\n    <div class=\"field\"><label for=\"m2\">Mobile number</label><input id=\"m2\" inputmode=\"tel\" value=\"98765\" aria-describedby=\"m2e\"><span class=\"err\" id=\"m2e\">Enter a 10 digit mobile number.</span></div>",
+          "actions": "    <a class=\"primary\" href=\"#state=invalid\">Send OTP</a>"
+        },
+        {
+          "name": "verifying",
+          "label": "Verifying",
+          "body": "    <p>We sent a 6 digit code to +91 98765 43210.</p>\n    <div class=\"field\"><label for=\"o1\">Code</label><input id=\"o1\" inputmode=\"numeric\"></div>",
+          "actions": "    <a class=\"primary\" href=\"S-03-confirm.html\">Verify and continue</a>"
+        }
+      ]
+    },
+    {
+      "id": "S-03",
+      "file": "S-03-confirm.html",
+      "title": "Confirm booking",
+      "states": [
+        {
+          "name": "default",
+          "label": "Summary",
+          "body": "    <div class=\"summary\">\n      <strong>Indiranagar clinic</strong>\n      <span>Thu 1 Oct, 10:30</span>\n      <span>Consultation fee ₹500, paid at the clinic</span>\n    </div>\n    <p class=\"muted\">You can cancel any time from My bookings.</p>",
+          "actions": "    <a class=\"primary\" href=\"S-04-booked.html\">Confirm booking</a>\n    <a class=\"secondary\" href=\"S-01-pick-slot.html\">Change time</a>"
+        },
+        {
+          "name": "slot-taken",
+          "label": "Slot taken",
+          "body": "    <p class=\"notice\">Someone booked 10:30 a moment ago. Pick another time; your details are saved.</p>",
+          "actions": "    <a class=\"primary\" href=\"S-01-pick-slot.html\">Pick another time</a>"
+        }
+      ]
+    },
+    {
+      "id": "S-04",
+      "file": "S-04-booked.html",
+      "title": "Booked",
+      "states": [
+        {
+          "name": "success",
+          "label": "Booked",
+          "body": "    <p><strong>You are booked.</strong></p>\n    <div class=\"summary\">\n      <strong>Indiranagar clinic</strong>\n      <span>Thu 1 Oct, 10:30</span>\n      <span>Booking BK-20417</span>\n    </div>\n    <p class=\"muted\">We sent the details by SMS. Pay ₹500 at the clinic.</p>\n    <a class=\"link\" href=\"#\">Get directions to the clinic</a>",
+          "actions": "    <a class=\"primary\" href=\"#\">View my bookings</a>"
+        }
+      ]
+    }
+  ]
+}

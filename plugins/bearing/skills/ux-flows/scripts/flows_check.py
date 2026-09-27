@@ -5,8 +5,10 @@ missing state, computed from the mermaid and the tables in the file.
   - File: --file, else per feature under docs/design/flows/<feature>/ the
     highest flows-v<n>.md, or flows.md when there is no versioned file.
   - Screens: the ids (S-nn, "(modal)" allowed) in the first column of the
-    table under the "Screen inventory" heading. A row whose Exits cell
-    says `terminal` is a screen allowed no way forward.
+    table under the "Screen inventory" (or "Screens") heading. A row whose
+    Exits cell says `terminal` is a screen allowed no way forward. A row
+    whose Status cell says `removed` or `retired` (a screen dropped in a
+    later version, its id kept) is counted as removed and not checked.
   - Edges: every ```mermaid block that starts with `flowchart` or `graph`.
     A node is a screen when its id is S-nn or Snn, or its label starts
     with S-nn. Edges are -->, ---, -.->, ==>, with |labels| or -- text -->,
@@ -16,8 +18,12 @@ missing state, computed from the mermaid and the tables in the file.
   - Dead end: an inventory screen with no outgoing edge that is not
     terminal. Unflowed: an inventory screen in no flowchart. Unknown: a
     screen in a flowchart that is not in the inventory.
+  - Dialogs: an inventory row whose Id cell says "(modal)" or whose Screen
+    cell names a dialog, modal or confirmation. Unless terminal, its Exits
+    cell must name a way back (cancel, back, close, dismiss, keep, Escape).
   - States: under "### S-nn" headings, a table whose first column is the
-    state. loading, empty, error and success are required on every
+    state (a cell naming several, "Loading, Empty", fills each). loading,
+    empty, error and success are required on every
     screen; a row that reads `n/a` needs a reason (`n/a: <reason>`); a
     required row missing, blank, or n/a without a reason is a problem, and
     so is an inventory screen with no state table.
@@ -77,10 +83,20 @@ def sid(raw):
     return f"S-{m.group(1)}" if m else None
 
 
+DIALOG = re.compile(r"\b(modal|dialog|confirm|confirmation)\b", re.I)
+WAY_BACK = re.compile(r"\b(cancel|back|close|dismiss|keep|escape|esc)\b", re.I)
+
+
 def inventory(text):
-    screens, terminal = [], set()
+    """(screens, terminal): the shape screen-design's bundle.py imports."""
+    screens, terminal, _, _ = inventory_full(text)
+    return screens, terminal
+
+
+def inventory_full(text):
+    screens, terminal, dialogs, removed = [], set(), {}, []
     header = None
-    for line in section(text, "Screen inventory").split("\n"):
+    for line in section(text, r"Screens?(?: inventory)?[ \t]*$").split("\n"):
         if not line.startswith("|"):
             continue
         cells = [c.strip() for c in line.strip().strip("|").split("|")]
@@ -91,12 +107,21 @@ def inventory(text):
         if not m:
             continue
         s = f"S-{m.group(1)}"
+        st = header.index("status") if "status" in header else None
+        if st is not None and st < len(cells) and re.search(r"\b(removed|retired)\b", cells[st], re.I):
+            if s not in removed:
+                removed.append(s)
+            continue
         if s not in screens:
             screens.append(s)
-        ex = header.index("exits to") if "exits to" in header else None
-        if ex is not None and ex < len(cells) and "terminal" in cells[ex].lower():
+        ex = next((i for i, h in enumerate(header) if h.startswith("exit")), None)
+        exits = cells[ex] if ex is not None and ex < len(cells) else ""
+        if "terminal" in exits.lower():
             terminal.add(s)
-    return screens, terminal
+        name = cells[1] if len(cells) > 1 else ""
+        if "(modal)" in cells[0].lower() or DIALOG.search(name):
+            dialogs[s] = exits
+    return screens, terminal, dialogs, removed
 
 
 def flowcharts(text):
@@ -161,14 +186,17 @@ def states(text):
         st = cells[0].lower()
         if st in ("state", "") or re.match(r"^:?-+:?$", st):
             continue
-        out[cur][st] = " ".join(cells[1:]).strip()
+        # "Loading, Empty, Partial | n/a: ..." fills each state it names.
+        for one in re.split(r"\s*(?:,|/|\band\b)\s*", st):
+            if one:
+                out[cur][one] = " ".join(cells[1:]).strip()
     return out
 
 
 def check(path):
     text = read(path)
     problems = []
-    screens, terminal = inventory(text)
+    screens, terminal, dialogs, removed = inventory_full(text)
     labels, edges, seen = {}, set(), set()
     blocks = flowcharts(text)
     for b in blocks:
@@ -191,8 +219,16 @@ def check(path):
     for s in unflowed:
         problems.append(f"{path}: {s} is in the inventory but in no flowchart")
     for s in sorted(in_flow - set(screens)):
+        if s in removed:
+            problems.append(f"{path}: {s} is marked removed but still appears in a flowchart")
+            continue
         problems.append(
             f"{path}: {s} is in a flowchart but not in the screen inventory"
+        )
+    no_back = [s for s, ex in dialogs.items() if s not in terminal and not WAY_BACK.search(ex)]
+    for s in no_back:
+        problems.append(
+            f"{path}: {s} is a dialog with no cancel, back or close in its Exits"
         )
     table = states(text)
     missing = 0
@@ -216,6 +252,9 @@ def check(path):
     return {
         "screens": len(screens),
         "terminal": len(terminal & set(screens)),
+        "removed": len(removed),
+        "dialogs": len(dialogs),
+        "no_back": len(no_back),
         "blocks": len(blocks),
         "edges": len(edges),
         "dead": len(dead),
@@ -255,7 +294,8 @@ def main():
         print(f"problem: {p}")
     print(f"Dead ends: {tot['dead']}")
     print(
-        f"ux-flows: {len(files)} files, {tot['screens']} screens ({tot['terminal']} terminal), "
+        f"ux-flows: {len(files)} files, {tot['screens']} screens ({tot['terminal']} terminal, {tot['removed']} removed), "
+        f"{tot['dialogs']} dialogs ({tot['no_back']} without a way back), "
         f"{tot['blocks']} flowcharts, {tot['edges']} edges, {tot['dead']} dead ends, "
         f"{tot['unflowed']} unflowed, {tot['tables']} state tables, {tot['missing']} missing states, "
         f"{len(problems)} problems"

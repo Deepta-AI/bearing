@@ -1,0 +1,18 @@
+# Production deployment. The release job rewrites the image tag when a
+# release is tagged on main.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rates-api
+spec:
+  replicas: 3
+  selector:
+    matchLabels: {app: rates-api}
+  template:
+    metadata:
+      labels: {app: rates-api}
+    spec:
+      containers:
+        - name: api
+          image: registry.example.internal/rates-api:v1.8.1
+          ports: [{containerPort: 8080}]

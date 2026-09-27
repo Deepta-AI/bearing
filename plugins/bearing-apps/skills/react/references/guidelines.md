@@ -32,6 +32,10 @@
   in the body, not in an effect that sets state.
 - URL state (filters, page, selected id) lives in typed search params
   validated with Zod on the route, so it survives reload and is shareable.
+  Param names are a contract with every link already built to the route;
+  keep them. A filter change resets the page; typing uses `replace`.
+- Local state that belongs to one entity (a draft for this customer) is
+  reset when the entity changes: `key={id}` on the owning component.
 
 ## Data fetching
 
@@ -48,7 +52,11 @@
   `useQuery`, `useSuspenseQuery`, route loaders and prefetches.
 - Pass the `signal` from the query function to `fetch` so a navigation
   cancels the request.
-- Mutations: `onSuccess` invalidates the affected keys; optimistic updates
+- Every request goes through `apiFetch`, which throws on a non-2xx status;
+  a 204 endpoint passes `z.undefined()` as the schema, never a bare `fetch`
+  whose status nobody reads.
+- Mutations: `onSuccess` invalidates the affected keys (the same key the
+  list query uses, from the factory); `onError` shows the failure; optimistic updates
   only with a rollback in `onError` and a measured need.
 - No request waterfalls. A route's data is started in its loader, all at
   once: `await Promise.all([qc.ensureQueryData(a), qc.ensureQueryData(b)])`,
@@ -121,6 +129,16 @@
 - Loading and result regions use `role="status"` or `aria-live="polite"`.
 - `eslint-plugin-jsx-a11y` is on in `make check`; Playwright specs include a
   keyboard path for every flow they cover.
+
+## Untrusted content
+
+- Text from the API or the user (notes, comments, names, pasted email) is
+  rendered as a React text child. Line breaks come from
+  `whitespace-pre-line`, not from building HTML.
+- `dangerouslySetInnerHTML` only for HTML that must stay HTML, sanitised
+  with DOMPurify at the point of render; say where it came from.
+- Links built from data allow `http:` and `https:` only; `target="_blank"`
+  carries `rel="noopener noreferrer"`.
 
 ## Configuration
 

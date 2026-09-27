@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "deny": [
+      "Bash(git push:*)",
+      "Bash(make deploy:*)",
+      "Bash(kubectl:*)",
+      "Bash(gh pr merge:*)",
+      "Read(./.env)"
+    ],
+    "ask": [
+      "Bash(git commit:*)"
+    ]
+  }
+}

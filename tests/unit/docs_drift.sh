@@ -4,7 +4,8 @@
 # target; leaves URLs, placeholders, gitignored paths and a make that is an
 # argument alone; warns on an env var no code reads and on a doc whose code
 # moved on; passes a clean repository; fails under --strict on warnings, and
-# fails on a repository with no docs.
+# fails on a repository with no docs; reads markdown outside docs/ and
+# checks a nested doc against its own Makefile.
 set -u
 . "$(dirname "$0")/../lib/assert.sh"
 CHK="$KIT/plugins/bearing/skills/docs-drift/scripts/docs_drift.py"
@@ -132,6 +133,22 @@ printf 'package main\n' > "$d/src/main.go"
 assert_exit 1 run "$d"
 assert_contains "$T_OUT" "README.md:1: broken-path: \`src/gone.go\` does not exist"
 assert_contains "$T_OUT" "docs-drift: 1 docs checked, 2 references checked, 1 broken, 0 warnings"
+t_end
+
+t_begin "markdown outside docs/ is checked; a nested Makefile and a CHANGELOG are respected"
+d="$(tmpdir)/wide"; mkdir -p "$d/svc/pay" "$d/testdata"
+printf '.PHONY: db-seed\ndb-seed:\n\t@echo ok\n' > "$d/Makefile"
+printf '.PHONY: run\nrun:\n\t@echo ok\n' > "$d/svc/pay/Makefile"
+printf 'Before the tests run `make seed`.\n' > "$d/CONTRIBUTING.md"
+printf 'Start it with `make run`.\n' > "$d/svc/pay/README.md"
+printf '## 0.3.0\n\n- `make seed` loads demo rows.\n' > "$d/CHANGELOG.md"
+printf 'Run `make nothing-here`.\n' > "$d/testdata/sample.md"
+assert_exit 1 run "$d"
+assert_contains "$T_OUT" "CONTRIBUTING.md:1: broken-make: make seed: no such target in the Makefile"
+assert_contains "$T_OUT" "CHANGELOG.md:3: history: make seed"
+assert_not_contains "$T_OUT" "make run"
+assert_not_contains "$T_OUT" "nothing-here"
+assert_contains "$T_OUT" "docs-drift: 3 docs checked, 2 references checked, 1 broken, 1 warnings"
 t_end
 
 t_summary

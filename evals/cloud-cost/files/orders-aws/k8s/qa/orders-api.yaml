@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: orders-api
+  labels: { app: orders-api, env: qa }
+spec:
+  replicas: 3
+  selector:
+    matchLabels: { app: orders-api }
+  template:
+    metadata:
+      labels: { app: orders-api, env: qa }
+    spec:
+      containers:
+        - name: api
+          image: 111122223333.dkr.ecr.ap-south-1.amazonaws.com/orders-api:2026.08.3
+          env:
+            - name: LOG_LEVEL
+              value: info
+            - name: LOG_GROUP
+              value: /orders/app-qa
+          resources:
+            requests: { cpu: "1", memory: 2Gi }
+            limits: { cpu: "2", memory: 4Gi }

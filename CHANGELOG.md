@@ -19,7 +19,7 @@ First public release, under the MIT licence.
   `make lint-plugin-size` holds each plugin under 512 files and 256 KiB a
   file; `make lint-version` covers every plugin and marketplace entry; the
   README lists every hook, what the guard blocks and every external fetch.
-- 105 skills, one per job across the product lifecycle: discovery and
+- 106 skills, one per job across the product lifecycle: discovery and
   planning (`prd`, `backlog`, `estimate`, `spike`, `explain-codebase`,
   `tech-debt`), decisions and architecture (`tech-decision`, `adr`,
   `high-level-design`, `low-level-design`, `architecture-diagram`,
@@ -28,11 +28,15 @@ First public release, under the MIT licence.
   `prompt-registry`, `rag`, `llm-agent`, `llm-gateway`, `llm-guardrails`,
   `llm-eval`, `llm-fine-tuning`, `mcp-server`), build and verify
   (`start-task`, `test-cases`, `test-automation`, `test-run`, `test-heal`,
-  `refactor`, `db-migration`, `definition-of-done`, `branch-review`),
-  ship and operate (`merge-request`, `release`, `verify-deploy`, `runbook`,
-  `incident`, `postmortem`, `on-call`), and conventions for thirteen
-  stacks. Claude loads each skill from a plain request, or it can be called
+  `refactor`, `simplify-code`, `db-migration`, `definition-of-done`,
+  `branch-review`), ship and operate (`merge-request`, `release`,
+  `verify-deploy`, `runbook`, `incident`, `postmortem`, `on-call`), and
+  conventions for thirteen stacks. Claude loads each skill from a plain request, or it can be called
   directly as `/bearing:<name>`.
+- `simplify-code`: reads every unit in scope (a path, a branch's diff or
+  the repository), decides keep, cut, inline or merge for each with its
+  evidence, and deletes what a change does not need with tests green after
+  every step; a cut that would change behaviour is proposed, not made.
 - `autopilot`: an unattended run from one statement to a prepared merge
   request, with a gate per stage; it never pushes. A headless run hands
   the smoke test of the shipped app to the launcher, which runs it outside

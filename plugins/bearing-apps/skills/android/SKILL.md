@@ -1,6 +1,6 @@
 ---
 name: android
-description: 'Conventions for native Android: Kotlin, Jetpack Compose, Material 3, Hilt, coroutines, Room, Retrofit, Gradle, ktlint, detekt. Use when writing, reviewing or scaffolding "Android", "Kotlin" or "Compose" code.'
+description: 'Android house rules (Kotlin, Jetpack Compose, Material 3, Hilt, coroutines, Room, Gradle). Load before writing or changing Android or Kotlin code. Use when asked for "a Room DAO", "a Hilt module" or an app.'
 allowed-tools: Read, Grep, Glob, Skill, Bash(./gradlew test:*), Bash(./gradlew lint:*), Bash(./gradlew ktlintCheck:*), Bash(./gradlew detekt:*), Bash(./gradlew assembleDebug:*), Bash(make:*)
 ---
 
@@ -11,15 +11,21 @@ The Android stack on this standard: Kotlin 2.4, Gradle 9.7 with the Kotlin DSL a
 coroutines + Flow, Room, Retrofit + kotlinx.serialization, DataStore,
 Keystore-backed token storage (Tink), ktlint + detekt, JUnit Jupiter (JUnit 6)
 for unit tests and JUnit 4 + Compose test rules for instrumented tests.
-minSdk 26, targetSdk and compileSdk 36 (Google Play requires target API 36
-for new apps and updates from 31 August 2026), JDK 17.
+minSdk 26, targetSdk and compileSdk 36, JDK 17. Google Play's target API
+floor for updates rises each year around 31 August (API 35 since 2025);
+check the Play Console policy page before citing a date or level.
 
 ## Inputs
 
 - Kotlin and Java files: the repository as it is; no scaffold is needed. A
   different layout is handled under "On a foreign layout".
 - Gate: `make check` when a Makefile has that target; else the native
-  commands under Commands, one by one.
+  commands under Commands, one by one. Check the toolchain first (a JDK,
+  `ANDROID_HOME` or `local.properties`, the wrapper's distribution already
+  in the Gradle user home). When one is missing, do not start the wrapper
+  at all: it downloads its distribution before Gradle reads `--offline`,
+  then plugins. Report the gate as not run and
+  name what was missing; never imply a build or a test passed.
 - `references/guidelines.md` and `references/review-checklist.md` ship
   with this skill. `bearing:new-repo` and `bearing:ci-pipeline` are suggestions for a
   repository without a Makefile or a pipeline, never prerequisites.
@@ -29,7 +35,15 @@ for new apps and updates from 31 August 2026), JDK 17.
 - Writing or changing `.kt`, `.kts` or `.java` files under an Android
   repository: apply `references/guidelines.md`. Read it once per session.
 - Reviewing a diff with those files: apply `references/review-checklist.md`
-  and report in the reviewer format.
+  and report every finding as severity (Critical, High, Medium, Low), `file:line`, the claim, a concrete failure scenario and the fix, then list what was checked and found clean and what was not reviewed.
+  Read the README, `docs/` and ADRs first: a change that breaks a promise
+  written there, or cannot work in the setting they describe (how emails
+  are sent, which host serves what), is a finding. Trace the user's real
+  path end to end (cold start, signed out, offline, a malformed link, a
+  second link while the screen is open, the real server payload through
+  the DTO), not only the diff. Verify every claim against the code and the library's
+  actual behaviour before writing it, low severities included, and say
+  which issues the branch introduced and which were already on main.
 - Scaffolding (`new-repo android <Name>`): `templates/` holds the
   skeleton and configs; `bin/brg-scaffold` in the bearing plugin copies them. Do not hand-copy.
 - Generating CI (`bearing:ci-pipeline`): `templates/.gitlab-ci.yml` is the source.
@@ -51,7 +65,7 @@ skill in the report.
   screen with a text field, a list or a bottom bar gets its checklist.
 - `android-intent-security`: a manifest change, an exported component, a
   deep link, a `PendingIntent` or code that reads intent extras, when
-  writing or reviewing. Its findings are reported under rule 6.
+  writing or reviewing. Its findings are reported under rule 7.
 - `r8-analyzer`: release size, keep rules, or a crash only a release build
   shows. It reports and never edits; the fix is a narrow rule written here.
   Its AGP 9.3+ path calls Python scripts the pack does not ship (absent at
@@ -91,7 +105,7 @@ documents the rename.
 ## On a foreign layout
 
 Hard rules anywhere: 1 (one state stream per screen, in the pattern the
-repository uses), 2, 4, 5, 6 and 8. Advisory: the directory layout,
+repository uses), 2, 4, 5, 6, 7 and 9. Advisory: the directory layout,
 Compose (existing View screens are not rewritten; new screens follow
 the rule), Hilt (Koin or Dagger stay where they are), Room, the version
 catalog and the Makefile targets: propose a switch in an ADR, never
@@ -113,16 +127,27 @@ inside a feature change. Say which rule was relaxed and why.
    by an Android Keystore key (`AndroidKeysetManager`), the ciphertext in
    DataStore. Never plaintext in DataStore or prefs, never a log.
    `EncryptedSharedPreferences` (security-crypto) is deprecated; do not add it,
-   and migrate it when a change touches token storage.
-6. No exported component beyond the launcher activity without a permission.
-   Every deep link and intent extra is validated before use.
-7. Compose: state hoisted to the Route, `remember` keys name every input,
+   and migrate it when a change touches token storage. The session lifecycle
+   (restore, key loss, refresh rotation and failure, sign out) follows "Sessions" in
+   `references/guidelines.md`.
+6. Backup: the token ciphertext and the Tink keyset file are excluded in
+   `backup_rules.xml` and in both `cloud-backup` and `device-transfer` of
+   `data_extraction_rules.xml`, because the Keystore key never travels.
+   Exclude files, never switch backup off for the app: settings the user
+   expects on a new phone keep travelling.
+7. No exported component beyond the launcher activity and link handlers
+   without a permission; a link handler (browsable VIEW filter) must be
+   exported, so its filters are narrow. Every deep link and intent extra
+   is validated before use. A link opened
+   from a cold start goes through the same session restore and sign-in
+   gate as the launcher.
+8. Compose: state hoisted to the Route, `remember` keys name every input,
    no side effects in composition, `LaunchedEffect` keys are the values that
    restart it. Every string and dimension comes from resources or the theme.
-8. Java repositories: fields are `final`, `Optional` never in a field or
+9. Java repositories: fields are `final`, `Optional` never in a field or
    parameter, no raw types, records (or AutoValue below API 34 desugaring)
    for values, `Executor`s injected, never `new Thread`.
-9. `make check` = ktlint, detekt, Android lint, unit tests, `assembleDebug`.
+10. `make check` = ktlint, detekt, Android lint, unit tests, `assembleDebug`.
    CI runs the same target.
 
 ## Commands

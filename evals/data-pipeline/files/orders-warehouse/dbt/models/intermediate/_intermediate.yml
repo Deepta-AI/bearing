@@ -1,0 +1,5 @@
+version: 2
+
+models:
+  - name: int_orders_by_merchant
+    description: Orders joined to their merchant; the input to the order marts.

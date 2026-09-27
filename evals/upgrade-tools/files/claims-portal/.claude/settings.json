@@ -1,0 +1,10 @@
+{
+  "extraKnownMarketplaces": {
+    "team-kit": {
+      "source": { "source": "directory", "path": "./tools/team-kit" }
+    }
+  },
+  "enabledPlugins": {
+    "team-review@team-kit": true
+  }
+}

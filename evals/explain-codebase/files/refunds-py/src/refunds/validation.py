@@ -1,5 +1,10 @@
 from dataclasses import dataclass, field
 
+from refunds.money import rupees
+
+# Large refunds are flagged in the API response.
+MANAGER_FLAG_FROM = rupees(5_000)
+
 
 @dataclass
 class RefundRequest:
@@ -19,6 +24,6 @@ def parse(body: dict) -> RefundRequest:
         raise ValueError("order_id is required")
     if req.amount_paise <= 0:
         raise ValueError("amount_paise must be positive")
-    if req.amount_paise >= 500000:
+    if req.amount_paise >= MANAGER_FLAG_FROM:
         req.flags.append("needs_manager")
     return req

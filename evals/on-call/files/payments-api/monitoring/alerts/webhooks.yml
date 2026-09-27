@@ -1,0 +1,11 @@
+groups:
+  - name: payments-webhooks
+    rules:
+      - alert: PaymentsWebhookBacklog
+        expr: max(payments_webhook_queue_depth{job="payments-api"}) > 500
+        for: 10m
+        labels:
+          severity: page
+          service: payments-api
+        annotations:
+          summary: "More than 500 provider webhooks are waiting to be processed"

@@ -4,8 +4,10 @@
      there (What), what a strong entry has (Good) and a one-line example
      (Example). Delete each comment when you fill its section. This report is
      the release's written security position, read by the release approver
-     and by auditors later; it turns scanner findings into a decision and
-     does not re-find them. Counts come from the collector's line verbatim.
+     and by auditors later; it turns scanner findings, confirmed at the
+     release commit, into a decision. The collector's counts line goes in
+     Method verbatim; the report's totals are after triage (merged by root
+     cause, refuted rows out, findings from outside the scanners in).
      No secrets, tokens or real PII anywhere, even redacted-looking ones.
      The header list: scope names services, URLs or apps and the release
      commit (or "scope derived from code", "whole codebase"); Method names
@@ -17,8 +19,9 @@
 
 - Scope (services, URLs, apps, commit)
 - Method: each scanner with its report path, the commit or date it
-  scanned and its verification status (claude-security, gstack /cso), or
-  the fallback auditor, named as such
+  scanned, its coverage (the changes since a tag, or the whole codebase)
+  and its verification status (claude-security, gstack /cso), or the
+  fallback review, named as such; what was looked at outside the scanners
 - Date, authors, reviewers
 
 ## Findings
@@ -40,6 +43,15 @@
 Severity: Critical = unauthenticated data access or code execution; High =
 authenticated cross-tenant access or secret exposure; Medium = needs an
 unusual precondition; Low = hardening.
+
+## Refuted
+
+<!-- What: scanner rows the release commit's code disproves, each with the
+     quoted line that decides it. They are not counted above.
+     Good: the file:line and the code that refutes the claim, read at the
+     release commit, not the working tree; "none" when every row held.
+     Example: "/cso #3 preview returns another tenant's file: refuted,
+     internal/files/handler.go:64 compares f.TenantID with the session." -->
 
 ## Checked, none found
 
@@ -64,13 +76,24 @@ unusual precondition; Low = hardening.
      Example: "14 threats read; T-07 linked to finding 1; T-11 (rate limit on
      /login) planned, still open." -->
 
+## Not done
+
+<!-- What: what this report did not do (no dynamic test of a running
+     service, no scanner run at the release commit, code outside the range
+     not reviewed) and what clearing would need.
+     Good: each gap named with the step that would close it, so nobody
+     reads silence as coverage.
+     Example: "No dynamic test of a deployed instance; claude-security not
+     rerun at the release commit (run 'scan changes' from v2.0.0 after the
+     fixes)." -->
+
 ## Release decision
 
 <!-- What: one of cleared, blocked (<n> Critical/High open), or cleared,
      pending a scanner run; then the sign-off.
-     Good: any open Critical or High, from the collector or from
-     insecure-defaults, means blocked; a report built only on the fallback
-     auditor reaches "cleared, pending a scanner run" at best; the signer is
+     Good: any open Critical or High, whatever found it (a scanner,
+     insecure-defaults or this review), means blocked; a report built only on the fallback
+     review reaches "cleared, pending a scanner run" at best; the signer is
      a named person with a date.
      Example: "Blocked (1 High open: finding 1, SEC-212). Signed off by:
      Meera K., security lead, 2026-09-24." -->

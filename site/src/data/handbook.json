@@ -5,12 +5,12 @@
    "name": "ab-experiment",
    "plugin": "bearing",
    "category": "product",
-   "what": "Designs and analyses an A/B test on a feature flag: hypothesis, primary and guardrail metrics, sample size, stopping rule, decision",
-   "when": "asked to \"A/B test this\", \"run an experiment\" or \"sample size\"",
+   "what": "Designs and analyses an A/B test: hypothesis, primary and guardrail metrics, sample size and duration, stopping rule, decision",
+   "when": "asked to \"A/B test this\", \"how long should it run\", \"is it significant\"",
    "phrases": [
     "A/B test this",
-    "run an experiment",
-    "sample size"
+    "how long should it run",
+    "is it significant"
    ],
    "invocation": "auto",
    "args": "design <name> [--flag <flag_name>] [--metric <event>] | analyse <name> [results.csv]"
@@ -64,12 +64,11 @@
    "name": "android",
    "plugin": "bearing-apps",
    "category": "stacks",
-   "what": "Conventions for native Android: Kotlin, Jetpack Compose, Material 3, Hilt, coroutines, Room, Retrofit, Gradle, ktlint, detekt",
-   "when": "writing, reviewing or scaffolding \"Android\", \"Kotlin\" or \"Compose\" code",
+   "what": "Android house rules (Kotlin, Jetpack Compose, Material 3, Hilt, coroutines, Room, Gradle). Load before writing or changing Android or Kotlin code",
+   "when": "asked for \"a Room DAO\", \"a Hilt module\" or an app",
    "phrases": [
-    "Android",
-    "Kotlin",
-    "Compose"
+    "a Room DAO",
+    "a Hilt module"
    ],
    "invocation": "auto",
    "args": ""
@@ -214,7 +213,7 @@
     "export the docs to Word"
    ],
    "invocation": "auto",
-   "args": "[--customer <name>] [--summary <what changed>] [--import-checklist <filled.xlsx>]"
+   "args": "[--customer <name>] [--summary <what changed>] [--import-checklist <filled.xlsx>] [--hold <file:line>]"
   },
   {
    "name": "client-handover",
@@ -262,8 +261,8 @@
    "name": "computer-vision",
    "plugin": "bearing",
    "category": "genai",
-   "what": "Builds computer vision features (VLM, classifier, detector, anomaly, document extraction) with leak-free splits and a cost-set threshold",
-   "when": "asked to \"classify images\", \"detect defects\" or \"extract from scans\"",
+   "what": "Builds image features (VLM, classifier, detector, quality check, document extraction) with leak-free splits and a cost-set threshold",
+   "when": "asked to \"classify images\", \"detect defects\", \"extract from scans\"",
    "phrases": [
     "classify images",
     "detect defects",
@@ -290,11 +289,10 @@
    "name": "data-pipeline",
    "plugin": "bearing-backend",
    "category": "stacks",
-   "what": "Conventions for data pipelines: dbt-core models with tests, Airflow 3 DAGs, sqlfluff, ruff, pytest, uv, partitioned backfills",
-   "when": "writing, reviewing or scaffolding \"dbt models\", \"an Airflow DAG\" or \"a backfill\"",
+   "what": "Data pipeline house rules (dbt models with tests, Airflow 3 DAGs, sqlfluff, partitioned backfills). Load before writing or changing dbt, Airflow or warehouse code",
+   "when": "asked for \"dbt models\", \"a backfill\"",
    "phrases": [
     "dbt models",
-    "an Airflow DAG",
     "a backfill"
    ],
    "invocation": "auto",
@@ -304,12 +302,11 @@
    "name": "database",
    "plugin": "bearing",
    "category": "stacks",
-   "what": "Conventions for PostgreSQL, ClickHouse and MongoDB: store choice, schema, indexes, query review, lock-safe migrations",
-   "when": "\"designing a schema\", \"choosing an index\", \"reviewing a query\" or \"which database\"",
+   "what": "Database work for PostgreSQL, ClickHouse or MongoDB: schema, indexes, slow query review with EXPLAIN, store choice, lock-safe changes",
+   "when": "asked about \"choosing an index\", \"a slow query\" or \"which database\"",
    "phrases": [
-    "designing a schema",
     "choosing an index",
-    "reviewing a query",
+    "a slow query",
     "which database"
    ],
    "invocation": "auto",
@@ -333,12 +330,12 @@
    "name": "definition-of-done",
    "plugin": "bearing",
    "category": "task flow",
-   "what": "Checks the current branch against the Definition of Done with evidence per item: gate, tests, docs, scope, commits, a smoke run of the app",
-   "when": "asked \"am I done\", \"is this ready to merge\" or \"definition of done\"",
+   "what": "Checks a branch or ticket against the Definition of Done, with evidence per item: gate, tests, docs, scope, commits, smoke run",
+   "when": "asked \"am I done\", \"is this story complete\" or \"ready to merge?\"",
    "phrases": [
     "am I done",
-    "is this ready to merge",
-    "definition of done"
+    "is this story complete",
+    "ready to merge?"
    ],
    "invocation": "auto",
    "args": "[base branch, default: the state file's Base line, else develop, else main]"
@@ -361,12 +358,11 @@
    "name": "deployment-architecture",
    "plugin": "bearing",
    "category": "architecture",
-   "what": "Documents how the system is deployed, with a diagram: environments, topology, scaling, backups, rollback, DR, each claim sourced",
-   "when": "asked \"how is this deployed\", \"what runs where\" or \"document the deployment\"",
+   "what": "Documents how and where the system is deployed, with a diagram: environments, topology, scaling, backups, rollback, DR, each claim sourced",
+   "when": "asked \"what runs where\", \"how is it deployed\"",
    "phrases": [
-    "how is this deployed",
     "what runs where",
-    "document the deployment"
+    "how is it deployed"
    ],
    "invocation": "auto",
    "args": "[--infra <path to infra repo or envs/ dir>]"
@@ -458,12 +454,12 @@
    "name": "explain-codebase",
    "plugin": "bearing",
    "category": "architecture",
-   "what": "Explains a repository or subsystem read-only, path:line for every claim: entry points, module map, one request traced, key files",
-   "when": "asked to \"explain this repo\", \"how does this work\" or \"where is X handled\"",
+   "what": "Explains how a repo or feature works, read-only, path:line for every claim: entry points, module map, one request traced",
+   "when": "asked \"how does this work\", \"where is X handled\" or \"trace this request\"",
    "phrases": [
-    "explain this repo",
     "how does this work",
-    "where is X handled"
+    "where is X handled",
+    "trace this request"
    ],
    "invocation": "auto",
    "args": "[question, subsystem or path; default the whole repo]"
@@ -486,11 +482,11 @@
    "name": "feature-patterns",
    "plugin": "bearing",
    "category": "architecture",
-   "what": "Plans one common feature mechanism (uploads, search, realtime, caching, rate limits, payments, notifications, multitenancy) with tests",
-   "when": "asked to \"add file uploads\", \"add search\" or \"rate limiting\"",
+   "what": "Plans one common feature mechanism before code: uploads, search, realtime, caching, rate limits, payments, notifications, multitenancy",
+   "when": "asked to \"add file uploads\", \"add realtime\" or \"rate limiting\"",
    "phrases": [
     "add file uploads",
-    "add search",
+    "add realtime",
     "rate limiting"
    ],
    "invocation": "auto",
@@ -555,10 +551,9 @@
    "name": "go",
    "plugin": "bearing-backend",
    "category": "stacks",
-   "what": "Conventions for Go services: net/http mux, pgx, sqlc, goose, slog, golangci-lint, table-driven and httptest tests",
-   "when": "writing, reviewing or scaffolding \"Go\" code, \"a Go handler\" or \"sqlc queries\"",
+   "what": "Go house rules (net/http, pgx, sqlc, goose, slog, table-driven and httptest tests). Load before writing or changing any Go code",
+   "when": "asked for \"a Go handler\", \"sqlc queries\" or a new Go service",
    "phrases": [
-    "Go",
     "a Go handler",
     "sqlc queries"
    ],
@@ -596,13 +591,12 @@
    "name": "high-level-design",
    "plugin": "bearing",
    "category": "architecture",
-   "what": "Writes a High Level Design (HLD): goals and non-goals agreed first, then architecture, data, interfaces, failure modes, scaling, rollout",
-   "when": "asked for an \"HLD\", \"system design\", \"high level design\" or \"design doc\"",
+   "what": "Writes a High Level Design (HLD): goals and non-goals agreed first, then architecture, data, interfaces, failure modes, rollout",
+   "when": "asked for an \"HLD\", \"system design\" or \"an architecture overview\"",
    "phrases": [
     "HLD",
     "system design",
-    "high level design",
-    "design doc"
+    "an architecture overview"
    ],
    "invocation": "auto",
    "args": "<title> [path to PRD or notes] [--continue after the goal is agreed]"
@@ -640,12 +634,11 @@
    "name": "infra",
    "plugin": "bearing-backend",
    "category": "stacks",
-   "what": "Conventions for infrastructure code: Terraform modules and remote state, per-environment directories, tflint, Trivy, kustomize, plan-only CI",
-   "when": "writing or reviewing \"Terraform\", \"k8s manifests\" or \"infra\"",
+   "what": "Infrastructure house rules (Terraform modules, remote state, per-env dirs, tflint, Trivy, kustomize, plan-only CI). Load before changing Terraform or k8s",
+   "when": "asked about \"remote state\", \"a kustomize overlay\"",
    "phrases": [
-    "Terraform",
-    "k8s manifests",
-    "infra"
+    "remote state",
+    "a kustomize overlay"
    ],
    "invocation": "auto",
    "args": ""
@@ -654,12 +647,11 @@
    "name": "ios",
    "plugin": "bearing-apps",
    "category": "stacks",
-   "what": "Conventions for native iOS: Swift 6, SwiftUI, Observation, Swift Concurrency, SwiftPM, XcodeGen, SwiftData, Swift Testing, Fastlane",
-   "when": "writing, reviewing or scaffolding \"Swift\", \"SwiftUI\" or \"iOS\" code",
+   "what": "iOS house rules (Swift 6, SwiftUI, Observation, Swift Concurrency, SwiftData, Swift Testing). Load before writing or changing Swift or iOS code",
+   "when": "asked for \"an iPhone screen\", \"SwiftData models\"",
    "phrases": [
-    "Swift",
-    "SwiftUI",
-    "iOS"
+    "an iPhone screen",
+    "SwiftData models"
    ],
    "invocation": "auto",
    "args": ""
@@ -725,12 +717,11 @@
    "name": "llm-gateway",
    "plugin": "bearing",
    "category": "genai",
-   "what": "Puts every LLM call behind one gateway module: routing by model tier, retries, timeouts, rate limits, caching, cost tracking, fallbacks",
-   "when": "asked to \"add an LLM call\", \"track LLM cost\" or \"find every model call\"",
+   "what": "Puts every LLM call behind one gateway: model tiers, retries, timeouts, rate limits, caching, cost, fallbacks; starts by finding every call",
+   "when": "asked to \"find every model call\", \"track LLM cost\"",
    "phrases": [
-    "add an LLM call",
-    "track LLM cost",
-    "find every model call"
+    "find every model call",
+    "track LLM cost"
    ],
    "invocation": "auto",
    "args": "[audit] [--stack python|typescript]"
@@ -739,12 +730,11 @@
    "name": "llm-guardrails",
    "plugin": "bearing",
    "category": "genai",
-   "what": "Adds guardrails to an LLM feature: prompt injection and PII checks before the model, a tool-call permission gate, output checks, adversarial tests",
-   "when": "asked for \"guardrails\", \"prompt injection\" or \"PII in prompts\"",
+   "what": "Secures an LLM feature or agent: prompt injection and jailbreak defence, PII checks, a tool-call permission gate, output checks, adversarial tests",
+   "when": "asked for \"guardrails\" or about \"prompt injection\"",
    "phrases": [
     "guardrails",
-    "prompt injection",
-    "PII in prompts"
+    "prompt injection"
    ],
    "invocation": "auto",
    "args": "[feature name] [python|typescript] [--audit]"
@@ -754,12 +744,11 @@
    "plugin": "bearing",
    "category": "quality",
    "what": "Writes k6 load tests from the SLOs with failing thresholds (smoke, load, stress, soak) and a manual CI job; refuses production",
-   "when": "asked to \"load test\", \"performance test the API\", \"soak test\" or \"hold p95\"",
+   "when": "asked whether it \"holds at peak\", to \"load test\" or \"soak test\"",
    "phrases": [
+    "holds at peak",
     "load test",
-    "performance test the API",
-    "soak test",
-    "hold p95"
+    "soak test"
    ],
    "invocation": "auto",
    "args": "<local|qa|base URL> [smoke|load|stress|soak, default smoke]"
@@ -810,7 +799,7 @@
    "name": "merge-request",
    "plugin": "bearing",
    "category": "task flow",
-   "what": "Prepares the merge request for the current branch: gate run, commit audit, diff summary, MR description, ticket link, push command; never pushes",
+   "what": "Prepares the merge request for the current branch: gate run, commit audit, diff summary, description, ticket link, push command; never pushes",
    "when": "asked to \"prepare the MR\", \"write the PR description\"",
    "phrases": [
     "prepare the MR",
@@ -865,11 +854,11 @@
    "name": "nextjs",
    "plugin": "bearing-apps",
    "category": "stacks",
-   "what": "Conventions for Next.js: Next 16 App Router, React 19, server components, server actions with Zod, Tailwind v4, shadcn/ui, Playwright",
-   "when": "writing, reviewing or scaffolding \"Next.js\" or \"App Router\" code",
+   "what": "Next.js house rules (App Router, React 19, server components, server actions with Zod, Tailwind, shadcn/ui). Load before writing or changing Next.js code",
+   "when": "asked for \"an App Router page\", \"a new route\"",
    "phrases": [
-    "Next.js",
-    "App Router"
+    "an App Router page",
+    "a new route"
    ],
    "invocation": "auto",
    "args": ""
@@ -878,11 +867,10 @@
    "name": "node",
    "plugin": "bearing-backend",
    "category": "stacks",
-   "what": "Conventions for Node services: Node 24, TypeScript, Fastify 5, Zod 4, Drizzle ORM, pino, OpenTelemetry, vitest, pnpm",
-   "when": "writing, reviewing or scaffolding \"Fastify\", \"Drizzle\" or \"a Node API\" code",
+   "what": "Node house rules (Node 24, TypeScript, Fastify 5, Zod, Drizzle, pino, vitest, pnpm). Load before writing or changing Node or TypeScript backend code",
+   "when": "asked for \"a Fastify route\", \"a Node API\"",
    "phrases": [
-    "Fastify",
-    "Drizzle",
+    "a Fastify route",
     "a Node API"
    ],
    "invocation": "auto",
@@ -929,7 +917,7 @@
     "adopt the standard"
    ],
    "invocation": "auto",
-   "args": "[--stack <id>] [--apply-new]"
+   "args": "[--stack <id>] [--full]"
   },
   {
    "name": "openapi-spec",
@@ -949,16 +937,15 @@
    "name": "performance",
    "plugin": "bearing",
    "category": "quality",
-   "what": "Profiles and fixes slowness with the stack's profiler (pprof, py-spy, clinic, Lighthouse, Instruments), with before and after numbers",
-   "when": "told \"this is slow\", \"profile this\", \"optimise\" or \"p95 is high\"",
+   "what": "Finds and fixes slowness by profiling first (pprof, py-spy, clinic, Lighthouse, Instruments), with before and after numbers",
+   "when": "something is slow: \"this is slow\", \"profile this\", \"p95 is high\"",
    "phrases": [
     "this is slow",
     "profile this",
-    "optimise",
     "p95 is high"
    ],
    "invocation": "auto",
-   "args": "<symptom or endpoint> [--metric p95|cpu|heap|lcp|startup] [--runs 3]"
+   "args": "<symptom or endpoint> [--metric p95|cpu|heap|peak|lcp|startup] [--runs 3]"
   },
   {
    "name": "postmortem",
@@ -1036,12 +1023,11 @@
    "name": "python",
    "plugin": "bearing-backend",
    "category": "stacks",
-   "what": "Conventions for Python services: Python 3.14, FastAPI, Pydantic v2, SQLAlchemy 2 async, Alembic, structlog, uv, ruff, pytest",
-   "when": "writing, reviewing or scaffolding \"FastAPI\", \"Pydantic\" or \"Python service\" code",
+   "what": "Python house rules (3.14, FastAPI, Pydantic v2, async SQLAlchemy, Alembic, uv, ruff, pytest). Load before writing or changing any Python code",
+   "when": "asked for \"a Celery task\", \"a Python service\"",
    "phrases": [
-    "FastAPI",
-    "Pydantic",
-    "Python service"
+    "a Celery task",
+    "a Python service"
    ],
    "invocation": "auto",
    "args": ""
@@ -1050,12 +1036,11 @@
    "name": "rag",
    "plugin": "bearing",
    "category": "genai",
-   "what": "Builds retrieval-augmented generation (RAG) on pgvector: ingestion, chunking, embeddings, a retriever with citations, retrieval metrics",
-   "when": "asked to \"add RAG\", \"chat with our documents\" or \"chunk and embed\"",
+   "what": "Builds retrieval-augmented generation (RAG) on pgvector: ingestion, chunking, embeddings, a retriever that cites sources, retrieval metrics",
+   "when": "answers must come from documents: \"add RAG\", \"cite the source\"",
    "phrases": [
     "add RAG",
-    "chat with our documents",
-    "chunk and embed"
+    "cite the source"
    ],
    "invocation": "auto",
    "args": "<naive|hybrid|reranked|hierarchical|graph|agentic|sql|multimodal|long-context> <name> [--corpus <path>]"
@@ -1064,13 +1049,11 @@
    "name": "react",
    "plugin": "bearing-apps",
    "category": "stacks",
-   "what": "Conventions for React web apps: React 19, TypeScript, Vite, TanStack Query and Router, Zustand, Zod, shadcn/ui, Tailwind v4, vitest",
-   "when": "writing, reviewing or scaffolding \"React\", \"TSX\", \"shadcn\" or \"Tailwind\" code",
+   "what": "React house rules (React 19, TypeScript, Vite, TanStack Query, Zustand, Zod, shadcn/ui, Tailwind). Load before writing or changing React or TSX code",
+   "when": "asked for \"a React component\", \"a query hook\"",
    "phrases": [
-    "React",
-    "TSX",
-    "shadcn",
-    "Tailwind"
+    "a React component",
+    "a query hook"
    ],
    "invocation": "auto",
    "args": ""
@@ -1079,12 +1062,11 @@
    "name": "react-native",
    "plugin": "bearing-apps",
    "category": "stacks",
-   "what": "Conventions for React Native: Expo SDK 57, expo-router, TypeScript, TanStack Query, Zustand, Zod, NativeWind, EAS, Maestro",
-   "when": "writing, reviewing or scaffolding \"React Native\", \"Expo\" or \"NativeWind\" code",
+   "what": "React Native house rules (Expo, expo-router, TanStack Query, Zustand, Zod, NativeWind, EAS). Load before writing or changing React Native or Expo code",
+   "when": "asked for \"an Expo screen\", \"an EAS build\"",
    "phrases": [
-    "React Native",
-    "Expo",
-    "NativeWind"
+    "an Expo screen",
+    "an EAS build"
    ],
    "invocation": "auto",
    "args": ""
@@ -1151,7 +1133,7 @@
    "name": "screen-design",
    "plugin": "bearing",
    "category": "design",
-   "what": "Designs every screen in every state, desktop and phone: React and shadcn screens in the app's design gallery, or HTML mockups",
+   "what": "Designs every screen in every state (empty, error, loading), desktop and phone, as clickable React or HTML mockups before code",
    "when": "asked to \"design the screens\", \"hi-fi mockups\" or \"show every state\"",
    "phrases": [
     "design the screens",
@@ -1159,7 +1141,7 @@
     "show every state"
    ],
    "invocation": "auto",
-   "args": "<feature> [--screens S-01,S-03] [--framework react-shadcn|react-native|compose|swiftui|web] [--round N] [--standalone]"
+   "args": "<feature> [--screens S-01,S-03] [--framework react-shadcn|react-native|flutter|compose|swiftui|web] [--round N] [--standalone]"
   },
   {
    "name": "secrets",
@@ -1188,6 +1170,19 @@
    ],
    "invocation": "auto",
    "args": "[note to put first under Next]"
+  },
+  {
+   "name": "simplify-code",
+   "plugin": "bearing",
+   "category": "task flow",
+   "what": "Deletes code a change does not need (dead code, one-use abstractions, unused options, redundant checks), tests green after each cut; refactor only moves code",
+   "when": "asked to \"simplify this code\" or \"cut the bloat\"",
+   "phrases": [
+    "simplify this code",
+    "cut the bloat"
+   ],
+   "invocation": "auto",
+   "args": "[<path or module> | --branch [<base>] | --repo]"
   },
   {
    "name": "speech",
@@ -1235,12 +1230,11 @@
    "name": "tabular-ml",
    "plugin": "bearing",
    "category": "genai",
-   "what": "Builds classical ML on tabular or event data (churn, scoring, forecasts, anomalies) with leak-proof splits, a baseline, calibration, drift checks",
-   "when": "asked to \"predict churn\", \"forecast demand\" or \"train a model\"",
+   "what": "Builds classical ML on tables or events (churn, scoring, demand forecasts, anomalies) with leak-proof splits, a baseline, calibration, drift checks",
+   "when": "asked to \"predict churn\", \"forecast demand\"",
    "phrases": [
     "predict churn",
-    "forecast demand",
-    "train a model"
+    "forecast demand"
    ],
    "invocation": "auto",
    "args": "<classify|regress|forecast|anomaly|rank> <name> [--data <path>]"
@@ -1249,12 +1243,11 @@
    "name": "task-report",
    "plugin": "bearing",
    "category": "task flow",
-   "what": "Reports a finished task under four headings: Changed, Verified, Not done, Noticed",
-   "when": "asked to \"write up what you did\", \"report back\", \"summarise the work\", \"give me the status\" or at the end of any task",
+   "what": "Writes the end-of-task report: Changed, Verified, Not done, Noticed, with evidence",
+   "when": "work is finished or someone asks for a summary of it: \"write up what you did\", \"report back\", \"give me the status\"",
    "phrases": [
     "write up what you did",
     "report back",
-    "summarise the work",
     "give me the status"
    ],
    "invocation": "auto",
@@ -1306,12 +1299,11 @@
    "name": "test-cases",
    "plugin": "bearing",
    "category": "quality",
-   "what": "Writes test cases from acceptance criteria: risk per story, scenarios, TC-numbered cases with steps and a test plan; no test code",
-   "when": "asked to \"write the test cases\", \"build the test plan\" or \"cover the criteria\"",
+   "what": "Writes manual test cases and a test plan from acceptance criteria: risk per story, scenarios, TC-numbered steps; no test code",
+   "when": "QA needs \"the test cases\", \"the manual test plan\" or scenarios",
    "phrases": [
-    "write the test cases",
-    "build the test plan",
-    "cover the criteria"
+    "the test cases",
+    "the manual test plan"
    ],
    "invocation": "auto",
    "args": "[backlog path, default docs/product/backlog.md] [story id to limit, e.g. US-03-002]"
@@ -1383,7 +1375,7 @@
     "untested"
    ],
    "invocation": "auto",
-   "args": "[base ref for git log, default the repository's first commit]"
+   "args": "[base branch for a branch audit; omitted, the whole history]"
   },
   {
    "name": "tracker-sync",
@@ -1914,6 +1906,12 @@
      "skill": "refactor",
      "from": "bearing",
      "output": "tests green first, one mechanical transform per commit, make check between, a diff ceiling"
+    },
+    {
+     "stage": "Cut code a change does not need",
+     "skill": "simplify-code",
+     "from": "bearing",
+     "output": "every unit in scope inventoried, each cut reasoned, tests green after every step, behaviour changes proposed"
     },
     {
      "stage": "Something is slow",
@@ -3280,7 +3278,7 @@
      "purpose": "Asks a person to type the branch name before any push, refuses a push to the trunk, runs make check. This is what keeps an agent from pushing on every harness.",
      "edit": "Nothing.",
      "keep": "All of it.",
-     "content": "#!/usr/bin/env bash\n# pre-push: a person confirms on the terminal, branch name convention, no\n# push to protected branches, and the full gate (make check) once before\n# anything leaves the machine.\nHOOK_NAME=pre-push\n# shellcheck source=lib.sh\n. \"$(dirname \"$0\")/lib.sh\"\n\nremote=\"${1:-origin}\"\nbranch=\"$(git branch --show-current)\"\n\n# Count the commits this push carries. git feeds one line per ref on stdin:\n#   <local ref> <local sha> <remote ref> <remote sha>\n# A remote sha of all zeros means the branch is new on the remote, so the\n# count is every commit not already reachable from the remote's branches.\nzero='0000000000000000000000000000000000000000'\nrefs=0; commits=0\nwhile read -r local_ref local_sha remote_ref remote_sha; do\n  [ -n \"$local_ref\" ] || continue\n  refs=$((refs+1))\n  if [ \"$local_sha\" = \"$zero\" ]; then\n    continue # a delete carries no commits\n  elif [ \"$remote_sha\" = \"$zero\" ]; then\n    n=\"$(git rev-list --count \"$local_sha\" --not --remotes=\"$remote\" 2>/dev/null || echo 0)\"\n  else\n    n=\"$(git rev-list --count \"$remote_sha..$local_sha\" 2>/dev/null || echo 0)\"\n  fi\n  commits=$((commits+n))\n  hook_note \"$local_ref -> ${remote_ref:-?}: $n commit(s)\"\ndone\n[ \"$refs\" -gt 0 ] || hook_fail \"git handed the hook 0 refs; nothing to push\"\n[ \"$commits\" -gt 0 ] || hook_fail \"0 commits to push; the remote already has everything on this ref\"\n\n# The engineer pushes; agents do not. A push must be confirmed by a person on\n# the terminal within 60 seconds. A coding agent (any harness) runs without a\n# controlling TTY, so the read fails and the push is refused. The bypass is\n# for pipelines only and needs both a CI marker and an explicit opt-in.\nin_ci=0\nif [ \"${CI:-}\" = \"true\" ] || [ \"${CI:-}\" = \"1\" ] || [ -n \"${GITLAB_CI:-}\" ] || [ -n \"${GITHUB_ACTIONS:-}\" ]; then in_ci=1; fi\nif [ \"$in_ci\" -eq 1 ] && [ \"${BEARING_PUSH_CONFIRMED:-0}\" = \"1\" ]; then\n  hook_note \"push confirmed by CI (BEARING_PUSH_CONFIRMED=1)\"\nelif { exec 3<>/dev/tty; } 2>/dev/null; then\n  # fd 3 is the controlling terminal; opening it fails where there is none.\n  printf 'Push %s to %s (%s commits)? Type the branch name to confirm (60 s): ' \"$branch\" \"$remote\" \"$commits\" >&3\n  read -r -t 60 typed <&3 || typed=\"\"\n  exec 3>&-\n  [ \"$typed\" = \"$branch\" ] || hook_fail \"push not confirmed\"\nelse\n  hook_fail \"no terminal to confirm the push; a person runs git push (CI sets CI=true and BEARING_PUSH_CONFIRMED=1)\"\nfi\n\ncase \"$branch\" in\n  main|develop) hook_fail \"direct push to $branch is not allowed; open a Merge Request\" ;;\nesac\nprintf '%s' \"$branch\" | grep -Eq \"$BRANCH_RE\" \\\n  || hook_fail \"branch '$branch' does not match feature|bugfix|hotfix|chore|docs/<TASK-ID>-<PascalName> or release/vX.Y.Z\"\n\n# The gate. A repository on this standard has a Makefile with a check target;\n# a missing one is a failure, not a note.\nmakefile=\"\"\nfor m in Makefile makefile GNUmakefile; do [ -f \"$m\" ] && { makefile=\"$m\"; break; }; done\n[ -n \"$makefile\" ] || hook_fail \"no Makefile; add a check target or run onboard-repo\"\ngrep -qE '^check:' \"$makefile\" || hook_fail \"no check target in $makefile; add a check target or run onboard-repo\"\nhook_note \"running make check\"\nmake check || hook_fail \"make check failed; nothing was pushed\"\nhook_note \"$commits commit(s) on $branch checked, gate passed\"\nexit 0\n"
+     "content": "#!/usr/bin/env bash\n# pre-push: judged on the refs git hands the hook, not on the checked-out\n# branch, so `git push origin HEAD:main` is refused like `git push` from main.\n# Per ref: no push to or deletion of a protected branch, the branch name\n# convention, and every commit's message re-checked (a commit made with\n# --no-verify is caught here). Then the confirmation lib.sh's PUSH_CONFIRM\n# asks for, and the full gate once before anything leaves the machine.\nHOOK_NAME=pre-push\n# shellcheck source=lib.sh\n. \"$(dirname \"$0\")/lib.sh\"\n\nremote=\"${1:-origin}\"\nzero='0000000000000000000000000000000000000000'\ntmp=\"$(mktemp \"${TMPDIR:-/tmp}/pre-push.XXXXXX\")\"\ntrap 'rm -f \"$tmp\"' EXIT\n\n# Commits already on a protected branch here or on the remote are not this\n# push's to answer for: older history that predates the rules must not block\n# every new branch.\nknown=()\nfor b in $PROTECTED_BRANCHES; do\n  git rev-parse -q --verify \"refs/heads/$b\" >/dev/null && known+=(\"refs/heads/$b\")\ndone\n\n# git feeds one line per ref on stdin:\n#   <local ref> <local sha> <remote ref> <remote sha>\nrefs=0; commits=0; checked=0; dest=\"\"; pushed_shas=\"\"\nwhile read -r local_ref local_sha remote_ref remote_sha; do\n  [ -n \"$local_ref\" ] || continue\n  refs=$((refs+1))\n  case \"$remote_ref\" in\n    refs/heads/*) rbranch=\"${remote_ref#refs/heads/}\" ;;\n    *) hook_note \"$remote_ref: not a branch, branch rules not applied\"; continue ;;\n  esac\n  if is_protected \"$rbranch\"; then\n    [ \"$local_sha\" = \"$zero\" ] && hook_fail \"deleting $rbranch on $remote is not allowed\"\n    hook_fail \"direct push to $rbranch is not allowed (from $local_ref); open a merge request\"\n  fi\n  [ \"$local_sha\" = \"$zero\" ] && { hook_note \"delete $rbranch\"; continue; }\n  printf '%s' \"$rbranch\" | grep -Eq \"$BRANCH_RE\" \\\n    || hook_fail \"branch '$rbranch' does not match (${BRANCH_PREFIXES})/<TASK-ID>-<ShortName> or release/vX.Y.Z\"\n  if [ \"$remote_sha\" = \"$zero\" ] || ! git cat-file -e \"$remote_sha^{commit}\" 2>/dev/null; then\n    range=(\"$local_sha\" --not --remotes=\"$remote\" ${known[@]+\"${known[@]}\"})\n  else\n    range=(\"$remote_sha..$local_sha\")\n  fi\n  n=0; task=\"$(task_of \"$rbranch\")\"\n  for c in $(git rev-list --no-merges \"${range[@]}\"); do\n    git log -1 --format=%B \"$c\" > \"$tmp\"\n    problem=\"$(message_problem \"$tmp\" \"$task\")\" || hook_fail \"commit $(git rev-parse --short \"$c\") on $rbranch: $problem (reword it: git rebase -i)\"\n    n=$((n+1))\n  done\n  commits=$((commits+n)); checked=$((checked+1))\n  dest=\"${dest:-$rbranch}\"; pushed_shas=\"$pushed_shas $local_sha\"\n  hook_note \"$local_ref -> $remote_ref: $n new commit message(s) checked\"\ndone\n[ \"$refs\" -gt 0 ] || hook_fail \"git handed the hook 0 refs; nothing checked\"\n[ \"$checked\" -gt 0 ] || { hook_note \"$refs ref(s), none a branch update; gate not needed\"; exit 0; }\n\n# Confirmation (lib.sh PUSH_CONFIRM). The engineer pushes; a coding agent\n# does not.\nagent=\"\"\nfor v in CLAUDECODE CLAUDE_CODE_ENTRYPOINT CODEX_SANDBOX CODEX_SANDBOX_NETWORK_DISABLED GEMINI_CLI CURSOR_AGENT; do\n  [ -n \"${!v:-}\" ] && { agent=\"$v\"; break; }\ndone\ncase \"$PUSH_CONFIRM\" in\n  off) ;;\n  agents) [ -z \"$agent\" ] || hook_fail \"a coding agent is pushing ($agent is set); the engineer runs git push\" ;;\n  *)\n    [ -z \"$agent\" ] || hook_fail \"a coding agent is pushing ($agent is set); the engineer runs git push\"\n    # A pipeline that pushes opts in with both a CI marker and the kit flag.\n    if { [ \"${CI:-}\" = true ] || [ -n \"${GITLAB_CI:-}${GITHUB_ACTIONS:-}\" ]; } && [ \"${BEARING_PUSH_CONFIRMED:-0}\" = 1 ]; then\n      hook_note \"push confirmed by CI (BEARING_PUSH_CONFIRMED=1)\"\n    else\n      { exec 3<>/dev/tty; } 2>/dev/null \\\n        || hook_fail \"no terminal to confirm the push (PUSH_CONFIRM=tty in .githooks/lib.sh); push from a terminal, or set PUSH_CONFIRM=agents\"\n      printf 'Push %s to %s? Type the branch name to confirm (60 s): ' \"$dest\" \"$remote\" >&3\n      read -r -t 60 typed <&3 || typed=\"\"\n      exec 3>&-\n      [ \"$typed\" = \"$dest\" ] || hook_fail \"push not confirmed\"\n    fi ;;\nesac\n\n# The gate runs on the working tree, which is what was pushed only when HEAD\n# is the pushed commit and nothing tracked is modified. Say so when it is not.\nhead=\"$(git rev-parse -q --verify HEAD || true)\"\ncase \" $pushed_shas \" in *\" $head \"*) ;; *) hook_note \"the gate runs on the checkout ($head), not on the pushed ref(s)\";; esac\ngit diff --quiet HEAD -- 2>/dev/null || hook_note \"tracked files are modified; the gate result includes uncommitted changes\"\nif [ \"$GATE_CMD\" = \"make check\" ]; then\n  makefile=\"\"\n  for m in GNUmakefile makefile Makefile; do [ -f \"$m\" ] && { makefile=\"$m\"; break; }; done\n  [ -n \"$makefile\" ] || hook_fail \"no Makefile; add a check target or set GATE_CMD in .githooks/lib.sh\"\n  grep -qE '^check:' \"$makefile\" || hook_fail \"no check target in $makefile; add one or set GATE_CMD in .githooks/lib.sh\"\nfi\nhook_note \"running $GATE_CMD\"\nbash -c \"$GATE_CMD\" </dev/null || hook_fail \"$GATE_CMD failed; nothing was pushed\"\nhook_note \"$checked branch ref(s), $commits commit message(s) checked, gate passed\"\nexit 0\n"
     },
     {
      "path": ".githooks/commit-msg",
@@ -3291,7 +3289,7 @@
      "purpose": "Conventional Commits, the task id, no AI attribution trailer, no em dash.",
      "edit": "Nothing.",
      "keep": "All of it.",
-     "content": "#!/usr/bin/env bash\n# commit-msg: Conventional Commit subject, task id present on task branches,\n# no AI attribution trailer, no em dash, body wrapped.\nHOOK_NAME=commit-msg\n# shellcheck source=lib.sh\n. \"$(dirname \"$0\")/lib.sh\"\n\nmsg_file=\"$1\"\nsubject=\"$(sed -n '1p' \"$msg_file\")\"\n[ -n \"$subject\" ] || hook_fail \"empty commit message\"\n\ncase \"$subject\" in\n  Merge\\ *|Revert\\ *|fixup!\\ *|squash!\\ *) hook_note \"1 message checked (git-generated subject, rules not applied)\"; exit 0 ;;\nesac\n\nprintf '%s' \"$subject\" | grep -Eq \"$COMMIT_RE\" \\\n  || hook_fail \"subject must be Conventional: 'type(scope): imperative summary [TASK-1]'. Got: $subject\"\n\nbranch=\"$(git branch --show-current 2>/dev/null)\"\ntask=\"$(printf '%s' \"$branch\" | grep -oE \"$TASK_ID_RE\" | head -1)\"\nif [ -n \"$task\" ] && ! printf '%s' \"$subject\" | grep -q \"\\[$task\\]\"; then\n  hook_fail \"branch carries $task; the subject must end with [$task]\"\nfi\n\ngrep -Eq \"$AI_TRAILER_RE\" \"$msg_file\" && hook_fail \"AI attribution trailer found; a commit names a person who answers for it\"\ngrep -q '—' \"$msg_file\" && hook_fail \"em dash in commit message; rewrite the sentence\"\n\nlong=\"$(sed -n '3,$p' \"$msg_file\" | grep -v '^#' | awk 'length > 100' | wc -l | tr -d ' ')\"\n[ \"$long\" -eq 0 ] || hook_fail \"$long body line(s) over 100 characters; wrap the body\"\nhook_note \"1 message checked\"\nexit 0\n"
+     "content": "#!/usr/bin/env bash\n# commit-msg: Conventional Commit subject, task id present on task branches,\n# and the optional rules in lib.sh's policy block (AI trailer, em dash, body\n# width). pre-push runs the same check on every commit it sends.\nHOOK_NAME=commit-msg\n# shellcheck source=lib.sh\n. \"$(dirname \"$0\")/lib.sh\"\n\nmsg_file=\"${1:-}\"\n[ -n \"$msg_file\" ] && [ -f \"$msg_file\" ] || hook_fail \"usage: commit-msg <message file>\"\nbranch=\"$(git branch --show-current 2>/dev/null || true)\"\nproblem=\"$(message_problem \"$msg_file\" \"$(task_of \"$branch\")\")\" || hook_fail \"$problem\"\nhook_note \"1 message checked\"\nexit 0\n"
     },
     {
      "path": ".githooks/pre-commit",
@@ -3302,7 +3300,7 @@
      "purpose": "Formats, lints and scans staged files for secrets.",
      "edit": "Nothing.",
      "keep": "All of it.",
-     "content": "#!/usr/bin/env bash\n# pre-commit: format and lint the staged files only, block secrets and\n# forbidden files. Fast: it never runs the whole suite.\nHOOK_NAME=pre-commit\n# shellcheck source=lib.sh\n. \"$(dirname \"$0\")/lib.sh\"\n\n# Staged paths into a bash array (bash 3.2: no mapfile). Paths may contain\n# spaces, so every later command gets them through run_on, never unquoted.\nfiles=()\nwhile IFS= read -r -d '' f; do files+=(\"$f\"); done < <(staged_files0)\ncount=${#files[@]}\n# Zero added, copied, modified or renamed files. A gate that examined nothing\n# did not pass, so this fails unless the empty input is explained by one of\n# three cases git itself treats as a real commit:\n#   - deletions only: nothing to scan, and the deletions are counted;\n#   - a merge whose result equals HEAD (MERGE_HEAD present; a clean merge\n#     runs pre-merge-commit, not this hook);\n#   - an empty commit the engineer asked for with --allow-empty, or a\n#     reword with --amend, read from the git command line that ran the hook.\n# Anything else (the hook run by hand, or `git commit` with nothing staged)\n# fails with the count.\nif [ \"$count\" -eq 0 ]; then\n  deleted=\"$(git diff --cached --name-only --diff-filter=D | wc -l | tr -d ' ')\"\n  [ \"$deleted\" -eq 0 ] || { hook_note \"0 files to scan, $deleted deletion(s) staged; nothing else to check\"; exit 0; }\n  git_dir=\"$(git rev-parse --git-dir 2>/dev/null || echo .git)\"\n  [ ! -f \"$git_dir/MERGE_HEAD\" ] || { hook_note \"0 staged files: merge commit whose tree equals HEAD\"; exit 0; }\n  # Only the git process that ran the hook counts; a shell whose command line\n  # happens to mention the flag does not.\n  # ps is missing in slim images and busybox's ps has no -o args= -p, so\n  # read /proc first where it exists (Linux) and fall back to ps (macOS).\n  parent=\"\"\n  if [ -r \"/proc/$PPID/cmdline\" ]; then\n    parent=\"$(tr '\\000' ' ' < \"/proc/$PPID/cmdline\" 2>/dev/null | sed 's/ *$//')\"\n  fi\n  [ -n \"$parent\" ] || parent=\"$(ps -o args= -p \"$PPID\" 2>/dev/null || true)\"\n  case \"${parent%% *}\" in\n    git|*/git|git.exe|*/git.exe)\n      case \" $parent \" in\n        *\" --allow-empty \"*) hook_note \"0 staged files: empty commit requested with --allow-empty\"; exit 0;;\n        *\" --amend \"*) hook_note \"0 staged files: --amend with no content change (reword)\"; exit 0;;\n      esac;;\n  esac\n  hook_fail \"0 staged files, nothing checked (stage a change; use --allow-empty for an intentional empty commit)\"\nfi\n\n# by_ext <regex>: the staged paths whose name matches, one per line.\nby_ext() { printf '%s\\n' \"${files[@]}\" | grep -E \"$1\" || true; }\n# run_on <lines> <cmd...>: run cmd with the newline-separated paths as arguments.\nrun_on() { local list=\"$1\"; shift; printf '%s\\n' \"$list\" | tr '\\n' '\\0' | xargs -0 \"$@\"; }\n\n# 1. Forbidden files.\nbad=\"$(printf '%s\\n' \"${files[@]}\" | grep -Ev '(^|/)\\.env\\.(example|sample|template)$' | grep -E '(^|/)\\.env(\\..*)?$|\\.(pem|key|p12|jks|keystore|mobileprovision)$|service-account.*\\.json$|google-services\\.json$|GoogleService-Info\\.plist$' || true)\"\n[ -z \"$bad\" ] || hook_fail \"secret or credential file staged: $(printf '%s' \"$bad\" | tr '\\n' ' ')\"\nroot_notes=\"$(printf '%s\\n' \"${files[@]}\" | grep -E '^(NOTES|SUMMARY|TODO)\\.md$' || true)\"\n[ -z \"$root_notes\" ] || hook_fail \"root notes file staged ($root_notes); use .scratch/ or docs/\"\n# The Claude Code sandbox holds 0-byte placeholders for protected paths in\n# whichever directory a command runs (the root, or a package such as web/); a\n# `git add -A` in that window stages them. A real .vscode or .idea is a\n# directory and a real .mcp.json has content, so an empty regular file under\n# one of these names, or under a .claude directory, is a placeholder.\nplaceholders=\"\"\nfor f in \"${files[@]}\"; do\n  named=0\n  case \"${f##*/}\" in\n    .vscode|.idea|.mcp.json|.gitmodules|.githooks|.ripgreprc|.bashrc|.bash_profile|.zshrc|.zprofile|.profile|.gitconfig) named=1;;\n  esac\n  case \"/$f\" in\n    */.claude/agents|*/.claude/commands|*/.claude/hooks|*/.claude/launch.json|*/.claude/loop.md|*/.claude/output-styles|*/.claude/routines|*/.claude/scheduled_tasks.json|*/.claude/skills|*/.claude/workflows) named=1;;\n  esac\n  if [ \"$named\" = 1 ] && [ -f \"$f\" ] && [ ! -s \"$f\" ]; then placeholders=\"$placeholders $f\"; fi\ndone\n[ -z \"$placeholders\" ] || hook_fail \"sandbox placeholder file(s) staged:$placeholders (empty, left by the Claude Code sandbox); unstage them: git restore --staged$placeholders\"\n\n# 2. Secret patterns in the added lines of the staged diff. Documented\n# placeholders (.env.example and friends) and the hooks themselves, which\n# spell the patterns out, are excluded from the scan.\nsecret_re='AKIA[0-9A-Z]{16}'\nsecret_re=\"$secret_re|-----BEGIN [A-Z ]*PRIVATE KEY-----\"\nsecret_re=\"$secret_re|ghp_[A-Za-z0-9]{36}|github_pat_[A-Za-z0-9_]{20,}\"\nsecret_re=\"$secret_re|glpat-[A-Za-z0-9_-]{20}\"\nsecret_re=\"$secret_re|sk-ant-[A-Za-z0-9_-]{20,}|sk_live_[A-Za-z0-9]{16,}|sk-[A-Za-z0-9]{32,}\"\nsecret_re=\"$secret_re|xox[baprs]-[A-Za-z0-9-]{10,}|xapp-[A-Za-z0-9-]{10,}\"\nsecret_re=\"$secret_re|AIza[0-9A-Za-z_-]{35}\"\nsecret_re=\"$secret_re|eyJ[A-Za-z0-9_-]{10,}\\.eyJ[A-Za-z0-9_-]{10,}\"\nscan_files=\"$(printf '%s\\n' \"${files[@]}\" | grep -Ev '(^|/)\\.env\\.(example|sample|template)$|(^|/)\\.githooks/' || true)\"\nif [ -n \"$scan_files\" ]; then\n  hit=\"$(run_on \"$scan_files\" git diff --cached -U0 -- | grep -E '^\\+' | grep -Ev '^\\+\\+\\+' | grep -E \"$secret_re\" | head -1 || true)\"\n  [ -z \"$hit\" ] || hook_fail \"a credential-shaped string is in the staged diff: $(printf '%s' \"$hit\" | cut -c1-40)...\"\nfi\n\n# 3. Format and lint what is staged, by extension, with what the repo has.\ngo_files=\"$(by_ext '\\.go$')\"\nif [ -n \"$go_files\" ] && command -v gofmt >/dev/null; then\n  unformatted=\"$(run_on \"$go_files\" gofmt -l)\"\n  [ -z \"$unformatted\" ] || hook_fail \"gofmt: $(printf '%s' \"$unformatted\" | tr '\\n' ' ') (run make fix)\"\nfi\nts_files=\"$(by_ext '\\.(ts|tsx|js|jsx|json|css|md)$')\"\nif [ -n \"$ts_files\" ] && [ -x node_modules/.bin/prettier ]; then\n  run_on \"$ts_files\" node_modules/.bin/prettier --check --log-level warn || hook_fail \"prettier: run make fix\"\nfi\npy_files=\"$(by_ext '\\.py$')\"\nif [ -n \"$py_files\" ]; then\n  if command -v ruff >/dev/null; then\n    run_on \"$py_files\" ruff format --check --quiet || hook_fail \"ruff format: run make fix\"\n    run_on \"$py_files\" ruff check --quiet || hook_fail \"ruff check failed\"\n  elif command -v uv >/dev/null && [ -f pyproject.toml ]; then\n    run_on \"$py_files\" uv run --quiet ruff format --check --quiet || hook_fail \"ruff format: run make fix\"\n  fi\nfi\nkt_files=\"$(by_ext '\\.kts?$')\"\nif [ -n \"$kt_files\" ] && command -v ktlint >/dev/null; then\n  run_on \"$kt_files\" ktlint || hook_fail \"ktlint: run make fix\"\nfi\nswift_files=\"$(by_ext '\\.swift$')\"\nif [ -n \"$swift_files\" ] && command -v swiftformat >/dev/null; then\n  run_on \"$swift_files\" swiftformat --lint || hook_fail \"swiftformat: run make fix\"\nfi\ntf_files=\"$(by_ext '\\.tf$')\"\nif [ -n \"$tf_files\" ] && command -v terraform >/dev/null; then\n  run_on \"$tf_files\" terraform fmt -check >/dev/null || hook_fail \"terraform fmt: run make fix\"\nfi\n\n# 4. Em dashes in prose files.\nprose=\"$(by_ext '\\.(md|txt)$')\"\nif [ -n \"$prose\" ]; then\n  dashes=\"$(run_on \"$prose\" grep -l '—' 2>/dev/null || true)\"\n  [ -z \"$dashes\" ] || hook_fail \"em dash in: $(printf '%s' \"$dashes\" | tr '\\n' ' ')\"\nfi\n\nhook_note \"$count staged file(s) checked\"\nexit 0\n"
+     "content": "#!/usr/bin/env bash\n# pre-commit: check the staged files only (what the commit will contain, not\n# the working tree), block secrets, forbidden and oversized files. Fast: it\n# never runs the test suite; pre-push runs the gate.\nHOOK_NAME=pre-commit\n# shellcheck source=lib.sh\n. \"$(dirname \"$0\")/lib.sh\"\n\n# Staged paths into a bash array (bash 3.2: no mapfile). Paths may contain\n# spaces, so every later command gets them through run_on, never unquoted.\nfiles=()\nwhile IFS= read -r -d '' f; do files+=(\"$f\"); done < <(staged_files0)\ncount=${#files[@]}\n# Zero added, copied, modified or renamed files. A gate that examined nothing\n# did not pass, so this fails unless the empty input is explained by one of\n# three cases git itself treats as a real commit:\n#   - deletions only: nothing to scan, and the deletions are counted;\n#   - a merge whose result equals HEAD (MERGE_HEAD present; a clean merge\n#     runs pre-merge-commit, not this hook);\n#   - an empty commit the engineer asked for with --allow-empty, or a\n#     reword with --amend, read from the git command line that ran the hook.\n# Anything else (the hook run by hand, or `git commit` with nothing staged)\n# fails with the count.\nif [ \"$count\" -eq 0 ]; then\n  deleted=\"$(git diff --cached --name-only --diff-filter=D | wc -l | tr -d ' ')\"\n  [ \"$deleted\" -eq 0 ] || { hook_note \"0 files to scan, $deleted deletion(s) staged; nothing else to check\"; exit 0; }\n  git_dir=\"$(git rev-parse --git-dir 2>/dev/null || echo .git)\"\n  [ ! -f \"$git_dir/MERGE_HEAD\" ] || { hook_note \"0 staged files: merge commit whose tree equals HEAD\"; exit 0; }\n  # Only the git process that ran the hook counts; a shell whose command line\n  # happens to mention the flag does not.\n  # ps is missing in slim images and busybox's ps has no -o args= -p, so\n  # read /proc first where it exists (Linux) and fall back to ps (macOS).\n  parent=\"\"\n  if [ -r \"/proc/$PPID/cmdline\" ]; then\n    parent=\"$(tr '\\000' ' ' < \"/proc/$PPID/cmdline\" 2>/dev/null | sed 's/ *$//')\"\n  fi\n  [ -n \"$parent\" ] || parent=\"$(ps -o args= -p \"$PPID\" 2>/dev/null || true)\"\n  case \"${parent%% *}\" in\n    git|*/git|git.exe|*/git.exe)\n      case \" $parent \" in\n        *\" --allow-empty \"*) hook_note \"0 staged files: empty commit requested with --allow-empty\"; exit 0;;\n        *\" --amend \"*) hook_note \"0 staged files: --amend with no content change (reword)\"; exit 0;;\n      esac;;\n  esac\n  hook_fail \"0 staged files, nothing checked (stage a change; use --allow-empty for an intentional empty commit)\"\nfi\n\n# by_ext <regex>: the staged paths whose name matches, one per line.\nby_ext() { printf '%s\\n' \"${files[@]}\" | grep -E \"$1\" || true; }\n# run_on <lines> <cmd...>: run cmd with the newline-separated paths as arguments.\nrun_on() { local list=\"$1\"; shift; printf '%s\\n' \"$list\" | tr '\\n' '\\0' | xargs -0 \"$@\"; }\n\n# 1. Forbidden files.\nbad=\"$(printf '%s\\n' \"${files[@]}\" | grep -Ev '(^|/)\\.env\\.(example|sample|template)$' | grep -E '(^|/)\\.env(\\..*)?$|\\.(pem|key|p12|jks|keystore|mobileprovision)$|service-account.*\\.json$|google-services\\.json$|GoogleService-Info\\.plist$' || true)\"\n[ -z \"$bad\" ] || hook_fail \"secret or credential file staged: $(printf '%s' \"$bad\" | tr '\\n' ' ')\"\nroot_notes=\"$(printf '%s\\n' \"${files[@]}\" | grep -E '^(NOTES|SUMMARY|TODO)\\.md$' || true)\"\n[ -z \"$root_notes\" ] || hook_fail \"root notes file staged ($root_notes); use .scratch/ or docs/\"\n# The Claude Code sandbox holds 0-byte placeholders for protected paths in\n# whichever directory a command runs (the root, or a package such as web/); a\n# `git add -A` in that window stages them. A real .vscode or .idea is a\n# directory and a real .mcp.json has content, so an empty regular file under\n# one of these names, or under a .claude directory, is a placeholder.\nplaceholders=\"\"\nfor f in \"${files[@]}\"; do\n  named=0\n  case \"${f##*/}\" in\n    .vscode|.idea|.mcp.json|.gitmodules|.githooks|.ripgreprc|.bashrc|.bash_profile|.zshrc|.zprofile|.profile|.gitconfig) named=1;;\n  esac\n  case \"/$f\" in\n    */.claude/agents|*/.claude/commands|*/.claude/hooks|*/.claude/launch.json|*/.claude/loop.md|*/.claude/output-styles|*/.claude/routines|*/.claude/scheduled_tasks.json|*/.claude/skills|*/.claude/workflows) named=1;;\n  esac\n  if [ \"$named\" = 1 ] && [ -f \"$f\" ] && [ ! -s \"$f\" ]; then placeholders=\"$placeholders $f\"; fi\ndone\n[ -z \"$placeholders\" ] || hook_fail \"sandbox placeholder file(s) staged:$placeholders (empty, left by the Claude Code sandbox); unstage them: git restore --staged$placeholders\"\n\n# Oversized files, measured on the staged blob (lib.sh MAX_FILE_KB).\nif [ \"$MAX_FILE_KB\" -gt 0 ]; then\n  big=\"\"\n  for f in \"${files[@]}\"; do\n    size=\"$(git cat-file -s \":$f\" 2>/dev/null || echo 0)\"\n    [ \"$size\" -le $((MAX_FILE_KB * 1024)) ] || big=\"$big $f ($((size / 1024)) KiB)\"\n  done\n  [ -z \"$big\" ] || hook_fail \"file(s) over ${MAX_FILE_KB} KiB staged:$big\"\nfi\n\n# 2. Secret patterns in the added lines of the staged diff. Documented\n# placeholders (.env.example and friends) and the hooks themselves, which\n# spell the patterns out, are excluded from the scan.\nsecret_re='AKIA[0-9A-Z]{16}'\nsecret_re=\"$secret_re|-----BEGIN [A-Z ]*PRIVATE KEY-----\"\nsecret_re=\"$secret_re|ghp_[A-Za-z0-9]{36}|github_pat_[A-Za-z0-9_]{20,}\"\nsecret_re=\"$secret_re|glpat-[A-Za-z0-9_-]{20}\"\nsecret_re=\"$secret_re|sk-ant-[A-Za-z0-9_-]{20,}|sk_live_[A-Za-z0-9]{16,}|sk-[A-Za-z0-9]{32,}\"\nsecret_re=\"$secret_re|xox[baprs]-[A-Za-z0-9-]{10,}|xapp-[A-Za-z0-9-]{10,}\"\nsecret_re=\"$secret_re|AIza[0-9A-Za-z_-]{35}\"\nsecret_re=\"$secret_re|eyJ[A-Za-z0-9_-]{10,}\\.eyJ[A-Za-z0-9_-]{10,}\"\nscan_files=\"$(printf '%s\\n' \"${files[@]}\" | grep -Ev '(^|/)\\.env\\.(example|sample|template)$|(^|/)\\.githooks/' || true)\"\nif [ -n \"$scan_files\" ]; then\n  hit=\"$(run_on \"$scan_files\" git diff --cached -U0 -- | grep -E '^\\+' | grep -Ev '^\\+\\+\\+' | grep -E \"$secret_re\" | head -1 || true)\"\n  [ -z \"$hit\" ] || hook_fail \"a credential-shaped string is in the staged diff: $(printf '%s' \"$hit\" | cut -c1-40)...\"\nfi\n\n# 3. Format and lint what is staged, by extension, with what the repo has.\n# gofmt reads the staged blob, so a file fixed in the working tree but not\n# re-added still fails, and an unstaged edit in progress does not. The other\n# tools read the working tree; a file with unstaged changes is named.\npartial=\"$(git diff --name-only | grep -Fxf <(printf '%s\\n' \"${files[@]}\") || true)\"\n[ -z \"$partial\" ] || hook_note \"staged and also modified since (linters other than gofmt read the working copy): $(printf '%s' \"$partial\" | tr '\\n' ' ')\"\ngo_files=\"$(by_ext '\\.go$')\"\nif [ -n \"$go_files\" ]; then\n  if command -v gofmt >/dev/null; then\n    unformatted=\"\"\n    while IFS= read -r f; do\n      out=\"$(git show \":$f\" | gofmt -l 2>&1)\" || out=\"syntax error\"\n      [ -z \"$out\" ] || unformatted=\"$unformatted $f\"\n    done <<< \"$go_files\"\n    [ -z \"$unformatted\" ] || hook_fail \"gofmt, staged version:$unformatted (gofmt -w the file, then git add it)\"\n  else\n    hook_note \"gofmt not on PATH (GUI clients often run hooks with a short PATH); Go files not format-checked\"\n  fi\nfi\nts_files=\"$(by_ext '\\.(ts|tsx|js|jsx|json|css|md)$')\"\nif [ -n \"$ts_files\" ] && [ -x node_modules/.bin/prettier ]; then\n  run_on \"$ts_files\" node_modules/.bin/prettier --check --log-level warn || hook_fail \"prettier: run make fix\"\nfi\npy_files=\"$(by_ext '\\.py$')\"\nif [ -n \"$py_files\" ]; then\n  if command -v ruff >/dev/null; then\n    run_on \"$py_files\" ruff format --check --quiet || hook_fail \"ruff format: run make fix\"\n    run_on \"$py_files\" ruff check --quiet || hook_fail \"ruff check failed\"\n  elif command -v uv >/dev/null && [ -f pyproject.toml ]; then\n    run_on \"$py_files\" uv run --quiet ruff format --check --quiet || hook_fail \"ruff format: run make fix\"\n  fi\nfi\nkt_files=\"$(by_ext '\\.kts?$')\"\nif [ -n \"$kt_files\" ] && command -v ktlint >/dev/null; then\n  run_on \"$kt_files\" ktlint || hook_fail \"ktlint: run make fix\"\nfi\nswift_files=\"$(by_ext '\\.swift$')\"\nif [ -n \"$swift_files\" ] && command -v swiftformat >/dev/null; then\n  run_on \"$swift_files\" swiftformat --lint || hook_fail \"swiftformat: run make fix\"\nfi\ntf_files=\"$(by_ext '\\.tf$')\"\nif [ -n \"$tf_files\" ] && command -v terraform >/dev/null; then\n  run_on \"$tf_files\" terraform fmt -check >/dev/null || hook_fail \"terraform fmt: run make fix\"\nfi\n\n# 4. Em dashes in staged prose (lib.sh NO_EM_DASH).\nprose=\"$(by_ext '\\.(md|txt)$')\"\nif [ \"$NO_EM_DASH\" = 1 ] && [ -n \"$prose\" ]; then\n  dashes=\"\"\n  while IFS= read -r f; do\n    git show \":$f\" | grep -qF \"$EM_DASH\" && dashes=\"$dashes $f\"\n  done <<< \"$prose\"\n  [ -z \"$dashes\" ] || hook_fail \"em dash in:$dashes\"\nfi\n\nhook_note \"$count staged file(s) checked\"\nexit 0\n"
     },
     {
      "path": ".githooks/lib.sh",
@@ -3313,7 +3311,7 @@
      "purpose": "Shared functions for the three hooks.",
      "edit": "Nothing.",
      "keep": "All of it.",
-     "content": "#!/usr/bin/env bash\n# Shared helpers for the committed git hooks. Sourced by each hook.\nset -u\n\nhook_fail() { printf 'hook %s: %s\\n' \"${HOOK_NAME:-?}\" \"$*\" >&2; exit 1; }\nhook_note() { printf 'hook %s: %s\\n' \"${HOOK_NAME:-?}\" \"$*\"; }\n\n# Task id: an upper-case prefix, then one or more dash-number groups, in\n# whatever shape the configured tracker uses: PREFIX-123, PREFIX-00-017.\nTASK_ID_RE='[A-Z][A-Z0-9]*(-[0-9]+)+'\n# feature/PREFIX-123-PascalName, release/v1.2.3\nBRANCH_RE=\"^(feature|bugfix|hotfix|chore|docs|release)/(${TASK_ID_RE}-[A-Za-z0-9]+|v[0-9]+\\.[0-9]+\\.[0-9]+)$\"\nCOMMIT_RE=\"^(feat|fix|refactor|test|docs|chore|perf|build|ci|revert)(\\([a-z0-9._/-]+\\))?!?: .{1,72}( \\[${TASK_ID_RE}\\])?$\"\n\n# Trailers no commit may carry.\nAI_TRAILER_RE='^(Co-Authored-By|Co-authored-by): .*(Claude|Anthropic|Copilot|ChatGPT|Gemini|Cursor|Devin)|^(Generated with|🤖 Generated)'\n\n# Staged paths, NUL-separated so a path with spaces survives. Consume with\n# `while IFS= read -r -d '' f` or `xargs -0`.\nstaged_files0() { git diff --cached --name-only -z --diff-filter=ACMR; }\n"
+     "content": "#!/usr/bin/env bash\n# Shared helpers for the committed git hooks. Sourced by each hook.\n# shellcheck disable=SC2034  # the policy variables are read by the hooks\nset -u\n\n# Repository policy. The defaults are the kit standard. In a repository with\n# its own CONTRIBUTING, ADRs or branch protection, set these from those\n# documents when the hooks are installed: a hook that rejects what the team's\n# own rules allow gets bypassed with --no-verify, and then it checks nothing.\nCOMMIT_TYPES='feat|fix|refactor|test|docs|chore|perf|build|ci|revert'\nBRANCH_PREFIXES='feature|bugfix|hotfix|chore|docs|release'\nPROTECTED_BRANCHES='main master develop'  # never pushed to or deleted from a clone\nMAX_FILE_KB=5120        # staged file size limit in KiB (1 MB = 1024); 0 turns it off\nBODY_MAX=100            # longest commit body line; 0 turns it off\nNO_EM_DASH=1            # em dash refused in commit messages and staged prose\nNO_AI_TRAILER=1         # AI co-author and \"generated with\" trailers refused\n# Push confirmation. tty: a person types the branch name on a terminal, so a\n#   push from an IDE or GUI client (no terminal) is refused. agents: refused\n#   only when a coding agent's environment is detected. off: none.\nPUSH_CONFIRM='tty'\nGATE_CMD='make check'   # the full gate pre-push runs once\n\nhook_fail() { printf 'hook %s: %s\\n' \"${HOOK_NAME:-?}\" \"$*\" >&2; exit 1; }\nhook_note() { printf 'hook %s: %s\\n' \"${HOOK_NAME:-?}\" \"$*\"; }\n\n# The em dash as bytes, so no hook file contains the character itself.\nEM_DASH=\"$(printf '\\342\\200\\224')\"\n\n# Task id: an upper-case prefix, then one or more dash-number groups, in\n# whatever shape the configured tracker uses: PREFIX-123, PREFIX-00-017.\nTASK_ID_RE='[A-Z][A-Z0-9]*(-[0-9]+)+'\n# feature/PREFIX-123-ShortName, release/v1.2.3\nBRANCH_RE=\"^(${BRANCH_PREFIXES})/(${TASK_ID_RE}-[A-Za-z0-9]+|v[0-9]+\\.[0-9]+\\.[0-9]+)$\"\nCOMMIT_RE=\"^(${COMMIT_TYPES})(\\([a-z0-9._/-]+\\))?!?: .{1,72}( \\[${TASK_ID_RE}\\])?$\"\nAI_TRAILER_RE='^(Co-Authored-By|Co-authored-by): .*(Claude|Anthropic|Copilot|ChatGPT|Gemini|Cursor|Devin)|^(Generated with|🤖 Generated)'\n\n# task_of <branch>: the task id a branch name carries, or nothing.\ntask_of() { printf '%s' \"$1\" | grep -oE \"$TASK_ID_RE\" | head -1; }\n\n# is_protected <branch>\nis_protected() { case \" $PROTECTED_BRANCHES \" in *\" $1 \"*) return 0;; esac; return 1; }\n\n# message_problem <message file> <task id or empty>: prints why the message\n# breaks the rules and returns 1, or prints nothing and returns 0. commit-msg\n# runs it on the message being written; pre-push runs it on every commit being\n# pushed, so a commit made with --no-verify is still caught before it leaves.\nmessage_problem() {\n  local file=\"$1\" task=\"$2\" subject long\n  subject=\"$(sed -n '1p' \"$file\")\"\n  [ -n \"$subject\" ] || { echo \"empty commit message\"; return 1; }\n  case \"$subject\" in\n    Merge\\ *|Revert\\ \\\"*|fixup!\\ *|squash!\\ *) return 0 ;;  # subjects git writes\n  esac\n  printf '%s' \"$subject\" | grep -Eq \"$COMMIT_RE\" \\\n    || { echo \"subject must be Conventional, 'type(scope): summary', type one of ${COMMIT_TYPES//|/, }. Got: $subject\"; return 1; }\n  if [ -n \"$task\" ] && ! printf '%s' \"$subject\" | grep -qF \"[$task]\"; then\n    echo \"branch carries $task; the subject must end with [$task]. Got: $subject\"; return 1\n  fi\n  if [ \"$NO_AI_TRAILER\" = 1 ] && grep -Eq \"$AI_TRAILER_RE\" \"$file\"; then\n    echo \"AI attribution trailer found; a commit names a person who answers for it\"; return 1\n  fi\n  if [ \"$NO_EM_DASH\" = 1 ] && grep -qF \"$EM_DASH\" \"$file\"; then\n    echo \"em dash in the commit message; rewrite the sentence\"; return 1\n  fi\n  if [ \"$BODY_MAX\" -gt 0 ]; then\n    long=\"$(sed -n '3,$p' \"$file\" | grep -v '^#' | awk -v m=\"$BODY_MAX\" 'length > m' | wc -l | tr -d ' ')\"\n    [ \"$long\" -eq 0 ] || { echo \"$long body line(s) over $BODY_MAX characters; wrap the body\"; return 1; }\n  fi\n  return 0\n}\n\n# Staged paths, NUL-separated so a path with spaces survives. Consume with\n# `while IFS= read -r -d '' f` or `xargs -0`.\nstaged_files0() { git diff --cached --name-only -z --diff-filter=ACMR; }\n"
     },
     {
      "path": ".githooks/install.sh",
@@ -3324,7 +3322,7 @@
      "purpose": "Points core.hooksPath at .githooks; make setup runs it.",
      "edit": "Nothing.",
      "keep": "All of it.",
-     "content": "#!/usr/bin/env bash\n# Point git at the committed hooks. Idempotent. Run once per clone, or let\n# `make setup` do it.\nset -eu\nroot=\"$(git rev-parse --show-toplevel)\"\n# Write only when the value differs: Claude Code's sandbox mounts .git/config\n# read-only, and an unconditional write failed make setup there.\nif [ \"$(git -C \"$root\" config --get core.hooksPath || true)\" != \".githooks\" ]; then\n  git -C \"$root\" config core.hooksPath .githooks 2>/dev/null || {\n    echo \"could not set core.hooksPath=.githooks (.git/config is not writable); run: git config core.hooksPath .githooks\" >&2; exit 1; }\nfi\nchmod +x \"$root\"/.githooks/commit-msg \"$root\"/.githooks/pre-commit \"$root\"/.githooks/pre-push\nn=0\nfor h in commit-msg pre-commit pre-push; do [ -f \"$root/.githooks/$h\" ] && n=$((n+1)); done\n[ \"$n\" -eq 3 ] || { echo \"expected 3 hooks, found $n\" >&2; exit 1; }\necho \"git hooks installed: core.hooksPath=.githooks ($n hooks)\"\n"
+     "content": "#!/usr/bin/env bash\n# Point git at the committed hooks. Idempotent. Run once per clone, or let\n# `make setup` do it. Usage: install.sh [--force]\n#\n# A core.hooksPath already set to another directory that holds hooks (Husky's\n# .husky, a team's own directory) is not replaced silently: git would stop\n# running those hooks. It is reported and left, unless --force. A value whose\n# directory no longer exists runs no hook at all, so it is replaced and named.\nset -eu\nroot=\"$(git rev-parse --show-toplevel)\"\nforce=0; [ \"${1:-}\" = \"--force\" ] && force=1\ncurrent=\"$(git -C \"$root\" config --get core.hooksPath || true)\"\n# Write only when the value differs: Claude Code's sandbox mounts .git/config\n# read-only, and an unconditional write failed make setup there.\nif [ \"${current%/}\" != \".githooks\" ]; then\n  if [ -n \"$current\" ]; then\n    case \"$current\" in /*) dir=\"$current\";; \"~\"/*) dir=\"$HOME/${current#\"~/\"}\";; *) dir=\"$root/$current\";; esac\n    live=\"$(find \"$dir\" -maxdepth 1 -type f ! -name '*.sample' 2>/dev/null | head -1)\"\n    if [ -n \"$live\" ] && [ \"$force\" -eq 0 ]; then\n      echo \"core.hooksPath is $current, which holds hooks; left unchanged. Chain .githooks/<hook> from those hooks, or rerun with --force to replace it\" >&2\n      exit 1\n    fi\n    echo \"core.hooksPath was $current ($([ -d \"$dir\" ] && echo replaced || echo 'directory missing, so no hook ran'))\"\n  fi\n  git -C \"$root\" config core.hooksPath .githooks 2>/dev/null || {\n    echo \"could not set core.hooksPath=.githooks (.git/config is not writable); run: git config core.hooksPath .githooks\" >&2; exit 1; }\nfi\nchmod +x \"$root\"/.githooks/commit-msg \"$root\"/.githooks/pre-commit \"$root\"/.githooks/pre-push\nn=0\nfor h in commit-msg pre-commit pre-push; do [ -f \"$root/.githooks/$h\" ] && n=$((n+1)); done\n[ \"$n\" -eq 3 ] || { echo \"expected 3 hooks, found $n\" >&2; exit 1; }\necho \"git hooks installed: core.hooksPath=.githooks ($n hooks)\"\n"
     },
     {
      "path": ".gitignore (lines added)",
@@ -3500,7 +3498,7 @@
      "purpose": "The VAPT report shape vapt-report fills before a release.",
      "edit": "Nothing.",
      "keep": "All of it.",
-     "content": "# VAPT report: <system> <version>\n\n<!-- Template guidance: every section below carries a comment saying what goes\n     there (What), what a strong entry has (Good) and a one-line example\n     (Example). Delete each comment when you fill its section. This report is\n     the release's written security position, read by the release approver\n     and by auditors later; it turns scanner findings into a decision and\n     does not re-find them. Counts come from the collector's line verbatim.\n     No secrets, tokens or real PII anywhere, even redacted-looking ones.\n     The header list: scope names services, URLs or apps and the release\n     commit (or \"scope derived from code\", \"whole codebase\"); Method names\n     each source exactly as the collector printed it, with report path,\n     scanned commit or date and verification status; a stale scan accepted\n     by the user and the fallback auditor are named as such.\n     Example: \"Method: claude-security CLAUDE-SECURITY-20260921/CLAUDE-SECURITY-RESULTS.jsonl\n     at 3f9a1c07b2e4 (verified); insecure-defaults, scope `.`\" -->\n\n- Scope (services, URLs, apps, commit)\n- Method: each scanner with its report path, the commit or date it\n  scanned and its verification status (claude-security, gstack /cso), or\n  the fallback auditor, named as such\n- Date, authors, reviewers\n\n## Findings\n\n<!-- What: one row per finding from .scratch/vapt-findings.json and the\n     insecure-defaults pass, highest severity first.\n     Good: reproduction a person can run without the conversation (a curl,\n     a screen path, a request body); fix at a file:line; Sources names every\n     scanner that found it (a second source on the same file and line joins\n     the row, never a second row); Threat cites the threat id when the\n     finding breaks a mitigation; every Critical and High has an owner and a\n     task id. Status is \"fixed\" only when the fix commit is in the range.\n     A secret finding names file, line and secret type, never the value.\n     Example: | 1 | High | authz | Invoice fetch skips tenant check | `curl -H \"Authorization: Bearer $TENANT_B\" https://api.example.test/v1/invoices/9121` returns tenant A's invoice | scope query by tenant_id at internal/billing/invoice.go:88 | claude-security F-14, /cso #3 (confidence 8) | T-07 | Rahul S., SEC-212 | open | -->\n\n| # | Severity | Area | Title | Reproduction | Fix | Sources | Threat | Owner | Status |\n| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |\n\nSeverity: Critical = unauthenticated data access or code execution; High =\nauthenticated cross-tenant access or secret exposure; Medium = needs an\nunusual precondition; Low = hardening.\n\n## Checked, none found\n\n<!-- What: one line per checklist item from SECURITY.md that was examined\n     and produced no finding. Without SECURITY.md, say so and list the\n     scanners' own coverage instead.\n     Good: each line says what was checked and by which source, so \"none\n     found\" is evidence, not silence; an item nobody examined is not listed\n     here. An insecure-defaults status of no-candidates reads \"0 candidates\",\n     not \"clean\".\n     Example: \"SQL injection: /cso phase 4 over internal/store/, 0 findings.\" -->\n\n## Threat model\n\n<!-- What: the threats read from docs/security/threat-model-*.md, the ones a\n     finding shows unmitigated (by id), and the planned mitigations still\n     open at this release. No threat model: write \"no threat model\" and\n     recommend threat-model.\n     Good: the three counts (read, linked to a finding, planned still open)\n     and the ids behind each; a planned threat with no mitigation in the\n     range is named as open risk, not dropped.\n     Example: \"14 threats read; T-07 linked to finding 1; T-11 (rate limit on\n     /login) planned, still open.\" -->\n\n## Release decision\n\n<!-- What: one of cleared, blocked (<n> Critical/High open), or cleared,\n     pending a scanner run; then the sign-off.\n     Good: any open Critical or High, from the collector or from\n     insecure-defaults, means blocked; a report built only on the fallback\n     auditor reaches \"cleared, pending a scanner run\" at best; the signer is\n     a named person with a date.\n     Example: \"Blocked (1 High open: finding 1, SEC-212). Signed off by:\n     Meera K., security lead, 2026-09-24.\" -->\n\nCritical and High must be fixed before production. Signed off by:\n"
+     "content": "# VAPT report: <system> <version>\n\n<!-- Template guidance: every section below carries a comment saying what goes\n     there (What), what a strong entry has (Good) and a one-line example\n     (Example). Delete each comment when you fill its section. This report is\n     the release's written security position, read by the release approver\n     and by auditors later; it turns scanner findings, confirmed at the\n     release commit, into a decision. The collector's counts line goes in\n     Method verbatim; the report's totals are after triage (merged by root\n     cause, refuted rows out, findings from outside the scanners in).\n     No secrets, tokens or real PII anywhere, even redacted-looking ones.\n     The header list: scope names services, URLs or apps and the release\n     commit (or \"scope derived from code\", \"whole codebase\"); Method names\n     each source exactly as the collector printed it, with report path,\n     scanned commit or date and verification status; a stale scan accepted\n     by the user and the fallback auditor are named as such.\n     Example: \"Method: claude-security CLAUDE-SECURITY-20260921/CLAUDE-SECURITY-RESULTS.jsonl\n     at 3f9a1c07b2e4 (verified); insecure-defaults, scope `.`\" -->\n\n- Scope (services, URLs, apps, commit)\n- Method: each scanner with its report path, the commit or date it\n  scanned, its coverage (the changes since a tag, or the whole codebase)\n  and its verification status (claude-security, gstack /cso), or the\n  fallback review, named as such; what was looked at outside the scanners\n- Date, authors, reviewers\n\n## Findings\n\n<!-- What: one row per finding from .scratch/vapt-findings.json and the\n     insecure-defaults pass, highest severity first.\n     Good: reproduction a person can run without the conversation (a curl,\n     a screen path, a request body); fix at a file:line; Sources names every\n     scanner that found it (a second source on the same file and line joins\n     the row, never a second row); Threat cites the threat id when the\n     finding breaks a mitigation; every Critical and High has an owner and a\n     task id. Status is \"fixed\" only when the fix commit is in the range.\n     A secret finding names file, line and secret type, never the value.\n     Example: | 1 | High | authz | Invoice fetch skips tenant check | `curl -H \"Authorization: Bearer $TENANT_B\" https://api.example.test/v1/invoices/9121` returns tenant A's invoice | scope query by tenant_id at internal/billing/invoice.go:88 | claude-security F-14, /cso #3 (confidence 8) | T-07 | Rahul S., SEC-212 | open | -->\n\n| # | Severity | Area | Title | Reproduction | Fix | Sources | Threat | Owner | Status |\n| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |\n\nSeverity: Critical = unauthenticated data access or code execution; High =\nauthenticated cross-tenant access or secret exposure; Medium = needs an\nunusual precondition; Low = hardening.\n\n## Refuted\n\n<!-- What: scanner rows the release commit's code disproves, each with the\n     quoted line that decides it. They are not counted above.\n     Good: the file:line and the code that refutes the claim, read at the\n     release commit, not the working tree; \"none\" when every row held.\n     Example: \"/cso #3 preview returns another tenant's file: refuted,\n     internal/files/handler.go:64 compares f.TenantID with the session.\" -->\n\n## Checked, none found\n\n<!-- What: one line per checklist item from SECURITY.md that was examined\n     and produced no finding. Without SECURITY.md, say so and list the\n     scanners' own coverage instead.\n     Good: each line says what was checked and by which source, so \"none\n     found\" is evidence, not silence; an item nobody examined is not listed\n     here. An insecure-defaults status of no-candidates reads \"0 candidates\",\n     not \"clean\".\n     Example: \"SQL injection: /cso phase 4 over internal/store/, 0 findings.\" -->\n\n## Threat model\n\n<!-- What: the threats read from docs/security/threat-model-*.md, the ones a\n     finding shows unmitigated (by id), and the planned mitigations still\n     open at this release. No threat model: write \"no threat model\" and\n     recommend threat-model.\n     Good: the three counts (read, linked to a finding, planned still open)\n     and the ids behind each; a planned threat with no mitigation in the\n     range is named as open risk, not dropped.\n     Example: \"14 threats read; T-07 linked to finding 1; T-11 (rate limit on\n     /login) planned, still open.\" -->\n\n## Not done\n\n<!-- What: what this report did not do (no dynamic test of a running\n     service, no scanner run at the release commit, code outside the range\n     not reviewed) and what clearing would need.\n     Good: each gap named with the step that would close it, so nobody\n     reads silence as coverage.\n     Example: \"No dynamic test of a deployed instance; claude-security not\n     rerun at the release commit (run 'scan changes' from v2.0.0 after the\n     fixes).\" -->\n\n## Release decision\n\n<!-- What: one of cleared, blocked (<n> Critical/High open), or cleared,\n     pending a scanner run; then the sign-off.\n     Good: any open Critical or High, whatever found it (a scanner,\n     insecure-defaults or this review), means blocked; a report built only on the fallback\n     review reaches \"cleared, pending a scanner run\" at best; the signer is\n     a named person with a date.\n     Example: \"Blocked (1 High open: finding 1, SEC-212). Signed off by:\n     Meera K., security lead, 2026-09-24.\" -->\n\nCritical and High must be fixed before production. Signed off by:\n"
     },
     {
      "path": "docs/templates/EVENT_SHEET.md",

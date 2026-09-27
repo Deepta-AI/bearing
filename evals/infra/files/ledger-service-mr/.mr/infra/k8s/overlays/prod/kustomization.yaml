@@ -1,0 +1,15 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: ledger-prod
+resources:
+  - ../../base
+replicas:
+  - name: ledger-api
+    count: 3
+  - name: ledger-worker
+    count: 2
+images:
+  - name: asia-south1-docker.pkg.dev/example-ledger-shared/ledger/ledger-api
+    digest: sha256:4f1c2b7e9a0d3c6f8e1b4a7d0c3f6e9b2a5d8c1f4e7a0b3d6c9f2e5a8b1d4c7e
+  - name: asia-south1-docker.pkg.dev/example-ledger-shared/ledger/ledger-worker
+    digest: sha256:9b2e5a8d1c4f7e0a3d6b9c2f5e8a1d4b7c0e3f6a9d2b5c8e1f4a7d0b3c6e9f2a

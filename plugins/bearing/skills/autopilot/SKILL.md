@@ -39,6 +39,21 @@ what is on disk, never from what the model says it did.
   Every skill `next` names is run, each in turn; writing its document
   freehand instead is how the first run skipped the data model, the API
   contract and every design skill while its gate still passed.
+- scope: `lean` or `full`, printed by `status` and by each gate. Lean is a
+  change to a repository that already had code, or a new product with
+  no UI, data, API or deployment (a CLI, a library). Full is everything
+  else, and a change that adds a service, a store, an external
+  integration or a new UI area (`profile --scope full`, with the reason).
+  In lean scope the stage skills are followed for their method, but
+  the run writes only what a reviewer of this change reads: the PRD's
+  REQ lines for this change, its stories and coverage, one design note
+  (`docs/design/<name>.md`: what changes, where, the existing rules it
+  follows, what it leaves alone), the risk register and case table, the
+  report. No C4 set, tenets, repo plan, HLD, test plan, scenarios, step
+  tables, import or question logs, user flows or progress files: a
+  12-line search command once came with 25 documents and 1,145 lines,
+  and the reviewer failed it for that alone. The documents are sized to
+  the diff, not to the template.
 
 ## Steps
 
@@ -75,15 +90,16 @@ what is on disk, never from what the model says it did.
    - a key the repository or the statement already settles is cited,
      not decided again (tech-decision step 2); when nothing is open, record
      `decision none-open - - "<why>"`.
-   - in an existing repository, the code is the first precedent: a new
-     command's output, exit statuses and error handling follow its
-     sibling commands unless the statement says otherwise, and existing
+   - in an existing repository, its written conventions and then its
+     code are the precedent: a new command's output, exit statuses and
+     error handling follow them unless the statement says otherwise
+     (where the two disagree, see below), and existing
      behaviour the statement does not mention (other commands' exit
      codes, what `make check` does, CI) is not changed. A better
      convention is a proposal under Noticed, not a change in this MR.
 4. The product profile, at the end of the decide stage: `profile --ui
    yes|no --data yes|no --api yes|no --deploy yes|no [--ui-stack <stack>]
-   --why "<reason>"`. The ui stack is React with shadcn/ui and Tailwind
+   [--scope lean|full] --why "<reason>"`. The ui stack is React with shadcn/ui and Tailwind
    (`react-shadcn`) unless the statement or the repository names another;
    only then pass `--ui-stack` (flutter, react-native, compose, swiftui,
    html) and record why.
@@ -96,7 +112,9 @@ what is on disk, never from what the model says it did.
    repo stage is done, `make check` for the gate, `make fix` for format.
    Never call a package manager directly (`uv sync`, `pnpm install`): the
    repository asks before those and nobody is there to answer.
-6. Before the build: architecture-diagram writes the C4 file; design
+6. Before the build, in lean scope: the design note, then test-cases
+   (the risk register and the case table only). In full scope:
+   architecture-diagram writes the C4 file; design
    runs high-level-design, then data-model, openapi-spec and
    deployment-architecture as the profile names, then low-level-design; for a
    UI, ux runs ux-flows, then design-directions --unattended (three
@@ -114,7 +132,9 @@ what is on disk, never from what the model says it did.
    a failing test named for the story, the code, `make check`, a commit
    per story with the task id. The edit hook's lint findings are fixed
    when they arrive; the Stop hook's `make check` demand is met, not
-   argued with.
+   argued with. No test asserts on wall-clock time: it passes on the
+   laptop and flakes in CI. Before the first line of code, read the
+   traps below and put the ones that apply into the tests.
 8. After the build: test-automation names a test after every case
    that is not manual-only or retired (its TC id in the test name); for a
    UI, design-critique scores the design gallery of the running app
@@ -136,7 +156,9 @@ what is on disk, never from what the model says it did.
    launcher runs the smoke outside the sandbox and resumes the session
    with the file and its verdict; at most 3 rounds.
 10. The mr stage: `merge-request` prepares the description; `report` writes
-   `docs/autopilot/<run>.md`; commit it; paste its decisions table into
+   `docs/autopilot/<run>.md`; commit it, and let that commit be the last
+   write (`git status` clean after it: a progress file touched later is
+   work the MR does not carry); paste its decisions table into
    the description, with the exact push command (`git push -u origin
    <branch>`) under it; print the same command in the last message. Do
    not run it.
@@ -157,6 +179,46 @@ MR description: .scratch/mr-<id>.md
 Push (yours): git push -u origin <branch>
 Not done: <list> | none
 ```
+
+## What a reviewer checks that the tests do not
+
+A strong run and a merely passing one differ here, not in the documents.
+
+- Reuse the sibling's path, not only its output shape. Read how the
+  nearest existing command gets its data (which store function, what it
+  normalises, how it handles an old file format or a missing file) and
+  call the same function. A new command that reads the raw store
+  crashes on the legacy rows its sibling quietly converts.
+- Where a conventions document and the code disagree, new code follows
+  the document, the old code is left as it is, and the gap goes under
+  Noticed with the command that shows it. Silently copying the old
+  code's bug and silently fixing it in this MR are both wrong.
+- Before dod, run what was built the way the user will, from a shell,
+  and read stdout, stderr and the exit status against what the PRD,
+  README and conventions promise. Tests the run wrote agree with the
+  code by construction; the documents are the independent oracle. A
+  promise the program breaks is a bug in one of them, fixed before the
+  MR.
+- The inputs that break a first version, for the interface in hand:
+  - text: case-insensitive means Unicode case folding (`casefold()`,
+    not `lower()`: the German sharp s and the Greek final sigma differ);
+    a word is letters plus combining marks (categories L and M: `\w`
+    and `\pL` alone cut decomposed accents and Indic vowel signs out of
+    the word), with NFC normalisation before comparing; bytes that are
+    not valid UTF-8 give a clear error or a documented replacement,
+    never a stack trace.
+  - arguments: missing, empty, repeated, zero, negative, not a number;
+    a user's search term is a literal (escaped, or matched without a
+    regex), and a word-boundary regex is checked against terms that
+    start or end in punctuation, where `\b` does not match beside them.
+  - files: missing, unreadable, empty, not the expected format (invalid
+    JSON), and an older layout of the same format.
+  - errors: the argument library's own output counts; argparse and Go's
+    flag print a usage block plus the error, which is not the "one-line
+    error" a PRD may have promised. Decide the shape, write it down,
+    and test the exact stderr.
+- Every example in the README or the design note is run and its output
+  pasted from that run, not written from memory.
 
 ## Gotchas
 

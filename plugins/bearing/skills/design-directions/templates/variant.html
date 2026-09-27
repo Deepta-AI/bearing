@@ -17,9 +17,11 @@
   Generic-default revisions: {{WHAT_CHANGED_AND_WHY}}
   Screens: {{SCREEN_IDS}}
 -->
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family={{DISPLAY_FACE_QUERY}}&family={{BODY_FACE_QUERY}}&display=swap">
+<!-- Fonts: load them the way the product can. Self-hosted @font-face or the
+     project's own font stylesheet when an ADR, the CSP or an offline device
+     rules out third-party hosts; a Google Fonts link only when nothing does
+     and the device can reach it. Otherwise state the fallback it renders in. -->
+{{FONT_LOADING}}
 <style>
   /* Tokens. Every colour states its reason in the comment beside it. */
   :root {
@@ -42,10 +44,12 @@
     --radius-inner: {{RADIUS_INNER}};   /* controls inside them; outer minus gap */
     --shadow-raised: {{SHADOW_OR_NONE}}; /* only on the one raised surface */
 
-    --dur-enter: 320ms; --dur-exit: 180ms;
+    --target: 44px;            /* touch floor; the project's when higher */
+    --dur-enter: 320ms; --dur-exit: 180ms;   /* within the project's motion limit */
     --ease-out: cubic-bezier(.2,.8,.2,1); --ease-in: cubic-bezier(.6,0,.8,.2);
 
-    /* Light theme. 60% surface, 30% surface-2, 10% accent. */
+    /* Light theme. 60% surface, 30% surface-2, 10% accent.
+       One-theme product: delete both dark blocks, the toggle and its script. */
     --surface: {{L_SURFACE}};        /* {{reason}} */
     --surface-2: {{L_SURFACE_2}};    /* {{reason}} */
     --ink: {{L_INK}};                /* {{reason: contrast on surface}} */
@@ -93,10 +97,12 @@
   .num { font-family: var(--font-data); font-variant-numeric: tabular-nums; }
 
   /* Every control: visible focus, 44 px target, verb label. */
-  button, a, input, select, textarea, [role="button"] { min-height: 44px; }
+  button, a, input, select, textarea, [role="button"] { min-height: var(--target); }
   :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
   button { cursor: pointer; font: inherit; }
   .btn-primary {
+    display: inline-flex; align-items: center; justify-content: center; /* min-height is ignored on an inline a */
+    min-width: var(--target);
     background: var(--accent); color: var(--accent-ink); border: 0;
     border-radius: var(--radius-inner); padding: var(--space-3) var(--space-5);
     transition: transform var(--dur-exit) var(--ease-out), opacity var(--dur-exit);

@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# commit-msg: Conventional subject; the task id is required when the branch
+# name carries one.
+HOOK_NAME=commit-msg
+. "$(dirname "$0")/lib.sh"
+subject="$(sed -n '1p' "$1")"
+[ -n "$subject" ] || hook_fail "empty commit message"
+printf '%s' "$subject" | grep -Eq "$COMMIT_RE" || hook_fail "subject must be Conventional, got: $subject"
+task="$(git branch --show-current | grep -oE "$TASK_ID_RE" | head -1)"
+if [ -n "$task" ] && ! printf '%s' "$subject" | grep -q "\[$task\]"; then
+  hook_fail "branch carries $task; the subject must end with [$task]"
+fi
+hook_note "1 message checked"

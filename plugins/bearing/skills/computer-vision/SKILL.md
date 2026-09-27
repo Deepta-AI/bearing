@@ -1,6 +1,6 @@
 ---
 name: computer-vision
-description: 'Builds computer vision features (VLM, classifier, detector, anomaly, document extraction) with leak-free splits and a cost-set threshold. Use when asked to "classify images", "detect defects" or "extract from scans".'
+description: 'Builds image features (VLM, classifier, detector, quality check, document extraction) with leak-free splits and a cost-set threshold. Use when asked to "classify images", "detect defects", "extract from scans".'
 argument-hint: "<vlm|classify|detect|segment|anomaly|document> <name> [--images <path>]"
 allowed-tools: Read, Write, Edit, Grep, Glob, Skill, Bash(ls:*), Bash(wc -l:*), Bash(make:*), Bash(git status:*), Bash(uv run:*), Bash(nvidia-smi:*), Bash(python3 *skills/computer-vision/scripts/threshold.py*)
 ---

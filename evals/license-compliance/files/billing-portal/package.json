@@ -1,0 +1,30 @@
+{
+  "name": "billing-portal",
+  "version": "1.4.0",
+  "private": true,
+  "license": "UNLICENSED",
+  "type": "module",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node --no-warnings --test"
+  },
+  "dependencies": {
+    "chart-lite": "^2.0.0",
+    "date-fmt": "^1.9.0",
+    "font-subset": "^1.2.0",
+    "invoice-pdf": "^2.1.0",
+    "money-round": "^0.3.1",
+    "pg-lite-client": "^8.11.0",
+    "tax-tables": "^2025.3.0",
+    "uuid-gen": "^9.0.1",
+    "web-router": "^4.2.1",
+    "yaml-conf": "^2.0.4"
+  },
+  "devDependencies": {
+    "changelog-writer": "^3.1.0",
+    "eslint-mini": "^8.0.0",
+    "term-color": "^2.0.0",
+    "test-runner-x": "^5.0.0"
+  }
+}

@@ -44,20 +44,31 @@ func LogHTTP(cfg HTTPLogConfig) func(http.Handler) http.Handler {
                 r.Body = io.NopCloser(io.MultiReader(bytes.NewReader(reqBody), r.Body))
             }
             rec := &recorder{ResponseWriter: w, status: 200, max: cfg.MaxBytes, capture: cfg.Bodies}
+            // Deferred so a panicking handler still gets its line; the recover
+            // middleware outside this one logs the panic and answers 500.
+            defer func() {
+                status := rec.status
+                p := recover()
+                if p != nil {
+                    status = 500
+                }
+                if sampled || status >= 500 {
+                    // r.Pattern is set by the mux after routing; read it afterwards, and
+                    // fall back to the path (never r.URL.String(), which carries the query).
+                    route := r.Pattern
+                    if route == "" {
+                        route = r.Method + " " + r.URL.Path
+                    }
+                    log.Info("http response", "method", r.Method, "route", route, "status", status,
+                        "duration_ms", time.Since(start).Milliseconds(), "outcome", outcome(status),
+                        "resp_bytes", rec.size, "headers", safeHeaders(r.Header),
+                        "req_body", redactBody(reqBody), "body", redactBody(rec.body.Bytes()))
+                }
+                if p != nil {
+                    panic(p) // re-raise for the recover middleware
+                }
+            }()
             next.ServeHTTP(rec, r)
-            if !sampled && rec.status < 500 {
-                return
-            }
-            // r.Pattern is set by the mux after routing; read it afterwards, and
-            // fall back to the path (never r.URL.String(), which carries the query).
-            route := r.Pattern
-            if route == "" {
-                route = r.Method + " " + r.URL.Path
-            }
-            log.Info("http response", "method", r.Method, "route", route, "status", rec.status,
-                "duration_ms", time.Since(start).Milliseconds(), "outcome", outcome(rec.status),
-                "resp_bytes", rec.size, "headers", safeHeaders(r.Header),
-                "req_body", redactBody(reqBody), "body", redactBody(rec.body.Bytes()))
         })
     }
 }
@@ -108,12 +119,18 @@ and 3xx to `ok`, 4xx to `client_error`, 5xx to `server_error`.
 ## Flipping it at runtime
 
 Environment only. Set `LOG_HTTP=true` on the deployment and restart the
-pod; the process reads the variable once at start. Document the three
-variables in `.env.example`.
+pod; the process reads the variable once at start. When the repo has no
+variable naming its environment, drop the `env` parameter and use one
+default rather than inventing one; the README states what production gets
+when `LOG_HTTP` is unset. Add each variable read to `.env.example` and to
+the README's existing configuration table.
 
 ## Test
 
 One `httptest` case per toggle: disabled logs nothing, enabled logs one
 line, bodies on truncates at `MaxBytes` and redacts `password`, a sampled
-out request that answers 500 is still logged, and a handler that asserts
-`http.Flusher` still streams through the wrapper.
+out request that answers 500 is still logged, a panicking handler is
+logged with status 500, a handler that never calls `WriteHeader` is
+logged as 200, and a handler that asserts `http.Flusher` still streams
+through the wrapper. Drive them through the chain `main` builds, not the
+middleware alone.

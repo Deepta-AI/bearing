@@ -5,7 +5,10 @@
 # without a journey, a missing matrix row or Why, a story missing its
 # objective, quotes or exclusions, a bad task table, a bad question
 # register, and on empty input. Coverage is computed from the AC Covers
-# lines, so a matrix that claims "covered" does not rescue a gap.
+# lines, so a matrix that claims "covered" does not rescue a gap. An
+# adopted scheme (CLM-n) is kept and compared with HEAD: a renumbered or
+# rewritten id fails, a withdrawn id stays dead, and a withdrawn story or
+# REQ that code or stories still name needs a question.
 set -u
 . "$(dirname "$0")/../lib/assert.sh"
 CHK="$KIT/plugins/bearing/skills/backlog/scripts/coverage_check.py"
@@ -254,6 +257,84 @@ rm "$d/PRD.md"
 mv "$d/c2.md" "$d/coverage.md"
 assert_exit 0 run "$d"
 assert_contains "$T_OUT" "3 REQ from $d/coverage.md"
+t_end
+
+# adopted <dir>: a git repository whose committed backlog uses its own
+# CLM-n scheme, traced at story level through the index Covers cell,
+# with CLM-2 in the code and tests.
+adopted() {
+  mkdir -p "$1/docs/product" "$1/src"
+  cat > "$1/docs/product/PRD.md" <<'MD'
+| Id | Statement |
+| --- | --- |
+| REQ-001 | List ports |
+| REQ-002 | Export as JSON |
+MD
+  cat > "$1/docs/product/backlog.md" <<'MD'
+| Story | Title | Covers | Status |
+| --- | --- | --- | --- |
+| CLM-1 | List ports | REQ-001 | Done |
+| CLM-2 | Print JSON | REQ-002 | In progress |
+
+## CLM-1 List ports
+- AC-1: Given a listener, when I run it, then the port shows.
+
+## CLM-2 Print JSON
+- AC-1: Given --json, when I run it, then stdout is JSON.
+MD
+  printf '# CLM-2: JSON writer\ndef dump(): pass\n' > "$1/src/out.py"
+  git -C "$1" init -q && git -C "$1" add -A \
+    && git -C "$1" -c user.name=t -c user.email=t@t commit -q -m fixture
+}
+arun() { (cd "$1" && python3 "$CHK" --prd docs/product/PRD.md --backlog docs/product/backlog.md --coverage docs/product/coverage.md --flows docs/product/user-flows.md); }
+
+t_begin "an adopted scheme is kept, traced at story level and compared with HEAD"
+d="$(tmpdir)/adopt"; adopted "$d"
+assert_exit 0 arun "$d"
+assert_contains "$T_OUT" "ids: 2 of 2 kept from HEAD, 0 new (none), changed since HEAD: none"
+assert_contains "$T_OUT" "2 covered, 0 out of scope, 0 gaps, 2 stories, 2 AC, 0 orphans, 0 problems, 2 traced at story level"
+printf '\n## CLM-3 Sort output\n- AC-1: Given --sort, then rows are ordered.\n' >> "$d/docs/product/backlog.md"
+printf '| CLM-3 | Sort output | inferred | To do |\n' > "$d/row"
+sed -i.bak '/^| CLM-2 |/r '"$d/row" "$d/docs/product/backlog.md"
+assert_exit 0 arun "$d"
+assert_contains "$T_OUT" "ids: 2 of 2 kept from HEAD, 1 new (CLM-3), changed since HEAD: none"
+t_end
+
+t_begin "a renumbered or house-rewritten backlog fails against HEAD"
+d="$(tmpdir)/renum"; adopted "$d"
+sed -i.bak 's/CLM-2/CLM-3/g' "$d/docs/product/backlog.md"
+assert_exit 1 arun "$d"
+assert_contains "$T_OUT" "CLM-2: a story id at HEAD is no longer a story heading"
+d="$(tmpdir)/house"; adopted "$d"
+sed -i.bak 's/CLM-1/US-00-001/g; s/CLM-2/US-00-002/g' "$d/docs/product/backlog.md"
+assert_exit 1 arun "$d"
+assert_contains "$T_OUT" "0 stories in docs/product/backlog.md"
+assert_contains "$T_OUT" "its ids were renumbered or dropped"
+t_end
+
+t_begin "a withdrawn story that code still names needs a question; a withdrawn id stays dead"
+d="$(tmpdir)/wref"; adopted "$d"
+sed -i.bak 's/^| REQ-002 | Export as JSON |/| REQ-002 | withdrawn: JSON dropped |/' "$d/docs/product/PRD.md"
+sed -i.bak 's/^| CLM-2 | Print JSON | REQ-002 | In progress |/| CLM-2 | Print JSON | none | Withdrawn |/' "$d/docs/product/backlog.md"
+assert_exit 1 arun "$d"
+assert_contains "$T_OUT" "withdrawn-refs: 1 withdrawn stories, 1 references in files outside docs/"
+assert_contains "$T_OUT" "CLM-2: withdrawn, but src/out.py:1 still name it"
+printf '\n## Open questions\n\n| Q | Question |\n| --- | --- |\n| Q-1 | Keep, repoint or remove src/out.py for CLM-2? |\n' >> "$d/docs/product/backlog.md"
+assert_exit 0 arun "$d"
+git -C "$d" add -A && git -C "$d" -c user.name=t -c user.email=t@t commit -q -m withdraw
+sed -i.bak 's/^| CLM-2 | Print JSON | none | Withdrawn |/| CLM-2 | Print JSON | REQ-001 | To do |/' "$d/docs/product/backlog.md"
+assert_exit 1 arun "$d"
+assert_contains "$T_OUT" "CLM-2: withdrawn at HEAD, live now"
+t_end
+
+t_begin "a live story on a withdrawn REQ passes only while a question names both"
+d="$(tmpdir)/wreq"; adopted "$d"
+sed -i.bak 's/^| REQ-002 | Export as JSON |/| REQ-002 | withdrawn: JSON dropped |/' "$d/docs/product/PRD.md"
+assert_exit 1 arun "$d"
+assert_contains "$T_OUT" "covers REQ-002, which the PRD marks withdrawn: (mark CLM-2 withdrawn: in place, or raise a Q-nnn"
+printf '\n## Open questions\n\n| Q | Question |\n| --- | --- |\n| Q-1 | CLM-2 is in progress and REQ-002 is withdrawn: stop it? |\n' >> "$d/docs/product/backlog.md"
+assert_exit 0 arun "$d"
+assert_contains "$T_OUT" "changed since HEAD: none"
 t_end
 
 t_summary

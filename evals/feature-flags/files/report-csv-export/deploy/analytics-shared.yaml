@@ -1,0 +1,14 @@
+# Shared settings for every analytics service in the analytics namespace
+# (reportsvc, dashboards, ingest). Owned by platform-analytics; change it
+# through their queue, not in a service merge request.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: analytics-shared
+  namespace: analytics
+data:
+  ANALYTICS_REGION: "eu-west-1"
+  OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector.observability:4317"
+  # dashboards: CSV export of charts stays off until the row-limit work (DSH-77)
+  FLAG_CSV_EXPORT: "off"
+  FLAG_CHART_THEMES: "true"

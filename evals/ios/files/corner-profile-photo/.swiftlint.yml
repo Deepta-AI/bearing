@@ -1,0 +1,11 @@
+included:
+  - App
+  - Packages/CornerKit/Sources
+  - Packages/CornerKit/Tests
+opt_in_rules:
+  - force_unwrapping
+  - implicitly_unwrapped_optional
+force_cast: error
+force_try: error
+force_unwrapping: error
+line_length: 120

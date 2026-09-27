@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: event-export
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: event-export}
+  template:
+    metadata:
+      labels: {app: event-export}
+    spec:
+      containers:
+        - name: worker
+          image: registry.example.com/event-export:1.8.2
+          command: ["python3", "-m", "export.worker"]
+          env:
+            - {name: EVENTS_DB, value: /data/events.db}
+            - {name: OUTPUT_DIR, value: /exports}
+            - {name: PASS_INTERVAL_SECONDS, value: "600"}
+          resources:
+            requests: {memory: 256Mi, cpu: 250m}
+            limits: {memory: 512Mi}

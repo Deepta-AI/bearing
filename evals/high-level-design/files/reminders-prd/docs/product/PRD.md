@@ -10,6 +10,8 @@ hand the day before, which takes front-desk time and still misses most.
 - 1,400 clinics on the platform, about 90,000 appointments a day.
 - Most clinics open at 09:00; on weekdays about 12,000 appointments start
   at exactly 09:00.
+- The second cluster is after the mid-morning break: on weekdays about
+  6,000 appointments start at exactly 11:00.
 
 ## Requirements
 - REQ-201: Send an SMS reminder 24 hours before each booked appointment.

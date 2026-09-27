@@ -90,8 +90,13 @@ Verdict: traced | not traced (<K> gaps in <G> classes)
 | Story without AC | | | backlog |
 | AC without TC | | | test-cases |
 | TC without automated test | | | write the test, name it with the TC id |
+| TC test skipped | | | find why it fails; fix the code or the test |
+| Story without test (no test-case document) | | | write a test per AC, name it with the story id |
+| Unknown id (in a test or commit) | | | correct the label to the story the test covers |
+| Coverage claim contradicted | | | correct the coverage document |
 | Story without ticket | | | create the ticket, add Ticket: to the story |
 | Ticket without commits | | | start-task, commit with [<KEY>] (n/a when tracker: none) |
+| Commit without id | | | name the id in the MR, reword before merge |
 | Boundary change without ADR | | | adr |
 | Event not in sheet | | | analytics-events |
 

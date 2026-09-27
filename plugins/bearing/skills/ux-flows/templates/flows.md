@@ -20,11 +20,33 @@ Date: <YYYY-MM-DD>   Author: <name or "unattributed">
      the feedback it answers. Delete the section in a first version.
      Good: one row per change, the feedback quoted, the screen ids touched;
      the previous version's file is kept, not overwritten.
+     Removed screens keep their id, marked removed; list where each thing
+     they carried went (copy, disclosures, errors, events) and every
+     review note or ticket that cites a changed or removed id.
      Example: 1 | "Users miss the save state" | S-03 success now moves
      focus to the "Saved" banner | S-03 -->
 
 | # | Feedback | Change | Screens touched |
 | --- | --- | --- | --- |
+
+## 0. Spec against code
+
+<!-- What: the ledger from step 2, read from the handlers, router and
+     pricing or limit tables the flow touches, before any screen is drawn.
+     Good: each rejection names its code and file; each number says how it
+     is counted and gives the value for the request's own example; each
+     route or endpoint the flow needs is exists / new; each conflict names
+     both sources and points to its open question.
+     Example: Limit | invites per workspace | 10 a minute, fixed window
+     (src/server/rateLimit.js) | a list of 12: 10 go now, 2 wait |
+     exists -->
+
+| Kind | Item | What the code does (file) | For this request | Spec says / status |
+| --- | --- | --- | --- | --- |
+| rejection | <CODE> | <when it fires> | error cell on S-.. | |
+| number | <limit, cap, price, expiry> | <value and how it is counted> | <computed for the example> | <spec value if it differs> |
+| route | <path or endpoint> | exists / not registered | | new / dependency |
+| guard missing | <stale state> | <what the code does if the item changed> | state on S-.. | backend note |
 
 ## 1. Screen inventory
 
@@ -50,8 +72,10 @@ Stories with no screen: none | <ids, moved to open questions>
 
 <!-- What: one "### S-nn <name>" table per inventory screen. Every cell says
      what the user sees and gives the copy in quotes.
-     Good: loading, empty, error and success on every screen, partial too,
-     and offline when the feature writes data or targets a phone; a state
+     Good: loading, empty, error and success on every screen; partial when
+     it shows a list, a batch or data from more than one source; offline
+     when the feature writes data or targets a phone; one error row per
+     rejection in section 0, each with a next step; a state
      that cannot occur reads "n/a: reason", never blank. "Shows a spinner"
      is not filled: the copy is the deliverable. -->
 

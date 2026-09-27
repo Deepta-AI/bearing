@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 12 and higher. Same policy as backup_rules.xml: settings travel,
+     the order cache does not. -->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="database" path="pantry.db" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="database" path="pantry.db" />
+    </device-transfer>
+</data-extraction-rules>

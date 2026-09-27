@@ -12,6 +12,15 @@ For each item, either find the concrete failure or write "none found".
   the run's data interval.
 - A backfill done with `--full-refresh`, or a DAG with `catchup=True` and
   no `max_active_runs=1`.
+- delete+insert keyed on (day, dimension) or on day alone with no window
+  delete: a group or a day that vanished keeps its old row.
+- A staging model over an append or CDC table without latest-row
+  deduplication and a `unique` test on the id.
+- A lookback shorter than the time the source's rows can change; a
+  backfill that starts at the change date instead of the first bad run's
+  window start, or reaches days raw no longer holds in full.
+- An Airflow 3 DAG on a cron string or preset whose tasks read the data
+  interval (zero length); a model built before its source lands.
 
 ## SQL and models
 - `select *` in a model; a column that reaches a mart uncast or unnamed.

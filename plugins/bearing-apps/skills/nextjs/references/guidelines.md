@@ -102,12 +102,20 @@
   through the API, `updateTag` for each cached read the write changed,
   return a state.
 - Return a discriminated state (`idle | ok | error`) with
-  `z.flattenError(parsed.error).fieldErrors`; the client renders field
-  errors and a status region. Never return an `Error` object.
+  `z.flattenError(parsed.error).fieldErrors` (Zod 4; Zod 3 is
+  `parsed.error.flatten().fieldErrors`); the client renders field errors
+  and a status region. Never return an `Error` object. An error state
+  carries the submitted values back so the reset form shows them.
+- A 422 from the API maps onto the form's own fields by known key; unknown
+  keys and the raw body become one general message.
 - The client side is `useActionState(action, initial)` in a small
   `"use client"` form; `pending` disables the submit button.
 - An action is a public POST endpoint whatever renders it: rate limit at
-  the edge, size-limit inputs, never trust hidden fields for authority.
+  the edge, size-limit inputs, never trust hidden fields or `.bind`
+  arguments for authority. Every export of a `"use server"` file is such
+  an endpoint; helpers live unexported or in a `server-only` module.
+- `redirect()` and `notFound()` throw: never inside a `try` that swallows
+  them (or `unstable_rethrow(e)` first in the `catch`).
 
 ## Route handlers
 

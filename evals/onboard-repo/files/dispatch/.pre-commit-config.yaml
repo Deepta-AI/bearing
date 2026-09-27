@@ -1,0 +1,14 @@
+# Installed with `pre-commit install` (see CONTRIBUTING.md).
+repos:
+  - repo: local
+    hooks:
+      - id: gofmt
+        name: gofmt
+        entry: gofmt -l -w
+        language: system
+        files: ^services/api/.*\.go$
+      - id: ruff
+        name: ruff
+        entry: ruff check
+        language: system
+        files: ^services/worker/.*\.py$

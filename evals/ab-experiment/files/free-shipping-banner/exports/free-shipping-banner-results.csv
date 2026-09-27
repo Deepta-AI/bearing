@@ -1,0 +1,5 @@
+variant,platform,exposed,converted
+control,web,20300,1015
+treatment,web,18200,1092
+control,app,12000,600
+treatment,app,11950,648

@@ -1,0 +1,11 @@
+[project]
+name = "dispatch-worker"
+version = "0.3.0"
+requires-python = ">=3.11"
+dependencies = []
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "integration: needs a Postgres at DATABASE_URL (CI starts one)",
+]

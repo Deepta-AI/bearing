@@ -1,6 +1,6 @@
 ---
 name: database
-description: 'Conventions for PostgreSQL, ClickHouse and MongoDB: store choice, schema, indexes, query review, lock-safe migrations. Use when "designing a schema", "choosing an index", "reviewing a query" or "which database".'
+description: 'Database work for PostgreSQL, ClickHouse or MongoDB: schema, indexes, slow query review with EXPLAIN, store choice, lock-safe changes. Use when asked about "choosing an index", "a slow query" or "which database".'
 allowed-tools: Read, Grep, Glob, Skill
 ---
 
@@ -44,7 +44,7 @@ and the query must look like in any of them.
   `references/migration-patterns.md`. A migration without the header is
   incomplete.
 - `branch-review` on a diff touching those paths: apply
-  `references/review-checklist.md` and report in the reviewer format.
+  `references/review-checklist.md` and report every finding as severity (Critical, High, Medium, Low), `file:line`, the claim, a concrete failure scenario and the fix, then list what was checked and found clean and what was not reviewed.
 - A new feature needs a store: read `references/store-choice.md` and run
   `tech-decision` for the `database` or `analytics store` key. Any choice
   other than Postgres gets an ADR (`adr`) in the same MR.

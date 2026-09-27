@@ -1,0 +1,9 @@
+# qa: one small pod (ADR-0004). Scaled to zero 22:00 to 07:30 IST by the
+# qa-scale-down and qa-scale-up schedules in .gitlab-ci.yml.
+replicas: 1
+resources:
+  requests: { cpu: 250m, memory: 128Mi }
+  limits: { cpu: 500m, memory: 256Mi }
+env:
+  RATE_LIMIT_RPS: "20"
+  # API_KEYS comes from the CI variable SHOPFRONT_QA_API_KEYS (one key today).

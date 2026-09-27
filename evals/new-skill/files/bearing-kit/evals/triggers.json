@@ -1,0 +1,74 @@
+[
+ {
+  "skill": "adr",
+  "should": [
+   "write this decision down",
+   "we picked Postgres over Mongo for the ledger, can you record why",
+   "nobody remembers why we chose gRPC internally, capture it before it happens again"
+  ],
+  "near": [
+   {
+    "prompt": "cut the 2.3 release",
+    "expect": "release"
+   },
+   {
+    "prompt": "write the on-call notes for the ledger",
+    "expect": "runbook"
+   }
+  ]
+ },
+ {
+  "skill": "release",
+  "should": [
+   "ship 1.8",
+   "prepare the next minor release, the changelog is a mess",
+   "what would go out if we released today?"
+  ],
+  "near": [
+   {
+    "prompt": "record why we moved to trunk based development",
+    "expect": "adr"
+   },
+   {
+    "prompt": "add a Go handler for the release notes endpoint",
+    "expect": "go"
+   }
+  ]
+ },
+ {
+  "skill": "go",
+  "should": [
+   "new endpoint in the Go service for refunds",
+   "the orders service needs a health handler, it is Go on net/http",
+   "our Go handlers have no tests"
+  ],
+  "near": [
+   {
+    "prompt": "add a FastAPI route for refunds",
+    "expect": "python"
+   },
+   {
+    "prompt": "document how to restart the orders service",
+    "expect": "runbook"
+   }
+  ]
+ },
+ {
+  "skill": "python",
+  "should": [
+   "add a FastAPI route for refunds",
+   "the billing service is FastAPI, it needs an invoices endpoint",
+   "pydantic models for the invoice API"
+  ],
+  "near": [
+   {
+    "prompt": "add a Go handler for refunds",
+    "expect": "go"
+   },
+   {
+    "prompt": "why did we choose FastAPI, write it up",
+    "expect": "adr"
+   }
+  ]
+ }
+]

@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# Enforce Conventional Commits on the subject line.
+subject=$(head -n 1 "$1")
+if ! printf '%s\n' "$subject" | grep -Eq '^(feat|fix|chore|docs|refactor|test|perf|ci)(\([a-z0-9-]+\))?!?: .{3,}$'; then
+  echo "commit-msg: subject must look like 'fix(orders): handle empty cart'" >&2
+  exit 1
+fi

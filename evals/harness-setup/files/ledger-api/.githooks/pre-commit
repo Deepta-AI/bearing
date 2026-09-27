@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# pre-commit: staged Go files must be gofmt clean.
+set -euo pipefail
+files="$(git diff --cached --name-only --diff-filter=ACM -- '*.go')"
+[ -z "$files" ] && exit 0
+bad="$(gofmt -l $files)"
+if [ -n "$bad" ]; then
+  echo "pre-commit: run gofmt on:" >&2
+  echo "$bad" >&2
+  exit 1
+fi

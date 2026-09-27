@@ -1,0 +1,17 @@
+{
+  "cli": { "version": ">= 13.0.0", "appVersionSource": "local" },
+  "build": {
+    "preview": { "distribution": "internal" },
+    "production": {}
+  },
+  "submit": {
+    "production": {
+      "ios": { "ascAppId": "6450000001" },
+      "android": {
+        "serviceAccountKeyPath": "./secrets/play-service-account.json",
+        "track": "production",
+        "releaseStatus": "completed"
+      }
+    }
+  }
+}

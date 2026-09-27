@@ -77,12 +77,42 @@ the table; this only runs what exists and reports.
    the report as "overdue quarantine: <test> (TC, task, deadline)" and
    into the summary as a count; the run fails on any overdue row, so a
    quarantine cannot outlive its deadline silently.
-7. Write `docs/testing/reports/<date>-<branch>.md` from
+7. Read what the runner cannot tell you. The counts say what ran; a
+   senior engineer also says what the green and the skipped parts prove.
+   - Every skipped or quarantined test on the code in question: run it
+     with the skip disabled (pytest: `-p no:skipping` with the test's node
+     id ignores skip marks; Go, vitest, others: a `git worktree` copy
+     under `.scratch/` with the skip line removed). Report "still fails
+     (<message>)" or "passes on this code: the skip can be released".
+     Never un-skip in the user's tree.
+   - Every test that did not run (no database, no device): read its body
+     and fixtures and say what it would prove if it ran. A body that only
+     calls `t.Fatal`, `pass` or asserts nothing is a placeholder, not a
+     pending check. Tests that write the same keys on a connection that
+     commits depend on order and on a clean database. SQL the code under
+     test relies on (`ON CONFLICT (cols)` needs a unique index on exactly
+     those columns, a foreign key, a column) is checked against the
+     migrations or schema in the repository; a missing one means the
+     test fails even with a database.
+   - When the user names a symptom ("late fees look wrong", "totals are
+     off by a paisa"), a failing test near it is a lead, not the answer.
+     Read the code path, and when the user or a document gives an example
+     (amount, date, expected value), compute it through the code by hand
+     or with a one-line call and say which defect produces that number.
+     Look at the boundaries no test pins (the first day after a grace
+     period, a month or rounding step, a half-paisa) and at comments,
+     docs or constants that disagree. Label each finding "not covered by
+     any test", never as a test result.
+   - A failure where the code and the test (or case table) disagree and
+     a comment defends the code ("raised with the pricing change") is a
+     decision for the user: name both values and the source behind each;
+     do not call either one the bug.
+8. Write `docs/testing/reports/<date>-<branch>.md` from
    `templates/report.md` (slashes in the branch become `-`) and the same
    data as `docs/testing/reports/<date>-<branch>.json`. Print the summary
    line. Exit non-zero when any test failed or any selected suite did not
    run.
-8. Sort the failures into hints: "element not found", "timeout waiting",
+9. Sort the failures into hints: "element not found", "timeout waiting",
    "strict mode violation", a 4xx from a fixture or a unique constraint
    are heal candidates for `test-heal`; a screenshot mismatch is a
    visual candidate, and a failure on one browser or phone of the matrix
@@ -102,8 +132,19 @@ Failures:
 Heal candidates: K (<test>: locator | timing | data | visual)   Likely regressions: J
 Flaky candidates: Q   Slowest: <test> <s>, ...
 Quarantine: N rows, K overdue (<test> past <deadline>, ...) | no quarantine file
+Not proven: <each skipped, not-run or placeholder test and what it leaves unverified>
+Beyond the tests: <each defect found by reading or computing, "not covered by any test">
+Commands: <every command run, in full with its files and flags, so the user can repeat it>
 Report: docs/testing/reports/<date>-<branch>.md (+ .json)
 ```
+
+The final message is the deliverable; the report file is the archive.
+Everything the user needs to act (each failure's full test name,
+file:line and got/want values, the base for `--changed`, the commands)
+is in the message itself, not only in the report or the working log.
+Readiness: never call a branch good or ready while a test fails, a
+selected suite did not run, or part of the change is covered only by
+tests that did not run; say what must happen first.
 
 ## Gotchas
 

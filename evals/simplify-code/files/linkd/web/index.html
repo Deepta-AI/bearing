@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Shorten a link</title></head>
+<body>
+  <!-- Served by the marketing site's nginx, which proxies POST /links to linkd. -->
+  <form id="shorten">
+    <label>Link <input name="url" type="url" required></label>
+    <label>Expires after (days) <input name="days" type="number" min="0" max="30"></label>
+    <button>Shorten</button>
+  </form>
+  <script>
+    document.getElementById("shorten").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const f = new FormData(e.target);
+      const body = { url: f.get("url"), ttl_seconds: Number(f.get("days") || 0) * 86400 };
+      const res = await fetch("/links", { method: "POST", body: JSON.stringify(body) });
+      alert(res.ok ? "Short code: " + (await res.json()).code : await res.text());
+    });
+  </script>
+</body>
+</html>

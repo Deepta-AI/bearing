@@ -1,0 +1,4 @@
+# Installed to /etc/cron.d/backupctl on the database host.
+# 02:00 dump, 03:30 prune both copies down to a week.
+0 2 * * * postgres pg_dump -Fc orders | gzip > /var/backups/db/db-$(date +\%d-\%m-\%Y).tar.gz
+30 3 * * * backup cd /opt/backupctl && PYTHONPATH=src python3 -m backupctl prune --keep 7 --remote

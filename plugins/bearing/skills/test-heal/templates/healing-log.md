@@ -9,8 +9,8 @@
      examined.
      Good: exactly one class per row; the evidence is a path, a diff line,
      a screenshot or the runner's own repeat line, never "fixed" or "works
-     now"; the proof is 2/2 for locator and environment, 50/50 for timing
-     and data, or "provisional (repeat proof not run)"; a regression row
+     now"; the proof is 2/2 for locator and environment, at least 50 and
+     at least 3/p consecutive passes for timing and data, or "provisional (repeat proof not run)"; a regression row
      has Change "none" and re-runs "not run"; no row weakens an assertion
      or renames a test.
      Example: see the TC-0019 row: the 20-run reproduction, the wait that

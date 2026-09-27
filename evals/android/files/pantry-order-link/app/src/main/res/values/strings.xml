@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Pantry</string>
+    <string name="login_title">Sign in</string>
+    <string name="login_email">Email</string>
+    <string name="login_password">Password</string>
+    <string name="login_submit">Sign in</string>
+    <string name="login_failed">Could not sign in. Check your email and password.</string>
+    <string name="orders_title">Your orders</string>
+    <string name="orders_empty">No orders yet</string>
+    <string name="orders_error">Could not load your orders</string>
+    <string name="orders_total">Total: %1$s</string>
+    <string name="logout">Sign out</string>
+    <string name="retry">Retry</string>
+    <string name="order_detail_title">Order</string>
+</resources>

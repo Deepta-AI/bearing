@@ -1,0 +1,2 @@
+Basket keeps your grocery list in your pocket. Add items in a tap, scan a
+barcode to add what you are holding, and find the stores near you.

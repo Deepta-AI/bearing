@@ -5,24 +5,26 @@
    "id": 1,
    "name": "structured-logs-api-and-worker",
    "prompt": "Our logs are useless when something goes wrong in orders: I can't tell which lines belong to which request, and I'm pretty sure we're leaking customer emails. Sort out the logging in this repo (API and worker).",
-   "expected_output": "One slog JSON logger for API and worker; a validated request id bound in middleware that sits outside the API key check, so rejected requests, the confirmation goroutine and recovered panics all carry it; no customer email, phone or presented API key in any line, including inside logged error values; client mistakes logged once below error; one completion line per request; make check passing with a test that proves the email stays out.",
+   "expected_output": "One slog JSON logger for API and worker that also carries the standard library's and net/http's own output; a validated request id bound in middleware outside the API key check, carried into the confirmation goroutine on a context that keeps the id but not the request's cancellation, so the confirmation still goes out; no customer email, phone or presented API key in any line, including inside logged error values, fixed at the error's construction; client mistakes logged once below error; panics recovered with the request id; one completion line per request; the export still streams; a failed listen logged and exiting non-zero; every failed notification in a worker run logged with its order id; an idle worker quiet at info; make check passing with a test that proves the email stays out.",
    "files": [
     "files/orders-go"
    ],
    "expectations": [
-    "`make check` (go vet and go test) passes in the final repository",
-    "There is one logger set up in one place using log/slog with a JSON handler, used by both cmd/api and cmd/worker, and output from the standard library log package (including net/http's own server errors) also comes out as JSON through it, for example via slog.SetDefault or http.Server.ErrorLog",
-    "No fmt.Print*, log.Print* or log.Fatal* calls remain in internal/ or cmd/ outside that logger setup",
-    "A request id is taken from X-Request-Id when it is well formed (length and character set checked) and generated otherwise, set in HTTP middleware, and present on log lines inside the request without handlers passing it by hand",
-    "The request id middleware runs outside the API key check, so a request rejected with 401 still produces a log line carrying a request id",
-    "Lines written by the order-confirmation goroutine started in Handler.Create carry the request id of the request that started it (the goroutine gets the request's logger or a context derived from it, not a bare context.Background or the global logger)",
-    "Running the code paths shows no customer email or phone in any log line, including where they travel inside error values: the blocked-customer error from Service.Create, the mailbox-full error from the notifier logged by the handler or the worker, and the sent-confirmation line. The fix removes the address from the error or the line; replacing the whole error with a constant so the cause is lost does not count",
+    "`make check` (go vet and go test) passes in the final repository, and it includes a test that captures log output while driving a request or worker run that fails with a customer email in play, and fails if that email appears in the captured output",
+    "There is one logger set up in one place using log/slog with a JSON handler, used by both cmd/api and cmd/worker; output from the standard library log package and net/http's own server errors also comes out as JSON through it (for example slog.SetDefault and http.Server.ErrorLog); no fmt.Print*, log.Print* or log.Fatal* calls remain in internal/ or cmd/ outside that setup",
+    "A request id is taken from X-Request-Id when it is well formed (length and character set checked) and generated otherwise, set in middleware that runs outside the API key check, so a request rejected with 401 still produces a log line carrying a request id; handlers do not pass it by hand",
+    "Lines written by the order-confirmation goroutine started in Handler.Create carry the request id of the request that started it, AND the confirmation is still delivered after the handler has returned: driving POST /orders through a real server (httptest.NewServer or the running API) for a normal address produces the sent-confirmation outcome, not a context canceled failure. Passing r.Context() straight into the goroutine fails this; a context that keeps the values but drops cancellation (context.WithoutCancel or an equivalent) passes",
+    "Running the code paths shows no customer email or phone in any log line, including where they travel inside error values: the blocked-customer error from Service.Create, the mailbox-full error from the notifier logged by the handler or the worker, and the sent-confirmation line. The fix removes the address from the error or the line; replacing the whole error with a constant so the cause is lost does not count, and errors.Is(err, ErrBlocked) still holds",
     "The API key check no longer logs the key the caller presented, in whole or in part",
-    "Lines from the API and from the worker can be told apart by a field (such as entry_point or a component field), not only by the message text",
+    "Every line about a specific order, from the API and from the worker, carries the order id under the same field name (or the worker's lines carry the request id that placed the order), so one query returns an order's lines from both processes; API and worker lines are also told apart by a field, not only by message text",
     "The bad-quantity and blocked-customer failures are each logged once per request (not in both Service.Create and the handler) and at warn or info rather than error, since they are client mistakes",
-    "A panic inside a route handler is recovered by middleware and logged as one JSON error line carrying the request id, and the client gets a 500; fixing a particular bug instead of adding recovery does not satisfy this",
-    "Every request produces one completion line with method, route or path, HTTP status and a duration in milliseconds",
-    "A test captures log output while driving a request or worker run that fails with a customer email in play, and fails if that email appears in the captured output",
+    "A panic inside a route handler is recovered by middleware and logged as one error-level JSON line describing the panic, carrying the request id, and the client gets a 500 (a separate completion line with status 500 is fine); fixing a particular bug instead of adding recovery does not satisfy this",
+    "Every request other than GET /healthz produces one completion line with method, route or path (never the query string, so GET /orders?email=asha@example.com is logged without the address), HTTP status and a duration in milliseconds; /healthz may be at debug or sampled",
+    "GET /orders/export through the API's final middleware chain (driven through a real server, not by calling h.Export directly) still answers 200 with NDJSON, not 500 streaming unsupported: any response writer wrapper keeps Flush or Unwrap",
+    "When the API cannot start listening (for example the port is taken), the process writes an error-level JSON line saying so and exits non-zero, instead of discarding the ListenAndServe error and exiting 0",
+    "When several notifications fail in one worker run, each failed order is logged with its order id, not only the first error that FulfilPending returns",
+    "An idle worker run that fulfils 0 orders does not write an info or higher line every 5 s (it logs at debug, or only when work was done)",
+    "No JSON log line contains the same key twice (for example request_id added by the middleware and again in a handler)",
     "No file written or edited contains an em dash character"
    ]
   },
@@ -30,23 +32,24 @@
    "id": 2,
    "name": "http-logging-behind-a-toggle",
    "prompt": "add request logging to the orders API. ops want to be able to turn it off in prod without a code change, and we must never log request bodies by default (they contain customer details)",
-   "expected_output": "Request logging as middleware wrapping the whole chain (401s logged too), behind an env toggle whose production value the README states; no bodies by default and bounded if offered; no query string or customer email in the request line; status 200 recorded when the handler never calls WriteHeader; the NDJSON export still streams; health checks quiet; the new variables added to the existing .env.example and README configuration table; the handler's existing body-dumping line removed; make check passing.",
+   "expected_output": "Request logging as middleware wrapping the whole chain (401s logged with their path), behind an env toggle whose production value the README states; no bodies by default and bounded if offered; no query string or customer email in the request line or in any other line written while serving an order; status 200 recorded when the handler never calls WriteHeader and 500 when it panics; the NDJSON export still streams; health checks quiet; the new variables added to the existing .env.example and README configuration table; the handler's existing body-dumping line removed; make check passing.",
    "files": [
     "files/orders-go"
    ],
    "expectations": [
     "`make check` passes in the final repository",
     "Request logging is HTTP middleware that wraps the whole handler chain including the API key check, so requests rejected with 401 are logged too; it is not log calls pasted into each handler",
-    "An environment variable turns request logging on or off without a code change, and the README states explicitly which value is in effect in production when the variable is unset",
-    "Request bodies are never logged by default; if the run offers a setting to log them, it is off by default and bounds what is logged (truncated or omitted over a size limit). A run with no body logging at all passes",
+    "An environment variable turns request logging on or off without a code change, and the README states which value is in effect in production when the variable is unset (one default that the README says applies everywhere, production included, counts)",
+    "Request bodies are never logged by default; if the run offers a setting to log them, it is off by default, bounds what is logged (truncated or omitted over a size limit), and the handler still receives the full body afterwards. A run with no body logging at all passes",
     "The request line never contains the query string or a customer email: a request to GET /orders?email=asha@example.com is logged without the address (route pattern, path only, or the query redacted)",
     "If request headers are logged, Authorization, Cookie and X-Api-Key values are redacted; a run that logs no headers passes",
-    "Each request log line has method, route or path, status and a duration in milliseconds, and a request whose handler never calls WriteHeader (GET /orders/{id} for an existing order) is logged with status 200, not 0",
+    "Each request log line has method, route or path, status and a duration in milliseconds. A request whose handler never calls WriteHeader (GET /orders/{id} for an existing order) is logged with status 200, not 0, and a request rejected with 401 by the key check is logged with its path, not only a placeholder such as unmatched",
     "GET /orders/export still streams through the logging middleware: the response writer wrapper keeps http.Flusher working (a Flush method or Unwrap for http.ResponseController), so the handler does not answer 500 streaming unsupported",
-    "If the middleware reads the body, the handler still receives the full body afterwards",
     "GET /healthz (called every 2 s) is excluded or sampled so it does not flood the logs, and any sampling never drops the line for a 5xx response",
     "Every new variable the code reads is added to the existing .env.example with a comment and to the README's configuration table, alongside PORT and API_KEY rather than in a second, conflicting list",
     "The handler's existing line that logs the decoded order request (email, phone and the whole struct) is removed or reduced to ids, since it writes the body's customer details regardless of the new toggle",
+    "A request whose handler panics (for example a route added in a test that panics, driven through the final chain) still produces its request log line with status 500; a middleware that logs only after next.ServeHTTP returns normally fails this",
+    "No line written while serving POST /orders contains the customer's email or phone, whether the order succeeds, is rejected for quantity, or is blocked: the existing bad-quantity line, the blocked-customer error text and the sent-confirmation line are fixed, since the user said customer details must never be logged",
     "No file written or edited contains an em dash character"
    ]
   }

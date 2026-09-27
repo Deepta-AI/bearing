@@ -92,13 +92,26 @@ sRGB gamut; lower the chroma until it does not.
 
 ## React with shadcn/ui (the default stack)
 
+First read what the repo already consumes; the binding writes values in
+that form, never in the form this reference happens to show.
+
+| The repo has | Variables hold | Dark selector |
+| --- | --- | --- |
+| Tailwind 4: `@theme inline` in `src/index.css`, no `tailwind.config.*` colours | full colours (`#1b7a4c`, or oklch behind `@supports`) | `@custom-variant dark` in index.css |
+| Tailwind 3: `tailwind.config.*` colours written `hsl(var(--x))` or `hsl(var(--x) / <alpha-value>)` | HSL channels only: `152 64% 30%`, no `hsl()`, no hex, no oklch | `darkMode` in the config |
+| Tailwind 3 config colours written `var(--x)` | full colours; opacity modifiers (`bg-primary/90`) stop working | `darkMode` in the config |
+
+A value in the wrong form is silently invalid: `hsl(var(--primary))` with
+`--primary: #1b7a4c` or `oklch(...)` computes to nothing, and every colour
+using it disappears with no build error.
+
 File: `src/styles/tokens.css` (or `web/src/styles/tokens.css`), imported
-from `src/index.css` after `@import "tw-animate-css"` and before its
-`@theme inline` block. It writes the variables shadcn/ui components read,
-from the roles in `tokens.json`, and nothing else: the template's
-`:root` and `.dark` blocks in `index.css` are removed so there is one
-source. A second set of `--color-*` variables beside these leaves every
-shadcn component on the neutral defaults.
+from `src/index.css` before the Tailwind layers (Tailwind 4: after
+`@import "tailwindcss"` and before `@theme inline`). It writes the
+variables shadcn/ui components read, from the roles in `tokens.json`, and
+nothing else: the template's `:root` and `.dark` blocks in `index.css` are
+removed so there is one source. A second set of `--color-*` variables
+beside these leaves every shadcn component on the neutral defaults.
 
 | shadcn variable | Token role (light and dark) |
 | --- | --- |
@@ -110,7 +123,7 @@ shadcn component on the neutral defaults.
 | `--secondary`, `--secondary-foreground` | `bg-subtle`, `text` |
 | `--muted`, `--muted-foreground` | `bg-subtle`, `text-muted` |
 | `--accent`, `--accent-foreground` | `accent-subtle`, `text` |
-| `--destructive` | `danger` |
+| `--destructive`, `--destructive-foreground` | `danger`, `on-danger` |
 | `--border`, `--input`, `--ring` | `border`, `border-strong`, `focus` |
 | `--chart-1` to `--chart-5` | `accent`, `info`, `success`, `warning`, `danger` |
 | `--sidebar`, `--sidebar-foreground` | `bg-subtle`, `text` |
@@ -120,54 +133,97 @@ shadcn component on the neutral defaults.
 | `--radius` | `radius.container` |
 | `--font-sans`, `--font-mono` | `font.body`, `font.mono` (with fallbacks) |
 
+Write the variables the repo's components and config reference;
+`--sidebar-*` and `--chart-*` only when something reads them.
+
+Tailwind 3 (`hsl(var(--x))`):
+
 ```css
 /* generated from docs/design/tokens.json v1; do not edit */
 :root {
-  --background: #fbfbfc; --background: oklch(99% 0.003 255);
-  --foreground: #16181d; --foreground: oklch(21% 0.012 255);
-  --primary: #3b45d6; --primary: oklch(50% 0.2 272);
-  --primary-foreground: #ffffff; --primary-foreground: oklch(100% 0 0);
-  /* every row of the table above */
+  --background: 40 20% 98%;
+  --foreground: 30 10% 11%;
+  --primary: 152 64% 30%;
+  --primary-foreground: 0 0% 100%;
+  /* every row of the table above, as H S% L% channels */
   --radius: 0.5rem;
-  --font-sans: "Geist", ui-sans-serif, sans-serif;
-  --font-mono: "Geist Mono", ui-monospace, monospace;
   color-scheme: light;
 }
-.dark,
 [data-theme="dark"] { /* the designed dark roles, never an inversion */ color-scheme: dark; }
 ```
 
-Add `--font-sans: var(--font-sans); --font-mono: var(--font-mono);` to the
-`@theme inline` block so `font-sans` and `font-mono` follow the tokens.
-Type sizes go in the same block as `--text-xs` to `--text-2xl` with their
-`--text-*--line-height` pairs, so the utilities are the scale and an
-arbitrary `text-[13px]` is a lint finding. `contrast.py` measures the same
-roles, so every pair above is checked in both modes.
+with `darkMode: ["selector", '[data-theme="dark"]']` in `tailwind.config.js`
+(Tailwind 3.4.1 and later; earlier 3.x: `["class", '[data-theme="dark"]']`)
+when the toggle sets `data-theme`, or `darkMode: "class"` and a `.dark`
+block when it sets the class. The CSS selector, the config and the code
+that flips the theme name the same thing; name all three in the report.
+
+Channels are rounded, so contrast is measured on the rounded value that
+ships, not on the hex it came from:
+
+```python
+import colorsys
+def channels(hexv):
+    r, g, b = (int(hexv[i:i + 2], 16) / 255 for i in (1, 3, 5))
+    h, l, s = colorsys.rgb_to_hls(r, g, b)
+    return f"{h * 360:.0f} {s * 100:.1f}% {l * 100:.1f}%"
+print(channels("#1b7a4c"))
+```
+
+Tailwind 4 (`@theme inline`): the same table as full colours, hex in the
+theme blocks, oklch only in an `@supports (color: oklch(0 0 0))` block
+when the browser floor allows it (see Colour and the browser floor), and
+`--font-sans: var(--font-sans); --font-mono: var(--font-mono);` plus the
+type sizes (`--text-xs` to `--text-2xl` with their
+`--text-*--line-height` pairs) added to the `@theme inline` block.
+
+`contrast.py` measures the same roles in both modes. Add the pairs the
+components actually render that the role table lacks: a hover fill such
+as `bg-primary/90` composited over the page it sits on, a link colour on
+the card as well as the page, the focus ring against both.
+
+## Colour and the browser floor
+
+Read the floor before choosing a colour syntax: `browserslist` in
+`package.json` or `.browserslistrc`, an ADR or README naming supported
+browsers, a Vite `build.target`. Safari gained `oklch()` and `color-mix()`
+in 15.4 and `lab()` in 15; Chrome in 111. A custom property is not
+validated until use, so `--x: #hex; --x: oklch(...)` keeps the oklch value
+and an older browser gets no colour at all. The fallback that works:
+
+```css
+:root { --color-accent: #066bb8; }
+@supports (color: oklch(0 0 0)) { :root { --color-accent: oklch(52% 0.145 250); } }
+```
+
+With a floor below the oklch versions, or no known floor, ship sRGB (hex or
+HSL) and keep oklch in `tokens.json` as the derivation.
 
 ## Web: CSS custom properties plus Tailwind v4 `@theme` (other web stacks)
 
 File: `src/styles/tokens.css`, imported first from `src/index.css`.
-Every colour is declared twice: hex first, oklch second, so a browser
-without oklch keeps the fallback.
+Colours are hex in the theme blocks; oklch, when the floor allows it,
+goes in an `@supports` block after them (Colour and the browser floor).
 
 ```css
 /* generated from docs/design/tokens.json v1; do not edit */
 :root {
-  --color-bg: #fafcfe; --color-bg: oklch(99% 0.004 250);
-  --color-text: #1c2023; --color-text: oklch(24% 0.008 250);
-  --color-accent: #066bb8; --color-accent: oklch(52% 0.145 250);
+  --color-bg: #fafcfe;
+  --color-text: #1c2023;
+  --color-accent: #066bb8;
   --font-display: "Fraunces", Georgia, serif;
   --font-body: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
   --text-body: 16px; --leading-body: 1.5; --tracking-body: 0;
   --space-1: 4px; --space-2: 8px; --space-3: 16px; --space-4: 24px;
   --radius-control: 6px; --radius-container: 12px; --radius-overlay: 16px;
-  --elevation-1: 0 1px 2px oklch(0% 0 0 / 0.08);
+  --elevation-1: 0 1px 2px rgb(0 0 0 / 0.08);
   --duration-base: 240ms; --ease-enter: cubic-bezier(0, 0, 0.2, 1);
   --z-modal: 40; --focus-width: 2px; --focus-offset: 2px;
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) { :root:not([data-theme]) { /* dark roles */ color-scheme: dark; } }
 :root[data-theme="dark"] { /* dark roles */ color-scheme: dark; }
+@supports (color: oklch(0 0 0)) { :root { --color-bg: oklch(99% 0.004 250); /* ... */ } }
 :focus-visible { outline: var(--focus-width) solid var(--color-focus); outline-offset: var(--focus-offset); }
 @media (prefers-reduced-motion: reduce) { :root { --duration-instant: 0ms; --duration-fast: 0ms; --duration-base: 0ms; --duration-slow: 0ms; --duration-deliberate: 0ms; } }
 
@@ -283,7 +339,9 @@ role so system controls match.
 
 ## What the lint reads
 
-`design-lint.sh` reads `space.scale` and `font.sizes` from
-`tokens.json` to know which numbers are on scale, and treats every
-generated file above as the one place a literal colour may appear.
-Add any other generated file to `DESIGN_LINT_EXCLUDE` in the script.
+`design-lint.sh` takes its scales from `DESIGN_SPACE_SCALE` and
+`DESIGN_FONT_SCALE`, else `space.scale` and `font.sizes` in `tokens.json`,
+else the `--space-*` and `--font-size-*` (or `--text-*`) values of the
+token CSS file, and prints which. Generated theme files and token CSS are
+where literals are defined, so they are skipped; add any other generated
+file to `DESIGN_LINT_EXCLUDE`.

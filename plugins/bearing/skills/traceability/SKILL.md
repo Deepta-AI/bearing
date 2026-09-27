@@ -1,126 +1,174 @@
 ---
 name: traceability
 description: 'Builds the traceability matrix from requirements through stories, test cases, tests, commits and tickets, counting every gap; read-only. Use when asked "is everything traced", "traceability matrix" or "untested".'
-argument-hint: "[base ref for git log, default the repository's first commit]"
-allowed-tools: Read, Write, Grep, Glob, Bash(bash *bin/brg-tracker *), Bash(ls:*), Bash(mkdir:*), Bash(git log:*), Bash(git rev-list:*), Bash(git branch:*), Bash(python3 *skills/traceability/scripts/trace_check.py*)
+argument-hint: "[base branch for a branch audit; omitted, the whole history]"
+allowed-tools: Read, Write, Grep, Glob, Bash(bash *bin/brg-tracker *), Bash(ls:*), Bash(mkdir:*), Bash(rm:*), Bash(git log:*), Bash(git rev-list:*), Bash(git branch:*), Bash(git merge-base:*), Bash(git diff:*), Bash(git show:*), Bash(git status:*), Bash(make check:*), Bash(make test:*), Bash(go test:*), Bash(pytest:*), Bash(npm test:*), Bash(python3 *skills/traceability/scripts/trace_check.py*)
 ---
 
 # traceability
 
 The chain is REQ, US, AC, TC, test, commit and MR, tracker ticket, docs,
-event.
-Every artifact in the kit carries its parent ids so this skill can walk the
-chain with exact matches only. It reports; it does not repair.
+event. The gate walks it with exact ids and counts the broken links. The
+ids are the easy half. The half that decides a sign-off is whether each
+link is true: a test that names an AC but asserts something else, a
+skipped test, a tested function nothing calls, a coverage document that
+says "all covered". This skill reports; it does not repair.
 
 ## Inputs
 
+- The question decides the scope, before anything is read:
+  - a branch or MR ("before I raise the MR", "is this branch traced"):
+    base = the target branch (`main` unless the repo says otherwise).
+    Only the stories the branch touched are in scope; everything else is
+    context, reported apart and never in the verdict.
+  - a release sign-off or "is everything traced": the whole history of
+    the release branch, every active story in scope.
+- The repo's conventions: CLAUDE.md, README, CONTRIBUTING. They say which
+  tracker is used (`Tracker: none` means no ticket gaps), how commits and
+  tests name ids, and which documents the team keeps. A document the team
+  says it does not keep is the basis of your judgement, not a gap to fix.
 - Product docs: `docs/product/PRD.md`, `docs/product/backlog.md`,
-  `docs/product/coverage.md`, `docs/testing/test-cases.md`; if any is
-  absent, the chain is built from what remains and the missing source is
-  a gap class with the count of ids left unlinked, never a stop.
-- Code and git: test files, `git log` from the base ref and branch names
-  (`git branch -a`) for ticket ids; always read, so a repository with no
-  product docs still yields tickets, commits, TC ids and ADRs.
-- Design and operations docs: `docs/adr/`, `docs/design/`,
-  `docs/runbooks/`, `docs/analytics/EVENT_SHEET.md`; if absent, their
-  link counts are 0 and reported.
-- Base ref: looks in `$1`; if absent, the repository's first commit.
+  `docs/product/coverage.md`, `docs/testing/test-cases.md`; design and
+  operations: `docs/adr/`, `docs/design/`, `docs/runbooks/`,
+  `docs/analytics/EVENT_SHEET.md`. Each is read or missing; missing is
+  never a stop.
 - Tracker and prefix: `bash "${CLAUDE_PLUGIN_ROOT}/bin/brg-tracker"
-  config` (`tracker:` and `id prefix:` lines). `tracker: none` is not a
-  gap: the ticket columns read `tracker: none`, and the two ticket gap
-  classes are `n/a (tracker: none)`. If the script is absent, CLAUDE.md;
-  if absent, any `[A-Z][A-Z0-9]*(-[0-9]+)+` prefix seen in commit
-  subjects, reported as "prefix inferred".
-- Template: `templates/traceability.md` in this skill.
-- Gate: `scripts/trace_check.py` in this skill, Python 3 only, run from
-  the repository root. It extracts the ids, builds the links and counts
-  every gap class from the files and the git log it is given; the model
-  never counts a gap itself.
+  config` (`tracker:` and `id prefix:` lines); if the script is absent,
+  CLAUDE.md; otherwise the gate infers a prefix from commit subjects.
+- Gate: `scripts/trace_check.py` in this skill, Python 3, run from the
+  repository root. It runs `git log` itself, from the merge base with
+  `--base`, else every commit including the root.
+- Template: `templates/traceability.md`, for a written matrix.
 
 ## Steps
 
-1. Inventory the sources and print each as read or missing:
-   `docs/product/PRD.md` (REQ), `docs/product/backlog.md` (EP, US, AC),
-   `docs/product/coverage.md`, `docs/testing/test-cases.md` (a table of
-   TC id, story id, AC ids, written by `test-cases`),
-   `docs/adr/*.md` (ADR-nnnn from the file number), `docs/design/*.md`,
-   `docs/runbooks/*.md`, `docs/analytics/EVENT_SHEET.md`, test files
-   (`*_test.go`, `*.test.ts`, `*.test.tsx`, `*.spec.ts`, `test_*.py`,
-   `*Test.kt`, `*Tests.swift`), and the git log from base `$1` or
-   `git rev-list --max-parents=0 HEAD` (read by the gate in step 4), and
-   `git branch -a` for ticket ids in branch names. PRD or backlog
-   missing: build what the remaining sources allow (ticket ids in commits
-   and branches, TC ids in test names, ADR ids, US ids in tests and
-   commits) and carry each missing source into step 4 as its own gap.
-2. Extract ids with exact patterns: `REQ-[0-9]{3}`, `EP-[0-9]{2}`,
-   `US-[0-9]{2}-[0-9]{3}`, `AC-US-[0-9]{2}-[0-9]{3}-[0-9]+`, `TC-[0-9]{4}`,
-   ticket ids `<prefix>-[0-9]+` with the prefix from Inputs (a REST
-   tracker's keys are whatever its server returns; take them as
-   `brg-tracker get` prints them), `ADR-[0-9]{4}`,
-   event names in backticks from the sheet's first column. Skip anything
-   marked `withdrawn:`. Print the count per id class.
-3. Build the links: REQ to US from `Covers:` lines; US to AC from the
-   story body; AC to TC from the test-cases table; TC to test from
-   `TC-` in test names or comments (US ids in tests count as a weaker
-   link, reported separately); US to ticket from the story's `Ticket:`
-   line or a commit naming both; ticket to commits from `[<KEY>]`
-   subjects; US or ticket to ADR, HLD and runbook from mentions in those
-   files; US to events
-   from the story's tasks and the sheet's `Added in` column.
-4. Run the gate, piping the log in the format it parses:
-   `git log --format='@@commit %h%n%s%n%b@@files' --name-only <base>..HEAD | python3 "${CLAUDE_PLUGIN_ROOT}/skills/traceability/scripts/trace_check.py" --log -`
-   (add `--prefix <P>` from Inputs, `--tracker none` when no tracker is
-   configured, `--prd`, `--backlog`, `--cases` for other paths). It
-   prints one `problem:` line per gap, the `Ids:`, `Links:`, `Gaps:` and
-   `Unknown tickets:` lines, a `traceability:` counts line and the
-   verdict, and exits 1 on any gap or when it read no id and no commit.
-   The gap classes it computes: REQ without story; story without AC; AC
-   without TC; TC without automated test; story without ticket; ticket
-   without commits (both `n/a (tracker: none)` when no tracker is
-   configured); boundary change without ADR (a commit touching
-   `migrations/`, `auth`, a new route or a new dependency manifest whose
-   ticket no ADR mentions); event named in a story but absent from the
-   sheet. Tickets seen in commits but in no story go under "unknown
-   tickets" so nothing is silently dropped. A missing source is a gap row
-   of its own: `missing <path>: N <ids> could not be linked upward`, with
-   the skill that writes it (`prd`, `backlog`, `test-cases`).
-   New routes are not detected by the gate; name any the log shows under
-   the boundary class by hand and say so. Ticket ids in branch names
-   (`git branch -a`) that the gate did not list go under Unknown tickets
-   with "(from branches)".
-5. Write `docs/traceability.md` from `templates/traceability.md`: the
-   sources table, id counts, link counts, the matrix (one row per REQ
-   down to events), the gaps per class with the fixing skill
-   (`backlog`, `test-cases`, the test itself, `start-task` and a
-   commit with the id, `adr`, `analytics-events`), and the base ref.
-6. The verdict is the gate's: traced only when it exits 0. Print its
-   lines verbatim; a count the script did not print is not written.
+1. Scope and conventions. Decide branch or full audit from the question.
+   For a branch: `git merge-base <base> HEAD`, then
+   `git log --oneline <base>..HEAD` (the branch's own commits) and
+   `git log --oneline HEAD..<base>` (commits on the base since the branch
+   was cut: not the branch's, and the branch is behind by that many).
+   Never compare `git diff <base> HEAD` two-dot: it shows the base's newer
+   work as the branch deleting it. Read CLAUDE.md for tracker and id rules.
+2. Run the gate:
+   `python3 "${CLAUDE_PLUGIN_ROOT}/skills/traceability/scripts/trace_check.py" --base <base>`
+   for a branch, without `--base` for a full audit; add `--prefix <P>`,
+   `--tracker none`, or `--prd`, `--backlog`, `--coverage`, `--cases`
+   for other paths. It prints `problem:` lines for gaps in scope,
+   `outside scope:` lines, `review:` lines for boundary changes no ADR
+   asks about, `not run by default:` lines for test files behind a build
+   tag or a deselected marker, one `tests:` line per story in scope
+   naming the test functions that carry its id, then the `Scope:`, `Ids:`, `Links:`,
+   `Gaps:`, `Unknown tickets:` and `traceability:` lines and the
+   verdict; exit 1 on any gap in scope or on empty input. Gap classes:
+   REQ without story, story without AC, AC without TC, TC without test,
+   TC test skipped (a skipped function links nothing), story without test
+   (when there is no test-case document), unknown id (a US or TC id in a
+   test or commit that no backlog row or case holds), coverage claim
+   contradicted, story without ticket, ticket without commits, commit
+   without id, boundary change without ADR (only when an ADR asks for a
+   record of that kind of change), event not in sheet, missing source.
+3. Check each link is true. The gate matches ids; these are the checks it
+   cannot make, and they are where a sign-off goes wrong:
+   - Per AC in scope, open the test the `tests:` line names and read the
+     assertion. An AC is tested only when an assertion checks its
+     outcome; name the test function per AC. A test named for a story
+     that asserts part of it leaves the rest untested. An AC about a
+     total, a limit or a sequence ("together never exceed", "only once")
+     needs a test that makes more than one call; one call over the limit
+     proves the single-call guard, not the cumulative one.
+   - Named is not run. A test counts only if the command the team runs
+     executes it: check each credited function in the verbose run output
+     (`go test -v`, `pytest -v`, the runner's list). Build tags, markers
+     the config deselects, a package the make target leaves out, a file
+     the runner's pattern misses: each hides a test the way a skip does.
+     Run a hidden test once explicitly (`go test -tags <tag> ./pkg/`)
+     and report whether it passes; a test nobody runs has often stopped
+     passing.
+   - An `unknown id` in a test beside a story with no test is usually one
+     test carrying the wrong label: read its body, say which story and AC
+     it really covers and that the label needs correcting. Never count
+     that story as untested, and never as cleanly traced.
+   - A skipped test: find why (the skip message; the commit that added
+     the skip, `git log -S't.Skip' -- <file>` or its stack's marker).
+     "Flaky" on a date, time zone, midnight or ordering case is usually a
+     real defect. Establish it by working the code under test through the
+     test's own input, or by running an unskipped copy you delete after;
+     say which.
+   - Tested is not delivered. For each requirement in scope, find the
+     production caller of the tested code (Grep for the function outside
+     test files; routes, handlers, jobs, main). A function only tests
+     call delivers nothing, and an ADR saying where a rule is enforced
+     ("checked on every request") is a claim to check the same way. A
+     migration no code reads or writes is the same finding.
+   - The case the AC implies that no test tries: repeat, boundary, other
+     owner, zero, maximum, concurrency. For keys, locks and caches, ask
+     what the key is scoped to (per payment, per user, global) and
+     whether a second caller can collide. Probe with a throwaway test
+     only if you delete it after; report it as a finding outside the ACs.
+   - Documents that claim coverage (coverage.md, README, an MR
+     description) are claims under audit, never evidence. Each claim the
+     repository contradicts is a finding.
+   - A commit in scope without the id the conventions require is
+     untraced work: name the sha and what it changed, and say so when a
+     skip, migration or behaviour change arrived in it.
+   - A commit's id is a claim too. Read each in-scope commit's diff
+     (`git show <sha>`) against the story it names: a behaviour change to
+     another story's code, or a "refactor" that changes behaviour, is
+     mistraced work. For every defect you find, name the commit that
+     introduced it (`git log -p -- <file>`); that is usually where the
+     trace broke.
+   - A ticket named in a skip message, TODO or commit that no story holds
+     is work outside the backlog: list it.
+4. Run the tests (`make check` where the Makefile has it, else the
+   stack's test command; add `-v` or the runner's verbose flag to see
+   what ran) and state the command and the result. A green run with a
+   skip, or with a test that never ran, is not a pass for that AC.
+5. Write `docs/traceability.md` from the template only for a release
+   sign-off or when the matrix is asked for; a branch check is answered
+   in the reply. Never edit an audited file, never commit.
 
 ## Output contract
 
 ```
-## Traceability: <N> sources read, <M> missing (base <ref>, <C> commits)
-Tracker: <rest | jira | gitlab | github | none> (prefix <P>)
-<trace_check.py "Ids:" line, verbatim>
-<trace_check.py "Links:" line, verbatim>
-<trace_check.py "Gaps:" line, verbatim>
-<trace_check.py "Unknown tickets:" line, verbatim> (plus any from branches)
-<trace_check.py "traceability:" counts line, verbatim>
-Written: docs/traceability.md
-<trace_check.py "Verdict:" line, verbatim>
+## Traceability: <branch <base>..HEAD, N commits, stories X, Y | full history from <sha>, N commits>
+Verdict: <traced | not traced for <release or MR>: K blocking items>
+Blocking, each with its action:
+- <id>: <what is wrong, file and function> -> <add the test for AC-..., fix the label, fix the defect, write the ADR, ...>
+Per AC in scope: <AC id> | <test function or none> | <asserted | partial | skipped | not run | untested>
+Delivered: <requirement> | <production caller or none>
+Also found (pre-existing, outside scope or outside the ACs): <items>
+Tests: <command> -> <result>
+Gate: <Scope:, Gaps: and Verdict: lines, verbatim>
+Written: docs/traceability.md | none (answered here)
 ```
+
+Every count in the reply is the gate's or one you computed and can show.
+Withdrawn and retired items appear only as withdrawn or retired.
 
 ## Gotchas
 
-- Never edit the audited artifacts. The fix list names the file, the id
-  and the skill; the user runs it.
-- A missing source is not a pass. No `test-cases.md` means every AC is
-  an "AC without TC" gap, and the report says why.
-- Exact ids only. "the login story" in a commit body is not a link; a
-  US id mentioned in an unrelated file is a link and gets reported even
-  when it looks accidental, so the user can correct it.
-- Say which base ref the git log covered. A branch audit misses commits
-  merged elsewhere; a full-history audit takes longer but is the one a
-  release sign-off needs.
-- Zero commits in range is a count to print, not an error, unless the
-  backlog has tickets.
+- Scope follows the question. A branch audit that reports every AC in the
+  backlog buries the three that matter; a release audit that reads only
+  the last branch misses work merged earlier. Say which range you read,
+  and count commits the way `git rev-list --count` does for that range.
+- Blocking follows the question too. For an MR, blocking is what this
+  branch gets wrong: its ACs without a running assertion, defects in its
+  code, wrong labels, untraced or mistraced commits. "Not delivered" (no
+  route, no caller, a table nothing reads) blocks a release sign-off; on
+  a branch it blocks only when the branch's own stories promise
+  reachable behaviour and no other active story holds the wiring. When a
+  planned story holds it, name that story as context, not as a blocker.
+- A missing source is not a pass, and not always a gap. No test-case
+  document where the team keeps one: every AC is untraced. None where
+  CLAUDE.md says stories are traced by id in tests: judge from the test
+  bodies and say that was the basis.
+- Every gap becomes an action someone can take: the test to add (for
+  which AC, in which file), the label to change, the defect to fix, the
+  record to write. A gap without its action is half a finding.
+- A boundary change is an ADR gap when an ADR or convention asks for a
+  record of it (the gate reads the ADR text for that). A migration an
+  existing ADR already covers by its ticket is not a gap: do not
+  over-report.
+- Exact ids only. "the login story" in a commit body is not a link. Never
+  invent ids; a proposed new story or case is labelled as proposed.
+- Zero commits in range is a count to print, not an error.

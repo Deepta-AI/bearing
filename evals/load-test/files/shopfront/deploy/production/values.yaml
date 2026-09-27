@@ -1,0 +1,6 @@
+replicas: 6
+resources:
+  requests: { cpu: "1", memory: 512Mi }
+  limits: { cpu: "1", memory: 512Mi }
+env:
+  RATE_LIMIT_RPS: "20"

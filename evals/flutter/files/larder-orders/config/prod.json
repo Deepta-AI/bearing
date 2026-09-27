@@ -1,0 +1,5 @@
+{
+  "FLAVOUR": "prod",
+  "API_BASE_URL": "https://api.larder.example",
+  "LOG_LEVEL": "WARNING"
+}

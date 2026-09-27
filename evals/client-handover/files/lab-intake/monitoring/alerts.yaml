@@ -1,0 +1,21 @@
+groups:
+  - name: lab-intake
+    rules:
+      - alert: IntakeDown
+        expr: up{job="lab-intake"} == 0
+        for: 5m
+        labels: { severity: page, team: intake-oncall }
+        annotations:
+          runbook: docs/runbooks/IntakeDown.md
+      - alert: IntakeParseErrors
+        expr: sum(rate(intake_parse_errors_total[10m])) / sum(rate(intake_reports_total[10m])) > 0.05
+        for: 15m
+        labels: { severity: ticket, team: intake-oncall }
+        annotations:
+          runbook: docs/runbooks/IntakeParseErrors.md
+      - alert: IntakeQueueBacklog
+        expr: intake_unacked_reports > 200
+        for: 30m
+        labels: { severity: page, team: intake-oncall }
+        annotations:
+          runbook: docs/runbooks/IntakeQueueBacklog.md

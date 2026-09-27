@@ -1,0 +1,56 @@
+stages: [test, build, deploy, verify, ops]
+
+default:
+  image: golang:1.25
+  timeout: 1h
+
+test:
+  stage: test
+  script:
+    - make check
+
+build:
+  stage: build
+  script:
+    - go build -o bin/api ./cmd/api
+  artifacts:
+    paths: [bin/api]
+
+deploy-qa:
+  stage: deploy
+  script:
+    - ./deploy/deploy.sh qa
+  environment:
+    name: qa
+    url: https://shopfront-qa.example.net
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+
+deploy-production:
+  stage: deploy
+  script:
+    - ./deploy/deploy.sh production
+  environment:
+    name: production
+    url: https://api.shopfront.example.net
+  when: manual
+  rules:
+    - if: $CI_COMMIT_TAG
+
+# qa is scaled to zero every night to save cost (ADR-0004).
+# 16:30 UTC is 22:00 IST; qa-scale-up brings it back at 02:00 UTC (07:30 IST).
+qa-scale-down:
+  stage: ops
+  image: bitnami/kubectl:1.31
+  script:
+    - kubectl -n shopfront-qa scale deploy/shopfront --replicas=0
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $SCHEDULE == "qa-scale-down"
+
+qa-scale-up:
+  stage: ops
+  image: bitnami/kubectl:1.31
+  script:
+    - kubectl -n shopfront-qa scale deploy/shopfront --replicas=1
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $SCHEDULE == "qa-scale-up"

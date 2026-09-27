@@ -1,0 +1,11 @@
+{
+  "expo": {
+    "name": "Checklist",
+    "slug": "checklist",
+    "version": "2.3.1",
+    "runtimeVersion": { "policy": "appVersion" },
+    "updates": { "url": "https://u.expo.dev/00000000-0000-0000-0000-000000000000" },
+    "newArchEnabled": true,
+    "plugins": ["expo-router"]
+  }
+}

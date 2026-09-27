@@ -30,7 +30,7 @@ desk.
 | REQ-006 | An employee can see the status of each of their claims and download a monthly PDF statement of all their claims. |
 | REQ-007 | The employee's manager approves or rejects each submitted claim. |
 | REQ-008 | A manager must give a reason when rejecting a claim. |
-| REQ-009 | Claims under INR 2,000 are approved automatically. |
+| REQ-009 | Claims of INR 2,000 or less are approved automatically. |
 | REQ-010 | A finance admin sees all approved claims and marks them paid in bulk. |
 | REQ-011 | withdrawn: employee emails; replaced by REQ-019. |
 | REQ-012 | A manager gets an email when a claim is waiting for their decision. |

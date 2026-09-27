@@ -1,0 +1,44 @@
+version: 2
+
+models:
+  - name: dim_merchants
+    description: One row per merchant.
+    columns:
+      - name: merchant_id
+        description: Merchant primary key.
+        data_tests: [unique, not_null]
+      - name: merchant_name
+        description: Display name.
+        data_tests: [not_null]
+      - name: city
+        description: Lower-cased city.
+        data_tests: [not_null]
+
+  - name: fct_orders_daily
+    description: Orders and gross amount per day and merchant, excluding cancelled orders. Incremental by day.
+    columns:
+      - name: order_date
+        description: Partition key, the UTC date the order was placed.
+        data_tests: [not_null]
+      - name: merchant_id
+        description: Merchant the orders belong to.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_merchants')
+                field: merchant_id
+      - name: order_count
+        description: Orders placed on the day, not cancelled.
+        data_tests:
+          - not_null
+          - expect_column_values_to_be_between:
+              arguments:
+                min_value: 1
+      - name: gross_amount_cents
+        description: Sum of the orders' current amounts, in paise.
+        data_tests:
+          - not_null
+          - expect_column_values_to_be_between:
+              arguments:
+                min_value: 0

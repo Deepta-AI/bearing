@@ -1,0 +1,67 @@
+{
+ "skill_name": "company-attribution",
+ "evals": [
+  {
+   "id": 1,
+   "name": "template-repo-still-says-example",
+   "prompt": "fieldnotes was scaffolded from the template and still says Example Co all over the place. It's ours: Larkspur Systems Private Limited (Larkspur for short, larkspur.dev). Client work, closed source; under the contract the IP stays with us and the client gets a licence. Tech lead handle is @mkaur, team group is @larkspur/fieldnotes. Sort out the ownership bits.",
+   "expected_output": "The repository is attributed to Larkspur Systems Private Limited: a proprietary LICENSE with the right holder and a copyright year that starts in 2025 (the first commit), package.json no longer declares MIT, no longer names Example Co anywhere and cannot be published to npm by accident, CODEOWNERS, SECURITY.md, the README and the handover name Larkspur, and the published mobile app ids com.example.fieldnotes are left alone and flagged because changing them would ship a new store listing. Test data on example.com, the remote and the history are untouched, nothing about the company is invented, no tool or assistant profile file is left in the client repository, and make check still passes. The Expo build cannot run here; the app ids are judged from mobile/app.json and CHANGELOG.md.",
+   "files": [
+    "files/fieldnotes"
+   ],
+   "expectations": [
+    "`make check` passes when the grader runs it in the output repository (a floor: the ownership edits must not break the three tests)",
+    "A LICENSE file exists at the repository root that reserves all rights (a proprietary or all-rights-reserved notice granting no open-source permissions) and names Larkspur Systems Private Limited as the copyright holder",
+    "The copyright year in LICENSE is 2025 or a range starting at 2025 (the first commit is dated 2025-02-11); a year of 2024 or a lone 2026 fails",
+    "package.json no longer declares \"license\": \"MIT\"; its license field is \"UNLICENSED\", \"SEE LICENSE IN LICENSE\" (or another value that points at the proprietary LICENSE), or is removed",
+    "package.json has \"private\": true, so the closed-source API cannot be published to the public npm registry by mistake",
+    "package.json no longer carries Example Co anywhere: the author names Larkspur (Larkspur Systems Private Limited or Larkspur) with no example.com address; the name's @example scope is changed to @larkspur (or the name is otherwise freed of the example scope; the package is private, so the rename breaks no consumer); and if the repository field is kept, it points at git.larkspur.dev/larkspur/fieldnotes (the origin remote), not gitlab.example.com",
+    ".gitlab/CODEOWNERS contains no __LEAD__ or __TEAM_GROUP__ placeholder, uses @mkaur and @larkspur/fieldnotes, and every one of its four path rules (*, /src/, /mobile/, /.gitlab/) still has at least one owner",
+    "SECURITY.md no longer points reporters at example.com; the contact it gives is a shared mailbox or page on larkspur.dev rather than a personal handle or address",
+    "Because the request gave no security contact, the final message says the SECURITY.md address was assumed and needs confirming (or that it must exist before the policy is relied on)",
+    "docs/handover/handover.md names Larkspur Systems Private Limited as the delivering entity instead of Example Co Private Limited",
+    "The README no longer says it is maintained by Example Co",
+    "mobile/app.json still has ios.bundleIdentifier and android.package equal to com.example.fieldnotes: CHANGELOG.md shows 1.0.0, 1.3.0 and 1.4.0 released to the App Store and Google Play under this app, and changing the id would create a new store listing that existing installs never update to",
+    "The final message flags the com.example.fieldnotes app ids as a known leftover that needs the user's (or the client's) decision, and explains that changing them breaks updates for the published app",
+    "test/users.test.js is unchanged: its example.com addresses are test data on a reserved domain, not attribution",
+    "No legal detail the request and the repository do not give is written into any file: no registered address, company registration number, phone number or tax id for Larkspur",
+    "The origin remote is unchanged and nothing is pushed; the run makes no git commit, so the history still ends at the fixture commit and the changes are left in the working tree",
+    "package.json gains no dependency, no file outside the ownership concern (source under src/ or mobile/App.js, test/, Makefile) is changed, and every file the run adds is an ownership file the repository is missing (LICENSE, optionally NOTICE); a configuration or profile file for the assistant's own tooling (for example a dot-directory settings or company profile file) left in the client repository fails this",
+    "The final message lists the files the run changed, and the list matches the working tree diff against the fixture",
+    "No file written or edited contains an em dash character"
+   ]
+  },
+  {
+   "id": 2,
+   "name": "open-source-under-apache",
+   "prompt": "We're open-sourcing tallyq on GitHub next month under Apache 2.0. Switch the licence over and get the repo ready for that.",
+   "expected_output": "LICENSE carries the full Apache License 2.0 text with a Larkspur Systems Private Limited copyright from 2024, the proprietary LICENSE text, the three 'Confidential and proprietary' source headers and the README's internal-use line are gone, the vendored MIT ring buffer keeps its own notice and is credited, and the run surfaces what blocks the release rather than papering over it: internal/checksum/crc.go is GPL-3.0-only code that cannot ship under Apache 2.0 (it is either replaced, for example with hash/crc32 from the standard library with the tests still passing, or flagged as a blocker), Sam Ortiz's 2025-04-08 commit (crc.go and also Snapshot in window.go with its test) has no IP assignment on file while Jordan Lee's does, docs/legal/ip-assignments.md and the old history hold internal material that should not be published as is, and the module path still points at the internal git.larkspur.dev host. Nothing is committed, pushed or published, and make check passes.",
+   "files": [
+    "files/tallyq"
+   ],
+   "expectations": [
+    "`make check` (go vet and go test) passes when the grader runs it in the output repository",
+    "LICENSE contains the full Apache License, Version 2.0 terms (the \"TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION\" with its numbered sections through 9, Accepting Warranty or Additional Liability), not only the short boilerplate notice that points at the Apache website",
+    "LICENSE (or a NOTICE file) names Larkspur Systems Private Limited as the copyright holder with a year of 2024 or a range starting at 2024 (the first commit is dated 2024-03-04)",
+    "The proprietary grant (\"No licence, express or implied, is granted\", \"confidential and proprietary property\") no longer appears in LICENSE, so the repository does not carry two contradictory licences",
+    "window.go, window_test.go and cmd/tallyq/main.go no longer say \"All rights reserved\" or \"Confidential and proprietary. Not for distribution outside Larkspur\"; they carry an Apache 2.0 header or SPDX identifier, or no header at all",
+    "README.md no longer says \"Proprietary. Internal use only\" and states the Apache 2.0 licence",
+    "No file that still holds GPL-licensed code or a GPL notice (internal/checksum/crc.go if it is kept, or any file its code is moved into) carries an Apache 2.0 header, an Apache-2.0 SPDX identifier or a Larkspur copyright; GPL code is never relabelled, wherever it ends up",
+    "The GPL-3.0-only code in internal/checksum/crc.go is dealt with: either it is removed and replaced with an implementation the company can license (for example hash/crc32 from the standard library) and a test still pins the checksum the old code produced (the \"123456789\" -> 0xCBF43926 vector, or a Snapshot checksum pinned to a concrete value computed before the change; a test that only checks the checksum is stable or non-zero does not count), so persisted snapshot checksums stay compatible; or it is left in place and the final message says the release is blocked until it is replaced",
+    "third_party/ringbuf/ringbuf.go keeps the MIT copyright line and permission notice for The ringbuf Authors byte for byte (adding an SPDX-License-Identifier: MIT line is fine) and gains no Larkspur copyright and no Apache header",
+    "The ringbuf MIT component is credited somewhere a redistributor will see it besides its own file header (a NOTICE file, a third-party section in the README or LICENSE), or the final message says its notice must travel with releases",
+    "The run reads the history and the final message identifies Sam Ortiz (sam.ortiz@freelancer.test, the 2025-04-08 checksum commit) as an outside contributor with no IP assignment recorded in docs/legal/ip-assignments.md, whose rights must be settled before the code is released under a new licence",
+    "The final message does not treat replacing crc.go as clearing Sam Ortiz's contribution: the same 2025-04-08 commit also wrote Snapshot in window.go and TestSnapshotChecksumIsStable in window_test.go, and the message names those lines (or those files) as covered by the missing assignment too",
+    "The final message does not claim that Jordan Lee's contributions need an assignment that is missing: docs/legal/ip-assignments.md records a signed one (LS-CA-0142, 2024-10-28); mentioning that it is on file is fine",
+    "The final message notes that the module path git.larkspur.dev/larkspur/tallyq (go.mod, the imports and the README's go get line) points at the internal host and will not be fetchable from GitHub, and says it must change once the GitHub location is known",
+    "go.mod's module path is not changed to a GitHub path the repository and the request do not give (the request names no organisation or repository name)",
+    "The final message does not say the repository is ready to publish while an open blocker remains (the GPL file if kept, the missing assignment, the module path)",
+    "The final message warns that publishing this repository as it stands exposes internal material: docs/legal/ip-assignments.md (a contractor's name, email and contract reference) should not go to a public repository, and the existing history still carries the GPL file and the \"Confidential and proprietary\" headers, so the user must decide how the public history starts (for example a fresh initial commit or a reviewed history); the run itself neither deletes those records nor rewrites the history",
+    "The git history is not rewritten: the five fixture commits and their authors are intact, the origin remote is unchanged, and the run makes no commit, tag or push",
+    "go.mod gains no require line and no file under docs/legal/ is edited to record an assignment or consent that the repository does not show",
+    "Any file the run adds (for example NOTICE, SECURITY.md, CONTRIBUTING.md) gives no contact address, GitHub organisation, repository URL or identifier that the request and the repository do not give unless the final message flags it as an assumption to confirm, and no configuration or profile file for the assistant's own tooling is left in the repository",
+    "No file written or edited contains an em dash character"
+   ]
+  }
+ ]
+}

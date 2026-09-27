@@ -1,0 +1,11 @@
+export GOTOOLCHAIN := local
+
+.PHONY: check test vet
+
+check: vet test
+
+vet:
+	go vet ./...
+
+test:
+	go test ./...

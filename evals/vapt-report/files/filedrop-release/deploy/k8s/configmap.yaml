@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: filedrop-config
+  namespace: filedrop
+data:
+  ADDR: ":8080"
+  AVSCAN_URL: http://avscan.filedrop.svc:9400/scan
+  AVSCAN_API_KEY: avscan-FAKE-0000-EXAMPLE-KEY-NOT-REAL

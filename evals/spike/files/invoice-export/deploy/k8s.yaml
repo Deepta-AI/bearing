@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: invoice-export
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: invoice-export
+  template:
+    metadata:
+      labels:
+        app: invoice-export
+    spec:
+      containers:
+        - name: server
+          image: registry.example.com/billing/invoice-export:1.14.0
+          ports:
+            - containerPort: 8080
+          # Month-end: finance teams start their exports together; ingress
+          # logs (Aug 2026) show up to 3 exports running at once on one pod.
+          resources:
+            requests:
+              cpu: 250m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          readinessProbe:
+            httpGet:
+              path: /tenants/healthcheck/invoices/export
+              port: 8080
+            periodSeconds: 10

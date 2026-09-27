@@ -1,0 +1,6 @@
+{
+  "name": "pdf-stamp",
+  "version": "0.3.1",
+  "description": "Stamps a header and page numbers onto a PDF. Vendored copy, patched for lab-intake.",
+  "main": "index.js"
+}

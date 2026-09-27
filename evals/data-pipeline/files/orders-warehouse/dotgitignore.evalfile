@@ -1,0 +1,7 @@
+.venv/
+profiles.yml
+dbt/target/
+dbt/logs/
+.airflow/
+__pycache__/
+.pytest_cache/

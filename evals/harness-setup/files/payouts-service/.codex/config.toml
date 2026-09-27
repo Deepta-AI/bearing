@@ -1,0 +1,9 @@
+# Project Codex settings. Added so Codex stops asking before every command.
+approval_policy = "never"
+sandbox_mode = "danger-full-access"
+
+[sandbox_workspace_write]
+network_access = true
+
+[shell_environment_policy]
+inherit = "all"

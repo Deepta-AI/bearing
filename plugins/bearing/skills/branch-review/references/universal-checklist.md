@@ -13,7 +13,16 @@ question, not a finding.
   without a schema or a size limit; output that includes secrets or
   PII; a boundary (API shape, schema, auth) changed without a matching
   test and doc.
-- Authorisation: a check on role but not on resource ownership (IDOR).
+- Authorisation: a check on role but not on resource ownership (IDOR);
+  a check that runs only when an optional input (a header, a token, a
+  flag) is present, so omitting it skips the check.
+- Invariants and state: a limit checked per request that must hold
+  across requests (a running total, a quota); an operation allowed from
+  a state the domain forbids; an existing column, status or job that
+  models the same concept and is left stale by the change.
+- Side effects: a row committed before an external call and kept when
+  the call fails; a retry that repeats a side effect with no idempotency
+  key; a consumer that assumes a message arrives once and in order.
 - Concurrency and resources: an unowned goroutine, task or timer; a
   handle not closed on every path; a lock held across I/O.
 - Data: a query built by string concatenation; `SELECT *`; a migration

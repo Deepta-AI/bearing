@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 11 and lower (auto backup). Settings are backed up on purpose so a
+     new phone keeps the user's store and theme; the order cache is not, it is
+     refetched after sign in. -->
+<full-backup-content>
+    <exclude domain="database" path="pantry.db" />
+</full-backup-content>

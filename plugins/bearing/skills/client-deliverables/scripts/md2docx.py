@@ -9,7 +9,9 @@ shaded monospace block, and images. Template guidance comments (<!-- -->)
 are dropped. A Mermaid block is never pasted as text: when a rendered image
 is named for it (an image line right after the block, or --diagram for the
 first diagram only) the
-image goes in; otherwise a one-line pointer to the source file does. An
+image goes in; otherwise a flowchart or sequence diagram is written out
+in words (what connects to what) and any other diagram gets a one-line
+note, never a pointer to a file the client does not have. An
 SVG image is swapped for the PNG of the same name, since Word cannot show
 SVG.
 
@@ -117,6 +119,50 @@ def resolve_image(src_dir, path):
     return None
 
 
+NODE_RE = re.compile(r"^([A-Za-z0-9_]+)\s*(?:\(\(|\[\[|\[\(|\[/|\[|\(|\{\{|\{|>)\s*\"?([^\]\)\}\"]*)")
+EDGE_RE = re.compile(r"\s*(?:-->|---|-\.->|==>|--\s*[^-|>]+\s*-->)\s*(?:\|([^|]*)\|)?\s*")
+MSG_RE = re.compile(r"^\s*([^-+>:]+?)\s*-{1,2}>>?[+-]?\s*([^:]+?)\s*:\s*(.*)$")
+
+
+def diagram_in_words(block):
+    """A Mermaid flowchart or sequence diagram as plain sentences, for a
+    Word document with no rendered image: the client sees what connects to
+    what instead of Mermaid source or a pointer to a file they do not have.
+    Returns [] for any other diagram type."""
+    src = [ln.strip() for ln in block if ln.strip() and not ln.strip().startswith("%%")]
+    if not src:
+        return []
+    kind = src[0].split()[0]
+    out = []
+    if kind in ("flowchart", "graph"):
+        names = {}
+        for ln in src[1:]:
+            for part in re.split(r"-->|---|-\.->|==>|&", ln):
+                part = re.sub(r"^\|[^|]*\|", "", part.strip()).strip()
+                m = NODE_RE.match(part)
+                if m and m.group(2).strip():
+                    names[m.group(1)] = m.group(2).strip()
+        for ln in src[1:]:
+            if ln.split()[0] in ("subgraph", "end", "classDef", "class", "style", "linkStyle", "click"):
+                continue
+            pieces = EDGE_RE.split(ln)
+            if len(pieces) < 3:
+                continue
+            ids = pieces[0::2]
+            labels = pieces[1::2]
+            ids = [(NODE_RE.match(x.strip()) or re.match(r"(\S+)", x.strip())) for x in ids]
+            ids = [names.get(m.group(1), m.group(1)) if m else "" for m in ids]
+            for a, lab, b in zip(ids, labels, ids[1:]):
+                if a and b:
+                    out.append(f"{a} to {b}" + (f" ({lab.strip()})" if lab and lab.strip() else ""))
+    elif kind == "sequenceDiagram":
+        for ln in src[1:]:
+            m = MSG_RE.match(ln)
+            if m:
+                out.append(f"{m.group(1)} to {m.group(2)}: {m.group(3)}")
+    return out
+
+
 def body(d, md, src_dir, diagram):
     """Render the Markdown body. Returns counts."""
     md = re.sub(r"<!--.*?-->", "", md, flags=re.S)
@@ -161,13 +207,18 @@ def body(d, md, src_dir, diagram):
                     if m:
                         i = lines.index(nxt, i) + 1
                 else:
+                    words = diagram_in_words(block)
                     p = d.add_paragraph()
                     runs(
                         p,
-                        "Diagram: drawn in the source document (Mermaid); open the Markdown file or the rendered diagram beside it.",
+                        "Diagram, described in words (the drawing is not in this issue):"
+                        if words
+                        else "A diagram belongs here; the drawing is not in this issue.",
                         size=9,
                         colour="4B5563",
                     )
+                    for w in words:
+                        runs(d.add_paragraph(style="List Bullet"), w)
                     counts["diagrams_as_pointer"] += 1
                 continue
             p = d.add_paragraph()
@@ -292,12 +343,17 @@ def build(
     about,
     history,
     diagram=None,
+    drop_lines=(),
 ):
+    """drop_lines: 1-based source lines left out of the document (a line
+    the engineer held back from the client; the source is not edited)."""
     if docx is None:
         raise RuntimeError(
             "python-docx is not installed (run with: uv run --with python-docx==1.2.0)"
         )
     md = open(src, encoding="utf-8").read()
+    if drop_lines:
+        md = "\n".join(ln for n, ln in enumerate(md.split("\n"), 1) if n not in drop_lines)
     d = docx.Document()
     st = d.styles["Normal"]
     st.font.name = "Calibri"

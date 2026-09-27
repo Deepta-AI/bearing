@@ -246,22 +246,21 @@ the invoice list is the busiest read.
 ## 8. Retention and personal data
 
 <!-- What: one row per table or collection holding data with a lifetime:
-     the rule, the mechanism that enforces it and its Basis (stated, with
-     the story or policy, or assumption). Then the list of personal-data
-     columns.
+     the rule, the mechanism that enforces it and its source (the story or
+     policy that states it). Then the list of personal-data columns.
      Good: the mechanism is real (batched hard delete, TTL, partition
-     drop); a rule with no mechanism is written UNDEFINED, never left
-     blank. An assumption is a decision a person must confirm before the
-     first release, and the section says so.
-     Example: the customers row below, whose mechanism is UNDEFINED. -->
+     drop). A lifetime no story or policy states is UNDEFINED, with the
+     question and its owner; a number you would suggest goes in the
+     question, never in the Rule cell and never into a purge job.
+     Example: the customers row below. -->
 
-Anything on Basis **assumption** is not a decision this document is entitled
-to make. Confirm it before the first release.
+Rules marked **UNDEFINED** are decisions owed by a person before the first
+release; this document does not make them.
 
-| Table | Rule | Mechanism | Basis |
+| Table | Rule | Mechanism | Source |
 | --- | --- | --- | --- |
-| `invoices` | Kept 7 years after issue as a statutory record, then archived. | yearly partition export and drop | stated (US-01-003 AC6) |
-| `customers` | Deleted 30 days after the tenant closes. | UNDEFINED | assumption |
+| `invoices` | Kept 7 years after issue as a statutory record, then archived. | yearly partition export and drop | US-01-003 AC6 |
+| `customers` | UNDEFINED (asked: how long after the tenant closes? owner product) | none until decided | not stated |
 
 Personal-data columns (2): `customers.display_name` (name),
 `customers.email` (contact).

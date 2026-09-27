@@ -9,13 +9,19 @@ For each item, either find the concrete failure or write "none found".
   state; a `useEffect` with a missing dependency or a disabled lint rule.
 - Derived data recomputed in an effect instead of during render.
 - Client state in the URL that is not validated, or URL state duplicated in
-  a store.
+  a store; a param renamed or invented where links to the route already
+  exist (docs, helpdesk, emails); a page number that can outlive its filter.
+- Per-entity `useState` (draft, open form, summary) in a component that is
+  not keyed by the entity id, so it carries over when the route param
+  changes.
+- A leak fixed without cleanup: `persist` removed but the written key never
+  cleared; a shipped secret removed but not rotated.
 
 ## Data fetching
 - A query key missing an input the query function uses (filters, page, id,
   locale); a key built by hand instead of from the feature's factory.
-- A fetch that bypasses `apiFetch`, skips the Zod parse, or ignores the
-  `signal`.
+- A fetch that bypasses `apiFetch`, skips the Zod parse, ignores the
+  `signal`, or never checks `res.ok` (a DELETE whose 403 reads as success).
 - A mutation that does not invalidate or update the keys it changed; an
   optimistic update without a rollback.
 - A consumer that renders only the data branch: missing pending, error
@@ -61,8 +67,9 @@ For each item, either find the concrete failure or write "none found".
 - A secret, token or private URL in a `VITE_` variable, in `.env.example`
   or in the bundle.
 - `import.meta.env` read outside `src/lib/env.ts`.
-- `dangerouslySetInnerHTML` with unsanitised content; a `href` built from
-  user input without a scheme check.
+- `dangerouslySetInnerHTML` with API or user text (notes, comments,
+  pasted email), including a `replace(/\n/g, "<br>")` that turns text into
+  HTML; a `href` built from user input without a scheme check.
 
 ## Bundle
 - A heavy dependency imported at the top level instead of in the route that

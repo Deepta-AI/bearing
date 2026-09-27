@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: reportsvc
+spec:
+  replicas: 3
+  selector:
+    matchLabels: {app: reportsvc}
+  template:
+    metadata:
+      labels: {app: reportsvc}
+    spec:
+      containers:
+        - name: reportsvc
+          image: registry.example.com/reportsvc:latest
+          ports: [{containerPort: 8080}]
+          envFrom:
+            - configMapRef: {name: analytics-shared}
+          env:
+            - {name: PORT, value: "8080"}
+            # audit_log_v2 stays off in production until the storage review (REP-190)
+            - {name: FLAG_AUDIT_LOG_V2, value: "false"}
+            - {name: FLAG_SAVED_FILTERS, value: "true"}
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: reportsvc-digest
+spec:
+  schedule: "0 6 * * 1"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: digest
+              image: registry.example.com/reportsvc:latest
+              command: ["/app/digest"]
+              envFrom:
+                - configMapRef: {name: analytics-shared}
+              env:
+                - {name: DIGEST_FROM, value: "reports@example.com"}
+                - {name: PUBLIC_URL, value: "https://reports.example.com"}
+                - {name: FLAG_AUDIT_LOG_V2, value: "false"}
+                - {name: FLAG_SAVED_FILTERS, value: "true"}
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: reportsvc-archive
+spec:
+  schedule: "30 1 * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: archive
+              image: registry.example.com/reportsvc:latest
+              command: ["/app/archive"]
+              env:
+                - {name: ARCHIVE_BUCKET, value: "s3://example-warehouse/reportsvc"}

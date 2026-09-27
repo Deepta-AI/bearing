@@ -28,14 +28,16 @@ because <reason>.
      event from the event sheet.
      Good: the primary is a rate or a mean per exposed unit; each guardrail
      (error rate, p95 latency, unsubscribe, refund, crash-free users) names
-     the direction that means harm; a breach stops the run on its own.
+     the direction that means harm and a breach threshold with the window
+     it is judged over; a breach stops the run on its own. The primary's
+     baseline is in its own unit and window, or marked as an approximation.
      Example: "guardrail | `checkout_payment_failed` | failures per exposed
-     user | 0.021 | up" -->
+     user | 0.021 | up | +0.5 points over a full day" -->
 
-| Role | Event | Definition (per exposed unit) | Baseline | Harm direction |
-| --- | --- | --- | --- | --- |
-| primary | `<event>` | <rate or mean> | <p> | n/a |
-| guardrail | `<event>` | <rate> | <value> | up |
+| Role | Event | Definition (per exposed unit) | Baseline | Harm direction | Breach |
+| --- | --- | --- | --- | --- | --- |
+| primary | `<event>` | <rate or mean> | <p> | n/a | n/a |
+| guardrail | `<event>` | <rate> | <value> | up | <threshold, window> |
 
 ## Sample size
 
@@ -44,28 +46,34 @@ because <reason>.
      Good: computed with python3, not by hand; weeks = ceil(2n / weekly
      eligible), never under one; baseline and traffic marked assumed: when
      nobody supplied them, and every derived number carries the prefix.
+     Weeks count distinct units, not weekly visits summed; add the outcome
+     window; the run must fit raw-event retention or say what changes.
      Example: "p = 0.10, d = 0.01 (10% relative); n = 14,112 per variant;
-     4 weeks at 8,000 eligible a week" -->
+     5 weeks at about 6,000 distinct new devices a week plus the 7-day
+     window; fits the 42-day retention" -->
 
 n = 2 * (1.96 + 0.84)^2 * p * (1 - p) / d^2
 p = <baseline>, d = <absolute MDE> (<relative>% relative)
 n = <n> per variant, <2n> total
-Weekly eligible units: <count> (<source | assumed:>)
-Duration: <w> weeks, from <start> to <planned end>
+Distinct eligible units: <count per week or over the window> (<source | assumed:>)
+Duration: <w> weeks plus the <outcome window>, from <start> to <planned end>
+Retention: raw events kept <days>; fits | <shorter run with MDE d', or identifier-free aggregate after review>
 
 ## Assignment and exposure
 
 <!-- What: the unit, the split and its hash, and the moment the exposure
      event fires.
      Good: the unit is the user id (device id when anonymous), never the
-     session; exposure fires when the unit sees the difference, not when it
-     is assigned; events the sheet lacks are listed for analytics-events.
-     Example: "Exposure: `experiment_exposed` when the cart renders with the
-     delivery date line visible" -->
+     session; exposure fires when the unit reaches the changed surface, at
+     the same point and under the same conditions in both arms, and carries
+     the unit id the outcome events carry; events the sheet lacks are
+     listed for analytics-events.
+     Example: "Exposure: `experiment_exposed` with device_id when the mobile
+     cart renders, in both arms, before the delivery line is computed" -->
 
 - Unit: user id | device id (never the session)
 - Split: control <50> / treatment <50>, `hash(unit_id + ":" + <name>) mod 100`
-- Exposure: `experiment_exposed` {experiment: "<name>", variant} at <the moment the unit sees the change>
+- Exposure: `experiment_exposed` {experiment: "<name>", variant, <unit id>} at <the same point in both arms>
 - Events to add (when the event sheet is absent): <list>
 
 ## Stopping rules
@@ -79,20 +87,25 @@ Duration: <w> weeks, from <start> to <planned end>
 
 - Fixed horizon: no decision before <n> exposed per variant.
 - Early stop: any guardrail breach; sample ratio mismatch (p < 0.001).
-- Extend: once, by <w> weeks, only when underpowered at the planned end.
+  Switching off takes <runtime | config change and restart>; freezes in
+  the window: <none | dates and the exception needed>.
+- Extend: once, by <w> weeks, only when underpowered at the planned end;
+  data past the planned end is otherwise not read.
 
 ## Decision table
 
 <!-- What: the outcome to decision mapping, fixed at design time.
      Good: keep the four rows; change a threshold only here and before the
-     run starts, never after the results are in.
-     Example: "primary up >= 1.5 points, p < 0.05, no guardrail breach |
-     ship (flag on, then remove)" -->
+     run starts, never after the results are in. The ship bar is
+     significance, not an observed lift at least the MDE (that rejects about
+     half of true effects of exactly the MDE).
+     Example: "primary up, p < 0.05, no guardrail breach | ship (flag on,
+     then remove)" -->
 
 | Outcome | Decision |
 | --- | --- |
-| primary up >= MDE, p < 0.05, no guardrail breach | ship (flag on, then remove) |
-| primary flat or down at full sample | kill (flag off, then remove) |
+| primary up, p < 0.05 (CI excludes zero), no guardrail breach | ship (flag on, then remove) |
+| primary not significantly up at full sample | kill (flag off, then remove) |
 | guardrail breached | kill now |
 | underpowered at planned end | extend once, then kill |
 

@@ -1,6 +1,7 @@
 package orders
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -49,7 +50,7 @@ func TestFulfilKeepsGoingAfterAFailedNotification(t *testing.T) {
 	h := Handler{Svc: svc}
 	post(h, `{"email":"full@full.example","sku":"A1","qty":1}`)
 	post(h, `{"email":"asha@example.com","sku":"A1","qty":1}`)
-	n, err := svc.FulfilPending(Notifier{})
+	n, err := svc.FulfilPending(context.Background(), Notifier{})
 	if n != 2 || err == nil {
 		t.Fatalf("fulfil: n=%d err=%v", n, err)
 	}

@@ -1,0 +1,15 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: payments-settlement
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: payments-settlement }
+  template:
+    metadata:
+      labels: { app: payments-settlement }
+    spec:
+      containers:
+        - name: settlement
+          image: registry.example.com/payments-settlement:latest

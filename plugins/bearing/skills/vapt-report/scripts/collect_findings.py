@@ -8,16 +8,28 @@ Sources, newest report of each, read from the repository root:
   - gstack /cso: .gstack/security-reports/<date>-<time>.json.
 
 Findings at the same file and line are merged into one row: the higher
-severity wins and both sources are named. A claude-security scan of another
-commit than --commit, or a /cso report older than --since, is stale and fails
-unless --allow-stale is given (the report then says so).
+severity wins and both sources are named. Rows from different sources in the
+same file and area at different lines are NOT merged (a scanner may report
+the route, another the sink); each pair is printed as "check: possible
+duplicate" for the writer to resolve by reading the code.
 
-Writes the merged rows as JSON to --out and prints the counts. Exits 1 when
-no scanner report is found ("run /cso or claude-security first"), when a
-source is stale without --allow-stale, or when a report cannot be read.
+A claude-security scan of another commit than --commit is stale. A /cso
+report dated before --commit-time (the release commit's time) did not see
+every commit of the release and is stale; without --commit-time, before
+--since. A stale source fails unless --allow-stale is given (the report then
+says so). Each source's coverage (claude-security's stamp scope and base,
+/cso's mode and scope) is printed on a "coverage:" line, so a diff-scoped
+scan is never read as whole-repository coverage.
 
-Usage: collect_findings.py [--root .] [--commit SHA] [--since ISO-8601]
-                           [--allow-stale] [--out .scratch/vapt-findings.json]
+Writes the merged rows as JSON to --out, and a .gitignore of "*" beside it
+when that folder has none (scanner rows can quote secret values). Prints the
+counts. Exits 1 when no scanner report is found ("run /cso or claude-security
+first"), when a source is stale without --allow-stale, or when a report
+cannot be read.
+
+Usage: collect_findings.py [--root .] [--commit SHA] [--commit-time ISO-8601]
+                           [--since ISO-8601] [--allow-stale]
+                           [--out .scratch/vapt-findings.json]
 """
 
 import argparse
@@ -61,6 +73,8 @@ def claude_security(root, commit, problems):
         "report": os.path.relpath(results, root),
         "commit": scanned[:12],
         "verification": status,
+        "scope": rev.get("scope", "unknown"),
+        "base": rev.get("base", ""),
         "stale": bool(
             commit
             and scanned
@@ -100,7 +114,7 @@ def claude_security(root, commit, problems):
     return src, rows
 
 
-def cso(root, since, problems):
+def cso(root, cutoff, problems):
     path = newest(os.path.join(root, ".gstack", "security-reports", "*.json"))
     if not path:
         return None, []
@@ -116,7 +130,7 @@ def cso(root, since, problems):
         "date": r.get("date", ""),
         "mode": r.get("mode", ""),
         "scope": r.get("scope", ""),
-        "stale": bool(since and when and when < since),
+        "stale": bool(cutoff and when and when < cutoff),
     }
     rows = []
     for f in r.get("findings", []):
@@ -137,6 +151,22 @@ def cso(root, since, problems):
             }
         )
     return src, rows
+
+
+def near(rows):
+    """Pairs from different sources in the same file and area, other lines."""
+    pairs = []
+    for i, a in enumerate(rows):
+        for b in rows[i + 1 :]:
+            if (
+                a["file"]
+                and a["file"] == b["file"]
+                and a["line"] != b["line"]
+                and str(a["area"]).lower() == str(b["area"]).lower()
+                and a["sources"][0].split()[0] != b["sources"][0].split()[0]
+            ):
+                pairs.append((a, b))
+    return pairs
 
 
 def merge(rows):
@@ -163,15 +193,17 @@ def main():
     ap.add_argument("--root", default=".")
     ap.add_argument("--commit", default="")
     ap.add_argument("--since", default="")
+    ap.add_argument("--commit-time", default="")
     ap.add_argument("--allow-stale", action="store_true")
     ap.add_argument("--out", default=".scratch/vapt-findings.json")
     a = ap.parse_args()
     since = parse_time(a.since) if a.since else None
+    cutoff = parse_time(a.commit_time) if a.commit_time else since
 
     problems, sources, rows = [], [], []
     for src, found in (
         claude_security(a.root, a.commit, problems),
-        cso(a.root, since, problems),
+        cso(a.root, cutoff, problems),
     ):
         if src:
             sources.append(src)
@@ -189,21 +221,42 @@ def main():
                 if s["name"] == "claude-security"
                 else f"dated {s['date']}"
             )
-            msg = f"{s['name']}: {s['report']} is stale ({what}; release is {a.commit[:12] or a.since})"
+            rel = a.commit[:12] or a.commit_time or a.since
+            if s["name"] == "/cso" and a.commit_time:
+                rel = f"{a.commit[:12] or 'release'} committed {a.commit_time}"
+            msg = f"{s['name']}: {s['report']} is stale ({what}; release is {rel})"
             if a.allow_stale:
                 s["stale_accepted"] = True
                 print(f"stale (accepted): {msg}")
             else:
                 problems.append(msg)
     findings, merged = merge(rows)
+    pairs = near(findings)
     for f in findings:
         f["severity"] = NAME[f["severity"]]
-    os.makedirs(os.path.dirname(a.out) or ".", exist_ok=True)
+    out_dir = os.path.dirname(a.out) or "."
+    os.makedirs(out_dir, exist_ok=True)
+    ignore = os.path.join(out_dir, ".gitignore")
+    if os.path.abspath(out_dir) != os.path.abspath(a.root) and not os.path.exists(ignore):
+        with open(ignore, "w", encoding="utf-8") as fh:
+            fh.write("*\n")
     with open(a.out, "w", encoding="utf-8") as fh:
         json.dump({"sources": sources, "findings": findings}, fh, indent=1)
 
     for p in problems:
         print(f"problem: {p}")
+    for s in sources:
+        if s["name"] == "claude-security":
+            cov = s["scope"] + (f" since {s['base']}" if s["base"] else "")
+        else:
+            cov = " ".join(x for x in (s.get("mode"), s.get("scope")) if x) or "unknown"
+        print(f"coverage: {s['name']} {cov}")
+    for x, y in pairs:
+        print(
+            f"check: possible duplicate, {x['file']} lines {x['line']} and {y['line']} "
+            f"({x['sources'][0]}; {y['sources'][0]}), same area {x['area']}; "
+            "merge only if one root cause"
+        )
     counts = {
         k: sum(1 for f in findings if f["severity"] == k)
         for k in ("Critical", "High", "Medium", "Low")

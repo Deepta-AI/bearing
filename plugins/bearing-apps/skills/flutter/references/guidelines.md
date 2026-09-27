@@ -44,7 +44,11 @@
   `AppConfig`, connect and receive timeouts, JSON accept header) and three
   interceptors: request id (`x-request-id`), logging (method, path,
   status, duration; never headers or bodies), retry (idempotent methods
-  only, bounded attempts, backoff).
+  only, bounded attempts, backoff). A non-idempotent write the user
+  triggers carries an idempotency key per user intent, kept across
+  automatic and manual retries until a definite answer.
+- Paginated reads follow the API's cursor to the end, one page request
+  in flight at a time; a failed page keeps the pages already shown.
 - A repository takes the `Dio` through its constructor, calls one
   endpoint per method, parses with the model's `fromJson`, and maps
   `DioException` to a typed exception (`NetworkException`,

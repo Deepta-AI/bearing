@@ -1,0 +1,1 @@
+ALTER TABLE invoices ADD COLUMN currency text NOT NULL DEFAULT 'INR';

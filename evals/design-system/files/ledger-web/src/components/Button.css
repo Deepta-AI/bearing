@@ -1,0 +1,13 @@
+.btn {
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-control);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  font-size: var(--font-size-md);
+}
+
+/* The focus ring matches the accent (#1d5fd1 in light, see #123). */
+.btn:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}

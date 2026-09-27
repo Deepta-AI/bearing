@@ -1,0 +1,29 @@
+{
+  "@@locale": "en",
+  "appTitle": "Larder",
+  "@appTitle": {"description": "App name in the task switcher"},
+  "notFound": "This page does not exist.",
+  "@notFound": {"description": "Unknown route"},
+  "errorGeneric": "Something went wrong. Check your connection and try again.",
+  "@errorGeneric": {"description": "Error branch of any screen"},
+  "retry": "Try again",
+  "@retry": {"description": "Retry button on an error"},
+  "profileTitle": "Profile",
+  "@profileTitle": {"description": "Profile screen title"},
+  "profileCart": "Your cart",
+  "@profileCart": {"description": "Profile link to the cart"},
+  "cartTitle": "Cart",
+  "@cartTitle": {"description": "Cart screen title"},
+  "cartEmpty": "Your cart is empty.",
+  "@cartEmpty": {"description": "Cart with no lines"},
+  "cartTotal": "Total {amount}",
+  "@cartTotal": {
+    "description": "Cart total line",
+    "placeholders": {"amount": {"type": "String", "example": "₹1,250.99"}}
+  },
+  "quantity": "{count, plural, =1{1 item} other{{count} items}}",
+  "@quantity": {
+    "description": "A quantity of items",
+    "placeholders": {"count": {"type": "int"}}
+  }
+}

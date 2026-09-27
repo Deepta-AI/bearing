@@ -1,0 +1,13 @@
+{
+  "name": "invoice-service",
+  "version": "1.4.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node --test",
+    "lint": "node scripts/lint.js",
+    "check:migrations": "node scripts/check-migrations.js"
+  }
+}

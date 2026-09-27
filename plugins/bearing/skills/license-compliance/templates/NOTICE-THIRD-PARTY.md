@@ -7,16 +7,18 @@
      component whose licence requires attribution (MIT, BSD, Apache-2.0, ISC
      and the like; the gate marks them) the credit in the form its licence
      demands. Its readers are customers and their legal teams.
-     The table: one row per attributed component. The copyright line is
-     copied from the package's own LICENSE file; a missing one is counted
-     and filled by hand, never invented.
+     The table: one row per component in the delivered artefact (what is
+     compiled or installed, not what the manifest lists), plus the language
+     runtime linked in. The copyright lines come from the package's LICENSE,
+     NOTICE and source headers; a missing one or a missing licence file is
+     listed for the authors, never invented or borrowed from another row.
      Example: | express | 4.21.2 | MIT | Copyright (c) 2009-2014 TJ Holowaychuk | https://github.com/expressjs/express | -->
 
 This product includes software developed by third parties. The
 components below are distributed under their own licences, reproduced
-or referenced as each licence requires. Generated from
-`docs/compliance/sbom.cdx.json` on <YYYY-MM-DD>; regenerate with the
-`notice` mode of the compliance skill when the lockfile changes.
+or referenced as each licence requires. Prepared from <the built
+artefact, lockfile or SBOM> on <YYYY-MM-DD>; regenerate it when the
+dependencies change.
 
 | Component | Version | Licence | Copyright | Source |
 | --- | --- | --- | --- | --- |

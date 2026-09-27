@@ -1,0 +1,33 @@
+stages: [test, build, deploy]
+
+test:
+  stage: test
+  image: node:22-alpine
+  script:
+    - make check
+
+build:
+  stage: build
+  image: docker:27
+  script:
+    - echo "$REGISTRY_PASSWORD" | docker login -u "$REGISTRY_USER" --password-stdin registry.example.com
+    - make push VERSION=${CI_COMMIT_TAG:-$CI_COMMIT_SHORT_SHA}
+
+deploy_staging:
+  stage: deploy
+  image: registry.example.com/platform/deployer:3
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+  script:
+    - echo "$KUBECONFIG_STAGING" > /tmp/kubeconfig
+    - make deploy ENV=staging VERSION=$CI_COMMIT_SHORT_SHA
+
+deploy_production:
+  stage: deploy
+  image: registry.example.com/platform/deployer:3
+  rules:
+    - if: $CI_COMMIT_TAG
+      when: manual
+  script:
+    - echo "$KUBECONFIG_PRODUCTION" > /tmp/kubeconfig
+    - make deploy ENV=production VERSION=$CI_COMMIT_TAG

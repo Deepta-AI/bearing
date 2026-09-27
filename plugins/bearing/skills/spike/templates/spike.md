@@ -9,7 +9,7 @@
 Date: <YYYY-MM-DD>   Timebox: <h> h, used <h> h (<start> to <end> UTC)
 Stopped because: answered | timebox | blocker (<what>)
 Location: `.scratch/spike-<name>/` | branch `spike/<name>` (never merged)
-Prior spikes: <links | none>
+Prior work: <links, each with held | stale: why> | none
 
 ## Question
 
@@ -26,6 +26,14 @@ Prior spikes: <links | none>
      Good: a number with its threshold, or an artefact that must exist (a
      passing call, a rendered screen, a build that links).
      Example: "p99 enqueue-to-start under 200 ms at 500 jobs/s for 10 minutes." -->
+
+## Operative inputs
+
+<!-- What: every number the answer depends on and where it came from.
+     Good: sizes and limits read from the code and deploy files, not the
+     docs; a doc that disagrees is named; the runtime version is named.
+     Example: "Row cap 250,000 (internal/export/limits.go; docs/capacity.md
+     still says 50,000). Pod: 500m CPU, 256Mi (deploy/k8s.yaml). Go 1.25.1." -->
 
 ## Answer
 
@@ -51,6 +59,15 @@ yes | no | <number and unit> | not answered: <why>
 | <hh:mm> | <what was learnt> | `<command>` -> <output line>, <number>, <path> |
 
 Measured on: laptop | staging | prod-like (<details>)
+
+## Not run or not measured
+
+<!-- What: what the spike could not run or measure here, and what therefore
+     rests on reading code.
+     Good: each item says why (no network, not installed, no production
+     access) and what it could change in the answer.
+     Example: "The billing database fetch of 250,000 rows was not measured;
+     the numbers cover building and encoding only." -->
 
 ## Tried and discarded
 
@@ -91,6 +108,6 @@ Reasoning: <two sentences>
      Example: "Branch spike/pg-queue: engineer runs git branch -D
      spike/pg-queue after this doc merges." -->
 
-The spike code is not merged. `.scratch/spike-<name>/` is ignored; the
-branch is deleted with `git branch -D spike/<name>` once this document
-is committed.
+The spike code is not merged. `.scratch/spike-<name>/` was deleted (or
+stays, ignored, at the path named here); a spike branch is deleted with
+`git branch -D spike/<name>` once this document is committed.

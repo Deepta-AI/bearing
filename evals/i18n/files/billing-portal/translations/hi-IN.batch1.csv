@@ -1,0 +1,12 @@
+source,target,note
+Billing,बिलिंग,page heading
+"Welcome back, {name}","फिर से स्वागत है, {नाम}",greeting under the heading
+Invoices,इनवॉइस,list heading
+Search invoices,इनवॉइस खोजें,search box placeholder and label
+No invoices found,कोई इनवॉइस नहीं मिला,empty list
+Customer,ग्राहक,table column
+Issued,जारी करने की तिथि,table column
+Amount,राशि,table column
+Download PDF,PDF डाउनलोड करें,link label
+Back to invoices,इनवॉइस सूची पर वापस जाएँ,back button tooltip
+Pay now,अभी भुगतान करें,button

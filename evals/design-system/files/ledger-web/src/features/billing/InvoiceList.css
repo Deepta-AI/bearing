@@ -1,0 +1,24 @@
+.invoice-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 20px 16px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.invoice-row:hover {
+  background: rgba(29, 95, 209, 0.06);
+}
+
+.invoice-row .due-date {
+  font-size: 0.8125rem;
+  padding: 0.5rem 0;
+}
+
+.invoice-row .overdue {
+  color: #b42318;
+}
+
+.invoice-total {
+  font-size: var(--font-size-lg);
+  margin-top: var(--space-5);
+}

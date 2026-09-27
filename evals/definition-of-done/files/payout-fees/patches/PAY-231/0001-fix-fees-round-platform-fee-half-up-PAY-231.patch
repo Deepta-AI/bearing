@@ -1,4 +1,4 @@
-From 88a0aed193578fd290142938ec45256a893c6430 Mon Sep 17 00:00:00 2001
+From 6cbf8b56cf974c9d215f635f68524ed449fa0b76 Mon Sep 17 00:00:00 2001
 From: Asha Rao <asha.rao@example.com>
 Date: Sat, 26 Sep 2026 02:44:58 +0530
 Subject: [PATCH 1/2] fix(fees): round platform fee half up [PAY-231]
@@ -10,8 +10,10 @@ its line fees so the statement adds up to the payout.
  CHANGELOG.md              |  2 ++
  src/payouts/fees.py       |  8 +++++++-
  src/payouts/settlement.py | 30 +++++++++++++++++++++++++++---
+ tests/statement_test.py   | 13 +++++++++++++
  tests/test_fees.py        | 10 +++++++++-
- 4 files changed, 45 insertions(+), 5 deletions(-)
+ 5 files changed, 58 insertions(+), 5 deletions(-)
+ create mode 100644 tests/statement_test.py
 
 diff --git a/CHANGELOG.md b/CHANGELOG.md
 index ca3ab8b..3b11207 100644
@@ -113,6 +115,25 @@ index 59b3291..feab3a4 100644
 +            )
 +        )
      return payouts
+diff --git a/tests/statement_test.py b/tests/statement_test.py
+new file mode 100644
+index 0000000..f1a4b01
+--- /dev/null
++++ b/tests/statement_test.py
+@@ -0,0 +1,13 @@
++from payouts.settlement import Line, settle
++
++
++def test_pay_231_statement_lists_line_fees_by_order():
++    # PAY-231: the seller's statement lists each line fee, in order id order,
++    # and adds up to the payout fee.
++    lines = [
++        Line("o3", "s2", 4000, 250),
++        Line("o1", "s2", 10000, 250),
++    ]
++    payout = settle(lines)[0]
++    assert payout.line_fees == (("o1", 250), ("o3", 100))
++    assert sum(fee for _, fee in payout.line_fees) == payout.fee_paise
 diff --git a/tests/test_fees.py b/tests/test_fees.py
 index 0652087..5f944a8 100644
 --- a/tests/test_fees.py

@@ -50,6 +50,11 @@ assert_contains "$css" "--color-accent-subtle: #"
 assert_contains "$css" "--color-accent-subtle: oklch(0.98 0.01 200);"
 assert_contains "$css" "--space-3: 16px;"
 assert_contains "$css" "--duration-fast: 0ms;"
+# hex and oklch never share a block: the oklch value would win and a browser
+# without oklch (Safari before 15.4) would get no colour at all.
+head_part="${css%%@supports*}"
+assert_not_contains "$head_part" "oklch(0.98 0.01 200)"
+assert_contains "$css" "@supports (color: oklch(0 0 0)) {"
 assert_exit 1 python3 "$SP" tokens-css --tokens "$d/none.json" --out "$d/x.css"
 assert_contains "$T_OUT" "0 custom properties, nothing written"
 t_end

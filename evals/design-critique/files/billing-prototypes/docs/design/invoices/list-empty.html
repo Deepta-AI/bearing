@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Invoices, empty</title>
+<link rel="stylesheet" href="../tokens.css">
+<style>
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--font-ui); font-size: 16px; }
+  .top { display: flex; justify-content: space-between; align-items: center; padding: var(--s5) var(--s6); border-bottom: 1px solid var(--border); }
+  .brand { font-weight: 600; font-size: 20px; }
+  .page { padding: var(--s6); }
+  h1 { font-size: 28px; font-weight: 600; margin: 0 0 var(--s5); }
+  .empty { max-width: 34rem; padding: var(--s6); background: var(--surface); border-radius: var(--r-panel); }
+  .empty p { margin: 0 0 var(--s4); }
+  .btn { font: 600 15px var(--font-ui); padding: var(--s2) var(--s4); border-radius: var(--r-control); border: 1px solid var(--accent); background: var(--accent); color: var(--on-accent); cursor: pointer; }
+  .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+</style>
+</head>
+<body>
+<header class="top">
+  <span class="brand">Tallybook</span>
+</header>
+<main class="page">
+  <h1>Invoices</h1>
+  <div class="empty">
+    <p>No invoices yet. Send your first one and it will show up here.</p>
+    <button class="btn" type="button">New invoice</button>
+  </div>
+</main>
+</body>
+</html>

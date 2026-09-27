@@ -1,0 +1,31 @@
+# Every repository the payments group owns. `make clone` clones the missing
+# ones beside this file; `make check` validates this list.
+group: payments
+gitlab: gitlab.larkspur.example
+repos:
+  - name: ledger-api
+    lang: go
+    kind: service
+    port: 8101
+    owners: "@payments/backend"
+  - name: fx-rates
+    lang: go
+    kind: service
+    port: 8102
+    owners: "@payments/backend"
+  - name: refunds-api
+    lang: go
+    kind: service
+    port: 8103
+    status: retired  # March 2026, folded into ledger-api
+    owners: "@payments/backend"
+  - name: statements-worker
+    lang: python
+    kind: worker
+    port: 8104
+    owners: "@payments/data"
+  - name: payout-recon
+    lang: python
+    kind: cli
+    status: retired  # June 2026: the reconciliation notebooks, replaced by nothing yet; GitLab project archived
+    owners: "@payments/data"

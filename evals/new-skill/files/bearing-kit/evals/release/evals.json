@@ -1,0 +1,16 @@
+{
+ "skill_name": "release",
+ "evals": [
+  {
+   "id": 1,
+   "name": "basic",
+   "prompt": "cut a patch release, only fixes went in since the last tag",
+   "expected_output": "A release branch with the changelog moved and the publish commands printed, not run.",
+   "files": [],
+   "expectations": [
+    "The next version is the latest tag with the patch number raised",
+    "No push or tag command was run; they are printed"
+   ]
+  }
+ ]
+}

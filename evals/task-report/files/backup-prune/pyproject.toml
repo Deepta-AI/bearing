@@ -1,0 +1,16 @@
+[project]
+name = "backupctl"
+version = "0.4.0"
+requires-python = ">=3.11"
+dependencies = ["httpx>=0.27"]
+
+[project.scripts]
+backupctl = "backupctl.cli:main"
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+markers = ["integration: needs a real backup mirror; CI only"]
+
+[tool.ruff]
+line-length = 100

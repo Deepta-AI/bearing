@@ -1,0 +1,33 @@
+# Burn-rate alerts for the availability SLO in docs/observability/slos.md.
+groups:
+  - name: payments-api-slo
+    rules:
+      - alert: PaymentsErrorBudgetFastBurn
+        expr: |
+          (
+            sum(rate(http_requests_total{job="payments-api",code=~"5.."}[1h]))
+            /
+            sum(rate(http_requests_total{job="payments-api"}[1h]))
+          ) > (14.4 * 0.001)
+        for: 2m
+        labels:
+          severity: page
+          service: payments-api
+        annotations:
+          summary: "payments-api is burning its error budget 14.4x too fast"
+          runbook_url: docs/runbooks/ErrorBudgetBurn.md
+
+      - alert: PaymentsErrorBudgetSlowBurn
+        expr: |
+          (
+            sum(rate(http_requests_total{job="payments-api",code=~"5.."}[6h]))
+            /
+            sum(rate(http_requests_total{job="payments-api"}[6h]))
+          ) > (6 * 0.001)
+        for: 15m
+        labels:
+          severity: ticket
+          service: payments-api
+        annotations:
+          summary: "payments-api is burning its error budget 6x too fast"
+          runbook_url: docs/runbooks/ErrorBudgetBurn.md

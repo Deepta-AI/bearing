@@ -1,0 +1,6 @@
+# Mirror and tooling checkouts are local; the lock is the record.
+.mirror/
+tools/team-kit/
+.claude/skills/gstack/
+.claude/skills/ui-polish/
+__pycache__/

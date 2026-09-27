@@ -36,7 +36,13 @@ class PipelineTest(unittest.TestCase):
         self.assertEqual(queue.accepted[0]["total_paise"], 663160)
 
     def test_missing_due_date_emails_vendor(self):
-        partial = dict(KAVERI_0917, due_date=None)
+        partial = dict(
+            KAVERI_0917,
+            invoice_number="KOS/26-27/0930",
+            invoice_date="2026-09-30",
+            due_date=None,
+            total_paise=920400,
+        )
         mailer = FakeMailer()
         model = ScriptedModel(
             [
@@ -45,7 +51,7 @@ class PipelineTest(unittest.TestCase):
                     {
                         "to": "billing@kaveri-office.example",
                         "subject": "Due date",
-                        "body": "Please confirm the due date for KOS/26-27/0917.",
+                        "body": "Please confirm the due date for KOS/26-27/0930.",
                     },
                 ),
                 tool_call(
@@ -55,8 +61,9 @@ class PipelineTest(unittest.TestCase):
             ]
         )
         queue = PayablesQueue()
+        doc = (SAMPLES / "invoice-kaveri-0930.txt").read_text(encoding="utf-8")
         result = Intake(model, VendorDirectory(), mailer, queue).process(
-            "invoice without due date", "u_finance_01"
+            doc, "u_finance_01"
         )
         self.assertEqual(result["status"], "review")
         self.assertEqual(mailer.sent[0][0], "billing@kaveri-office.example")

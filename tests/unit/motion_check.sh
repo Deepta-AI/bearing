@@ -98,7 +98,7 @@ assert_exit 1 run "$d"
 assert_contains "$T_OUT" "grow.js:2: .animate() animates height"
 assert_contains "$T_OUT" "Sheet.tsx:4: animate= animates width"
 assert_contains "$T_OUT" "Old.tsx:2: Animated.timing animates useNativeDriver off"
-assert_contains "$T_OUT" "Old.tsx:3: LayoutAnimation animates layout"
+assert_not_contains "$T_OUT" "Old.tsx:3: LayoutAnimation"
 t_end
 
 t_begin "native: Compose animateContentSize and a Dp in a size modifier, SwiftUI frame fail"

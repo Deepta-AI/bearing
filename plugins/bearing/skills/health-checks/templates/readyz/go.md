@@ -39,11 +39,12 @@ type report struct {
 type Handler struct {
     version string
     checks  []Check
-    total   time.Duration
+    total   time.Duration // longer than every Check.Timeout; the probe timeoutSeconds exceeds it
+    log     *slog.Logger
 }
 
-func New(version string, checks ...Check) *Handler {
-    return &Handler{version: version, checks: checks, total: 5 * time.Second}
+func New(log *slog.Logger, version string, total time.Duration, checks ...Check) *Handler {
+    return &Handler{version: version, checks: checks, total: total, log: log}
 }
 
 func (h *Handler) Healthz(w http.ResponseWriter, r *http.Request) {
@@ -53,64 +54,91 @@ func (h *Handler) Healthz(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) Readyz(w http.ResponseWriter, r *http.Request) {
     ctx, cancel := context.WithTimeout(r.Context(), h.total)
     defer cancel()
-    rep := report{Status: OK, Version: h.version, Checks: make(map[string]result, len(h.checks))}
-    var mu sync.Mutex
-    var wg sync.WaitGroup
+    type named struct {
+        name string
+        res  result
+    }
+    out := make(chan named, len(h.checks)) // buffered: a late probe never blocks
     for _, c := range h.checks {
-        wg.Add(1)
         go func(c Check) {
-            defer wg.Done()
             cctx, ccancel := context.WithTimeout(ctx, c.Timeout)
             defer ccancel()
             start := time.Now()
             err := c.Probe(cctx)
             res := result{Status: OK, DurationMS: time.Since(start).Milliseconds()}
             if err != nil {
-                res.Status, res.Error = Fail, short(err)
+                res.Status, res.Error = Fail, reason(cctx, err)
+                h.log.Warn("readiness check failed", "check", c.Name, "err", err) // full error to the log only
             }
-            mu.Lock()
-            rep.Checks[c.Name] = res
-            if err != nil {
-                if c.Required {
-                    rep.Status = Fail
-                } else if rep.Status == OK {
-                    rep.Status = Degraded
-                }
-            }
-            mu.Unlock()
+            out <- named{c.Name, res}
         }(c)
     }
-    wg.Wait()
+    rep := report{Status: OK, Version: h.version, Checks: make(map[string]result, len(h.checks))}
+collect:
+    for range h.checks {
+        select {
+        case n := <-out:
+            rep.Checks[n.name] = n.res
+        case <-ctx.Done(): // a probe that ignores its context cannot hold the response
+            break collect
+        }
+    }
+    for _, c := range h.checks {
+        res, ok := rep.Checks[c.Name]
+        if !ok {
+            res = result{Status: Fail, DurationMS: h.total.Milliseconds(), Error: "timeout"}
+            rep.Checks[c.Name] = res
+        }
+        if res.Status == Fail {
+            if c.Required {
+                rep.Status = Fail
+            } else if rep.Status == OK {
+                rep.Status = Degraded
+            }
+        }
+    }
     code := http.StatusOK
     if rep.Status == Fail {
         code = http.StatusServiceUnavailable
     }
     writeJSON(w, code, rep)
 }
+
+// reason is the only error text the unauthenticated body carries: a fixed
+// word, never err.Error(), which carries hosts, users and database names.
+func reason(ctx context.Context, err error) string {
+    if ctx.Err() != nil || errors.Is(err, context.DeadlineExceeded) {
+        return "timeout"
+    }
+    return "unavailable"
+}
 ```
 
 ## Probes
 
+Examples only: add a check for each dependency the code really uses,
+`Required` from what the call sites do when it fails (Step 2).
+
 ```go
-health.Check{Name: "postgres", Required: true, Timeout: 2 * time.Second,
-    Probe: func(ctx context.Context) error { return pool.Ping(ctx) }},
-health.Check{Name: "redis", Required: false, Timeout: time.Second,
-    Probe: func(ctx context.Context) error { return rdb.Ping(ctx).Err() }},
-health.Check{Name: "nats", Required: true, Timeout: time.Second,
-    Probe: func(ctx context.Context) error { if nc.Status() != nats.CONNECTED { return errors.New("not connected") }; return nil }},
-health.Check{Name: "payments-api", Required: true, Timeout: 2 * time.Second,
-    Probe: func(ctx context.Context) error { return httpOK(ctx, client, paymentsURL+"/healthz") }},
+// probeDB is a second *sql.DB on the same DSN with SetMaxOpenConns(1):
+// db.PingContext on the request pool waits for a free connection, so a
+// saturated pool at peak would mark every pod unready at once.
+health.Check{Name: "postgres", Required: true, Timeout: time.Second,
+    Probe: func(ctx context.Context) error { return probeDB.PingContext(ctx) }},
+health.Check{Name: "redis", Required: false, Timeout: 500 * time.Millisecond, // reads fall back to Postgres
+    Probe: func(ctx context.Context) error { return cache.Ping(ctx) }},
+health.Check{Name: "pricing-api", Required: false, Timeout: time.Second, // price falls back to list price
+    Probe: func(ctx context.Context) error { return httpOK(ctx, client, pricingURL+"/healthz") }},
 ```
 
-`short(err)` returns the first 120 characters of the error with any
-host, user or password removed. `httpOK` does a GET and returns an error
-for anything but 200.
+`httpOK` does a GET and returns an error for anything but 2xx; it never
+calls the downstream's `/readyz` or a business endpoint.
 
 ## Kubernetes probe values
 
 ```yaml
-livenessProbe:  { httpGet: { path: /healthz, port: http }, periodSeconds: 10, failureThreshold: 3 }
-readinessProbe: { httpGet: { path: /readyz,  port: http }, periodSeconds: 10, timeoutSeconds: 6, failureThreshold: 3 }
+livenessProbe:  { httpGet: { path: /healthz, port: http }, periodSeconds: 10, timeoutSeconds: 2, failureThreshold: 3 }
+readinessProbe: { httpGet: { path: /readyz,  port: http }, periodSeconds: 10, timeoutSeconds: 3, failureThreshold: 3 }  # total 2 s
 startupProbe:   { httpGet: { path: /healthz, port: http }, periodSeconds: 5,  failureThreshold: 30 }
 ```
 
@@ -118,5 +146,10 @@ startupProbe:   { httpGet: { path: /healthz, port: http }, periodSeconds: 5,  fa
 
 `httptest` with fake probes: all ok gives 200 and `ok`; an optional
 failure gives 200 and `degraded`; a required failure gives 503 with the
-check named; a probe that sleeps past its timeout reports `fail` with
-`context deadline exceeded` and the whole call returns under `total`.
+check named; a probe that blocks and ignores its context
+(`time.Sleep(10*time.Second)`) is reported `timeout` and the call returns
+within `total` plus a small margin; a probe whose error text holds a DSN
+leaves no host or user in the body; with the request pool held full
+(`SetMaxOpenConns(1)` and one connection checked out) readiness still
+answers 200; `/healthz` answers 200 with every
+check failing; both paths answer without a token.

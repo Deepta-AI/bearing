@@ -61,6 +61,20 @@ standard and proves coverage with a gate.
    resolves; say the fuller PRD comes from `prd`. Read the existing
    backlog, tasks and register; keep every epic, story, AC, task and
    question id in whatever scheme they use; never renumber.
+   Then read the code, config and tests the statements land on. A PRD is
+   written against a system that already exists, and the traps live in
+   the gap between the two. For each rule a statement sets (a limit, a
+   threshold, a required field, who may act), find where the code holds
+   it and note one of: enforced as stated; held with another value (name
+   the constant, the test that pins it and any policy it cites); checked
+   nowhere below the screen (a rule the service does not refuse is not
+   enforced: an API call or an import skips the form); or contradicted
+   by a rule the code enforces that the statement breaks (a permission, a
+   state transition). The first is a note; the second and fourth are
+   Q-nnn contradictions; the third becomes a criterion that the service
+   itself refuses, with the file and function named. Also read any notes,
+   minutes or ADRs beside the PRD: a decision recorded there and not yet
+   in the PRD is raised, never cited under a REQ id.
 2. Judge each REQ and record the judgement and one sentence of why (both
    go into coverage.md):
    - story: a user can do something new when it lands; it seeds a story;
@@ -148,9 +162,24 @@ standard and proves coverage with a gate.
 
 ## Updating an existing backlog
 
-A backlog people are tracking is edited, not rebuilt. Diff the new PRD
-against the version the backlog was built from (its header or the PRD's
-change log) and touch only the stories a change lands on.
+A backlog people are tracking is edited, not rebuilt. Find what changed
+and touch only the stories a change lands on.
+
+- Diff the statements themselves, not the change log. Compare each REQ's
+  current wording with the criteria that cover it (and the previous PRD
+  in git history when there is one). Change logs omit edits, and the
+  omitted ones are small: a boundary made inclusive, "days" becoming
+  "working days", "each" becoming "any", a unit. A boundary change against a Done story is new work like
+  any other.
+- A new statement changes existing stories it never names. For each
+  one, ask who acts, who is notified, who may decide and when, and check
+  those against every Done and In progress story and the code behind
+  them: a new actor who must approve breaks a shipped "only the owner
+  may approve" check, and a new recipient changes a notification story
+  under way. Name each such story and
+  the code rule it breaks.
+- Where a new statement overlaps an existing story, state the difference
+  in one line (who acts, on what trigger, for how long) or merge them.
 
 - Shape: keep the file's headings, id scheme, AC numbering, status column
   and question table. New stories are written in that same shape. Stories
@@ -165,14 +194,20 @@ change log) and touch only the stories a change lands on.
   - Done: never rewrite a shipped criterion as if the new value had been
     delivered. Add a new story that changes it, citing the Done story, and
     name the code, config and tests that still hold the old value.
-- A withdrawn statement: its story is marked `withdrawn:` in place with
-  the reason (or, when it is in progress, withdrawal is proposed in a
-  Q-nnn and the status left for the team). Search code and tests for the
+- A withdrawn statement: a To do story is marked `withdrawn:` in place
+  with the reason. An In progress story keeps its status: someone is
+  building it and the tracker mirrors it, so withdrawal is proposed in a
+  Q-nnn with the readings and the team changes the status. Search code and tests for the
   story id (the gate lists them): each hit is work someone must keep,
   repoint or remove, so it goes in that Q-nnn. Never edit code or tests
   from this skill.
 - A new statement that restates an existing capability is folded into that
   story (its Covers line), not given a story of its own.
+- A new statement that conflicts with an accepted ADR or the PRD's own
+  non-goals is not written as ready work: the story is blocked on its
+  Q-nnn, whatever reading you assume.
+- New stories are not placed in the running sprint; propose, do not
+  schedule.
 - The report lists the stories added, changed, reopened and withdrawn, and
   copies the gate's `ids:` line, whose "changed since HEAD" list must
   match that summary.
@@ -217,5 +252,10 @@ Verdict: covered | not covered (G REQ without a story, P problems)
   in place so tests and commits that name it still resolve.
 - A backlog under way has history: a Done story's criteria describe what
   shipped. The PRD moving on is new work, not an edit to history.
+- A request that names a sprint wants an order, not only a list. End the
+  report with a proposed first cut: enablers before the stories that
+  need them, and no story whose criteria rest on an open contradiction
+  offered as a commitment (say what unblocks it). Proposed, never
+  scheduled.
 - Do not size stories or tasks here; `estimate` fills Points and
   hours, and the tracker assigns owners and dates.

@@ -1,0 +1,7 @@
+replicaCount: 3
+image:
+  repository: registry.example.com/harbor/lab-intake
+ingress:
+  # Moved to the clinic group's own domain in May 2026 (LAB-188).
+  host: intake.harborgroup-health.example.net
+envFromSecret: lab-intake-env

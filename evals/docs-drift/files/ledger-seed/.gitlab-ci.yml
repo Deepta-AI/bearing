@@ -1,0 +1,7 @@
+test:
+  image: python:3.12
+  variables:
+    LEDGER_DB: ci-ledger.jsonl
+  script:
+    - python3 scripts/seed.py --rows 10
+    - make check

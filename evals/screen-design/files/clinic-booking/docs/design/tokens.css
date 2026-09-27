@@ -1,0 +1,17 @@
+/* Colour and type for every booking mockup. Mockups link this file and
+   never declare a colour of their own. */
+:root {
+  --color-bg: #f6f7f6;
+  --color-surface: #ffffff;
+  --color-text: #1b1f1d;
+  --color-text-muted: #5b635f;
+  --color-border: #dde2df;
+  --color-primary: #1f6f4a;
+  --color-on-primary: #ffffff;
+  --color-danger: #b3261e;
+  --color-on-danger: #ffffff;
+  --color-link: var(--color-primary);
+  --color-focus: var(--color-primary);
+  --radius: 12px;
+  --font: "Inter", system-ui, sans-serif;
+}

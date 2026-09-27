@@ -52,6 +52,21 @@ export async function apiFetch<T>(
     );
   }
 
+  // 204 and 205 have no body: the schema decides whether none is acceptable
+  // (z.undefined() for a DELETE), so a no-content call still checks its status.
+  if (response.status === 204 || response.status === 205) {
+    const parsed = schema.safeParse(undefined);
+    if (!parsed.success) {
+      throw new ApiError(
+        "invalid_response",
+        response.status,
+        `${method} ${path}: expected a body, got ${String(response.status)}`,
+        parsed.error.issues,
+      );
+    }
+    return parsed.data;
+  }
+
   let json: unknown;
   try {
     json = await response.json();

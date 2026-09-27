@@ -10,5 +10,5 @@ Show overdue invoices. assumption: invoices come from the existing billing expor
 
 ```mermaid
 flowchart LR
-  web --> api --> db
+  web[Shop web app] -->|HTTPS| api[Orders API] --> db[(Invoices database)]
 ```

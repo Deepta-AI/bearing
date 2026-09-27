@@ -1,0 +1,13 @@
+{
+  "name": "bearing",
+  "owner": { "name": "Platform Tools" },
+  "metadata": {
+    "description": "The Bearing marketplace: bearing (the workflow), bearing-backend and bearing-apps (optional stack conventions).",
+    "version": "0.4.2"
+  },
+  "plugins": [
+    { "name": "bearing", "source": "./plugins/bearing", "version": "0.4.2", "description": "Workflow skills for every stage. Required." },
+    { "name": "bearing-backend", "source": "./plugins/bearing-backend", "version": "0.4.2", "description": "Stack conventions for Go and Python services. Optional; needs bearing." },
+    { "name": "bearing-apps", "source": "./plugins/bearing-apps", "version": "0.4.2", "description": "Stack conventions for mobile and web apps. Optional; needs bearing." }
+  ]
+}

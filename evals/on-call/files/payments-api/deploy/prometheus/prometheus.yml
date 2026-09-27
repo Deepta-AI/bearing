@@ -1,0 +1,26 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 30s
+
+rule_files:
+  - /etc/prometheus/alerts/*.yaml        # monitoring/alerts, mounted by the sre chart
+  - /etc/prometheus/rules/postgres.rules.yml  # deploy/prometheus/rules
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ["alertmanager.monitoring.svc:9093"]
+
+scrape_configs:
+  - job_name: payments-api
+    kubernetes_sd_configs:
+      - role: pod
+        namespaces:
+          names: [payments]
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_pod_label_app]
+        regex: payments-api
+        action: keep
+  - job_name: postgres
+    static_configs:
+      - targets: ["payments-db-exporter.payments.svc:9187"]

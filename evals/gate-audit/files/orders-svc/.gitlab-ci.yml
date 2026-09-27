@@ -1,0 +1,18 @@
+stages:
+  - check
+
+default:
+  image: golang:1.25
+
+check:
+  stage: check
+  script:
+    - make vet test cover
+
+sql-lint:
+  stage: check
+  script:
+    - make sql-lint
+  rules:
+    - changes:
+        - queries/**/*.sql

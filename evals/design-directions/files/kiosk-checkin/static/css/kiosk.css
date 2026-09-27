@@ -1,0 +1,13 @@
+@import url("tokens.css");
+
+html { font-family: var(--font-ui); color: var(--ink); background: var(--surface); }
+body { margin: 0; min-height: 100vh; font-size: 28px; line-height: 1.4; }
+main { padding: 96px 72px; display: grid; gap: 48px; }
+h1 { font-size: 56px; line-height: 1.15; margin: 0; }
+.hint { color: var(--ink-muted); font-size: 24px; }
+.panel { background: var(--surface-2); border-radius: var(--radius-panel); padding: 48px; }
+.field { display: grid; gap: 12px; }
+.field input { font-size: 40px; padding: 16px 20px; border: 2px solid var(--line); border-radius: var(--radius-control); letter-spacing: 0.2em; }
+.primary { min-height: 96px; font-size: 32px; font-weight: 700; color: var(--accent-ink); background: var(--accent); border: 0; border-radius: var(--radius-control); }
+.error { color: var(--danger); font-weight: 700; }
+button:focus-visible, input:focus-visible, a:focus-visible { outline: 4px solid var(--accent); outline-offset: 4px; }

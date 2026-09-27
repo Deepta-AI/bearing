@@ -51,7 +51,19 @@ and writes the tests.
    generate. Detect the stack and obtain the case table as in Inputs.
    In `generate` mode, zero rows with automation `planned` and zero gaps:
    report "0 cases to generate" and finish after the suite step.
-2. Suite. Skip what exists; never replace a working suite.
+2. Suite. Skip what exists; never replace a working suite. Extending a
+   suite that already runs in CI changes test files and the case table
+   only: the Makefile, the CI file and the build stay as they are unless
+   the request asks, and any change there is named in the report with
+   its reason. A new gate nobody asked for is scope, not quality.
+   CI "on every MR": read the whole pipeline file before adding a job.
+   GitLab `workflow: rules` decide whether a pipeline exists at all; a
+   job in a file whose workflow admits only the default branch or tags
+   never runs on an MR however its own rules read. Admit
+   `$CI_PIPELINE_SOURCE == "merge_request_event"` in the workflow (and
+   keep a deploy job's own branch rule), put the test stage before
+   build and deploy, and install what the job needs (the dev extra, not
+   the runtime install the build job does).
    - Web: Playwright in `e2e/`, page objects in `e2e/pages/` from
      `templates/page-object.ts`, fixtures in `e2e/fixtures/`, builders from
      `templates/test-data-builder.md`. When no `playwright.config.ts`
@@ -119,8 +131,9 @@ and writes the tests.
    server's log line and trace can be found for that exact request.
    Every suite gets tags by type and priority (`@e2e @P1`, pytest markers,
    Go build tags, Maestro tags), parallel workers, an HTML or JUnit report
-   kept as a CI artifact, and a Makefile target that fails on zero test
-   files and prints the count. No Makefile: create one with that target.
+   kept as a CI artifact. A suite this run creates gets a Makefile
+   target that fails on zero tests collected and on any failure (no
+   leading `-`, no `|| true`); no Makefile: create one with that target.
 3. Generate. For each `planned` row (or the story or TC in `$2`), find the
    nearest existing test by feature folder, then fork `test-writer`
    (Agent tool) with the row, the nearest test's path and the naming
@@ -203,7 +216,20 @@ and writes the tests.
    baseline nobody has looked at proves only that the page renders the
    same as it did, so the report says "baselines to review: N" until the
    engineer commits them, on their own.
-6. Run the narrowest selection that covers the new tests. Flip each passing
+6. Prove the tests can fail. A test never seen red may assert nothing.
+   For each rule the new tests claim to cover, make the smallest
+   mutation that breaks it, run the suite, then restore the line
+   (`git diff` shows it clean): a threshold moved one step each way
+   (`< 5` to `< 4` and to `< 6`, `>` to `>=`), an auth comparison made
+   always true, a `commit()` or `save` removed, a validation branch
+   deleted, a publish call dropped, a unit conversion undone. A mutation
+   no test kills is a missing assertion: add it (a test at the boundary
+   and one step on each side, a read back through a fresh connection or
+   a new app instance, a spy on the effect), then re-run the mutation.
+   Report "mutations: N tried, K killed" and each survivor with why.
+   Mutations are made in the working tree and always reverted; never
+   leave one behind, and never run them against a shared environment.
+7. Run the narrowest selection that covers the new tests. Flip each passing
    row to `automated`. A failing test stays `planned` and is listed with
    the runner's message and its file:line; nothing is edited to make it
    pass. A row the team wrote, in a suite that already runs in CI, fails
@@ -220,7 +246,9 @@ and writes the tests.
    counterexample and the class the property skill's failure reference
    gives it (wrong property, ambiguous spec, code bug). `test-heal`
    classifies and heals it, and `test-run` produces the full report.
-7. Print the counts and the file list.
+8. Print the counts and the file list. Say plainly that the CI pipeline
+   was not run (only the local command, named), and list every file
+   changed outside the tests and the case table with the reason.
 
 ## Output contract
 
@@ -236,12 +264,48 @@ Browser matrix: <projects> (make test-e2e-matrix) | device matrix: <devices> | n
 Responses validated against api/openapi.yaml: yes (<helper>) | no spec
 Type check: passed | E errors fixed | <tool> absent
 test-refs: <ref_check.py counts line, verbatim> | 0 references, not a pass (type check only)
+Mutations: N tried, K killed (survivors listed with the missing assertion)
 Tests failing after generation: F (left planned; run test-heal)
   TC-nnnn  <file:line>  <runner message>
+Findings: <defects the tests exposed, each with file and function>
+CI: pipeline not run; ran locally with <command>
+Changed outside tests: none | <file>: <why>
 Files: ...
 ```
 
 ## Gotchas
+
+What a generalist misses when the suite looks green:
+
+- Durability: a read on the same database connection sees its own
+  uncommitted write, so a test that writes and reads through one
+  connection passes with the `commit()` deleted. Read back through a
+  second connection or a fresh app on the same file.
+- Side effect after commit: when the handler commits and then calls a
+  webhook, a queue or a publisher, make that call fail in a test and
+  assert what the client is told against what is stored. A 500 over a
+  committed change invites a retry that applies it twice: a finding.
+- Invariants over sums (refunds never exceed the total, stock never
+  below zero) are check-then-act. A sequential test cannot catch the
+  race; start N requests together behind a barrier (goroutines and a
+  `sync.WaitGroup`, a thread pool), run with `-race` where the stack has
+  it, and assert the invariant after. Code that reads, checks and writes
+  under separate locks or transactions is a finding even when the
+  sequential test passes.
+- Validation probes beyond the row: zero, negative, the maximum, the
+  empty string, a trailing newline (Python `re` `$` matches before a
+  final `\n`; `fullmatch` or `\Z` does not), `true` where an int is
+  expected (`bool` is an `int` in Python), a duplicate. A probe that
+  exposes a defect is a strict expected failure plus a finding.
+- Time: build instants in the zone the row states and let the clock
+  seam convert (15:00 IST is 09:30 UTC); inject the clock, never sleep
+  or read the wall clock. Test a window at its edge and one unit past.
+- Isolation: no test opens the configured production path, database
+  or URL. Point config at a temporary file and replace the outbound
+  call with a double that records what was sent, or a local server.
+- Defaults are findings: a secret with a guessable default
+  (`changeme`) means an unset variable leaves the endpoint open; say
+  that consequence, not only the default.
 
 - A generated test that asserts what the code does instead of the row's
   expected result is a tautology. The row wins. When the code disagrees,

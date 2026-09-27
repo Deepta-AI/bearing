@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: invoicing-db-config
+  namespace: invoicing
+data:
+  postgresql.conf: |
+    listen_addresses = '*'
+    max_connections = 100
+    shared_buffers = 1GB
+    wal_level = replica
+    # WAL archiving was switched off during the storage migration (2026-02); see backups runbook.
+    archive_mode = off
+    archive_command = '/bin/true'

@@ -1,0 +1,1 @@
+grocery,shopping list,groceries,household,family,pantry,barcode

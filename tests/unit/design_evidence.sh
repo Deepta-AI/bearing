@@ -3,8 +3,9 @@
 # check passes six real-shaped PNGs per page with a dark theme that applied,
 # and fails, with the reason, on a missing width, a PNG at the wrong width,
 # a file that is not a PNG, a dark shot identical to light, equal computed
-# colours, a missing theme record, and zero pages. shoot fails when browse is
-# absent. No browser is needed: the PNGs are written here.
+# colours, a missing theme record, and zero pages. shoot fails on a page that
+# is not in the folder, and when neither browse nor chrome can be used. No
+# browser is needed: the PNGs are written here.
 set -u
 . "$(dirname "$0")/../lib/assert.sh"
 EV="$KIT/plugins/bearing/skills/design-critique/scripts/evidence.py"
@@ -58,7 +59,39 @@ assert_contains "$T_OUT" "no home.theme.json"
 assert_exit 1 python3 "$EV" check --out "$d"
 assert_contains "$T_OUT" "0 pages given, nothing checked"
 assert_exit 1 python3 "$EV" shoot --base "$d" --out "$d/o" --browse "$d/no-browse" home.html
-assert_contains "$T_OUT" "browse not executable"
+assert_contains "$T_OUT" "no such page in"
+printf '<!doctype html><title>x</title>\n' > "$d/home.html"
+assert_exit 1 python3 "$EV" shoot --base "$d" --out "$d/o" --browse "$d/no-browse" --chrome "$d/no-chrome" home.html
+assert_contains "$T_OUT" "no chrome or chromium found; no screenshots taken"
+t_end
+
+t_begin "browse keeps its state outside the repository; a left-over tool folder is removed and named"
+d="$(tmpdir)"; git -C "$d" init -q; printf '<!doctype html><title>x</title>\n' > "$d/home.html"
+cat > "$d/fake-browse" <<'EOF2'
+#!/usr/bin/env bash
+# a stand-in for gstack browse: state goes where BROWSE_STATE_FILE says,
+# else to <git root>/.gstack; screenshots are real-shaped PNGs.
+dir="$(dirname "${BROWSE_STATE_FILE:-$(git rev-parse --show-toplevel)/.gstack/browse.json}")"
+mkdir -p "$dir"; echo "$*" >> "$dir/browse-daemon.log"
+case "$1" in
+  viewport) echo "${2%x*}" > "$dir/w" ;;
+  screenshot) python3 -c 'import struct,sys
+w=int(open(sys.argv[2]).read()); open(sys.argv[1],"wb").write(b"\x89PNG\r\n\x1a\n"+struct.pack(">I",13)+b"IHDR"+struct.pack(">II",w,800)+sys.argv[1].encode())' "$3" "$dir/w" ;;
+  js) case "$2" in
+        *dataset.theme*) touch "$dir/dark" ;;
+        *) if test -e "$dir/dark"; then echo '["dark"]'; else echo '["light"]'; fi ;;
+      esac ;;
+esac
+EOF2
+chmod +x "$d/fake-browse"
+(cd "$d" || exit 1; python3 "$EV" shoot --base "$d" --out "$d/shots" --browse "$d/fake-browse" home.html) > "$d/shoot.out" 2>&1
+assert_exit 0 test -s "$d/shots/home-1440-dark.png"
+T_OUT="$(cat "$d/shoot.out")"
+assert_contains "$T_OUT" "engine browse, dark via data-theme"
+assert_not_contains "$T_OUT" "removed"
+assert_exit 1 test -e "$d/.gstack"
+assert_exit 0 python3 "$EV" check --out "$d/shots" home.html
+assert_contains "$T_OUT" "dark shot via data-theme"
 t_end
 
 t_summary

@@ -1,14 +1,21 @@
 ---
 name: go
-description: 'Conventions for Go services: net/http mux, pgx, sqlc, goose, slog, golangci-lint, table-driven and httptest tests. Use when writing, reviewing or scaffolding "Go" code, "a Go handler" or "sqlc queries".'
-allowed-tools: Read, Grep, Glob, Skill, Bash(go build:*), Bash(go test:*), Bash(go vet:*), Bash(gofmt:*), Bash(golangci-lint run:*), Bash(make:*)
+description: 'Go house rules (net/http, pgx, sqlc, goose, slog, table-driven and httptest tests). Load before writing or changing any Go code. Use when asked for "a Go handler", "sqlc queries" or a new Go service.'
+allowed-tools: Read, Grep, Glob, Edit, Write, Skill, Bash(go build:*), Bash(go test:*), Bash(go vet:*), Bash(gofmt:*), Bash(golangci-lint run:*), Bash(make:*)
 ---
 
 # go
 
-The Go stack on this standard: Go 1.25 or newer (the templates pin 1.26), standard library `net/http` mux, `pgx` for
+The Go stack on this standard: Go 1.25 or newer, standard library `net/http` mux, `pgx` for
 PostgreSQL, `sqlc` for typed queries, `goose` for migrations, `slog` for
 logs, `golangci-lint` for lint, `govulncheck` in CI.
+
+The Go version that matters is the `go` line in the repository's `go.mod`,
+not the toolchain on the machine: it decides the language semantics (a
+per-iteration loop variable from 1.22, so `tc := tc` is dead code and a
+closure over `tc` is not a bug). New scaffolds pin `go 1.26.8`; with an older
+local toolchain and `GOTOOLCHAIN=local` they do not build, so say so rather
+than lowering the `go` line or letting a toolchain download.
 
 ## Inputs
 
@@ -24,8 +31,14 @@ logs, `golangci-lint` for lint, `govulncheck` in CI.
 
 - Writing or changing `.go` files: apply `references/guidelines.md`. Read it
   once per session, then work.
-- Reviewing a diff with Go files: apply `references/review-checklist.md` and
-  report in the reviewer format.
+- Reviewing a diff with Go files: review the branch against its merge base
+  (`git diff main...HEAD`, commit by commit), never edit the tree; probe in
+  a copy under a scratch folder. Apply `references/review-checklist.md` and
+  report each finding as severity (Critical, High, Medium, Low), `file:line`,
+  the claim, the concrete failing request or state, and the fix. Rank by
+  consequence (cross-tenant data, injection, a process crash, money first).
+  Mark what already exists on main as pre-existing. Drop a nit that has no
+  failure to name. Say which checks you ran and which you did not.
 - Scaffolding (`new-repo go-api <Name>`): `templates/` holds the skeleton
   and configs; `bin/brg-scaffold` in the bearing plugin copies them. Do not hand-copy. A
   command-line tool (no server, no database) is `new-repo go-cli
@@ -97,6 +110,67 @@ rule was relaxed and why in the review or the report.
    effects.
 8. `make check` = gofmt check, vet, lint, tests with race detector. CI runs
    the same target.
+
+## Traps a competent change still falls into
+
+Each one passes `make check` in a repository whose handler tests use a
+fake store, and fails in production. Check them on every change and review.
+
+- **Tenant scope.** Every query on tenant data ANDs `tenant_id = $n` with
+  the whole rest of the WHERE: `tenant_id = $1 AND a OR b` parses as
+  `(tenant_id = $1 AND a) OR b` and returns every tenant's rows matching
+  `b`. Load and write through the tenant-scoped repository method, never an
+  unscoped one kept for batch jobs. A fake that filters by tenant itself proves nothing
+  about the SQL.
+- **Identifiers are not parameters.** `ORDER BY`, a column or a direction
+  from a query parameter goes through an allowlist that maps each documented
+  value to a fixed clause. Check each mapped clause against the contract:
+  a column that exists under that name, and the documented direction for
+  every value, not only the default.
+- **State changes are conditional writes.** "Only a pending order can be
+  cancelled" is `UPDATE orders SET state = 'cancelled' WHERE id = $1 AND
+  tenant_id = $2 AND state = 'pending'`, then check rows affected (or
+  `RETURNING`). A read
+  in the service followed by an unconditional write loses a concurrent race.
+  On zero rows, tell "not yours or missing" (404) from "exists but not in
+  that state" (409) with a scoped read; do not map both to one error.
+- **Migrations replace what the last migration left.** Before altering a
+  constraint, index or column, read every applied migration in order: a
+  later file may have renamed the constraint (the 0001 default name is gone)
+  or folded another rule into it. Drop it by its current name (`IF EXISTS`
+  on a wrong name silently keeps the old rule), carry every rule it
+  enforced into the replacement, and write a Down that works once rows only
+  the new code can produce exist (or refuses with a message). Applied
+  migrations are never edited. A status string is the same in the Go
+  constant, the CHECK, every filter switch and the docs.
+- **Money.** Integer minor units end to end. `minor/100` truncates the fraction; format
+  as `%d.%02d` from the absolute value with the sign in front, never via
+  float. Check the documented format (`12.50`) against what the tests
+  assert: a test can lock in the wrong value.
+- **Bounds and returns.** Every numeric parameter has the documented lower
+  and upper bound, and every `writeError` is followed by `return`
+  (`limit=-1` must not reach the query).
+- **The error mapper against the contract.** Compare the one place that maps
+  errors to statuses with the documented error table; a new error path
+  inherits a wrong mapping silently. Report a mismatch you find; fix it only
+  when your change depends on it, and say so.
+- **Typed nil.** A constructor returning `*T` that can be nil, stored in an
+  interface field, makes `x != nil` true; the call then panics. Return the
+  interface type, or assign only when non-nil.
+- **Goroutines from a handler.** A panic in them is not recovered by
+  `net/http` and kills the process. `r.Context()` is cancelled when the
+  handler returns, so work started from it fails; use
+  `context.WithoutCancel` with a timeout, an owner that waits (or a queue),
+  and log the error.
+- **Streaming responses.** Once the first byte is written the status is
+  200; check `rows.Err()` before writing and `csv.Writer.Error()` after
+  `Flush`, and log a failure, since the client cannot be told.
+- **Scope.** Change only what the request needs. A shared helper (JSON
+  rendering, time formatting, error mapping) changed on the way changes
+  every route; report the pre-existing defects you saw instead.
+- **Say what reached PostgreSQL.** Fake-backed tests never run the SQL. If
+  Docker is available, apply the migrations up, run the new statements, try
+  the Down, and show the output; otherwise say "not run".
 
 ## Commands
 

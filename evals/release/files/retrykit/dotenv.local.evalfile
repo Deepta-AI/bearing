@@ -1,0 +1,3 @@
+# Local only. Used by `npm publish` from this machine (see CONTRIBUTING.md).
+NPM_TOKEN=npm_EXAMPLEONLYnotarealtoken0000000000000
+RETRYKIT_DEBUG=1

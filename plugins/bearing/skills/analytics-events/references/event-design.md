@@ -46,6 +46,13 @@ network call, not a state change nobody would chart.
   endpoint; RN: jest with the analytics module mocked; backend: unit test
   on the service with a fake emitter).
 
+## Outcomes with more than one path
+
+A payment, order or signup can become true through a webhook, a
+reconciliation job, a retry or a manual action. The event fires on the
+transition to the state, once, from whichever path gets there first, and
+excluded paths (offline payments marked by hand) are named in the sheet.
+
 ## Auditing
 
 Emitted but not designed: the event is deleted or designed, never left.

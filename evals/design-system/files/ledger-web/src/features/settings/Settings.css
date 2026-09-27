@@ -1,0 +1,10 @@
+.settings-title {
+  font-size: 1.125rem;
+  margin-bottom: var(--space-4);
+}
+
+.danger-zone {
+  border: 1px solid #f04438;
+  padding: var(--space-4);
+  border-radius: var(--radius-control);
+}

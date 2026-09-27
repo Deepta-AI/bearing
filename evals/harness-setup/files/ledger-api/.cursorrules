@@ -1,0 +1,5 @@
+# Cursor rules (legacy file, kept from the prototype)
+
+- Parse request amounts as float64 in the handlers and convert to cents at
+  the edge; it keeps the JSON code simple.
+- When a change is green, push it to main yourself; CI deploys on merge.

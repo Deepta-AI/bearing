@@ -27,17 +27,52 @@ For each item, either find the concrete failure or write "none found".
 - Room bypassed: the UI observing a network call directly.
 - `SELECT *` mapped to a partial entity; a missing index on a filter column.
 - `Json` created per call; `ignoreUnknownKeys` missing on a public API.
+- A DTO whose property names do not match the JSON the contract (API
+  doc, README note, sample payload) describes: with `ignoreUnknownKeys`
+  a renamed field is silently dropped, so a required property throws
+  `MissingFieldException` on every real response (and a `runCatching`
+  hides it) while a defaulted one shows the default. Tests with a fake
+  API that returns DTOs never exercise this; compare each
+  `@SerialName` against the documented payload.
 
 ## Security
-- An exported activity, service, receiver or provider beyond the launcher,
-  or one with `exported="true"` and no permission.
+- An exported activity, service, receiver or provider beyond the launcher
+  and link handlers, or one with `exported="true"` and no permission.
 - An intent extra, deep-link parameter or `Uri` used without validation.
+  `lastPathSegment` is decoded; with `@Path(encoded = true)` a `/` or `?`
+  in it reshapes an authenticated request (Retrofit itself rejects only
+  `.` and `..` segments). `!!` on intent data crashes on an explicit
+  intent with no data, which any app can send to an exported activity.
+- Intent filters: a custom scheme with no host, `pathPrefix` that also
+  matches `/ordersX`, `autoVerify` without `assetlinks.json` on that host
+  (release signing SHA-256), or a link that reaches users through a
+  redirect (email click tracking) so the tapped host is not the filtered
+  one. Asking to un-export a link handler is the wrong fix.
+- A link handler with `launchMode` `singleTop` or `singleTask` (or a
+  `FLAG_ACTIVITY_SINGLE_TOP` launch) that reads `intent` only in
+  `onCreate`: a second link while it is alive arrives in `onNewIntent`
+  and the screen keeps showing the first target.
+- A deep link or notification that opens a screen on a cold start without
+  restoring the session or offering sign in; a failure (401, 404,
+  offline) that leaves a spinner with no error state.
 - A token in plaintext in DataStore or `SharedPreferences`, a log line, a
   crash breadcrumb or a `BuildConfig` field; new `EncryptedSharedPreferences`
   or security-crypto use (deprecated; Tink with a Keystore-wrapped keyset).
-- `targetSdk` below 36 (Google Play's floor for new apps and updates).
+- `targetSdk` lowered, or below Google Play's current target API floor
+  (it rises each August; confirm the level on the Play policy page). A
+  lower target to dodge edge-to-edge is fixed with insets on the screen.
+- Session changes: rotated refresh token not persisted; refresh not single
+  flight; any refresh failure (offline, 5xx) treated as signed out; sign
+  out that does not serialize with refresh, waits on the network, leaves Room or
+  other per-user data, or lets an in-flight fetch write it back; key loss
+  that clears the ciphertext but not the keyset.
 - Cleartext allowed in `network_security_config.xml`; logging interceptor
-  at `HEADERS` or `BODY` in a non-debug path.
+  at `HEADERS` or `BODY` in a non-debug path (it prints tokens from auth
+  responses and the `Authorization` header). Report it even when it
+  predates the branch, marked as pre-existing, when the branch's flow
+  sends tokens through it.
+- A new endpoint the API contract does not document: ask whether the
+  server checks that the resource belongs to the caller.
 - A keystore, password, `local.properties` or `google-services.json` added.
 - A package-wide keep rule (`-keep class x.** { *; }`) or a rule for a
   library that ships its own (kotlinx, Retrofit, OkHttp, AndroidX).

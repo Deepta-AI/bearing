@@ -1,0 +1,24 @@
+{
+  "name": "harbor",
+  "displayName": "Harbor Health",
+  "light": {
+    "accent": "#1d5f8a",
+    "accent-hover": "#174e72",
+    "accent-active": "#123f5c",
+    "on-accent": "#ffffff",
+    "accent-subtle": "#e8f1f8",
+    "focus": "#1d5f8a",
+    "link": "#1d5f8a"
+  },
+  "dark": {
+    "accent": "#6cb4e4",
+    "accent-hover": "#86c3eb",
+    "accent-active": "#9fd0f0",
+    "on-accent": "#0b1a26",
+    "accent-subtle": "#16293a",
+    "focus": "#6cb4e4",
+    "link": "#8ecbf0"
+  },
+  "logo": "/assets/tenants/harbor/logo.svg",
+  "display": "Fraunces"
+}

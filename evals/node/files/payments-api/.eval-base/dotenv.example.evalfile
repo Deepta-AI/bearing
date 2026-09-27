@@ -1,0 +1,4 @@
+PORT=8080
+DATABASE_URL=postgres://payments:payments@localhost:5432/payments
+LOG_LEVEL=info
+SHUTDOWN_TIMEOUT_MS=10000

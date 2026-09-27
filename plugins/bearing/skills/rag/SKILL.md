@@ -1,6 +1,6 @@
 ---
 name: rag
-description: 'Builds retrieval-augmented generation (RAG) on pgvector: ingestion, chunking, embeddings, a retriever with citations, retrieval metrics. Use when asked to "add RAG", "chat with our documents" or "chunk and embed".'
+description: 'Builds retrieval-augmented generation (RAG) on pgvector: ingestion, chunking, embeddings, a retriever that cites sources, retrieval metrics. Use when answers must come from documents: "add RAG", "cite the source".'
 argument-hint: "<naive|hybrid|reranked|hierarchical|graph|agentic|sql|multimodal|long-context> <name> [--corpus <path>]"
 allowed-tools: Read, Write, Edit, Grep, Glob, Skill, Bash(ls:*), Bash(wc -l:*), Bash(make:*), Bash(git status:*), Bash(uv run:*), Bash(npm run:*)
 ---

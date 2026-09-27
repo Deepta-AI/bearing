@@ -1,0 +1,39 @@
+/* Design tokens. Generated from the design system; edit there, not here. */
+:root {
+  --color-bg: oklch(98% 0.005 250);
+  --color-surface: oklch(100% 0 0);
+  --color-text: oklch(25% 0.02 250);
+  --color-muted: oklch(52% 0.02 250);
+  --color-accent: oklch(55% 0.15 160);
+  --color-border: oklch(90% 0.01 250);
+
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+
+  --radius-card: 12px;
+
+  --font-sans: "Inter", system-ui, sans-serif;
+
+  --duration-instant: 0.08s;
+  --duration-fast: 0.15s;
+  --duration-base: 0.24s;
+  --duration-slow: 0.4s;
+  --duration-deliberate: 0.7s;
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-enter: cubic-bezier(0, 0, 0.2, 1);
+  --ease-exit: cubic-bezier(0.4, 0, 1, 1);
+  --stagger: 0.04s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-instant: 0s;
+    --duration-fast: 0s;
+    --duration-base: 0s;
+    --duration-slow: 0s;
+    --duration-deliberate: 0s;
+    --stagger: 0s;
+  }
+}

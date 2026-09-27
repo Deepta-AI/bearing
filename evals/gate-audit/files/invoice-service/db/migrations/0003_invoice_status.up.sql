@@ -1,0 +1,1 @@
+ALTER TABLE invoices ADD COLUMN status TEXT NOT NULL DEFAULT 'issued';

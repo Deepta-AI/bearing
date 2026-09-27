@@ -1,0 +1,6 @@
+{
+  "FLAVOUR": "prod",
+  "API_BASE_URL": "https://api.larder.example",
+  "LOG_LEVEL": "WARNING",
+  "PUSH_REGISTRATION_SECRET": "psk_live_7f3a9c2e41b84d0e9a6c55d1e2f08b37"
+}

@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en-IN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tally: today</title>
+  <link rel="stylesheet" href="src/styles/tokens.css">
+  <link rel="stylesheet" href="src/styles/dashboard.css">
+</head>
+<body>
+  <header class="topbar">
+    <h1>Today</h1>
+    <p class="updated">Updated <time id="updated-at">just now</time></p>
+  </header>
+  <main>
+    <section id="stats" class="stats" aria-live="polite" aria-label="Today's figures">
+      <article class="stat-card" data-stat="revenue">
+        <h2>Revenue</h2>
+        <p class="stat-value">&nbsp;</p>
+      </article>
+      <article class="stat-card" data-stat="orders">
+        <h2>Orders</h2>
+        <p class="stat-value">&nbsp;</p>
+      </article>
+      <article class="stat-card" data-stat="conversion">
+        <h2>Conversion</h2>
+        <p class="stat-value">&nbsp;</p>
+      </article>
+      <article class="stat-card" data-stat="refundRate">
+        <h2>Refund rate</h2>
+        <p class="stat-value">&nbsp;</p>
+      </article>
+    </section>
+  </main>
+  <script type="module" src="src/dashboard.js"></script>
+</body>
+</html>

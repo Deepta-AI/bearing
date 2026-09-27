@@ -1,0 +1,21 @@
+{
+  "name": "ledger-web",
+  "version": "1.4.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node --no-warnings --test",
+    "prepare": "husky install"
+  },
+  "lint-staged": {
+    "*.js": "node --check"
+  },
+  "dependencies": {
+    "pg": "^8.12.0"
+  },
+  "devDependencies": {
+    "husky": "^8.0.3",
+    "lint-staged": "^15.2.0"
+  }
+}

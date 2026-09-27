@@ -1,0 +1,9 @@
+{
+  "expo": {
+    "name": "Clinic Booking",
+    "slug": "clinic-booking",
+    "orientation": "portrait",
+    "ios": { "bundleIdentifier": "com.example.clinicbooking" },
+    "android": { "package": "com.example.clinicbooking" }
+  }
+}

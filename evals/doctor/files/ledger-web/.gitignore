@@ -1,0 +1,7 @@
+node_modules/
+.env
+.scratch/
+coverage/
+# Claude Code: share the team settings, keep local files out
+.claude/*
+!.claude/settings.json

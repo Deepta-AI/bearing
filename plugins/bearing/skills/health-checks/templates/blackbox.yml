@@ -24,6 +24,7 @@ modules:
     http:
       method: GET
       valid_status_codes: [200]
+      # also catches a /readyz that answers 200 while a check fails
       fail_if_body_matches_regexp:
         - '"status":"fail"'
       headers:
@@ -38,15 +39,17 @@ modules:
 #
 # scrape_configs:
 #   - job_name: blackbox-healthz
+#     scrape_interval: 1m     # at 5m samples go stale between scrapes
 #     metrics_path: /probe
 #     params:
 #       module: [http_healthz]
 #     static_configs:
 #       - targets:
 #           - https://api.example.com/healthz          # __SERVICE__ prod
+#         labels: { service: __SERVICE__, environment: prod }
+#       - targets:
 #           - https://api.qa.example.com/healthz       # __SERVICE__ qa
-#         labels:
-#           service: __SERVICE__
+#         labels: { service: __SERVICE__, environment: qa }
 #     relabel_configs:
 #       - source_labels: [__address__]
 #         target_label: __param_target
@@ -61,9 +64,10 @@ modules:
 #     static_configs:
 #       - targets:
 #           - https://api.example.com/readyz
+#         labels: { service: __SERVICE__, environment: prod }
+#       - targets:
 #           - https://api.qa.example.com/readyz
-#         labels:
-#           service: __SERVICE__
+#         labels: { service: __SERVICE__, environment: qa }
 #     relabel_configs:
 #       - source_labels: [__address__]
 #         target_label: __param_target
@@ -72,22 +76,35 @@ modules:
 #       - target_label: __address__
 #         replacement: blackbox-exporter:9115
 #
-# --- Alert rules (monitoring/alerts/__SERVICE__-health.yaml) -----------
+# --- Alert rules -------------------------------------------------------
+# File name: whatever matches rule_files in prometheus.yml (for example
+# alerts/__SERVICE__-health.rules.yml when the glob is alerts/*.rules.yml).
+# __PAGE_SEVERITY__: the label value the Alertmanager route tree sends to
+# the pager receiver (read alertmanager.yml; often "critical"). A value no
+# route matches lands on the default receiver or nowhere.
 #
 # groups:
 #   - name: __SERVICE__.health
 #     rules:
+#       # for: must cover two or more probe intervals; prod pages, qa goes to chat.
 #       - alert: __SERVICE__ReadinessFailing
-#         expr: probe_success{job="blackbox-readyz", service="__SERVICE__"} == 0
+#         expr: probe_success{job="blackbox-readyz", service="__SERVICE__", environment="prod"} == 0
 #         for: 3m
-#         labels: { severity: page, service: __SERVICE__ }
+#         labels: { severity: __PAGE_SEVERITY__, service: __SERVICE__ }
 #         annotations:
 #           summary: "__SERVICE__ /readyz failing for 3 minutes on {{ $labels.instance }}"
+#           runbook_url: __RUNBOOK_BASE__/__SERVICE__ReadinessFailing.md
+#       - alert: __SERVICE__ReadinessFailingQA
+#         expr: probe_success{job="blackbox-readyz", service="__SERVICE__", environment!="prod"} == 0
+#         for: 5m
+#         labels: { severity: __NONPAGING_SEVERITY__, service: __SERVICE__ }
+#         annotations:
+#           summary: "__SERVICE__ /readyz failing in {{ $labels.environment }}"
 #           runbook_url: __RUNBOOK_BASE__/__SERVICE__ReadinessFailing.md
 #       - alert: __SERVICE__HealthFlapping
 #         expr: changes(probe_success{job=~"blackbox-.*", service="__SERVICE__"}[15m]) > 3
 #         for: 0m
-#         labels: { severity: ticket, service: __SERVICE__ }
+#         labels: { severity: __NONPAGING_SEVERITY__, service: __SERVICE__ }
 #         annotations:
 #           summary: "__SERVICE__ health probe flapped more than 3 times in 15 minutes"
 #           runbook_url: __RUNBOOK_BASE__/__SERVICE__HealthFlapping.md

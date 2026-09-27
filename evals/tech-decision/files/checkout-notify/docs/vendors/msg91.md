@@ -12,3 +12,6 @@ From the support call on 2026-09-15 after INC-231.
   usually within 2 minutes.
 - We do not read the response body today (internal/notify/sms.go), so we
   keep no request_id.
+- Throughput limit: 20 requests a second per account. Above it the API
+  answers HTTP 429, and bursts over the limit for more than a minute get
+  the sender ID suspended for 24 hours.

@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# pre-push: a person pushes. Type the branch name on the terminal to confirm.
+set -euo pipefail
+[ "${PAYOUTS_PUSH_CONFIRMED:-}" = "1" ] && exit 0
+branch="$(git rev-parse --abbrev-ref HEAD)"
+if [ ! -r /dev/tty ]; then
+  echo "pre-push: no terminal; a person must push" >&2
+  exit 1
+fi
+printf 'pre-push: type the branch name (%s) to push: ' "$branch" > /dev/tty
+read -r typed < /dev/tty
+[ "$typed" = "$branch" ] || { echo "pre-push: not confirmed" >&2; exit 1; }

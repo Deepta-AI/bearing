@@ -1,0 +1,14 @@
+# Google Play Data safety answers, as last submitted (3.6.0, 2026-03-02).
+data_collected:
+  - type: crash_logs
+    sdk: firebase-crashlytics
+    purpose: app_functionality
+    optional: false
+  - type: diagnostics
+    sdk: firebase-crashlytics
+    purpose: app_functionality
+    optional: false
+data_shared: []
+location: not_collected   # the map only uses location on the device
+encrypted_in_transit: true
+deletion_request: true    # drivers ask their fleet admin

@@ -2,10 +2,12 @@
 """docs_drift: which claims in a repository's docs no longer match the code,
 checked mechanically and counted.
 
-  - Docs: README.md, AGENTS.md and CLAUDE.md at the root and docs/**/*.md,
-    minus docs/archive/, generated or vendored folders (node_modules, .git,
-    dist, build, .venv, venv, vendor, target, coverage) and every --exclude
-    glob. In a git repository the list comes from `git ls-files -co
+  - Docs: every *.md in the repository (README.md, CONTRIBUTING.md, a
+    service's own README, docs/**), minus docs/archive/, test fixtures
+    (testdata, fixtures, third_party), generated or vendored folders
+    (node_modules, .git, dist, build, .venv, venv, vendor, target, coverage)
+    and every --exclude glob. A rename leaves its old name in whichever
+    markdown mentions it, not only in docs/. In a git repository the list comes from `git ls-files -co
     --exclude-standard`, so ignored files are never docs.
   - Broken (fails): a relative markdown link, image or href whose target
     does not exist; a backticked repository path that does not exist; a
@@ -23,8 +25,11 @@ checked mechanically and counted.
     file extension, or its first segment is a directory that exists or a
     conventional source folder (src, internal, cmd). `make -C`, `make -f`
     and `cd x && make` point at another Makefile and are skipped.
-  - History: in docs/adr/, docs/decisions/, docs/postmortems/ and
-    docs/incidents/ a broken claim is a `history` warning (a dated record
+  - Make: a doc is checked against the nearest Makefile at or above its
+    folder; a doc under a folder with its own Makefile is not checked
+    against the root one.
+  - History: in docs/adr/, docs/decisions/, docs/postmortems/,
+    docs/incidents/ and CHANGELOG*.md a broken claim is a `history` warning (a dated record
     is correct for its date) and staleness is not computed.
   - Opt-outs: `<!-- docs-drift: ignore -->` on a line, or alone on the line
     before, silences that line; `<!-- docs-drift: ignore-file -->` anywhere
@@ -48,7 +53,6 @@ import subprocess
 import sys
 from urllib.parse import unquote
 
-ROOT_DOCS = ("README.md", "AGENTS.md", "CLAUDE.md")
 SKIP_DIRS = {
     ".git",
     "node_modules",
@@ -124,6 +128,12 @@ CMD_LEAD = re.compile(r"^(?:[$>%]\s+|-\s+|(?:run|script|command):\s*|(?:then|do|
 MAKE_TARGET = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]*$")
 # ADRs and postmortems are history: a broken claim in one is a warning.
 HISTORY_DIRS = ("docs/adr/", "docs/decisions/", "docs/postmortems/", "docs/incidents/")
+# Markdown under these folders is test data or somebody else's, not a doc.
+DOC_SKIP_DIRS = {"testdata", "fixtures", "third_party"}
+
+
+def is_history(doc):
+    return doc.startswith(HISTORY_DIRS) or os.path.basename(doc).upper().startswith("CHANGELOG")
 IGNORE_LINE = "docs-drift: ignore"
 IGNORE_FILE = "docs-drift: ignore-file"
 
@@ -161,17 +171,26 @@ def skipped_dir(rel):
 
 
 def is_doc(rel, excludes):
-    if rel in ROOT_DOCS:
-        pass
-    elif rel.startswith("docs/") and rel.endswith(".md"):
-        if rel.startswith("docs/archive/"):
-            return False
-    else:
+    if not rel.endswith(".md") or rel.startswith("docs/archive/"):
+        return False
+    if any(part in DOC_SKIP_DIRS for part in rel.split("/")[:-1]):
         return False
     for g in excludes:
         if fnmatch.fnmatch(rel, g) or (g.endswith("/") and rel.startswith(g)):
             return False
     return True
+
+
+def nearest_makefile_dir(root, doc):
+    """The folder of the nearest Makefile at or above doc's folder, "" for
+    the root (or when there is none below it)."""
+    d = os.path.dirname(doc)
+    while d:
+        for name in ("GNUmakefile", "makefile", "Makefile"):
+            if os.path.isfile(os.path.join(root, d, name)):
+                return d
+        d = os.path.dirname(d)
+    return ""
 
 
 def makefile_targets(root):
@@ -502,7 +521,7 @@ def check_make(doc, line, target, make, findings, counts, ignore):
 def add(findings, doc, line, kind, detail, ignore, missing=None, severity="broken"):
     if ignore:
         return
-    if severity == "broken" and doc.startswith(HISTORY_DIRS):
+    if severity == "broken" and is_history(doc):
         # correct for its date; reported, never failed, never "fixed"
         kind, severity = "history", "warning"
         detail = detail + " (a dated record: not rewritten)"
@@ -676,12 +695,13 @@ def main():
             continue
         checked.append(doc)
         refs = set()
-        scan_doc(doc, text, checker, make, env_refs, refs, findings, counts)
+        doc_make = make if nearest_makefile_dir(root, doc) == "" else None
+        scan_doc(doc, text, checker, doc_make, env_refs, refs, findings, counts)
         refs_by_doc[doc] = refs
     findings = drop_ignored(root, findings, is_git)
     env_findings(root, files, docs, env_refs, findings)
     if is_git:
-        current = [d for d in checked if not d.startswith(HISTORY_DIRS)]
+        current = [d for d in checked if not is_history(d)]
         stale_findings(root, current, refs_by_doc, max(1, a.stale_after), findings)
 
     findings.sort(key=lambda f: (f["path"], f["line"], f["kind"], f["detail"]))
@@ -705,7 +725,7 @@ def main():
         print(summary)
     if not checked:
         print(
-            f"docs-drift: 0 docs found under {root} (README.md, AGENTS.md, CLAUDE.md, docs/**/*.md), nothing checked",
+            f"docs-drift: 0 docs found under {root} (no *.md outside skipped folders), nothing checked",
             file=sys.stderr,
         )
         return 1

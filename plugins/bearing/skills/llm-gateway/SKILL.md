@@ -1,6 +1,6 @@
 ---
 name: llm-gateway
-description: 'Puts every LLM call behind one gateway module: routing by model tier, retries, timeouts, rate limits, caching, cost tracking, fallbacks. Use when asked to "add an LLM call", "track LLM cost" or "find every model call".'
+description: 'Puts every LLM call behind one gateway: model tiers, retries, timeouts, rate limits, caching, cost, fallbacks; starts by finding every call. Use when asked to "find every model call", "track LLM cost".'
 argument-hint: "[audit] [--stack python|typescript]"
 allowed-tools: Read, Write, Edit, Grep, Glob, Skill, Bash(ls:*), Bash(make:*), Bash(git status:*), Bash(git diff:*), Bash(python3 -c:*), Bash(uv run pytest:*), Bash(npm test:*), Bash(pnpm test:*), Bash(python3 *skills/llm-gateway/scripts/llm_callsites_check.py*), Bash(python3 *skills/llm-gateway/scripts/llm_access_check.py*)
 ---

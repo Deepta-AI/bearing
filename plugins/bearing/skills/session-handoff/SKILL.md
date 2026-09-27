@@ -2,111 +2,180 @@
 name: session-handoff
 description: 'Saves session state for the next session on this branch: next steps, done, blockers, questions, files, gate, and a progress note. Use when asked to "save state", "write a handoff", "pause here" or before /clear.'
 argument-hint: "[note to put first under Next]"
-allowed-tools: Read, Write, Grep, Glob, Bash(git status:*), Bash(git diff:*), Bash(git branch:*), Bash(git log:*), Bash(git rev-parse:*), Bash(date:*), Bash(mkdir -p .bearing/state), Bash(bash *bin/brg-state-path*), Bash(python3 *skills/session-handoff/scripts/progress.py*)
+allowed-tools: Read, Write, Grep, Glob, Bash(git status:*), Bash(git diff:*), Bash(git branch:*), Bash(git log:*), Bash(git rev-parse:*), Bash(git rev-list:*), Bash(git stash list:*), Bash(git stash show:*), Bash(git show:*), Bash(git for-each-ref:*), Bash(git merge-base:*), Bash(git ls-files:*), Bash(git check-ignore:*), Bash(make check:*), Bash(make -n:*), Bash(date:*), Bash(mkdir -p .bearing/state), Bash(mkdir -p docs/handoff), Bash(bash *bin/brg-state-path*), Bash(python3 *skills/session-handoff/scripts/progress.py*)
 ---
 
 # session-handoff
 
-The SessionStart hook prints the first twenty lines of this file back next
-time, so the top of the file carries the most useful facts. There are no
-prerequisites: the file is written from whatever the session knows.
+A handoff fails in two ways: it loses work (a commit, a stash or a branch
+that lives only on this machine), or it passes on a wrong belief (a
+"(done)" commit whose test is skipped, a gate result nobody ran, a decision
+someone else has already taken upstream). The next reader trusts the note
+and cannot ask you, so every line must be checked against the repository,
+not remembered from the session.
 
-Two files, two readers. The state file is local: `.bearing/state/` is
-ignored, so only this machine sees it; it is the detailed session log. The
-progress file `docs/progress/<ID>.md` is committed on the task branch; it
-is the shared summary a second engineer, a fresh clone or `workflow`
-reads. Each branch writes only its own progress file, so they never
-conflict. `scripts/progress.py` owns its format (`templates/progress.md`).
+## Who reads it decides where it goes
+
+- **You, after /clear or tomorrow, on this machine**: the local state file
+  `.bearing/state/<branch with / as _>.md` (`bash
+  "${CLAUDE_PLUGIN_ROOT}/bin/brg-state-path"` prints it). It is git-ignored;
+  the SessionStart hook prints its first twenty lines back, so the top
+  carries the most useful facts.
+- **Someone else, or another machine** ("someone is picking this up", "I'm
+  out", "hand over"): the ignored file never leaves this machine, so the
+  full handoff goes in a tracked file, `docs/handoff/<ID>.md`, with the same
+  body. Everything the teammate needs is in that file: criteria status,
+  traps, blockers, how to run the checks, what is still only on your
+  machine. Never leave an essential fact only in the ignored file or only in
+  your final message.
+- Either way, update the shared summary `docs/progress/<ID>.md` with
+  `scripts/progress.py` (format in `templates/progress.md`); it is committed
+  on the task branch and each branch writes only its own, so they never
+  conflict.
 
 Not this: `client-handover` is the client pack at the end of an
-engagement; this is a note for the next session on this branch.
-
-Not this: `task-report` says what a task did; this says where a session
+engagement; `task-report` says what a task did. This says where work
 stopped and what to do first.
 
 ## Inputs
 
-- repository root: `git rev-parse --show-toplevel`; if not a git
-  repository, the current directory, and the file carries the line
-  "not a git repository; Files touched is from this session's edits".
-- branch: `git branch --show-current`; detached or absent: the file is
-  named `.bearing/state/detached.md` and says so.
-- task id: the branch name (`[A-Z][A-Z0-9]*(-[0-9]+)+`); if absent, the
-  existing state file's title; if absent, the file is titled with the
-  branch name.
-- base branch: the existing state file's `Base:` line; if absent,
-  `origin/develop` when it exists; else `main`; else the current
-  branch's upstream; else no commit list, and the file says so.
-- gate result: `.bearing/state/.check-passed` newer than the newest
-  changed file means `passed`; the marker absent or older means
-  `not run since edits`.
-- state directory: `.bearing/state/`; created with `mkdir -p`.
-- progress file: `docs/progress/<ID>.md`; without a task id, the branch
-  name with `/` as `_`. Written by
-  `python3 "${CLAUDE_PLUGIN_ROOT}/skills/session-handoff/scripts/progress.py"`,
-  which creates it when it is missing (a task started before this file
-  existed gets one on its first handoff).
-- status: `blocked` when a blocker stops all progress; `in review` when
-  the progress file already says so and the branch has not changed since;
-  else `in progress`.
+- The repository and branch (`git rev-parse --show-toplevel`, `git branch
+  --show-current`); outside a git repository, write the local file anyway
+  and say so in it.
+- Task id: from the branch name (`[A-Z][A-Z0-9]*(-[0-9]+)+`); else the
+  existing state file's title; else the branch name with `/` as `_`.
+- The ticket and its acceptance criteria (`docs/tasks/<ID>.md` or where
+  the repository keeps them), and the reader (from the request).
+- `$ARGUMENTS`, when given, is the first line under Next.
 
 ## Steps
 
-1. Gather in one batch: branch, task id, `git status --porcelain`,
-   `git diff --stat`, `git log --oneline <base>..HEAD`, and the gate
-   result, each as in Inputs. `$ARGUMENTS`, when given, is the first
-   line under Next.
-2. Write or overwrite `.bearing/state/<branch with / as _>.md` (`bash "${CLAUDE_PLUGIN_ROOT}/bin/brg-state-path"` prints it):
+1. **Locate the base.** The base is the branch the task was cut from, read
+   from CONTRIBUTING, README or the existing file's `Base:` line; do not
+   guess `main`. Count with `git rev-list --count <base>..HEAD` and list
+   with `git log --oneline <base>..HEAD`: commits reachable from the wrong
+   base belong to other tasks, and crediting them is a false "done".
+
+2. **Find everything that is only on this machine.** Each of these is
+   invisible to a teammate and lost with the laptop:
+   - `git status --porcelain=v2 --branch`: modified, staged, untracked
+     (say which files are untracked; they are not in any commit).
+   - Ahead and behind upstream: `git rev-list --left-right --count
+     @{u}...HEAD`. Ahead: those commits must be pushed. No upstream: the
+     whole branch is local.
+   - **Behind upstream: read what came in** (`git log -p HEAD..@{u}`).
+     Someone else may have changed a document you are about to describe
+     (an ADR accepted, a ticket edited, a test changed). Report the
+     upstream version and the conflict with your working tree; do not
+     describe the local copy as current.
+   - `git stash list` and `git stash show --stat --include-untracked
+     stash@{n}` for each: what it holds and which criterion it serves.
+   - Local branches with no upstream or with unpushed commits: `git
+     for-each-ref --format='%(refname:short) %(upstream:short)
+     %(upstream:track)' refs/heads` and `git log --oneline --branches
+     --not --remotes`. A side branch with a helper or a spike is easy to
+     forget.
+   For each item say what it is and what the user should do before
+   leaving (commit, push, turn the stash into a branch). Print the
+   commands; do not run them. You do not commit, push, pop, drop or apply
+   anything.
+
+3. **Run the checks; do not trust a marker.** Run the repository's gate
+   (`make check`, or what README or CONTRIBUTING names) once, when it runs
+   locally in a minute or two, and record the exact counts: passed,
+   failed, skipped, and the names of the failing and skipped tests. A
+   `.bearing/state/.check-passed` marker or a remembered run is at best
+   "last known"; say so with its time. If the gate cannot run here (needs a
+   service, a secret, the network), say "not run" and why. A green run with
+   skipped tests is green only for what ran.
+
+4. **Status each acceptance criterion from evidence.** Read the ticket's
+   criteria. For each, name the code and the test that proves it and say
+   done, partly done, not started or blocked. Claims are not evidence: a
+   commit message saying "(done)", a ticked box or a comment is a claim.
+   A skipped or xfailed test proves nothing, and "flaky" in a skip reason
+   often hides a real bug: read the code path it covers (or run it
+   unskipped in a scratch copy, never in the repository) and say whether
+   the behaviour works. Read what a test
+   asserts before counting it: a test that pins the value the ticket calls
+   the bug documents the bug, it does not meet the criterion. When a number
+   decides a status (a total, a rounding, a timeout), compute it.
+
+5. **Look for secrets in the working tree**, not only in the conversation:
+   `git diff` and every untracked file, for literal keys, tokens and
+   passwords (a `TEMP` or `debug` comment beside a credential is the usual
+   shape). Record the file and variable, never the value or any part of it.
+   The first Next step becomes "revert it before any commit"; do not edit
+   the file yourself unless asked.
+
+6. **Write the handoff** (the local file, and `docs/handoff/<ID>.md` when
+   the reader is someone else). Under sixty lines, facts not narrative:
 
    ```
-   # <ID> <PascalName>
-   Updated: <date time>   Branch: <branch>   Gate: passed|not run since edits
+   # <ID> <title from the ticket>
+   Updated: <date time>   Branch: <branch>   Base: <base>
+   Gate: <command> <counts, failing and skipped names> | not run: <why>
+   Only on this machine: <unpushed commits, stash, local branches, untracked files, or none>
    ## Next (do this first)
-   - one to three concrete actions, most specific first
+   - one to three concrete actions naming a file, test or function;
+     a safety step (revert a key, push the branch) comes first, then the
+     first real task step
+   ## Criteria
+   - <n> <done | partly | not started | blocked>: <evidence>
    ## Done
-   - what landed, by commit or by file
+   - commits on this branch since the base, by hash and subject
    ## Blockers
-   - what stops progress and who can unblock it
+   - what stops progress, who or what can unblock it, as the repo states it
    ## Open questions
-   - decisions the user still owns
-   ## Files touched
-   - path: one line each (from git status)
-   ## Notes
-   - anything the next session would otherwise rediscover
+   - decisions still owned by someone else; Proposed stays Proposed
+   ## Traps
+   - what the next reader would otherwise get wrong: a claim the code
+     does not back, a skipped test, an ordering hazard in code still to
+     be wired, a change waiting upstream
+   ## How to run
+   - the gate command and the documents to read first
    ```
-3. Keep it under sixty lines. Facts, not narrative.
-4. Update the progress file from the same facts, in short form: `python3
+
+   Invent nothing: no names that are not in the repository or the request,
+   no reply that has not arrived, no decision nobody took, no dates beyond
+   today's and arithmetic on dates the user gave (say it is derived). A
+   recommendation is labelled as yours and Proposed.
+
+7. **Update the progress file**: `python3
    "${CLAUDE_PLUGIN_ROOT}/skills/session-handoff/scripts/progress.py" write
-   --task <ID> --status <status> --next <first Next action> --add-done
-   <item> (once per new Done item) --blocker <item> (once each, or
-   none)`, plus `--add-decision <ADR path and one line>` for a decision
-   recorded this session. Nothing secret, nothing from Open questions or
-   Notes; those stay local.
-5. Say whether the progress file has uncommitted changes (`git status
-   --porcelain docs/progress`); it goes in the next commit. This skill
-   does not commit.
-6. Print the output contract.
+   --task <ID> --status <in progress | blocked | in review> --next <first
+   Next action> --add-done <item> (once per new commit) --blocker <item>
+   (once each, or none)`. On its first write also pass `--title` (the
+   ticket title), `--criteria` (the ticket path and a one-line tally) and
+   `--started` (author date of the first commit since the base); Owner
+   defaults to the author of the latest commit. `blocked` only when nothing
+   can move. Nothing secret, nothing from Open questions.
+
+8. **Leave the tree as you found it**, apart from the handoff files. No
+   code edits, no commits, no stash operations, no stray scratch files or
+   caches in the repository (delete the ones the gate created if they are
+   not ignored).
 
 ## Output contract
 
 ```
-## Handoff: .bearing/state/<branch with / as _>.md (N lines, limit 60)
-Branch: <branch>   Task: <ID | none>   Base: <base>   Gate: passed | not run since edits
+## Handoff: <path(s) written> (N lines)
+Branch: <branch>   Task: <ID | none>   Base: <base> (+N commits)   Gate: <counts> | not run
+Only on this machine: <items, or none>
 Next:
 - <first action>
-Files touched: N   Blockers: N   Open questions: N
-Progress: docs/progress/<ID>.md (status <status>; uncommitted | committed)
+Criteria: <n done, n partly, n open>   Blockers: N   Open questions: N
+Before you go (run these yourself):
+  <git add/commit of the handoff files, git push, stash-to-branch, as needed>
 ```
 
 ## Gotchas
 
-- Never write secrets, tokens or credentials into the state file, even if
-  they were in the conversation.
-- The state file is local and stays ignored; never commit it. The
-  progress file is the shared one; never add it to `.gitignore`.
+- The state file stays ignored; never commit it. The progress file and a
+  `docs/handoff/` file are shared; never add them to `.gitignore`.
 - The file is per branch. Switching branches switches state; say so if the
   user is about to switch.
-- If the tree is clean and there are no open questions, the handoff is one
-  line: "clean, next: <action>".
-- Outside a git repository the file still gets written; it is the only
-  record the next session will have.
+- A clean tree, nothing local-only and no open questions makes a one-line
+  handoff: "clean, pushed, next: <action>".
+- Date arithmetic: "two weeks from tomorrow" is a derived date; state the
+  arithmetic, or leave it out.

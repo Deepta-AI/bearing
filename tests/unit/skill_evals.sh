@@ -20,6 +20,15 @@ assert_exit 1 python3 "$SE" unblind no-such-skill --iteration 99
 assert_contains "$T_OUT" "0 arm folders unblinded"
 t_end
 
+t_begin "prepare keeps the assertions out of the tree a run can see"
+it=90001; ws="$KIT/.scratch/skill-evals"
+rm -rf "$ws/adr/iteration-$it" "$ws/_meta/adr/iteration-$it"
+assert_exit 0 python3 "$SE" prepare adr --iteration "$it"
+assert_eq 0 "$(find "$ws/adr/iteration-$it" -name eval_metadata.json | wc -l | tr -d ' ')" "eval_metadata.json in the run-visible tree"
+assert_eq 1 "$([ "$(find "$ws/_meta/adr/iteration-$it" -name '*.json' | wc -l | tr -d ' ')" -gt 0 ] && echo 1)" "assertions kept under _meta"
+rm -rf "$ws/adr/iteration-$it" "$ws/_meta/adr/iteration-$it"
+t_end
+
 t_begin "status counts skills, evals and measured verdicts"
 assert_exit 0 python3 "$SE" status
 n=$(ls "$KIT"/plugins/*/skills/*/SKILL.md | wc -l | tr -d ' ')

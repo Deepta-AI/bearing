@@ -1,6 +1,6 @@
 {
  "title": "Project Delivery Checklist",
- "note": "Fill in Status, Owner, Target Date and Remarks; Status and Responsible are dropdowns. client-deliverables marks a task Completed only when its evidence exists, and never changes a status a person set.",
+ "note": "Fill in Status, Owner, Target Date and Remarks; Status and Responsible are dropdowns. A task is marked Completed only when its evidence is in the repository, and a status a person set is never changed.",
  "statuses": [
   "Not Started",
   "In Progress",
@@ -35,7 +35,8 @@
    "evidence": [
     "docs/product/PRD.md",
     "docs/product/backlog.md"
-   ]
+   ],
+   "all": true
   },
   {
    "phase": "1. Project Initiation",
@@ -247,11 +248,14 @@
   },
   {
    "phase": "4. Solution Design",
-   "task": "Prepare UI/UX designs using Claude Design",
+   "task": "Prepare the UI/UX screen designs",
    "responsible": "Developer",
    "evidence": [
     "docs/design/index.html",
     "docs/design/screens/*/index.html"
+   ],
+   "was": [
+    "Prepare UI/UX designs using Claude Design"
    ]
   },
   {
@@ -848,10 +852,13 @@
   },
   {
    "phase": "9. Security",
-   "task": "Conduct Security Review with Claude Code (vapt-report)",
+   "task": "Conduct the code-level Security Review",
    "responsible": "Team Lead",
    "evidence": [
     "docs/security/*.md"
+   ],
+   "was": [
+    "Conduct Security Review with Claude Code (vapt-report)"
    ]
   },
   {
@@ -951,16 +958,25 @@
    "task": "PRD, User Stories and Acceptance Criteria filed and current",
    "responsible": "Product Team",
    "evidence": [
+    "docs/product/PRD.md",
     "docs/product/backlog.md"
-   ]
+   ],
+   "all": true
   },
   {
    "phase": "11. Artefacts & Documentation",
    "task": "HLD, LLD, Architecture Diagram and Database Design filed and current",
    "responsible": "Team Lead",
    "evidence": [
-    "docs/design/*-hld.md"
-   ]
+    "docs/design/*-hld.md",
+    "docs/design/*-lld.md",
+    [
+     "docs/architecture/diagrams/*.png",
+     "docs/architecture/diagrams/*.svg"
+    ],
+    "docs/design/data-model.md"
+   ],
+   "all": true
   },
   {
    "phase": "11. Artefacts & Documentation",
@@ -975,8 +991,16 @@
    "task": "Test Cases and Automation Test Suite filed and current",
    "responsible": "QA",
    "evidence": [
-    "docs/testing/test-cases.md"
-   ]
+    "docs/testing/test-cases.md",
+    [
+     "e2e/*.spec.ts",
+     "tests/integration/*.py",
+     "internal/**/*_test.go",
+     ".maestro/*.yaml",
+     "src/**/*.test.ts"
+    ]
+   ],
+   "all": true
   },
   {
    "phase": "11. Artefacts & Documentation",
@@ -997,8 +1021,10 @@
    "task": "Deployment Guide, Release Notes, User Guide, Known Issues filed",
    "responsible": "Team Lead",
    "evidence": [
-    "docs/architecture/deployment.md"
-   ]
+    "docs/architecture/deployment.md",
+    "docs/releases/*.md"
+   ],
+   "all": true
   },
   {
    "phase": "11. Artefacts & Documentation",

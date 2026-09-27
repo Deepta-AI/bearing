@@ -1,0 +1,7 @@
+namespace: orders-prod
+resources:
+  - ../../base
+configMapGenerator:
+  - name: orders-api-config
+    envs:
+      - config.env

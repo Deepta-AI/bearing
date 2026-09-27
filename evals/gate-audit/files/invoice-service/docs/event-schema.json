@@ -1,0 +1,13 @@
+{
+  "$comment": "Contract with the ledger team, v2 (adds currency). Every invoice event carries these fields.",
+  "type": "object",
+  "required": ["event", "invoice_id", "customer_id", "amount_minor", "currency", "issued_at"],
+  "properties": {
+    "event": {"type": "string"},
+    "invoice_id": {"type": "string"},
+    "customer_id": {"type": "string"},
+    "amount_minor": {"type": "integer"},
+    "currency": {"type": "string"},
+    "issued_at": {"type": "string"}
+  }
+}

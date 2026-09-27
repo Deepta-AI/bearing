@@ -1,0 +1,2 @@
+.modal-backdrop { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.4); display: grid; place-items: center; }
+.modal { background: white; color: var(--color-text); border-radius: var(--radius); padding: var(--space-4); min-width: 420px; box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18); }

@@ -1,0 +1,15 @@
+{
+  "expo": {
+    "name": "Fieldnotes",
+    "slug": "fieldnotes",
+    "version": "1.4.0",
+    "ios": {
+      "bundleIdentifier": "com.example.fieldnotes",
+      "buildNumber": "14"
+    },
+    "android": {
+      "package": "com.example.fieldnotes",
+      "versionCode": 14
+    }
+  }
+}

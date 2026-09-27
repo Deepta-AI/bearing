@@ -1,0 +1,2 @@
+# linkd host crontab (installed by the deploy job)
+15 2 * * * cd /srv/linkd && scripts/archive-expired.sh
