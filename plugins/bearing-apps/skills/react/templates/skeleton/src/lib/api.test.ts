@@ -68,7 +68,9 @@ describe("apiFetch", () => {
       vi.fn(() => Promise.resolve(new Response(null, { status: 204 }))),
     );
 
-    await expect(apiFetch("/things/a1", z.undefined(), { method: "DELETE" })).resolves.toBeUndefined();
+    await expect(
+      apiFetch("/things/a1", z.undefined(), { method: "DELETE" }),
+    ).resolves.toBeUndefined();
   });
 
   it("rejects a 204 when the schema expects a body", async () => {

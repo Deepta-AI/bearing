@@ -54,7 +54,7 @@ t_end
 
 t_begin "a dark token in one dark block only is a parity gap; an unloaded font is named"
 d="$(tmpdir)"; site "$d" "#5f6673" "var(--bg)" "--ring: #f59e0b;"
-sed -i 's/font-family: sans-serif/font-family: "IBM Plex Sans", sans-serif/' "$d/p.html"
+sed -i.bak 's/font-family: sans-serif/font-family: "IBM Plex Sans", sans-serif/' "$d/p.html"; rm "$d/p.html.bak"
 assert_exit 1 python3 "$PR" "$d/p.html"
 assert_contains "$T_OUT" "parity: $d/t.css: --ring is set for data-theme dark but not under prefers-color-scheme dark"
 assert_contains "$T_OUT" "font: ibm plex sans is asked for by p.html but no @font-face or font link loads it"
@@ -62,7 +62,14 @@ t_end
 
 t_begin "an amber ring passes on the page and fails on the grey panel; a removed outline is named"
 d="$(tmpdir)"; site "$d" "#5f6673" "#f6f7f9" ""
-sed -i 's|</style>|button:focus-visible { outline: 2px solid #d97706; outline-offset: 2px; }\ninput:focus { outline: none; }\n</style>|; s|<p>Amount</p>|<p>Amount</p><button>Pay</button>|' "$d/p.html"
+python3 - "$d/p.html" <<'PY'
+import sys
+p = sys.argv[1]
+s = open(p).read()
+s = s.replace("</style>", "button:focus-visible { outline: 2px solid #d97706; outline-offset: 2px; }\ninput:focus { outline: none; }\n</style>")
+s = s.replace("<p>Amount</p>", "<p>Amount</p><button>Pay</button>")
+open(p, "w").write(s)
+PY
 assert_exit 1 python3 "$PR" "$d/p.html"
 assert_contains "$T_OUT" "focus ring vs surround\" #d97706 on #f6f7f9 = 2.97:1, needs 3"
 assert_not_contains "$T_OUT" "#d97706 on #ffffff"

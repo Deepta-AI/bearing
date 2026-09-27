@@ -48,6 +48,8 @@ MD
   printf '@@commit a1\n[PROJ-1] feat: sign in\n\n@@files\n\nsrc/login.ts\n@@commit b2\n[PROJ-2] feat: export\n\n@@files\n\ngo.mod\nsrc/export.ts\n' > "$1/git.log"
 }
 run() { (cd "$1" && python3 "$CHK" --log git.log "${@:2}"); }
+# g <git args>: git in the current case's repository $d, quiet, with a fixed identity.
+g() { git -C "$d" -c user.name=t -c user.email=t@example.com "$@" >/dev/null; }
 run_git() { (cd "$1" && python3 "$CHK" "${@:2}"); }
 
 t_begin "a traced repository passes with its counts"
@@ -145,7 +147,6 @@ t_end
 t_begin "--base scopes the audit to the stories the branch touched"
 d="$(tmpdir)/branch"; fixture "$d"; rm "$d/git.log"
 sed -i.bak '/TC-0002 | US-01-002/d' "$d/docs/testing/test-cases.md"; rm "$d"/docs/*/*.bak
-g() { git -C "$d" -c user.name=t -c user.email=t@example.com "$@" >/dev/null; }
 g init -q -b main; g add -A; g commit -q -m "feat: base (US-01-001)"
 g checkout -q -b feature/audit
 printf '\n### US-01-003 Audit trail\n\n- AC-US-01-003-1. Given a change, when saved, then it is logged.\n' >> "$d/docs/product/backlog.md"
@@ -177,7 +178,6 @@ t_end
 
 t_begin "a full audit reads every commit, the root one included, whose missing id is a review line"
 d="$(tmpdir)/full"; fixture "$d"; rm "$d/git.log"
-g() { git -C "$d" -c user.name=t -c user.email=t@example.com "$@" >/dev/null; }
 g init -q -b main; g add -A; g commit -q -m "chore: scaffold"
 : > "$d/src/login.ts"; g add -A; g commit -q -m "[PROJ-1] feat: sign in"
 : > "$d/src/export.ts"; g add -A; g commit -q -m "[PROJ-2] feat: export"

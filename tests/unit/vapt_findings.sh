@@ -70,7 +70,7 @@ t_end
 
 t_begin "same file and area at another line is flagged, not merged"
 d="$(tmpdir)"; cs "$d" "$SHA"; cso "$d" "2026-09-23T10:10:10Z"
-sed -i 's/"file":"api\/invoice.go","line":42,"exploit/"file":"api\/invoice.go","line":17,"exploit/' "$d/.gstack/security-reports/2026-09-23-101010.json"
+sed -i.bak 's/"file":"api\/invoice.go","line":42,"exploit/"file":"api\/invoice.go","line":17,"exploit/' "$d/.gstack/security-reports/2026-09-23-101010.json"; rm "$d/.gstack/security-reports/2026-09-23-101010.json.bak"
 assert_exit 0 python3 "$COL" --root "$d" --commit "$SHA" --out "$d/o.json"
 assert_contains "$T_OUT" "4 findings (Critical 1, High 1, Medium 1, Low 1), 0 merged duplicates"
 assert_contains "$T_OUT" "check: possible duplicate, api/invoice.go lines 17 and 42"
