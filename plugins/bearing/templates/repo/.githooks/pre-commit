@@ -121,7 +121,7 @@ if [ -n "$go_files" ]; then
 fi
 # a symlink (a root DESIGN.md pointing at docs/design/DESIGN.md) is checked
 # where it points; prettier refuses a symlink named on the command line
-ts_files="$(by_ext '\.(ts|tsx|js|jsx|json|css|md)$' | while IFS= read -r f; do [ -L "$f" ] || printf '%s\n' "$f"; done)"
+ts_files="$(by_ext '\.(ts|tsx|js|jsx|mjs|json|css|md|ya?ml)$' | while IFS= read -r f; do [ -L "$f" ] || printf '%s\n' "$f"; done)"
 if [ -n "$ts_files" ] && [ -x node_modules/.bin/prettier ]; then
   run_on "$ts_files" node_modules/.bin/prettier --check --log-level warn || hook_fail "prettier: run make fix"
 fi
