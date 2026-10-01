@@ -14,7 +14,7 @@ commit() { git -C "$d" add -A >/dev/null 2>&1; git -C "$d" -c user.email=t@e -c 
 
 t_begin "a run starts at the repo stage and refuses a second start"
 assert_exit 0 ap start "a word counter"
-assert_contains "$T_OUT" "15 stages"
+assert_contains "$T_OUT" "16 stages"
 assert_contains "$T_OUT" "next: repo"
 assert_exit 1 ap start "another"
 assert_contains "$T_OUT" "is open at stage repo"

@@ -58,7 +58,8 @@ Tasks (tasks.md, the table headed `| Task |`), checked when --tasks is
 given or the default file exists:
   - Ids are <story>-Dk (development) or <story>-Tk (test), unique, of a
     live story named in the Story column. Discipline is backend, frontend,
-    mobile, qa or devops, and a test task is qa. Estimate is hours (above 0,
+    mobile, qa, devops, design or content (deliverables that are not code:
+    brand, video, copy), and a test task is qa. Estimate is hours (above 0,
     at most 8; more is a task to split) or TBD. Depends on names known task
     ids or none. Done when is not blank. Verifies names AC ids of the same
     story, or `none: <reason>` on a development task.
@@ -97,7 +98,7 @@ OBJ = re.compile(r"\bB\d+\b")
 HOUSE = r"US-\d{2}-\d{3}"
 MAX_AC = 7
 POINTS = {"1", "2", "3", "5", "8", "TBD"}
-DISCIPLINES = {"backend", "frontend", "mobile", "qa", "devops"}
+DISCIPLINES = {"backend", "frontend", "mobile", "qa", "devops", "design", "content"}
 JUDGEMENTS = {
     "story",
     "criterion-of",

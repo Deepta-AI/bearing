@@ -120,7 +120,8 @@ standard and proves coverage with a gate.
 6. Full pack only (see Scope). Write `docs/product/tasks.md` from `templates/tasks.md`: per story the
    development tasks `US-nn-nnn-D1` upward and the test tasks
    `US-nn-nnn-T1` upward, each with discipline (backend, frontend, mobile,
-   qa, devops; a test task is qa), Estimate (hours from `estimate`,
+   qa, devops, or design and content for deliverables that are not code;
+   a test task is qa), Estimate (hours from `estimate`,
    else `TBD`), Depends on, Done when and the AC ids it verifies. Every
    story gets both kinds and every AC is verified by a test task. A task
    over 8 hours is two tasks.
