@@ -19,6 +19,8 @@ export default tseslint.config(
       ".lighthouseci/**",
       "test-results/**",
       "node_modules/**",
+      // Served as they are, outside the bundle and its type-aware rules.
+      "public/**",
       "src/components/ui/**",
     ],
   },

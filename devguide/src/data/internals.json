@@ -8116,7 +8116,7 @@
     },
     {
      "path": "templates/Makefile",
-     "lines": 191
+     "lines": 193
     },
     {
      "path": "templates/README.md",
@@ -8128,7 +8128,7 @@
     },
     {
      "path": "templates/eslint.config.mjs",
-     "lines": 53
+     "lines": 55
     },
     {
      "path": "templates/lighthouserc.json",
@@ -10513,7 +10513,7 @@
     },
     {
      "path": "templates/Makefile",
-     "lines": 174
+     "lines": 176
     },
     {
      "path": "templates/README.md",
@@ -10525,7 +10525,7 @@
     },
     {
      "path": "templates/eslint.config.js",
-     "lines": 87
+     "lines": 89
     },
     {
      "path": "templates/index.html",

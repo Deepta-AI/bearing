@@ -125,11 +125,13 @@ bundle-budget: ## Gzipped JavaScript in dist/assets/ under BUNDLE_BUDGET_KB (run
 
 lighthouse: ## Lighthouse CI against the production build: fails on the assertions in lighthouserc.json (needs Chrome or Playwright's chromium)
 	@[ -f lighthouserc.json ] || { echo "lighthouse: no lighthouserc.json, nothing checked" >&2; exit 1; }; \
+	n=$$(grep -o '"http[^"]*"' lighthouserc.json | wc -l | tr -d ' '); \
+	[ "$$n" -gt 0 ] || { echo "lighthouse: 0 URLs in lighthouserc.json, nothing checked" >&2; exit 1; }; \
 	command -v $(PNPM) >/dev/null || $(call skip,lighthouse,pnpm); \
 	c="$${CHROME_PATH:-$$(find "$${PLAYWRIGHT_BROWSERS_PATH:-$$HOME/.cache/ms-playwright}" /ms-playwright -type f -name chrome -path '*chromium-*' 2>/dev/null | head -1)}"; \
 	[ -n "$$c" ] || { echo "lighthouse: no Chrome found; run make setup or set CHROME_PATH" >&2; exit 1; }; \
 	CHROME_PATH="$$c" $(PNPM) dlx @lhci/cli@0.15.1 autorun --config=lighthouserc.json && \
-	echo "lighthouse: $$(grep -o '"http[^"]*"' lighthouserc.json | wc -l | tr -d ' ') pages checked against lighthouserc.json"
+	echo "lighthouse: $$n pages checked against lighthouserc.json"
 
 vuln: ## pnpm audit at high and above over the committed lockfile
 	@command -v $(PNPM) >/dev/null || $(call skip,vuln,pnpm); \
