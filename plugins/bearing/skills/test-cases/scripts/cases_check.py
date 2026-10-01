@@ -3,7 +3,8 @@
 it will be verified, counted from the files.
 
   - Criteria: the AC ids (AC-US-nn-nnn-k, AC-US-LOCAL-nnn-k) in the backlog,
-    skipping stories marked withdrawn:. With --story, only that story's.
+    skipping stories marked withdrawn: in the heading or on a Status line.
+    With --story, only that story's.
   - Cases: the rows of the test-case table (| TC-nnnn | ...), status
     `retired` excluded. A duplicate TC id is a problem.
   - Coverage: an AC id with no live row is a problem.
@@ -62,18 +63,56 @@ VAGUE = re.compile(
 )
 
 
+def split_checks(text):
+    """Split an Oracles cell on ";" outside quotes, so quoted copy that holds a
+    semicolon ("Saved; we will call you") stays one check."""
+    parts, cur, quote = [], "", None
+    for ch in text:
+        if quote:
+            if ch == quote:
+                quote = None
+        elif ch in "\"\u201c":
+            quote = "\"" if ch == "\"" else "\u201d"
+        elif ch == ";":
+            parts.append(cur)
+            cur = ""
+            continue
+        cur += ch
+    parts.append(cur)
+    return parts
+
+
 def read(p):
     return open(p, encoding="utf-8").read() if os.path.isfile(p) else None
 
 
-def criteria(text, story):
-    acs, cur, withdrawn = [], None, False
+HEAD_RE = re.compile(r"^#{2,4}\s+(US-(?:\d{2}-\d{3}|LOCAL-\d{3}))\b(.*)$")
+
+
+def withdrawn_ids(text):
+    """Stories marked withdrawn, the way the backlog gate reads them: in the
+    heading, or on a `Status: withdrawn:` line inside the story."""
+    out, cur = set(), None
     for line in text.split("\n"):
-        h = re.match(r"^#{2,4}\s+(US-(?:\d{2}-\d{3}|LOCAL-\d{3}))\b(.*)$", line)
+        h = HEAD_RE.match(line)
         if h:
-            cur, withdrawn = h.group(1), "withdrawn:" in h.group(2)
+            cur = h.group(1)
+            if "withdrawn:" in h.group(2):
+                out.add(cur)
             continue
-        if withdrawn or (story and cur != story):
+        if cur and re.match(r"^\s*\**Status\**:?\**\s*withdrawn:", line, re.I):
+            out.add(cur)
+    return out
+
+
+def criteria(text, story):
+    acs, cur, gone = [], None, withdrawn_ids(text)
+    for line in text.split("\n"):
+        h = HEAD_RE.match(line)
+        if h:
+            cur = h.group(1)
+            continue
+        if cur in gone or (story and cur != story):
             continue
         for ac in AC_RE.findall(line):
             if ac not in acs:
@@ -114,10 +153,10 @@ def level(likelihood, impact):
 
 def stories(text, story):
     """Story ids in the backlog, skipping withdrawn ones."""
-    out = []
+    out, gone = [], withdrawn_ids(text)
     for line in text.split("\n"):
-        h = re.match(r"^#{2,4}\s+(US-(?:\d{2}-\d{3}|LOCAL-\d{3}))\b(.*)$", line)
-        if h and "withdrawn:" not in h.group(2) and (not story or h.group(1) == story):
+        h = HEAD_RE.match(line)
+        if h and h.group(1) not in gone and (not story or h.group(1) == story):
             out.append(h.group(1))
     return out
 
@@ -190,7 +229,10 @@ def check_plan(path, core, types_line, in_scope, live_rows, gaps, problems):
         return f"test-plan: no file at {path}"
     body = re.sub(r"<!--.*?-->", "", text, flags=re.S)
     n0 = len(problems)
-    if core not in body:
+    # The counts must match this run; the trailing problem count may not,
+    # since the plan's own problems are counted after it was written.
+    counts = core.rsplit(", ", 1)[0]
+    if not re.search(re.escape(counts) + r", \d+ problems", body):
         problems.append(f"{path}: does not quote this run's test-cases line verbatim")
     if types_line not in body:
         problems.append(f"{path}: does not quote this run's test-types line verbatim")
@@ -306,7 +348,7 @@ def main():
         live += 1
         for ac in AC_RE.findall(cell("acs")):
             covered.setdefault(ac, []).append(tc)
-        checks = [c.strip() for c in cell("oracles").split(";") if c.strip()]
+        checks = [c.strip() for c in split_checks(cell("oracles")) if c.strip()]
         cats, bad = set(), []
         for c in checks:
             m = re.match(r"^(\w+):\s*(.*)$", c)

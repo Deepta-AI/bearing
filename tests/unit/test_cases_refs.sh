@@ -43,6 +43,14 @@ assert_exit 0 python3 "$CC" --backlog "$d/b.md" --cases "$d/c.md" --risks "$d/r.
 assert_contains "$T_OUT" "test-cases: 2 ACs, 2 with cases, 2 live cases, 2 with oracles, 1 risks (high 0, medium 1, low 0), 0 threats traced from 0 threat models, 0 problems"
 t_end
 
+t_begin "a story withdrawn on its Status line is skipped, as the backlog gate reads it"
+d="$(tmpdir)"; backlog "$d/b.md"; risks "$d/r.md" "$ok_risk"
+printf '### US-01-003 Old import\n\nStatus: withdrawn: 2026-10-01, no CMS\n- AC-US-01-003-1. Given a file, when imported, then rows appear.\n' >> "$d/b.md"
+cases "$d/c.md" "ui: heading 'Dashboard' visible; not: no error alert" "data: GET /users/1 returns locked=true"
+assert_exit 0 python3 "$CC" --backlog "$d/b.md" --cases "$d/c.md" --risks "$d/r.md" --threats "$d/tm-*.md"
+assert_contains "$T_OUT" "test-cases: 2 ACs, 2 with cases"
+t_end
+
 t_begin "a weak P1, an untagged or vague check, and an uncovered AC fail"
 d="$(tmpdir)"; backlog "$d/b.md"; risks "$d/r.md" "$ok_risk"
 cases "$d/c.md" "ui: heading visible" "it works; data: as expected"
