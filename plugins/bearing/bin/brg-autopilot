@@ -55,6 +55,10 @@ STAGES = [
     ("repo", "new-repo (empty directory); an existing repository gets only what this gate reads, "
      "never a full onboard-repo",
      "a git repository whose Makefile check target records a pass (.check-passed)"),
+    # the branch comes before any document: every stage after repo commits on
+    # the task branch, never on the trunk (AGENTS.md ground rule 1)
+    ("branch", "start-task",
+     "a working branch that is not the trunk"),
     ("prd", "prd",
      "docs/product/PRD.md with at least one REQ-nnn statement"),
     ("stories", "backlog",
@@ -65,9 +69,9 @@ STAGES = [
     ("architecture", "architecture-diagram (scope full); lean: nothing, the existing shape stands",
      "scope full: at least one docs/architecture/*-c4.md with a mermaid diagram; lean: nothing"),
     ("design", "scope full: high-level-design, then data-model (profile data), openapi-spec (profile api), "
-     "deployment-architecture (profile deploy), threat-model, genai-design (profile llm), then "
-     "low-level-design; lean: low-level-design as one note",
-     "scope full: docs/design/*-hld.md and *-lld.md, docs/security/threat-model-*.md passing threats_check; "
+     "deployment-architecture (profile deploy), threat-model, genai-design (profile llm); lean: "
+     "low-level-design as one note",
+     "scope full: docs/design/*-hld.md, docs/security/threat-model-*.md passing threats_check; "
      "by profile, docs/design/data-model.md, api/openapi.yaml, docs/architecture/deployment.md with a "
      "mermaid diagram and docs/genai/*-solution.md; lean: one docs/design/*.md written this run"),
     ("repos", "scope full: new-repo for each docs/architecture/repo-plan.json entry, beside this repository "
@@ -79,11 +83,14 @@ STAGES = [
      "profile ui: flows passing flows_check and tokens passing contrast; on react-shadcn (the default) "
      "a direction chosen from 3 scored variants, docs/design/motion.md, every screen in the design "
      "gallery passing gallery_check, and design-lint; on another stack HTML screens passing states_check"),
+    # after the screens: a front-end component's design needs them (the handbook's
+    # greenfield order), and the server components' designs need the API and data
+    ("lld", "scope full: low-level-design, one per component in the HLD's What gets built table that "
+     "this run builds; lean: the design note already is the low-level design",
+     "scope full: at least one docs/design/*-lld.md written this run; lean: nothing"),
     ("test_cases", "test-cases",
      "docs/testing/risks.md and docs/testing/test-cases.md passing cases_check against "
      "docs/product/backlog.md and the threat models"),
-    ("branch", "start-task",
-     "a working branch that is not the trunk"),
     ("build", "test-first implementation, story by story (superpowers:test-driven-development), "
      "the stack skill (go, react, ...) and the design system for UI",
      "tests added on the branch, and make check passed after the last change"),
@@ -130,7 +137,12 @@ def load(d):
     if not os.path.isfile(p):
         print("brg-autopilot: no run here; start one with: brg-autopilot start \"<statement>\"", file=sys.stderr)
         sys.exit(1)
-    return json.load(open(p))
+    st = json.load(open(p))
+    # a run started by an older brg-autopilot lacks the stages added since;
+    # they join as pending so the run continues instead of failing on a key
+    for n in NAMES:
+        st["stages"].setdefault(n, {"status": "pending", "attempts": 0, "checked": "", "notes": []})
+    return st
 
 
 def save(d, st):
@@ -337,9 +349,7 @@ def g_design(d, st):
                            "changes, where, the rules it follows, what it leaves alone)")
         return True, f"scope lean ({scope_why(st)}): design note {', '.join(notes)}"
     h = rels(d, "docs/design/*-hld.md")
-    l_ = rels(d, "docs/design/*-lld.md")
     missing = [] if h else ["docs/design/*-hld.md (high-level-design)"]
-    missing += [] if l_ else ["docs/design/*-lld.md (low-level-design)"]
     need = [("data", "docs/design/data-model.md", "data-model"),
             ("api", "api/openapi.yaml", "openapi-spec"),
             ("deploy", "docs/architecture/deployment.md", "deployment-architecture")]
@@ -364,7 +374,7 @@ def g_design(d, st):
             return False, f"threats_check failed for {t}: {last}"
     if wants(st, "llm") and not rels(d, "docs/genai/*-solution.md"):
         return False, "missing: docs/genai/*-solution.md (genai-design: the profile says the product calls a model)"
-    parts = [f"HLD {len(h)}, LLD {len(l_)}, threat models {len(threats)}"]
+    parts = [f"HLD {len(h)}, threat models {len(threats)}"]
     if wants(st, "llm"):
         parts.append("GenAI solution")
     if wants(st, "data"):
@@ -541,6 +551,18 @@ def ux_screens_as_code(d, flows):
 
 CASES = "docs/testing/test-cases.md"
 TC_ROW = re.compile(r"^\|\s*(TC-\d+)\s*\|(.*)$", re.M)
+
+
+def g_lld(d, st):
+    """One low-level design per component this run builds, written after the
+    screens so a front-end component's design can name them."""
+    if scope(st) == "lean":
+        return True, f"scope lean ({scope_why(st)}): the design note is the low-level design"
+    l_ = [f for f in rels(d, "docs/design/*-lld.md")
+          if os.path.getmtime(os.path.join(d, f)) >= st["started_epoch"] and len(read(d, f).strip()) >= 200]
+    if not l_:
+        return False, "no docs/design/*-lld.md written this run (low-level-design, one per component it builds)"
+    return True, f"LLD {len(l_)}: {', '.join(l_)}"
 
 
 def g_test_cases(d, st):
@@ -775,9 +797,10 @@ def g_mr(d, st):
             f"MR description: {len(mr)}; {rep}: {'committed' if committed else 'not committed'}{note}")
 
 
-GATES = {"repo": g_repo, "prd": g_prd, "stories": g_stories, "decide": g_decide,
-         "architecture": g_architecture, "design": g_design, "repos": g_repos, "ux": g_ux, "test_cases": g_test_cases,
-         "branch": g_branch, "build": g_build, "test_automation": g_test_automation,
+GATES = {"repo": g_repo, "branch": g_branch, "prd": g_prd, "stories": g_stories, "decide": g_decide,
+         "architecture": g_architecture, "design": g_design, "repos": g_repos, "ux": g_ux, "lld": g_lld,
+         "test_cases": g_test_cases,
+         "build": g_build, "test_automation": g_test_automation,
          "design_review": g_design_review, "review": g_review, "dod": g_dod, "mr": g_mr}
 assert list(GATES) == NAMES, "every stage has its gate, in order"
 

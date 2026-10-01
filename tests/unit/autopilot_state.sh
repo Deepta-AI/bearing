@@ -14,7 +14,7 @@ commit() { git -C "$d" add -A >/dev/null 2>&1; git -C "$d" -c user.email=t@e -c 
 
 t_begin "a run starts at the repo stage and refuses a second start"
 assert_exit 0 ap start "a word counter"
-assert_contains "$T_OUT" "16 stages"
+assert_contains "$T_OUT" "17 stages"
 assert_contains "$T_OUT" "next: repo"
 assert_exit 1 ap start "another"
 assert_contains "$T_OUT" "is open at stage repo"
@@ -31,6 +31,23 @@ printf 'check:\n\t@mkdir -p .bearing/state && touch .bearing/state/.check-passed
 printf '.bearing/state/\n.scratch/\n' > "$d/.gitignore"; commit init
 assert_exit 0 ap "done" repo
 assert_contains "$T_OUT" "gate repo: passed"
+assert_contains "$T_OUT" "next: branch"
+t_end
+
+t_begin "a run started before a stage existed gets that stage as pending"
+python3 - "$d/.bearing/state/autopilot.json" <<'PY'
+import json, sys
+st = json.load(open(sys.argv[1])); del st["stages"]["lld"]; json.dump(st, open(sys.argv[1], "w"))
+PY
+assert_exit 0 ap status
+assert_contains "$T_OUT" "lld"
+t_end
+
+t_begin "the branch comes before any document, so no stage commits on the trunk"
+assert_exit 1 ap "done" branch
+assert_contains "$T_OUT" "branch: main"
+git -C "$d" checkout -q -b feature/T-1-WordCounter
+assert_exit 0 ap "done" branch
 assert_contains "$T_OUT" "next: prd"
 t_end
 

@@ -74,6 +74,15 @@ what is on disk, never from what the model says it did.
    feature adopted 39 files and rewrote CI and the Makefile, a 3,700-line
    diff nobody asked to review. What the repository lacks against the
    standard goes in the report under Noticed, as a proposal.
+   1b. A repository that holds only documents (a PRD, ADRs and an HLD
+   written before any code) is a new product, scope full: the repo
+   stage scaffolds the stack into it with `brg-scaffold`, which keeps
+   every existing file, and the repo plan entry that lives here gets
+   `"path": "."`.
+   1c. The branch stage comes next, before any document: `start-task`
+   names it (`feature/NOTASK-<n>-<Name>` without a tracker), so every
+   later stage commits on the task branch and the trunk is never
+   written.
 2. Loop until `next` says every stage is done or a stage is blocked:
    1. `next` names the stage, its skill and its gate.
    2. Run the stage's skill in auto mode (below).
@@ -121,8 +130,8 @@ what is on disk, never from what the model says it did.
    architecture-diagram writes the C4 file; design
    runs high-level-design, then data-model, openapi-spec and
    deployment-architecture as the profile names, then threat-model (it
-   needs the entry points and stored fields those wrote), genai-design
-   when the profile says llm, then low-level-design;
+   needs the entry points and stored fields those wrote) and genai-design
+   when the profile says llm;
    repos runs new-repo once for each entry of
    docs/architecture/repo-plan.json, in `<parent>/<Name>` beside this
    repository (an entry named like this repository is this repository
@@ -135,7 +144,11 @@ what is on disk, never from what the model says it did.
    and screen-design (on react-shadcn every screen a *.screen.tsx in
    the design gallery, composed from src/components/ui, every state from
    fixtures, responsive at 375, 768 and 1440); the build wires those same
-   components to data. test-cases writes the TC-nnnn table. The ux
+   components to data. Then lld runs low-level-design once for each
+   component the HLD's "What gets built" table says this run builds,
+   after the screens, because a front-end component's design names them
+   and a server component's design needs the API and data model.
+   test-cases writes the TC-nnnn table. The ux
    and test_cases gates run the skills' own checkers (flows_check,
    contrast, gallery_check or states_check, design-lint, cases_check).
    The repos gate reads each sibling: a git repository whose `make check`
@@ -191,7 +204,7 @@ what is on disk, never from what the model says it did.
 
 ```
 ## Autopilot <run>: <statement>
-Stages: <n> of 16 done   Blocked: <stage (why)> | none
+Stages: <n> of 17 done   Blocked: <stage (why)> | none
 Decisions to review: N (all Proposed)  docs/autopilot/<run>.md
 Profile: ui=<yes|no> data=<yes|no> api=<yes|no> deploy=<yes|no>
 | Key | Choice | Alternatives | Why |

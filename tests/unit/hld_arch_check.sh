@@ -122,6 +122,13 @@ assert_contains "$T_OUT" "ShopClient is a Client/Web stack under Server, want Cl
 assert_contains "$T_OUT" "component 'Api' repository 'ShopApi' is not in docs/architecture/repo-plan.json"
 t_end
 
+t_begin "an entry with path . keeps its repository's own git_path"
+d="$(tmpdir)/here"; fixture "$d"
+edit "$d/docs/architecture/repo-plan.json" '"git_path": "Shop/Server/ShopApi", "stack": "go-api"' '"git_path": "someone/shop-docs", "path": ".", "stack": "go-api"'
+assert_exit 0 run "$d"
+assert_not_contains "$T_OUT" "ShopApi git_path"
+t_end
+
 t_begin "no HLD and missing architecture files fail"
 d="$(tmpdir)/empty"; mkdir -p "$d"
 assert_exit 1 run "$d"

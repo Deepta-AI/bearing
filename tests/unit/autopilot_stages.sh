@@ -84,7 +84,7 @@ datamodel() { cp "$KIT/plugins/bearing/skills/data-model/templates/"{schema.sql,
 
 t_begin "the stage list runs architecture, ux, test cases and test automation in order"
 assert_exit 0 python3 "$AP" stages
-assert_eq "repo prd stories decide architecture design repos ux test_cases branch build test_automation design_review review dod mr" "$(printf '%s' "$T_OUT" | tr '\n' ' ' | sed 's/ $//')" "stage order"
+assert_eq "repo branch prd stories decide architecture design repos ux lld test_cases build test_automation design_review review dod mr" "$(printf '%s' "$T_OUT" | tr '\n' ' ' | sed 's/ $//')" "stage order"
 t_end
 
 t_begin "decide needs the product profile, recorded in the digest"
@@ -144,7 +144,7 @@ assert_exit 1 ap "done" design
 assert_contains "$T_OUT" "docs/architecture/deployment.md has no mermaid diagram"
 mermaid "$d/docs/architecture/deployment.md" "Deployment"
 assert_exit 0 ap "done" design
-assert_contains "$T_OUT" "HLD 1, LLD 1, threat models 1, data model, API contract, deployment with 1 diagram(s)"
+assert_contains "$T_OUT" "HLD 1, threat models 1, data model, API contract, deployment with 1 diagram(s)"
 t_end
 
 t_begin "a product that calls a model owes the GenAI solution, then guardrails and evals"
@@ -162,11 +162,21 @@ assert_exit 0 ap "done" design
 assert_contains "$T_OUT" "GenAI solution"
 t_end
 
-t_begin "a full-scope profile without data, API or deployment needs only the HLD and LLD"
+t_begin "a full-scope profile without data, API or deployment needs only the HLD and the threat model"
 at design; ap profile --ui no --data no --api no --deploy no --scope full --why fixture >/dev/null
 archset "$d"; printf '# LLD\n' > "$d/docs/design/x-lld.md"; threats "$d"
 assert_exit 0 ap "done" design
-assert_contains "$T_OUT" "HLD 1, LLD 1, threat models 1; profile: data=no api=no deploy=no"
+assert_contains "$T_OUT" "HLD 1, threat models 1; profile: data=no api=no deploy=no"
+t_end
+
+t_begin "the low-level design comes after the screens, one written this run"
+at lld; profile yes yes yes yes
+assert_exit 1 ap "done" lld
+assert_contains "$T_OUT" "no docs/design/*-lld.md written this run"
+mkdir -p "$d/docs/design"
+python3 -c "print('# LLD: Site API\n\n' + 'The handlers validate input, call one service function each and map errors once. ' * 4)" > "$d/docs/design/site-api-lld.md"
+assert_exit 0 ap "done" lld
+assert_contains "$T_OUT" "LLD 1: docs/design/site-api-lld.md"
 t_end
 
 t_begin "lean scope: a change to an existing repository, or a product with nothing but code, owes one design note"
