@@ -25,6 +25,8 @@ here pushes, merges or deploys; the run stops at a prepared merge request.
                                                 then any smoke it asked for, outside the sandbox
   brg-autopilot smoke-request [--id ID] [--dir D]
                                                 headless dod: ask the launcher to run the smoke
+  brg-autopilot repos-request [--dir D]         headless repos: ask the launcher to scaffold the
+                                                repo plan's missing repositories beside this one
 
 State lives in <dir>/.bearing/state/autopilot.json. Every command prints what it
 checked and exits 1 when a gate fails or there is nothing to act on.
@@ -66,6 +68,10 @@ STAGES = [
      "deployment-architecture (profile deploy), then low-level-design; lean: low-level-design as one note",
      "scope full: docs/design/*-hld.md and *-lld.md; by profile, docs/design/data-model.md, api/openapi.yaml "
      "and docs/architecture/deployment.md with a mermaid diagram; lean: one docs/design/*.md written this run"),
+    ("repos", "scope full: new-repo for each docs/architecture/repo-plan.json entry, beside this repository "
+     "(headless: brg-autopilot repos-request); lean: nothing",
+     "scope full: every repo-plan entry other than this repository is a git repository beside it whose "
+     "make check records a pass and has passed; lean: nothing"),
     ("ux", "profile ui, scope full: ux-flows, design-directions --unattended, design-system, motion-design, "
      "then screen-design; lean: the existing screens and design system are the precedent",
      "profile ui: flows passing flows_check and tokens passing contrast; on react-shadcn (the default) "
@@ -358,6 +364,75 @@ def g_design(d, st):
         parts.append(f"deployment with {n} diagram(s)")
     off = [f"{k}=no" for k in ("data", "api", "deploy") if not wants(st, k)]
     return True, ", ".join(parts) + (f"; profile: {' '.join(off)}" if off else "")
+
+
+PLAN = "docs/architecture/repo-plan.json"
+
+
+def same_repo(name, d):
+    """ShopApi names the run's own repository when it lives in shop-api, ShopApi
+    or shop_api: the repository the run's documents are in is not created again."""
+    def norm(x):
+        return re.sub(r"[^a-z0-9]", "", x.lower())
+    return norm(name) == norm(os.path.basename(d))
+
+
+def plan_entries(d):
+    """The repo plan's entries as (name, stack, local path), or (None, why)."""
+    p = os.path.join(d, PLAN)
+    if not os.path.isfile(p):
+        return None, f"no {PLAN} (high-level-design)"
+    try:
+        repos = json.load(open(p)).get("repos") or []
+    except (OSError, ValueError, AttributeError) as e:
+        return None, f"{PLAN} does not parse: {e}"
+    parent = os.path.dirname(d)
+    return [(r.get("name", ""), r.get("stack", ""), d if same_repo(r.get("name", ""), d)
+             else os.path.join(parent, r.get("name", ""))) for r in repos], ""
+
+
+def repo_problem(path):
+    """Why the scaffolded repository at path is not ready, or ""."""
+    if not os.path.isdir(path):
+        return "missing"
+    ok, what = g_repo(path, {})
+    if not ok:
+        return what
+    if not os.path.isfile(os.path.join(path, ".bearing", "state", ".check-passed")):
+        return "make check has never passed"
+    return ""
+
+
+def repos_n(n):
+    return f"{n} repo{'' if n == 1 else 's'}"
+
+
+def missing_repos(d, entries):
+    return [(n, s, p) for n, s, p in entries if p != d and repo_problem(p) == "missing"]
+
+
+def g_repos(d, st):
+    if scope(st) == "lean":
+        return True, f"scope lean ({scope_why(st)}): no repo plan; this repository is the only one"
+    entries, why = plan_entries(d)
+    if entries is None:
+        return False, why
+    if not entries:
+        return False, f"{PLAN}: 0 repos"
+    st["repos"] = [{"name": n, "stack": s, "path": "this repository" if p == d else p} for n, s, p in entries]
+    home = [n for n, _, p in entries if p == d]
+    beside = [(n, s, p) for n, s, p in entries if p != d]
+    bad = [(n, s, p, repo_problem(p)) for n, s, p in beside]
+    bad = [b for b in bad if b[3]]
+    head = f"{repos_n(len(entries))} in the plan"
+    if bad:
+        hints = [f"new-repo {s} {n} --dir {p}" for n, s, p, why in bad if why == "missing"]
+        return False, (head + "; " + "; ".join(f"{n}: {why}" for n, _, _, why in bad)
+                       + (f" (run {', '.join(hints)}; headless: brg-autopilot repos-request)" if hints else ""))
+    parts = [f"{', '.join(home)} is this repository"] if home else []
+    if beside:
+        parts.append(f"{', '.join(n for n, _, _ in beside)} scaffolded beside it, make check passed in each")
+    return True, head + ": " + "; ".join(parts)
 
 
 def g_ux(d, st):
@@ -673,7 +748,7 @@ def g_mr(d, st):
 
 
 GATES = {"repo": g_repo, "prd": g_prd, "stories": g_stories, "decide": g_decide,
-         "architecture": g_architecture, "design": g_design, "ux": g_ux, "test_cases": g_test_cases,
+         "architecture": g_architecture, "design": g_design, "repos": g_repos, "ux": g_ux, "test_cases": g_test_cases,
          "branch": g_branch, "build": g_build, "test_automation": g_test_automation,
          "design_review": g_design_review, "review": g_review, "dod": g_dod, "mr": g_mr}
 assert list(GATES) == NAMES, "every stage has its gate, in order"
@@ -801,6 +876,9 @@ def cmd_report(a):
         s = st["stages"][n]
         L.append(f"| {n} | {s['status']} | {s['attempts']} | {s['checked'] or 'not checked'} |")
     notes = [(n, x) for n in NAMES for x in st["stages"][n]["notes"]]
+    if st.get("repos"):
+        L += ["", "## Repositories", "", "| Repository | Stack | Where |", "| --- | --- | --- |"]
+        L += [f"| {r['name']} | {r['stack']} | {r['path']} |" for r in st["repos"]]
     L += ["", "## Not done", ""]
     open_ = [n for n in NAMES if st["stages"][n]["status"] != "done" and n != "mr"]
     L += [f"- {n}: {st['stages'][n]['status']}" for n in open_] or ["- none"]
@@ -911,6 +989,48 @@ def cmd_smoke_request(a):
     if os.environ.get("BRG_AUTOPILOT_HEADLESS") != "1":
         print("note: not a headless run, so no launcher will pick this up; run the smoke yourself (definition-of-done item 13)")
     return 0
+
+
+def cmd_repos_request(a):
+    """Headless at repos, the sandbox lets the run write only inside its own
+    directory, and the plan's repositories go beside it; the model hands them
+    to the launcher (which scaffolds them outside it) and ends its turn.
+    Refused when the plan names nothing that is missing."""
+    st = load(a.dir)
+    entries, why = plan_entries(a.dir)
+    if entries is None:
+        print(f"brg-autopilot: {why}", file=sys.stderr)
+        return 1
+    todo = missing_repos(a.dir, entries)
+    if not todo:
+        print(f"brg-autopilot: 0 repos to scaffold ({repos_n(len(entries))} in the plan, none missing); "
+              "run brg-autopilot done repos", file=sys.stderr)
+        return 1
+    st["repos_request"] = {"pending": True, "names": [n for n, _, _ in todo],
+                           "requested": datetime.datetime.now().isoformat(timespec="seconds")}
+    save(a.dir, st)
+    print(f"{repos_n(len(todo))} to scaffold outside the sandbox: "
+          f"{', '.join(n for n, _, _ in todo)}; end your turn now, the launcher scaffolds them beside "
+          "this repository and resumes this session")
+    if os.environ.get("BRG_AUTOPILOT_HEADLESS") != "1":
+        print("note: not a headless run, so no launcher will pick this up; run new-repo for each yourself")
+    return 0
+
+
+def scaffold_repos(d):
+    """The repo plan's missing repositories, scaffolded beside d with brg-scaffold
+    --check, outside the sandbox. Returns (made, failed) names; the scaffold's
+    output goes to .bearing/state/repos.log."""
+    entries, _ = plan_entries(d)
+    todo = missing_repos(d, entries or [])
+    scaffold = os.environ.get("BRG_SCAFFOLD") or os.path.join(KIT, "bin", "brg-scaffold")
+    log = os.path.join(d, ".bearing", "state", "repos.log")
+    print(f"brg-autopilot: scaffolding {repos_n(len(todo))} outside the sandbox: {', '.join(n for n, _, _ in todo)}")
+    made, failed = [], []
+    for name, stack, path in todo:
+        rc = run_logged(["bash", scaffold, stack, name, "--dir", path, "--check"], d, log)
+        (made if rc == 0 and not repo_problem(path) else failed).append(name)
+    return made, failed
 
 
 def run_logged(args, d, log):
@@ -1043,6 +1163,8 @@ def cmd_launch(a):
     cmd = [claude, "-p", f"Run autopilot for this requirement: {a.statement}"] + flags
     if a.print:
         print(" ".join(repr(c) if " " in c else c for c in cmd))
+        print(f"then, for each repos-request (at most {MAX_ATTEMPTS}): brg-scaffold outside the sandbox for each "
+              "missing repo-plan entry, and claude -p --resume <session> with what it made")
         print(f"then, for each smoke-request (at most {MAX_SMOKE_ROUNDS}): the smoke outside the sandbox, "
               "and claude -p --resume <session> with its verdict")
         return 0
@@ -1062,9 +1184,30 @@ def cmd_launch(a):
         return rc, session_id(log, offset)
 
     rc, session = claude_run(cmd)
-    rounds = 0
+    rounds = repo_rounds = 0
     while True:
         st = json.load(open(state_path(a.dir))) if os.path.isfile(state_path(a.dir)) else {}
+        rreq = st.get("repos_request") or {}
+        if rreq.get("pending"):
+            if repo_rounds >= MAX_ATTEMPTS:
+                print(f"brg-autopilot: repos asked for a round {repo_rounds + 1}; the limit is {MAX_ATTEMPTS}; stopping")
+                return 1
+            repo_rounds += 1
+            made, failed = scaffold_repos(a.dir)
+            rreq.update(pending=False, round=repo_rounds, made=made, failed=failed)
+            st["repos_request"] = rreq
+            save(a.dir, st)
+            if not session:
+                print("brg-autopilot: no session id in the stream-json log, so the run cannot be resumed", file=sys.stderr)
+                return 1
+            msg = (f"brg-autopilot scaffolded the repo plan outside the sandbox, beside this repository: "
+                   f"{', '.join(made) or 'none'}"
+                   + (f"; failed: {', '.join(failed)} (see .bearing/state/repos.log)" if failed else "")
+                   + ". Run brg-autopilot done repos and continue autopilot"
+                   + ("; for a failure, read the log, then fail the stage or request again." if failed else "."))
+            rc, resumed = claude_run([claude, "-p", msg, "--resume", session] + flags)
+            session = resumed or session
+            continue
         req = st.get("smoke_request") or {}
         if not req.get("pending"):
             break
@@ -1130,6 +1273,7 @@ def main():
     p.add_argument("--why", required=True)
     p = add("launch", cmd_launch, "statement")
     p.add_argument("--print", action="store_true")
+    add("repos-request", cmd_repos_request)
     p = add("smoke-request", cmd_smoke_request)
     p.add_argument("--id", default="", help="the ticket key in smoke-<ID>.md; default: from the branch name")
     a = ap.parse_args()

@@ -75,7 +75,7 @@ datamodel() { cp "$KIT/plugins/bearing/skills/data-model/templates/"{schema.sql,
 
 t_begin "the stage list runs architecture, ux, test cases and test automation in order"
 assert_exit 0 python3 "$AP" stages
-assert_eq "repo prd stories decide architecture design ux test_cases branch build test_automation design_review review dod mr" "$(printf '%s' "$T_OUT" | tr '\n' ' ' | sed 's/ $//')" "stage order"
+assert_eq "repo prd stories decide architecture design repos ux test_cases branch build test_automation design_review review dod mr" "$(printf '%s' "$T_OUT" | tr '\n' ' ' | sed 's/ $//')" "stage order"
 t_end
 
 t_begin "decide needs the product profile, recorded in the digest"

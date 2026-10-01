@@ -152,7 +152,8 @@ listed under "ADRs needed", with no ADR written for it.
    `git_path` `<group>/<Client|Server|Infrastructure>/<name>`, `stack` a
    kit stack id, `tech`, `responsibility`, and `apps[]` (path, name, for)
    for a monorepo. `new-repo` creates each entry from its stack and
-   name; this skill creates none. Mirror it as the section 14 table.
+   name (autopilot's repos stage does it for every entry, beside the
+   run's repository); this skill creates none. Mirror it as the section 14 table.
 6. Tenets. Write `docs/architecture/tenets.md` from `templates/tenets.md`:
    five to eight, each a bold checkable rule, why this team needs it, and
    "A breach looks like:" with a concrete bad merge request. A tenet

@@ -29,7 +29,8 @@ what is on disk, never from what the model says it did.
   for (step 1a); `onboard-repo` is the engineer's own decision, never a
   side effect of a feature request.
 - stages, gates and state: `python3 "${CLAUDE_PLUGIN_ROOT}/bin/brg-autopilot"`
-  (start, next, done, fail, decision, profile, report, status, stages).
+  (start, next, done, fail, decision, profile, repos-request, report,
+  status, stages).
 - the stage skills: loaded with the Skill tool, or, for a command-only skill
   the Skill tool refuses (most Bearing skills: new-repo, prd,
   data-model, openapi-spec, deployment-architecture, ux-flows,
@@ -116,7 +117,11 @@ what is on disk, never from what the model says it did.
    (the risk register and the case table only). In full scope:
    architecture-diagram writes the C4 file; design
    runs high-level-design, then data-model, openapi-spec and
-   deployment-architecture as the profile names, then low-level-design; for a
+   deployment-architecture as the profile names, then low-level-design;
+   repos runs new-repo once for each entry of
+   docs/architecture/repo-plan.json, in `<parent>/<Name>` beside this
+   repository (an entry named like this repository is this repository
+   and is not created again); for a
    UI, ux runs ux-flows, then design-directions --unattended (three
    directions as token themes over the real screens, scored, the highest
    chosen into approved.json; any reference look the statement names is
@@ -128,6 +133,13 @@ what is on disk, never from what the model says it did.
    components to data. test-cases writes the TC-nnnn table. The ux
    and test_cases gates run the skills' own checkers (flows_check,
    contrast, gallery_check or states_check, design-lint, cases_check).
+   The repos gate reads each sibling: a git repository whose `make check`
+   records a pass and has passed. Headless, the sandbox lets the run
+   write only inside this repository: run `brg-autopilot repos-request`
+   and end your turn; the launcher scaffolds the missing entries with
+   `brg-scaffold --check` outside it and resumes the session with what it
+   made. The siblings stay as scaffolded: the build, the tests and the
+   MR are this repository's.
 7. Build is test first, story by story, in the order of the backlog:
    a failing test named for the story, the code, `make check`, a commit
    per story with the task id. The edit hook's lint findings are fixed
@@ -170,7 +182,7 @@ what is on disk, never from what the model says it did.
 
 ```
 ## Autopilot <run>: <statement>
-Stages: <n> of 15 done   Blocked: <stage (why)> | none
+Stages: <n> of 16 done   Blocked: <stage (why)> | none
 Decisions to review: N (all Proposed)  docs/autopilot/<run>.md
 Profile: ui=<yes|no> data=<yes|no> api=<yes|no> deploy=<yes|no>
 | Key | Choice | Alternatives | Why |
