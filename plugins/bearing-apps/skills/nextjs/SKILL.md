@@ -64,6 +64,28 @@ e2e/                               Playwright specs against next build and next 
 Makefile                           the only entry point: help setup dev check fix test doctor
 ```
 
+## When the app owns its data
+
+The scaffold assumes a separate API (`API_URL`, `src/lib/api.ts`, the
+health card that calls it). When the Next.js app is itself the backend (its
+route handlers or actions write a database, as with Supabase or a
+Postgres driver, and an ADR says so), replace that layer rather than
+keep it beside the real one:
+
+- `src/server/` (every file imports `server-only`): `env.ts` parsed on
+  first use, not at module load, so `next build` needs no production
+  secret; `http/` with the one error type and the route wrapper (request
+  id, body cap, content type, schema parse, one mapping to the contract's
+  envelope); `db/` with the clients; `providers/` with a port and a fake
+  per third party.
+- Delete `src/env.server.ts`, `src/lib/api.ts`, the scaffold's
+  placeholder auth and its example features once nothing imports them;
+  `readyz` asks the database, not an API.
+- Migrations live with the database's tool (`supabase/migrations/`, a
+  `migrations/` folder for a driver), tested on a real database by a
+  `make test-db` target that fails on zero test files; it is a CI job, not
+  part of `make check`, because it needs Docker.
+
 ## On a foreign layout
 
 Hard rules anywhere: 1, 2, 3, 4 and 8. Advisory: the directory layout,
