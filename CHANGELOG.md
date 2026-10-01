@@ -57,6 +57,22 @@ First public release, under the MIT licence.
   repository.
 
 ### Changed
+- The handbook's greenfield flow now runs the design steps autopilot
+  already ran: `architecture-diagram` after `high-level-design` (the HLD
+  cannot be Approved without a drawn diagram), then `data-model`,
+  `openapi-spec` and `low-level-design` once per component after the
+  threat model. The feature flow asks before planning whether the change
+  alters the API, the data or a component's design, and runs
+  `openapi-spec`, `data-model` or `low-level-design` for each yes.
+- `high-level-design` checks four more traps that an engineering review
+  of a marketing website found after the HLD was approved: repeated
+  requests (a request id under a unique constraint on every write
+  endpoint), untrusted content (rendered as text, staff sessions on a
+  separate origin), model output on a public path (grounded, checked,
+  bounded, evaluated) and provider facts (limits, quotas and idempotency
+  support from the provider's documentation, cited). The provider's
+  idempotency key is now looked up, not left as an assumption, and the
+  critic is given the Traps list to check.
 - `prd` drafts a long brief in parallel: over 150 lines or 60 bullets, it
   splits the source at its headings into 3 to 6 ranges and forks one
   `prd-drafter` agent per range (read-only, Sonnet), then merges, dedupes

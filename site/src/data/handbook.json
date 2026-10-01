@@ -2320,6 +2320,16 @@
     },
     {
      "kind": "step",
+     "id": "archdiagram",
+     "title": "Draw the architecture",
+     "skill": "architecture-diagram",
+     "pack": "bearing",
+     "does": "Draws the system and flow views from the HLD and ADRs (every edge unconfirmed until code exists), with C4 and sequence diagrams that keep each error branch.",
+     "output": "docs/architecture/<name>-c4.md and docs/architecture/diagrams/<Project>_SystemArchitecture_v<N>.svg",
+     "why": "The HLD cannot be Approved without a drawn diagram; the gate checks the file exists."
+    },
+    {
+     "kind": "step",
      "id": "engreview",
      "title": "Review the design",
      "skill": "/plan-eng-review",
@@ -2337,6 +2347,36 @@
      "does": "STRIDE per entry point; every mitigation is a file and line, a story, or a new story.",
      "output": "docs/security/threat-model-<name>.md",
      "why": "The VAPT report at release links its findings to these threat ids."
+    },
+    {
+     "kind": "step",
+     "id": "datamodel",
+     "title": "Design the data model",
+     "skill": "data-model",
+     "pack": "bearing",
+     "does": "Tables, columns, constraints and indexes from the stories, with a reason per column, a runnable schema and an ERD.",
+     "output": "docs/design/data-model.md and a schema.sql",
+     "why": "The low level designs and the API contract read the tables from here, not from guesses."
+    },
+    {
+     "kind": "step",
+     "id": "apicontract",
+     "title": "Design the API contract",
+     "skill": "openapi-spec",
+     "pack": "bearing",
+     "does": "Every endpoint the HLD names, as an OpenAPI 3.1 contract with request, response and error shapes, and readable API docs.",
+     "output": "api/openapi.yaml and the generated API docs",
+     "why": "The client and the server build against one contract, and the drift count catches either side moving alone."
+    },
+    {
+     "kind": "step",
+     "id": "lld",
+     "title": "Design each component in detail",
+     "skill": "low-level-design",
+     "pack": "bearing",
+     "does": "Refines one HLD component into modules, types, error paths, indexed queries, tests and MR-sized work; run once per component.",
+     "output": "docs/design/<component>-lld.md",
+     "why": "It turns the design into work a task can start from, with the queries and error paths decided before code."
     },
     {
      "kind": "branch",
@@ -2747,6 +2787,62 @@
     {
      "kind": "phase",
      "title": "Plan"
+    },
+    {
+     "kind": "branch",
+     "question": "Does the change alter the API, the data or a component's design?",
+     "multi": true,
+     "options": [
+      {
+       "label": "The API",
+       "steps": [
+        {
+         "kind": "step",
+         "id": "feat-api",
+         "title": "Change the API contract",
+         "skill": "openapi-spec",
+         "pack": "bearing",
+         "does": "Updates api/openapi.yaml for the new or changed endpoints and counts drift against the routes.",
+         "output": "api/openapi.yaml",
+         "why": "Callers see the contract change before the code does."
+        }
+       ]
+      },
+      {
+       "label": "The data",
+       "steps": [
+        {
+         "kind": "step",
+         "id": "feat-data",
+         "title": "Change the data model",
+         "skill": "data-model",
+         "pack": "bearing",
+         "does": "Adds the tables or columns the stories need, with a reason per column, and updates the ERD.",
+         "output": "docs/design/data-model.md",
+         "why": "A migration written from the model, not from the code, keeps the schema deliberate."
+        }
+       ]
+      },
+      {
+       "label": "A component's design",
+       "steps": [
+        {
+         "kind": "step",
+         "id": "feat-lld",
+         "title": "Design the change in detail",
+         "skill": "low-level-design",
+         "pack": "bearing",
+         "does": "Refines the component the change lands in: modules, error paths, queries, tests and MR-sized work.",
+         "output": "docs/design/<component>-lld.md",
+         "why": "Error paths and queries are decided before the plan breaks them into tasks."
+        }
+       ]
+      },
+      {
+       "label": "None of these",
+       "steps": []
+      }
+     ]
     },
     {
      "kind": "step",

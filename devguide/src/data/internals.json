@@ -5514,11 +5514,11 @@
     },
     {
      "title": "Steps",
-     "lines": 127
+     "lines": 128
     },
     {
      "title": "Traps",
-     "lines": 47
+     "lines": 72
     },
     {
      "title": "Output contract",
@@ -5552,7 +5552,7 @@
     "Tenets. Write `docs/architecture/tenets.md` from `templates/tenets.md`: five to eight, each a bold checkable rule, why this team needs it, and \"A breach looks like:\" with a concrete bad merge request. A tenet nobody could plausibly break is dropped.",
     "Reconcile. Read every ADR, every acceptance criterion and the data model; each contradiction between them (a table an ADR assumes and the model lacks, a criterion an ADR cannot meet, two ADRs naming different services) is a conflict. Write `docs/architecture/decisions.md` from `templates/architecture-decisions.md`: the index (one row per ADR file: id, title, area, status, reversibility) and one entry per conflict wi…",
     "Summary and components, written last: the two-sentence summary, the line `Diagram: docs/architecture/diagrams/<Project>_SystemArchitecture_v<N>.svg` (`architecture-diagram` draws it from `docs/architecture/architecture.json`; not drawn yet is reported, not faked), and the \"What gets built\" table whose Repository column names the repo-plan entries. Section 15 gives the counts.",
-    "Review, mandatory. Fork `critic` (Agent tool) in graded mode with the HLD, the ADR directory, `docs/architecture/`, the backlog and the data model. Write its findings verbatim under section 16 with `Reviewed by: critic, <date>` and `Status: open` on each. Fix what the user agrees to, marking it `fixed (<where>)`, or record who accepted it. Status stays Draft or Reviewed while a BLOCKER is open.",
+    "Review, mandatory. Fork `critic` (Agent tool) in graded mode with the HLD, the ADR directory, `docs/architecture/`, the backlog, the data model and the Traps list below, asking it to check each trap that applies. Write its findings verbatim under section 16 with `Reviewed by: critic, <date>` and `Status: open` on each. Fix what the user agrees to, marking it `fixed (<where>)`, or record who accepted it. Status stays…",
     "Open questions and assumptions (section 17), each with an owner and a date. Write the HLD, then run the gate: `python3 \"${CLAUDE_PLUGIN_ROOT}/skills/high-level-design/scripts/arch_check.py\" docs/design/<kebab-title>-hld.md --adr-dir <ADR directory>`. Fix every problem it prints and rerun until `Gate: passed`; a problem you cannot fix goes in the contract. Print the output contract."
    ],
    "output": "",
@@ -5569,11 +5569,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 287,
+   "lines": 313,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 287
+     "lines": 313
     },
     {
      "path": "scripts/arch_check.py",
@@ -18265,7 +18265,7 @@
     "Changed",
     "Fixed"
    ],
-   "entries": 18,
+   "entries": 20,
    "summary": "First public release, under the MIT licence."
   }
  ],

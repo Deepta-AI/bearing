@@ -178,8 +178,9 @@ listed under "ADRs needed", with no ADR written for it.
    faked), and the "What gets built" table whose Repository column names
    the repo-plan entries. Section 15 gives the counts.
 9. Review, mandatory. Fork `critic` (Agent tool) in graded mode with
-   the HLD, the ADR directory, `docs/architecture/`, the backlog and the
-   data model. Write its findings verbatim under section 16 with
+   the HLD, the ADR directory, `docs/architecture/`, the backlog, the
+   data model and the Traps list below, asking it to check each trap that
+   applies. Write its findings verbatim under section 16 with
    `Reviewed by: critic, <date>` and `Status: open` on each. Fix
    what the user agrees to, marking it `fixed (<where>)`, or record who
    accepted it. Status stays Draft or Reviewed while a BLOCKER is open.
@@ -194,7 +195,8 @@ listed under "ADRs needed", with no ADR written for it.
 
 What separates a design that survives review from one that reads well.
 Check each against the draft before step 9; each one that applies gets a
-sentence in the section named, with the repository's numbers.
+sentence in the section named, with the repository's numbers. The critic
+in step 9 is given this list and checks the draft against it too.
 
 - **Peaks (scaling).** Size for the worst window, not the average or the
   first burst you find. Overlay every family of due times (each offset
@@ -212,7 +214,8 @@ sentence in the section named, with the repository's numbers.
   followed by a local write (send then mark done, publish then commit
   the offset), a crash between them gives a duplicate or a loss. Say
   which the design accepts, make the retry policy agree, and name the
-  idempotency key if the provider has one (an assumption until sourced).
+  provider's idempotency key, looked up in its documentation (see
+  Provider facts); a retry without one sends the side effect twice.
 - **Two systems, one change (data).** A database write plus a publish or
   a call is not atomic. Use an outbox read by a relay that retries, or
   state which orphan or loss results.
@@ -239,6 +242,29 @@ sentence in the section named, with the repository's numbers.
 - **Authority the code lacks (security).** A requirement that names a
   role (an admin, an owner) needs an auth model; if the routes are open
   today, say so and list it as needed, never as existing.
+- **Repeated requests (interfaces).** A client repeats writes: a double
+  tap, the back button, a network retry. Every write endpoint takes a
+  request id the client makes once, stored under a unique constraint, and
+  a repeat returns the first result with no second row and no second side
+  effect. A form-only guard (a disabled button) does not cover retries.
+- **Untrusted content (security).** Text the system shows but did not
+  write (social posts, reviews, names from forms, anything fetched) is
+  rendered as text, never as markup, and its media comes only from named
+  hosts. Staff or admin sessions live on a separate origin from pages that
+  show such content, so a script that slips onto a public page cannot use
+  a staff session.
+- **Model output on a public path (security).** An LLM answer shown to
+  people who are not staff is grounded (the model sees only retrieved
+  passages), checked (an answer stating a number, price, date or claim its
+  sources lack is replaced by a fallback), bounded (input length, spend
+  cap) and evaluated before release, injection attempts included; route
+  the design through `llm-guardrails` and `llm-eval` and name both here.
+- **Provider facts (external integrations).** A provider's rate limits,
+  quotas, idempotency support, regions and retention come from its
+  documentation, cited with a link in the section that uses them; the
+  scaling arithmetic uses the documented number. "assumption:" is only for
+  what the documentation does not say, and each one is an open question
+  with an owner.
 
 ## Output contract
 
