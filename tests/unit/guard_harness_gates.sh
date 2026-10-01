@@ -77,6 +77,17 @@ assert_contains "$T_OUT" "custom saw good.py"
 git -C "$repo" checkout -q Makefile
 t_end
 
+t_begin "check-file names a test written before its module as the expected red"
+printf 'import { slug } from "./missing";\nslug("x");\n' > "$repo/first.test.ts"
+assert_exit 0 check_with "$repo/first.test.ts"
+assert_contains "$T_OUT" "imports ./missing, which does not exist yet"
+assert_contains "$T_OUT" "the expected red of a test written first"
+printf 'export const slug = (s: string) => s;\n' > "$repo/missing.ts"
+assert_exit 0 check_with "$repo/first.test.ts"
+assert_not_contains "$T_OUT" "does not exist yet"
+rm -f "$repo/first.test.ts" "$repo/missing.ts"
+t_end
+
 rm -f "$repo"/bad.py "$repo"/good.py "$repo"/ok.sh "$repo"/data.json "$repo"/fine.json "$repo"/tsconfig.json "$repo"/notes.txt "$repo"/main.go "$repo"/app.ts
 
 t_begin "session --id marks the session start once"
