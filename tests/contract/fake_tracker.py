@@ -22,6 +22,11 @@ never logged):
     POST /_seed?tracker=T&n=N  add N issues to tracker T (jira, gitlab, github, rest)
     GET  /_state?tracker=T     {"issues": n, "titles": [...], "comments": n}
     POST /_reset               back to the starting state
+    POST /_nodocs              the REST tracker answers 404 on every document path
+
+The REST tracker also keeps documents (the optional part of the protocol): a list
+without content, a create answering the document, a get answering
+{"document", "linked_issues"}, and a partial PUT answering {"ok": true}.
 
     fake_tracker.py --log <file> --port-file <file> [--delay <seconds>]
 """
@@ -127,6 +132,9 @@ def reset():
         "next": 19,
         "comments": {},
         "next_comment": 7,
+        "docs": [],
+        "next_doc": 101,
+        "nodocs": False,
     }
 
 
@@ -345,8 +353,60 @@ def route_github(method, p, query, body, base):
     return 404, {"message": "no such GitHub shape: %s %s" % (method, p)}, {}
 
 
+DOC_TYPES = {"prd", "design", "doc"}
+
+
+def route_rest_docs(method, p, body):
+    """The protocol's optional document shapes, or None when p is not a document path."""
+    st = STATE["rest"]
+    m = re.match(r"^/projects/([^/]+)/documents$", p)
+    d = re.match(r"^/documents/(\d+)$", p)
+    if not (m or d):
+        return None
+    if st["nodocs"]:
+        return 404, {"error": "not found"}, {}
+    b = body or {}
+    if m and method == "GET":
+        return 200, [{k: v for k, v in x.items() if k != "content"} for x in st["docs"]], {}
+    if m and method == "POST":
+        if not b.get("title"):
+            return 400, {"error": "title is required"}, {}
+        parent = b.get("parent_id")
+        if parent is not None and not any(x["id"] == parent for x in st["docs"]):
+            return 400, {"error": "parent_id must reference a document in this project"}, {}
+        doc = {
+            "id": st["next_doc"],
+            "project_id": 3,
+            "parent_id": parent,
+            "doc_type": b.get("doc_type") if b.get("doc_type") in DOC_TYPES else "doc",
+            "title": b["title"],
+            "content": b.get("content", ""),
+        }
+        st["next_doc"] += 1
+        st["docs"].append(doc)
+        return 201, doc, {}
+    found = [x for x in st["docs"] if x["id"] == int(d.group(1))] if d else []
+    if not found:
+        return 404, {"error": "document not found"}, {}
+    doc = found[0]
+    if method == "GET":
+        linked = [i["key"] for i in st["issues"] if i.get("document_id") == doc["id"]]
+        return 200, {"document": doc, "linked_issues": linked}, {}
+    if method == "PUT":
+        for k in ("title", "content", "parent_id"):
+            if k in b:
+                doc[k] = b[k]
+        if b.get("doc_type") in DOC_TYPES:
+            doc["doc_type"] = b["doc_type"]
+        return 200, {"ok": True}, {}
+    return 405, {"error": "method not allowed"}, {}
+
+
 def route_rest(method, p, query, body):
     st = STATE["rest"]
+    docs = route_rest_docs(method, p, body)
+    if docs is not None:
+        return docs
     if p == "/auth/me":
         return 200, {"id": 1, "name": "Probe User", "email": "probe@example.com"}, {}
     if p == "/auth/login" and method == "POST":
@@ -393,6 +453,8 @@ def route_rest(method, p, query, body):
         issue = rest_issue(
             i, b.get("title", ""), b.get("type", "task"), b.get("description", "")
         )
+        if "document_id" in b:
+            issue["document_id"] = b["document_id"]
         st["issues"].append(issue)
         return 201, issue, {}
     m2 = re.match(r"^/issues/(\d+)(/.*)?$", p)
@@ -403,6 +465,8 @@ def route_rest(method, p, query, body):
         if rest == "" and method == "GET":
             return 200, {"issue": issue, "comments": st["comments"].get(ident, [])}, {}
         if rest == "" and method == "PUT":
+            if found and "document_id" in (body or {}):
+                issue["document_id"] = body["document_id"]
             return 200, issue, {}
         if rest == "/comments" and method == "POST":
             c = {
@@ -449,6 +513,9 @@ def control(method, path, query):
     if path == "/_seed" and method == "POST":
         seed(q1(query, "tracker"), int(q1(query, "n", "0")))
         return 200, {"ok": True}
+    if path == "/_nodocs" and method == "POST":
+        STATE["rest"]["nodocs"] = True
+        return 200, {"ok": True}
     if path == "/_state" and method == "GET":
         t = q1(query, "tracker")
         st = STATE[t]
@@ -456,6 +523,11 @@ def control(method, path, query):
             "issues": len(st["issues"]),
             "titles": [title_of(t, i) for i in st["issues"]],
             "comments": sum(len(v) for v in st["comments"].values()),
+            "documents": len(st.get("docs", [])),
+            "doc_titles": [x["title"] for x in st.get("docs", [])],
+            "document_ids": {i["key"]: i["document_id"] for i in st["issues"] if "document_id" in i}
+            if t == "rest"
+            else {},
         }
     return None
 

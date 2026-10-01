@@ -255,9 +255,9 @@ to the client and cached until a 401.
 | GET | `/api/projects/{project}/members` | | `[{"email" or "user": {"email"}, "user_id" or "id"}]` |
 | GET | `/api/projects/{project}/labels` | | `[{"id", "name"}]` |
 | GET | `/api/projects/{project}/issues` | query: `type`, `status` (a name), `q` (text), `reporter=me`, `limit`, `offset` | an array of issues; optional `X-Total-Count` header |
-| POST | `/api/projects/{project}/issues` | `{"type", "title", "description"}` plus optional `priority`, `epic_id`, `parent_id`, `story_id`, `story_points`, `assignee_id`, `label_ids` | the created issue |
+| POST | `/api/projects/{project}/issues` | `{"type", "title", "description"}` plus optional `priority`, `epic_id`, `parent_id`, `story_id`, `story_points`, `assignee_id`, `label_ids`, `document_id` | the created issue |
 | GET | `/api/issues/{id}` | | `{"issue": <issue>, "comments": [{"id", "body", ...}]}` |
-| PUT | `/api/issues/{id}` | any of `status_id`, `assignee_id`, `title`, `description`, `priority`, `story_points`, `due_date` (`YYYY-MM-DD`) | the updated issue |
+| PUT | `/api/issues/{id}` | any of `status_id`, `assignee_id`, `title`, `description`, `priority`, `story_points`, `due_date` (`YYYY-MM-DD`), `document_id` | the updated issue |
 | POST | `/api/issues/{id}/comments` | `{"body"}` (markdown) | `{"id", "issue_id", "created_at"}` |
 | POST | `/api/issues/{id}/links` | `{"type", "target_id"}`, type one of `relates`, `blocks`, `blocked_by`, `duplicates` | any 2xx body |
 | GET | `/api/search?q={key}` | | any JSON; the client takes the `id` of the first object anywhere in it whose `key` equals the query |
@@ -280,6 +280,34 @@ Rules the client relies on:
 - Search: `/api/search` must find an issue by its exact key. When it
   cannot, the client falls back to paging the project's issue list for
   the key, which needs `BEARING_TRACKER_PROJECT`.
+
+### Documents (optional)
+
+A server that keeps project documents lets
+`tracker-sync docs` publish the PRD, the backlog and the ADRs beside the
+tickets. A server without these paths answers 404 and the client says
+"this tracker does not support documents" without posting anything.
+
+| Method | Path | Request | Response |
+| --- | --- | --- | --- |
+| GET | `/api/projects/{project}/documents` | | an array of documents; `content` may be left out |
+| POST | `/api/projects/{project}/documents` | `{"title", "doc_type", "content"}` plus optional `parent_id` | the created document |
+| GET | `/api/documents/{id}` | | `{"document": <document>, ...}` |
+| PUT | `/api/documents/{id}` | any of `title`, `doc_type`, `content`, `parent_id` | any 2xx body |
+
+A document object carries `id` (number), `title`, `doc_type` (`prd`,
+`design` or `doc`), `content` (markdown) and `parent_id` (a document id or
+null). Issues may also take `document_id` on create and update, the
+document an issue belongs to.
+
+Rules the client relies on:
+
+- `content` is stored verbatim, so the last line the client writes,
+  `<!-- bearing-doc: <source path> -->`, can be found again: a rerun
+  updates that document, renamed or not, instead of creating a second
+  one, and writes nothing when the content is unchanged.
+- The client never asks the server to generate stories from a document;
+  the backlog already holds them.
 
 ## Testing without a live tracker
 

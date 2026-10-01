@@ -5,12 +5,12 @@
   "commandSkills": 0,
   "stackSkills": 12,
   "scripts": 84,
-  "scriptLines": 27895,
+  "scriptLines": 27983,
   "hooks": 6,
   "agents": 8,
   "makeTargets": 26,
   "gates": 15,
-  "tests": 73,
+  "tests": 74,
   "fixtures": 21,
   "stacks": 13,
   "templates": 38,
@@ -13479,7 +13479,7 @@
    "description": "Creates and updates tickets in the configured tracker (Jira, GitLab, GitHub, REST or none): create, sync the backlog, move status, link MRs. Use when asked to \"create the tickets\", \"sync to Jira\" or \"move TASK-142\".",
    "invocation": "auto",
    "kind": "step",
-   "args": "create <type> <title> | update <KEY> [--status s] [--assignee me] | sync [backlog] | trace <KEY> [--mr url] | get <KEY> | list | config",
+   "args": "create <type> <title> | update <KEY> [--status s] [--assignee me] | sync [backlog] | docs | trace <KEY> [--mr url] | get <KEY> | list | config",
    "tools": [
     "Read",
     "Grep",
@@ -13503,15 +13503,15 @@
    "sections": [
     {
      "title": "Inputs",
-     "lines": 30
+     "lines": 37
     },
     {
      "title": "Steps",
-     "lines": 118
+     "lines": 151
     },
     {
      "title": "Output contract",
-     "lines": 14
+     "lines": 15
     },
     {
      "title": "Gotchas",
@@ -13533,7 +13533,7 @@
     "**Hierarchy.** Epics first, then stories with `--parent <epic key>`, then test cases under their story. An existing ticket whose epic is new is re-parented once the epic exists, not created again; `update` has no `--parent`, so `link` it to the epic and list the parent change for the user to make in the tracker.",
     "**Readiness.** Hold an item back (report it, do not file it as ordinary work) when an acceptance criterion contradicts an Accepted ADR, a stated constraint or another item: name the criterion, the decision, and what would unblock it (rewrite the criterion, or a superseding ADR). Raising the conflict is yours; settling it is the user's, so no ADR or story text is edited. Flag items with no acceptance criteria.",
     "**Bodies.** For each item to create, write its description file: narrative, every acceptance criterion with its `AC-` id verbatim, non-goals, its `TC-` ids, the ADRs it rests on. Every `--description-file` you name must exist when you finish.",
-    "**Counts.** Already in the tracker (keys, and how each was found), to create (epics, stories, test cases), held back, pending as uncommitted. Check they add up to the items in the backlog.",
+    "**Counts.** Already in the tracker (keys, and how each was found), to create (epics, stories, test cases), held back, pending as uncommitted. Check they add up to the items in the backlog. (`brg-tracker docs --type prd`, or Step 3c in the same run), create every story with `--document <PRD id>` and give existing story tickets the same with `update`, so each story opens on the requirements it came from.",
     "**Write-back, only with real keys.** When a create returns a key, record it as the repository's convention says (`Ticket: <KEY>`) and leave that change uncommitted for the user. Never write a placeholder, a guessed next number or a status note into the backlog.",
     "**Base branch.** From CONTRIBUTING or README, else `git symbolic-ref refs/remotes/origin/HEAD`, else whichever of `origin/main`, `origin/master`, `origin/develop` exists. Never assume `develop`.",
     "**Merged or not.** `git merge-base --is-ancestor HEAD origin/<base>` (remote-tracking refs are as of the last fetch; say so). A ticket goes to the done status only when the repository's rules are met (merged, and deployed if it says so). Otherwise propose the status its rules give for the current state (usually In Review for an open MR) and say what moves it on. The request's wording never overrides this.",
@@ -13541,7 +13541,11 @@
     "**Test cases: promised against delivered.** Take the ids the test case file assigns to this key. For each, a test must name it, run and pass. Run the suite (`make check` or the repository's command) and read its summary: a `todo`, `skip` or commented-out test is not coverage, and a commit subject claiming an id is not evidence. Report covered, missing and placeholder ids with counts (\"2 of 3 covered; TC-104 is a tod…",
     "**Behaviour against the decision.** For each ADR the branch adds or cites, quote its `Status:` line (Proposed is not Accepted) and check the code does what its Decision section says. A gap here or in step 4 means the ticket is not complete against its own test cases; say so plainly, whatever status is proposed.",
     "**MR link.** From `--mr` or the user. The remote gives the host and project (`git remote -v`), never the MR number: without the link, ask for it and leave the field empty, or give the branch URL on the remote's host. Never guess a number.",
-    "Run `brg-tracker update` and `brg-tracker trace` with those facts or, with no tracker, print them as exact commands (Step 4). Called from `merge-request`, exit 3 means \"tracker: none\", reported, not a failure. Status names match case-insensitively against what the tracker offers; an unknown name stops with the adapter's list."
+    "Run `brg-tracker update` and `brg-tracker trace` with those facts or, with no tracker, print them as exact commands (Step 4). Called from `merge-request`, exit 3 means \"tracker: none\", reported, not a failure. Status names match case-insensitively against what the tracker offers; an unknown name stops with the adapter's list.",
+    "**What to publish, in this order.** Each file that exists and is committed; an uncommitted one is named and skipped unless the user says otherwise: - `docs/product/PRD.md` as `prd`; - `docs/product/questions.md`, `backlog.md`, `coverage.md`, `user-flows.md`, `estimate.md`, `IMPORT.md` and `docs/decisions.md` as `doc`; - an \"Architecture decisions\" document as `design` (`--source docs/adr`, its content the decision l…",
+    "**One call per file:** `brg-tracker doc-put --title \"<the file's first # heading>\" --file <path> --source <path> --type <t>`. The source marker makes a rerun update the same document, renamed or not, and an unchanged file is reported `unchanged` with nothing written.",
+    "**Never** call the tracker's own story generation from a document: `backlog` owns the stories, and generated ones would duplicate them.",
+    "`documents: not supported` (exit 3) is a skip, reported, not a failure; `this tracker does not support documents` (exit 1) means the server lacks the optional endpoints: report it and file the tickets anyway."
    ],
    "output": "Then Changed, Verified, Not done, Noticed. Say plainly whether anything was sent. With no tracker, name what to set, never the values: in `~/.config/bearing/bearing.env` (template `templates/user/bearing.env` in the plugin), `BEARING_TRACKER=<jira|gitlab|github|rest>` plus the keys the adapter's header lists (for Jira `BEARING_TRACKER_URL`, `BEARING_TRACKER_PROJECT`, `BEARING_TRACKER_EMAIL`, `BEARING_TRACKER_TOKEN`), then rerun the printed commands. A suite you did not run is \"not run\".",
    "gotchas": [
@@ -13554,11 +13558,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 209,
+   "lines": 250,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 209
+     "lines": 250
     }
    ],
    "groups": {
@@ -14703,8 +14707,8 @@
    "name": "brg-rest",
    "lang": "bash",
    "group": "tracker",
-   "lines": 352,
-   "header": "brg-rest: client for any tracker that speaks the Bearing REST tracker\nprotocol (docs/TRACKERS.md, \"REST tracker protocol\"): create, read,\nupdate, comment, link, trace.\n\n  brg-rest login | me | projects | statuses <project> [type]\n  brg-rest resolve <KEY|id>                 -> numeric id\n  brg-rest get <KEY|id>                     -> the issue JSON\n  brg-rest list <project> [--type t] [--status name] [--q text] [--limit n]\n  brg-rest create <project> --type <t> --title <s> [--description-file f]\n         [--priority p] [--epic KEY] [--parent KEY] [--story KEY]\n         [--labels a,b] [--points n] [--assignee me|email]\n  brg-rest update <KEY|id> [--status name] [--assignee me|email] [--title s]\n         [--description-file f] [--priority p] [--points n] [--due YYYY-MM-DD]\n  brg-rest close <KEY|id>                   -> status BEARING_TRACKER_DONE_STATUS (Done)\n  brg-rest comment <KEY|id> (<text> | --file f)\n  brg-rest link <KEY|id> <blocks|blocked_by|relates|duplicates> <KEY|id>\n  brg-rest trace <KEY|id> [--branch b] [--mr url] [--commits a,b] [--tests KEY,..]\n         [--adr ADR-nnnn] [--docs path,..]\n\nConfiguration comes from the environment, then ~/.config/bearing/bearing.env\n(KEY=value lines, read as data, never executed; the environment wins):\nBEARING_TRACKER_URL (required, the server's base url), BEARING_TRACKER_TOKEN\n(a bearer token) or BEARING_TRACKER_EMAIL plus BEARING_TRACKER_PASSWORD (the\nlogin endpoint trades them for a token, cached at ~/.config/bearing/rest.token,\nmode 600), BEARING_TRACKER_DONE_STATUS and BEARING_TRACKER_MAX_PAGES.\nCredentials reach curl through a config file on a pipe and request bodies\nthrough stdin, never on the command line, and are never printed. Every call\nhas a 30 s budget. A 429 is retried once; a 5xx is retried once for GET and\nPUT, and for a create or a comment only after a search for its marker (an\nHTML comment it carries) finds nothing, so a retry never duplicates. list\nfollows limit/offset up to BEARING_TRACKER_MAX_PAGES (default 20) pages,\nsays when it stops early, and prints the count on stderr. A key is whatever\nthe server returns in an issue's \"key\" field; every issue path takes the\nnumeric id, so the client resolves a key through the search endpoint (then\nthe project's issue list when BEARING_TRACKER_PROJECT is set). brg-tracker\nis the generic front; this client is its adapter for BEARING_TRACKER=rest.",
+   "lines": 432,
+   "header": "brg-rest: client for any tracker that speaks the Bearing REST tracker\nprotocol (docs/TRACKERS.md, \"REST tracker protocol\"): create, read,\nupdate, comment, link, trace.\n\n  brg-rest login | me | projects | statuses <project> [type]\n  brg-rest resolve <KEY|id>                 -> numeric id\n  brg-rest get <KEY|id>                     -> the issue JSON\n  brg-rest list <project> [--type t] [--status name] [--q text] [--limit n]\n  brg-rest create <project> --type <t> --title <s> [--description-file f]\n         [--priority p] [--epic KEY] [--parent KEY] [--story KEY]\n         [--labels a,b] [--points n] [--assignee me|email]\n  brg-rest update <KEY|id> [--status name] [--assignee me|email] [--title s]\n         [--description-file f] [--priority p] [--points n] [--due YYYY-MM-DD]\n  brg-rest close <KEY|id>                   -> status BEARING_TRACKER_DONE_STATUS (Done)\n  brg-rest comment <KEY|id> (<text> | --file f)\n  brg-rest link <KEY|id> <blocks|blocked_by|relates|duplicates> <KEY|id>\n  brg-rest trace <KEY|id> [--branch b] [--mr url] [--commits a,b] [--tests KEY,..]\n         [--adr ADR-nnnn] [--docs path,..]\n  brg-rest docs <project> [--type prd|design|doc]   -> one line per document, count on stderr\n  brg-rest doc-get <id>                     -> the document JSON, content included\n  brg-rest doc-put <project> --title <s> --file <f> [--type prd|design|doc]\n         [--parent <id>] [--source <path>]  -> creates the document, or updates the\n         one whose content carries the source marker; {id,title,doc_type,action}\n  (create and update also take --document <id>: the document the issue\n  belongs to, so a story points at the PRD it came from)\n\nConfiguration comes from the environment, then ~/.config/bearing/bearing.env\n(KEY=value lines, read as data, never executed; the environment wins):\nBEARING_TRACKER_URL (required, the server's base url), BEARING_TRACKER_TOKEN\n(a bearer token) or BEARING_TRACKER_EMAIL plus BEARING_TRACKER_PASSWORD (the\nlogin endpoint trades them for a token, cached at ~/.config/bearing/rest.token,\nmode 600), BEARING_TRACKER_DONE_STATUS and BEARING_TRACKER_MAX_PAGES.\nCredentials reach curl through a config file on a pipe and request bodies\nthrough stdin, never on the command line, and are never printed. Every call\nhas a 30 s budget. A 429 is retried once; a 5xx is retried once for GET and\nPUT, and for a create or a comment only after a search for its marker (an\nHTML comment it carries) finds nothing, so a retry never duplicates. list\nfollows limit/offset up to BEARING_TRACKER_MAX_PAGES (default 20) pages,\nsays when it stops early, and prints the count on stderr. A key is whatever\nthe server returns in an issue's \"key\" field; every issue path takes the\nnumeric id, so the client resolves a key through the search endpoint (then\nthe project's issue list when BEARING_TRACKER_PROJECT is set). brg-tracker\nis the generic front; this client is its adapter for BEARING_TRACKER=rest.",
    "functions": [
     "load_kv",
     "usage",
@@ -14721,6 +14725,9 @@
     "pages",
     "rec_issue",
     "rec_comment",
+    "doc_list",
+    "doc_find",
+    "rec_doc",
     "comment_post",
     "resolve",
     "project_of",
@@ -14819,8 +14826,8 @@
    "name": "brg-tracker",
    "lang": "bash",
    "group": "tracker",
-   "lines": 166,
-   "header": "brg-tracker: one command surface for every ticket tracker.\n\n  brg-tracker config                      -> effective tracker and where it came from (never secrets)\n  brg-tracker me                          -> the authenticated user\n  brg-tracker resolve <KEY>               -> the tracker's own id for a key\n  brg-tracker get <KEY>                   -> compact JSON for one ticket\n  brg-tracker list [--type t] [--status s] [--q text] [--limit n]  -> every page, count on stderr\n  brg-tracker create --type <epic|story|task|bug|testcase> --title <s>\n              [--description-file f] [--parent KEY] [--priority p]\n  brg-tracker update <KEY> [--status name] [--assignee me|email|login] [--title s]\n              [--description-file f] [--priority p]\n  brg-tracker close <KEY>                 -> status BEARING_TRACKER_DONE_STATUS (default Done)\n  brg-tracker comment <KEY> (<text> | --file f)\n  brg-tracker link <KEY> <relates|blocks> <KEY2>   -> prints \"link: issue-link\" or \"link: comment\"\n  brg-tracker trace <KEY> [--branch b] [--mr url] [--commits a,b] [--tests TC-..] [--adr ADR-nnnn]\n\n--parent and --priority map per adapter: rest uses epic_id for a story,\nstory_id for a bug, parent_id otherwise, and a priority enum\n(lowest..highest); Jira uses the parent field and a priority name (High);\nGitLab and GitHub use a \"Parent:\" line plus a link or cross-reference\ncomment, and a priority::<slug> label. link is a real issue link on rest,\nJira and GitLab; on GitHub it is a cross-reference comment.\n\nConfiguration: BEARING_TRACKER from the environment, then\n~/.config/bearing/bearing.env (KEY=value; environment wins). Values:\n  none            every command prints \"tracker: none ...\" and exits 0 for\n                  read commands, 3 for write commands (callers treat 3 as skipped)\n  rest            bin/brg-rest    keys as the server returns them (docs/TRACKERS.md)\n  jira            bin/brg-jira    keys PROJ-123\n  gitlab          bin/brg-gitlab  keys GL-123\n  github          bin/brg-github  keys GH-123\nTokens and passwords are read by the adapters and never printed.",
+   "lines": 174,
+   "header": "brg-tracker: one command surface for every ticket tracker.\n\n  brg-tracker config                      -> effective tracker and where it came from (never secrets)\n  brg-tracker me                          -> the authenticated user\n  brg-tracker resolve <KEY>               -> the tracker's own id for a key\n  brg-tracker get <KEY>                   -> compact JSON for one ticket\n  brg-tracker list [--type t] [--status s] [--q text] [--limit n]  -> every page, count on stderr\n  brg-tracker create --type <epic|story|task|bug|testcase> --title <s>\n              [--description-file f] [--parent KEY] [--priority p]\n  brg-tracker update <KEY> [--status name] [--assignee me|email|login] [--title s]\n              [--description-file f] [--priority p]\n  brg-tracker close <KEY>                 -> status BEARING_TRACKER_DONE_STATUS (default Done)\n  brg-tracker comment <KEY> (<text> | --file f)\n  brg-tracker link <KEY> <relates|blocks> <KEY2>   -> prints \"link: issue-link\" or \"link: comment\"\n  brg-tracker trace <KEY> [--branch b] [--mr url] [--commits a,b] [--tests TC-..] [--adr ADR-nnnn]\n  brg-tracker docs [--type prd|design|doc]  -> the project's documents (rest only)\n  brg-tracker doc-put --title <s> --file <f> [--type prd|design|doc] [--parent <id>] [--source <path>]\n                                          -> create or update one document (rest only)\n  create and update also take --document <id> on rest: the document a ticket belongs to.\n  On jira, gitlab and github the document commands print \"documents: not supported\"\n  and exit 3, like a write on tracker none.\n\n--parent and --priority map per adapter: rest uses epic_id for a story,\nstory_id for a bug, parent_id otherwise, and a priority enum\n(lowest..highest); Jira uses the parent field and a priority name (High);\nGitLab and GitHub use a \"Parent:\" line plus a link or cross-reference\ncomment, and a priority::<slug> label. link is a real issue link on rest,\nJira and GitLab; on GitHub it is a cross-reference comment.\n\nConfiguration: BEARING_TRACKER from the environment, then\n~/.config/bearing/bearing.env (KEY=value; environment wins). Values:\n  none            every command prints \"tracker: none ...\" and exits 0 for\n                  read commands, 3 for write commands (callers treat 3 as skipped)\n  rest            bin/brg-rest    keys as the server returns them (docs/TRACKERS.md)\n  jira            bin/brg-jira    keys PROJ-123\n  gitlab          bin/brg-gitlab  keys GL-123\n  github          bin/brg-github  keys GH-123\nTokens and passwords are read by the adapters and never printed.",
    "functions": [
     "usage",
     "die",
@@ -16836,9 +16843,16 @@
   {
    "path": "tests/contract/fake_tracker.py",
    "kind": "contract",
-   "lines": 555,
+   "lines": 627,
    "header": "Fake tracker for tests/contract/tracker_fake_server.sh. One HTTP server answers the URL shapes of all four adapters: Jira Cloud (/rest/api/3/...), GitLab (/api/v4/...), GitHub Enterprise (/api/v3/...) and the REST tracker protocol of docs/TRACKERS.md (/api/...). Every request line and every header is appended to --log so the test can prove which credentials arrived and how, byte for byte. Nothing is contacted. --delay N sleeps N seconds before every answer (the slow port that proves --max-time). The bound port is written to --port-file once the socket is listening. The fake keeps state in mem…",
    "asserts": 0
+  },
+  {
+   "path": "tests/contract/rest_documents.sh",
+   "kind": "contract",
+   "lines": 143,
+   "header": "tests/contract/rest_documents.sh: plugins/bearing/bin/brg-rest's document commands (docs, doc-get, doc-put) and the --document option of create and update, against tests/contract/fake_tracker.py with the protocol's optional document shapes. doc-put creates a document carrying an invisible source marker; run again on the same file it changes nothing; on an edited file it updates in place; with a new title it renames the same document, never a second copy. --parent nests a document. A create answered 502 after it applied leaves one document. A story created or updated with --document points at…",
+   "asserts": 64
   },
   {
    "path": "tests/contract/tracker_fake_server.sh",
@@ -18251,7 +18265,7 @@
     "Changed",
     "Fixed"
    ],
-   "entries": 16,
+   "entries": 18,
    "summary": "First public release, under the MIT licence."
   }
  ],

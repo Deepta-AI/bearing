@@ -1389,7 +1389,7 @@
     "move TASK-142"
    ],
    "invocation": "auto",
-   "args": "create <type> <title> | update <KEY> [--status s] [--assignee me] | sync [backlog] | trace <KEY> [--mr url] | get <KEY> | list | config"
+   "args": "create <type> <title> | update <KEY> [--status s] [--assignee me] | sync [backlog] | docs | trace <KEY> [--mr url] | get <KEY> | list | config"
   },
   {
    "name": "upgrade-tools",
