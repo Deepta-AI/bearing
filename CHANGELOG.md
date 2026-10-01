@@ -57,13 +57,20 @@ First public release, under the MIT licence.
   repository.
 
 ### Changed
-- The handbook's greenfield flow now runs the design steps autopilot
-  already ran: `architecture-diagram` after `high-level-design` (the HLD
-  cannot be Approved without a drawn diagram), then `data-model`,
-  `openapi-spec` and `low-level-design` once per component after the
-  threat model. The feature flow asks before planning whether the change
-  alters the API, the data or a component's design, and runs
-  `openapi-spec`, `data-model` or `low-level-design` for each yes.
+- The handbook's four flows were reviewed against the skills and updated.
+  Greenfield runs `estimate` after the backlog, then `architecture-diagram`
+  after `high-level-design` (the HLD cannot be Approved without a drawn
+  diagram), `data-model` and `openapi-spec` before `threat-model` (which
+  needs the entry points and stored fields), the screen and model design
+  before `low-level-design` (front-end components need the screens), and
+  `tracker-sync` before planning; `/office-hours` runs only when the idea
+  is still open, and model calls gain `llm-guardrails`. The feature flow
+  decides what the change touches before it is planned, in one branch that
+  now covers the data model (`data-model` then `db-migration`), a
+  component's internals (`low-level-design`) and model calls. The bug fix
+  flow writes a postmortem only when the bug reached users. The inherited
+  flow draws the code as it runs (`architecture-diagram`) and audits the
+  dependencies before the first change.
 - `high-level-design` checks four more traps that an engineering review
   of a marketing website found after the HLD was approved: repeated
   requests (a request id under a unique constraint on every write
