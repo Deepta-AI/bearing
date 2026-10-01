@@ -57,6 +57,38 @@ First public release, under the MIT licence.
   repository.
 
 ### Changed
+- `autopilot` runs a product whose documents came before its code. A
+  repository holding only documents (a PRD, ADRs, an HLD) is a new
+  product in full scope, not a change; `brg-scaffold` merges the stack in
+  beside the documents without overwriting one; and a repo plan entry
+  with `"path": "."` places the code in that repository (`arch_check`
+  accepts its own git path). The branch stage now comes right after the
+  repo stage, so no stage writes documents on the trunk; low-level design
+  moved from the design stage to a new `lld` stage after the screens (the
+  handbook's order, since a front-end component's design names its
+  screens); the design gate requires a threat model; and `profile --llm`
+  adds `genai-design` to design and `llm-guardrails` and `llm-eval` to
+  test automation. A run started before a stage existed gets it as
+  pending. Found by running a marketing website's autopilot after its
+  PRD, backlog, ADRs and HLD were already committed.
+- The Next.js stack (`next-app`) gets the design gallery at `/__design`
+  that screen-design and design-critique read on react-web: screens as
+  `*.screen.tsx`, a registry written by `make design-registry` (Next.js has
+  no `import.meta.glob`) and checked by `make design-registry-check`, the
+  33 shadcn components, an example screen, a theme script that sets dark
+  before the first paint, dark that follows `data-theme` as well as the
+  class, pages that own their width, and a test setup with a
+  `ResizeObserver` stand-in for Radix (react-web too).
+- `deployment-architecture` maps its template onto managed platforms
+  (Vercel, Netlify, Cloudflare, Supabase): functions for workloads,
+  per-request instances for replicas, the edge for ingress.
+- `ux-flows` says how to handle a product designed contract first (the
+  API contract's error codes are the rejections), a site with no visitor
+  accounts, several packages sharing one id space, site-wide stories and
+  page chrome.
+- `openapi-spec` extracts Next.js App Router route handlers, and warns
+  that Redocly accepts flow-map values PyYAML (and so `api_doc.py`)
+  rejects.
 - The handbook's four flows were reviewed against the skills and updated.
   Greenfield runs `estimate` after the backlog, then `architecture-diagram`
   after `high-level-design` (the HLD cannot be Approved without a drawn
@@ -121,6 +153,21 @@ First public release, under the MIT licence.
   `tests/contract/rest_documents.sh` against the fake tracker.
 
 ### Fixed
+- `CLAUDE.md` from the scaffold said `Git host: gitlab | github | both`
+  literally; `brg-scaffold` and `brg-adopt` now fill in the chosen host.
+- `apply_check.sh` proved a schema that creates the vector extension
+  against plain `postgres:16`, which has no pgvector; it now uses
+  `pgvector/pgvector:pg16` for such a schema.
+- `flows_check.py` took a page named "confirmation" for a dialog, let a
+  second error row overwrite the first (so a labelled `error: code` row
+  failed), and did not notice two packages using one screen id.
+- `evidence.py` named every shot of one gallery screen the same, so three
+  design directions overwrote each other's screenshots; the query keys
+  that change the picture (`state`, `variant`) now name the file. The
+  galleries follow the system theme when no `?theme` is given, so the
+  Chrome fallback's dark shots are dark.
+- The Next.js gallery's screen route read `params` outside Suspense,
+  which Cache Components refuses.
 - `brg-tracker --help` printed three lines of code after its header (the
   range ran past the comment); it now stops at the last comment line.
 - The guard refused a `for` loop that runs its own variable over literal
