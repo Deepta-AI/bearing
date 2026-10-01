@@ -13,7 +13,7 @@ export const NAV: NavGroup[] = [
       { to: "/session", label: "A session, event by event", n: "3" },
       { to: "/guard", label: "The guard", n: "4" },
       { to: "/skills-work", label: "How skills work", n: "5" },
-      { to: "/agents", label: "The seven agents", n: "6" },
+      { to: "/agents", label: "The eight agents", n: "6" },
       { to: "/scaffold", label: "Scaffolding a repository", n: "7" },
       { to: "/adopt", label: "Adopting a repository", n: "8" },
       { to: "/autopilot", label: "Autopilot and the task loop", n: "9" },

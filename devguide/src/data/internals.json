@@ -4,13 +4,13 @@
   "skills": 106,
   "commandSkills": 0,
   "stackSkills": 12,
-  "scripts": 83,
-  "scriptLines": 27489,
+  "scripts": 84,
+  "scriptLines": 27750,
   "hooks": 6,
-  "agents": 7,
+  "agents": 8,
   "makeTargets": 26,
   "gates": 15,
-  "tests": 71,
+  "tests": 72,
   "fixtures": 21,
   "stacks": 13,
   "templates": 38,
@@ -18,7 +18,7 @@
   "ghJobs": 6,
   "ghWorkflows": 2,
   "evals": 106,
-  "skillFiles": 916
+  "skillFiles": 917
  },
  "plugins": [
   {
@@ -26,7 +26,7 @@
    "dir": "plugins/bearing",
    "description": "A developer workflow for coding agents: skills for every stage from brief to runbook, review subagents, one guard behind every hook, and repository templates. The stack conventions come in bearing-backend and bearing-apps.",
    "required": true,
-   "files": 426,
+   "files": 428,
    "skills": [
     "ab-experiment",
     "accessibility",
@@ -9307,11 +9307,13 @@
     "Grep",
     "Glob",
     "Agent",
+    "AskUserQuestion",
     "Bash(ls:*)",
     "Bash(mkdir:*)",
     "Bash(wc:*)",
     "Bash(git rev-parse:*)",
-    "Bash(python3 *skills/prd/scripts/doc_to_text.py*)"
+    "Bash(python3 *skills/prd/scripts/doc_to_text.py*)",
+    "Bash(python3 *skills/prd/scripts/register_answers.py*)"
    ],
    "extra": {},
    "intro": "The PRD is the root of the traceability chain. Every `REQ-nnn` written here is carried by stories, criteria, tests and commits, so the skill extracts only what the input says, marks what it had to infer, and never renumbers.",
@@ -9322,15 +9324,15 @@
     },
     {
      "title": "Steps",
-     "lines": 99
+     "lines": 152
     },
     {
      "title": "Output contract",
-     "lines": 14
+     "lines": 16
     },
     {
      "title": "Gotchas",
-     "lines": 12
+     "lines": 15
     }
    ],
    "inputs": [
@@ -9348,31 +9350,37 @@
     "Read `templates/PRD.md` and `templates/questions.md`. If `docs/product/PRD.md` exists, read it and keep every existing `REQ-nnn` id and text; new statements append after the highest id in the whole file (ids are not always in order in the tables), withdrawn statements stay in the list marked `withdrawn:`. Never renumber. When the input changes an existing statement, apply step 7a.",
     "First pass, sections. Fill problem, business objectives, non-goals, personas, constraints, glossary from the input only. Objectives get ids `B1` upward, kept across runs; every story's \"Why it matters\" line cites one. An objective with no number in the input gets `target: unconfirmed`. A persona is a named role in the input; if none is named, derive at most one from the verbs and mark it `inferred:`. Any section the…",
     "Second pass, statements. Walk every sentence carrying must, should, shall, needs, can, will, allow, or an imperative, and every bullet. Each becomes one `REQ-nnn`: one testable statement, present tense, the system as subject. Split a sentence joining two capabilities with \"and\". Convert story form (\"As a user I want\") to a statement and keep the persona. Keep a solution only if the input names it, then move it to Co…",
-    "Flag ambiguity. A statement with a vague word (fast, easy, simple, appropriate, etc., some, various) or with no observable outcome is kept, marked `ambiguous:`, and gets one entry in the register stating what would make it testable.",
+    "Flag ambiguity. A statement with a vague word (fast, easy, simple, appropriate, etc., some, various) or with no observable outcome is kept and marked `ambiguous: acceptance set in design`: design and `test-cases` give it a measurable acceptance, and it is not a question. Only when the vague word leaves the scope itself unclear (what gets built, not how well) does it get a register entry, marked `ambiguous: Q-nnn`, a…",
     "Mark inference and conflict. Anything you add to complete a section that the input does not state is prefixed `inferred:`; two passages that disagree are a contradiction; a capability the input needs but never states is a gap. Each is one `Q-nnn` entry. Never add a requirement statement this way; a missing capability is a question, not a REQ. Then check every statement against the repository, not only against the in…",
     "Write the register from `templates/questions.md`: per entry the Kind (open-question, gap, contradiction), Where (the REQ id or section), Basis (stated, inferred, convention, assumption), every reading the input allows, the Decision taken so work is not blocked, Why, Affects (the REQ ids it changes; `backlog` replaces them with story ids, and the cell is never empty) and Status `open`. Open assumptions go first and a…",
     "Write `docs/product/PRD.md` and `docs/product/questions.md` (`mkdir -p docs/product`); section 7 of the PRD states the register's counts. Print the counts. Zero statements extracted is a failed run, not an empty PRD.",
-    "Ask the user whether to run the critic. On yes, fork `critic` (Agent tool) with the document path; add its three weakest claims and what the document does not say to the register, each as a Q-nnn whose Readings include the experiment that would settle it."
+    "Do not offer a critique. Only when the user asks for one, fork `critic` (Agent tool) with the document path and report its findings; a finding enters the register only when it meets the rule in step 7 (unclear about what gets built), never for business, delivery or legal doubts.",
+    "Resolve the register in this session; nothing is sent outside it. Run `python3 \"${CLAUDE_PLUGIN_ROOT}/skills/prd/scripts/register_answers.py\" rank` for the open entries, ranked: open assumptions first, then by how many statements each affects, so the first round settles what blocks the most. Print the count and ask the user how to go through them: highest impact first in rounds of four, stopping whenever they like;…"
    ],
    "output": "",
    "gotchas": [
     "A PRD line is a statement of intent, not a story. Do not write \"As a\" anywhere in the statements list; `backlog` judges and combines them.",
     "A number in the input is a target only if the input calls it one. A budget, a launch date or a user count from the brief goes to Constraints.",
+    "A brief with no launch date or budget is not missing anything: never ask for them, never list them under Could not extract. The PRD and the backlog cover what the scope needs, whatever the date or budget.",
     "Two inputs (an old PRD and a new brief) never merge their numbering; the new brief's statements append after the existing ids.",
     "An assumption is a decision nobody has confirmed. It goes under \"Needs your confirmation\" so the client sees it first; a decision the input settles is `stated` or `inferred` and names the passage.",
     "Do not tidy the client's wording into your own product idea. When the input says \"the app should feel premium\", that is an ambiguous statement and an open question, not three requirements about animation."
    ],
    "layout": "",
    "commands": [],
-   "lines": 184,
+   "lines": 248,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 184
+     "lines": 248
     },
     {
      "path": "scripts/doc_to_text.py",
      "lines": 119
+    },
+    {
+     "path": "scripts/register_answers.py",
+     "lines": 261
     },
     {
      "path": "templates/PRD.md",
@@ -9385,7 +9393,7 @@
    ],
    "groups": {
     ".": 1,
-    "scripts": 1,
+    "scripts": 2,
     "templates": 2
    },
    "evals": true,
@@ -15876,6 +15884,29 @@
    "calls": []
   },
   {
+   "path": "plugins/bearing/skills/prd/scripts/register_answers.py",
+   "name": "register_answers.py",
+   "lang": "python",
+   "group": "skill",
+   "skill": "prd",
+   "lines": 261,
+   "header": "register_answers.py: resolve docs/product/questions.md in the session.\n\n  register_answers.py rank  [--questions Q] [--status open] [--json]\n  register_answers.py apply --answers A.json [--questions Q] [--date D] [--source S]\n\nrank prints the register's open entries in the order the prd skill asks\nthem: open assumptions first, then the rest, each group by impact (the\nnumber of REQ or story ids in Affects, ranges counted in full), then by\nid. Each entry carries its readings split into options (a), (b)... with the\nassumed one marked, so a session can put four of them in one\nmultiple-choice round. A register of 35 open points asked one at a time is\na wall; asked by impact, the first round settles the decisions that block\nthe most statements and the user can stop at any round.\n\napply writes the answers back. The answers file is a JSON object:\n  {\"Q-005\": {\"choice\": \"c\"}, \"Q-021\": {\"choice\": \"keep\", \"note\": \"...\"},\n   \"Q-030\": {\"choice\": \"other\", \"note\": \"free text\"},\n   \"Q-006\": {\"choice\": \"ask-client\", \"note\": \"AVM sales head\"}}\nA reading key or \"keep\" (the assumed decision) confirms the entry: Status\nbecomes confirmed, Decision states the answer with its date and source and\nkeeps the old decision as history. \"other\" records the free answer and\nleaves the entry open for the session to judge (a new rule may need a new\nREQ under step 7a, which a script must not write). Once judged, the\nsession applies {\"choice\": \"decide\", \"decision\": \"...\"}, which confirms\nthe entry with that decision and keeps the old one. \"ask-client\" leaves it\nopen with a dated note saying who was asked. The \"Needs your\nconfirmation\" list and the Entries/Open/Needs counts are rewritten, and\nopen assumptions are moved ahead of every other row, which the backlog\ncoverage gate requires.\n\nExit 1 when the register has no entries or the answers file holds no\nanswers: a run that checked nothing did not pass.",
+   "functions": [
+    "fail",
+    "clean",
+    "load",
+    "affects_count",
+    "options",
+    "entry",
+    "ranked",
+    "cmd_rank",
+    "cmd_apply",
+    "main"
+   ],
+   "env": [],
+   "calls": []
+  },
+  {
    "path": "plugins/bearing/skills/prose-lint/scripts/prose_check.py",
    "name": "prose_check.py",
    "lang": "python",
@@ -16358,6 +16389,32 @@
    "lines": 10,
    "usedBy": [
     "explain-codebase"
+   ]
+  },
+  {
+   "name": "prd-drafter",
+   "description": "Read-only drafter for one section range of a long brief. Used by prd when the input is long enough to split: several run at once, each turns its lines into draft requirement statements, constraints and ambiguity tags, and the prd session merges, numbers and judges them. Never numbers REQs, never writes files, never writes the register.",
+   "tools": [
+    "Read",
+    "Grep",
+    "Glob"
+   ],
+   "disallowed": [
+    "Bash",
+    "Write",
+    "Edit",
+    "MultiEdit",
+    "NotebookEdit",
+    "Agent"
+   ],
+   "model": "sonnet",
+   "maxTurns": "8",
+   "isolation": "",
+   "intro": "You draft; the prd session decides. You are given a source text file, a line range in it, and the product name. Read the whole file once for context, then work only on your range.",
+   "sections": [],
+   "lines": 23,
+   "usedBy": [
+    "prd"
    ]
   },
   {
@@ -17122,6 +17179,13 @@
    "lines": 63,
    "header": "tests/unit/prd_doc_to_text.sh: plugins/bearing/skills/prd/scripts/doc_to_text.py turns a .docx or .odt brief into one line per paragraph (headings \"# \", list items \"- \", table rows \"| a | b |\") so REQ sources cite stable line numbers; an ODT list item is one line, not repeated for its paragraph; fails on a document with no text and on an unsupported format.",
    "asserts": 9
+  },
+  {
+   "path": "tests/unit/prd_register_answers.sh",
+   "kind": "unit",
+   "lines": 100,
+   "header": "tests/unit/prd_register_answers.sh: plugins/bearing/skills/prd/scripts/register_answers.py rank puts open assumptions first, then by impact (Affects ranges counted in full), and splits readings into options with the assumed one marked; apply confirms a reading or \"keep\" with date and source and keeps the old decision, leaves \"other\" and \"ask-client\" open with a dated note, rewrites the Needs-your-confirmation list and the counts, moves confirmed rows below the open assumptions, and fails on an empty register, an empty answers file, an unknown id or an unknown choice.",
+   "asserts": 31
   },
   {
    "path": "tests/unit/progress.sh",
@@ -18167,9 +18231,10 @@
    "date": "",
    "groups": [
     "Added",
+    "Changed",
     "Fixed"
    ],
-   "entries": 12,
+   "entries": 15,
    "summary": "First public release, under the MIT licence."
   }
  ],

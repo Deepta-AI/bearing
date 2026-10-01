@@ -16,9 +16,9 @@ example `/bearing:merge-request`, `/bearing-backend:go`, `/bearing-apps:react`;
 the Plugin column says which). On a machine with many skill packs
 Claude Code may list some skills by name only; see
 [Keep the skill listing lean](INSTALL.md#keep-the-skill-listing-lean).
-The seven subagents are `bearing:reviewer`, `bearing:verifier`,
+The eight subagents are `bearing:reviewer`, `bearing:verifier`,
 `bearing:security-auditor`, `bearing:explorer`, `bearing:test-writer`,
-`bearing:doc-writer` and `bearing:critic`; the skills start them.
+`bearing:doc-writer`, `bearing:critic` and `bearing:prd-drafter`; the skills start them.
 
 <!-- skills-table:start -->
 | Skill | Plugin | What it does | Use when |

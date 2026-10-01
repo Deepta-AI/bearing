@@ -41,8 +41,8 @@ First public release, under the MIT licence.
   request, with a gate per stage; it never pushes. A headless run hands
   the smoke test of the shipped app to the launcher, which runs it outside
   the sandbox and resumes the session with the verdict.
-- Seven subagents: `reviewer`, `verifier`, `security-auditor`, `explorer`,
-  `test-writer`, `doc-writer`, `critic`.
+- Eight subagents: `reviewer`, `verifier`, `security-auditor`, `explorer`,
+  `test-writer`, `doc-writer`, `critic`, `prd-drafter`.
 - One guard script (`bin/brg-guard`) behind every hook: the agent never
   pushes, merges, tags, publishes or deploys, and never reads secret files.
 - Repository templates and a scaffold for thirteen stacks, an adopt path
@@ -55,6 +55,31 @@ First public release, under the MIT licence.
   and the repository the run left.
 - The handbook site and the developer guide, both generated from the
   repository.
+
+### Changed
+- `prd` drafts a long brief in parallel: over 150 lines or 60 bullets, it
+  splits the source at its headings into 3 to 6 ranges and forks one
+  `prd-drafter` agent per range (read-only, Sonnet), then merges, dedupes
+  and numbers the drafts itself. Sections, contradictions and the register
+  stay in the main session. A 294-line website brief took about 7 minutes
+  drafted serially.
+- `prd` records what to build and stops reviewing the idea. Its register
+  holds only points where the brief is unclear or contradicts itself
+  about what the product does. Delivery questions (who builds, supplies,
+  pays or signs off, the date and budget), engineering defaults, choices
+  between named technologies and legal doubts are left out; a vague word
+  is flagged and gets its acceptance in design. The critic runs only when
+  asked. The PRD is vendor-neutral: it never names the company doing the
+  work or assumes who the user is. On a 294-line website brief the
+  register went from 54 entries to 13.
+- `prd` resolves its open questions in the session (step 10) instead of
+  leaving a register for someone to read. `scripts/register_answers.py
+  rank` orders the open entries (assumptions first, then by how many
+  statements each affects), the skill asks them four at a time as
+  multiple choice with the assumed reading first, and `apply` confirms
+  each answer with its date and source, keeps the old decision as
+  history, records "ask the client" as a dated note, and rewrites the
+  confirmation list and counts the backlog gate checks.
 
 ### Fixed
 - The guard refused a `for` loop that runs its own variable over literal
