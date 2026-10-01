@@ -55,3 +55,17 @@ First public release, under the MIT licence.
   and the repository the run left.
 - The handbook site and the developer guide, both generated from the
   repository.
+
+### Fixed
+- The guard refused a `for` loop that runs its own variable over literal
+  words (`for p in python3 python3.12; do $p -V; done`) as "the program
+  name is a variable that cannot be read". A list of literal words is now
+  read and each value is checked as if written out; a list holding a
+  variable, a substitution or a glob is still refused.
+- `prd` stopped on a `.docx` brief and asked for a text export. It now
+  converts `.docx` and `.odt` with `scripts/doc_to_text.py` (standard
+  library, falls back to `unzip` when Python lacks zlib), reads PDFs
+  directly, accepts a document attached to the message, and saves the
+  input text under `docs/product/source/` so every `L<n>` source resolves.
+  It asks for the product repository instead of writing `docs/product`
+  into a folder that is not one.
