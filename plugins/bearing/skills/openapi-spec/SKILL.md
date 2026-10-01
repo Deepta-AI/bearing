@@ -66,6 +66,11 @@ ${CLAUDE_PLUGIN_ROOT}/skills/tech-decision/references/decision-protocol.md.
    - Express: `app.get(`, `router.post(`;
    - TanStack Start: server routes under `app/routes/api/` and
      `createServerFileRoute`; UI file routes are not API routes.
+   - Next.js App Router: each `app/**/route.ts` (or `src/app/...`) is a
+     path built from its folders (`[id]` is `{id}`, `(group)` folders add
+     nothing, a `%5F` folder is a literal `_`), with one operation per
+     exported `GET`, `POST`, `PUT`, `PATCH` or `DELETE` function; a
+     `basePath` in `next.config.*` prefixes every path.
    Normalise path params (`{id}`, `:id`, `<id>`) to `{id}`. Count routes
    in code and paths in the spec. Both zero: stop with "0 routes in code,
    0 in spec; nothing to compare".
@@ -152,3 +157,7 @@ Revision: v<n> -> v<n+1>, sections changed C, ADRs superseded S, downstream D | 
   style reference's numbered list carries a Why on every line; a project
   convention goes in the spec's `x-conventions` as `{rule, why}`.
 - No em dashes, including in descriptions inside the YAML.
+- Redocly accepts flow-map values that PyYAML (which `api_doc.py` uses)
+  rejects: an unquoted value with `?`, `: ` or a comma inside `{ }`. Quote
+  every free-text value in a flow map (`{ text: "How big are the plots?" }`);
+  a spec that lints but stops `api_doc.py` has no readable design.
