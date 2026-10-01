@@ -14,6 +14,12 @@
 #   brg-tracker comment <KEY> (<text> | --file f)
 #   brg-tracker link <KEY> <relates|blocks> <KEY2>   -> prints "link: issue-link" or "link: comment"
 #   brg-tracker trace <KEY> [--branch b] [--mr url] [--commits a,b] [--tests TC-..] [--adr ADR-nnnn]
+#   brg-tracker docs [--type prd|design|doc]  -> the project's documents (rest only)
+#   brg-tracker doc-put --title <s> --file <f> [--type prd|design|doc] [--parent <id>] [--source <path>]
+#                                           -> create or update one document (rest only)
+#   create and update also take --document <id> on rest: the document a ticket belongs to.
+#   On jira, gitlab and github the document commands print "documents: not supported"
+#   and exit 3, like a write on tracker none.
 #
 # --parent and --priority map per adapter: rest uses epic_id for a story,
 # story_id for a bug, parent_id otherwise, and a priority enum
@@ -36,7 +42,7 @@ set -euo pipefail
 KIT="$(cd "$(dirname "$0")/.." && pwd)"
 ENV_FILE="${BEARING_ENV:-${XDG_CONFIG_HOME:-$HOME/.config}/bearing/bearing.env}"
 
-usage() { sed -n '2,36p' "$0" | sed 's/^# \{0,1\}//'; exit "${1:-2}"; }
+usage() { sed -n '2,39p' "$0" | sed 's/^# \{0,1\}//'; exit "${1:-2}"; }
 die() { echo "brg-tracker: $*" >&2; exit 1; }
 
 # load_env: KEY=value lines from the env file; a variable already set in the
@@ -123,7 +129,7 @@ fi
 
 if [ "$tracker" = none ]; then
   echo "tracker: none (set BEARING_TRACKER in ~/.config/bearing/bearing.env)"
-  case "$cmd" in me|get|list|resolve) exit 0;; create|update|comment|link|trace|close) exit 3;; *) usage;; esac
+  case "$cmd" in me|get|list|resolve|docs) exit 0;; create|update|comment|link|trace|close|doc-put) exit 3;; *) usage;; esac
 fi
 
 [ -x "$adapter" ] || die "adapter $adapter is missing or not executable"
@@ -134,7 +140,7 @@ fi
 if [ "$tracker" = rest ]; then
   proj="${BEARING_TRACKER_PROJECT:-}"
   case "$cmd" in
-    list|create) [ -n "$proj" ] || die "set BEARING_TRACKER_PROJECT (the REST tracker's project key)";;
+    list|create|docs|doc-put) [ -n "$proj" ] || die "set BEARING_TRACKER_PROJECT (the REST tracker's project key)";;
   esac
   case "$cmd" in
     me|resolve) exec "$adapter" "$cmd" "$@";;
@@ -142,12 +148,13 @@ if [ "$tracker" = rest ]; then
       [ $# -ge 1 ] || usage; key="$1"; shift
       exec "$adapter" "$cmd" "$key" "$@";;
     list) exec "$adapter" list "$proj" "$@";;
+    docs|doc-put) exec "$adapter" "$cmd" "$proj" "$@";;
     create)
       typ="task"; parent=""; args=()
       while [ $# -gt 0 ]; do case "$1" in
         --type) typ="$2"; args+=(--type "$2"); shift 2;;
         --parent) parent="$2"; shift 2;;
-        --title|--description-file|--priority) args+=("$1" "$2"); shift 2;;
+        --title|--description-file|--priority|--document) args+=("$1" "$2"); shift 2;;
         *) die "unknown option for create: $1";; esac; done
       if [ -n "$parent" ]; then
         case "$typ" in story) args+=(--epic "$parent");; bug) args+=(--story "$parent");; *) args+=(--parent "$parent");; esac
@@ -158,6 +165,7 @@ if [ "$tracker" = rest ]; then
 fi
 
 case "$cmd" in
+  docs|doc-put) echo "documents: not supported by the $tracker tracker"; exit 3;;
   me|list|create) exec "$adapter" "$cmd" "$@";;
   get|resolve|update|comment|link|trace|close)
     [ $# -ge 1 ] || usage; key="$1"; shift

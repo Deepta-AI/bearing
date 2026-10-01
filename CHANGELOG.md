@@ -84,8 +84,22 @@ First public release, under the MIT licence.
   deliverables that are not code (brand guidelines, video, copy). A
   marketing website brief with launch collateral had 22 such tasks the
   gate refused under the five software disciplines.
+- The REST tracker publishes documents. `brg-rest docs`, `doc-get` and
+  `doc-put` (and `brg-tracker docs` and `doc-put` on rest) use the
+  protocol's optional project documents API, and `tracker-sync docs` publishes the
+  PRD as `prd`, the ADRs as `design` under one "Architecture decisions"
+  parent, and the backlog, coverage, flows, estimate and decision log as
+  `doc`. Each document carries an invisible source marker, so a rerun
+  updates it in place (renamed or not) and an unchanged file writes
+  nothing. `create` and `update` take `--document <id>`, so each story
+  points at the PRD. The documents part of the REST protocol is optional;
+  a server without it is named in one line and nothing is posted, and
+  Jira, GitLab and GitHub skip with exit 3. Covered by
+  `tests/contract/rest_documents.sh` against the fake tracker.
 
 ### Fixed
+- `brg-tracker --help` printed three lines of code after its header (the
+  range ran past the comment); it now stops at the last comment line.
 - The guard refused a `for` loop that runs its own variable over literal
   words (`for p in python3 python3.12; do $p -V; done`) as "the program
   name is a variable that cannot be read". A list of literal words is now

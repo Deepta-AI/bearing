@@ -17,6 +17,13 @@
 #   brg-rest link <KEY|id> <blocks|blocked_by|relates|duplicates> <KEY|id>
 #   brg-rest trace <KEY|id> [--branch b] [--mr url] [--commits a,b] [--tests KEY,..]
 #          [--adr ADR-nnnn] [--docs path,..]
+#   brg-rest docs <project> [--type prd|design|doc]   -> one line per document, count on stderr
+#   brg-rest doc-get <id>                     -> the document JSON, content included
+#   brg-rest doc-put <project> --title <s> --file <f> [--type prd|design|doc]
+#          [--parent <id>] [--source <path>]  -> creates the document, or updates the
+#          one whose content carries the source marker; {id,title,doc_type,action}
+#   (create and update also take --document <id>: the document the issue
+#   belongs to, so a story points at the PRD it came from)
 #
 # Configuration comes from the environment, then ~/.config/bearing/bearing.env
 # (KEY=value lines, read as data, never executed; the environment wins):
@@ -69,7 +76,7 @@ EMAIL="${BEARING_TRACKER_EMAIL:-}"
 PASSWORD="${BEARING_TRACKER_PASSWORD:-}"
 DONE_STATUS="${BEARING_TRACKER_DONE_STATUS:-Done}"
 
-usage() { sed -n '2,37p' "$0" | sed 's/^# \{0,1\}//'; exit "${1:-2}"; }
+usage() { sed -n '2,44p' "$0" | sed 's/^# \{0,1\}//'; exit "${1:-2}"; }
 # A transport failure is reported once. It can happen inside a command
 # substitution (resolve nests api calls and has a fallback path), so the
 # failing subshell leaves a marker and every later api call or die in the
@@ -230,6 +237,34 @@ rec_issue() { # my newest $REC_TYPE titled $REC_TITLE in $REC_PROJECT whose desc
 rec_comment() { # the comment on $REC_ID carrying $REC_MARK
   api GET "/api/issues/$REC_ID" | jq -c --arg m "$REC_MARK" '[.comments[]? | select((.body // "") | contains($m))][0] // empty'
 }
+# Documents (optional in the protocol). A document Bearing publishes carries
+# "<!-- bearing-doc: <source path> -->" as its last line, so a later run
+# updates it in place, renamed or not, instead of making a second copy.
+doc_list() { # project -> the list JSON; a server without documents is named, not failed silently
+  local p="$1"
+  [ -s "$FAIL_MARK" ] && exit 1
+  [ -n "$URL" ] || die "set BEARING_TRACKER_URL (the REST tracker's base url) in $ENV_FILE or the environment"
+  [ -n "$token" ] || login
+  request GET "$URL/api/projects/$p/documents"
+  case "$STATUS" in
+    2*) printf '%s' "$BODY";;
+    404|405|501) fatal "this tracker does not support documents (GET /api/projects/$p/documents -> $STATUS)";;
+    *) api GET "/api/projects/$p/documents";;  # a 401 re-logs in; anything else is reported there
+  esac
+}
+doc_find() { # project title mark -> the id of the document carrying mark, or nothing; same-title documents are read first
+  local p="$1" title="$2" mark="$3" ids id
+  ids="$(doc_list "$p" | jq -r --arg t "$title" '[.[] | select(.title == $t) | .id] + [.[] | select(.title != $t) | .id] | .[]')"
+  for id in $ids; do
+    if api GET "/api/documents/$id" | jq -e --arg m "<!-- $mark -->" '(.document.content // "") | contains($m)' >/dev/null; then
+      echo "$id"; return 0
+    fi
+  done
+}
+rec_doc() { # the document titled $REC_TITLE in $REC_PROJECT carrying $REC_MARK
+  local id; id="$(doc_find "$REC_PROJECT" "$REC_TITLE" "$REC_MARK")"
+  [ -z "$id" ] || api GET "/api/documents/$id" | jq -c '.document'
+}
 comment_post() { # id text -> the comment JSON; the text gains an invisible marker line
   REC_ID="$1"; REC_MARK="$(new_mark)"
   api POST "/api/issues/$1/comments" "$(jq -nc --arg b "$2"$'\n\n'"<!-- $REC_MARK -->" '{body:$b}')" rec_comment
@@ -280,12 +315,14 @@ case "$cmd" in
     pages "$path" "$limit" '{id,key,type,title,status:.status_name,assignee:(.assignee.name // null),priority}' "issue(s)" ;;
   create)
     [ $# -ge 1 ] || usage; p="$1"; shift
-    typ=task; title=""; desc=""; prio=""; epic=""; parent=""; story=""; labels=""; points=""; assignee=""
+    typ=task; title=""; desc=""; prio=""; epic=""; parent=""; story=""; labels=""; points=""; assignee=""; doc=""
     while [ $# -gt 0 ]; do case "$1" in
       --type) typ="$2"; shift 2;; --title) title="$2"; shift 2;; --description-file) desc="$(cat "$2")"; shift 2;;
       --priority) prio="$2"; shift 2;; --epic) epic="$2"; shift 2;; --parent) parent="$2"; shift 2;; --story) story="$2"; shift 2;;
-      --labels) labels="$2"; shift 2;; --points) points="$2"; shift 2;; --assignee) assignee="$2"; shift 2;; *) usage;; esac; done
+      --labels) labels="$2"; shift 2;; --points) points="$2"; shift 2;; --assignee) assignee="$2"; shift 2;;
+      --document) doc="$2"; shift 2;; *) usage;; esac; done
     [ -n "$title" ] || die "--title is required"
+    [ -z "$doc" ] || case "$doc" in *[!0-9]*) die "--document is a document id (got '$doc')";; esac
     case "$typ" in epic|story|task|bug|subtask|testscenario|testcase) ;; *) die "type must be epic|story|task|bug|subtask|testscenario|testcase";; esac
     [ -z "$prio" ] || case "$prio" in lowest|low|medium|high|highest) ;; *) die "priority must be lowest|low|medium|high|highest";; esac
     REC_MARK="$(new_mark)"; REC_PROJECT="$p"; REC_TYPE="$typ"; REC_TITLE="$title"
@@ -296,6 +333,7 @@ case "$cmd" in
     if [ -n "$parent" ]; then rid="$(resolve "$parent")"; body="$(printf '%s' "$body" | jq -c --argjson e "$rid" '. + {parent_id:$e}')"; fi
     if [ -n "$story" ]; then rid="$(resolve "$story")"; body="$(printf '%s' "$body" | jq -c --argjson e "$rid" '. + {story_id:$e}')"; fi
     [ -z "$points" ] || body="$(printf '%s' "$body" | jq -c --argjson n "$points" '. + {story_points:$n}')"
+    [ -z "$doc" ] || body="$(printf '%s' "$body" | jq -c --argjson d "$doc" '. + {document_id:$d}')"
     if [ -n "$assignee" ]; then aid="$(member_id "$p" "$assignee")"; [ -n "$aid" ] || die "assignee $assignee is not a member of $p"; body="$(printf '%s' "$body" | jq -c --argjson a "$aid" '. + {assignee_id:$a}')"; fi
     if [ -n "$labels" ]; then
       ids="$(api GET "/api/projects/$p/labels" | jq -c --arg l "$labels" '[($l | split(",")[]) as $n | .[] | select(.name == $n) | .id]')"
@@ -313,6 +351,8 @@ case "$cmd" in
       --priority) patch="$(printf '%s' "$patch" | jq -c --arg v "$2" '. + {priority:$v}')"; shift 2;;
       --points) patch="$(printf '%s' "$patch" | jq -c --argjson v "$2" '. + {story_points:$v}')"; shift 2;;
       --due) patch="$(printf '%s' "$patch" | jq -c --arg v "$2" '. + {due_date:$v}')"; shift 2;;
+      --document) case "$2" in ''|*[!0-9]*) die "--document is a document id (got '$2')";; esac
+        patch="$(printf '%s' "$patch" | jq -c --argjson v "$2" '. + {document_id:$v}')"; shift 2;;
       *) usage;; esac; done
     [ "$patch" != "{}" ] || die "nothing to update"
     api PUT "/api/issues/$id" "$patch" | jq '{id,key,type,title,status:.status_name,assignee:(.assignee.name // null),priority}' ;;
@@ -348,5 +388,45 @@ case "$cmd" in
       done
     fi
     echo "brg-rest: trace comment posted on $key, $linked test issue link(s) added" ;;
+  docs)
+    [ $# -ge 1 ] || usage; p="$1"; shift; typ=""
+    while [ $# -gt 0 ]; do case "$1" in --type) typ="$2"; shift 2;; *) usage;; esac; done
+    rows="$(doc_list "$p" | jq -c --arg t "$typ" '.[] | select($t == "" or .doc_type == $t) | {id,doc_type,title,parent_id}')"
+    [ -z "$rows" ] || printf '%s\n' "$rows"
+    echo "brg-rest: $( [ -z "$rows" ] && echo 0 || printf '%s\n' "$rows" | wc -l | tr -d ' ') document(s) in $p" >&2 ;;
+  doc-get)
+    [ $# -eq 1 ] || usage
+    case "$1" in ''|*[!0-9]*) die "a document id is a number (got '$1')";; esac
+    api GET "/api/documents/$1" | jq '.document' ;;
+  doc-put)
+    [ $# -ge 1 ] || usage; p="$1"; shift
+    title=""; file=""; typ="doc"; parent=""; src=""
+    while [ $# -gt 0 ]; do case "$1" in
+      --title) title="$2"; shift 2;; --file) file="$2"; shift 2;; --type) typ="$2"; shift 2;;
+      --parent) parent="$2"; shift 2;; --source) src="$2"; shift 2;; *) usage;; esac; done
+    [ -n "$title" ] || die "--title is required"
+    [ -n "$file" ] && [ -f "$file" ] || die "--file must name a readable file"
+    case "$typ" in prd|design|doc) ;; *) die "type must be prd|design|doc";; esac
+    [ -z "$parent" ] || case "$parent" in *[!0-9]*) die "--parent is a document id (got '$parent')";; esac
+    src="${src:-$file}"
+    [ -s "$file" ] || die "$file is empty; an empty document is not published"
+    mark="bearing-doc: $src"
+    content="$(cat "$file")"$'\n\n'"<!-- $mark -->"
+    id="$(doc_find "$p" "$title" "$mark")"
+    if [ -n "$id" ]; then
+      cur="$(api GET "/api/documents/$id" | jq -c '.document')"
+      patch="$(printf '%s' "$cur" | jq -c --arg c "$content" --arg t "$title" --arg d "$typ" --arg par "$parent" '
+        {} + (if .content != $c then {content:$c} else {} end)
+           + (if .title != $t then {title:$t} else {} end)
+           + (if .doc_type != $d then {doc_type:$d} else {} end)
+           + (if $par != "" and ((.parent_id // 0) | tostring) != $par then {parent_id:($par | tonumber)} else {} end)')"
+      if [ "$patch" = "{}" ]; then action=unchanged; else api PUT "/api/documents/$id" "$patch" >/dev/null; action=updated; fi
+      jq -nc --argjson i "$id" --arg t "$title" --arg d "$typ" --arg a "$action" '{id:$i,title:$t,doc_type:$d,action:$a}'
+    else
+      REC_PROJECT="$p"; REC_TITLE="$title"; REC_MARK="$mark"
+      body="$(jq -nc --arg t "$title" --arg d "$typ" --arg c "$content" '{title:$t,doc_type:$d,content:$c}')"
+      [ -z "$parent" ] || body="$(printf '%s' "$body" | jq -c --argjson par "$parent" '. + {parent_id:$par}')"
+      api POST "/api/projects/$p/documents" "$body" rec_doc | jq -c '{id,title,doc_type,action:"created"}'
+    fi ;;
   *) usage ;;
 esac

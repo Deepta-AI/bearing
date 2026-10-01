@@ -1,7 +1,7 @@
 ---
 name: tracker-sync
 description: 'Creates and updates tickets in the configured tracker (Jira, GitLab, GitHub, REST or none): create, sync the backlog, move status, link MRs. Use when asked to "create the tickets", "sync to Jira" or "move TASK-142".'
-argument-hint: "create <type> <title> | update <KEY> [--status s] [--assignee me] | sync [backlog] | trace <KEY> [--mr url] | get <KEY> | list | config"
+argument-hint: "create <type> <title> | update <KEY> [--status s] [--assignee me] | sync [backlog] | docs | trace <KEY> [--mr url] | get <KEY> | list | config"
 allowed-tools: Read, Grep, Glob, Write, Edit, Bash(bash *bin/brg-tracker *), Bash(git status:*), Bash(git diff:*), Bash(git branch:*), Bash(git log:*), Bash(git remote:*), Bash(git rev-parse:*), Bash(git merge-base:*), Bash(git symbolic-ref:*), Bash(make check:*), Bash(ls:*)
 ---
 
@@ -44,7 +44,14 @@ brg-tracker update <KEY> [--status name] [--assignee me|email|login]
 brg-tracker comment <KEY> (<text> | --file f)
 brg-tracker link <KEY> <relates|blocks> <KEY2>
 brg-tracker trace <KEY> [--branch b] [--mr url] [--commits a,b] [--tests ..] [--adr ADR-nnnn]
+brg-tracker docs [--type prd|design|doc]                      # rest only
+brg-tracker doc-put --title <s> --file <f> [--type t] [--parent <id>] [--source <path>]
 ```
+
+The document commands exist on the REST tracker only (any
+server implementing the optional documents part of the protocol); on Jira,
+GitLab and GitHub they print `documents: not supported` and exit 3. On rest,
+`create` and `update` also take `--document <id>`.
 
 Adapter facts (hierarchy, how `--parent` maps, status names, what "link"
 means on GitHub, the configuration keys each adapter needs) are in the
@@ -115,6 +122,11 @@ backlog: offer a pasted list, the test case file, or `create` one at a time.
 7. **Counts.** Already in the tracker (keys, and how each was found), to
    create (epics, stories, test cases), held back, pending as uncommitted.
    Check they add up to the items in the backlog.
+7a. **Story to PRD (rest).** When the PRD is published as a document
+   (`brg-tracker docs --type prd`, or Step 3c in the same run), create
+   every story with `--document <PRD id>` and give existing story tickets
+   the same with `update`, so each story opens on the requirements it
+   came from.
 8. **Write-back, only with real keys.** When a create returns a key,
    record it as the repository's convention says (`Ticket: <KEY>`) and
    leave that change uncommitted for the user. Never write a placeholder,
@@ -156,6 +168,34 @@ backlog: offer a pasted list, the test case file, or `create` one at a time.
    Status names match case-insensitively against what the tracker offers;
    an unknown name stops with the adapter's list.
 
+### Step 3c: `docs`, the repository's documents (rest)
+
+Publishes the project's documents as tracker documents, so the PRD, the
+decisions and the plan sit beside the tickets. Run it before `sync` on a
+first filing, so stories can point at the PRD.
+
+1. **What to publish, in this order.** Each file that exists and is
+   committed; an uncommitted one is named and skipped unless the user says
+   otherwise:
+   - `docs/product/PRD.md` as `prd`;
+   - `docs/product/questions.md`, `backlog.md`, `coverage.md`,
+     `user-flows.md`, `estimate.md`, `IMPORT.md` and `docs/decisions.md`
+     as `doc`;
+   - an "Architecture decisions" document as `design` (`--source
+     docs/adr`, its content the decision log, or one line per ADR when
+     there is no log), then every `docs/adr/*.md` as `design` with
+     `--parent` set to its id;
+   - `docs/architecture/*.md` (high- and low-level designs) as `design`.
+2. **One call per file:** `brg-tracker doc-put --title "<the file's first
+   # heading>" --file <path> --source <path> --type <t>`. The source
+   marker makes a rerun update the same document, renamed or not, and an
+   unchanged file is reported `unchanged` with nothing written.
+3. **Never** call the tracker's own story generation from a document:
+   `backlog` owns the stories, and generated ones would duplicate them.
+4. `documents: not supported` (exit 3) is a skip, reported, not a failure;
+   `this tracker does not support documents` (exit 1) means the server
+   lacks the optional endpoints: report it and file the tickets anyway.
+
 `get`, `list`, `config`: print what the script returns.
 
 ### Step 4: payloads when nothing can be sent
@@ -180,6 +220,7 @@ Placeholders live only in these commands, never in the repository.
 tracker: <rest | jira | gitlab | github | none> (<command>)
 <key> <type> "<title>" status=<name>       # one line per ticket touched or planned
 created N, updated N, comments N, links N, failed N, skipped N, held N
+documents: created N, updated N, unchanged N, skipped N    # docs runs
 ```
 
 Then Changed, Verified, Not done, Noticed. Say plainly whether anything
