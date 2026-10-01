@@ -973,7 +973,7 @@
     "turn this brief into requirements"
    ],
    "invocation": "auto",
-   "args": "<path to the input file, or paste the brief in the message>"
+   "args": "<attach the brief, give its path, or paste it in the message>"
   },
   {
    "name": "privacy-review",

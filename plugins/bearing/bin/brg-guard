@@ -225,6 +225,9 @@ NL="$(printf '\nx')"; NL="${NL%x}"
 TAB="$(printf '\t')"
 SQCH="'"
 ASSIGN="$NL"   # VAR=value assignments seen in this command, newline separated
+US="$(printf '\037')"
+FORLIST="$NL"  # for NAME in literal words: NAME=w1<US>w2<US>, newline separated
+ARGV_AFTER_FOR=()
 LENIENT=0      # inside an interpreter code string: variables are not refused
 CODE_TEXT=0    # inside the text of Python or JavaScript that runs no command
 WILDMODE=0     # match_rule: a variable or substitution argument may be anything
@@ -350,6 +353,31 @@ record_assignment() { # NAME=value: remember it; a value that git or a pager run
   esac
   ASSIGN="$ASSIGN$nm=$v$NL"
 }
+# record_for_list: ARGV is "for NAME in w1 w2 ... [do cmd...]". When every word
+# is a literal, NAME is remembered with its list so "$NAME" later in the
+# command is checked once per value ("for p in python3 python3.12; do $p -V;
+# done" was refused as an unreadable program). A list holding a variable, a
+# substitution or a glob is not recorded, so a use of NAME stays unreadable.
+# Leaves ARGV at the command after an inline "do", or empty.
+record_for_list() {
+  local nm="${ARGV[1]:-}" i=3 w vals='' ok=1
+  ARGV_AFTER_FOR=()
+  case "$nm" in [A-Za-z_]*) case "$nm" in *[!A-Za-z0-9_]*) ok=0;; esac;; *) ok=0;; esac
+  [ "${ARGV[2]:-}" = in ] || ok=0
+  while [ $i -lt "${#ARGV[@]}" ]; do
+    w="${ARGV[$i]}"
+    if [ "$w" = 'do' ]; then ARGV_AFTER_FOR=("${ARGV[@]:$((i+1))}"); break; fi
+    case "$w" in *'$'*|*"$SUBST"*|*'*'*|*'?'*|*'['*|*"$US"*|*"$NL"*) ok=0;; esac
+    vals="$vals$w$US"
+    i=$((i+1))
+  done
+  [ $ok -eq 1 ] && [ -n "$vals" ] && FORLIST="$FORLIST$nm=$vals$NL"
+  return 0
+}
+for_values() { # for_values <name>: FV is the US-separated list of a recorded for loop, rc 1 if none
+  case "$FORLIST" in *"${NL}$1="*) FV="${FORLIST##*"${NL}$1="}"; FV="${FV%%"${NL}"*}"; return 0;; esac
+  return 1
+}
 quote_rest() { # quote_rest <from>: QREST is ARGV[from..] re-quoted as one shell string
   local i="$1" out=''
   while [ $i -lt "${#ARGV[@]}" ]; do sq "${ARGV[$i]}"; out="$out${out:+ }$SQ"; i=$((i+1)); done
@@ -361,7 +389,27 @@ argv_rest_plain() { # from index $1: the tokens joined with spaces, as eval does
   printf '%s' "$out"
 }
 resolve_vars_and_recurse() { # <depth>: re-check with every assigned $NAME replaced by its value; rc 1 when nothing resolved
-  local i=0 out='' t hit=0
+  local i=0 out='' t hit=0 fidx=-1 v rest
+  # A for-loop variable is checked once per value of its literal list.
+  while [ $i -lt "${#ARGV[@]}" ]; do
+    case "${ARGV[$i]}" in '$'*) var_name_of "${ARGV[$i]}"
+      if [ -n "$VN" ] && ! assigned_value "$VN" && for_values "$VN"; then fidx=$i; break; fi;; esac
+    i=$((i+1))
+  done
+  if [ $fidx -ge 0 ]; then
+    rest="$FV"
+    while [ -n "$rest" ]; do
+      v="${rest%%"$US"*}"; rest="${rest#*"$US"}"
+      out=''; i=0
+      while [ $i -lt "${#ARGV[@]}" ]; do
+        if [ $i -eq $fidx ]; then out="$out${out:+ }$v"; else sq "${ARGV[$i]}"; out="$out${out:+ }$SQ"; fi
+        i=$((i+1))
+      done
+      recurse "$out" "$1"
+    done
+    return 0
+  fi
+  i=0
   while [ $i -lt "${#ARGV[@]}" ]; do
     t="${ARGV[$i]}"
     case "$t" in
@@ -678,6 +726,9 @@ strip_wrappers() {
         while [ "${#ARGV[@]}" -gt 0 ]; do case "${ARGV[0]}" in [A-Za-z_]*=*) record_assignment "${ARGV[0]}";; esac; shift_argv; done
         return;;
       '{'|'}'|'!'|if|then|else|elif|fi|do|done|while|until|'&&'|'||') shift_argv;;
+      for) record_for_list
+           [ "${#ARGV_AFTER_FOR[@]}" -gt 0 ] || { ARGV=(); return; }
+           ARGV=("${ARGV_AFTER_FOR[@]}");;
       env)
         shift_argv
         while [ "${#ARGV[@]}" -gt 0 ]; do

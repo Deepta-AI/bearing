@@ -1,8 +1,8 @@
 ---
 name: prd
 description: 'Normalises any brief, notes or ticket into a PRD of numbered testable REQ statements, objectives, personas and open questions; no stories. Use when asked to "write the PRD" or "turn this brief into requirements".'
-argument-hint: "<path to the input file, or paste the brief in the message>"
-allowed-tools: Read, Write, Grep, Glob, Agent, Bash(ls:*), Bash(mkdir:*), Bash(wc:*)
+argument-hint: "<attach the brief, give its path, or paste it in the message>"
+allowed-tools: Read, Write, Grep, Glob, Agent, Bash(ls:*), Bash(mkdir:*), Bash(wc:*), Bash(git rev-parse:*), Bash(python3 *skills/prd/scripts/doc_to_text.py*)
 ---
 
 # prd
@@ -18,11 +18,13 @@ combined by `backlog`, never one story per line.
 
 ## Inputs
 
-- Product input: looks in `$1` as a file path, then the text of the
+- Product input: looks in `$1` as a file path, then a document attached
+  to the message (the app hands over its path, or inlines a text file,
+  which counts as pasted), then the text of the
   message, then `docs/product/PRD.md` to re-normalise; if absent, looks in
   `README.md` and `docs/**/*.md` for a brief or a feature list and, when
-  none describes the product, asks one question for a pasted brief or a
-  file path. Nothing after that stops the skill: "provide a brief, a file
+  none describes the product, asks one question for an attached
+  document, a pasted brief or a file path. Nothing after that stops the skill: "provide a brief, a file
   path or an existing PRD".
 - Existing PRD: looks in `docs/product/PRD.md` for ids to keep; if absent,
   numbering starts at `REQ-001`.
@@ -30,8 +32,16 @@ combined by `backlog`, never one story per line.
   skill; no repository copy is needed.
 - Existing register: looks in `docs/product/questions.md` for Q ids and
   decisions to keep; if absent, numbering starts at `Q-001`.
-- Input format: `.md`, `.txt`, `.html` and pasted text; a `.docx` or a
-  Notion link gets one question asking for a text export.
+- Input format: `.md`, `.txt`, `.html` and pasted text are read as they
+  are; a `.pdf` is read with Read (20 pages per call); a `.docx` or `.odt`
+  is converted by `scripts/doc_to_text.py` in this skill (standard library
+  Python). Only a legacy `.doc`, a Google Doc or a Notion link gets one
+  question asking for a `.docx`, PDF or text export.
+- Target repository: the git repository the session runs in
+  (`git rev-parse --show-toplevel`). When the working directory is not
+  one, or is a folder holding several repositories, ask one question for
+  the product's repository path; never write `docs/product` into a parent
+  folder.
 - Repository decisions: `docs/adr/*.md` (or wherever the README keeps
   decisions) and the code that already handles the domain; if absent, the
   input is checked against itself only and the report says so.
@@ -41,8 +51,14 @@ combined by `backlog`, never one story per line.
 
 ## Steps
 
-1. Locate the input in the order under Inputs and print its size (`wc -l`,
-   or the pasted line count) and its source. A README or a docs page used
+1. Locate the input in the order under Inputs and save its text as
+   `docs/product/source/<input name>.txt` (`mkdir -p docs/product/source`),
+   so every REQ's Source cites `L<n>` of a file in the repository: a
+   `.docx` or `.odt` with `python3
+   "${CLAUDE_PLUGIN_ROOT}/skills/prd/scripts/doc_to_text.py" <input>
+   docs/product/source/<input name>.txt` (it fails on a document with no
+   text), a PDF, an attachment or a paste with Write, a repository file
+   cited where it is. Print its size (`wc -l`) and its source. A README or a docs page used
    as the brief is named as the source so the reader knows the PRD was
    inferred from it.
 2. Read `templates/PRD.md` and `templates/questions.md`. If `docs/product/PRD.md` exists, read it and

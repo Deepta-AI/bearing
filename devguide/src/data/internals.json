@@ -4,13 +4,13 @@
   "skills": 106,
   "commandSkills": 0,
   "stackSkills": 12,
-  "scripts": 82,
-  "scriptLines": 27319,
+  "scripts": 83,
+  "scriptLines": 27489,
   "hooks": 6,
   "agents": 7,
   "makeTargets": 26,
   "gates": 15,
-  "tests": 70,
+  "tests": 71,
   "fixtures": 21,
   "stacks": 13,
   "templates": 38,
@@ -18,7 +18,7 @@
   "ghJobs": 6,
   "ghWorkflows": 2,
   "evals": 106,
-  "skillFiles": 915
+  "skillFiles": 916
  },
  "plugins": [
   {
@@ -26,7 +26,7 @@
    "dir": "plugins/bearing",
    "description": "A developer workflow for coding agents: skills for every stage from brief to runbook, review subagents, one guard behind every hook, and repository templates. The stack conventions come in bearing-backend and bearing-apps.",
    "required": true,
-   "files": 425,
+   "files": 426,
    "skills": [
     "ab-experiment",
     "accessibility",
@@ -9300,7 +9300,7 @@
    "description": "Normalises any brief, notes or ticket into a PRD of numbered testable REQ statements, objectives, personas and open questions; no stories. Use when asked to \"write the PRD\" or \"turn this brief into requirements\".",
    "invocation": "auto",
    "kind": "step",
-   "args": "<path to the input file, or paste the brief in the message>",
+   "args": "<attach the brief, give its path, or paste it in the message>",
    "tools": [
     "Read",
     "Write",
@@ -9309,18 +9309,20 @@
     "Agent",
     "Bash(ls:*)",
     "Bash(mkdir:*)",
-    "Bash(wc:*)"
+    "Bash(wc:*)",
+    "Bash(git rev-parse:*)",
+    "Bash(python3 *skills/prd/scripts/doc_to_text.py*)"
    ],
    "extra": {},
    "intro": "The PRD is the root of the traceability chain. Every `REQ-nnn` written here is carried by stories, criteria, tests and commits, so the skill extracts only what the input says, marks what it had to infer, and never renumbers.",
    "sections": [
     {
      "title": "Inputs",
-     "lines": 20
+     "lines": 30
     },
     {
      "title": "Steps",
-     "lines": 93
+     "lines": 99
     },
     {
      "title": "Output contract",
@@ -9332,16 +9334,17 @@
     }
    ],
    "inputs": [
-    "Product input: looks in `$1` as a file path, then the text of the message, then `docs/product/PRD.md` to re-normalise; if absent, looks in `README.md` and `docs/**/*.md` for a brief or a feature list and, when none describes the product, asks one question for a pasted brief or a file path. Nothing after that stops the skill: \"provide a brief, a file path or an existing PRD\".",
+    "Product input: looks in `$1` as a file path, then a document attached to the message (the app hands over its path, or inlines a text file, which counts as pasted), then the text of the message, then `docs/product/PRD.md` to re-normalise; if absent, looks in `README.md` and `docs/**/*.md` for a brief or a feature list and, when none describes the product, asks one question for an attached document, a pasted brief or…",
     "Existing PRD: looks in `docs/product/PRD.md` for ids to keep; if absent, numbering starts at `REQ-001`.",
     "Templates: `templates/PRD.md` and `templates/questions.md` in this skill; no repository copy is needed.",
     "Existing register: looks in `docs/product/questions.md` for Q ids and decisions to keep; if absent, numbering starts at `Q-001`.",
-    "Input format: `.md`, `.txt`, `.html` and pasted text; a `.docx` or a Notion link gets one question asking for a text export.",
+    "Input format: `.md`, `.txt`, `.html` and pasted text are read as they are; a `.pdf` is read with Read (20 pages per call); a `.docx` or `.odt` is converted by `scripts/doc_to_text.py` in this skill (standard library Python). Only a legacy `.doc`, a Google Doc or a Notion link gets one question asking for a `.docx`, PDF or text export.",
+    "Target repository: the git repository the session runs in (`git rev-parse --show-toplevel`). When the working directory is not one, or is a folder holding several repositories, ask one question for the product's repository path; never write `docs/product` into a parent folder.",
     "Repository decisions: `docs/adr/*.md` (or wherever the README keeps decisions) and the code that already handles the domain; if absent, the input is checked against itself only and the report says so.",
     "Existing stories: looks in `docs/product/stories.md` (or the tracker export the README names) for the story ids that carry each REQ; if absent, Affects stays on REQ ids."
    ],
    "steps": [
-    "Locate the input in the order under Inputs and print its size (`wc -l`, or the pasted line count) and its source. A README or a docs page used as the brief is named as the source so the reader knows the PRD was inferred from it.",
+    "Locate the input in the order under Inputs and save its text as `docs/product/source/<input name>.txt` (`mkdir -p docs/product/source`), so every REQ's Source cites `L<n>` of a file in the repository: a `.docx` or `.odt` with `python3 \"${CLAUDE_PLUGIN_ROOT}/skills/prd/scripts/doc_to_text.py\" <input> docs/product/source/<input name>.txt` (it fails on a document with no text), a PDF, an attachment or a paste with Writ…",
     "Read `templates/PRD.md` and `templates/questions.md`. If `docs/product/PRD.md` exists, read it and keep every existing `REQ-nnn` id and text; new statements append after the highest id in the whole file (ids are not always in order in the tables), withdrawn statements stay in the list marked `withdrawn:`. Never renumber. When the input changes an existing statement, apply step 7a.",
     "First pass, sections. Fill problem, business objectives, non-goals, personas, constraints, glossary from the input only. Objectives get ids `B1` upward, kept across runs; every story's \"Why it matters\" line cites one. An objective with no number in the input gets `target: unconfirmed`. A persona is a named role in the input; if none is named, derive at most one from the verbs and mark it `inferred:`. Any section the…",
     "Second pass, statements. Walk every sentence carrying must, should, shall, needs, can, will, allow, or an imperative, and every bullet. Each becomes one `REQ-nnn`: one testable statement, present tense, the system as subject. Split a sentence joining two capabilities with \"and\". Convert story form (\"As a user I want\") to a statement and keep the persona. Keep a solution only if the input names it, then move it to Co…",
@@ -9361,11 +9364,15 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 168,
+   "lines": 184,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 168
+     "lines": 184
+    },
+    {
+     "path": "scripts/doc_to_text.py",
+     "lines": 119
     },
     {
      "path": "templates/PRD.md",
@@ -9378,6 +9385,7 @@
    ],
    "groups": {
     ".": 1,
+    "scripts": 1,
     "templates": 2
    },
    "evals": true,
@@ -14467,7 +14475,7 @@
    "name": "brg-guard",
    "lang": "bash",
    "group": "guard",
-   "lines": 1724,
+   "lines": 1775,
    "header": "brg-guard: the harness-neutral guard logic behind every hook adapter.\n\n  brg-guard command \"<shell command>\"   exit 2 and a message when the command\n                                        publishes, rewrites history, deploys\n                                        or destroys; exit 2 when the command\n                                        cannot be read (fail closed)\n  brg-guard format <file>               format one file with the repo's formatter\n  brg-guard task-id [\"<prompt>\"]        print \"Task: <ID> ...\" when the branch\n                                        carries a ticket id the prompt lacks\n  brg-guard session                     print branch, task, changes, handoff state\n  brg-guard stop                        print a reminder when changes are unchecked\n  brg-guard stop-gate --id <session> [--active]\n                                        exit 2 (reason on stderr) when files\n                                        changed in this session since make\n                                        check last passed; --active (the\n                                        harness already continued once) only\n                                        reminds, so it never loops\n  brg-guard check-file <file>           lint one edited file (make check-file\n                                        when the Makefile has it); exit 2 and\n                                        the problems on stderr\n  brg-guard precompact [<transcript>]   write .bearing/state/<branch>.compact.md\n  brg-guard session [--id <session>] [--source startup|resume|compact]\n  brg-guard stats                       what the gates decided here, how often\n                                        and at what cost (.bearing/state/gates.log)\n  brg-guard readonly \"<shell command>\"  exit 2 unless every program in the\n                                        command is a read-only tool (git\n                                        diff|log|show|status|blame|ls-files,\n                                        ls, cat, grep, rg, find without -exec,\n                                        sed without -i, jq and similar);\n                                        used by the read-only subagents\n  brg-guard --verbs                     the blocked verb table (tool, pattern,\n                                        label; tab-separated) for generators\n  brg-guard --version                   the version stamp\n\nClaude Code hooks, Cursor hooks and any other harness adapter call these\nsubcommands and translate their own event JSON into arguments. One logic,\none behaviour on every harness. Runs on bash 3.2 (macOS) and needs no tool\nbeyond git for the session subcommands.",
    "functions": [
     "verb_table",
@@ -14484,6 +14492,8 @@
     "var_name_of",
     "assigned_value",
     "record_assignment",
+    "record_for_list",
+    "for_values",
     "quote_rest",
     "argv_rest_plain",
     "resolve_vars_and_recurse",
@@ -15849,6 +15859,23 @@
    "calls": []
   },
   {
+   "path": "plugins/bearing/skills/prd/scripts/doc_to_text.py",
+   "name": "doc_to_text.py",
+   "lang": "python",
+   "group": "skill",
+   "skill": "prd",
+   "lines": 119,
+   "header": "doc_to_text.py: turn a .docx or .odt brief into plain text the prd skill\ncan cite by line.\n\nUsage: python3 doc_to_text.py <input.docx|input.odt> <output.txt>\n\nHeadings become \"# \" lines, list items \"- \" lines and table rows\n\"| a | b |\" lines, one paragraph per line, so a requirement keeps a stable\nline number (L<n>) in the saved export. Standard library only. Some Python\nbuilds lack zlib and cannot inflate a zip member; the script then reads the\nmember with `unzip -p` (a client .docx arrived this way on 1 Oct 2026 and\nthe skill used to stop and ask for a text export).\n\nExit 0 and prints \"<lines> lines from <input>\"; exit 1 when the document\nholds no text, because an empty export is a failed conversion, not a brief.",
+   "functions": [
+    "read_member",
+    "docx_lines",
+    "odt_lines",
+    "main"
+   ],
+   "env": [],
+   "calls": []
+  },
+  {
    "path": "plugins/bearing/skills/prose-lint/scripts/prose_check.py",
    "name": "prose_check.py",
    "lang": "python",
@@ -16973,7 +17000,7 @@
   {
    "path": "tests/unit/guard_deny_table.sh",
    "kind": "unit",
-   "lines": 540,
+   "lines": 549,
    "header": "tests/unit/guard_deny_table.sh: brg-guard command against a table of commands. Every proven bypass (wrappers, git options, chaining, quoting, substitution, empty input, the sentinel) must be denied; look-alike safe commands must be allowed. Blocked strings are assembled at run time so the file never holds a blocked command on one line.",
    "asserts": 66
   },
@@ -17088,6 +17115,13 @@
    "lines": 56,
    "header": "tests/unit/pins_match.sh: every external fetch Bearing makes is pinned, and pinned in one place (plugins/bearing/bin/pinned-packs.txt). 1. Every row of pinned-packs.txt is well formed: git rows (skill, plugin, cli, clone) pin a full commit, npm and pypi rows an exact version. 2. Every npx, pnpm dlx, uvx or uv --with fetch in what the plugins run (install.sh, plugins/*/bin, each skill's SKILL.md, references/, scripts/ and the two templates a skill runs itself) names an exact version, and that version is the one pinned-packs.txt holds. `npx expo` is exempt: it runs the repository's own locked e…",
    "asserts": 10
+  },
+  {
+   "path": "tests/unit/prd_doc_to_text.sh",
+   "kind": "unit",
+   "lines": 63,
+   "header": "tests/unit/prd_doc_to_text.sh: plugins/bearing/skills/prd/scripts/doc_to_text.py turns a .docx or .odt brief into one line per paragraph (headings \"# \", list items \"- \", table rows \"| a | b |\") so REQ sources cite stable line numbers; an ODT list item is one line, not repeated for its paragraph; fails on a document with no text and on an unsupported format.",
+   "asserts": 9
   },
   {
    "path": "tests/unit/progress.sh",
@@ -18132,9 +18166,10 @@
    "version": "Unreleased",
    "date": "",
    "groups": [
-    "Added"
+    "Added",
+    "Fixed"
    ],
-   "entries": 10,
+   "entries": 12,
    "summary": "First public release, under the MIT licence."
   }
  ],
