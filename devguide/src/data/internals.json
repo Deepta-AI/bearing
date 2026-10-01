@@ -5,7 +5,7 @@
   "commandSkills": 0,
   "stackSkills": 12,
   "scripts": 84,
-  "scriptLines": 27983,
+  "scriptLines": 28125,
   "hooks": 6,
   "agents": 8,
   "makeTargets": 26,
@@ -18,7 +18,7 @@
   "ghJobs": 6,
   "ghWorkflows": 2,
   "evals": 106,
-  "skillFiles": 917
+  "skillFiles": 960
  },
  "plugins": [
   {
@@ -144,7 +144,7 @@
    "dir": "plugins/bearing-apps",
    "description": "Bearing stack conventions and repository templates for apps: React, Next.js, React Native (Expo), Flutter, native iOS and native Android. Needs the bearing plugin.",
    "required": false,
-   "files": 321,
+   "files": 364,
    "skills": [
     "android",
     "flutter",
@@ -1373,7 +1373,7 @@
     },
     {
      "title": "Steps",
-     "lines": 119
+     "lines": 141
     },
     {
      "title": "Output contract",
@@ -1399,11 +1399,11 @@
     "Start or resume: `python3 \"${CLAUDE_PLUGIN_ROOT}/bin/brg-autopilot\" start \"<statement>\"`, or `status` then `next` on `--resume`. Print the run id. 1a. The repo stage on an existing repository. The gates read a git repository, a Makefile `check` target that records a pass (`.bearing/state/.check-passed`), and `.scratch/` and `.bearing/state/` kept out of git. Whatever of that is present stays as it is; `done repo` pa…",
     "Loop until `next` says every stage is done or a stage is blocked: 1. `next` names the stage, its skill and its gate. 2. Run the stage's skill in auto mode (below). 3. `done <stage>`. On \"gate not met\", fix what it names and run `done` again; when the same stage cannot be fixed, `fail <stage> \"<why>\"`, which allows three attempts before the stage is blocked.",
     "Auto mode, for every stage: wherever a skill says to ask the user, to stop and wait, or to confirm, take the option the skill recommends and go on. Then: - record the choice with `decision <key> \"<choice>\" \"<alternatives>\" \"<why>\" --adr <path>`, one row per choice, in the words a reviewer needs; - any ADR or decision record the stage writes has status Proposed and names no decider; `done decide` fails on an Accepted…",
-    "The product profile, at the end of the decide stage: `profile --ui yes|no --data yes|no --api yes|no --deploy yes|no [--ui-stack <stack>] [--scope lean|full] --why \"<reason>\"`. The ui stack is React with shadcn/ui and Tailwind (`react-shadcn`) unless the statement or the repository names another; only then pass `--ui-stack` (flutter, react-native, compose, swiftui, html) and record why. It decides which stages apply…",
+    "The product profile, at the end of the decide stage: `profile --ui yes|no --data yes|no --api yes|no --deploy yes|no [--llm yes|no] [--ui-stack <stack>] [--scope lean|full] --why \"<reason>\"`. The ui stack is React with shadcn/ui and Tailwind (`react-shadcn`) unless the statement or the repository names another; only then pass `--ui-stack` (flutter, react-native, compose, swiftui, html) and record why. It decides whi…",
     "Tools go through the repository's make targets: `make setup` once the repo stage is done, `make check` for the gate, `make fix` for format. Never call a package manager directly (`uv sync`, `pnpm install`): the repository asks before those and nobody is there to answer.",
-    "Before the build, in lean scope: the design note, then test-cases (the risk register and the case table only). In full scope: architecture-diagram writes the C4 file; design runs high-level-design, then data-model, openapi-spec and deployment-architecture as the profile names, then low-level-design; repos runs new-repo once for each entry of docs/architecture/repo-plan.json, in `<parent>/<Name>` beside this reposito…",
+    "Before the build, in lean scope: the design note, then test-cases (the risk register and the case table only). In full scope: architecture-diagram writes the C4 file; design runs high-level-design, then data-model, openapi-spec and deployment-architecture as the profile names, then threat-model (it needs the entry points and stored fields those wrote) and genai-design when the profile says llm; repos runs new-repo o…",
     "Build is test first, story by story, in the order of the backlog: a failing test named for the story, the code, `make check`, a commit per story with the task id. The edit hook's lint findings are fixed when they arrive; the Stop hook's `make check` demand is met, not argued with. No test asserts on wall-clock time: it passes on the laptop and flakes in CI. Before the first line of code, read the traps below and put…",
-    "After the build: test-automation names a test after every case that is not manual-only or retired (its TC id in the test name); for a UI, design-critique scores the design gallery of the running app (`make dev`) across every screen and state, fixes the top findings and re-scores until the bar holds: overall 8.0, no category below 7, every screenshot present. The design_review gate reads the report; a design under th…",
+    "After the build: test-automation names a test after every case that is not manual-only or retired (its TC id in the test name); with llm in the profile, llm-guardrails writes `guardrails/policy.yaml` and wires it at the call sites, and llm-eval writes `docs/genai/evals.md` (an eval that needs a provider key the run lacks is written and marked not run, never reported as passed); for a UI, design-critique scores the d…",
     "Review is `branch-review`; fix every Critical and High it confirms, then `make check` again. `definition-of-done` walks the definition of done, including item 13: start what the repository ships and drive its main flow, sign-in first, against the real backend. A bug the smoke run finds is fixed test first like any other, then the smoke runs again; the dod gate refuses a smoke file older than the last commit. Headles…",
     "The mr stage: `merge-request` prepares the description; `report` writes `docs/autopilot/<run>.md`; commit it, and let that commit be the last write (`git status` clean after it: a progress file touched later is work the MR does not carry); paste its decisions table into the description, with the exact push command (`git push -u origin <branch>`) under it; print the same command in the last message. Do not run it.",
     "Blocked or finished, the last message is the report: stages done, the decisions to review, what is not done and why, and the push command when the MR is ready."
@@ -1419,11 +1419,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 257,
+   "lines": 279,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 257
+     "lines": 279
     }
    ],
    "groups": {
@@ -2487,7 +2487,7 @@
     },
     {
      "path": "scripts/apply_check.sh",
-     "lines": 57
+     "lines": 66
     },
     {
      "path": "scripts/model_check.py",
@@ -3285,7 +3285,7 @@
     },
     {
      "title": "Gotchas",
-     "lines": 8
+     "lines": 20
     }
    ],
    "inputs": [
@@ -3310,6 +3310,7 @@
    ],
    "output": "",
    "gotchas": [
+    "Managed platforms (Vercel, Netlify, Cloudflare, Supabase, Firebase, Render) have no manifests to read: the ADRs, the platform's config file (`vercel.json`, `netlify.toml`, `wrangler.toml`, `supabase/config.toml`) and the CI file are the sources. Map the template's words before filling it, and say so in the document: a workload is a function or cron job, replicas are per-request instances (min 0, max the plan's concu…",
     "Compose is dev. Do not describe prod from a compose file; say \"unconfirmed: from compose\" when that is all there is.",
     "Never write a production hostname, IP or credential from memory. Copy it from a file with its line, or leave it unconfirmed.",
     "A rollback that needs a migration Down is only a rollback if the Down was tested (`db-migration`). Say which.",
@@ -3318,11 +3319,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 118,
+   "lines": 130,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 118
+     "lines": 130
     },
     {
      "path": "templates/deployment.md",
@@ -5514,7 +5515,7 @@
     },
     {
      "title": "Steps",
-     "lines": 128
+     "lines": 132
     },
     {
      "title": "Traps",
@@ -5569,15 +5570,15 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 313,
+   "lines": 317,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 313
+     "lines": 317
     },
     {
      "path": "scripts/arch_check.py",
-     "lines": 471
+     "lines": 476
     },
     {
      "path": "templates/HLD.md",
@@ -8004,11 +8005,11 @@
     },
     {
      "title": "Layout",
-     "lines": 16
+     "lines": 20
     },
     {
      "title": "On a foreign layout",
-     "lines": 14
+     "lines": 23
     },
     {
      "title": "Rules that matter most",
@@ -8059,11 +8060,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 215,
+   "lines": 228,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 215
+     "lines": 228
     },
     {
      "path": "references/guidelines.md",
@@ -8111,7 +8112,7 @@
     },
     {
      "path": "templates/Makefile",
-     "lines": 180
+     "lines": 189
     },
     {
      "path": "templates/README.md",
@@ -8135,7 +8136,7 @@
     },
     {
      "path": "templates/package.json",
-     "lines": 69
+     "lines": 71
     },
     {
      "path": "templates/playwright.config.ts",
@@ -8152,6 +8153,18 @@
     {
      "path": "templates/skeleton/public/favicon.svg",
      "lines": 1
+    },
+    {
+     "path": "templates/skeleton/scripts/design-registry.mjs",
+     "lines": 68
+    },
+    {
+     "path": "templates/skeleton/src/app/%5F%5Fdesign/[id]/page.tsx",
+     "lines": 18
+    },
+    {
+     "path": "templates/skeleton/src/app/%5F%5Fdesign/page.tsx",
+     "lines": 13
     },
     {
      "path": "templates/skeleton/src/app/api/healthz/route.test.ts",
@@ -8206,8 +8219,156 @@
      "lines": 26
     },
     {
-     "path": "templates/skeleton/src/components/ui/button.tsx",
+     "path": "templates/skeleton/src/components/ui/README.md",
+     "lines": 32
+    },
+    {
+     "path": "templates/skeleton/src/components/ui/alert.tsx",
      "lines": 59
+    },
+    {
+     "path": "templates/skeleton/src/components/ui/avatar.tsx",
+     "lines": 95
+    },
+    {
+     "path": "templates/skeleton/src/components/ui/badge.tsx",
+     "lines": 45
+    },
+    {
+     "path": "templates/skeleton/src/components/ui/breadcrumb.tsx",
+     "lines": 101
+    },
+    {
+     "path": "templates/skeleton/src/components/ui/button.tsx",
+     "lines": 61
+    },
+    {
+     "path": "templates/skeleton/src/components/ui/card.tsx",
+     "lines": 74
+    },
+    {
+     "path": "templates/skeleton/src/components/ui/checkbox.tsx",
+     "lines": 28
+    },
+    {
+     "path": "templates/skeleton/src/components/ui/command.tsx",
+     "lines": 161
+    },
+    {
+     "path": "templates/skeleton/src/components/ui/dialog.tsx",
+     "lines": 144
+    },
+    {
+     "path": "templates/skeleton/src/components/ui/dropdown-menu.tsx",
+     "lines": 228
+    },
+    {
+     "path": "templates/skeleton/src/components/ui/hover-card.tsx",
+     "lines": 37
+    },
+    {
+     "path": "templates/skeleton/src/components/ui/input.tsx",
+     "lines": 20
+    },
+    {
+     "path": "templates/skeleton/src/components/ui/label.tsx",
+     "lines": 20
+    },
+    {
+     "path": "templates/skeleton/src/components/ui/pagination.tsx",
+     "lines": 106
+    },
+    {
+     "path": "templates/skeleton/src/components/ui/popover.tsx",
+     "lines": 73
+    },
+    {
+     "path": "templates/skeleton/src/components/ui/progress.tsx",
+     "lines": 27
+    },
+    {
+     "path": "templates/skeleton/src/components/ui/radio-group.tsx",
+     "lines": 44
+    },
+    {
+     "path": "templates/skeleton/src/components/ui/scroll-area.tsx",
+     "lines": 55
+    },
+    {
+     "path": "templates/skeleton/src/components/ui/select.tsx",
+     "lines": 174
+    },
+    {
+     "path": "templates/skeleton/src/components/ui/separator.tsx",
+     "lines": 27
+    },
+    {
+     "path": "templates/skeleton/src/components/ui/sheet.tsx",
+     "lines": 133
+    },
+    {
+     "path": "templates/skeleton/src/components/ui/sidebar.tsx",
+     "lines": 694
+    },
+    {
+     "path": "templates/skeleton/src/components/ui/skeleton.tsx",
+     "lines": 13
+    },
+    {
+     "path": "templates/skeleton/src/components/ui/slider.tsx",
+     "lines": 58
+    },
+    {
+     "path": "templates/skeleton/src/components/ui/sonner.tsx",
+     "lines": 38
+    },
+    {
+     "path": "templates/skeleton/src/components/ui/switch.tsx",
+     "lines": 34
+    },
+    {
+     "path": "templates/skeleton/src/components/ui/table.tsx",
+     "lines": 89
+    },
+    {
+     "path": "templates/skeleton/src/components/ui/tabs.tsx",
+     "lines": 80
+    },
+    {
+     "path": "templates/skeleton/src/components/ui/textarea.tsx",
+     "lines": 17
+    },
+    {
+     "path": "templates/skeleton/src/components/ui/toggle-group.tsx",
+     "lines": 82
+    },
+    {
+     "path": "templates/skeleton/src/components/ui/toggle.tsx",
+     "lines": 45
+    },
+    {
+     "path": "templates/skeleton/src/components/ui/tooltip.tsx",
+     "lines": 52
+    },
+    {
+     "path": "templates/skeleton/src/design/Gallery.test.tsx",
+     "lines": 100
+    },
+    {
+     "path": "templates/skeleton/src/design/Gallery.tsx",
+     "lines": 118
+    },
+    {
+     "path": "templates/skeleton/src/design/registry.ts",
+     "lines": 50
+    },
+    {
+     "path": "templates/skeleton/src/design/screen.ts",
+     "lines": 30
+    },
+    {
+     "path": "templates/skeleton/src/design/screens.generated.ts",
+     "lines": 6
     },
     {
      "path": "templates/skeleton/src/env.server.test.ts",
@@ -8255,11 +8416,23 @@
     },
     {
      "path": "templates/skeleton/src/features/health/components/HealthCard.tsx",
-     "lines": 50
+     "lines": 26
+    },
+    {
+     "path": "templates/skeleton/src/features/health/components/HealthCardView.tsx",
+     "lines": 37
     },
     {
      "path": "templates/skeleton/src/features/health/schemas.ts",
      "lines": 9
+    },
+    {
+     "path": "templates/skeleton/src/features/health/screens/S-00-health.screen.tsx",
+     "lines": 18
+    },
+    {
+     "path": "templates/skeleton/src/hooks/use-mobile.ts",
+     "lines": 25
     },
     {
      "path": "templates/skeleton/src/lib/api.test.ts",
@@ -8307,13 +8480,13 @@
     },
     {
      "path": "templates/vitest.config.ts",
-     "lines": 42
+     "lines": 49
     }
    ],
    "groups": {
     ".": 1,
     "references": 3,
-    "templates": 58
+    "templates": 101
    },
    "evals": true,
    "hasSections": [
@@ -8994,7 +9167,7 @@
     },
     {
      "title": "Steps",
-     "lines": 77
+     "lines": 82
     },
     {
      "title": "Output contract",
@@ -9002,7 +9175,7 @@
     },
     {
      "title": "Gotchas",
-     "lines": 18
+     "lines": 22
     }
    ],
    "inputs": [
@@ -9018,7 +9191,7 @@
    "steps": [
     "Mode from `$1`: `new` writes a spec; `check` audits one. No argument: `check` when `api/openapi.yaml` exists, else `new`. Read `references/api-style.md` in both modes.",
     "`new`: read the stories and the HLD interfaces section for the operations and the ids they serve. Copy `templates/openapi.yaml` to `api/openapi.yaml` and fill it: every path and operation with `operationId`, `x-story-ids`, request and response schemas that each carry an `example`, the shared error envelope on every 4xx and 5xx, cursor pagination on every list, the auth scheme from the ADR, `X-API-Version` on every o…",
-    "`check`: extract routes from the code, per stack: - Go: `HandleFunc(\"METHOD /path\"`, `mux.Handle`, and chi, gin or echo `r.Get(`, `r.Post(` and friends; - FastAPI: `@router.get(\"`, `@app.post(\"` and the router prefix; - Express: `app.get(`, `router.post(`; - TanStack Start: server routes under `app/routes/api/` and `createServerFileRoute`; UI file routes are not API routes. Normalise path params (`{id}`, `:id`, `<id…",
+    "`check`: extract routes from the code, per stack: - Go: `HandleFunc(\"METHOD /path\"`, `mux.Handle`, and chi, gin or echo `r.Get(`, `r.Post(` and friends; - FastAPI: `@router.get(\"`, `@app.post(\"` and the router prefix; - Express: `app.get(`, `router.post(`; - TanStack Start: server routes under `app/routes/api/` and `createServerFileRoute`; UI file routes are not API routes. - Next.js App Router: each `app/**/route.t…",
     "Compare: routes in code not in spec; spec operations not in code; method mismatches; schema mismatches, checked per route by comparing the handler's request and response types with the spec's required fields. List each with file and line.",
     "Lint: `command -v npx` then `npx @redocly/cli@2.54.3 lint api/openapi.yaml`; print SKIPPED when unavailable. Breaking changes: the tag from `--against` or `git tag --sort=-v:refname | head -1`; write the old spec with `git show <tag>:api/openapi.yaml` to `.scratch/`, then `oasdiff breaking <old> api/openapi.yaml`; SKIPPED when unavailable or when no tag has a spec.",
     "Conformance: the grep in step 3 reads the code; this sends real requests. Paste `templates/api-conformance.mk` into the Makefile when it has no `api-conformance` target, and add a CI job `api-conformance` in stage `test` that starts the service (the stack's `docker compose up -d --wait` plus `make migrate`) and runs the target with `API_BASE_URL` set to it. When a local server answers its health route at `API_BASE_U…",
@@ -9034,15 +9207,16 @@
     "Never delete an operation from the spec; deprecate it with `deprecated: true` and a `Sunset` header so oasdiff can see it.",
     "`docs/api/API.md` is generated. Never edit it by hand; change the spec (or `references/api-style.md` for a convention) and rerun the script, or the page and the contract disagree the day after.",
     "A convention without its reason is a rule people route around. The style reference's numbered list carries a Why on every line; a project convention goes in the spec's `x-conventions` as `{rule, why}`.",
-    "No em dashes, including in descriptions inside the YAML."
+    "No em dashes, including in descriptions inside the YAML.",
+    "Redocly accepts flow-map values that PyYAML (which `api_doc.py` uses) rejects: an unquoted value with `?`, `: ` or a comma inside `{ }`. Quote every free-text value in a flow map (`{ text: \"How big are the plots?\" }`); a spec that lints but stops `api_doc.py` has no readable design."
    ],
    "layout": "",
    "commands": [],
-   "lines": 154,
+   "lines": 163,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 154
+     "lines": 163
     },
     {
      "path": "references/api-style.md",
@@ -13710,6 +13884,10 @@
      "lines": 107
     },
     {
+     "title": "A product with several packages, or no code yet",
+     "lines": 21
+    },
+    {
      "title": "Re-issuing with feedback",
      "lines": 30
     },
@@ -13762,11 +13940,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 249,
+   "lines": 273,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 249
+     "lines": 273
     },
     {
      "path": "references/flow-review.md",
@@ -13774,7 +13952,7 @@
     },
     {
      "path": "scripts/flows_check.py",
-     "lines": 307
+     "lines": 334
     },
     {
      "path": "templates/flows.md",
@@ -13791,6 +13969,7 @@
    "hasSections": [
     "Inputs",
     "Steps",
+    "A product with several packages, or no code yet",
     "Re-issuing with feedback",
     "Output contract",
     "Gotchas"
@@ -14283,8 +14462,8 @@
    "name": "brg-autopilot",
    "lang": "python",
    "group": "workflow",
-   "lines": 1288,
-   "header": "brg-autopilot: the state, the gates and the report of an unattended run from\none requirement statement to a prepared merge request.\n\nThe autopilot skill drives the stages; this script is the part that cannot\nbe talked around: which stage is next, whether its gate holds (checked on\ndisk, never taken from the model's word), how many attempts are left, the\ndigest of every decision taken on the user's behalf, and the report. Nothing\nhere pushes, merges or deploys; the run stops at a prepared merge request.\n\n  brg-autopilot start \"<statement>\" [--dir D]   begin a run (refuses when one is open)\n  brg-autopilot next [--dir D]                  the next stage, its skill and its gate\n  brg-autopilot done <stage> [--dir D]          check the gate; mark done or say what is missing\n  brg-autopilot fail <stage> \"<why>\" [--dir D]  count a failed attempt (3 and the stage is blocked)\n  brg-autopilot decision <key> <choice> <alternatives> <why> [--adr PATH] [--dir D]\n                                                one row of the decision digest\n  brg-autopilot report [--dir D]                write docs/autopilot/<run>.md (the MR carries it)\n  brg-autopilot status [--dir D]                the stages, attempts and decisions so far\n  brg-autopilot profile --ui|--data|--api|--deploy yes|no [--scope lean|full] --why W [--dir D]\n                                                what the product has; decides which stages apply\n                                                and how much document each one needs\n  brg-autopilot stages                          the stage names, in order\n  brg-autopilot launch \"<statement>\" [--dir D] [--print]\n                                                run it headless: claude -p with autopilot,\n                                                then any smoke it asked for, outside the sandbox\n  brg-autopilot smoke-request [--id ID] [--dir D]\n                                                headless dod: ask the launcher to run the smoke\n  brg-autopilot repos-request [--dir D]         headless repos: ask the launcher to scaffold the\n                                                repo plan's missing repositories beside this one\n\nState lives in <dir>/.bearing/state/autopilot.json. Every command prints what it\nchecked and exits 1 when a gate fails or there is nothing to act on.",
+   "lines": 1352,
+   "header": "brg-autopilot: the state, the gates and the report of an unattended run from\none requirement statement to a prepared merge request.\n\nThe autopilot skill drives the stages; this script is the part that cannot\nbe talked around: which stage is next, whether its gate holds (checked on\ndisk, never taken from the model's word), how many attempts are left, the\ndigest of every decision taken on the user's behalf, and the report. Nothing\nhere pushes, merges or deploys; the run stops at a prepared merge request.\n\n  brg-autopilot start \"<statement>\" [--dir D]   begin a run (refuses when one is open)\n  brg-autopilot next [--dir D]                  the next stage, its skill and its gate\n  brg-autopilot done <stage> [--dir D]          check the gate; mark done or say what is missing\n  brg-autopilot fail <stage> \"<why>\" [--dir D]  count a failed attempt (3 and the stage is blocked)\n  brg-autopilot decision <key> <choice> <alternatives> <why> [--adr PATH] [--dir D]\n                                                one row of the decision digest\n  brg-autopilot report [--dir D]                write docs/autopilot/<run>.md (the MR carries it)\n  brg-autopilot status [--dir D]                the stages, attempts and decisions so far\n  brg-autopilot profile --ui|--data|--api|--deploy yes|no [--llm yes|no] [--scope lean|full] --why W [--dir D]\n                                                what the product has; decides which stages apply\n                                                and how much document each one needs\n  brg-autopilot stages                          the stage names, in order\n  brg-autopilot launch \"<statement>\" [--dir D] [--print]\n                                                run it headless: claude -p with autopilot,\n                                                then any smoke it asked for, outside the sandbox\n  brg-autopilot smoke-request [--id ID] [--dir D]\n                                                headless dod: ask the launcher to run the smoke\n  brg-autopilot repos-request [--dir D]         headless repos: ask the launcher to scaffold the\n                                                repo plan's missing repositories beside this one\n\nState lives in <dir>/.bearing/state/autopilot.json. Every command prints what it\nchecked and exits 1 when a gate fails or there is nothing to act on.",
    "functions": [
     "sh",
     "git",
@@ -14321,6 +14500,7 @@
     "g_ux",
     "newest_flows",
     "ux_screens_as_code",
+    "g_lld",
     "g_test_cases",
     "tc_named",
     "g_test_automation",
@@ -14770,7 +14950,7 @@
    "name": "brg-scaffold",
    "lang": "bash",
    "group": "scaffold",
-   "lines": 251,
+   "lines": 288,
    "header": "brg-scaffold: create a repository from the Bearing templates.\n\n  brg-scaffold <stack> <PascalName> [--dir <path>] [--module <go module>]\n               [--host gitlab|github|both] [--tracker PREFIX|none]\n               [--lead @user] [--group @group] [--databases \"PostgreSQL\"]\n               [--org com.example] [--kit-remote <url>] [--check]\n\nDefaults for --host, --tracker, --org and --kit-remote come from BEARING_GIT_HOST,\nBEARING_TASK_ID_PREFIX, BEARING_ORG_ID and BEARING_KIT_REMOTE in\n~/.config/bearing/bearing.env (then both, the BEARING_TRACKER name or none,\ncom.example and the kit's own git remote). Explicit flags win.\n--host gitlab copies .gitlab-ci.yml and .gitlab/ only; github copies .github/\nonly; both copies both sets. A host file the templates do not ship yet is\nskipped with a note. Stacks are discovered from skills/*/templates*/\nstack.json in every Bearing plugin present (bin/brg-kit-paths); a stack\nwhose plugin is not installed names the plugin to install. The shared\nrepo files come from templates/repo, then the stack's templates, then the\nstack's skeleton. Placeholders (__REPO_NAME__ and\nfriends) are substituted in every text file. When the stack's toolchain\n(stack.json \"tool\") is installed, its \"install\" command runs once so the\nlockfile exists before the first commit; that step never fails the scaffold.\nPrints the count of files written and fails if zero.",
    "functions": [
     "usage",
@@ -14792,7 +14972,8 @@
     "brg-adopt",
     "brg-autopilot",
     "brg-kit-paths",
-    "brg-scaffold-install"
+    "brg-scaffold-install",
+    "brg-scaffold-stage"
    ]
   },
   {
@@ -15453,8 +15634,8 @@
    "lang": "bash",
    "group": "skill",
    "skill": "data-model",
-   "lines": 57,
-   "header": "apply_check.sh: prove a schema.sql applies to an empty PostgreSQL.\n\nStarts a throwaway postgres container, runs the file with ON_ERROR_STOP in a\nsingle transaction and removes the container. Nothing is published on a\nport and no shared database is touched. Docker absent or its daemon down\nprints SKIPPED and exits 0: the stdlib gate (model_check.py) still ran, and\na skipped proof is said, never passed off as a pass.\n\nUsage: apply_check.sh [schema.sql] [image]\n  defaults: docs/design/schema.sql, postgres:16\nPrints one line: \"schema-apply: <file> applied to <image>, N tables\" or the\npsql error; exits 1 when the file is missing, empty, or fails to apply.\nbash 3.2 safe.",
+   "lines": 66,
+   "header": "apply_check.sh: prove a schema.sql applies to an empty PostgreSQL.\n\nStarts a throwaway postgres container, runs the file with ON_ERROR_STOP in a\nsingle transaction and removes the container. Nothing is published on a\nport and no shared database is touched. Docker absent or its daemon down\nprints SKIPPED and exits 0: the stdlib gate (model_check.py) still ran, and\na skipped proof is said, never passed off as a pass.\n\nUsage: apply_check.sh [schema.sql] [image]\n  defaults: docs/design/schema.sql, postgres:16; pgvector/pgvector:pg16\n  when the schema creates the vector extension (plain postgres has no\n  pgvector, so the first CREATE EXTENSION would fail the proof)\nPrints one line: \"schema-apply: <file> applied to <image>, N tables\" or the\npsql error; exits 1 when the file is missing, empty, or fails to apply.\nbash 3.2 safe.",
    "functions": [],
    "env": [],
    "calls": []
@@ -15765,8 +15946,8 @@
    "lang": "python",
    "group": "skill",
    "skill": "high-level-design",
-   "lines": 471,
-   "header": "arch_check: the architecture set high-level-design writes is complete and agrees\nwith itself, computed from the files.\n\n  - HLD (docs/design/*-hld.md, or the paths given): a \"- Status:\" line; the\n    sections Summary, What gets built, External integrations, Analytics,\n    Outside the standard stack, Repository plan and What the review found;\n    a diagram path docs/architecture/diagrams/<Project>_SystemArchitecture_v<N>.svg\n    in the summary; every major section (architecture, data, external\n    integrations, scaling, security, observability, analytics, rollout)\n    ends with \"**Risks this leaves open**\" and at least one bullet;\n    \"Deliberately not integrated\" with at least one bullet; a \"What gets\n    built\" table (Component | Kind | Stack | Responsibility | Repository)\n    whose Repository cells name a repo-plan entry or start \"existing\" or\n    \"none\"; a review with a \"Reviewed by:\" line and findings headed\n    \"### BLOCKER|MAJOR|MINOR|NIT: <title>\", each with \"Conflicts with:\",\n    \"Fix:\" and \"Status: open|fixed|accepted\". Approved with an open BLOCKER,\n    an open conflict or no drawn diagram is a problem.\n  - Tenets (<arch>/tenets.md): 5 to 8 \"## \" tenets, each with a bold rule\n    line and \"A breach looks like:\" followed by text.\n  - Decisions index (<arch>/decisions.md): a table whose header has\n    Reversibility; every ADR file in the ADR directory appears by number,\n    no row names a missing file, reversibility starts cheap, awkward or\n    irreversible, status is Proposed, Accepted, Superseded, Deprecated or\n    Rejected. \"Conflicts that were settled\" holds \"### \" entries, each with\n    Between:, Decision, Why, \"Settled by:\" and \"What now has to change to\n    match:\", or one \"None found:\" line saying what was compared.\n  - Repo plan (<arch>/repo-plan.json): project and group, a non-empty repos\n    list; each name PascalCase, prefixed by the project and unique;\n    git_path <group>/<Client|Server|Infrastructure>/<name>, the subgroup\n    matching the stack's type; stack a kit stack id (from\n    */templates*/stack.json in every Bearing plugin's skills, as\n    bin/brg-kit-paths lists them) or \"none\" with a stack_note;\n    a responsibility; apps entries with path, name and for, paths unique.\n\nUsage: arch_check.py [hld files...] [--arch docs/architecture] [--adr-dir docs/adr] [--kit K]\nPrints one \"problem:\" line per failure, the counts and the gate line; exits\n1 on any problem, or when no HLD or no architecture file was read.",
+   "lines": 476,
+   "header": "arch_check: the architecture set high-level-design writes is complete and agrees\nwith itself, computed from the files.\n\n  - HLD (docs/design/*-hld.md, or the paths given): a \"- Status:\" line; the\n    sections Summary, What gets built, External integrations, Analytics,\n    Outside the standard stack, Repository plan and What the review found;\n    a diagram path docs/architecture/diagrams/<Project>_SystemArchitecture_v<N>.svg\n    in the summary; every major section (architecture, data, external\n    integrations, scaling, security, observability, analytics, rollout)\n    ends with \"**Risks this leaves open**\" and at least one bullet;\n    \"Deliberately not integrated\" with at least one bullet; a \"What gets\n    built\" table (Component | Kind | Stack | Responsibility | Repository)\n    whose Repository cells name a repo-plan entry or start \"existing\" or\n    \"none\"; a review with a \"Reviewed by:\" line and findings headed\n    \"### BLOCKER|MAJOR|MINOR|NIT: <title>\", each with \"Conflicts with:\",\n    \"Fix:\" and \"Status: open|fixed|accepted\". Approved with an open BLOCKER,\n    an open conflict or no drawn diagram is a problem.\n  - Tenets (<arch>/tenets.md): 5 to 8 \"## \" tenets, each with a bold rule\n    line and \"A breach looks like:\" followed by text.\n  - Decisions index (<arch>/decisions.md): a table whose header has\n    Reversibility; every ADR file in the ADR directory appears by number,\n    no row names a missing file, reversibility starts cheap, awkward or\n    irreversible, status is Proposed, Accepted, Superseded, Deprecated or\n    Rejected. \"Conflicts that were settled\" holds \"### \" entries, each with\n    Between:, Decision, Why, \"Settled by:\" and \"What now has to change to\n    match:\", or one \"None found:\" line saying what was compared.\n  - Repo plan (<arch>/repo-plan.json): project and group, a non-empty repos\n    list; each name PascalCase, prefixed by the project and unique;\n    git_path <group>/<Client|Server|Infrastructure>/<name>, the subgroup\n    matching the stack's type, except for an entry with \"path\": \".\" (the\n    code lives in the repository holding these documents), whose git_path\n    is that repository's own and only needs to be non-empty; stack a kit stack id (from\n    */templates*/stack.json in every Bearing plugin's skills, as\n    bin/brg-kit-paths lists them) or \"none\" with a stack_note;\n    a responsibility; apps entries with path, name and for, paths unique.\n\nUsage: arch_check.py [hld files...] [--arch docs/architecture] [--adr-dir docs/adr] [--kit K]\nPrints one \"problem:\" line per failure, the counts and the gate line; exits\n1 on any problem, or when no HLD or no architecture file was read.",
    "functions": [
     "sections",
     "norm",
@@ -16202,8 +16383,8 @@
    "lang": "python",
    "group": "skill",
    "skill": "ux-flows",
-   "lines": 307,
-   "header": "flows_check: a UX flow package has no dead end, no unflowed screen and no\nmissing state, computed from the mermaid and the tables in the file.\n\n  - File: --file, else per feature under docs/design/flows/<feature>/ the\n    highest flows-v<n>.md, or flows.md when there is no versioned file.\n  - Screens: the ids (S-nn, \"(modal)\" allowed) in the first column of the\n    table under the \"Screen inventory\" (or \"Screens\") heading. A row whose\n    Exits cell says `terminal` is a screen allowed no way forward. A row\n    whose Status cell says `removed` or `retired` (a screen dropped in a\n    later version, its id kept) is counted as removed and not checked.\n  - Edges: every ```mermaid block that starts with `flowchart` or `graph`.\n    A node is a screen when its id is S-nn or Snn, or its label starts\n    with S-nn. Edges are -->, ---, -.->, ==>, with |labels| or -- text -->,\n    chained (A --> B --> C) and grouped (A & B --> C); --- links both\n    ways. An edge through a decision node counts as a way forward.\n    `%% terminal: S-nn <reason>` in a block also marks a terminal screen.\n  - Dead end: an inventory screen with no outgoing edge that is not\n    terminal. Unflowed: an inventory screen in no flowchart. Unknown: a\n    screen in a flowchart that is not in the inventory.\n  - Dialogs: an inventory row whose Id cell says \"(modal)\" or whose Screen\n    cell names a dialog, modal or confirmation. Unless terminal, its Exits\n    cell must name a way back (cancel, back, close, dismiss, keep, Escape).\n  - States: under \"### S-nn\" headings, a table whose first column is the\n    state (a cell naming several, \"Loading, Empty\", fills each). loading,\n    empty, error and success are required on every\n    screen; a row that reads `n/a` needs a reason (`n/a: <reason>`); a\n    required row missing, blank, or n/a without a reason is a problem, and\n    so is an inventory screen with no state table.\n\nUsage: flows_check.py [--file F ...] [--root docs/design/flows]\nPrints one \"problem:\" line per failure, the Dead ends line and the counts;\nexits 1 on any problem, or when zero files or zero screens were read.",
+   "lines": 334,
+   "header": "flows_check: a UX flow package has no dead end, no unflowed screen and no\nmissing state, computed from the mermaid and the tables in the file.\n\n  - File: --file, else per feature under docs/design/flows/<feature>/ the\n    highest flows-v<n>.md, or flows.md when there is no versioned file.\n  - Screens: the ids (S-nn, \"(modal)\" allowed) in the first column of the\n    table under the \"Screen inventory\" (or \"Screens\") heading. A row whose\n    Exits cell says `terminal` is a screen allowed no way forward. A row\n    whose Status cell says `removed` or `retired` (a screen dropped in a\n    later version, its id kept) is counted as removed and not checked.\n  - Edges: every ```mermaid block that starts with `flowchart` or `graph`.\n    A node is a screen when its id is S-nn or Snn, or its label starts\n    with S-nn. Edges are -->, ---, -.->, ==>, with |labels| or -- text -->,\n    chained (A --> B --> C) and grouped (A & B --> C); --- links both\n    ways. An edge through a decision node counts as a way forward.\n    `%% terminal: S-nn <reason>` in a block also marks a terminal screen.\n  - Ids across packages: every package read in one run shares the id\n    space (the design gallery merges them); an id in two packages is a\n    problem.\n  - Dead end: an inventory screen with no outgoing edge that is not\n    terminal. Unflowed: an inventory screen in no flowchart. Unknown: a\n    screen in a flowchart that is not in the inventory.\n  - Dialogs: an inventory row whose Id cell says \"(modal)\", whose Kind or\n    Type column says dialog or modal, or whose Screen cell names a dialog,\n    modal or confirmation and not a page or screen (\"Newsletter\n    confirmation page\" is a page). Unless terminal, its Exits cell must\n    name a way back (cancel, back, close, dismiss, keep, Escape).\n  - States: under \"### S-nn\" headings, a table whose first column is the\n    state (a cell naming several, \"Loading, Empty\", fills each; a label\n    with a qualifier, \"error: slot_unavailable\" or \"error (409)\", is that\n    state, and a screen may have one such row per rejection). loading,\n    empty, error and success are required on every\n    screen; a row that reads `n/a` needs a reason (`n/a: <reason>`); a\n    required row missing, blank, or n/a without a reason is a problem, and\n    so is an inventory screen with no state table.\n\nUsage: flows_check.py [--file F ...] [--root docs/design/flows]\nPrints one \"problem:\" line per failure, the Dead ends line and the counts;\nexits 1 on any problem, or when zero files or zero screens were read.",
    "functions": [
     "read",
     "pick_files",
@@ -16214,6 +16395,7 @@
     "flowcharts",
     "parse_block",
     "screen_of",
+    "filled",
     "states",
     "check",
     "main"
@@ -16899,9 +17081,9 @@
   {
    "path": "tests/integration/scaffold_each_stack.sh",
    "kind": "integration",
-   "lines": 174,
+   "lines": 191,
    "header": "tests/integration/scaffold_each_stack.sh: plugins/bearing/bin/brg-scaffold for every stack id found in plugins/*/skills/*/templates*/stack.json. Each scaffold runs with a PATH that holds git, python3, make and coreutils but no stack toolchain, so the install step is skipped deterministically (no network, no lockfile) and the assertions are about the templates: exit 0, no unfilled placeholders, a git repository with core.hooksPath=.githooks and executable hooks, CLAUDE.md importing AGENTS.md, a parsing .claude/settings.json, both hosts' CI and change templates under --host both, a Makefile who…",
-   "asserts": 97
+   "asserts": 105
   },
   {
    "path": "tests/lib/assert.sh",
@@ -16948,9 +17130,9 @@
   {
    "path": "tests/unit/autopilot_repos.sh",
    "kind": "unit",
-   "lines": 169,
+   "lines": 175,
    "header": "tests/unit/autopilot_repos.sh: the repos stage scaffolds every repository in docs/architecture/repo-plan.json beside the run's own repository. The run repository is the product's home (its PRD, ADRs and designs); an entry named like it is that repository and is not created again. The gate fails on an empty plan, a missing sibling and one whose make check never passed. A headless run cannot write outside its directory, so it asks the launcher (brg-autopilot repos-request), which runs brg-scaffold outside the sandbox and resumes the session with what it made.",
-   "asserts": 53
+   "asserts": 55
   },
   {
    "path": "tests/unit/autopilot_smoke.sh",
@@ -16962,16 +17144,16 @@
   {
    "path": "tests/unit/autopilot_stages.sh",
    "kind": "unit",
-   "lines": 437,
+   "lines": 475,
    "header": "tests/unit/autopilot_stages.sh: the stages brg-autopilot gained after the first real run skipped every skill no gate checked. The decide gate needs a product profile (ui, data, api, deploy). architecture needs a C4 file with a diagram and an architecture.json whose SVGs pass diagram_check. design adds, by profile, the data model, the API contract and a deployment architecture with its diagram, after arch_check and (profile data) model_check pass. ux runs the flows, contrast, screen-state and design-bundle checkers for a UI. test_cases runs cases_check. test_automation needs every automatable…",
-   "asserts": 126
+   "asserts": 139
   },
   {
    "path": "tests/unit/autopilot_state.sh",
    "kind": "unit",
-   "lines": 240,
+   "lines": 257,
    "header": "tests/unit/autopilot_state.sh: plugins/bearing/bin/brg-autopilot keeps the order and checks every gate on disk. A new run starts at repo; done on a stage whose gate is not met fails and says what is missing; stages run in order; an ADR this run wrote as Accepted fails the decide gate; three failed attempts block a stage; an upstream on the branch fails the mr gate (the run never pushes); the report carries the digest; a second start on an open run is refused.",
-   "asserts": 70
+   "asserts": 76
   },
   {
    "path": "tests/unit/checklists.sh",
@@ -17137,9 +17319,9 @@
   {
    "path": "tests/unit/hld_arch_check.sh",
    "kind": "unit",
-   "lines": 135,
+   "lines": 142,
    "header": "tests/unit/hld_arch_check.sh: plugins/bearing/skills/high-level-design/scripts/arch_check.py passes a complete architecture set and fails on a section with no risks, nothing deliberately left out, an ungraded or unsourced finding, Approved with an open BLOCKER or an open conflict, an ADR missing from the index, a bad reversibility, a conflict with no Settled by, too few tenets or a tenet with no breach, a repo plan with a wrong name, path or stack, and empty input.",
-   "asserts": 32
+   "asserts": 34
   },
   {
    "path": "tests/unit/install_dry_run.sh",
@@ -17340,9 +17522,9 @@
   {
    "path": "tests/unit/ux_flows_check.sh",
    "kind": "unit",
-   "lines": 125,
+   "lines": 147,
    "header": "tests/unit/ux_flows_check.sh: plugins/bearing/skills/ux-flows/scripts/flows_check.py passes a package whose screens all have a way forward (or are marked terminal), all appear in a flowchart and all have the four required states; fails on a dead end, an unflowed screen, a flowchart screen not in the inventory, a missing state, n/a without a reason, a screen with no state table, a dialog with no way back, and on empty input. It reads the highest flows-v<n>.md and skips screens marked removed.",
-   "asserts": 26
+   "asserts": 31
   },
   {
    "path": "tests/unit/vapt_findings.sh",
@@ -17750,6 +17932,9 @@
     "postcss.config.mjs",
     "skeleton/e2e/health.spec.ts",
     "skeleton/public/favicon.svg",
+    "skeleton/scripts/design-registry.mjs",
+    "skeleton/src/app/%5F%5Fdesign/[id]/page.tsx",
+    "skeleton/src/app/%5F%5Fdesign/page.tsx",
     "skeleton/src/app/api/healthz/route.test.ts",
     "skeleton/src/app/api/healthz/route.ts",
     "skeleton/src/app/api/readyz/route.test.ts",
@@ -17763,7 +17948,44 @@
     "skeleton/src/app/not-found.test.tsx",
     "skeleton/src/app/not-found.tsx",
     "skeleton/src/app/page.tsx",
+    "skeleton/src/components/ui/README.md",
+    "skeleton/src/components/ui/alert.tsx",
+    "skeleton/src/components/ui/avatar.tsx",
+    "skeleton/src/components/ui/badge.tsx",
+    "skeleton/src/components/ui/breadcrumb.tsx",
     "skeleton/src/components/ui/button.tsx",
+    "skeleton/src/components/ui/card.tsx",
+    "skeleton/src/components/ui/checkbox.tsx",
+    "skeleton/src/components/ui/command.tsx",
+    "skeleton/src/components/ui/dialog.tsx",
+    "skeleton/src/components/ui/dropdown-menu.tsx",
+    "skeleton/src/components/ui/hover-card.tsx",
+    "skeleton/src/components/ui/input.tsx",
+    "skeleton/src/components/ui/label.tsx",
+    "skeleton/src/components/ui/pagination.tsx",
+    "skeleton/src/components/ui/popover.tsx",
+    "skeleton/src/components/ui/progress.tsx",
+    "skeleton/src/components/ui/radio-group.tsx",
+    "skeleton/src/components/ui/scroll-area.tsx",
+    "skeleton/src/components/ui/select.tsx",
+    "skeleton/src/components/ui/separator.tsx",
+    "skeleton/src/components/ui/sheet.tsx",
+    "skeleton/src/components/ui/sidebar.tsx",
+    "skeleton/src/components/ui/skeleton.tsx",
+    "skeleton/src/components/ui/slider.tsx",
+    "skeleton/src/components/ui/sonner.tsx",
+    "skeleton/src/components/ui/switch.tsx",
+    "skeleton/src/components/ui/table.tsx",
+    "skeleton/src/components/ui/tabs.tsx",
+    "skeleton/src/components/ui/textarea.tsx",
+    "skeleton/src/components/ui/toggle-group.tsx",
+    "skeleton/src/components/ui/toggle.tsx",
+    "skeleton/src/components/ui/tooltip.tsx",
+    "skeleton/src/design/Gallery.test.tsx",
+    "skeleton/src/design/Gallery.tsx",
+    "skeleton/src/design/registry.ts",
+    "skeleton/src/design/screen.ts",
+    "skeleton/src/design/screens.generated.ts",
     "skeleton/src/env.server.test.ts",
     "skeleton/src/env.server.ts",
     "skeleton/src/env.test.ts",
@@ -17776,7 +17998,10 @@
     "skeleton/src/features/health/HealthCard.test.tsx",
     "skeleton/src/features/health/api.ts",
     "skeleton/src/features/health/components/HealthCard.tsx",
+    "skeleton/src/features/health/components/HealthCardView.tsx",
     "skeleton/src/features/health/schemas.ts",
+    "skeleton/src/features/health/screens/S-00-health.screen.tsx",
+    "skeleton/src/hooks/use-mobile.ts",
     "skeleton/src/lib/api.test.ts",
     "skeleton/src/lib/api.ts",
     "skeleton/src/lib/auth.test.ts",
@@ -19113,10 +19338,10 @@
   ],
   "sessionBytes": {
    "agents": 2864,
-   "claude": 1294,
+   "claude": 1265,
    "unscopedRules": 840
   },
-  "sessionTokens": 1249
+  "sessionTokens": 1242
  },
  "autopilot": {
   "maxAttempts": 3,
@@ -19125,6 +19350,11 @@
     "name": "repo",
     "skill": "new-repo (empty directory); an existing repository gets only what this gate reads, never a full onboard-repo",
     "gate": "a git repository whose Makefile check target records a pass (.check-passed)"
+   },
+   {
+    "name": "branch",
+    "skill": "start-task",
+    "gate": "a working branch that is not the trunk"
    },
    {
     "name": "prd",
@@ -19148,8 +19378,8 @@
    },
    {
     "name": "design",
-    "skill": "scope full: high-level-design, then data-model (profile data), openapi-spec (profile api), deployment-architecture (profile deploy), then low-level-design; lean: low-level-design as one note",
-    "gate": "scope full: docs/design/*-hld.md and *-lld.md; by profile, docs/design/data-model.md, api/openapi.yaml and docs/architecture/deployment.md with a mermaid diagram; lean: one docs/design/*.md written this run"
+    "skill": "scope full: high-level-design, then data-model (profile data), openapi-spec (profile api), deployment-architecture (profile deploy), threat-model, genai-design (profile llm); lean: low-level-design as one note",
+    "gate": "scope full: docs/design/*-hld.md, docs/security/threat-model-*.md passing threats_check; by profile, docs/design/data-model.md, api/openapi.yaml, docs/architecture/deployment.md with a mermaid diagram and docs/genai/*-solution.md; lean: one docs/design/*.md written this run"
    },
    {
     "name": "repos",
@@ -19162,14 +19392,14 @@
     "gate": "profile ui: flows passing flows_check and tokens passing contrast; on react-shadcn (the default) a direction chosen from 3 scored variants, docs/design/motion.md, every screen in the design gallery passing gallery_check, and design-lint; on another stack HTML screens passing states_check"
    },
    {
+    "name": "lld",
+    "skill": "scope full: low-level-design, one per component in the HLD's What gets built table that this run builds; lean: the design note already is the low-level design",
+    "gate": "scope full: at least one docs/design/*-lld.md written this run; lean: nothing"
+   },
+   {
     "name": "test_cases",
     "skill": "test-cases",
     "gate": "docs/testing/risks.md and docs/testing/test-cases.md passing cases_check against docs/product/backlog.md and the threat models"
-   },
-   {
-    "name": "branch",
-    "skill": "start-task",
-    "gate": "a working branch that is not the trunk"
    },
    {
     "name": "build",
@@ -19178,8 +19408,8 @@
    },
    {
     "name": "test_automation",
-    "skill": "test-automation",
-    "gate": "every case in docs/testing/test-cases.md not manual-only or retired is named by its TC id in a test file, and make check passed after the last change"
+    "skill": "test-automation; profile llm: llm-guardrails and llm-eval",
+    "gate": "every case in docs/testing/test-cases.md not manual-only or retired is named by its TC id in a test file, and make check passed after the last change; profile llm: guardrails/policy.yaml and docs/genai/evals.md"
    },
    {
     "name": "design_review",

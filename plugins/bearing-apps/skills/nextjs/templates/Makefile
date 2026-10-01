@@ -8,7 +8,7 @@ SKIPPED := $(STATE)/.skipped
 # The gates `make check` runs, in order. build needs minutes and test-e2e
 # needs a browser and a production build, so both are CI jobs and manual
 # targets, not part of check.
-GATES := format-check lint typecheck test vuln
+GATES := design-registry-check format-check lint typecheck test vuln
 # Files each gate looks at: tracked plus untracked, minus ignored (so a fresh scaffold counts).
 SRC_FILES = $$(git ls-files -co --exclude-standard -- 'src/*.ts' 'src/*.tsx' 'e2e/*.ts' '*.config.ts' '*.config.mjs')
 FMT_FILES = $$(git ls-files -co --exclude-standard -- '*.ts' '*.tsx' '*.js' '*.mjs' '*.json' '*.css' '*.md' '*.yml' '*.yaml' | grep -v '^pnpm-lock.yaml$$' || true)
@@ -42,7 +42,7 @@ define in_pw_image
     bash -c "corepack enable && pnpm install --frozen-lockfile --silent && $(2); s=\$$?; chown -R $$(id -u):$$(id -g) e2e test-results playwright-report dist .next 2>/dev/null; exit \$$s"; }
 endef
 
-.PHONY: help setup dev build start check check-file fix test test-e2e test-e2e-matrix test-visual test-visual-update setup-browsers bundle-budget lighthouse lint typecheck format format-check vuln doctor clean
+.PHONY: help setup dev design-registry design-registry-check build start check check-file fix test test-e2e test-e2e-matrix test-visual test-visual-update setup-browsers bundle-budget lighthouse lint typecheck format format-check vuln doctor clean
 
 help: ## List targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-14s %s\n", $$1, $$2}'
@@ -53,8 +53,17 @@ setup: ## Install dependencies (writes pnpm-lock.yaml), Playwright chromium and 
 	bash .githooks/install.sh
 	@echo "setup done"
 
-dev: ## Run the Next dev server on :3000 (reads .env.local if present)
+dev: design-registry ## Run the Next dev server on :3000 (reads .env.local if present); the design gallery is at /__design
 	$(PNPM) exec next dev --port 3000
+
+design-registry: ## Rewrite src/design/screens.generated.ts from the *.screen.tsx files and design variants
+	@node scripts/design-registry.mjs
+
+design-registry-check: ## Fail when src/design/screens.generated.ts is stale (a screen added without make design-registry)
+	@n=$$(find src/features -path '*/screens/*.screen.tsx' 2>/dev/null | wc -l | tr -d ' '); \
+	[ "$$n" -gt 0 ] || { echo "design-registry-check: 0 screen files under src/features/*/screens, nothing checked" >&2; exit 1; }; \
+	command -v node >/dev/null || $(call skip,design-registry-check,node); \
+	node scripts/design-registry.mjs --check >/dev/null && echo "design-registry-check: $$n screen files checked"
 
 build: ## Production build (standalone output in .next/standalone)
 	$(PNPM) exec next build

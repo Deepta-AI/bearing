@@ -15,14 +15,21 @@ missing state, computed from the mermaid and the tables in the file.
     chained (A --> B --> C) and grouped (A & B --> C); --- links both
     ways. An edge through a decision node counts as a way forward.
     `%% terminal: S-nn <reason>` in a block also marks a terminal screen.
+  - Ids across packages: every package read in one run shares the id
+    space (the design gallery merges them); an id in two packages is a
+    problem.
   - Dead end: an inventory screen with no outgoing edge that is not
     terminal. Unflowed: an inventory screen in no flowchart. Unknown: a
     screen in a flowchart that is not in the inventory.
-  - Dialogs: an inventory row whose Id cell says "(modal)" or whose Screen
-    cell names a dialog, modal or confirmation. Unless terminal, its Exits
-    cell must name a way back (cancel, back, close, dismiss, keep, Escape).
+  - Dialogs: an inventory row whose Id cell says "(modal)", whose Kind or
+    Type column says dialog or modal, or whose Screen cell names a dialog,
+    modal or confirmation and not a page or screen ("Newsletter
+    confirmation page" is a page). Unless terminal, its Exits cell must
+    name a way back (cancel, back, close, dismiss, keep, Escape).
   - States: under "### S-nn" headings, a table whose first column is the
-    state (a cell naming several, "Loading, Empty", fills each). loading,
+    state (a cell naming several, "Loading, Empty", fills each; a label
+    with a qualifier, "error: slot_unavailable" or "error (409)", is that
+    state, and a screen may have one such row per rejection). loading,
     empty, error and success are required on every
     screen; a row that reads `n/a` needs a reason (`n/a: <reason>`); a
     required row missing, blank, or n/a without a reason is a problem, and
@@ -84,6 +91,7 @@ def sid(raw):
 
 
 DIALOG = re.compile(r"\b(modal|dialog|confirm|confirmation)\b", re.I)
+PAGE = re.compile(r"\b(page|screen)\b", re.I)
 WAY_BACK = re.compile(r"\b(cancel|back|close|dismiss|keep|escape|esc)\b", re.I)
 
 
@@ -119,7 +127,10 @@ def inventory_full(text):
         if "terminal" in exits.lower():
             terminal.add(s)
         name = cells[1] if len(cells) > 1 else ""
-        if "(modal)" in cells[0].lower() or DIALOG.search(name):
+        kind_i = next((i for i, h in enumerate(header) if h in ("kind", "type")), None)
+        kind = cells[kind_i] if kind_i is not None and kind_i < len(cells) else ""
+        named = DIALOG.search(name) and not PAGE.search(name)
+        if "(modal)" in cells[0].lower() or re.search(r"\b(dialog|modal)\b", kind, re.I) or named:
             dialogs[s] = exits
     return screens, terminal, dialogs, removed
 
@@ -168,6 +179,11 @@ def screen_of(node, labels):
     return f"S-{m.group(1)}" if m else None
 
 
+def filled(cell):
+    """A state cell that counts: not blank, and an n/a carries its reason."""
+    return bool(cell.strip()) and not (re.match(r"^n/?a\b", cell, re.I) and not re.match(r"^n/?a:\s*\S", cell, re.I))
+
+
 def states(text):
     """{screen: {state: cell text}} from '### S-nn' tables."""
     out, cur = {}, None
@@ -186,10 +202,14 @@ def states(text):
         st = cells[0].lower()
         if st in ("state", "") or re.match(r"^:?-+:?$", st):
             continue
-        # "Loading, Empty, Partial | n/a: ..." fills each state it names.
+        # "Loading, Empty, Partial | n/a: ..." fills each state it names;
+        # "error: slot_unavailable" is an error row, one per rejection, and a
+        # filled row is never replaced by a blank or reasonless one.
+        value = " ".join(cells[1:]).strip()
         for one in re.split(r"\s*(?:,|/|\band\b)\s*", st):
-            if one:
-                out[cur][one] = " ".join(cells[1:]).strip()
+            base = re.split(r"\s*[:(]", one, maxsplit=1)[0].strip()
+            if base and not (base in out[cur] and filled(out[cur][base])):
+                out[cur][base] = value
     return out
 
 
@@ -279,7 +299,14 @@ def main():
         return 1
     tot = {}
     problems = []
+    owner = {}
     for f in files:
+        # one product's packages share one id space: the design gallery and
+        # gallery_check merge them, so an id two features use is ambiguous
+        for s_ in inventory_full(read(f))[0]:
+            if s_ in owner and owner[s_] != f:
+                problems.append(f"{f}: {s_} is also a screen in {owner[s_]}; screen ids continue across packages")
+            owner.setdefault(s_, f)
         r = check(f)
         problems += r.pop("problems")
         for k, v in r.items():

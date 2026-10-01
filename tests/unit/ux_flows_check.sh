@@ -35,6 +35,28 @@ fixture() {
 }
 run() { (cd "$1" && python3 "$CHK"); }
 
+t_begin "a page named confirmation is not a dialog, and labelled error rows are error rows"
+d="$(tmpdir)/labels"; f="$d/docs/design/flows/orders/flows.md"; fixture "$f"
+sed -i 's/| S-03 | Done | receipt |/| S-03 | Order confirmation page | receipt |/' "$f"
+python3 - "$f" <<'PY'
+import sys
+p = sys.argv[1]; s = open(p).read()
+s = s.replace('| error | message above the list | "We could not load orders. Retry." |',
+              '| error: not_found | the order is gone | "That order no longer exists. Back to orders." |\n'
+              '| error (409) | someone changed it | "Someone else changed this order. Reload it." |', 1)
+open(p, "w").write(s)
+PY
+assert_exit 0 run "$d"
+assert_contains "$T_OUT" "1 dialogs"
+assert_contains "$T_OUT" "0 problems"
+t_end
+
+t_begin "two packages of one product cannot share a screen id"
+d="$(tmpdir)/dupes"; fixture "$d/docs/design/flows/orders/flows.md"; fixture "$d/docs/design/flows/admin/flows.md"
+assert_exit 1 run "$d"
+assert_contains "$T_OUT" "S-01 is also a screen in"
+t_end
+
 t_begin "a complete package passes with its counts"
 d="$(tmpdir)/ok"; fixture "$d/docs/design/flows/orders/flows.md"
 assert_exit 0 run "$d"

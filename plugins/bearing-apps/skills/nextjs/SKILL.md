@@ -52,7 +52,11 @@ src/features/<feature>/schemas.ts  Zod schemas; types are z.infer
 src/features/<feature>/api.ts      server-only fetch functions with an explicit cache option
 src/features/<feature>/actions.ts  "use server": authorise, validate, act, return state
 src/features/<feature>/components/ server components by default; "use client" per file
-src/components/ui/                 shadcn output: added with the CLI, never hand-edited
+src/features/<feature>/screens/    <id>-<name>.screen.tsx: every state of a screen from fixtures
+src/design/                        the design gallery at /__design (dev, or DESIGN_GALLERY=1)
+src/app/%5F%5Fdesign/              its routes; %5F is how the App Router spells a leading _
+src/design/screens.generated.ts    the screen list, written by make design-registry, checked by make check
+src/components/ui/                 shadcn output (33 components): added with the CLI, never hand-edited
 src/lib/                           api client (server-only), auth, utils (cn)
 src/env.ts, src/env.server.ts      public and server configuration, both Zod-parsed
 src/proxy.ts                       request id, redirects, rewrites; nothing heavy
@@ -76,6 +80,15 @@ Next 15 has no `updateTag`, `"use cache"`, `cacheLife` or `cacheTag`; Zod 3
 has `parsed.error.flatten()` and `z.string().email()`, where Zod 4 has
 `z.flattenError`, `z.prettifyError` and `z.email()`. Check `package.json`
 before the first line. Say which rule was relaxed.
+
+Screens as code: screen-design writes each screen as a `*.screen.tsx`
+that renders the real view components with fixture props, and the route
+wires the same components to live data. The gallery is a client
+component, so a screen file reaches the browser with all it imports:
+import the presentational view (in a file of its own), never the server
+component that fetches or anything that imports `server-only`. Next.js
+has no `import.meta.glob`, so `make design-registry` lists the screens;
+`make dev` runs it first and `make check` fails when the list is stale.
 
 ## Rules that matter most
 

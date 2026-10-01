@@ -35,6 +35,13 @@ export default defineConfig({
         "src/app/loading.tsx",
         "src/app/global-error.tsx",
         "src/proxy.ts",
+        // The design gallery's routes and generated list, exercised by Gallery.test.tsx.
+        "src/app/%5F%5Fdesign/**",
+        "src/design/screens.generated.ts",
+        // Generated with src/components/ui; screen designs are fixtures the
+        // design gallery and gallery_check cover, not product logic.
+        "src/hooks/use-mobile.ts",
+        "src/features/**/screens/**",
       ],
       thresholds: { lines: 80, functions: 80, branches: 80, statements: 80 },
     },
