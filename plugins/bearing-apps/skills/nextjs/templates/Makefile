@@ -66,8 +66,10 @@ design-registry-check: ## Fail when src/design/screens.generated.ts is stale (a 
 	node scripts/design-registry.mjs --check >/dev/null && echo "design-registry-check: $$n screen files checked"
 
 build: ## Production build (standalone output in .next/standalone)
+	@mkdir -p $(STATE); rm -f $(STATE)/.build-passed
 	$(PNPM) exec next build
 	@echo "build: $$(find .next/standalone -type f 2>/dev/null | wc -l | tr -d ' ') files in .next/standalone"
+	@touch $(STATE)/.build-passed
 
 start: ## Serve the standalone build on :3000, as the image does (run make build first)
 	PORT=3000 $(PNPM) run start
@@ -186,4 +188,4 @@ doctor: ## Environment diagnostics
 	@echo "hooksPath:  $$(git config core.hooksPath || echo 'NOT SET (run make setup)')"
 
 clean: ## Remove build and test output
-	rm -rf .next coverage playwright-report test-results .lighthouseci tsconfig.tsbuildinfo $(STATE)/.check-passed $(SKIPPED)
+	rm -rf .next coverage playwright-report test-results .lighthouseci tsconfig.tsbuildinfo $(STATE)/.check-passed $(STATE)/.build-passed $(SKIPPED)

@@ -168,6 +168,35 @@ First public release, under the MIT licence.
   Chrome fallback's dark shots are dark.
 - The Next.js gallery's screen route read `params` outside Suspense,
   which Cache Components refuses.
+- `design-system`'s `system_page.py` takes `--fonts-css` or
+  `--google-fonts` and fetches no font from an outside host by default;
+  design-lint skips the stylesheet that defines the tokens; the
+  validator `jsonschema==4.25.1` is pinned and named in the README; the
+  schema documents opaque composite tokens; the Tailwind 4 binding adds a
+  `--text` size for any token size the default scale lacks.
+- The pre-commit hook format-checks YAML and `.mjs` files and skips
+  symlinks, which prettier refuses on the command line.
+- `gallery_check` needs one state per repeated row and normalises colons
+  and brackets in state names; the scaffold's example screen is S-00,
+  noted and never failed; the Next.js template ignores its generated
+  registry in prettier and eslint, and `.mts` files skip type-aware lint.
+- The slider in the React and Next.js templates takes `thumbLabels`, so
+  each thumb of a range has its own accessible name.
+- vitest in the React and Next.js templates waits 15 seconds a test: a
+  full suite under parallel load timed out on the default 5.
+- The `nextjs` skill says how to build when the app owns its data
+  (Supabase or a driver): route handlers on a typed server layer, the
+  migrations tested by a `make test-db` that fails on zero files.
+- `cases_check` reads a case's withdrawal from its Status line, splits
+  oracles outside quotes, and compares the plan's quote without its
+  problem count.
+- The edit hook's `check-file` reports a test written before its module
+  as the expected red, not a wall of unsafe-call errors.
+- `autopilot`'s build gate also requires `make build` after the last
+  change when the Makefile records a build pass, which the Next.js and
+  React templates now do: a page that cannot prerender passed every
+  check and failed only the build. The skill says how a build split
+  across parallel subagents shares one local database.
 - `brg-tracker --help` printed three lines of code after its header (the
   range ran past the comment); it now stops at the last comment line.
 - The guard refused a `for` loop that runs its own variable over literal

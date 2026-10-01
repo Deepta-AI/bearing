@@ -7,7 +7,8 @@
 # and a deployment architecture with its diagram, after arch_check
 # and (profile data) model_check pass. ux runs the flows, contrast,
 # screen-state and design-bundle checkers for a UI. test_cases runs cases_check.
-# test_automation needs every automatable TC id named by a test. design_review
+# build needs make build too when the Makefile records it. test_automation
+# needs every automatable TC id named by a test. design_review
 # needs a review for a UI. dod refuses a profile the code contradicts.
 set -u
 . "$(dirname "$0")/../lib/assert.sh"
@@ -392,6 +393,28 @@ assert_contains "$T_OUT" "no risk register"
 printf '| Risk | Story | What could go wrong | Source | Likelihood | Impact | Level | Cases |\n| R-001 | US-01-001 | lockout bypassed | AC-US-01-001-2 | M | M | Medium | TC-0001, TC-0002 |\n' > "$d/docs/testing/risks.md"
 assert_exit 0 ap "done" test_cases
 assert_contains "$T_OUT" "test-cases: 2 ACs, 2 with cases"
+t_end
+
+t_begin "build needs a test, make check and, where the Makefile records it, make build"
+at build; git -C "$d" checkout -qb feature/T-1-Add
+mkdir -p "$d/src"; printf 'test("adds", () => {});\n' > "$d/src/add.test.ts"; commit tests
+( cd "$d" && make -s check )
+assert_exit 0 ap "done" build
+assert_contains "$T_OUT" "make build: not recorded by this Makefile"
+at build; git -C "$d" checkout -qb feature/T-1-Add
+printf 'build:\n\t@mkdir -p .bearing/state && touch .bearing/state/.build-passed\n' >> "$d/Makefile"
+mkdir -p "$d/src"; printf 'test("adds", () => {});\n' > "$d/src/add.test.ts"; commit tests
+( cd "$d" && make -s check )
+assert_exit 1 ap "done" build
+assert_contains "$T_OUT" "make build has never passed"
+( cd "$d" && make -s build )
+sleep 1; printf 'test("adds two", () => {});\n' > "$d/src/add.test.ts"
+( cd "$d" && make -s check )
+assert_exit 1 ap "done" build
+assert_contains "$T_OUT" "make build has not passed since 1 change(s): src/add.test.ts"
+( cd "$d" && make -s build )
+assert_exit 0 ap "done" build
+assert_contains "$T_OUT" "make build passed after the last change"
 t_end
 
 t_begin "test automation needs every automatable TC id named by a test"

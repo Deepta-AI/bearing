@@ -93,7 +93,8 @@ STAGES = [
      "docs/product/backlog.md and the threat models"),
     ("build", "test-first implementation, story by story (superpowers:test-driven-development), "
      "the stack skill (go, react, ...) and the design system for UI",
-     "tests added on the branch, and make check passed after the last change"),
+     "tests added on the branch, and make check passed after the last change (and make build, "
+     "when the Makefile records a build pass)"),
     ("test_automation", "test-automation; profile llm: llm-guardrails and llm-eval",
      "every case in docs/testing/test-cases.md not manual-only or retired is named by its TC id in a "
      "test file, and make check passed after the last change; profile llm: guardrails/policy.yaml and "
@@ -191,14 +192,14 @@ def not_work(d, rel):
     return named and holds_nothing(os.path.join(d, rel))
 
 
-def changed_since_check(d):
-    """Files changed (tracked or new) that are newer than the last passing make check."""
-    marker = os.path.join(d, ".bearing", "state", ".check-passed")
+def changed_since_check(d, target="check"):
+    """Files changed (tracked or new) that are newer than the last passing make <target>."""
+    marker = os.path.join(d, ".bearing", "state", f".{target}-passed")
     out = porcelain(d)
     files = [l[3:].split(" -> ")[-1].strip('"') for l in out.splitlines() if l.strip()]
     files = [f for f in files if not not_work(d, f)]
     if not os.path.isfile(marker):
-        return files or ["(make check has never passed)"]
+        return files or [f"(make {target} has never passed)"]
     m = os.path.getmtime(marker)
     return [f for f in files if os.path.exists(os.path.join(d, f)) and os.path.getmtime(os.path.join(d, f)) > m]
 
@@ -677,7 +678,18 @@ def g_build(d, st):
         return False, "no test file added or changed on the branch"
     if stale:
         return False, f"make check has not passed since {len(stale)} change(s): {', '.join(stale[:5])}"
-    return True, f"{len(tests)} test file(s) on the branch; make check passed after the last change"
+    # A production build fails on what make check never runs (a Next.js page
+    # that cannot prerender). A Makefile whose build records a pass owes one.
+    if "build-passed" not in read(d, "Makefile"):
+        return True, (f"{len(tests)} test file(s) on the branch; make check passed after the last change; "
+                      "make build: not recorded by this Makefile")
+    unbuilt = changed_since_check(d, "build")
+    if unbuilt == ["(make build has never passed)"]:
+        return False, "make build has never passed"
+    if unbuilt:
+        return False, f"make build has not passed since {len(unbuilt)} change(s): {', '.join(unbuilt[:5])}"
+    return True, (f"{len(tests)} test file(s) on the branch; make check and make build passed "
+                  "after the last change")
 
 
 def g_review(d, st):

@@ -55,8 +55,10 @@ dev: ## Run the Vite dev server (reads .env if present)
 	$(PNPM) exec vite --port 5173 --strictPort
 
 build: ## Production build into dist/
+	@mkdir -p $(STATE); rm -f $(STATE)/.build-passed
 	$(PNPM) exec vite build
 	@echo "build: $$(find dist -type f | wc -l | tr -d ' ') files in dist/"
+	@touch $(STATE)/.build-passed
 
 format: ## Prettier --write
 	@$(PNPM) exec prettier --log-level warn --write $(FMT_FILES)
@@ -169,4 +171,4 @@ doctor: ## Environment diagnostics
 	@echo "hooksPath:  $$(git config core.hooksPath || echo 'NOT SET (run make setup)')"
 
 clean: ## Remove build and test output
-	rm -rf dist coverage playwright-report test-results .lighthouseci $(STATE)/.check-passed $(SKIPPED)
+	rm -rf dist coverage playwright-report test-results .lighthouseci $(STATE)/.check-passed $(STATE)/.build-passed $(SKIPPED)

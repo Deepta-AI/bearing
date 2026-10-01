@@ -160,11 +160,22 @@ what is on disk, never from what the model says it did.
    MR are this repository's.
 7. Build is test first, story by story, in the order of the backlog:
    a failing test named for the story, the code, `make check`, a commit
-   per story with the task id. The edit hook's lint findings are fixed
+   per story with the task id. Where the Makefile records a build pass
+   (the Next.js and React templates do), `make build` runs too before the
+   stage is done: a page that cannot prerender passes every check and
+   fails only the build. The edit hook's lint findings are fixed
    when they arrive; the Stop hook's `make check` demand is met, not
    argued with. No test asserts on wall-clock time: it passes on the
    laptop and flakes in CI. Before the first line of code, read the
    traps below and put the ones that apply into the tests.
+   A build split across parallel subagents gives each a disjoint set of
+   files and a migration timestamp range, forbids git commands that
+   change state, and has the supervisor commit. Each agent's checks stay
+   scoped to its own files: with one shared local database, a reset by
+   one agent fails another's `make test-db` mid-run, so an agent reruns
+   only its own pgTAP file (`supabase test db <file>`) and the
+   supervisor runs the full `make test-db` once the batch lands. Other
+   agents' type and lint errors are listed, not fixed.
 8. After the build: test-automation names a test after every case
    that is not manual-only or retired (its TC id in the test name); with
    llm in the profile, llm-guardrails writes `guardrails/policy.yaml` and
