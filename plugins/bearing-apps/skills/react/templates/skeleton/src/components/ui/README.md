@@ -13,7 +13,7 @@ sidebar, skeleton, slider, sonner (toasts), switch, table, tabs,
 textarea, toggle, toggle-group, tooltip; `src/hooks/use-mobile.ts` backs
 the sidebar.
 
-Four edits to the generated files, kept when regenerating:
+Five edits to the generated files, kept when regenerating:
 
 - `cn` comes from `@/lib/utils` (clsx and tailwind-merge), not the `cn`
   package the generator now adds: one tested helper, one fewer
@@ -25,6 +25,9 @@ Four edits to the generated files, kept when regenerating:
   template compiles with `exactOptionalPropertyTypes`.
 - `use-mobile.ts` subscribes with `useSyncExternalStore` instead of
   setting state in an effect (react-hooks/set-state-in-effect).
+- `slider.tsx` takes `thumbLabels`, one accessible name per thumb: Radix
+  names a thumb only from its own props, so an `aria-label` on the slider
+  left a before-and-after thumb unnamed.
 
 Add a component with `pnpm dlx shadcn@latest add <name>` through the
 repository's make targets, then apply the same edits. Colours, radius,
