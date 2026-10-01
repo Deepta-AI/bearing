@@ -9,8 +9,8 @@ teams that build software with coding agents.
   runbook (PRD, backlog, architecture, design, test cases, review, merge
   request, release, runbooks and the rest), each callable as
   `/bearing:<name>`.
-- `agents/`: 7 subagents (reviewer, verifier, security auditor,
-  explorer, test writer, doc writer, critic).
+- `agents/`: 8 subagents (reviewer, verifier, security auditor,
+  explorer, test writer, doc writer, critic, PRD drafter).
 - `hooks/`: `hooks.json` and 6 hook scripts over one guard,
   `bin/brg-guard`, which refuses publishing and history-rewriting
   commands and runs the format and check gates.

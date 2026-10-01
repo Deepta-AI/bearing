@@ -25,7 +25,7 @@ Bearing is one marketplace with three plugins:
 
 | Plugin | What it holds | Needed |
 | --- | --- | --- |
-| `bearing` | the workflow skills, the seven subagents, the hooks and the guard behind them, the scripts (`bin/`) and the repository templates | required |
+| `bearing` | the workflow skills, the eight subagents, the hooks and the guard behind them, the scripts (`bin/`) and the repository templates | required |
 | `bearing-backend` | the stack skills and scaffold templates for Go, Python, Node, data pipelines (dbt, Airflow) and infrastructure (Terraform, Kubernetes) | optional |
 | `bearing-apps` | the stack skills and scaffold templates for React, Next.js, React Native, Flutter, iOS and Android | optional |
 
@@ -206,8 +206,8 @@ start them for you. The scripts behind the skills keep a `brg-` prefix
 - Ship and operate: merge request or pull request, release, package
   publish, store submission, experiments, VAPT, dependencies; runbooks,
   incidents, postmortems, on-call, cost, the handover pack.
-- Seven subagents (reviewer, verifier, security auditor, explorer, test
-  writer, doc writer, critic), hooks over one guard script, and the files every
+- Eight subagents (reviewer, verifier, security auditor, explorer, test
+  writer, doc writer, critic, PRD drafter), hooks over one guard script, and the files every
   repository commits.
 
 The complete map, one skill for every row, is

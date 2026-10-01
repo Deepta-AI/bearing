@@ -81,11 +81,34 @@ combined by `backlog`, never one story per line.
    the system as subject. Split a sentence joining two capabilities with
    "and". Convert story form ("As a user I want") to a statement and keep
    the persona. Keep a solution only if the input names it, then move it
-   to Constraints. Record the source line or quote next to each REQ.
+   to Constraints. Record the source line or quote next to each REQ. A
+   capability the input repeats in two sections is one REQ citing both
+   lines.
+   A long input is drafted in parallel. When the source text has more
+   than 150 lines or more than 60 bullets, split it at its top-level
+   headings into 3 to 6 contiguous line ranges of similar size (never
+   inside a list or a table), and fork one `prd-drafter` agent per range
+   in a single message so they run at once, each given the source file
+   path, its range and the product name. Each returns draft statements
+   with sources, constraints, ambiguity themes and the gaps it saw. Then
+   merge in source order: drop a draft that repeats another range's (one
+   REQ, both lines cited), check every draft against the rules above
+   (rewrite one that names a solution or is in story form), and only then
+   number them after the highest existing id. Steps 3, 5, 6 and 7 stay in
+   this session, because sections, contradictions between ranges and the
+   register need the whole input. Print the ranges and each drafter's
+   count; a range whose drafter returned nothing is drafted here, never
+   skipped.
 5. Flag ambiguity. A statement with a vague word (fast, easy, simple,
    appropriate, etc., some, various) or with no observable outcome is
-   kept, marked `ambiguous:`, and gets one entry in the register stating
-   what would make it testable.
+   kept and marked `ambiguous: Q-nnn`. Statements are grouped by the kind
+   of vagueness (visual quality, ease of use, speed without a metric, a
+   live feed without an interval): one register entry per group, stating
+   what would make every statement in it testable, with Affects listing
+   them all. Group only statements one answer settles; a statement whose
+   test depends on a different fact (a page-load metric and a Lighthouse
+   category are different facts) gets its own entry. Print the groups
+   with their sizes.
 6. Mark inference and conflict. Anything you add to complete a section
    that the input does not state is prefixed `inferred:`; two passages
    that disagree are a contradiction; a capability the input needs but
@@ -157,7 +180,8 @@ combined by `backlog`, never one story per line.
 ## PRD: <title> (<N> input lines from <source>)
 Statements extracted: S (REQ-001 to REQ-nnn, W withdrawn)
 Business objectives: B (B1 to Bn, T with a confirmed target)
-Ambiguous statements flagged: K   Inferred items: J
+Drafting: in this session | parallel (<R> ranges, <statements per range>)
+Ambiguous statements flagged: K in G groups   Inferred items: J
 Register: Q entries (open-question O, gap G, contradiction C);
           needs your confirmation A
 Could not extract: <sections, or none>

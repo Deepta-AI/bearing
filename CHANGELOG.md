@@ -41,8 +41,8 @@ First public release, under the MIT licence.
   request, with a gate per stage; it never pushes. A headless run hands
   the smoke test of the shipped app to the launcher, which runs it outside
   the sandbox and resumes the session with the verdict.
-- Seven subagents: `reviewer`, `verifier`, `security-auditor`, `explorer`,
-  `test-writer`, `doc-writer`, `critic`.
+- Eight subagents: `reviewer`, `verifier`, `security-auditor`, `explorer`,
+  `test-writer`, `doc-writer`, `critic`, `prd-drafter`.
 - One guard script (`bin/brg-guard`) behind every hook: the agent never
   pushes, merges, tags, publishes or deploys, and never reads secret files.
 - Repository templates and a scaffold for thirteen stacks, an adopt path
@@ -55,6 +55,19 @@ First public release, under the MIT licence.
   and the repository the run left.
 - The handbook site and the developer guide, both generated from the
   repository.
+
+### Changed
+- `prd` drafts a long brief in parallel: over 150 lines or 60 bullets, it
+  splits the source at its headings into 3 to 6 ranges and forks one
+  `prd-drafter` agent per range (read-only, Sonnet), then merges, dedupes
+  and numbers the drafts itself. Sections, contradictions and the register
+  stay in the main session. A 294-line website brief took about 7 minutes
+  drafted serially.
+- `prd` groups ambiguous statements by the kind of vagueness (visual
+  quality, ease of use, speed without a metric): one register entry per
+  group with every statement in Affects, instead of one entry per
+  statement. A statement whose test depends on a different fact keeps its
+  own entry.
 
 ### Fixed
 - The guard refused a `for` loop that runs its own variable over literal

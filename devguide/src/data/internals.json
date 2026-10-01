@@ -7,7 +7,7 @@
   "scripts": 83,
   "scriptLines": 27489,
   "hooks": 6,
-  "agents": 7,
+  "agents": 8,
   "makeTargets": 26,
   "gates": 15,
   "tests": 71,
@@ -26,7 +26,7 @@
    "dir": "plugins/bearing",
    "description": "A developer workflow for coding agents: skills for every stage from brief to runbook, review subagents, one guard behind every hook, and repository templates. The stack conventions come in bearing-backend and bearing-apps.",
    "required": true,
-   "files": 426,
+   "files": 427,
    "skills": [
     "ab-experiment",
     "accessibility",
@@ -9322,11 +9322,11 @@
     },
     {
      "title": "Steps",
-     "lines": 99
+     "lines": 122
     },
     {
      "title": "Output contract",
-     "lines": 14
+     "lines": 15
     },
     {
      "title": "Gotchas",
@@ -9348,7 +9348,7 @@
     "Read `templates/PRD.md` and `templates/questions.md`. If `docs/product/PRD.md` exists, read it and keep every existing `REQ-nnn` id and text; new statements append after the highest id in the whole file (ids are not always in order in the tables), withdrawn statements stay in the list marked `withdrawn:`. Never renumber. When the input changes an existing statement, apply step 7a.",
     "First pass, sections. Fill problem, business objectives, non-goals, personas, constraints, glossary from the input only. Objectives get ids `B1` upward, kept across runs; every story's \"Why it matters\" line cites one. An objective with no number in the input gets `target: unconfirmed`. A persona is a named role in the input; if none is named, derive at most one from the verbs and mark it `inferred:`. Any section the…",
     "Second pass, statements. Walk every sentence carrying must, should, shall, needs, can, will, allow, or an imperative, and every bullet. Each becomes one `REQ-nnn`: one testable statement, present tense, the system as subject. Split a sentence joining two capabilities with \"and\". Convert story form (\"As a user I want\") to a statement and keep the persona. Keep a solution only if the input names it, then move it to Co…",
-    "Flag ambiguity. A statement with a vague word (fast, easy, simple, appropriate, etc., some, various) or with no observable outcome is kept, marked `ambiguous:`, and gets one entry in the register stating what would make it testable.",
+    "Flag ambiguity. A statement with a vague word (fast, easy, simple, appropriate, etc., some, various) or with no observable outcome is kept and marked `ambiguous: Q-nnn`. Statements are grouped by the kind of vagueness (visual quality, ease of use, speed without a metric, a live feed without an interval): one register entry per group, stating what would make every statement in it testable, with Affects listing them a…",
     "Mark inference and conflict. Anything you add to complete a section that the input does not state is prefixed `inferred:`; two passages that disagree are a contradiction; a capability the input needs but never states is a gap. Each is one `Q-nnn` entry. Never add a requirement statement this way; a missing capability is a question, not a REQ. Then check every statement against the repository, not only against the in…",
     "Write the register from `templates/questions.md`: per entry the Kind (open-question, gap, contradiction), Where (the REQ id or section), Basis (stated, inferred, convention, assumption), every reading the input allows, the Decision taken so work is not blocked, Why, Affects (the REQ ids it changes; `backlog` replaces them with story ids, and the cell is never empty) and Status `open`. Open assumptions go first and a…",
     "Write `docs/product/PRD.md` and `docs/product/questions.md` (`mkdir -p docs/product`); section 7 of the PRD states the register's counts. Print the counts. Zero statements extracted is a failed run, not an empty PRD.",
@@ -9364,11 +9364,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 184,
+   "lines": 208,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 184
+     "lines": 208
     },
     {
      "path": "scripts/doc_to_text.py",
@@ -16361,6 +16361,32 @@
    ]
   },
   {
+   "name": "prd-drafter",
+   "description": "Read-only drafter for one section range of a long brief. Used by prd when the input is long enough to split: several run at once, each turns its lines into draft requirement statements, constraints and ambiguity tags, and the prd session merges, numbers and judges them. Never numbers REQs, never writes files, never writes the register.",
+   "tools": [
+    "Read",
+    "Grep",
+    "Glob"
+   ],
+   "disallowed": [
+    "Bash",
+    "Write",
+    "Edit",
+    "MultiEdit",
+    "NotebookEdit",
+    "Agent"
+   ],
+   "model": "sonnet",
+   "maxTurns": "8",
+   "isolation": "",
+   "intro": "You draft; the prd session decides. You are given a source text file, a line range in it, and the product name. Read the whole file once for context, then work only on your range.",
+   "sections": [],
+   "lines": 23,
+   "usedBy": [
+    "prd"
+   ]
+  },
+  {
    "name": "reviewer",
    "description": "Read-only, stack-aware reviewer for a diff or branch in a repository on this standard. Use for branch-review and whenever a change needs a second pair of eyes before the MR. Returns ranked findings with file and line, each backed by a concrete failure scenario.",
    "tools": [
@@ -18167,9 +18193,10 @@
    "date": "",
    "groups": [
     "Added",
+    "Changed",
     "Fixed"
    ],
-   "entries": 12,
+   "entries": 14,
    "summary": "First public release, under the MIT licence."
   }
  ],

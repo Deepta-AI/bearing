@@ -36,7 +36,7 @@ Without a stack plugin, its skills are absent, and `new-repo`,
 `onboard-repo`, `ci-pipeline` and the review checklists stop on that
 stack with the line to install it (`/plugin install bearing-backend@bearing`).
 
-The bearing plugin carries every workflow skill, the seven subagents (`bearing:reviewer`,
+The bearing plugin carries every workflow skill, the eight subagents (`bearing:reviewer`,
 `bearing:critic` and the rest), the hooks in `plugins/bearing/hooks/hooks.json` and the
 guard they call (`plugins/bearing/bin/brg-guard`). It does not write
 `~/.config/bearing/bearing.env` (without it the tracker is `none`; copy

@@ -82,11 +82,11 @@ function ReviewVisual(i: number) {
 export function Agents() {
   return (
     <Page
-      title="The seven agents"
+      title="The eight agents"
       lede="A subagent is a fresh context with its own prompt, model and tool list. Bearing uses them for one reason: to get a second opinion that cannot be contaminated by the first, and cannot touch what it is judging."
       toc={[
         { id: "why", label: "Why subagents" },
-        { id: "table", label: "The seven" },
+        { id: "table", label: "The eight" },
         ...data.agents.map((a) => ({ id: a.name, label: a.name })),
         { id: "review", label: "The review pipeline" },
       ]}
@@ -102,7 +102,7 @@ export function Agents() {
           <strong>Isolation.</strong> It starts without the session's reasoning, so a verifier checks the code and not the argument.
         </li>
         <li>
-          <strong>Fewer tools.</strong> Five of the seven have Read, Grep and Glob only, and name Bash, Write and Edit in <code>disallowedTools</code> as
+          <strong>Fewer tools.</strong> Six of the eight have Read, Grep and Glob only, and name Bash, Write and Edit in <code>disallowedTools</code> as
           well. A reviewer that cannot edit cannot "fix" what it is reviewing; one that cannot run a shell cannot be steered by a command in the diff.
         </li>
         <li>
@@ -117,7 +117,7 @@ export function Agents() {
         </p>
       </Note>
 
-      <H2 id="table">The seven</H2>
+      <H2 id="table">The eight</H2>
       <div className="tablewrap">
         <table>
           <thead>
