@@ -2,7 +2,7 @@
 name: prd
 description: 'Normalises any brief, notes or ticket into a PRD of numbered testable REQ statements, objectives, personas and open questions; no stories. Use when asked to "write the PRD" or "turn this brief into requirements".'
 argument-hint: "<attach the brief, give its path, or paste it in the message>"
-allowed-tools: Read, Write, Grep, Glob, Agent, Bash(ls:*), Bash(mkdir:*), Bash(wc:*), Bash(git rev-parse:*), Bash(python3 *skills/prd/scripts/doc_to_text.py*)
+allowed-tools: Read, Write, Grep, Glob, Agent, AskUserQuestion, Bash(ls:*), Bash(mkdir:*), Bash(wc:*), Bash(git rev-parse:*), Bash(python3 *skills/prd/scripts/doc_to_text.py*), Bash(python3 *skills/prd/scripts/register_answers.py*)
 ---
 
 # prd
@@ -10,6 +10,12 @@ allowed-tools: Read, Write, Grep, Glob, Agent, Bash(ls:*), Bash(mkdir:*), Bash(w
 The PRD is the root of the traceability chain. Every `REQ-nnn` written here
 is carried by stories, criteria, tests and commits, so the skill extracts
 only what the input says, marks what it had to infer, and never renumbers.
+
+It records what to build. It does not review the idea, the business case
+or the delivery: that is office hours or the `critic`, run when the user
+asks. The PRD is vendor-neutral. It never names the company doing the
+work and never assumes who the user is: they may be the client, a member
+of the client's team, or a supplier.
 
 Not this: pm-skills `create-prd` writes an eight-section product
 document from scratch; this normalises any input into a PRD on this
@@ -101,14 +107,11 @@ combined by `backlog`, never one story per line.
    skipped.
 5. Flag ambiguity. A statement with a vague word (fast, easy, simple,
    appropriate, etc., some, various) or with no observable outcome is
-   kept and marked `ambiguous: Q-nnn`. Statements are grouped by the kind
-   of vagueness (visual quality, ease of use, speed without a metric, a
-   live feed without an interval): one register entry per group, stating
-   what would make every statement in it testable, with Affects listing
-   them all. Group only statements one answer settles; a statement whose
-   test depends on a different fact (a page-load metric and a Lighthouse
-   category are different facts) gets its own entry. Print the groups
-   with their sizes.
+   kept and marked `ambiguous: acceptance set in design`: design and
+   `test-cases` give it a measurable acceptance, and it is not a
+   question. Only when the vague word leaves the scope itself unclear
+   (what gets built, not how well) does it get a register entry, marked
+   `ambiguous: Q-nnn`, and statements one answer settles share that entry.
 6. Mark inference and conflict. Anything you add to complete a section
    that the input does not state is prefixed `inferred:`; two passages
    that disagree are a contradiction; a capability the input needs but
@@ -123,10 +126,15 @@ combined by `backlog`, never one story per line.
    the statement is flagged `blocked: Q-nnn`, not written as buildable,
    and the ADR is never edited or superseded on the client's behalf.
    Behaviour the team would add for a sound build (idempotent event
-   handling, what happens when a service is down, uniqueness rules) is
-   not a client requirement: it goes to the register as a team proposal
-   with Basis `convention` or `assumption`, or is left to design, never a
-   REQ in the client's voice. Details the input leaves out of a new
+   handling, what happens when a service is down, uniqueness rules,
+   browser support, backups, rate limits) is not a requirement: it is
+   left to design, never a register entry and never a REQ in the
+   client's voice. So is a choice between technologies the input names
+   as alternatives. Who builds, supplies, translates, hosts, pays for,
+   owns, staffs or signs off anything, and the launch date and budget,
+   are delivery questions: they never enter the PRD or the register. A
+   legal duty the input names is a constraint; the skill does not add
+   legal analysis or question the client's registrations. Details the input leaves out of a new
    capability (amounts, limits, validity, refund rules) stay open
    questions; do not choose them. Numbers the input derives (a reward
    every Nth visit from an average bill) are recomputed, and any
@@ -140,8 +148,10 @@ combined by `backlog`, never one story per line.
    first and are listed again under "Needs your confirmation". Keep the
    ids and decisions of an existing register; a confirmed entry stays,
    and an entry the new input does not touch keeps its text. A new entry
-   is written only for a point a reader must answer or know; a doubt that
-   changes no decision is not an entry.
+   is written only where the input is unclear or contradicts itself about
+   what the product does, and the answer changes what gets built; a
+   doubt that changes nothing built is not an entry. A long register is
+   a sign the skill is reviewing the idea instead of recording it.
 7a. Changes to an existing PRD (a client email after a demo, a change
    request). For each statement the input touches:
    - Dropped for now: keep the id and text, flag `withdrawn:` with the
@@ -169,10 +179,36 @@ combined by `backlog`, never one story per line.
    (`mkdir -p docs/product`); section 7 of the PRD states the register's
    counts. Print the counts. Zero statements extracted is a failed run,
    not an empty PRD.
-9. Ask the user whether to run the critic. On yes, fork `critic`
-   (Agent tool) with the document path; add its three weakest claims and
-   what the document does not say to the register, each as a Q-nnn whose
-   Readings include the experiment that would settle it.
+9. Do not offer a critique. Only when the user asks for one, fork
+   `critic` (Agent tool) with the document path and report its findings;
+   a finding enters the register only when it meets the rule in step 7
+   (unclear about what gets built), never for business, delivery or
+   legal doubts.
+10. Resolve the register in this session; nothing is sent outside it. Run
+   `python3 "${CLAUDE_PLUGIN_ROOT}/skills/prd/scripts/register_answers.py"
+   rank` for the open entries, ranked: open assumptions first, then by
+   how many statements each affects, so the first round settles what
+   blocks the most. Print the count and ask the user how to go through
+   them: highest impact first in rounds of four, stopping whenever they
+   like; only the assumptions; or none now. Then ask round by round
+   with AskUserQuestion, up to four entries a call, each a question in
+   plain words (the register's text is for engineers): the assumed
+   reading first, labelled "(Assumed)", then the other readings, at most
+   four options (the user can always type their own); put the
+   experiment in an option's description when the entry has one, and
+   group entries on one topic in the same round. Where AskUserQuestion
+   is not available, ask the same round as a numbered list and accept
+   short answers ("Q-005 c, Q-021 keep, Q-006 ask"). A user who cannot
+   answer yet says so: record it as `ask-client` with who will be asked.
+   Write the answers to
+   `.bearing/answers-<date>.json` and apply them with
+   `register_answers.py apply --answers <file> --source "<who> in
+   session"`, which confirms entries with date and source, keeps the old
+   decision as history and rewrites the confirmation list and counts.
+   An `other` answer stays open: judge it under step 7a (a changed rule
+   is a new REQ, never an edit), then set the entry. Finally update the
+   counts in section 7 of the PRD and print what was confirmed, what
+   needs review and what waits on the client.
 
 ## Output contract
 
@@ -181,14 +217,15 @@ combined by `backlog`, never one story per line.
 Statements extracted: S (REQ-001 to REQ-nnn, W withdrawn)
 Business objectives: B (B1 to Bn, T with a confirmed target)
 Drafting: in this session | parallel (<R> ranges, <statements per range>)
-Ambiguous statements flagged: K in G groups   Inferred items: J
+Ambiguous statements flagged: K (Q with a register entry)   Inferred items: J
 Register: Q entries (open-question O, gap G, contradiction C);
           needs your confirmation A
 Could not extract: <sections, or none>
 Changed: withdrawn <ids>, replaced <old -> new>, new <ids>, reversed <Q ids> | first PRD
 Affected downstream: <story ids with status, code/test files citing the ids> | none
 Written: docs/product/PRD.md, docs/product/questions.md
-Critic: run (K claims, verdict <line>) | declined
+Critic: run on request (K findings, F filed) | not requested
+Answers: R rounds, C confirmed, V need review, A wait on the client, O still open | skipped
 Verdict: normalised | failed (0 statements)
 ```
 
@@ -198,6 +235,9 @@ Verdict: normalised | failed (0 statements)
   anywhere in the statements list; `backlog` judges and combines them.
 - A number in the input is a target only if the input calls it one. A
   budget, a launch date or a user count from the brief goes to Constraints.
+- A brief with no launch date or budget is not missing anything: never
+  ask for them, never list them under Could not extract. The PRD and the
+  backlog cover what the scope needs, whatever the date or budget.
 - Two inputs (an old PRD and a new brief) never merge their numbering; the
   new brief's statements append after the existing ids.
 - An assumption is a decision nobody has confirmed. It goes under "Needs

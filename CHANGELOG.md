@@ -63,11 +63,23 @@ First public release, under the MIT licence.
   and numbers the drafts itself. Sections, contradictions and the register
   stay in the main session. A 294-line website brief took about 7 minutes
   drafted serially.
-- `prd` groups ambiguous statements by the kind of vagueness (visual
-  quality, ease of use, speed without a metric): one register entry per
-  group with every statement in Affects, instead of one entry per
-  statement. A statement whose test depends on a different fact keeps its
-  own entry.
+- `prd` records what to build and stops reviewing the idea. Its register
+  holds only points where the brief is unclear or contradicts itself
+  about what the product does. Delivery questions (who builds, supplies,
+  pays or signs off, the date and budget), engineering defaults, choices
+  between named technologies and legal doubts are left out; a vague word
+  is flagged and gets its acceptance in design. The critic runs only when
+  asked. The PRD is vendor-neutral: it never names the company doing the
+  work or assumes who the user is. On a 294-line website brief the
+  register went from 54 entries to 13.
+- `prd` resolves its open questions in the session (step 10) instead of
+  leaving a register for someone to read. `scripts/register_answers.py
+  rank` orders the open entries (assumptions first, then by how many
+  statements each affects), the skill asks them four at a time as
+  multiple choice with the assumed reading first, and `apply` confirms
+  each answer with its date and source, keeps the old decision as
+  history, records "ask the client" as a dated note, and rewrites the
+  confirmation list and counts the backlog gate checks.
 
 ### Fixed
 - The guard refused a `for` loop that runs its own variable over literal
