@@ -3,9 +3,9 @@ import type { ScreenSpec } from "@/design/screen";
 import { HealthCardView } from "../components/HealthCard";
 
 // Every state of the health card, from fixtures. The design gallery at
-// /__design/S-01 renders these inside the real app shell.
+// /__design/S-00 renders these inside the real app shell.
 export const screen: ScreenSpec = {
-  id: "S-01",
+  id: "S-00",
   name: "API health",
   feature: "health",
   job: "Show whether the API answers, and let the reader retry when it does not.",

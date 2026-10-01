@@ -31,6 +31,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from states_check import inventory, row_counts  # noqa: E402
 
+SCAFFOLD_EXAMPLE = "S-00"
 RAW = ("table", "button", "input", "select", "textarea", "dialog")
 
 
@@ -97,7 +98,7 @@ def main():
         )
         return 1
 
-    problems, by_id, states_total, complete = [], {}, 0, 0
+    problems, by_id, states_total, complete, example = [], {}, 0, 0, ""
     for f in files:
         text = open(f, encoding="utf-8").read()
         m = re.search(r'\bid\s*:\s*["\'](S-\d{2,3})["\']', text)
@@ -107,6 +108,11 @@ def main():
             continue
         sid = m.group(1)
         by_id[sid] = (name, text)
+        if sid == SCAFFOLD_EXAMPLE and sid not in inv:
+            # the react-web and next-app scaffolds ship one example screen as
+            # S-00; a product's own inventory starts at S-01
+            example = name
+            continue
         if sid not in inv and not only:
             problems.append(f"{sid} ({name}): not in the inventory")
         raw = [t for t in RAW if re.search(rf"<{t}[\s>/]", text)]
@@ -145,6 +151,7 @@ def main():
     print(
         f"screen-gallery: {len(inv)} screens from {source}, {states_total} states, "
         f"{complete} of {len(inv)} screens with all inventory states, {len(problems)} problems"
+        + (f" (the scaffold's example {example} is not checked; delete it once the product's screens exist)" if example else "")
     )
     return 1 if problems else 0
 

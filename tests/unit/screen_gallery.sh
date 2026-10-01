@@ -98,6 +98,15 @@ screen "$d/src/features/runs/screens/S-10-runs.screen.tsx" S-10 loading empty er
 assert_exit 0 python3 "$CHK" --src "$d/src" --flows "$d/flows.md"
 t_end
 
+t_begin "the scaffold's example screen S-00 is named, not counted as a stray"
+d="$(tmpdir)"; flows "$d/flows.md"
+screen "$d/src/features/runs/screens/S-10-runs.screen.tsx" S-10 loading empty error success
+screen "$d/src/features/runs/screens/S-12-run-view.screen.tsx" S-12 loading success failed
+screen "$d/src/features/health/screens/S-00-health.screen.tsx" S-00 error success
+assert_exit 0 python3 "$CHK" --src "$d/src" --flows "$d/flows.md"
+assert_contains "$T_OUT" "the scaffold's example S-00-health.screen.tsx is not checked"
+t_end
+
 t_begin "zero screen files fail"
 d="$(tmpdir)"; flows "$d/flows.md"; mkdir -p "$d/src"
 assert_exit 1 python3 "$CHK" --src "$d/src" --flows "$d/flows.md"
