@@ -8,6 +8,9 @@ export default mergeConfig(
   defineConfig({
     test: {
       environment: "jsdom",
+      // jsdom accessibility queries are slow under coverage on a loaded machine;
+      // 5 s timed out synchronous tests. Any assertion still fails at once.
+      testTimeout: 15_000,
       setupFiles: ["src/test/setup.ts"],
       include: ["src/**/*.test.{ts,tsx}"],
       // An absolute origin so MSW can match request URLs in node.

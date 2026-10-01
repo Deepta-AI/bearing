@@ -14,6 +14,9 @@ export default defineConfig({
   },
   test: {
     environment: "jsdom",
+    // jsdom accessibility queries are slow under coverage on a loaded machine;
+    // 5 s timed out synchronous tests. Any assertion still fails at once.
+    testTimeout: 15_000,
     setupFiles: ["src/test/setup.ts"],
     include: ["src/**/*.test.{ts,tsx}"],
     env: { API_URL: "http://api.test", NEXT_PUBLIC_APP_NAME: "Test App" },
