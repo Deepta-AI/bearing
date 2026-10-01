@@ -16,7 +16,7 @@ Backlog: docs/product/backlog.md   Built: <date>   Hours: <TBD | estimate on dat
 <!-- What: one row per task, grouped by story, development tasks (D) before
      test tasks (T).
      Good: the id is US-nn-nnn-Dk or US-nn-nnn-Tk and never reused;
-     discipline is one of backend, frontend, mobile, qa, devops (a test task
+     discipline is one of backend, frontend, mobile, qa, devops, design, content (a test task
      is qa; schema and migration work is backend); Estimate is hours, at
      most 8 (a day of one person's work; more is two tasks), or TBD; Depends
      on is task ids or none; Done when is a state someone can check without
@@ -30,5 +30,5 @@ Backlog: docs/product/backlog.md   Built: <date>   Hours: <TBD | estimate on dat
 
 | Task | Story | Discipline | Title | Estimate (h) | Depends on | Done when | Verifies |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| US-nn-nnn-D1 | US-nn-nnn | backend / frontend / mobile / devops | <one line, names the layer it touches> | TBD | none | <checkable end state> | AC-US-nn-nnn-1 |
+| US-nn-nnn-D1 | US-nn-nnn | backend / frontend / mobile / devops / design / content | <one line, names the layer it touches> | TBD | none | <checkable end state> | AC-US-nn-nnn-1 |
 | US-nn-nnn-T1 | US-nn-nnn | qa | <which criteria it proves, and how> | TBD | US-nn-nnn-D1 | <cases written and passing> | AC-US-nn-nnn-1, AC-US-nn-nnn-2 |

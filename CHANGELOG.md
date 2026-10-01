@@ -80,6 +80,10 @@ First public release, under the MIT licence.
   each answer with its date and source, keeps the old decision as
   history, records "ask the client" as a dated note, and rewrites the
   confirmation list and counts the backlog gate checks.
+- `backlog` tasks take two more disciplines, `design` and `content`, for
+  deliverables that are not code (brand guidelines, video, copy). A
+  marketing website brief with launch collateral had 22 such tasks the
+  gate refused under the five software disciplines.
 
 ### Fixed
 - The guard refused a `for` loop that runs its own variable over literal
