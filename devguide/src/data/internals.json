@@ -5,7 +5,7 @@
   "commandSkills": 0,
   "stackSkills": 12,
   "scripts": 84,
-  "scriptLines": 28125,
+  "scriptLines": 28140,
   "hooks": 6,
   "agents": 8,
   "makeTargets": 26,
@@ -18,7 +18,7 @@
   "ghJobs": 6,
   "ghWorkflows": 2,
   "evals": 106,
-  "skillFiles": 960
+  "skillFiles": 961
  },
  "plugins": [
   {
@@ -144,7 +144,7 @@
    "dir": "plugins/bearing-apps",
    "description": "Bearing stack conventions and repository templates for apps: React, Next.js, React Native (Expo), Flutter, native iOS and native Android. Needs the bearing plugin.",
    "required": false,
-   "files": 364,
+   "files": 365,
    "skills": [
     "android",
     "flutter",
@@ -3436,7 +3436,7 @@
     },
     {
      "path": "scripts/evidence.py",
-     "lines": 314
+     "lines": 329
     },
     {
      "path": "scripts/pairs.py",
@@ -8160,7 +8160,7 @@
     },
     {
      "path": "templates/skeleton/src/app/%5F%5Fdesign/[id]/page.tsx",
-     "lines": 18
+     "lines": 34
     },
     {
      "path": "templates/skeleton/src/app/%5F%5Fdesign/page.tsx",
@@ -8196,11 +8196,11 @@
     },
     {
      "path": "templates/skeleton/src/app/globals.css",
-     "lines": 122
+     "lines": 124
     },
     {
      "path": "templates/skeleton/src/app/layout.tsx",
-     "lines": 38
+     "lines": 43
     },
     {
      "path": "templates/skeleton/src/app/loading.tsx",
@@ -8217,6 +8217,10 @@
     {
      "path": "templates/skeleton/src/app/page.tsx",
      "lines": 26
+    },
+    {
+     "path": "templates/skeleton/src/app/theme-script.ts",
+     "lines": 9
     },
     {
      "path": "templates/skeleton/src/components/ui/README.md",
@@ -8356,7 +8360,7 @@
     },
     {
      "path": "templates/skeleton/src/design/Gallery.tsx",
-     "lines": 118
+     "lines": 123
     },
     {
      "path": "templates/skeleton/src/design/registry.ts",
@@ -8468,7 +8472,7 @@
     },
     {
      "path": "templates/skeleton/src/test/setup.ts",
-     "lines": 8
+     "lines": 28
     },
     {
      "path": "templates/stack.json",
@@ -8486,7 +8490,7 @@
    "groups": {
     ".": 1,
     "references": 3,
-    "templates": 101
+    "templates": 102
    },
    "evals": true,
    "hasSections": [
@@ -10728,7 +10732,7 @@
     },
     {
      "path": "templates/skeleton/src/design/Gallery.tsx",
-     "lines": 120
+     "lines": 125
     },
     {
      "path": "templates/skeleton/src/design/registry.ts",
@@ -10816,7 +10820,7 @@
     },
     {
      "path": "templates/skeleton/src/test/setup.ts",
-     "lines": 25
+     "lines": 42
     },
     {
      "path": "templates/skeleton/src/vite-env.d.ts",
@@ -15707,7 +15711,7 @@
    "lang": "python",
    "group": "skill",
    "skill": "design-critique",
-   "lines": 314,
+   "lines": 329,
    "header": "evidence: take and check the design review's screenshots, so the widths\nand themes in the report are counted from files, not claimed.\n\n  evidence.py shoot --base <url or folder> --out <shots dir> [--browse BIN] [--chrome BIN] <page>...\n      For each page: goto, then a viewport screenshot at 375x812, 768x1024\n      and 1440x900 in light, then dark (documentElement.dataset.theme =\n      'dark') at the same three widths. Records the computed background and\n      text colours of the first 60 elements in each theme to\n      <page>.theme.json, and console errors to <page>.console.txt.\n      A <page> is a file name in the folder (a.html) or a path under the URL.\n      When browse is absent or its browser cannot start, it falls back to a\n      local headless Chrome or Chromium: the same six shots, dark through\n      prefers-color-scheme (--force-dark-mode) instead of data-theme, the\n      theme record holds the shot digests and console errors are not\n      recorded. The last line names the engine and the dark path used.\n\n  evidence.py check --out <shots dir> <page>...\n      Every page needs six PNGs: <page>-<w>.png and <page>-<w>-dark.png for\n      w in 375, 768, 1440. Each must be a PNG whose width is the viewport\n      width (or a whole multiple of it, for a device pixel ratio above 1).\n      A dark shot byte-identical to its light shot, or a theme record whose\n      dark colours equal its light colours, means the dark theme never\n      applied: a colour finding, and a failed check. The counts line names\n      the dark path the shots used; the other path was not rendered.\n\nBrowse runs with its state and logs in a temporary folder, stopped and\nremoved after the shoot; a tool folder that still appears at the repository\nroot (.gstack, .playwright-mcp) is removed and named.\n\nBoth print \"design-evidence: ...\" with counts and exit 1 on any problem, or\nwhen zero pages were given.",
    "functions": [
     "stem",
@@ -17193,9 +17197,9 @@
   {
    "path": "tests/unit/design_evidence.sh",
    "kind": "unit",
-   "lines": 97,
+   "lines": 102,
    "header": "tests/unit/design_evidence.sh: plugins/bearing/skills/design-critique/scripts/evidence.py check passes six real-shaped PNGs per page with a dark theme that applied, and fails, with the reason, on a missing width, a PNG at the wrong width, a file that is not a PNG, a dark shot identical to light, equal computed colours, a missing theme record, and zero pages. shoot fails on a page that is not in the folder, and when neither browse nor chrome can be used. No browser is needed: the PNGs are written here.",
-   "asserts": 34
+   "asserts": 36
   },
   {
    "path": "tests/unit/design_lint.sh",
@@ -17948,6 +17952,7 @@
     "skeleton/src/app/not-found.test.tsx",
     "skeleton/src/app/not-found.tsx",
     "skeleton/src/app/page.tsx",
+    "skeleton/src/app/theme-script.ts",
     "skeleton/src/components/ui/README.md",
     "skeleton/src/components/ui/alert.tsx",
     "skeleton/src/components/ui/avatar.tsx",
@@ -18490,7 +18495,7 @@
     "Changed",
     "Fixed"
    ],
-   "entries": 20,
+   "entries": 30,
    "summary": "First public release, under the MIT licence."
   }
  ],
