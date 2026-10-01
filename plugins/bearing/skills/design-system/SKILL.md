@@ -139,7 +139,9 @@ the files, and name each answer in the report:
    interactive controls reach 44 px (iOS) or 48 dp (Android); measure the
    component sizes the screens use and list the ones below.
 6. Write `docs/design/tokens.json` (schema `templates/tokens.schema.json`,
-   validate with `python3`; update an existing file in place with
+   validate with `uvx --with jsonschema==4.25.1 python -c "import json,jsonschema; jsonschema.validate(json.load(open('docs/design/tokens.json')), json.load(open('<schema>')))"`
+   (stdlib Python has no validator; without uv, say "schema: not
+   validated"); update an existing file in place with
    `meta.version` bumped and the changed roles named). Measure:
    `python3 "${CLAUDE_PLUGIN_ROOT}/skills/design-system/scripts/contrast.py" --tokens docs/design/tokens.json --strict-hex`.
    Its count line is the report's contrast line, verbatim; zero pairs
@@ -159,7 +161,13 @@ the files, and name each answer in the report:
    component and allowed variants; a missing need becomes a variant
    there; `- States:` stays one comma list on one line). Then
    `system_page.py tokens-css`, `build` and `check` (paths in the
-   script's help); `check` must exit 0; open the page in both themes.
+   script's help; `build --fonts-css <file>` links the product's own
+   `@font-face` stylesheet, and `--google-fonts` is only for a product
+   that loads its faces from Google); `check` must exit 0; open the page
+   in both themes. On react-shadcn the binding in `globals.css` or
+   `index.css` is written by hand from `tokens.json` (no generator writes
+   shadcn's names yet); compare its roles with `tokens.css` after each
+   change.
    Write `docs/design/DESIGN.md` from `templates/DESIGN.md` as the
    system's guide, linking to the direction; when the repo has no root
    `DESIGN.md`, add a relative symlink to the guide so gstack finds it.

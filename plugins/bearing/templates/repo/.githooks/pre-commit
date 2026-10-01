@@ -119,7 +119,9 @@ if [ -n "$go_files" ]; then
     hook_note "gofmt not on PATH (GUI clients often run hooks with a short PATH); Go files not format-checked"
   fi
 fi
-ts_files="$(by_ext '\.(ts|tsx|js|jsx|json|css|md)$')"
+# a symlink (a root DESIGN.md pointing at docs/design/DESIGN.md) is checked
+# where it points; prettier refuses a symlink named on the command line
+ts_files="$(by_ext '\.(ts|tsx|js|jsx|json|css|md)$' | while IFS= read -r f; do [ -L "$f" ] || printf '%s\n' "$f"; done)"
 if [ -n "$ts_files" ] && [ -x node_modules/.bin/prettier ]; then
   run_on "$ts_files" node_modules/.bin/prettier --check --log-level warn || hook_fail "prettier: run make fix"
 fi

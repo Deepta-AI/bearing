@@ -173,9 +173,11 @@ print(channels("#1b7a4c"))
 Tailwind 4 (`@theme inline`): the same table as full colours, hex in the
 theme blocks, oklch only in an `@supports (color: oklch(0 0 0))` block
 when the browser floor allows it (see Colour and the browser floor), and
-`--font-sans: var(--font-sans); --font-mono: var(--font-mono);` plus the
-type sizes (`--text-xs` to `--text-2xl` with their
-`--text-*--line-height` pairs) added to the `@theme inline` block.
+`--font-sans: var(--font-sans); --font-mono: var(--font-mono);` added to
+the `@theme inline` block. Tailwind's own type scale stays (the skill's
+rule: defaults the request did not touch are kept); a product whose
+direction sets its own sizes adds `--text-*` with their
+`--text-*--line-height` pairs and says so in the report.
 
 `contrast.py` measures the same roles in both modes. Add the pairs the
 components actually render that the role table lacks: a hover fill such

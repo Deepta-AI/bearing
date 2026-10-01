@@ -21,7 +21,8 @@
 #
 # Environment:
 #   DESIGN_LINT_ROOTS     source roots (default: src web/src app App Packages lib components)
-#   DESIGN_LINT_EXCLUDE   extended regex of paths to skip (token and generated files always are)
+#   DESIGN_LINT_EXCLUDE   extended regex of paths to skip (token and generated files always are,
+#                         and the shadcn binding file, globals.css or index.css, which holds the colours)
 #   DESIGN_LINT_BASELINE  baseline file (default scripts/design-lint.baseline)
 #   DESIGN_SPACE_SCALE    spacing scale in px, e.g. "4 8 12 16 24 32 48"
 #   DESIGN_FONT_SCALE     font-size scale in px, e.g. "13 15 20 28"
@@ -47,7 +48,7 @@ TOKENS="${DESIGN_TOKENS:-docs/design/tokens.json}"
 LIMIT="${DESIGN_LINT_LIMIT:-40}"
 LIBRARY="${DESIGN_LINT_LIBRARY:-(^|/)components/ui/}"
 RULES="${DESIGN_LINT_RULES:-colour spacing font-size shadow raw family}"
-GENERATED='(^|/)(tokens\.css|tokens\.json|theme\.ts|Theme\.kt|Color\.kt|Type\.kt|Shape\.kt|Theme\.swift)$|/values[^/]*/(colors|themes|dimens)\.xml$|docs/design/|node_modules/|dist/|build/|\.expo/|coverage/|generated|__snapshots__|\.test\.|\.spec\.|\.stories\.|/e2e/|playwright|(^|/)(vendor|vendored|third[_-]party)/|\.min\.(css|js)$'
+GENERATED='(^|/)(tokens\.css|tokens\.json|globals\.css|index\.css|theme\.ts|Theme\.kt|Color\.kt|Type\.kt|Shape\.kt|Theme\.swift)$|/values[^/]*/(colors|themes|dimens)\.xml$|docs/design/|node_modules/|dist/|build/|\.expo/|coverage/|generated|__snapshots__|\.test\.|\.spec\.|\.stories\.|/e2e/|playwright|(^|/)(vendor|vendored|third[_-]party)/|\.min\.(css|js)$'
 MODE="check"
 case "${1:-}" in
   --write-baseline) MODE="write" ;;
