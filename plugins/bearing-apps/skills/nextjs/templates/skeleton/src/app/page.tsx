@@ -9,7 +9,7 @@ import { HealthCard } from "@/features/health/components/HealthCard";
 // Suspense boundary, and the rest of the page is the prerendered shell.
 export default function HomePage() {
   return (
-    <div className="space-y-8">
+    <div className="mx-auto max-w-5xl space-y-8 px-4 py-8">
       <h1 className="text-2xl font-semibold">{env.NEXT_PUBLIC_APP_NAME}</h1>
       <Suspense
         fallback={

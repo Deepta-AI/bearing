@@ -36,6 +36,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import shutil
 import struct
 import subprocess
@@ -52,11 +53,25 @@ SIGNATURE_JS = (
 )
 
 
+# query keys that only steer how a page is shot; every other key (a
+# gallery's ?state= or ?variant=) names a different picture
+SHOT_ONLY = {"chrome", "theme"}
+
+
 def stem(page):
-    # a fragment (#chrome=0) or query steers the page, not the file name
-    page = page.split("#", 1)[0].split("?", 1)[0]
-    base = page.rstrip("/").split("/")[-1] or "index"
-    return base[:-5] if base.endswith(".html") else base
+    """The file stem for a page: its last path segment, plus the query keys
+    that change what it shows. Three design directions of one gallery screen
+    (?variant=1-a, 2-b, 3-c) once wrote to the same files, each over the last."""
+    page = page.split("#", 1)[0]
+    path, _, query = page.partition("?")
+    base = path.rstrip("/").split("/")[-1] or "index"
+    base = base[:-5] if base.endswith(".html") else base
+    parts = [
+        f"{k}-{v}"
+        for k, v in urllib.parse.parse_qsl(query)
+        if k not in SHOT_ONLY and re.fullmatch(r"[A-Za-z0-9_.-]+", k + v)
+    ]
+    return "~".join([base] + parts)
 
 
 def page_url(base, page):

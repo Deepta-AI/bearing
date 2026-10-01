@@ -95,3 +95,8 @@ assert_contains "$T_OUT" "dark shot via data-theme"
 t_end
 
 t_summary
+
+t_begin "the query keys that change the picture name the files; chrome and theme do not"
+assert_eq "S-01~state-error~variant-2-plot" "$(python3 -c "import sys;sys.path.insert(0,'$(dirname "$EV")');import evidence;print(evidence.stem('__design/S-01?state=error&chrome=0&variant=2-plot&theme=dark'))")" "stem"
+assert_eq "list" "$(python3 -c "import sys;sys.path.insert(0,'$(dirname "$EV")');import evidence;print(evidence.stem('list.html#chrome=0'))")" "stem without a query"
+t_end

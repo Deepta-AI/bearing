@@ -1,7 +1,8 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
-@custom-variant dark (&:is(.dark *));
+/* Dark follows the .dark class the app sets, or data-theme="dark" (design gallery and review shots). */
+@custom-variant dark (&:is(.dark *, [data-theme="dark"] *));
 
 /* shadcn/ui tokens (new-york, neutral). Components use these by role;
    a raw colour in a className is a review finding. */
@@ -40,7 +41,8 @@
   --sidebar-ring: oklch(0.708 0 0);
 }
 
-.dark {
+.dark,
+[data-theme="dark"] {
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
   --card: oklch(0.205 0 0);

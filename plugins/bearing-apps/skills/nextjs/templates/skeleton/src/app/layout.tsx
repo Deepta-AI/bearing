@@ -4,6 +4,7 @@ import Link from "next/link";
 import { env } from "@/env";
 
 import "./globals.css";
+import { THEME_SCRIPT } from "./theme-script";
 
 // Metadata is static here; a page that needs its own title exports
 // `metadata` or `generateMetadata`. Fonts: prefer `next/font/local` with a
@@ -22,7 +23,11 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        {/* Sets the theme before the first paint; see theme-script.ts. */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+      </head>
       <body className="min-h-svh bg-background font-sans text-foreground">
         <header className="border-b">
           <nav aria-label="Main" className="mx-auto flex max-w-5xl items-center gap-4 px-4 py-3">
@@ -31,7 +36,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </Link>
           </nav>
         </header>
-        <main className="mx-auto max-w-5xl px-4 py-8">{children}</main>
+        <main>{children}</main>
       </body>
     </html>
   );

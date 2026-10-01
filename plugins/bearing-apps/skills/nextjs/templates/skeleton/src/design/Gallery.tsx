@@ -11,16 +11,21 @@ import { allScreens, searchToQuery, type GallerySearch } from "./registry";
 import type { ScreenSpec } from "./screen";
 
 /**
- * useLook applies ?theme= the way the app does (the dark class) and
- * ?variant= as data-variant, which a direction's CSS keys its tokens on.
+ * useLook applies ?theme= (or, without it, the system setting) the way the
+ * app does (the dark class), and ?variant= as data-variant, which a
+ * direction's CSS keys its tokens on.
  */
 function useLook(theme: GallerySearch["theme"], variant: GallerySearch["variant"]) {
   useLayoutEffect(() => {
     const root = document.documentElement;
-    if (theme) {
-      root.classList.toggle("dark", theme === "dark");
-      root.dataset.theme = theme;
-    }
+    // No ?theme: follow the system setting, so a headless browser shooting
+    // with prefers-color-scheme: dark (evidence.py's Chrome path) gets dark.
+    const dark = theme
+      ? theme === "dark"
+      : typeof window.matchMedia === "function" &&
+        window.matchMedia("(prefers-color-scheme: dark)").matches;
+    root.classList.toggle("dark", dark);
+    if (theme) root.dataset.theme = theme;
     if (variant) {
       root.dataset.variant = variant;
     } else {
@@ -33,7 +38,7 @@ function useLook(theme: GallerySearch["theme"], variant: GallerySearch["variant"
 export function GalleryIndex({ screens = allScreens() }: { screens?: ScreenSpec[] }) {
   const features = [...new Set(screens.map((s) => s.feature))];
   return (
-    <div className="space-y-8">
+    <div className="mx-auto max-w-5xl space-y-8 px-4 py-8">
       <header className="space-y-1">
         <h1 className="text-2xl font-semibold tracking-tight">Design gallery</h1>
         <p className="text-muted-foreground">
@@ -100,7 +105,7 @@ export function GalleryScreen({
   return (
     <div className="space-y-6" data-screen={spec.id} data-state={current}>
       {search.chrome !== "0" && (
-        <Tabs value={current ?? ""}>
+        <Tabs value={current ?? ""} className="mx-auto max-w-5xl px-4 pt-4">
           <TabsList aria-label={`${spec.id} states`}>
             {names.map((name) => (
               <TabsTrigger key={name} value={name} asChild>
