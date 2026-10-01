@@ -16,7 +16,7 @@ here pushes, merges or deploys; the run stops at a prepared merge request.
                                                 one row of the decision digest
   brg-autopilot report [--dir D]                write docs/autopilot/<run>.md (the MR carries it)
   brg-autopilot status [--dir D]                the stages, attempts and decisions so far
-  brg-autopilot profile --ui|--data|--api|--deploy yes|no [--scope lean|full] --why W [--dir D]
+  brg-autopilot profile --ui|--data|--api|--deploy yes|no [--llm yes|no] [--scope lean|full] --why W [--dir D]
                                                 what the product has; decides which stages apply
                                                 and how much document each one needs
   brg-autopilot stages                          the stage names, in order
@@ -65,9 +65,11 @@ STAGES = [
     ("architecture", "architecture-diagram (scope full); lean: nothing, the existing shape stands",
      "scope full: at least one docs/architecture/*-c4.md with a mermaid diagram; lean: nothing"),
     ("design", "scope full: high-level-design, then data-model (profile data), openapi-spec (profile api), "
-     "deployment-architecture (profile deploy), then low-level-design; lean: low-level-design as one note",
-     "scope full: docs/design/*-hld.md and *-lld.md; by profile, docs/design/data-model.md, api/openapi.yaml "
-     "and docs/architecture/deployment.md with a mermaid diagram; lean: one docs/design/*.md written this run"),
+     "deployment-architecture (profile deploy), threat-model, genai-design (profile llm), then "
+     "low-level-design; lean: low-level-design as one note",
+     "scope full: docs/design/*-hld.md and *-lld.md, docs/security/threat-model-*.md passing threats_check; "
+     "by profile, docs/design/data-model.md, api/openapi.yaml, docs/architecture/deployment.md with a "
+     "mermaid diagram and docs/genai/*-solution.md; lean: one docs/design/*.md written this run"),
     ("repos", "scope full: new-repo for each docs/architecture/repo-plan.json entry, beside this repository "
      "(headless: brg-autopilot repos-request); lean: nothing",
      "scope full: every repo-plan entry other than this repository is a git repository beside it whose "
@@ -85,9 +87,10 @@ STAGES = [
     ("build", "test-first implementation, story by story (superpowers:test-driven-development), "
      "the stack skill (go, react, ...) and the design system for UI",
      "tests added on the branch, and make check passed after the last change"),
-    ("test_automation", "test-automation",
+    ("test_automation", "test-automation; profile llm: llm-guardrails and llm-eval",
      "every case in docs/testing/test-cases.md not manual-only or retired is named by its TC id in a "
-     "test file, and make check passed after the last change"),
+     "test file, and make check passed after the last change; profile llm: guardrails/policy.yaml and "
+     "docs/genai/evals.md"),
     ("design_review", "profile ui: design-critique on the design gallery of the running app",
      "profile ui: a review scoring overall 8.0 with no category below 7 and every screenshot present; "
      "otherwise nothing"),
@@ -251,8 +254,8 @@ DEFAULT_UI_STACK = "react-shadcn"
 
 def profile_text(st):
     pr = st.get("profile") or {}
-    return (" ".join(f"{k}={pr.get(k, '?')}" for k in PROFILE_KEYS) + f" ui_stack={ui_stack(st)}"
-            + f" scope={scope(st)}")
+    return (" ".join(f"{k}={pr.get(k, '?')}" for k in PROFILE_KEYS) + f" llm={pr.get('llm', 'no')}"
+            + f" ui_stack={ui_stack(st)}" + f" scope={scope(st)}")
 
 
 def ui_stack(st):
@@ -352,7 +355,18 @@ def g_design(d, st):
         ok, last = checker(d, "data-model/scripts/model_check.py", "--dir", os.path.join(d, "docs/design"))
         if not ok:
             return False, f"model_check failed: {last}"
-    parts = [f"HLD {len(h)}, LLD {len(l_)}"]
+    threats = rels(d, "docs/security/threat-model-*.md")
+    if not threats:
+        return False, "missing: docs/security/threat-model-*.md (threat-model: it needs the HLD, data model and API)"
+    for t in threats:
+        ok, last = checker(d, "threat-model/scripts/threats_check.py", os.path.join(d, t))
+        if not ok:
+            return False, f"threats_check failed for {t}: {last}"
+    if wants(st, "llm") and not rels(d, "docs/genai/*-solution.md"):
+        return False, "missing: docs/genai/*-solution.md (genai-design: the profile says the product calls a model)"
+    parts = [f"HLD {len(h)}, LLD {len(l_)}, threat models {len(threats)}"]
+    if wants(st, "llm"):
+        parts.append("GenAI solution")
     if wants(st, "data"):
         parts.append("data model")
     if wants(st, "api"):
@@ -387,8 +401,15 @@ def plan_entries(d):
     except (OSError, ValueError, AttributeError) as e:
         return None, f"{PLAN} does not parse: {e}"
     parent = os.path.dirname(d)
-    return [(r.get("name", ""), r.get("stack", ""), d if same_repo(r.get("name", ""), d)
-             else os.path.join(parent, r.get("name", ""))) for r in repos], ""
+
+    def where(r):
+        # "path" places an entry explicitly, relative to this repository: "."
+        # when the code lives beside the documents in the repository the run
+        # is in, whatever the entry's PascalCase name.
+        if r.get("path"):
+            return os.path.normpath(os.path.join(d, r["path"]))
+        return d if same_repo(r.get("name", ""), d) else os.path.join(parent, r.get("name", ""))
+    return [(r.get("name", ""), r.get("stack", ""), where(r)) for r in repos], ""
 
 
 def repo_problem(path):
@@ -558,10 +579,17 @@ def g_test_automation(d, st):
     if unnamed:
         return False, (f"{len(unnamed)} automatable case(s) with no test naming them: {', '.join(unnamed[:8])}"
                        f"{' ...' if len(unnamed) > 8 else ''} (test-automation)")
+    if wants(st, "llm"):
+        gone = [f"{rel} ({skill})" for rel, skill in (("guardrails/policy.yaml", "llm-guardrails"),
+                                                       ("docs/genai/evals.md", "llm-eval"))
+                if not os.path.isfile(os.path.join(d, rel))]
+        if gone:
+            return False, "profile llm: missing " + ", ".join(gone)
     stale = changed_since_check(d)
     if stale:
         return False, f"make check has not passed since: {', '.join(stale[:5])}"
-    return True, f"{len(named)} of {len(auto)} automatable case(s) named by a test ({len(skip)} manual-only or retired)"
+    return True, (f"{len(named)} of {len(auto)} automatable case(s) named by a test ({len(skip)} manual-only or "
+                  f"retired)" + ("; guardrails policy and evals report present" if wants(st, "llm") else ""))
 
 
 REVIEW_OVERALL = 8.0
@@ -764,10 +792,19 @@ def next_stage(st):
     return None, "done"
 
 
+# Files that are not code: a repository holding only these (a PRD, ADRs and
+# designs from the earlier stages, a README, an ignore file) is a product not
+# built yet, not a change to an existing one.
+NOT_CODE = re.compile(r"^(docs/|\.[^/]+$)|\.(md|txt|rst|adoc)$|(^|/)(LICEN[CS]E|NOTICE|COPYING)[^/]*$", re.I)
+
+
 def existing_repo(d):
+    """A repository with code before the run: its change is scope lean. A
+    repository holding only documents (a run that begins after the PRD,
+    backlog, ADRs and HLD were committed) is a new product, scope full."""
     if not os.path.isdir(os.path.join(d, ".git")) or not git(d, "rev-parse", "-q", "--verify", "HEAD"):
         return False
-    return any(not not_work(d, f) for f in git(d, "ls-files").splitlines())
+    return any(not not_work(d, f) and not NOT_CODE.search(f) for f in git(d, "ls-files").splitlines())
 
 
 def cmd_start(a):
@@ -915,6 +952,7 @@ def cmd_profile(a):
     gate refuses a profile the code contradicts."""
     st = load(a.dir)
     st["profile"] = {k: getattr(a, k) for k in PROFILE_KEYS}
+    st["profile"]["llm"] = a.llm
     st["profile"]["ui_stack"] = a.ui_stack
     if a.scope != "auto":
         st["profile"]["scope"] = a.scope
@@ -1263,6 +1301,9 @@ def main():
     p = add("profile", cmd_profile)
     for k in PROFILE_KEYS:
         p.add_argument(f"--{k}", required=True, choices=["yes", "no"])
+    p.add_argument("--llm", default="no", choices=["yes", "no"],
+                   help="the product calls a language model at run time: genai-design in design, "
+                        "llm-guardrails and llm-eval before the tests are done")
     p.add_argument("--ui-stack", default=DEFAULT_UI_STACK,
                    help="react-shadcn (default: React, shadcn/ui, Tailwind, screens as code) or the stack "
                         "the implementer chose (html prototypes for any other)")

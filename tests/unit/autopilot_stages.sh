@@ -71,6 +71,15 @@ archset() {
     > "$r/docs/architecture/repo-plan.json"
 }
 # datamodel <repo>: the data-model templates, which model_check passes as shipped.
+# threats <repo>: a threat model whose one threat names a new story (threats_check passes it).
+threats() {
+  mkdir -p "$1/docs/security"
+  { printf '# Threat model: site\n\n- Sensitive classes: PII\n\n## 4. Threats (STRIDE)\n\n'
+    echo '| Id | Entry or boundary | Category | Threat | Likelihood | Impact | Mitigation | Status |'
+    echo '| --- | --- | --- | --- | --- | --- | --- | --- |'
+    echo '| T-01 | E1 | Information disclosure | leads read by anyone | M | H | new story: staff-only reads | planned |'
+  } > "$1/docs/security/threat-model-site.md"
+}
 datamodel() { cp "$KIT/plugins/bearing/skills/data-model/templates/"{schema.sql,data-dictionary.csv,data-model.md} "$1/docs/design/"; }
 
 t_begin "the stage list runs architecture, ux, test cases and test automation in order"
@@ -90,7 +99,7 @@ assert_exit 0 ap "done" decide
 assert_exit 0 ap status
 assert_contains "$T_OUT" "profile: ui=yes data=no api=yes deploy=yes"
 assert_exit 0 ap report
-assert_contains "$(cat "$d/docs/autopilot/r.md")" "| profile | ui=yes data=no api=yes deploy=yes ui_stack=react-shadcn scope=full |"
+assert_contains "$(cat "$d/docs/autopilot/r.md")" "| profile | ui=yes data=no api=yes deploy=yes llm=no ui_stack=react-shadcn scope=full |"
 t_end
 
 t_begin "architecture needs a C4 file with at least one diagram"
@@ -127,7 +136,7 @@ printf '# Deployment\nno picture\n' > "$d/docs/architecture/deployment.md"
 assert_exit 1 ap "done" design
 assert_contains "$T_OUT" "arch_check failed"
 assert_contains "$T_OUT" "Gate: FAILED"
-archset "$d"
+archset "$d"; threats "$d"
 assert_exit 1 ap "done" design
 assert_contains "$T_OUT" "model_check failed"
 datamodel "$d"
@@ -135,14 +144,29 @@ assert_exit 1 ap "done" design
 assert_contains "$T_OUT" "docs/architecture/deployment.md has no mermaid diagram"
 mermaid "$d/docs/architecture/deployment.md" "Deployment"
 assert_exit 0 ap "done" design
-assert_contains "$T_OUT" "HLD 1, LLD 1, data model, API contract, deployment with 1 diagram(s)"
+assert_contains "$T_OUT" "HLD 1, LLD 1, threat models 1, data model, API contract, deployment with 1 diagram(s)"
+t_end
+
+t_begin "a product that calls a model owes the GenAI solution, then guardrails and evals"
+at design; ap profile --ui no --data no --api no --deploy no --llm yes --scope full --why fixture >/dev/null
+assert_contains "$(ap status)" "llm=yes"
+archset "$d"; printf '# LLD\n' > "$d/docs/design/x-lld.md"; threats "$d"
+assert_exit 1 ap "done" design
+assert_contains "$T_OUT" "docs/genai/*-solution.md (genai-design"
+rm "$d/docs/security/threat-model-site.md"
+assert_exit 1 ap "done" design
+assert_contains "$T_OUT" "docs/security/threat-model-*.md (threat-model"
+threats "$d"
+mkdir -p "$d/docs/genai"; printf '# Q&A solution\n' > "$d/docs/genai/qa-solution.md"
+assert_exit 0 ap "done" design
+assert_contains "$T_OUT" "GenAI solution"
 t_end
 
 t_begin "a full-scope profile without data, API or deployment needs only the HLD and LLD"
 at design; ap profile --ui no --data no --api no --deploy no --scope full --why fixture >/dev/null
-archset "$d"; printf '# LLD\n' > "$d/docs/design/x-lld.md"
+archset "$d"; printf '# LLD\n' > "$d/docs/design/x-lld.md"; threats "$d"
 assert_exit 0 ap "done" design
-assert_contains "$T_OUT" "HLD 1, LLD 1; profile: data=no api=no deploy=no"
+assert_contains "$T_OUT" "HLD 1, LLD 1, threat models 1; profile: data=no api=no deploy=no"
 t_end
 
 t_begin "lean scope: a change to an existing repository, or a product with nothing but code, owes one design note"
@@ -176,6 +200,10 @@ assert_eq "False" "$(python3 -c "import json;print(json.load(open('$d/.bearing/s
 d="$(tmpdir)/old"; git init -q -b main "$d"; printf 'x = 1\n' > "$d/app.py"; commit init
 assert_exit 0 ap start "add a flag"
 assert_eq "True" "$(python3 -c "import json;print(json.load(open('$d/.bearing/state/autopilot.json'))['existing'])")" "repository with code"
+d="$(tmpdir)/docsonly"; git init -q -b main "$d"; mkdir -p "$d/docs/product"
+printf '# PRD\n' > "$d/docs/product/PRD.md"; printf 'x\n' > "$d/TODOS.md"; printf '.scratch/\n' > "$d/.gitignore"; commit init
+assert_exit 0 ap start "build the product the PRD describes"
+assert_eq "False" "$(python3 -c "import json;print(json.load(open('$d/.bearing/state/autopilot.json'))['existing'])")" "repository holding only documents"
 t_end
 
 # ux fixtures: the shapes the checker tests pass (ux_flows_check, design_contrast, screen_states).

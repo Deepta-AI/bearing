@@ -99,13 +99,16 @@ what is on disk, never from what the model says it did.
      codes, what `make check` does, CI) is not changed. A better
      convention is a proposal under Noticed, not a change in this MR.
 4. The product profile, at the end of the decide stage: `profile --ui
-   yes|no --data yes|no --api yes|no --deploy yes|no [--ui-stack <stack>]
-   [--scope lean|full] --why "<reason>"`. The ui stack is React with shadcn/ui and Tailwind
+   yes|no --data yes|no --api yes|no --deploy yes|no [--llm yes|no]
+   [--ui-stack <stack>] [--scope lean|full] --why "<reason>"`. The ui stack is React with shadcn/ui and Tailwind
    (`react-shadcn`) unless the statement or the repository names another;
    only then pass `--ui-stack` (flutter, react-native, compose, swiftui,
    html) and record why.
    It decides which stages apply: ux and design_review need ui, the data
-   model data, the API contract api, the deployment architecture deploy.
+   model data, the API contract api, the deployment architecture deploy,
+   and llm (the product calls a language model at run time) adds
+   genai-design to design and llm-guardrails and llm-eval to
+   test_automation.
    Answer from the statement and the stories, not from convenience: the
    dod gate refuses a profile the code contradicts (a UI package with
    ui=no, a migrations folder with data=no).
@@ -117,7 +120,9 @@ what is on disk, never from what the model says it did.
    (the risk register and the case table only). In full scope:
    architecture-diagram writes the C4 file; design
    runs high-level-design, then data-model, openapi-spec and
-   deployment-architecture as the profile names, then low-level-design;
+   deployment-architecture as the profile names, then threat-model (it
+   needs the entry points and stored fields those wrote), genai-design
+   when the profile says llm, then low-level-design;
    repos runs new-repo once for each entry of
    docs/architecture/repo-plan.json, in `<parent>/<Name>` beside this
    repository (an entry named like this repository is this repository
@@ -148,7 +153,11 @@ what is on disk, never from what the model says it did.
    laptop and flakes in CI. Before the first line of code, read the
    traps below and put the ones that apply into the tests.
 8. After the build: test-automation names a test after every case
-   that is not manual-only or retired (its TC id in the test name); for a
+   that is not manual-only or retired (its TC id in the test name); with
+   llm in the profile, llm-guardrails writes `guardrails/policy.yaml` and
+   wires it at the call sites, and llm-eval writes `docs/genai/evals.md`
+   (an eval that needs a provider key the run lacks is written and marked
+   not run, never reported as passed); for a
    UI, design-critique scores the design gallery of the running app
    (`make dev`) across every screen and state, fixes the top findings
    and re-scores until the bar holds: overall 8.0, no category below 7,
