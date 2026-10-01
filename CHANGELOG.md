@@ -57,6 +57,29 @@ First public release, under the MIT licence.
   repository.
 
 ### Changed
+- The handbook's four flows were reviewed against the skills and updated.
+  Greenfield runs `estimate` after the backlog, then `architecture-diagram`
+  after `high-level-design` (the HLD cannot be Approved without a drawn
+  diagram), `data-model` and `openapi-spec` before `threat-model` (which
+  needs the entry points and stored fields), the screen and model design
+  before `low-level-design` (front-end components need the screens), and
+  `tracker-sync` before planning; `/office-hours` runs only when the idea
+  is still open, and model calls gain `llm-guardrails`. The feature flow
+  decides what the change touches before it is planned, in one branch that
+  now covers the data model (`data-model` then `db-migration`), a
+  component's internals (`low-level-design`) and model calls. The bug fix
+  flow writes a postmortem only when the bug reached users. The inherited
+  flow draws the code as it runs (`architecture-diagram`) and audits the
+  dependencies before the first change.
+- `high-level-design` checks four more traps that an engineering review
+  of a marketing website found after the HLD was approved: repeated
+  requests (a request id under a unique constraint on every write
+  endpoint), untrusted content (rendered as text, staff sessions on a
+  separate origin), model output on a public path (grounded, checked,
+  bounded, evaluated) and provider facts (limits, quotas and idempotency
+  support from the provider's documentation, cited). The provider's
+  idempotency key is now looked up, not left as an assumption, and the
+  critic is given the Traps list to check.
 - `prd` drafts a long brief in parallel: over 150 lines or 60 bullets, it
   splits the source at its headings into 3 to 6 ranges and forks one
   `prd-drafter` agent per range (read-only, Sonnet), then merges, dedupes
