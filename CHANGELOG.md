@@ -256,9 +256,11 @@ First public release, under the MIT licence.
   reason, and takes `--commit <sha>` to prove one fix of a long branch.
   `prose_check` reads "Generated with" as a trailer only at the start of a
   line, so content saying how audio was made is not flagged.
-- The Bearing repository gates its own pushes: `make hooks` installs
-  `.githooks/pre-push`, which runs `make check` and `make ci-bash32`, the
-  bash32 CI job in the same `bash:3.2` image, now one script
+- The Bearing repository gates its own pushes: `make gate` runs `make
+  check` and `make ci-bash32` and records the commit it passed on, and
+  the pre-push hook `make hooks` installs lets that commit through (a
+  gate run inside the hook outlasted the SSH connection to GitHub). `make
+  ci-bash32` is the bash32 CI job in the same `bash:3.2` image, now one script
   (`tests/ci-bash32.sh`) that CI and the target share. `make check` gains
   `lint-portable`, which rejects commands a CI image lacks or runs
   differently (`perl`, `sed -i`, `grep -P`, `readlink -f`, `date -d`).

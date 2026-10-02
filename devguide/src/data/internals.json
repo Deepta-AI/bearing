@@ -8,7 +8,7 @@
   "scriptLines": 28466,
   "hooks": 6,
   "agents": 8,
-  "makeTargets": 28,
+  "makeTargets": 29,
   "gates": 16,
   "tests": 78,
   "fixtures": 21,
@@ -16867,6 +16867,11 @@
   {
    "name": "hooks",
    "does": "Install this repository's pre-push gate (make check, then the bash32 CI job) for this clone",
+   "inCheck": false
+  },
+  {
+   "name": "gate",
+   "does": "Before a push: make check, then the bash32 CI job (with Docker); records the commit it passed on so the pre-push hook lets it straight through",
    "inCheck": false
   },
   {

@@ -4,7 +4,7 @@
 SHELL := /bin/bash
 KITP := plugins/bearing
 .DEFAULT_GOAL := help
-.PHONY: help hooks ci-bash32 site devguide wiki check check-file validate lint-skills lint-tools lint-evals lint-triggers lint-neutral lint-docs lint-json lint-shell lint-portable lint-prose lint-version lint-budget lint-templates lint-plugin-size test install doctor docs harness-eval trigger-eval
+.PHONY: help hooks gate ci-bash32 site devguide wiki check check-file validate lint-skills lint-tools lint-evals lint-triggers lint-neutral lint-docs lint-json lint-shell lint-portable lint-prose lint-version lint-budget lint-templates lint-plugin-size test install doctor docs harness-eval trigger-eval
 
 help: ## List targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-14s %s\n", $$1, $$2}'
@@ -146,7 +146,21 @@ test: ## Unit and integration tests under tests/
 
 hooks: ## Install this repository's pre-push gate (make check, then the bash32 CI job) for this clone
 	git config core.hooksPath .githooks
-	@echo "hooks: .githooks/pre-push installed; git push now runs the gate CI runs"
+	@echo "hooks: .githooks/pre-push installed; run make gate before git push"
+
+gate: ## Before a push: make check, then the bash32 CI job (with Docker); records the commit it passed on so the pre-push hook lets it straight through
+	@[ -z "$$(git status --porcelain --untracked-files=no)" ] || { echo "gate: commit first; the gate is recorded against a commit" >&2; exit 1; }
+	@head=$$(git rev-parse HEAD); mark="$$(git rev-parse --git-dir)/bearing-gate-passed"; rm -f "$$mark"; \
+	log="$${TMPDIR:-/tmp}/bearing-gate.log"; \
+	echo "gate: make check on $$(echo $$head | cut -c1-7)"; \
+	$(MAKE) --no-print-directory check >"$$log" 2>&1 || { tail -30 "$$log" >&2; echo "gate: make check failed (log: $$log)" >&2; exit 1; }; \
+	if command -v docker >/dev/null && docker info >/dev/null 2>&1; then \
+	  echo "gate: make ci-bash32"; \
+	  $(MAKE) --no-print-directory ci-bash32 >"$$log" 2>&1 || { grep -E "^FAIL|bash32:" "$$log" | tail -30 >&2; echo "gate: the bash32 CI job failed (log: $$log)" >&2; exit 1; }; \
+	  grep "bash32:" "$$log"; \
+	else echo "gate: Docker is not running, so the bash32 CI job was not run here; CI will run it"; fi; \
+	[ "$$(git rev-parse HEAD)" = "$$head" ] || { echo "gate: HEAD moved during the run; nothing recorded" >&2; exit 1; }; \
+	echo "$$head" > "$$mark"; echo "gate: passed on $$(echo $$head | cut -c1-7); git push will not run it again"
 
 ci-bash32: ## The bash32 CI job, in the same bash:3.2 image (needs Docker): run before a push
 	docker run --rm -v "$$PWD:/kit" -w /kit bash:3.2 bash tests/ci-bash32.sh
