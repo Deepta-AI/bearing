@@ -18,7 +18,10 @@ class ResizeObserverStub {
   }
 }
 if (!("ResizeObserver" in globalThis)) {
-  Object.defineProperty(globalThis, "ResizeObserver", { value: ResizeObserverStub, writable: true });
+  Object.defineProperty(globalThis, "ResizeObserver", {
+    value: ResizeObserverStub,
+    writable: true,
+  });
 }
 
 // jsdom has no layout; the router's scroll restoration calls this on navigation.

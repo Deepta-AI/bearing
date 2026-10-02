@@ -10827,7 +10827,7 @@
     },
     {
      "path": "templates/skeleton/src/test/setup.ts",
-     "lines": 42
+     "lines": 45
     },
     {
      "path": "templates/skeleton/src/vite-env.d.ts",
@@ -18507,7 +18507,7 @@
     "Changed",
     "Fixed"
    ],
-   "entries": 46,
+   "entries": 47,
    "summary": "First public release, under the MIT licence."
   }
  ],

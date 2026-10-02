@@ -226,6 +226,10 @@ First public release, under the MIT licence.
   before it records a pass, so autopilot's build gate catches an app that
   outgrew it (7 Hills shipped 620 KB against 350 and only CI would have
   said so).
+- Tests run on macOS again: `wc -l` counts are trimmed, `paste` reads
+  standard input with `-`, and in-place edits use `perl -pi` with quoted
+  patterns instead of GNU-only `sed -i`. The React template's test setup
+  wraps a line prettier refused.
 - `brg-tracker --help` printed three lines of code after its header (the
   range ran past the comment); it now stops at the last comment line.
 - The guard refused a `for` loop that runs its own variable over literal

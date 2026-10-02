@@ -101,7 +101,7 @@ t_end
 
 t_begin "refused before any call: empty file, unknown type, non-numeric ids"
 : > "$work/empty.md"
-n="$(wc -l < "$LOG")"
+n="$(wc -l < "$LOG" | tr -d ' ')"
 assert_exit 1 rs doc-put PP --title "Empty" --file "$work/empty.md"
 assert_contains "$T_OUT" "is empty; an empty document is not published"
 assert_exit 1 rs doc-put PP --title "Bad" --file "$work/PRD.md" --type wiki

@@ -37,7 +37,7 @@ run() { (cd "$1" && python3 "$CHK"); }
 
 t_begin "a page named confirmation is not a dialog, and labelled error rows are error rows"
 d="$(tmpdir)/labels"; f="$d/docs/design/flows/orders/flows.md"; fixture "$f"
-sed -i 's/| S-03 | Done | receipt |/| S-03 | Order confirmation page | receipt |/' "$f"
+perl -pi -e 's/\Q| S-03 | Done | receipt |\E/| S-03 | Order confirmation page | receipt |/' "$f"
 python3 - "$f" <<'PY'
 import sys
 p = sys.argv[1]; s = open(p).read()
