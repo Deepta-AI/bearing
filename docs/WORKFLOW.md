@@ -184,7 +184,7 @@ own names (`/office-hours`, `brainstorming`).
 
 | Stage | Skill | From | Output |
 | --- | --- | --- | --- |
-| One statement to a prepared MR, unattended | `autopilot` | bearing | PRD, stories, Proposed decisions and a product profile in one digest, C4 and deployment diagrams, HLD, data model, API contract, LLD, UX flows, design system, screens, test cases, test-first build, test automation, design review, code review, a smoke run, MR description; never pushed |
+| One statement to a prepared MR, unattended | `autopilot` | bearing | a task branch first, then PRD, stories, Proposed decisions and a product profile in one digest, C4 and deployment diagrams, HLD, threat model, data model, API contract, GenAI design (llm profile), UX flows, design system, screens, LLD, test cases, test-first build (make check, and make build where the Makefile records it), test automation with guardrails and evals (llm profile), design review, code review, a smoke run, MR description; never pushed |
 | Not sure what comes next | `workflow` | bearing | the stage you are in, what is in flight (docs/progress/), the next skill, and whether the work is one agent, bounded tasks or parallel subagents |
 | Something missing | `doctor` | bearing | checks with counts and fixes |
 | Update the packs | `upgrade-tools` | bearing | versions before and after |

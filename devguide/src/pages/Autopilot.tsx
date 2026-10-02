@@ -135,7 +135,7 @@ brg-autopilot launch "<statement>"     run it headless: claude -p with autopilot
         accepts. The report at <code>docs/autopilot/&lt;run&gt;.md</code> lists every Proposed decision for you to review in the MR.
       </p>
       <p>
-        The product profile (ui, data, api, deploy) decides which stages apply, and the dod gate refuses a profile that contradicts the repository, such as{" "}
+        The product profile (ui, data, api, deploy, llm) decides which stages apply, and the dod gate refuses a profile that contradicts the repository, such as{" "}
         <code>ui=no</code> with React in package.json.
       </p>
 
