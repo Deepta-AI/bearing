@@ -1,5 +1,5 @@
 {
- "version": "0.6.0",
+ "version": "0.7.0",
  "counts": {
   "skills": 106,
   "commandSkills": 0,
@@ -18572,6 +18572,13 @@
   {
    "version": "Unreleased",
    "date": "",
+   "groups": [],
+   "entries": 0,
+   "summary": ""
+  },
+  {
+   "version": "0.7.0",
+   "date": "2026-10-02",
    "groups": [
     "Added",
     "Changed",

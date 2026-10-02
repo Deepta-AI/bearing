@@ -5,14 +5,14 @@
   },
   "metadata": {
     "description": "The Bearing marketplace: bearing (required: the workflow, agents, hooks and templates), bearing-backend and bearing-apps (optional stack conventions).",
-    "version": "0.6.0"
+    "version": "0.7.0"
   },
   "plugins": [
     {
       "name": "bearing",
       "source": "./plugins/bearing",
       "description": "A developer workflow for coding agents: skills for every stage, review subagents, hooks and repository templates. Required.",
-      "version": "0.6.0",
+      "version": "0.7.0",
       "author": {
         "name": "Ravi Teja Akella"
       },
@@ -24,7 +24,7 @@
       "name": "bearing-backend",
       "source": "./plugins/bearing-backend",
       "description": "Stack conventions and templates for Go, Python, Node, data pipelines and infrastructure. Optional; needs bearing.",
-      "version": "0.6.0",
+      "version": "0.7.0",
       "author": {
         "name": "Ravi Teja Akella"
       },
@@ -36,7 +36,7 @@
       "name": "bearing-apps",
       "source": "./plugins/bearing-apps",
       "description": "Stack conventions and templates for React, Next.js, React Native, Flutter, iOS and Android. Optional; needs bearing.",
-      "version": "0.6.0",
+      "version": "0.7.0",
       "author": {
         "name": "Ravi Teja Akella"
       },

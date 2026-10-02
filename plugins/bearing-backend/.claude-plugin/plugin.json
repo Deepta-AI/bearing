@@ -1,6 +1,6 @@
 {
   "name": "bearing-backend",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "Bearing stack conventions and repository templates for backend and platform code: Go, Python, Node, data pipelines (dbt, Airflow) and infrastructure (Terraform, Kubernetes). Needs the bearing plugin.",
   "author": {
     "name": "Ravi Teja Akella"
