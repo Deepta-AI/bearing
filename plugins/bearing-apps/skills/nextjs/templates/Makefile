@@ -65,10 +65,11 @@ design-registry-check: ## Fail when src/design/screens.generated.ts is stale (a 
 	command -v node >/dev/null || $(call skip,design-registry-check,node); \
 	node scripts/design-registry.mjs --check >/dev/null && echo "design-registry-check: $$n screen files checked"
 
-build: ## Production build (standalone output in .next/standalone)
+build: ## Production build (standalone output in .next/standalone), held to BUNDLE_BUDGET_KB
 	@mkdir -p $(STATE); rm -f $(STATE)/.build-passed
 	$(PNPM) exec next build
 	@echo "build: $$(find .next/standalone -type f 2>/dev/null | wc -l | tr -d ' ') files in .next/standalone"
+	@$(MAKE) --no-print-directory bundle-budget
 	@touch $(STATE)/.build-passed
 
 start: ## Serve the standalone build on :3000, as the image does (run make build first)

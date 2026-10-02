@@ -54,10 +54,11 @@ setup: ## Install dependencies (writes pnpm-lock.yaml), Playwright chromium and 
 dev: ## Run the Vite dev server (reads .env if present)
 	$(PNPM) exec vite --port 5173 --strictPort
 
-build: ## Production build into dist/
+build: ## Production build into dist/, held to BUNDLE_BUDGET_KB
 	@mkdir -p $(STATE); rm -f $(STATE)/.build-passed
 	$(PNPM) exec vite build
 	@echo "build: $$(find dist -type f | wc -l | tr -d ' ') files in dist/"
+	@$(MAKE) --no-print-directory bundle-budget
 	@touch $(STATE)/.build-passed
 
 format: ## Prettier --write

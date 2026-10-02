@@ -1373,7 +1373,7 @@
     },
     {
      "title": "Steps",
-     "lines": 152
+     "lines": 154
     },
     {
      "title": "Output contract",
@@ -1402,7 +1402,7 @@
     "The product profile, at the end of the decide stage: `profile --ui yes|no --data yes|no --api yes|no --deploy yes|no [--llm yes|no] [--ui-stack <stack>] [--scope lean|full] --why \"<reason>\"`. The ui stack is React with shadcn/ui and Tailwind (`react-shadcn`) unless the statement or the repository names another; only then pass `--ui-stack` (flutter, react-native, compose, swiftui, html) and record why. It decides whi…",
     "Tools go through the repository's make targets: `make setup` once the repo stage is done, `make check` for the gate, `make fix` for format. Never call a package manager directly (`uv sync`, `pnpm install`): the repository asks before those and nobody is there to answer.",
     "Before the build, in lean scope: the design note, then test-cases (the risk register and the case table only). In full scope: architecture-diagram writes the C4 file; design runs high-level-design, then data-model, openapi-spec and deployment-architecture as the profile names, then threat-model (it needs the entry points and stored fields those wrote) and genai-design when the profile says llm; repos runs new-repo o…",
-    "Build is test first, story by story, in the order of the backlog: a failing test named for the story, the code, `make check`, a commit per story with the task id. Where the Makefile records a build pass (the Next.js and React templates do), `make build` runs too before the stage is done: a page that cannot prerender passes every check and fails only the build. The edit hook's lint findings are fixed when they arrive…",
+    "Build is test first, story by story, in the order of the backlog: a failing test named for the story, the code, `make check`, a commit per story with the task id. Where the Makefile records a build pass (the Next.js and React templates do), `make build` runs too before the stage is done: a page that cannot prerender passes every check and fails only the build. Those templates' build also holds the bundle budget, so…",
     "After the build: test-automation names a test after every case that is not manual-only or retired (its TC id in the test name); with llm in the profile, llm-guardrails writes `guardrails/policy.yaml` and wires it at the call sites, and llm-eval writes `docs/genai/evals.md` (an eval that needs a provider key the run lacks is written and marked not run, never reported as passed); for a UI, design-critique scores the d…",
     "Review is `branch-review`; fix every Critical and High it confirms, then `make check` again. `definition-of-done` walks the definition of done, including item 13: start what the repository ships and drive its main flow, sign-in first, against the real backend. A bug the smoke run finds is fixed test first like any other, then the smoke runs again; the dod gate refuses a smoke file older than the last commit. Headles…",
     "The mr stage: `merge-request` prepares the description; `report` writes `docs/autopilot/<run>.md`; commit it, and let that commit be the last write (`git status` clean after it: a progress file touched later is work the MR does not carry); paste its decisions table into the description, with the exact push command (`git push -u origin <branch>`) under it; print the same command in the last message. Do not run it.",
@@ -1419,11 +1419,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 290,
+   "lines": 292,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 290
+     "lines": 292
     }
    ],
    "groups": {
@@ -8118,7 +8118,7 @@
     },
     {
      "path": "templates/Makefile",
-     "lines": 193
+     "lines": 194
     },
     {
      "path": "templates/README.md",
@@ -10515,7 +10515,7 @@
     },
     {
      "path": "templates/Makefile",
-     "lines": 176
+     "lines": 177
     },
     {
      "path": "templates/README.md",
@@ -18507,7 +18507,7 @@
     "Changed",
     "Fixed"
    ],
-   "entries": 45,
+   "entries": 46,
    "summary": "First public release, under the MIT licence."
   }
  ],

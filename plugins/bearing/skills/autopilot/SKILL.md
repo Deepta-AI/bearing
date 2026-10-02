@@ -163,7 +163,9 @@ what is on disk, never from what the model says it did.
    per story with the task id. Where the Makefile records a build pass
    (the Next.js and React templates do), `make build` runs too before the
    stage is done: a page that cannot prerender passes every check and
-   fails only the build. The edit hook's lint findings are fixed
+   fails only the build. Those templates' build also holds the bundle
+   budget, so an app that grew past it fails here, not first in CI; cut
+   the bundle, never raise the budget to the measurement. The edit hook's lint findings are fixed
    when they arrive; the Stop hook's `make check` demand is met, not
    argued with. No test asserts on wall-clock time: it passes on the
    laptop and flakes in CI. Before the first line of code, read the
