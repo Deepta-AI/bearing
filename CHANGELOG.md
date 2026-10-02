@@ -4,6 +4,8 @@ All notable changes to Bearing. Keep a Changelog format, semantic versions.
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-10-02
+
 First public release, under the MIT licence.
 
 ### Added
