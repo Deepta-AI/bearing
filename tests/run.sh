@@ -6,7 +6,7 @@
 set -u
 cd "$(dirname "$0")/.." || exit 1
 n=0; failed=0
-files="$(find tests -type f -name '*.sh' -not -path 'tests/lib/*' -not -name run.sh | sort)"
+files="$(find tests -type f -name '*.sh' -not -path 'tests/lib/*' -not -name run.sh -not -name ci-bash32.sh | sort)"
 for f in $files; do
   n=$((n+1))
   if [ ! -x "$f" ]; then echo "FAIL $f: not executable (chmod +x)"; failed=$((failed+1)); continue; fi

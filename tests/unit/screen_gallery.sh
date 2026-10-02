@@ -88,7 +88,7 @@ t_end
 
 t_begin "two error rows need two error states; a labelled row names its key"
 d="$(tmpdir)"; flows "$d/flows.md"
-perl -pi -e 's/^\Q| error | a banner | "Could not load runs. Retry." |\E$/| error | a banner | "Could not load runs. Retry." |\n| error | too many requests | "Try again at 14:02." |\n| error: not_found | the run is gone | "That run was deleted." |/' "$d/flows.md"
+replace_in "$d/flows.md" '| error | a banner | "Could not load runs. Retry." |' "$(printf '%s\n%s\n%s' '| error | a banner | "Could not load runs. Retry." |' '| error | too many requests | "Try again at 14:02." |' '| error: not_found | the run is gone | "That run was deleted." |')"
 screen "$d/src/features/runs/screens/S-10-runs.screen.tsx" S-10 loading empty error success error-not-found
 screen "$d/src/features/runs/screens/S-12-run-view.screen.tsx" S-12 loading success failed
 assert_exit 1 python3 "$CHK" --src "$d/src" --flows "$d/flows.md"

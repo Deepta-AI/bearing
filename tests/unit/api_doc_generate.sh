@@ -65,7 +65,7 @@ JSON
 
 t_begin "an operation's operationId is named beside what it does"
 d="$(tmpdir)"; spec "$d/openapi.yaml"
-perl -pi -e 's/"get": { "summary": "Liveness",/"get": { "summary": "Liveness", "operationId": "getHealth",/' "$d/openapi.yaml"
+replace_in "$d/openapi.yaml" '"get": { "summary": "Liveness",' '"get": { "summary": "Liveness", "operationId": "getHealth",'
 assert_exit 0 python3 "$AD" --spec "$d/openapi.yaml" --style "$STYLE" --out "$d/docs/api/API.md"
 assert_contains "$(cat "$d/docs/api/API.md")" "| GET | \`/health\` | Liveness (\`getHealth\`) | none | 200 Up | none |"
 t_end

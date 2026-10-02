@@ -78,20 +78,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: guard, help paths and unit tests under bash 3.2
         run: |
-          docker run --rm -v "$PWD:/kit" -w /kit bash:3.2 bash -c '
-            set -e
-            apk add --no-cache git make jq python3 curl grep sed coreutils findutils diffutils >/dev/null
-            git config --global --add safe.directory "*"
-            bash --version | head -1
-            bash plugins/bearing/bin/brg-guard --version
-            bash plugins/bearing/bin/brg-guard command "git status"
-            bash plugins/bearing/bin/brg-scaffold --help >/dev/null
-            bash plugins/bearing/bin/brg-adopt --help >/dev/null
-            bash plugins/bearing/bin/brg-jira --help >/dev/null
-            n=0; for t in tests/unit/*.sh; do bash "$t" || exit 1; n=$((n+1)); done
-            [ "$n" -gt 0 ] || exit 1
-            echo "bash32: $n unit test files passed under $(bash --version | head -1)"
-          '
+          docker run --rm -v "$PWD:/kit" -w /kit bash:3.2 bash tests/ci-bash32.sh
 
   macos:
     runs-on: macos-latest

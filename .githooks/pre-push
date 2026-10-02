@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# .githooks/pre-push for the Bearing repository itself (make hooks installs
+# it): the gate CI runs, before anything leaves the machine. make check is the
+# Linux gate; make ci-bash32 runs the bash32 CI job in the same bash:3.2 image
+# (Alpine, BusyBox, no perl), which caught failures make check cannot. The
+# macos and scaffold jobs still run only in CI; lint-portable (in make check)
+# rejects the BSD differences it knows. No Docker: the bash32 run is skipped
+# and said so, never reported as passed. Bypass once with git push --no-verify.
+set -u
+cd "$(git rev-parse --show-toplevel)" || exit 1
+log="${TMPDIR:-/tmp}/bearing-pre-push.log"
+echo "pre-push: make check" >&2
+make check >"$log" 2>&1 || {
+  tail -30 "$log" >&2
+  echo "pre-push: make check failed; nothing pushed (log: $log)" >&2
+  exit 1
+}
+if command -v docker >/dev/null && docker info >/dev/null 2>&1; then
+  echo "pre-push: make ci-bash32 (the bash32 CI job)" >&2
+  make ci-bash32 >"$log" 2>&1 || {
+    grep -E "^FAIL|bash32:" "$log" | tail -30 >&2
+    echo "pre-push: the bash32 CI job failed; nothing pushed (log: $log)" >&2
+    exit 1
+  }
+  grep "bash32:" "$log" >&2
+else
+  echo "pre-push: Docker is not running, so the bash32 CI job was not run here; CI will run it" >&2
+fi
+echo "pre-push: passed" >&2

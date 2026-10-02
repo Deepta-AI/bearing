@@ -4,13 +4,13 @@
   "skills": 106,
   "commandSkills": 0,
   "stackSkills": 12,
-  "scripts": 84,
-  "scriptLines": 28339,
+  "scripts": 85,
+  "scriptLines": 28466,
   "hooks": 6,
   "agents": 8,
-  "makeTargets": 26,
-  "gates": 15,
-  "tests": 76,
+  "makeTargets": 28,
+  "gates": 16,
+  "tests": 78,
   "fixtures": 21,
   "stacks": 13,
   "templates": 38,
@@ -15237,6 +15237,21 @@
    "calls": []
   },
   {
+   "path": "bin/lint-portable.py",
+   "name": "lint-portable.py",
+   "lang": "python",
+   "group": "quality",
+   "lines": 127,
+   "header": "lint-portable: shell commands that pass on this workstation and fail in CI.\n\nCI runs the unit tests under bash 3.2 in the bash:3.2 image (Alpine, BusyBox,\nno perl) and the whole suite on macOS (BSD sed, grep and date). This reads\nshell scripts and names, by file and line, each command in command position\n(line start, or after |, ||, &&, ;, $( or a backtick) that one of them lacks\nor runs differently:\n\n  perl            not installed in the bash:3.2 image\n  sed -i          BSD sed takes a suffix argument; use sed -i.bak and remove\n                  the .bak, or replace_in from tests/lib/assert.sh\n  grep -P         BSD grep has no Perl regex\n  readlink -f     older macOS readlink has no -f\n  date -d         BSD date parses dates with -j -f\n\nQuoted strings (a guard's deny table), heredoc bodies and comments are not\ncommands and pass; a command always has an argument, so perl as a case\npattern (ruby|perl|php) is not one.\n\n  lint-portable.py [--root DIR] [<file>...]\n\nWith no files it reads every shell script of the repository at DIR (default:\nthis repository): install.sh, the brg-* scripts, hook scripts, git hooks,\nskill scripts and tests. Prints one line per problem and \"lint-portable: N\nfiles, P problems\"; exits 1 on any problem or when no file is found.",
+   "functions": [
+    "strip",
+    "repo_scripts",
+    "main"
+   ],
+   "env": [],
+   "calls": []
+  },
+  {
    "path": "bin/lint-skill-evals.py",
    "name": "lint-skill-evals.py",
    "lang": "python",
@@ -16805,6 +16820,11 @@
    "inCheck": true
   },
   {
+   "name": "lint-portable",
+   "does": "Commands the CI images lack or run differently (perl, sed -i, grep -P, readlink -f, date -d) in every script",
+   "inCheck": true
+  },
+  {
    "name": "lint-shell",
    "does": "bash -n on every script (shellcheck when installed)",
    "inCheck": true
@@ -16843,6 +16863,11 @@
    "name": "test",
    "does": "Unit and integration tests under tests/",
    "inCheck": true
+  },
+  {
+   "name": "hooks",
+   "does": "Install this repository's pre-push gate (make check, then the bash32 CI job) for this clone",
+   "inCheck": false
   },
   {
    "name": "harness-eval",
@@ -16893,6 +16918,7 @@
   "lint-triggers",
   "lint-json",
   "lint-shell",
+  "lint-portable",
   "lint-prose",
   "lint-docs",
   "lint-neutral",
@@ -17049,6 +17075,13 @@
  ],
  "tests": [
   {
+   "path": "tests/ci-bash32.sh",
+   "kind": "runner",
+   "lines": 22,
+   "header": "tests/ci-bash32.sh: the bash32 CI job's body, run inside the bash:3.2 image (Alpine, BusyBox, no perl) by .github/workflows/ci.yml and by make ci-bash32 on a workstation, so the job a push will run can be run before it. It runs every unit test file even after a failure, prints each failure, and ends with a count; it exits 1 on any failure or on zero files.",
+   "asserts": 0
+  },
+  {
    "path": "tests/contract/fake_tracker.py",
    "kind": "contract",
    "lines": 627,
@@ -17114,7 +17147,7 @@
   {
    "path": "tests/lib/assert.sh",
    "kind": "lib",
-   "lines": 94,
+   "lines": 108,
    "header": "tests/lib/assert.sh: sourced by every test file. bash 3.2 safe (macOS). t_begin <case> open a named case (counted; a case that runs no t_end assertion is a failure, so an empty test cannot pass) t_run <cmd...> run with $T_IN on stdin; sets T_RC and T_OUT (stdout+stderr) assert_exit <rc> <cmd...> t_run and check the exit code assert_eq <expected> <actual> [what] assert_contains <haystack> <needle> [what] assert_not_contains <haystack> <needle> [what] assert_file <path> [mode] the file exists (and has that octal mode) tmpdir print a fresh directory, removed at exit minimal_path <tool>... print…",
    "asserts": 11
   },
@@ -17376,6 +17409,13 @@
    "lines": 39,
    "header": "tests/unit/lint_plugin_size.sh: bin/lint-plugin-size.py holds each plugin folder to the plugin directory's limits (under 512 files, no non-image file of 256 KiB or more) and fails when there is no plugin to check.",
    "asserts": 9
+  },
+  {
+   "path": "tests/unit/lint_portable.sh",
+   "kind": "unit",
+   "lines": 47,
+   "header": "tests/unit/lint_portable.sh: bin/lint-portable.py rejects commands that are not on every CI image (perl is missing from bash:3.2) or behave differently on macOS (sed -i, grep -P, readlink -f, date -d), in command position only; quoted strings and comments pass; zero files fail.",
+   "asserts": 13
   },
   {
    "path": "tests/unit/lint_tools.sh",
@@ -18532,7 +18572,7 @@
     "Changed",
     "Fixed"
    ],
-   "entries": 51,
+   "entries": 52,
    "summary": "First public release, under the MIT licence."
   }
  ],

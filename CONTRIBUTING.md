@@ -10,7 +10,14 @@ privately, as [SECURITY.md](SECURITY.md) describes.
    ```bash
    git clone git@github.com:<you>/bearing.git && cd bearing
    git remote add upstream https://github.com/Deepta-AI/bearing
+   make hooks
    ```
+   `make hooks` installs `.githooks/pre-push`: every `git push` first runs
+   `make check` and, with Docker running, `make ci-bash32` (the bash 3.2
+   CI job in the same image), so a push carries no failure those two can
+   see. The macOS and scaffold jobs run only in CI; `make lint-portable`
+   (part of `make check`) rejects the BSD and missing-tool commands it
+   knows (`sed -i`, `perl`, `grep -P`, `readlink -f`, `date -d`).
 2. Branch from `main` with a short descriptive name, for example
    `feat/RustStack` or `fix/GuardSudoParse`.
 3. Make the change, then run the gate:
