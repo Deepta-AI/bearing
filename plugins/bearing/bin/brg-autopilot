@@ -158,8 +158,9 @@ def slug(s):
 
 
 def read(d, rel):
+    """A file's text; bytes that are not UTF-8 (an audio fixture beside the tests) are dropped."""
     try:
-        return open(os.path.join(d, rel), encoding="utf-8").read()
+        return open(os.path.join(d, rel), encoding="utf-8", errors="ignore").read()
     except OSError:
         return ""
 

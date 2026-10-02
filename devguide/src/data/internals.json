@@ -5,7 +5,7 @@
   "commandSkills": 0,
   "stackSkills": 12,
   "scripts": 84,
-  "scriptLines": 28308,
+  "scriptLines": 28309,
   "hooks": 6,
   "agents": 8,
   "makeTargets": 26,
@@ -14471,7 +14471,7 @@
    "name": "brg-autopilot",
    "lang": "python",
    "group": "workflow",
-   "lines": 1364,
+   "lines": 1365,
    "header": "brg-autopilot: the state, the gates and the report of an unattended run from\none requirement statement to a prepared merge request.\n\nThe autopilot skill drives the stages; this script is the part that cannot\nbe talked around: which stage is next, whether its gate holds (checked on\ndisk, never taken from the model's word), how many attempts are left, the\ndigest of every decision taken on the user's behalf, and the report. Nothing\nhere pushes, merges or deploys; the run stops at a prepared merge request.\n\n  brg-autopilot start \"<statement>\" [--dir D]   begin a run (refuses when one is open)\n  brg-autopilot next [--dir D]                  the next stage, its skill and its gate\n  brg-autopilot done <stage> [--dir D]          check the gate; mark done or say what is missing\n  brg-autopilot fail <stage> \"<why>\" [--dir D]  count a failed attempt (3 and the stage is blocked)\n  brg-autopilot decision <key> <choice> <alternatives> <why> [--adr PATH] [--dir D]\n                                                one row of the decision digest\n  brg-autopilot report [--dir D]                write docs/autopilot/<run>.md (the MR carries it)\n  brg-autopilot status [--dir D]                the stages, attempts and decisions so far\n  brg-autopilot profile --ui|--data|--api|--deploy yes|no [--llm yes|no] [--scope lean|full] --why W [--dir D]\n                                                what the product has; decides which stages apply\n                                                and how much document each one needs\n  brg-autopilot stages                          the stage names, in order\n  brg-autopilot launch \"<statement>\" [--dir D] [--print]\n                                                run it headless: claude -p with autopilot,\n                                                then any smoke it asked for, outside the sandbox\n  brg-autopilot smoke-request [--id ID] [--dir D]\n                                                headless dod: ask the launcher to run the smoke\n  brg-autopilot repos-request [--dir D]         headless repos: ask the launcher to scaffold the\n                                                repo plan's missing repositories beside this one\n\nState lives in <dir>/.bearing/state/autopilot.json. Every command prints what it\nchecked and exits 1 when a gate fails or there is nothing to act on.",
    "functions": [
     "sh",
@@ -17158,9 +17158,9 @@
   {
    "path": "tests/unit/autopilot_stages.sh",
    "kind": "unit",
-   "lines": 498,
+   "lines": 508,
    "header": "tests/unit/autopilot_stages.sh: the stages brg-autopilot gained after the first real run skipped every skill no gate checked. The decide gate needs a product profile (ui, data, api, deploy). architecture needs a C4 file with a diagram and an architecture.json whose SVGs pass diagram_check. design adds, by profile, the data model, the API contract and a deployment architecture with its diagram, after arch_check and (profile data) model_check pass. ux runs the flows, contrast, screen-state and design-bundle checkers for a UI. test_cases runs cases_check. build needs make build too when the Make…",
-   "asserts": 151
+   "asserts": 154
   },
   {
    "path": "tests/unit/autopilot_state.sh",

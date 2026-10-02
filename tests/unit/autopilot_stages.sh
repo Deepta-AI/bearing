@@ -432,6 +432,16 @@ assert_exit 0 ap "done" test_automation
 assert_contains "$T_OUT" "1 of 1 automatable case(s) named by a test (1 manual-only or retired)"
 t_end
 
+t_begin "test automation reads past a binary fixture beside the tests"
+at test_automation; profile yes no no no
+cases "$d/docs/testing/test-cases.md" "ui: heading 'Dashboard' visible; not: no error alert"
+mkdir -p "$d/e2e/fixtures"; printf 'test("TC-0001 valid sign in", () => {});\n' > "$d/e2e/sign-in.spec.ts"
+printf '\x1a\x45\xdf\xa3\x9f\x42\x86\x81' > "$d/e2e/fixtures/speech.webm"; commit tests
+( cd "$d" && make -s check )
+assert_exit 0 ap "done" test_automation
+assert_contains "$T_OUT" "1 of 1 automatable case(s) named by a test"
+t_end
+
 # test-automation names a Python test test_tc_0001_<what>: the _ after the
 # id is a word character, so a \b after the id never matched its own naming.
 t_begin "test automation accepts test_tc_0001_<what>, and TC-00012 does not name TC-0001"
