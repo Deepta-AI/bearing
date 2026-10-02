@@ -10,7 +10,7 @@
   "agents": 8,
   "makeTargets": 26,
   "gates": 15,
-  "tests": 75,
+  "tests": 76,
   "fixtures": 21,
   "stacks": 13,
   "templates": 38,
@@ -18,7 +18,7 @@
   "ghJobs": 6,
   "ghWorkflows": 2,
   "evals": 106,
-  "skillFiles": 962
+  "skillFiles": 963
  },
  "plugins": [
   {
@@ -144,7 +144,7 @@
    "dir": "plugins/bearing-apps",
    "description": "Bearing stack conventions and repository templates for apps: React, Next.js, React Native (Expo), Flutter, native iOS and native Android. Needs the bearing plugin.",
    "required": false,
-   "files": 365,
+   "files": 366,
    "skills": [
     "android",
     "flutter",
@@ -1373,7 +1373,7 @@
     },
     {
      "title": "Steps",
-     "lines": 154
+     "lines": 160
     },
     {
      "title": "Output contract",
@@ -1419,11 +1419,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 292,
+   "lines": 298,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 292
+     "lines": 298
     }
    ],
    "groups": {
@@ -8123,7 +8123,7 @@
     },
     {
      "path": "templates/Makefile",
-     "lines": 194
+     "lines": 202
     },
     {
      "path": "templates/README.md",
@@ -8168,6 +8168,10 @@
     {
      "path": "templates/skeleton/scripts/design-registry.mjs",
      "lines": 68
+    },
+    {
+     "path": "templates/skeleton/scripts/smoke.mjs",
+     "lines": 140
     },
     {
      "path": "templates/skeleton/src/app/%5F%5Fdesign/[id]/page.tsx",
@@ -8501,7 +8505,7 @@
    "groups": {
     ".": 1,
     "references": 3,
-    "templates": 102
+    "templates": 103
    },
    "evals": true,
    "hasSections": [
@@ -17401,6 +17405,13 @@
    "asserts": 40
   },
   {
+   "path": "tests/unit/next_smoke.sh",
+   "kind": "unit",
+   "lines": 44,
+   "header": "tests/unit/next_smoke.sh: the Next.js template's scripts/smoke.mjs. A stand-in .next/standalone/server.js (a plain node http server) answers on the port the script gives it, so the whole loop runs without a Next build: no build is refused with 0 checked; the default checks pass; a plan's checks run and a wrong status fails with the evidence written; the hostname is localhost.",
+   "asserts": 8
+  },
+  {
    "path": "tests/unit/pins_match.py",
    "kind": "unit",
    "lines": 82,
@@ -17961,6 +17972,7 @@
     "skeleton/e2e/health.spec.ts",
     "skeleton/public/favicon.svg",
     "skeleton/scripts/design-registry.mjs",
+    "skeleton/scripts/smoke.mjs",
     "skeleton/src/app/%5F%5Fdesign/[id]/page.tsx",
     "skeleton/src/app/%5F%5Fdesign/page.tsx",
     "skeleton/src/app/api/healthz/route.test.ts",
@@ -18519,7 +18531,7 @@
     "Changed",
     "Fixed"
    ],
-   "entries": 48,
+   "entries": 49,
    "summary": "First public release, under the MIT licence."
   }
  ],

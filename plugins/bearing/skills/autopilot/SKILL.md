@@ -201,7 +201,13 @@ what is on disk, never from what the model says it did.
    status` per line) unless the Makefile has a `smoke` target, run
    `brg-autopilot smoke-request --id <ID>` and end your turn. The
    launcher runs the smoke outside the sandbox and resumes the session
-   with the file and its verdict; at most 3 rounds.
+   with the file and its verdict; at most 3 rounds. The plan runner starts
+   the stack with `make up` or a compose file; an app with neither (a
+   Next.js app on a hosted backend) needs a `smoke` target, which the
+   Next.js template has: it starts the standalone build with `.env.local`
+   and runs the same plan file. A status check passes in a unit test of
+   proxy.ts and can still fail on the real server (a rewrite's status is
+   ignored), which is why the smoke drives the built server.
 10. The mr stage: `merge-request` prepares the description; `report` writes
    `docs/autopilot/<run>.md`; commit it, and let that commit be the last
    write (`git status` clean after it: a progress file touched later is

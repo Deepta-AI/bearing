@@ -237,6 +237,12 @@ First public release, under the MIT licence.
   fallback in `evidence.py` waits on virtual time so a screenshot catches
   the hydrated page and an open dialog, and both design skills point at
   `localhost`, since a Next.js dev server never hydrates a page loaded by IP.
+- The Next.js template has `make smoke`: it starts the standalone build with
+  `.env.local` loaded (never printed), drives `.scratch/smoke-plan-<id>.txt`
+  or the health probe and home page, and writes the evidence file the
+  autopilot dod gate reads; the plan runner alone could only start stacks
+  with `make up` or compose. Its bundle budget leaves out the nomodule
+  polyfill file, which no module browser downloads.
 - `brg-tracker --help` printed three lines of code after its header (the
   range ran past the comment); it now stops at the last comment line.
 - The guard refused a `for` loop that runs its own variable over literal

@@ -42,7 +42,7 @@ define in_pw_image
     bash -c "corepack enable && pnpm install --frozen-lockfile --silent && $(2); s=\$$?; chown -R $$(id -u):$$(id -g) e2e test-results playwright-report dist .next 2>/dev/null; exit \$$s"; }
 endef
 
-.PHONY: help setup dev design-registry design-registry-check build start check check-file fix test test-e2e test-e2e-matrix test-visual test-visual-update setup-browsers bundle-budget lighthouse lint typecheck format format-check vuln doctor clean
+.PHONY: smoke help setup dev design-registry design-registry-check build start check check-file fix test test-e2e test-e2e-matrix test-visual test-visual-update setup-browsers bundle-budget lighthouse lint typecheck format format-check vuln doctor clean
 
 help: ## List targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-14s %s\n", $$1, $$2}'
@@ -131,12 +131,20 @@ test-visual-update: ## Rewrite the visual baselines inside the Playwright image 
 	$(call in_pw_image,test-visual-update,pnpm exec playwright test --project=visual --update-snapshots) || exit 1; \
 	echo "test-visual-update: $$n visual specs; review every changed png in e2e/__screenshots__/ before committing"
 
-bundle-budget: ## Gzipped JavaScript in .next/static/chunks/ under BUNDLE_BUDGET_KB (run make build first)
+bundle-budget: ## Gzipped JavaScript a module browser downloads (.next/static/chunks/ less the nomodule polyfills) under BUNDLE_BUDGET_KB (run make build first)
 	@[ -d .next/static/chunks ] || { echo "bundle-budget: no .next/static/chunks/; run make build first" >&2; exit 1; }; \
-	n=0; total=0; for f in $$(find .next/static/chunks -name '*.js' -type f); do n=$$((n+1)); total=$$((total + $$(gzip -c "$$f" | wc -c))); done; \
+	poly=$$([ -f .next/build-manifest.json ] && node -e 'const m=require("./.next/build-manifest.json");for(const f of m.polyfillFiles||[])console.log(".next/"+f)' || true); \
+	n=0; p=0; total=0; for f in $$(find .next/static/chunks -name '*.js' -type f); do \
+	  if printf '%s\n' "$$poly" | grep -qxF "$$f"; then p=$$((p+1)); continue; fi; \
+	  n=$$((n+1)); total=$$((total + $$(gzip -c "$$f" | wc -c))); done; \
 	[ "$$n" -gt 0 ] || { echo "bundle-budget: 0 JavaScript files in .next/static/chunks/, nothing checked" >&2; exit 1; }; \
-	kb=$$((total / 1024)); echo "bundle-budget: $$n files, $$kb KB gzipped, budget $(BUNDLE_BUDGET_KB) KB"; \
+	note=""; [ "$$p" -eq 0 ] || note=" ($$p nomodule polyfill file left out)"; \
+	kb=$$((total / 1024)); echo "bundle-budget: $$n files, $$kb KB gzipped, budget $(BUNDLE_BUDGET_KB) KB$$note"; \
 	[ "$$kb" -le "$(BUNDLE_BUDGET_KB)" ] || { echo "bundle-budget: over budget by $$((kb - $(BUNDLE_BUDGET_KB))) KB" >&2; exit 1; }
+
+smoke: ## Start the production build and drive .scratch/smoke-plan-<task id>.txt (or the health probe and home page); writes .scratch/smoke-<task id>.md (make build first)
+	@id=$$(git rev-parse --abbrev-ref HEAD 2>/dev/null | sed -nE 's#^[a-z]+/([A-Z][A-Z0-9]*-[0-9]+)-.*#\1#p'); \
+	node scripts/smoke.mjs --id "$${id:-smoke}"
 
 lighthouse: ## Lighthouse CI against the production build: fails on the assertions in lighthouserc.json (needs Chrome or Playwright's chromium)
 	@[ -f lighthouserc.json ] || { echo "lighthouse: no lighthouserc.json, nothing checked" >&2; exit 1; }; \
