@@ -230,6 +230,13 @@ First public release, under the MIT licence.
   standard input with `-`, and in-place edits use `perl -pi` with quoted
   patterns instead of GNU-only `sed -i`. The React template's test setup
   wraps a line prettier refused.
+- `design-critique` measures a framework gallery: `snapshot.mjs` renders each
+  page in Chrome through the app's Playwright, light and dark, and writes
+  static HTML and CSS of the computed colours and focus rings for
+  `pairs.py`, which cannot resolve Tailwind v4's `@layer` output. The Chrome
+  fallback in `evidence.py` waits on virtual time so a screenshot catches
+  the hydrated page and an open dialog, and both design skills point at
+  `localhost`, since a Next.js dev server never hydrates a page loaded by IP.
 - `brg-tracker --help` printed three lines of code after its header (the
   range ran past the comment); it now stops at the last comment line.
 - The guard refused a `for` loop that runs its own variable over literal

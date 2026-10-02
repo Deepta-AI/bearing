@@ -5,12 +5,12 @@
   "commandSkills": 0,
   "stackSkills": 12,
   "scripts": 84,
-  "scriptLines": 28312,
+  "scriptLines": 28315,
   "hooks": 6,
   "agents": 8,
   "makeTargets": 26,
   "gates": 15,
-  "tests": 74,
+  "tests": 75,
   "fixtures": 21,
   "stacks": 13,
   "templates": 38,
@@ -18,7 +18,7 @@
   "ghJobs": 6,
   "ghWorkflows": 2,
   "evals": 106,
-  "skillFiles": 961
+  "skillFiles": 962
  },
  "plugins": [
   {
@@ -26,7 +26,7 @@
    "dir": "plugins/bearing",
    "description": "A developer workflow for coding agents: skills for every stage from brief to runbook, review subagents, one guard behind every hook, and repository templates. The stack conventions come in bearing-backend and bearing-apps.",
    "required": true,
-   "files": 428,
+   "files": 429,
    "skills": [
     "ab-experiment",
     "accessibility",
@@ -3369,18 +3369,19 @@
     "Bash(~/.claude/skills/gstack/browse/dist/browse:*)",
     "Bash(python3 -m http.server:*)",
     "Bash(kill:*)",
-    "Bash(python3 *skills/design-critique/scripts/*)"
+    "Bash(python3 *skills/design-critique/scripts/*)",
+    "Bash(node *skills/design-critique/scripts/*)"
    ],
    "extra": {},
    "intro": "A review is measured findings against the page's own contract (its flows, its design system, what the client approved), worst first, each one located and each fix checked before it is proposed. Every finding names a file and line or a screenshot and says change X to Y because Z. Numbers come from a script, never from the eye: contrast is computed per theme and per surface, and a proposed colour is recomputed before it is written.",
    "sections": [
     {
      "title": "Inputs",
-     "lines": 20
+     "lines": 22
     },
     {
      "title": "Steps",
-     "lines": 90
+     "lines": 97
     },
     {
      "title": "Output contract",
@@ -3392,7 +3393,7 @@
     }
    ],
    "inputs": [
-    "Target: `$1` (folder, `.html` file or URL); if absent, the design gallery when the app has `src/design/screen.ts` (`make dev`, then `http://127.0.0.1:<port>/__design/`); if absent, the newest folder under `docs/design/` that holds html; if none, stop with \"give a folder, an html file or a URL\".",
+    "Target: `$1` (folder, `.html` file or URL); if absent, the design gallery when the app has `src/design/screen.ts` (`make dev`, then `http://localhost:<port>/__design/`: a Next.js dev server does not hydrate a page loaded by IP, so dialogs and client states shoot blank at 127.0.0.1); if absent, the newest folder under `docs/design/` that holds html; if none, stop with \"give a folder, an html file or a URL\".",
     "The contract, read before any page: `docs/design/flows/<feature>/flows*.md` (each screen's job, every state, the exact copy), `DESIGN.md` or `docs/design/tokens.*` (type, colour, spacing, layout rules), `approved.json` or the board (what the client chose and must keep). If no flows exist, the page's `<title>` and first heading, and the report says \"job inferred\". These files are the yardstick; a review never edits t…",
     "The request's mode: \"don't change\", \"review\", \"before they see it\" or `--report-only` is report only; \"fix\", \"clean up\", \"before handoff\" is review then fix (step 8). Unattended with no signal: report only.",
     "Checklist: `references/review-checklist.md`. Doctrine: `../design-directions/references/design-doctrine.md` when present, else the checklist's slop section.",
@@ -3400,7 +3401,7 @@
    ],
    "steps": [
     "Resolve the target and print each input as read or absent. Pages: every `.html` in the folder except `index.html` boards. Zero pages: stop. Run the repo's own check (`make check` or what the README names) and record its line; it is the baseline a fix must not break.",
-    "Measure colour with one command over the pages, plus every other page that links the same token file (find them with Grep; a token change lands on all of them): `python3 \"${CLAUDE_PLUGIN_ROOT}/skills/design-critique/scripts/pairs.py\" <page>...` It prints every failing text pair, field edge and focus ring in light, data-theme dark and prefers-color-scheme dark with file:line (a ring is measured on the surface it is d…",
+    "Measure colour with one command over the pages, plus every other page that links the same token file (find them with Grep; a token change lands on all of them): `python3 \"${CLAUDE_PLUGIN_ROOT}/skills/design-critique/scripts/pairs.py\" <page>...` A framework gallery (Next.js or Vite with Tailwind v4) has no static stylesheet pairs.py can resolve: its colours sit in `@layer` blocks and runtime classes. Render the galle…",
     "Screenshots, one command for every page: `python3 \"${CLAUDE_PLUGIN_ROOT}/skills/design-critique/scripts/evidence.py\" shoot --base <folder or URL> --out docs/design/reviews/<feature>/shots <page>...` then `python3 \"${CLAUDE_PLUGIN_ROOT}/skills/design-critique/scripts/evidence.py\" check --out docs/design/reviews/<feature>/shots <page>...` Shoot uses gstack browse (dark via `data-theme`) and falls back to a local headl…",
     "First impression per page, before the checklist: the first three things the eye lands on, compared with the page's job from the flows. A mismatch is a hierarchy finding with the element named.",
     "Contract diff, the findings a generalist misses most: - States: list every state and every line of copy in flows.md; each state with no page, and each page that shows a state the flows put elsewhere (an error baked into the default screen), is a finding. - Design system: each rule in DESIGN.md checked against each page (face, sizes, weights, raw colours, spacing scale, table overflow). - Content: the sample data mus…",
@@ -3426,11 +3427,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 190,
+   "lines": 199,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 190
+     "lines": 199
     },
     {
      "path": "references/review-checklist.md",
@@ -3438,17 +3439,21 @@
     },
     {
      "path": "scripts/evidence.py",
-     "lines": 329
+     "lines": 332
     },
     {
      "path": "scripts/pairs.py",
      "lines": 962
+    },
+    {
+     "path": "scripts/snapshot.mjs",
+     "lines": 208
     }
    ],
    "groups": {
     ".": 1,
     "references": 1,
-    "scripts": 2
+    "scripts": 3
    },
    "evals": true,
    "hasSections": [
@@ -11651,7 +11656,7 @@
     "Per screen `src/features/<feature>/screens/<id>-<name>.screen.tsx` exporting `screen: ScreenSpec` (`id`, `name`, `feature`, `job`, `states`), one entry per state from the reconciliation, rendering the view with fixtures in the flows' copy. Fixtures use invented companies and people on reserved domains (`example.com`, `example.in`).",
     "Responsive by design: at 375 the table becomes a card list or scrolls inside its own container with the key columns readable, two columns stack, the primary action stays reachable without horizontal scroll; at 1440 no half-width column beside dead space.",
     "Gates: `python3 \"${CLAUDE_PLUGIN_ROOT}/skills/screen-design/scripts/gallery_check.py\" --src <src> --flows <flows file>` until it exits 0; then the repository's own checks that exist (`make check`, `make design-lint`). A target that does not exist, or a build that needs `node_modules` that are absent, is reported as not run.",
-    "Screenshots from the running gallery when it runs (`<id>?state=<name>&chrome=0`): `python3 \"${CLAUDE_PLUGIN_ROOT}/skills/design-critique/scripts/evidence.py\" shoot --base http://127.0.0.1:<port>/__design/ --out docs/design/screens/shots <id>?state=<state>&chrome=0...` then `check`. `docs/design/screens/README.md` lists the screens, states and the gallery URL.",
+    "Screenshots from the running gallery when it runs (`<id>?state=<name>&chrome=0`): `python3 \"${CLAUDE_PLUGIN_ROOT}/skills/design-critique/scripts/evidence.py\" shoot --base http://localhost:<port>/__design/ --out docs/design/screens/shots <id>?state=<state>&chrome=0...` then `check`. `docs/design/screens/README.md` lists the screens, states and the gallery URL.",
     "When the repository already has mockups for the feature, extend them in their own format and skip the manifest steps (9). Otherwise create or update `docs/design/design.json` against the schema: `brief`, `directions`, `stories`, a `sitemap` with a leaf per screen keyed `<feature>/S-nn`, and a `navigation` generated from the flows' section 4 maps (top-level destinations; three to five on the phone tab bar; `why`; `so…",
     "Screen plan, one block per screen: its single job, the regions with `data-component` names, the states from the reconciliation, the copy per state, controls in tab order with event names, the links out (one per navigation edge), the current item in the chrome, and the 375 px arrangement: what moves, what docks, what drops to one line. A phone layout that only stacks the desktop columns is not an arrangement. Write t…",
     "Tokens: link the one tokens file; no page declares a colour. When `docs/design/tokens.css` is absent and `tokens.json` exists: `python3 \"${CLAUDE_PLUGIN_ROOT}/skills/design-system/scripts/system_page.py\" tokens-css --tokens docs/design/tokens.json --out docs/design/tokens.css`.",
@@ -15718,7 +15723,7 @@
    "lang": "python",
    "group": "skill",
    "skill": "design-critique",
-   "lines": 329,
+   "lines": 332,
    "header": "evidence: take and check the design review's screenshots, so the widths\nand themes in the report are counted from files, not claimed.\n\n  evidence.py shoot --base <url or folder> --out <shots dir> [--browse BIN] [--chrome BIN] <page>...\n      For each page: goto, then a viewport screenshot at 375x812, 768x1024\n      and 1440x900 in light, then dark (documentElement.dataset.theme =\n      'dark') at the same three widths. Records the computed background and\n      text colours of the first 60 elements in each theme to\n      <page>.theme.json, and console errors to <page>.console.txt.\n      A <page> is a file name in the folder (a.html) or a path under the URL.\n      When browse is absent or its browser cannot start, it falls back to a\n      local headless Chrome or Chromium: the same six shots, dark through\n      prefers-color-scheme (--force-dark-mode) instead of data-theme, the\n      theme record holds the shot digests and console errors are not\n      recorded. The last line names the engine and the dark path used.\n\n  evidence.py check --out <shots dir> <page>...\n      Every page needs six PNGs: <page>-<w>.png and <page>-<w>-dark.png for\n      w in 375, 768, 1440. Each must be a PNG whose width is the viewport\n      width (or a whole multiple of it, for a device pixel ratio above 1).\n      A dark shot byte-identical to its light shot, or a theme record whose\n      dark colours equal its light colours, means the dark theme never\n      applied: a colour finding, and a failed check. The counts line names\n      the dark path the shots used; the other path was not rendered.\n\nBrowse runs with its state and logs in a temporary folder, stopped and\nremoved after the shoot; a tool folder that still appears at the repository\nroot (.gstack, .playwright-mcp) is removed and named.\n\nBoth print \"design-evidence: ...\" with counts and exit 1 on any problem, or\nwhen zero pages were given.",
    "functions": [
     "stem",
@@ -17209,9 +17214,9 @@
   {
    "path": "tests/unit/design_evidence.sh",
    "kind": "unit",
-   "lines": 102,
+   "lines": 114,
    "header": "tests/unit/design_evidence.sh: plugins/bearing/skills/design-critique/scripts/evidence.py check passes six real-shaped PNGs per page with a dark theme that applied, and fails, with the reason, on a missing width, a PNG at the wrong width, a file that is not a PNG, a dark shot identical to light, equal computed colours, a missing theme record, and zero pages. shoot fails on a page that is not in the folder, and when neither browse nor chrome can be used. No browser is needed: the PNGs are written here.",
-   "asserts": 36
+   "asserts": 38
   },
   {
    "path": "tests/unit/design_lint.sh",
@@ -17226,6 +17231,13 @@
    "lines": 94,
    "header": "tests/unit/design_pairs.sh: plugins/bearing/skills/design-critique/scripts/pairs.py computes text and field-edge contrast in light, data-theme dark and prefers-color-scheme dark from the CSS a page loads; passes a page where every pair holds, fails a muted token, a raw background that does not follow the theme (and names the background as the fault), a dark token set in one dark block only, a font nothing loads, a focus ring under 3:1 on the panel it is drawn on and an outline removed with nothing in its place; ratio recomputes a colour typed by hand; fails on zero pages.",
    "asserts": 27
+  },
+  {
+   "path": "tests/unit/design_snapshot.sh",
+   "kind": "unit",
+   "lines": 26,
+   "header": "tests/unit/design_snapshot.sh: plugins/bearing/skills/design-critique/scripts/snapshot.mjs, the bridge that renders a framework gallery page and writes static HTML and CSS of its computed colours for pairs.py. Rendering needs a browser and the app's Playwright, so this proves the refusals that need neither: zero pages, a missing --base or --out, and a repository without playwright-core.",
+   "asserts": 7
   },
   {
    "path": "tests/unit/design_system_page.sh",
@@ -18507,7 +18519,7 @@
     "Changed",
     "Fixed"
    ],
-   "entries": 47,
+   "entries": 48,
    "summary": "First public release, under the MIT licence."
   }
  ],

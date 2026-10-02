@@ -115,8 +115,11 @@ def find_chrome(explicit):
 
 
 def chrome_shot(bin_, url, path, w, h, dark, profile):
+    # A screenshot taken at load catches a framework page before it hydrates
+    # and a dialog before its entrance; virtual time runs the page's timers
+    # and pending work for five seconds first, without five seconds of wall clock.
     args = [bin_, "--headless=new", "--disable-gpu", "--no-first-run",
-            "--hide-scrollbars", f"--user-data-dir={profile}",
+            "--hide-scrollbars", "--virtual-time-budget=5000", f"--user-data-dir={profile}",
             f"--window-size={w},{h}", f"--screenshot={path}", url]
     if dark:
         args.insert(1, "--force-dark-mode")

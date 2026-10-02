@@ -182,7 +182,7 @@ concern (`ambiguity`, `missing-screen`, `undefined-state`, `dead-end`,
    that needs `node_modules` that are absent, is reported as not run.
 6. Screenshots from the running gallery when it runs
    (`<id>?state=<name>&chrome=0`):
-   `python3 "${CLAUDE_PLUGIN_ROOT}/skills/design-critique/scripts/evidence.py" shoot --base http://127.0.0.1:<port>/__design/ --out docs/design/screens/shots <id>?state=<state>&chrome=0...`
+   `python3 "${CLAUDE_PLUGIN_ROOT}/skills/design-critique/scripts/evidence.py" shoot --base http://localhost:<port>/__design/ --out docs/design/screens/shots <id>?state=<state>&chrome=0...`
    then `check`. `docs/design/screens/README.md` lists the screens,
    states and the gallery URL.
 
