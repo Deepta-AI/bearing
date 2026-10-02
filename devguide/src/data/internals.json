@@ -6675,7 +6675,7 @@
    "sections": [
     {
      "title": "Inputs",
-     "lines": 15
+     "lines": 20
     },
     {
      "title": "Steps",
@@ -6695,7 +6695,7 @@
     "Task class: `--task`, else the solution doc, else inferred from the entry point's output shape (enum, record, prose, tool calls, hits).",
     "Golden set: `evals/<name>/cases.jsonl`; if absent, builds a seed set from real inputs the user pastes or points to, else from fixtures in the code (`tests/`, `fixtures/`), marked `source: seed`.",
     "Entry point: the function or route that calls the model; if not obvious from a grep for the SDK, asks for its path. Nothing to call stops the skill: \"name the function or route to evaluate\".",
-    "Gateway and Makefile: used when present; else the harness calls the entry point directly and runs as `uv run python evals/<name>/run.py` or `npx tsx@4.23.15 evals/<name>/run.ts`."
+    "Gateway and Makefile: used when present; else the harness calls the entry point directly and runs as `uv run python evals/<name>/run.py` or `npx tsx@4.23.15 evals/<name>/run.ts`. Where eslint lints with `projectService` and the tsconfig does not include `evals/`, write the runner as `run.mjs` (run with `node`) or add `evals/` to the tsconfig; a `.ts` file outside the project fails lint. An entry point that imports `…"
    ],
    "steps": [
     "Name from `$1`; task class from `--task` or inferred from the solution doc (`docs/design/<name>-hld.md` or the PRD). Read the success criteria there. Zero criteria: ask the Inputs question, propose a metric from the class below, and continue. Map each to a metric: - classification: accuracy, macro F1, per-class recall - extraction: field-level F1 against a labelled record - generation: rubric score (0 to 3 per crite…",
@@ -6720,11 +6720,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 116,
+   "lines": 121,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 116
+     "lines": 121
     },
     {
      "path": "templates/cases.jsonl",
@@ -7017,11 +7017,11 @@
    "sections": [
     {
      "title": "Inputs",
-     "lines": 15
+     "lines": 18
     },
     {
      "title": "Steps",
-     "lines": 134
+     "lines": 137
     },
     {
      "title": "Output contract",
@@ -7038,7 +7038,7 @@
     "Stack: `$2`, else `pyproject.toml` versus `package.json`; neither: asks.",
     "Gateway: `llm/` from `llm-gateway`; if absent, the module wraps each call site directly (one wrapper function) and the gateway is a follow-up, not a prerequisite.",
     "Tool registry: `llm-agent`'s; if absent, the tool-call checks run against the policy's own tier table.",
-    "Fixture test: `templates/test-guardrails.md` (Python and TypeScript); the module exports `CHECKS` and `POLICY` in the shape it names."
+    "Fixture test: `templates/test-guardrails.md` (Python and TypeScript); the module exports `CHECKS` and `POLICY` in the shape it names. Checks that only run inside the feature's entry point (a guard after the model call) are tested through that entry point with a scripted model that obeys each attack, instead of a `CHECKS` map."
    ],
    "steps": [
     "Scope from `$ARGUMENTS`: one feature or the whole service. Stack from `$2` or from `pyproject.toml` versus `package.json`. Load the `claude-api` skill before writing any classifier call. Find every model call (`messages.create`, `messages.parse`, `tool_runner`, `toolRunner`, `messages.stream`, or the repo's own client wrapper) and every tool registry; count the call sites. Zero call sites: ask once where the model w…",
@@ -7067,11 +7067,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 211,
+   "lines": 217,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 211
+     "lines": 217
     },
     {
      "path": "references/adversarial-set.md",
