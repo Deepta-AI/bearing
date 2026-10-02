@@ -58,6 +58,13 @@ T_IN=''
 assert_contains "$T_OUT" "prose-lint: 1 files"
 t_end
 
+t_begin "content that says how something was made is not an attribution trailer"
+T_IN="$(printf 'feat: narration\n\n- Generated with Gemini TTS through OpenRouter, one sentence at a time.\nThe audio was generated with a model the client approved.\n')"
+assert_exit 0 python3 "$CHK" --text -
+assert_contains "$T_OUT" "0 hits"
+T_IN=''
+t_end
+
 t_begin "stdin text (commit messages) is linted as one file"
 T_IN="$(printf 'feat: add export\n\nGenerated with a tool\n')"
 assert_exit 1 python3 "$CHK" --text -

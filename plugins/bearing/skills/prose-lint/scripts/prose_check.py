@@ -18,7 +18,9 @@ files given, and count them. It finds; the skill rewrites.
       praise: "as requested", "as you asked", "I have successfully",
         "great job", excellent.
       trailer: a Co-Authored-By line naming Claude, Anthropic, GPT,
-        OpenAI, Copilot, Gemini or an AI assistant; "Generated with"; the
+        OpenAI, Copilot, Gemini or an AI assistant; a line that starts
+        "Generated with" (a bullet or a sentence saying how something was
+        made is content, not a trailer); the
         robot emoji U+1F916.
       hedge: "should work", "this ensures".
   - Not hits, counted as left: anything inside a fenced code block or an
@@ -69,7 +71,7 @@ CLASSES = [
     (
         "trailer",
         r"Co-Authored-By:.*\b(?:Claude|Anthropic|GPT|OpenAI|Copilot|Gemini|AI assistant)\b"
-        r"|\bGenerated with\b|" + ROBOT,
+        r"|(?:^|(?<=^" + ROBOT + r")|(?<=^" + ROBOT + r" ))Generated with\b|" + ROBOT,
     ),
     ("hedge", r"\bshould work\b|\bthis ensures\b"),
 ]

@@ -249,6 +249,13 @@ First public release, under the MIT licence.
   app with several root layouts needs `global-not-found`, and a random
   value read in a client render leaves a hole in the prerendered shell. The
   template's smoke fails on a render error the server logs.
+- `red_proof.sh` keeps toolchain files at HEAD (it used to revert
+  package.json on a branch whose base had no app, so pnpm failed and the
+  script printed "proven"), restores a deleted file's folder, treats
+  "Cannot find package", "is not a function" and pnpm errors as the wrong
+  reason, and takes `--commit <sha>` to prove one fix of a long branch.
+  `prose_check` reads "Generated with" as a trailer only at the start of a
+  line, so content saying how audio was made is not flagged.
 - `brg-tracker --help` printed three lines of code after its header (the
   range ran past the comment); it now stops at the last comment line.
 - The guard refused a `for` loop that runs its own variable over literal

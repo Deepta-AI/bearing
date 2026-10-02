@@ -62,7 +62,14 @@ The list below is the standard's; it needs no file in the repository.
       run src/auth/login.test.ts`, `uv run pytest tests/test_login.py::test_tc_0012`).
       It runs the test in a throwaway worktree of HEAD (must pass), puts
       every non-test file back to the base (must fail), and never touches
-      the working tree. Its last line is the evidence; "GREEN without the
+      the working tree. Toolchain files (manifests, lockfiles, configs,
+      the Makefile) stay at HEAD so the runner still starts. On a branch of
+      many fixes, prove each fix against its own parent:
+      `red_proof.sh --commit <sha> '<command>'`. A database test (pgTAP, an
+      integration test against a running database) cannot be proved this
+      way while the database holds HEAD's migrations: apply the old
+      function in a rolled-back transaction or a scratch database, and a
+      race needs two sessions, never two calls in sequence. Its last line is the evidence; "GREEN without the
       fix" is a fail, since the test would have passed before the bug was
       fixed and so does not guard against it. "RED FOR THE WRONG REASON"
       is a fail too: the test file imports or calls something the fix

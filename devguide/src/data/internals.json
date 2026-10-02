@@ -5,7 +5,7 @@
   "commandSkills": 0,
   "stackSkills": 12,
   "scripts": 84,
-  "scriptLines": 28315,
+  "scriptLines": 28339,
   "hooks": 6,
   "agents": 8,
   "makeTargets": 26,
@@ -3066,7 +3066,7 @@
     },
     {
      "title": "Steps",
-     "lines": 105
+     "lines": 112
     },
     {
      "title": "Output contract",
@@ -3101,15 +3101,15 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 167,
+   "lines": 174,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 167
+     "lines": 174
     },
     {
      "path": "scripts/red_proof.sh",
-     "lines": 102
+     "lines": 124
     }
    ],
    "groups": {
@@ -9893,7 +9893,7 @@
     },
     {
      "path": "scripts/prose_check.py",
-     "lines": 220
+     "lines": 222
     }
    ],
    "groups": {
@@ -15689,9 +15689,10 @@
    "lang": "bash",
    "group": "skill",
    "skill": "definition-of-done",
-   "lines": 102,
-   "header": "red_proof.sh: prove a regression test fails without the fix, without\ntouching the working tree.\n\n  red_proof.sh <base> '<test command>'\n\nIn a throwaway worktree of HEAD under .scratch/: link the dependency\nfolders (node_modules, .venv, vendor), run the test command and require\nit to pass (the control: the environment works and the test is green with\nthe fix); then put every changed file that is not a test back to <base>\n(files the branch added are removed) and run it again, requiring it to\nfail. The only difference between the two runs is the fix, so a red second\nrun is the proof, provided the test ran and its assertion failed: a red run\nthat stops at an import, collection or build error (the test names a symbol\nthe fix added) proves only that the symbol is new. The worktree is removed\non exit.\n\nPrints \"red-proof: ...\" with the counts and the tail of each run. Exits 0\nwhen green then red on an assertion; 1 when the test passes without the\nfix, fails with it, is red only because it cannot load or build without the\nfix, or when there are zero test files or zero non-test files in the diff\n(nothing to prove); 2 on a usage error. bash 3.2 safe.",
+   "lines": 124,
+   "header": "red_proof.sh: prove a regression test fails without the fix, without\ntouching the working tree.\n\n  red_proof.sh <base> '<test command>'\n  red_proof.sh --commit <sha> '<test command>'\n\n--commit proves one fix commit of a long branch: the base is that commit's\nparent and only the files that commit changed are considered, so a branch\nof many fixes is proved one fix at a time.\n\nIn a throwaway worktree of HEAD under .scratch/: link the dependency\nfolders (node_modules, .venv, vendor), run the test command and require\nit to pass (the control: the environment works and the test is green with\nthe fix); then put every changed file that is not a test back to <base>\n(files the branch added are removed) and run it again, requiring it to\nfail. Toolchain files (package manifests, lockfiles, build and test\nconfigs, the Makefile) stay at HEAD: reverting them breaks the runner, and\na runner that cannot start is not a red. The only difference between the\ntwo runs is the fix, so a red second\nrun is the proof, provided the test ran and its assertion failed: a red run\nthat stops at an import, collection or build error (the test names a symbol\nthe fix added) proves only that the symbol is new. The worktree is removed\non exit.\n\nPrints \"red-proof: ...\" with the counts and the tail of each run. Exits 0\nwhen green then red on an assertion; 1 when the test passes without the\nfix, fails with it, is red only because it cannot load or build without the\nfix, or when there are zero test files or zero non-test files in the diff\n(nothing to prove); 2 on a usage error. bash 3.2 safe.",
    "functions": [
+    "is_toolchain",
     "is_test",
     "cleanup",
     "run"
@@ -16130,8 +16131,8 @@
    "lang": "python",
    "group": "skill",
    "skill": "prose-lint",
-   "lines": 220,
-   "header": "prose_check: find the tells of generated prose, line by line, in the\nfiles given, and count them. It finds; the skill rewrites.\n\n  - Files: the paths given (a file of any type is read, so a source file\n    named on purpose has its comments linted; a directory is walked for\n    .md, .mdx, .txt, .rst, .xcstrings, .strings and strings.xml), plus the\n    prose files among the paths listed one per line in --files-from (for\n    example `git diff --name-only` output; `-` reads stdin), filtered by\n    the same extensions. A listed path that no longer exists (a deleted\n    file) is skipped and counted.\n  - Classes and patterns:\n      em dash: U+2014 anywhere; a table cell holding only the dash is\n        typography for \"no value\" and is counted as left, not a hit.\n      filler: delve, leverage, robust, seamless(ly), comprehensive,\n        streamline, \"it's worth noting\", \"in today's fast-paced\", \"I hope\n        this helps\", \"great question\", certainly.\n      praise: \"as requested\", \"as you asked\", \"I have successfully\",\n        \"great job\", excellent.\n      trailer: a Co-Authored-By line naming Claude, Anthropic, GPT,\n        OpenAI, Copilot, Gemini or an AI assistant; \"Generated with\"; the\n        robot emoji U+1F916.\n      hedge: \"should work\", \"this ensures\".\n  - Not hits, counted as left: anything inside a fenced code block or an\n    inline code span (code, commands and quoted program output must match\n    the program, so they are not prose), and a filler or praise word that\n    is also a string literal in the repository's source (for example\n    \"excellent\" as a rating value); each literal is printed as a \"left:\"\n    line naming where the value is defined, so the skill can confirm it.\n  - --text - lints stdin as one text named <stdin> (commit messages from\n    `git log --format=%B`, or pasted text); it counts as one file.\n  - .prose-lint-ignore (in the current directory or --ignore) lists\n    allowed words or phrases, one per line; a hit on one is not counted.\n\nUsage: prose_check.py [paths...] [--files-from F|-] [--text -] [--ignore F]\nPrints one \"problem: file:line: class: match\" line per hit and the counts;\nexits 1 on any hit, or when zero files were read.",
+   "lines": 222,
+   "header": "prose_check: find the tells of generated prose, line by line, in the\nfiles given, and count them. It finds; the skill rewrites.\n\n  - Files: the paths given (a file of any type is read, so a source file\n    named on purpose has its comments linted; a directory is walked for\n    .md, .mdx, .txt, .rst, .xcstrings, .strings and strings.xml), plus the\n    prose files among the paths listed one per line in --files-from (for\n    example `git diff --name-only` output; `-` reads stdin), filtered by\n    the same extensions. A listed path that no longer exists (a deleted\n    file) is skipped and counted.\n  - Classes and patterns:\n      em dash: U+2014 anywhere; a table cell holding only the dash is\n        typography for \"no value\" and is counted as left, not a hit.\n      filler: delve, leverage, robust, seamless(ly), comprehensive,\n        streamline, \"it's worth noting\", \"in today's fast-paced\", \"I hope\n        this helps\", \"great question\", certainly.\n      praise: \"as requested\", \"as you asked\", \"I have successfully\",\n        \"great job\", excellent.\n      trailer: a Co-Authored-By line naming Claude, Anthropic, GPT,\n        OpenAI, Copilot, Gemini or an AI assistant; a line that starts\n        \"Generated with\" (a bullet or a sentence saying how something was\n        made is content, not a trailer); the\n        robot emoji U+1F916.\n      hedge: \"should work\", \"this ensures\".\n  - Not hits, counted as left: anything inside a fenced code block or an\n    inline code span (code, commands and quoted program output must match\n    the program, so they are not prose), and a filler or praise word that\n    is also a string literal in the repository's source (for example\n    \"excellent\" as a rating value); each literal is printed as a \"left:\"\n    line naming where the value is defined, so the skill can confirm it.\n  - --text - lints stdin as one text named <stdin> (commit messages from\n    `git log --format=%B`, or pasted text); it counts as one file.\n  - .prose-lint-ignore (in the current directory or --ignore) lists\n    allowed words or phrases, one per line; a hit on one is not counted.\n\nUsage: prose_check.py [paths...] [--files-from F|-] [--text -] [--ignore F]\nPrints one \"problem: file:line: class: match\" line per hit and the counts;\nexits 1 on any hit, or when zero files were read.",
    "functions": [
     "source_literals",
     "walk",
@@ -17260,9 +17261,9 @@
   {
    "path": "tests/unit/dod_red_proof.sh",
    "kind": "unit",
-   "lines": 66,
+   "lines": 112,
    "header": "tests/unit/dod_red_proof.sh: plugins/bearing/skills/definition-of-done/scripts/red_proof.sh proves a regression test is green with the fix and red without it, in a throwaway worktree, leaving the working tree untouched; and fails when the test passes without the fix, fails with it, or when the diff holds no test or no non-test file.",
-   "asserts": 17
+   "asserts": 29
   },
   {
    "path": "tests/unit/feature_flags_check.sh",
@@ -17449,9 +17450,9 @@
   {
    "path": "tests/unit/prose_lint_check.sh",
    "kind": "unit",
-   "lines": 95,
+   "lines": 102,
    "header": "tests/unit/prose_lint_check.sh: plugins/bearing/skills/prose-lint/scripts/prose_check.py passes clean prose and reports file:line and the class for an em dash, filler, praise, an attribution trailer and a hedged claim; leaves a table-cell dash; honours .prose-lint-ignore; reads a git diff file list (skipping deleted paths); and fails on empty input. The em dash and the robot emoji are written as bytes so this file carries neither.",
-   "asserts": 36
+   "asserts": 38
   },
   {
    "path": "tests/unit/runbook_check.sh",
@@ -18531,7 +18532,7 @@
     "Changed",
     "Fixed"
    ],
-   "entries": 50,
+   "entries": 51,
    "summary": "First public release, under the MIT licence."
   }
  ],
