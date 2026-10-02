@@ -5,7 +5,7 @@
   "commandSkills": 0,
   "stackSkills": 12,
   "scripts": 84,
-  "scriptLines": 28277,
+  "scriptLines": 28308,
   "hooks": 6,
   "agents": 8,
   "makeTargets": 26,
@@ -12885,7 +12885,7 @@
     },
     {
      "title": "Gotchas",
-     "lines": 58
+     "lines": 65
     }
    ],
    "inputs": [
@@ -12910,6 +12910,7 @@
    ],
    "output": "",
    "gotchas": [
+    "A case whose feature was never built (no route, screen or script to reach) is a finding, not a test against an invented path: ref_check would rightly fail it. Name the case, the missing piece and where the design puts it in the report; the case stays `planned` and blocks the stage until the feature is built or the case is deferred by a recorded decision. A copy label the source builds in a template literal is not in…",
     "Durability: a read on the same database connection sees its own uncommitted write, so a test that writes and reads through one connection passes with the `commit()` deleted. Read back through a second connection or a fresh app on the same file.",
     "Side effect after commit: when the handler commits and then calls a webhook, a queue or a publisher, make that call fail in a test and assert what the client is told against what is stored. A 500 over a committed change invites a retry that applies it twice: a finding.",
     "Invariants over sums (refunds never exceed the total, stock never below zero) are check-then-act. A sequential test cannot catch the race; start N requests together behind a barrier (goroutines and a `sync.WaitGroup`, a thread pool), run with `-race` where the stack has it, and assert the invariant after. Code that reads, checks and writes under separate locks or transactions is a finding even when the sequential te…",
@@ -12920,20 +12921,19 @@
     "A generated test that asserts what the code does instead of the row's expected result is a tautology. The row wins. When the code disagrees, that is a finding to report, not a test to rewrite. A row derived from a gap has only the route's observable contract as its expected result; say so in the test's comment.",
     "The reference gate runs on what the test uses, not on what it asserts. A test id that exists but sits on the wrong element still passes it; the review and the run catch that.",
     "Never add a second framework to a stack. Cypress beside Playwright, Detox beside Maestro, or unittest beside pytest is a finding.",
-    "Web specs mock the API with `page.route`; a spec that reaches a real server flakes. Mobile flows run against a build with a stubbed backend.",
-    "A visual baseline made on a laptop differs from CI in fonts and antialiasing, and the first CI run fails for nothing. Baselines are only written by `make test-visual-update`, inside the image. Updating a baseline to turn CI green is healing a regression unless the change was intended; `test-heal` decides which."
+    "Web specs mock the API with `page.route`; a spec that reaches a real server flakes. Mobile flows run against a build with a stubbed backend."
    ],
    "layout": "",
    "commands": [],
-   "lines": 335,
+   "lines": 342,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 335
+     "lines": 342
     },
     {
      "path": "scripts/ref_check.py",
-     "lines": 321
+     "lines": 352
     },
     {
      "path": "templates/page-object.ts",
@@ -16304,8 +16304,8 @@
    "lang": "python",
    "group": "skill",
    "skill": "test-automation",
-   "lines": 321,
-   "header": "ref_check: generated tests only reference things that exist in the source.\n\nA generated test that targets a test id, a label, a button name or a route\nthe application does not have is an invented API: it fails for the wrong\nreason, or worse, is healed into passing against nothing. This reads the\ntest files and extracts what they reference:\n\n  ids    getByTestId('x'), [data-testid=\"x\"], Maestro id: \"x\",\n         withId(R.id.x), accessibilityIdentifier / app.buttons[\"x\"]\n  names  getByRole(..., { name: 'x' }), getByText('x'), getByLabel('x'),\n         getByPlaceholder('x'), Maestro tapOn: \"x\", onNodeWithText(\"x\")\n  paths  page.goto('/x'), request.get|post|put|patch|delete('/x'),\n         client.get|post(...)(\"/x\"), httptest.NewRequest(M, \"/x\", ...),\n         http.NewRequest(M, \"/x\", ...), and any call whose arguments give a\n         method and then a path, which is how suites reach routes through\n         their own helper: do(t, h, http.MethodPost, \"/orders/\"+id, body),\n         call(\"DELETE\", \"/items/A-1\")\n\nand looks for each in the source tree (test directories, node_modules,\nbuild output and .git excluded). An id or a name must appear as written. A\npath is compared segment by segment with every route literal in the source\n(\"/orders/{id}/refunds\", \"POST /orders/{id}\", \"/users/:id\", \"<int:id>\",\nr\"/items/(?P<sku>[A-Z0-9-]+)\"): a parameter or regex segment in the route\nmatches any value, so /orders/ord_1/refunds matches /orders/{id}/refunds; a\nliteral cut short by concatenation (\"/orders/\" + id) matches as a prefix; a\nroute may match the tail of the path when the head's segments appear in the\nsource (a mount prefix). When the test names the method and the route's line\ndoes too (the Go \"POST /x\" pattern, a (\"POST\", r\"/x\") table, router.post,\nmethods=[\"POST\"]), they must agree, so DELETE on a GET-only route is missing.\n\nUsage: ref_check.py [--src DIR ...] <test file>...\nPrints one line per missing reference and the counts; exits 1 on a missing\nreference, on zero test files, or on zero references. Zero references is a\ngate that checked nothing, so it never passes: a batch of pure unit tests\nwith no ids, names or routes reports the type check as its only gate. A\ntest that calls an unknown route on purpose (a 404 or 405 check) carries\n`ref_check: absent` in a comment on that line; it is counted apart, and\nfails if the source does serve the route.",
+   "lines": 352,
+   "header": "ref_check: generated tests only reference things that exist in the source.\n\nA generated test that targets a test id, a label, a button name or a route\nthe application does not have is an invented API: it fails for the wrong\nreason, or worse, is healed into passing against nothing. This reads the\ntest files and extracts what they reference:\n\n  ids    getByTestId('x'), [data-testid=\"x\"], Maestro id: \"x\",\n         withId(R.id.x), accessibilityIdentifier / app.buttons[\"x\"]\n  names  getByRole(..., { name: 'x' }), getByText('x'), getByLabel('x'),\n         getByPlaceholder('x'), Maestro tapOn: \"x\", onNodeWithText(\"x\")\n  paths  page.goto('/x'), request.get|post|put|patch|delete('/x'),\n         client.get|post(...)(\"/x\"), httptest.NewRequest(M, \"/x\", ...),\n         http.NewRequest(M, \"/x\", ...), and any call whose arguments give a\n         method and then a path, which is how suites reach routes through\n         their own helper: do(t, h, http.MethodPost, \"/orders/\"+id, body),\n         call(\"DELETE\", \"/items/A-1\")\n\nand looks for each in the source tree (test directories, node_modules,\nbuild output and .git excluded). An id must appear as written; a name must\ntoo, or be what a template literal in the source renders to\n(`Delete up to ${n} records` covers \"Delete up to 3 records\"). A\npath is compared segment by segment with every route literal in the source\n(\"/orders/{id}/refunds\", \"POST /orders/{id}\", \"/users/:id\", \"<int:id>\",\nr\"/items/(?P<sku>[A-Z0-9-]+)\"): a parameter or regex segment in the route\nmatches any value, so /orders/ord_1/refunds matches /orders/{id}/refunds; a\nliteral cut short by concatenation (\"/orders/\" + id) matches as a prefix; a\nroute may match the tail of the path when the head's segments appear in the\nsource (a mount prefix). When the test names the method and the route's line\ndoes too (the Go \"POST /x\" pattern, a (\"POST\", r\"/x\") table, router.post,\nmethods=[\"POST\"]), they must agree, so DELETE on a GET-only route is missing.\n\nUsage: ref_check.py [--src DIR ...] <test file>...\nPrints one line per missing reference and the counts; exits 1 on a missing\nreference, on zero test files, or on zero references. Zero references is a\ngate that checked nothing, so it never passes: a batch of pure unit tests\nwith no ids, names or routes reports the type check as its only gate. A\ntest that calls an unknown route on purpose (a 404 or 405 check) carries\n`ref_check: absent` in a comment on that line; it is counted apart, and\nfails if the source does serve the route.",
    "functions": [
     "value",
     "extract",
@@ -16315,6 +16315,8 @@
     "routes",
     "seg_match",
     "path_found",
+    "templates",
+    "name_found",
     "main"
    ],
    "env": [],
@@ -17499,9 +17501,9 @@
   {
    "path": "tests/unit/test_cases_refs.sh",
    "kind": "unit",
-   "lines": 289,
+   "lines": 320,
    "header": "tests/unit/test_cases_refs.sh: plugins/bearing/skills/test-cases/scripts/cases_check.py (every AC has a live case, every case has tagged oracles, a P1 case has two categories including not:, every story and threat has a risk and every risk has the cases its level needs; --steps gives every manual and e2e case its steps; --plan quotes the gate and places every case in a scenario) and plugins/bearing/skills/test-automation/scripts/ref_check.py (test ids, names and routes a generated test uses exist in the source), each with its empty-input failure.",
-   "asserts": 85
+   "asserts": 92
   },
   {
    "path": "tests/unit/theme_lint_css.sh",
@@ -18503,7 +18505,7 @@
     "Changed",
     "Fixed"
    ],
-   "entries": 40,
+   "entries": 42,
    "summary": "First public release, under the MIT licence."
   }
  ],

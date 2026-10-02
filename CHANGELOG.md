@@ -202,6 +202,16 @@ First public release, under the MIT licence.
   missing path) and symlinks; the Next.js and React templates do not lint
   `public/` and fail `make lighthouse` on an empty URL list; the GitHub
   workflows no longer name a `.gitlab-ci.yml` that a GitHub scaffold removes.
+- `ref_check` matches a name the source builds in a template literal,
+  reads Maestro `id:` and `tapOn:` keys only in YAML flows (a fixture's
+  `id:` field was taken for a test id), and fails when a directory is
+  passed where a test file goes. `test-automation` says that a case whose
+  feature was never built is a finding that blocks the stage, not a test
+  against an invented path.
+- `llm-eval` names the lint and `server-only` traps of a TypeScript
+  runner; `llm-guardrails` lets a feature that stores no personal data
+  skip redaction with the reason recorded, and tests checks inside an
+  entry point through that entry point.
 - `brg-tracker --help` printed three lines of code after its header (the
   range ran past the comment); it now stops at the last comment line.
 - The guard refused a `for` loop that runs its own variable over literal
