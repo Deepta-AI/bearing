@@ -21,6 +21,13 @@ assert_contains "$T_OUT" "brg-checklists: 8 checklists from 7 files"
 for p in $(printf '%s\n' "$T_OUT" | grep '^/'); do assert_file "$p"; done
 t_end
 
+t_begin "CI workflows, Dockerfiles and compose files take the infra checklist"
+d="$(tmpdir)"
+assert_exit 0 bash -c "cd '$d' && '$CL' --files .github/workflows/ci.yml Dockerfile docker-compose.yml .gitlab-ci.yml"
+assert_contains "$T_OUT" "infra/references/review-checklist.md"
+assert_contains "$T_OUT" "brg-checklists: 2 checklists from 4 files"
+t_end
+
 t_begin "python is data when the repository has dbt or dags"
 d="$(tmpdir)"; : > "$d/dbt_project.yml"
 assert_exit 0 bash -c "cd '$d' && '$CL' --files models/x.py"

@@ -5,7 +5,7 @@
   "commandSkills": 0,
   "stackSkills": 12,
   "scripts": 84,
-  "scriptLines": 28311,
+  "scriptLines": 28312,
   "hooks": 6,
   "agents": 8,
   "makeTargets": 26,
@@ -1702,6 +1702,8 @@
     "Bash(git apply --check *)",
     "Bash(git apply --directory=.scratch/review/*)",
     "Bash(tar -x -C .scratch/review/*)",
+    "Bash(git init -q .scratch/review/*)",
+    "Bash(ln -s * .scratch/review/*)",
     "Bash(make -C .scratch/review/*)",
     "Bash(rm -rf .scratch/review/*)",
     "Bash(ls:*)",
@@ -1719,7 +1721,7 @@
     },
     {
      "title": "Steps",
-     "lines": 97
+     "lines": 109
     },
     {
      "title": "Output contract",
@@ -1742,7 +1744,7 @@
     "Resolve the target as in Inputs. For a range or patch, `git diff --stat <range>` or `git apply --check --stat <patch>`; zero files means stop with \"0 files in diff, nothing to review\".",
     "Collect the change for the agents, with this skill's own git grants: `mkdir -p .scratch/review/<slug>`, then for a range `git diff --output=.scratch/review/<slug>/diff.patch <range>`, `git diff --stat --output=.scratch/review/<slug>/stat.txt <range>`, `git diff --name-only --output=.scratch/review/<slug>/files.txt <range>` and `git log --format='%h %s' --output=.scratch/review/<slug>/log.txt <range>`. A patch file o…",
     "Run the project check against the change in a throwaway copy, so the working tree, the branches and the worktree list end exactly as they began: `mkdir -p .scratch/review/<slug>/tree`, then `git archive <rev> | tar -x -C .scratch/review/<slug>/tree`, where `<rev>` is the head of the range, `HEAD` for a patch or a path, or the base when the range includes the working tree; then, for a patch or that working-tree range…",
-    "Run the engine. - gstack: invoke the `review` skill (Skill tool) with this as its argument: \"Base: <base of the range>. In addition to your checklist, apply every item of these files and report each as a finding or 'checked, none found': <checklist paths>. Report only: apply no fix, write no file outside .scratch/review, do not commit or push.\" Keep its findings as reported, with its severity mapped: CRITICAL to Cri…",
+    "Run the engine. - gstack: invoke the `review` skill (Skill tool) with this as its argument: \"Base: <base of the range>. The change is exactly the committed range <range> (git diff <range>); ignore the working tree, which may hold someone else's edits, and do not look for a remote branch: the base is given. In addition to your checklist, apply every item of these files and report each as a finding or 'checked, none f…",
     "Independent verification. For every open Critical and High, fork one `verifier` (Agent tool), all in one message so they run in parallel, at most 12; beyond that, the 12 most severe are verified and the rest listed as \"not verified\". Each verifier gets only the `path:line`, the one-sentence claim, the failure scenario and the path of `.scratch/review/<slug>/diff.patch` (or the path under review); never the engine's…",
     "Reproduce what you can. For each confirmed Critical and High, when the throwaway copy from step 3 runs, write a short probe under `.scratch/review/<slug>/` that drives the failure through the public entry point (the handler, the CLI, the endpoint function) with the repository's own fixtures or seed data, and run it against the copy (`python3 .scratch/review/<slug>/probe.py`, the probe putting `tree/` first on its im…",
     "Check the commits in the range (for a patch file, its Subject line) against the conventions. Decide the verdict: any confirmed Critical or High, or a merge rule broken, means not ready. Print the contract."
@@ -1760,11 +1762,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 214,
+   "lines": 226,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 214
+     "lines": 226
     },
     {
      "path": "references/universal-checklist.md",
@@ -5924,7 +5926,7 @@
     },
     {
      "path": "references/review-checklist.md",
-     "lines": 112
+     "lines": 127
     },
     {
      "path": "references/rules.md",
@@ -14560,7 +14562,7 @@
    "name": "brg-checklists",
    "lang": "bash",
    "group": "workflow",
-   "lines": 109,
+   "lines": 110,
    "header": "brg-checklists: the review checklists that apply, as absolute paths, one\nper line: the universal checklist first, then one per detected stack.\n\n  brg-checklists --repo [dir]        stacks from the repository's markers\n                                     (go.mod, pyproject.toml, package.json\n                                     dependencies, *.tf, pubspec.yaml ...)\n  brg-checklists --range <range>     stacks from the files a diff touches\n                                     (git diff --name-only <range>), with\n                                     package.json deciding react, next,\n                                     react-native or node for .ts/.tsx\n  brg-checklists --files <f>...      stacks from the named files\n\nEvery consumer (branch-review, the reviewer agent, the SessionStart line\nthat lets gstack /review apply them) detects stacks here, so they agree.\nThe last line is \"brg-checklists: N checklists (stacks: ...)\"; exit 1 when\nno file was examined or the universal checklist is missing. bash 3.2 safe.",
    "functions": [
     "js_stack",
@@ -17172,9 +17174,9 @@
   {
    "path": "tests/unit/checklists.sh",
    "kind": "unit",
-   "lines": 53,
+   "lines": 60,
    "header": "tests/unit/checklists.sh: plugins/bearing/bin/brg-checklists names the universal checklist first and one per detected stack, from repository markers, a diff range or files, with package.json deciding the JavaScript lane; every path it prints exists; it fails on zero files; and brg-guard session lists the checklists so any review in the session sees them.",
-   "asserts": 20
+   "asserts": 23
   },
   {
    "path": "tests/unit/data_model_check.sh",
@@ -18505,7 +18507,7 @@
     "Changed",
     "Fixed"
    ],
-   "entries": 44,
+   "entries": 45,
    "summary": "First public release, under the MIT licence."
   }
  ],

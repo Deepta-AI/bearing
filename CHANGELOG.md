@@ -216,6 +216,12 @@ First public release, under the MIT licence.
   does, so API.md can be checked against the contract by id.
 - The test-automation gate in `brg-autopilot` reads past binary fixtures
   (an audio file beside the e2e specs) instead of crashing.
+- `branch-review` runs the project check in a copy that is its own git
+  repository with the dependencies linked, so file-list gates no longer
+  see the enclosing repository and check zero files, and tells gstack
+  `/review` to keep to the committed range. `brg-checklists` gives CI
+  workflows, Dockerfiles and compose files the infra checklist, which
+  gains a CI workflows section from the 7 Hills review.
 - `brg-tracker --help` printed three lines of code after its header (the
   range ran past the comment); it now stops at the last comment line.
 - The guard refused a `for` loop that runs its own variable over literal

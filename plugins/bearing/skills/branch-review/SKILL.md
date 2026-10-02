@@ -2,7 +2,7 @@
 name: branch-review
 description: 'Code review of a branch, MR, patch or path with stack checklists, every Critical and High finding independently verified, and merge verdict. Use when asked to "review this", "review the MR" or "look over my changes".'
 argument-hint: "[commit range, patch file or path; default origin/develop...HEAD] [--engine gstack|bearing]"
-allowed-tools: Read, Grep, Glob, Skill, Agent, Bash(git diff:*), Bash(git log:*), Bash(git show:*), Bash(git status:*), Bash(git rev-parse:*), Bash(git remote:*), Bash(git worktree list:*), Bash(git archive *), Bash(git apply --check *), Bash(git apply --directory=.scratch/review/*), Bash(tar -x -C .scratch/review/*), Bash(make -C .scratch/review/*), Bash(rm -rf .scratch/review/*), Bash(ls:*), Bash(mkdir -p .scratch/review/*), Bash(python3 .scratch/review/*), Bash(bash *bin/brg-checklists *), Write
+allowed-tools: Read, Grep, Glob, Skill, Agent, Bash(git diff:*), Bash(git log:*), Bash(git show:*), Bash(git status:*), Bash(git rev-parse:*), Bash(git remote:*), Bash(git worktree list:*), Bash(git archive *), Bash(git apply --check *), Bash(git apply --directory=.scratch/review/*), Bash(tar -x -C .scratch/review/*), Bash(git init -q .scratch/review/*), Bash(ln -s * .scratch/review/*), Bash(make -C .scratch/review/*), Bash(rm -rf .scratch/review/*), Bash(ls:*), Bash(mkdir -p .scratch/review/*), Bash(python3 .scratch/review/*), Bash(bash *bin/brg-checklists *), Write
 ---
 
 # branch-review
@@ -77,16 +77,28 @@ verification.
    the base when the range includes the working tree; then, for a patch
    or that working-tree range,
    `git apply --directory=.scratch/review/<slug>/tree <patch or diff.patch>`;
-   then `make -C .scratch/review/<slug>/tree <target>`. Record the
+   then make the copy its own repository, because gates that list files
+   through git would otherwise find the enclosing repository
+   (the copy sits under its ignored `.scratch/`) and check zero files:
+   `git init -q .scratch/review/<slug>/tree` (the files stay untracked,
+   and a file list of cached plus untracked files sees them). Dependencies git does not
+   hold are linked, never installed or copied: for a Node project
+   `ln -s "$PWD/node_modules" .scratch/review/<slug>/tree/node_modules`
+   (the lockfile must be unchanged in the range; when it changed, the
+   check is "not run: dependencies changed in the range").
+   Then `make -C .scratch/review/<slug>/tree <target>`. Record the
    command and its counts line. Keep the copy until step 6 has used it
    (a failing input can be tried there), then
    `rm -rf .scratch/review/<slug>/tree`. A check that needs what git
-   does not hold (`node_modules`, a database) is "not run" with the
-   reason. Never test a change with git am, a new worktree, a new branch,
+   does not hold and cannot be linked (a database, a service) is "not
+   run" with the reason. Never test a change with git am, a new worktree, a new branch,
    a stash, or git apply into the working tree.
 4. Run the engine.
    - gstack: invoke the `review` skill (Skill tool) with this as its
-     argument: "Base: <base of the range>. In addition to your checklist,
+     argument: "Base: <base of the range>. The change is exactly the
+     committed range <range> (git diff <range>); ignore the working tree,
+     which may hold someone else's edits, and do not look for a remote
+     branch: the base is given. In addition to your checklist,
      apply every item of these files and report each as a finding or
      'checked, none found': <checklist paths>. Report only: apply no
      fix, write no file outside .scratch/review, do not commit or push."

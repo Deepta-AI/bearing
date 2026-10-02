@@ -103,6 +103,21 @@ the posted plan before the diff: the plan is what will happen.
 - Prod apply reachable from an unprotected branch or tag.
 - A job that runs `terraform destroy`, `state rm` or `kubectl apply`.
 
+## CI workflows
+- A gate job that passes when it found nothing to check (an `if:` that
+  echoes "no specs yet" and exits 0); call the make target that fails on
+  zero items and prints its count.
+- A manual or re-run deploy (workflow_dispatch, a retried job) that does
+  not prove CI passed for the exact SHA it deploys.
+- One shared staging database migrated from every branch: histories
+  diverge and the next push fails; migrate shared environments from the
+  integration branch only.
+- A scan, smoke test or approval that runs against whatever an
+  environment serves rather than the commit being released.
+- A value the running app needs (the commit SHA, a model name) set by the
+  platform's git integration that the CLI deploy path never sets; a
+  non-secret setting stored as a secret.
+
 ## Hygiene
 - A `trivy`, `tflint` or `checkov` rule excluded without a task id and a
   reason beside it.
