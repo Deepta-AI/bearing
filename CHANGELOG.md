@@ -197,6 +197,11 @@ First public release, under the MIT licence.
   React templates now do: a page that cannot prerender passed every
   check and failed only the build. The skill says how a build split
   across parallel subagents shares one local database.
+- The format and lint file lists in the Next.js, React and Node templates
+  skip a file deleted but not yet staged (prettier and eslint failed on the
+  missing path) and symlinks; the Next.js and React templates do not lint
+  `public/` and fail `make lighthouse` on an empty URL list; the GitHub
+  workflows no longer name a `.gitlab-ci.yml` that a GitHub scaffold removes.
 - `brg-tracker --help` printed three lines of code after its header (the
   range ran past the comment); it now stops at the last comment line.
 - The guard refused a `for` loop that runs its own variable over literal

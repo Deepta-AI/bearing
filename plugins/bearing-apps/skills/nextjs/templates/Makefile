@@ -10,8 +10,8 @@ SKIPPED := $(STATE)/.skipped
 # targets, not part of check.
 GATES := design-registry-check format-check lint typecheck test vuln
 # Files each gate looks at: tracked plus untracked, minus ignored (so a fresh scaffold counts).
-SRC_FILES = $$(git ls-files -co --exclude-standard -- 'src/*.ts' 'src/*.tsx' 'e2e/*.ts' '*.config.ts' '*.config.mjs')
-FMT_FILES = $$(git ls-files -co --exclude-standard -- '*.ts' '*.tsx' '*.js' '*.mjs' '*.json' '*.css' '*.md' '*.yml' '*.yaml' | grep -v '^pnpm-lock.yaml$$' || true)
+SRC_FILES = $$(git ls-files -co --exclude-standard -- 'src/*.ts' 'src/*.tsx' 'e2e/*.ts' '*.config.ts' '*.config.mjs' | while IFS= read -r f; do [ -f "$$f" ] && printf '%s\n' "$$f"; done || true)
+FMT_FILES = $$(git ls-files -co --exclude-standard -- '*.ts' '*.tsx' '*.js' '*.mjs' '*.json' '*.css' '*.md' '*.yml' '*.yaml' | grep -v '^pnpm-lock.yaml$$' | while IFS= read -r f; do [ -f "$$f" ] && [ ! -L "$$f" ] && printf '%s\n' "$$f"; done || true)
 TEST_FILES = $$(git ls-files -co --exclude-standard -- 'src/*.test.ts' 'src/*.test.tsx')
 E2E_FILES = $$(git ls-files -co --exclude-standard -- 'e2e/*.spec.ts' | grep -v '^e2e/visual/' || true)
 VISUAL_FILES = $$(git ls-files -co --exclude-standard -- 'e2e/visual/*.spec.ts')
