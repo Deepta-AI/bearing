@@ -212,6 +212,10 @@ First public release, under the MIT licence.
   runner; `llm-guardrails` lets a feature that stores no personal data
   skip redaction with the reason recorded, and tests checks inside an
   entry point through that entry point.
+- `api_doc.py` names each operation's `operationId` beside what it
+  does, so API.md can be checked against the contract by id.
+- The test-automation gate in `brg-autopilot` reads past binary fixtures
+  (an audio file beside the e2e specs) instead of crashing.
 - `brg-tracker --help` printed three lines of code after its header (the
   range ran past the comment); it now stops at the last comment line.
 - The guard refused a `for` loop that runs its own variable over literal

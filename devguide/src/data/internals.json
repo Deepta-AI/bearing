@@ -5,7 +5,7 @@
   "commandSkills": 0,
   "stackSkills": 12,
   "scripts": 84,
-  "scriptLines": 28309,
+  "scriptLines": 28311,
   "hooks": 6,
   "agents": 8,
   "makeTargets": 26,
@@ -9233,7 +9233,7 @@
     },
     {
      "path": "scripts/api_doc.py",
-     "lines": 421
+     "lines": 423
     },
     {
      "path": "templates/api-conformance.mk",
@@ -16056,7 +16056,7 @@
    "lang": "python",
    "group": "skill",
    "skill": "openapi-spec",
-   "lines": 421,
+   "lines": 423,
    "header": "api_doc: write docs/api/API.md, the human-readable API design, from api/openapi.yaml.\n\nThe spec is the contract; this is the page a reviewer, a client developer or\na tester reads first. It is generated so the two cannot disagree:\n\n  header       title and version; Style, Base path and Versioning; an\n               Authentication paragraph; the error code table (code, HTTP\n               status, meaning) from x-error-codes on the error envelope.\n  Conventions  numbered, each with its reason: \"N. <rule>. Why: <reason>.\"\n               lines from the style reference (--style), then the spec's\n               own x-conventions ([{rule, why}]).\n  per-status   an operation may narrow the codes behind a status with\n  codes        x-error-codes: {\"409\": [invoice_closed]}; a shared response\n               may carry x-error-codes: [code, ...]; otherwise every code\n               the envelope declares for that status is listed.\n  resources    one section per tag: its description as the purpose,\n               \"Serves US-...\" from the operations' x-story-ids, and a\n               table Method | Path | Does | Auth | Success | Errors, then\n               the idempotency note for each write.\n\nReads YAML with PyYAML (run it as `uv run --quiet --with pyyaml==6.0.3 python\napi_doc.py ...`); a spec written as JSON also loads without PyYAML.\n\nUsage: api_doc.py --spec api/openapi.yaml [--style api-style.md] [--out docs/api/API.md]\nPrints the findings (an operation with no x-story-ids, a create POST with no\nIdempotency-Key, a PATCH not documented idempotent, an error status with no\ndeclared code) and one counts line:\n  api-doc: N operations in N resources, N paths, N error codes, N conventions, N stories, N findings -> <out>\nExits 1 on zero operations, zero conventions from a given --style, or an\nunreadable spec; the document is not written then. Findings do not fail the\nrun; the skill reports them.",
    "functions": [
     "load",
@@ -17130,9 +17130,9 @@
   {
    "path": "tests/unit/api_doc_generate.sh",
    "kind": "unit",
-   "lines": 113,
+   "lines": 120,
    "header": "tests/unit/api_doc_generate.sh: plugins/bearing/skills/openapi-spec/scripts/api_doc.py writes docs/api/API.md from an OpenAPI spec: header (style, base path, versioning, authentication, error code table), numbered conventions with reasons from the style reference, one section per tag with Serves and the operation table, idempotency notes, findings; and it fails on zero operations. The fixture spec is JSON (valid YAML) so the test needs no PyYAML.",
-   "asserts": 32
+   "asserts": 34
   },
   {
    "path": "tests/unit/architecture_diagram.sh",
@@ -18505,7 +18505,7 @@
     "Changed",
     "Fixed"
    ],
-   "entries": 42,
+   "entries": 44,
    "summary": "First public release, under the MIT licence."
   }
  ],
