@@ -8079,7 +8079,7 @@
     },
     {
      "path": "references/guidelines.md",
-     "lines": 223
+     "lines": 244
     },
     {
      "path": "references/review-checklist.md",
@@ -8171,7 +8171,7 @@
     },
     {
      "path": "templates/skeleton/scripts/smoke.mjs",
-     "lines": 140
+     "lines": 153
     },
     {
      "path": "templates/skeleton/src/app/%5F%5Fdesign/[id]/page.tsx",
@@ -17407,9 +17407,9 @@
   {
    "path": "tests/unit/next_smoke.sh",
    "kind": "unit",
-   "lines": 44,
-   "header": "tests/unit/next_smoke.sh: the Next.js template's scripts/smoke.mjs. A stand-in .next/standalone/server.js (a plain node http server) answers on the port the script gives it, so the whole loop runs without a Next build: no build is refused with 0 checked; the default checks pass; a plan's checks run and a wrong status fails with the evidence written; the hostname is localhost.",
-   "asserts": 8
+   "lines": 53,
+   "header": "tests/unit/next_smoke.sh: the Next.js template's scripts/smoke.mjs. A stand-in .next/standalone/server.js (a plain node http server) answers on the port the script gives it, so the whole loop runs without a Next build: no build is refused with 0 checked; the default checks pass; a plan's checks run and a wrong status fails with the evidence written; a render error the server logs fails though every status passed.",
+   "asserts": 11
   },
   {
    "path": "tests/unit/pins_match.py",
@@ -18531,7 +18531,7 @@
     "Changed",
     "Fixed"
    ],
-   "entries": 49,
+   "entries": 50,
    "summary": "First public release, under the MIT licence."
   }
  ],

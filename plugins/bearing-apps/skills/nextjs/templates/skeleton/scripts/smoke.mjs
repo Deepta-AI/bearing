@@ -117,12 +117,25 @@ try {
   server.kill("SIGTERM");
 }
 
+// A page that renders with an error still answers 200 when React falls back
+// to client rendering; the server's own error lines are a failed check.
+if (up) {
+  const errors = serverLog.split("\n").filter((l) => l.startsWith("⨯")).length;
+  rows.push({
+    method: "LOG",
+    p: "server render errors",
+    want: 0,
+    got: errors,
+    ok: errors === 0,
+    note: "",
+  });
+}
 const failed = rows.filter((r) => !r.ok).length;
 const line = `smoke: ${rows.length} requests checked, ${failed} failed`;
 const table = rows
   .map(
     (r) =>
-      `| ${r.ok ? "pass" : "FAIL"} | ${r.method} ${r.p} | ${r.want} | ${r.got || "no answer"} | ${r.note} |`,
+      `| ${r.ok ? "pass" : "FAIL"} | ${r.method} ${r.p} | ${r.want} | ${r.method === "LOG" ? r.got : r.got || "no answer"} | ${r.note} |`,
   )
   .join("\n");
 mkdirSync(path.join(root, ".scratch"), { recursive: true });

@@ -243,6 +243,12 @@ First public release, under the MIT licence.
   autopilot dod gate reads; the plan runner alone could only start stacks
   with `make up` or compose. Its bundle budget leaves out the nomodule
   polyfill file, which no module browser downloads.
+- The `nextjs` guidelines record what the 7 Hills smoke found on the built
+  server and no unit test caught: under Cache Components `notFound()` after
+  the shell streams answers 200, a status on a proxy rewrite is ignored, an
+  app with several root layouts needs `global-not-found`, and a random
+  value read in a client render leaves a hole in the prerendered shell. The
+  template's smoke fails on a render error the server logs.
 - `brg-tracker --help` printed three lines of code after its header (the
   range ran past the comment); it now stops at the last comment line.
 - The guard refused a `for` loop that runs its own variable over literal
