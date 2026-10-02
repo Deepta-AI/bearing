@@ -43,6 +43,14 @@ assert_exit 0 python3 "$CC" --backlog "$d/b.md" --cases "$d/c.md" --risks "$d/r.
 assert_contains "$T_OUT" "test-cases: 2 ACs, 2 with cases, 2 live cases, 2 with oracles, 1 risks (high 0, medium 1, low 0), 0 threats traced from 0 threat models, 0 problems"
 t_end
 
+t_begin "a story withdrawn on its Status line is skipped, as the backlog gate reads it"
+d="$(tmpdir)"; backlog "$d/b.md"; risks "$d/r.md" "$ok_risk"
+printf '### US-01-003 Old import\n\nStatus: withdrawn: 2026-10-01, no CMS\n- AC-US-01-003-1. Given a file, when imported, then rows appear.\n' >> "$d/b.md"
+cases "$d/c.md" "ui: heading 'Dashboard' visible; not: no error alert" "data: GET /users/1 returns locked=true"
+assert_exit 0 python3 "$CC" --backlog "$d/b.md" --cases "$d/c.md" --risks "$d/r.md" --threats "$d/tm-*.md"
+assert_contains "$T_OUT" "test-cases: 2 ACs, 2 with cases"
+t_end
+
 t_begin "a weak P1, an untagged or vague check, and an uncovered AC fail"
 d="$(tmpdir)"; backlog "$d/b.md"; risks "$d/r.md" "$ok_risk"
 cases "$d/c.md" "ui: heading visible" "it works; data: as expected"
@@ -181,6 +189,37 @@ src() { # a tiny web app: one screen, one API route
   printf '<button data-testid="save-btn">Save invoice</button><label>Email</label>\n' > "$1/src/app/page.tsx"
   printf 'router.get("/api/invoices/:id", h)\n' > "$1/src/api/routes.ts"
 }
+
+t_begin "a name the source builds in a template literal is found; a different one is not"
+d="$(tmpdir)"; src "$d"
+printf 'export const deleteLabel = (n: number) => `Delete up to ${n} records`;\n' > "$d/src/copy.ts"
+cat > "$d/e2e/tpl.spec.ts" <<'TS'
+test("TC-0003 deletes", async ({ page }) => {
+  await page.getByRole("button", { name: "Delete up to 3 records" }).click();
+  await page.getByText("Remove up to 3 records").isVisible();
+});
+TS
+assert_exit 1 python3 "$RC" --src "$d/src" "$d/e2e/tpl.spec.ts"
+assert_not_contains "$T_OUT" "'Delete up to 3 records'"
+assert_contains "$T_OUT" "name 'Remove up to 3 records' is not in the source"
+t_end
+
+t_begin "an id: field in test data is not a test id; a directory among the tests fails"
+d="$(tmpdir)"; src "$d"
+cat > "$d/e2e/data.spec.ts" <<'TS'
+const slot = {
+  id: "00000000-0000-0000-0000-0000000005a1",
+};
+test("TC-0004 books", async ({ page }) => {
+  await page.getByTestId("save-btn").click();
+});
+TS
+assert_exit 0 python3 "$RC" --src "$d/src" "$d/e2e/data.spec.ts"
+assert_contains "$T_OUT" "1 references (ids 1, names 0, paths 0), 0 missing"
+mkdir -p "$d/content"
+assert_exit 1 python3 "$RC" --src "$d/src" "$d/content" "$d/e2e/data.spec.ts"
+assert_contains "$T_OUT" "content: not a test file (a second source directory needs its own --src)"
+t_end
 
 t_begin "references that exist pass; invented ones are named"
 d="$(tmpdir)"; src "$d"

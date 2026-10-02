@@ -27,32 +27,32 @@ afterEach(() => {
 describe("design gallery", () => {
   it("finds the screen files, sorted by id", () => {
     const ids = allScreens().map((s) => s.id);
-    expect(ids).toContain("S-01");
+    expect(ids).toContain("S-00");
     expect(ids).toEqual([...ids].sort((a, b) => a.localeCompare(b, undefined, { numeric: true })));
   });
 
   it("lists every screen with its states", async () => {
     renderRoute("/__design");
     expect(await screen.findByRole("heading", { name: "Design gallery" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "S-01 API health" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "S-00 API health" })).toBeInTheDocument();
     expect(screen.getByText("loading")).toBeInTheDocument();
   });
 
   it("renders the chosen state with the state switcher", async () => {
-    renderRoute("/__design/S-01?state=error");
+    renderRoute("/__design/S-00?state=error");
     expect(await screen.findByText("GET /healthz: 503")).toBeInTheDocument();
-    expect(screen.getByRole("tablist", { name: "S-01 states" })).toBeInTheDocument();
+    expect(screen.getByRole("tablist", { name: "S-00 states" })).toBeInTheDocument();
   });
 
   it("hides the switcher for screenshots and applies the dark theme", async () => {
-    renderRoute("/__design/S-01?state=success&chrome=0&theme=dark");
+    renderRoute("/__design/S-00?state=success&chrome=0&theme=dark");
     expect(await screen.findByText("1.2.3")).toBeInTheDocument();
     expect(screen.queryByRole("tablist")).not.toBeInTheDocument();
     expect(document.documentElement).toHaveClass("dark");
   });
 
   it("applies a design direction as data-variant for its token overrides", async () => {
-    renderRoute("/__design/S-01?state=success&variant=2-ledger");
+    renderRoute("/__design/S-00?state=success&variant=2-ledger");
     expect(await screen.findByText("1.2.3")).toBeInTheDocument();
     expect(document.documentElement.dataset.variant).toBe("2-ledger");
   });

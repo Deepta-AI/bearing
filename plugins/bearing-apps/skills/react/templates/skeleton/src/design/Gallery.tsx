@@ -9,16 +9,21 @@ import { allScreens, type GallerySearch } from "./registry";
 import type { ScreenSpec } from "./screen";
 
 /**
- * useLook applies ?theme= the way the app does (the dark class) and
- * ?variant= as data-variant, which a direction's CSS keys its tokens on.
+ * useLook applies ?theme= (or, without it, the system setting) the way the
+ * app does (the dark class), and ?variant= as data-variant, which a
+ * direction's CSS keys its tokens on.
  */
 function useLook(theme: GallerySearch["theme"], variant: GallerySearch["variant"]) {
   useLayoutEffect(() => {
     const root = document.documentElement;
-    if (theme) {
-      root.classList.toggle("dark", theme === "dark");
-      root.dataset.theme = theme;
-    }
+    // No ?theme: follow the system setting, so a headless browser shooting
+    // with prefers-color-scheme: dark (evidence.py's Chrome path) gets dark.
+    const dark = theme
+      ? theme === "dark"
+      : typeof window.matchMedia === "function" &&
+        window.matchMedia("(prefers-color-scheme: dark)").matches;
+    root.classList.toggle("dark", dark);
+    if (theme) root.dataset.theme = theme;
     if (variant) {
       root.dataset.variant = variant;
     } else {

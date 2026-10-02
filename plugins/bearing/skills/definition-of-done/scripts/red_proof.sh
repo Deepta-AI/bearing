@@ -3,13 +3,21 @@
 # touching the working tree.
 #
 #   red_proof.sh <base> '<test command>'
+#   red_proof.sh --commit <sha> '<test command>'
+#
+# --commit proves one fix commit of a long branch: the base is that commit's
+# parent and only the files that commit changed are considered, so a branch
+# of many fixes is proved one fix at a time.
 #
 # In a throwaway worktree of HEAD under .scratch/: link the dependency
 # folders (node_modules, .venv, vendor), run the test command and require
 # it to pass (the control: the environment works and the test is green with
 # the fix); then put every changed file that is not a test back to <base>
 # (files the branch added are removed) and run it again, requiring it to
-# fail. The only difference between the two runs is the fix, so a red second
+# fail. Toolchain files (package manifests, lockfiles, build and test
+# configs, the Makefile) stay at HEAD: reverting them breaks the runner, and
+# a runner that cannot start is not a red. The only difference between the
+# two runs is the fix, so a red second
 # run is the proof, provided the test ran and its assertion failed: a red run
 # that stops at an import, collection or build error (the test names a symbol
 # the fix added) proves only that the symbol is new. The worktree is removed
@@ -21,11 +29,21 @@
 # fix, or when there are zero test files or zero non-test files in the diff
 # (nothing to prove); 2 on a usage error. bash 3.2 safe.
 set -u
-base="${1:-}"; cmd="${2:-}"
-[ -n "$base" ] && [ -n "$cmd" ] || { sed -n '2,22p' "$0" | sed 's/^# \{0,1\}//'; exit 2; }
+commit=""
+if [ "${1:-}" = "--commit" ]; then commit="${2:-}"; base="${commit:+$commit^}"; cmd="${3:-}"
+else base="${1:-}"; cmd="${2:-}"; fi
+[ -n "$base" ] && [ -n "$cmd" ] || { sed -n '2,30p' "$0" | sed 's/^# \{0,1\}//'; exit 2; }
 root="$(git rev-parse --show-toplevel 2>/dev/null)" || { echo "red-proof: not a git repository" >&2; exit 2; }
 cd "$root" || exit 2
 git rev-parse --verify -q "$base^{commit}" >/dev/null || { echo "red-proof: unknown base $base" >&2; exit 2; }
+
+# is_toolchain: files the runner itself needs; kept at HEAD in the red run.
+is_toolchain() {
+  case "${1##*/}" in
+    package.json|pnpm-lock.yaml|pnpm-workspace.yaml|package-lock.json|yarn.lock|bun.lockb|tsconfig*.json|*.config.ts|*.config.js|*.config.mjs|*.config.cjs|Makefile|go.mod|go.sum|pyproject.toml|uv.lock|poetry.lock|requirements*.txt|setup.cfg|tox.ini|pytest.ini|Cargo.toml|Cargo.lock|build.gradle|build.gradle.kts|settings.gradle|settings.gradle.kts|gradle.properties|Package.swift|Package.resolved|pubspec.yaml|pubspec.lock|.nvmrc|.node-version|.python-version) return 0 ;;
+  esac
+  return 1
+}
 
 is_test() {
   case "$1" in
@@ -35,14 +53,17 @@ is_test() {
   return 1
 }
 
-tests=""; prod=""; nt=0; np=0
+if [ -n "$commit" ]; then changed="$(git diff --name-only "$commit^" "$commit")"; else changed="$(git diff --name-only "$base"...HEAD)"; fi
+tests=""; prod=""; nt=0; np=0; nk=0
 while IFS= read -r f; do
   [ -n "$f" ] || continue
   if is_test "$f"; then tests="$tests$f
-"; nt=$((nt+1)); else prod="$prod$f
+"; nt=$((nt+1))
+  elif is_toolchain "$f"; then nk=$((nk+1))
+  else prod="$prod$f
 "; np=$((np+1)); fi
 done <<EOF
-$(git diff --name-only "$base"...HEAD)
+$changed
 EOF
 [ "$nt" -gt 0 ] || { echo "red-proof: 0 test files changed since $base, nothing to prove" >&2; exit 1; }
 [ "$np" -gt 0 ] || { echo "red-proof: 0 non-test files changed since $base, nothing to revert, nothing to prove" >&2; exit 1; }
@@ -76,7 +97,7 @@ reverted=0; removed=0
 while IFS= read -r f; do
   [ -n "$f" ] || continue
   if git cat-file -e "$base:$f" 2>/dev/null; then
-    git show "$base:$f" > "$dir/$f" && reverted=$((reverted+1))
+    mkdir -p "$(dirname "$dir/$f")" && git show "$base:$f" > "$dir/$f" && reverted=$((reverted+1))
   else
     rm -f "$dir/$f" && removed=$((removed+1))
   fi
@@ -85,10 +106,11 @@ $prod
 EOF
 
 run; red=$?
-echo "red-proof: without the fix ($reverted files back to $base, $removed added files removed): exit $red"
+kept=""; [ "$nk" -eq 0 ] || kept=", $nk toolchain file$( [ "$nk" -eq 1 ] || echo s) kept at HEAD"
+echo "red-proof: without the fix ($reverted files back to $base, $removed added files removed$kept): exit $red"
 tail -8 "$dir.out" | sed 's/^/  | /'
 # Load and build failures: pytest, go, node test runners, gradle, swift.
-why="$(grep -m1 -E 'ImportError|ModuleNotFoundError|ERROR collecting|errors? during collection|AttributeError: module|\[build failed\]|\[setup failed\]|undefined: |cannot find package|Cannot find module|Failed to resolve import|SyntaxError|Compilation error|Unresolved reference|cannot find .* in scope' "$dir.out")"
+why="$(grep -m1 -E 'ImportError|ModuleNotFoundError|ERROR collecting|errors? during collection|AttributeError: module|\[build failed\]|\[setup failed\]|undefined: |cannot find package|Cannot find module|Failed to resolve import|SyntaxError|Compilation error|Unresolved reference|cannot find .* in scope|Cannot find package|is not a function|is not defined|ERR_PNPM|No package found|command not found' "$dir.out")"
 rm -f "$dir.out"
 if [ "$red" -eq 0 ]; then
   echo "red-proof: $nt test files, $np non-test files; GREEN without the fix: the test does not prove the bug"

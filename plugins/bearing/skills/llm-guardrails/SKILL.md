@@ -30,7 +30,10 @@ prompt") is a request, not a guardrail.
 - Tool registry: `llm-agent`'s; if absent, the tool-call checks run
   against the policy's own tier table.
 - Fixture test: `templates/test-guardrails.md` (Python and TypeScript);
-  the module exports `CHECKS` and `POLICY` in the shape it names.
+  the module exports `CHECKS` and `POLICY` in the shape it names. Checks
+  that only run inside the feature's entry point (a guard after the
+  model call) are tested through that entry point with a scripted model
+  that obeys each attack, instead of a `CHECKS` map.
 
 ## Steps
 
@@ -65,7 +68,10 @@ prompt") is a request, not a guardrail.
      text, before the model, matching the policy's categories in
      paraphrase ("I passed out", "can't breathe properly") without
      firing on a keyword alone ("my chest X-ray report is ready");
-   - PII redaction in every common format (spaced, hyphenated,
+   - PII redaction (skip it, with the reason in the policy, when the
+     feature takes no personal data and stores nothing: a public Q&A
+     over published content; a classifier likewise only where a class
+     needs one) in every common format (spaced, hyphenated,
      unbroken; checksum where the class has one), applied to the text
      stored in history too, so a later turn never resends it; times,
      fees, dates and slot numbers in the same message pass unchanged;

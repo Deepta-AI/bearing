@@ -8,10 +8,10 @@ SKIPPED := $(STATE)/.skipped
 # The gates `make check` runs, in order. build needs minutes and test-e2e
 # needs a browser and a production build, so both are CI jobs and manual
 # targets, not part of check.
-GATES := format-check lint typecheck test vuln
+GATES := design-registry-check format-check lint typecheck test vuln
 # Files each gate looks at: tracked plus untracked, minus ignored (so a fresh scaffold counts).
-SRC_FILES = $$(git ls-files -co --exclude-standard -- 'src/*.ts' 'src/*.tsx' 'e2e/*.ts' '*.config.ts' '*.config.mjs')
-FMT_FILES = $$(git ls-files -co --exclude-standard -- '*.ts' '*.tsx' '*.js' '*.mjs' '*.json' '*.css' '*.md' '*.yml' '*.yaml' | grep -v '^pnpm-lock.yaml$$' || true)
+SRC_FILES = $$(git ls-files -co --exclude-standard -- 'src/*.ts' 'src/*.tsx' 'e2e/*.ts' '*.config.ts' '*.config.mjs' | while IFS= read -r f; do [ -f "$$f" ] && printf '%s\n' "$$f"; done || true)
+FMT_FILES = $$(git ls-files -co --exclude-standard -- '*.ts' '*.tsx' '*.js' '*.mjs' '*.json' '*.css' '*.md' '*.yml' '*.yaml' | grep -v '^pnpm-lock.yaml$$' | while IFS= read -r f; do [ -f "$$f" ] && [ ! -L "$$f" ] && printf '%s\n' "$$f"; done || true)
 TEST_FILES = $$(git ls-files -co --exclude-standard -- 'src/*.test.ts' 'src/*.test.tsx')
 E2E_FILES = $$(git ls-files -co --exclude-standard -- 'e2e/*.spec.ts' | grep -v '^e2e/visual/' || true)
 VISUAL_FILES = $$(git ls-files -co --exclude-standard -- 'e2e/visual/*.spec.ts')
@@ -42,7 +42,7 @@ define in_pw_image
     bash -c "corepack enable && pnpm install --frozen-lockfile --silent && $(2); s=\$$?; chown -R $$(id -u):$$(id -g) e2e test-results playwright-report dist .next 2>/dev/null; exit \$$s"; }
 endef
 
-.PHONY: help setup dev build start check check-file fix test test-e2e test-e2e-matrix test-visual test-visual-update setup-browsers bundle-budget lighthouse lint typecheck format format-check vuln doctor clean
+.PHONY: smoke help setup dev design-registry design-registry-check build start check check-file fix test test-e2e test-e2e-matrix test-visual test-visual-update setup-browsers bundle-budget lighthouse lint typecheck format format-check vuln doctor clean
 
 help: ## List targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-14s %s\n", $$1, $$2}'
@@ -53,12 +53,24 @@ setup: ## Install dependencies (writes pnpm-lock.yaml), Playwright chromium and 
 	bash .githooks/install.sh
 	@echo "setup done"
 
-dev: ## Run the Next dev server on :3000 (reads .env.local if present)
+dev: design-registry ## Run the Next dev server on :3000 (reads .env.local if present); the design gallery is at /__design
 	$(PNPM) exec next dev --port 3000
 
-build: ## Production build (standalone output in .next/standalone)
+design-registry: ## Rewrite src/design/screens.generated.ts from the *.screen.tsx files and design variants
+	@node scripts/design-registry.mjs
+
+design-registry-check: ## Fail when src/design/screens.generated.ts is stale (a screen added without make design-registry)
+	@n=$$(find src/features -path '*/screens/*.screen.tsx' 2>/dev/null | wc -l | tr -d ' '); \
+	[ "$$n" -gt 0 ] || { echo "design-registry-check: 0 screen files under src/features/*/screens, nothing checked" >&2; exit 1; }; \
+	command -v node >/dev/null || $(call skip,design-registry-check,node); \
+	node scripts/design-registry.mjs --check >/dev/null && echo "design-registry-check: $$n screen files checked"
+
+build: ## Production build (standalone output in .next/standalone), held to BUNDLE_BUDGET_KB
+	@mkdir -p $(STATE); rm -f $(STATE)/.build-passed
 	$(PNPM) exec next build
 	@echo "build: $$(find .next/standalone -type f 2>/dev/null | wc -l | tr -d ' ') files in .next/standalone"
+	@$(MAKE) --no-print-directory bundle-budget
+	@touch $(STATE)/.build-passed
 
 start: ## Serve the standalone build on :3000, as the image does (run make build first)
 	PORT=3000 $(PNPM) run start
@@ -119,20 +131,30 @@ test-visual-update: ## Rewrite the visual baselines inside the Playwright image 
 	$(call in_pw_image,test-visual-update,pnpm exec playwright test --project=visual --update-snapshots) || exit 1; \
 	echo "test-visual-update: $$n visual specs; review every changed png in e2e/__screenshots__/ before committing"
 
-bundle-budget: ## Gzipped JavaScript in .next/static/chunks/ under BUNDLE_BUDGET_KB (run make build first)
+bundle-budget: ## Gzipped JavaScript a module browser downloads (.next/static/chunks/ less the nomodule polyfills) under BUNDLE_BUDGET_KB (run make build first)
 	@[ -d .next/static/chunks ] || { echo "bundle-budget: no .next/static/chunks/; run make build first" >&2; exit 1; }; \
-	n=0; total=0; for f in $$(find .next/static/chunks -name '*.js' -type f); do n=$$((n+1)); total=$$((total + $$(gzip -c "$$f" | wc -c))); done; \
+	poly=$$([ -f .next/build-manifest.json ] && node -e 'const m=require("./.next/build-manifest.json");for(const f of m.polyfillFiles||[])console.log(".next/"+f)' || true); \
+	n=0; p=0; total=0; for f in $$(find .next/static/chunks -name '*.js' -type f); do \
+	  if printf '%s\n' "$$poly" | grep -qxF "$$f"; then p=$$((p+1)); continue; fi; \
+	  n=$$((n+1)); total=$$((total + $$(gzip -c "$$f" | wc -c))); done; \
 	[ "$$n" -gt 0 ] || { echo "bundle-budget: 0 JavaScript files in .next/static/chunks/, nothing checked" >&2; exit 1; }; \
-	kb=$$((total / 1024)); echo "bundle-budget: $$n files, $$kb KB gzipped, budget $(BUNDLE_BUDGET_KB) KB"; \
+	note=""; [ "$$p" -eq 0 ] || note=" ($$p nomodule polyfill file left out)"; \
+	kb=$$((total / 1024)); echo "bundle-budget: $$n files, $$kb KB gzipped, budget $(BUNDLE_BUDGET_KB) KB$$note"; \
 	[ "$$kb" -le "$(BUNDLE_BUDGET_KB)" ] || { echo "bundle-budget: over budget by $$((kb - $(BUNDLE_BUDGET_KB))) KB" >&2; exit 1; }
+
+smoke: ## Start the production build and drive .scratch/smoke-plan-<task id>.txt (or the health probe and home page); writes .scratch/smoke-<task id>.md (make build first)
+	@id=$$(git rev-parse --abbrev-ref HEAD 2>/dev/null | sed -nE 's#^[a-z]+/([A-Z][A-Z0-9]*-[0-9]+)-.*#\1#p'); \
+	node scripts/smoke.mjs --id "$${id:-smoke}"
 
 lighthouse: ## Lighthouse CI against the production build: fails on the assertions in lighthouserc.json (needs Chrome or Playwright's chromium)
 	@[ -f lighthouserc.json ] || { echo "lighthouse: no lighthouserc.json, nothing checked" >&2; exit 1; }; \
+	n=$$(grep -o '"http[^"]*"' lighthouserc.json | wc -l | tr -d ' '); \
+	[ "$$n" -gt 0 ] || { echo "lighthouse: 0 URLs in lighthouserc.json, nothing checked" >&2; exit 1; }; \
 	command -v $(PNPM) >/dev/null || $(call skip,lighthouse,pnpm); \
 	c="$${CHROME_PATH:-$$(find "$${PLAYWRIGHT_BROWSERS_PATH:-$$HOME/.cache/ms-playwright}" /ms-playwright -type f -name chrome -path '*chromium-*' 2>/dev/null | head -1)}"; \
 	[ -n "$$c" ] || { echo "lighthouse: no Chrome found; run make setup or set CHROME_PATH" >&2; exit 1; }; \
 	CHROME_PATH="$$c" $(PNPM) dlx @lhci/cli@0.15.1 autorun --config=lighthouserc.json && \
-	echo "lighthouse: $$(grep -o '"http[^"]*"' lighthouserc.json | wc -l | tr -d ' ') pages checked against lighthouserc.json"
+	echo "lighthouse: $$n pages checked against lighthouserc.json"
 
 vuln: ## pnpm audit at high and above over the committed lockfile (production deps)
 	@command -v $(PNPM) >/dev/null || $(call skip,vuln,pnpm); \
@@ -177,4 +199,4 @@ doctor: ## Environment diagnostics
 	@echo "hooksPath:  $$(git config core.hooksPath || echo 'NOT SET (run make setup)')"
 
 clean: ## Remove build and test output
-	rm -rf .next coverage playwright-report test-results .lighthouseci tsconfig.tsbuildinfo $(STATE)/.check-passed $(SKIPPED)
+	rm -rf .next coverage playwright-report test-results .lighthouseci tsconfig.tsbuildinfo $(STATE)/.check-passed $(STATE)/.build-passed $(SKIPPED)

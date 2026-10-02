@@ -275,6 +275,13 @@ Files: ...
 
 ## Gotchas
 
+- A case whose feature was never built (no route, screen or script to
+  reach) is a finding, not a test against an invented path: ref_check
+  would rightly fail it. Name the case, the missing piece and where the
+  design puts it in the report; the case stays `planned` and blocks the
+  stage until the feature is built or the case is deferred by a recorded
+  decision. A copy label the source builds in a template literal is not
+  invented: ref_check matches it.
 What a generalist misses when the suite looks green:
 
 - Durability: a read on the same database connection sees its own

@@ -8,13 +8,22 @@
 # a skipped proof is said, never passed off as a pass.
 #
 # Usage: apply_check.sh [schema.sql] [image]
-#   defaults: docs/design/schema.sql, postgres:16
+#   defaults: docs/design/schema.sql, postgres:16; pgvector/pgvector:pg16
+#   when the schema creates the vector extension (plain postgres has no
+#   pgvector, so the first CREATE EXTENSION would fail the proof)
 # Prints one line: "schema-apply: <file> applied to <image>, N tables" or the
 # psql error; exits 1 when the file is missing, empty, or fails to apply.
 # bash 3.2 safe.
 set -u
 file="${1:-docs/design/schema.sql}"
-image="${2:-postgres:16}"
+image="${2:-}"
+if [ -z "$image" ]; then
+  if [ -f "$file" ] && grep -Eqi 'create[[:space:]]+extension[[:space:]]+(if[[:space:]]+not[[:space:]]+exists[[:space:]]+)?"?vector"?' "$file"; then
+    image="pgvector/pgvector:pg16"
+  else
+    image="postgres:16"
+  fi
+fi
 
 if [ ! -s "$file" ]; then
   echo "schema-apply: $file is missing or empty, nothing applied"

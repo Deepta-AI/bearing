@@ -4,6 +4,26 @@ import { afterAll, afterEach, beforeAll, vi } from "vitest";
 
 import { server } from "./msw";
 
+// jsdom has no ResizeObserver; Radix measures with it (radio group, checkbox,
+// slider, switch), so a component test of a form would throw without it.
+class ResizeObserverStub {
+  observe(): undefined {
+    return undefined;
+  }
+  unobserve(): undefined {
+    return undefined;
+  }
+  disconnect(): undefined {
+    return undefined;
+  }
+}
+if (!("ResizeObserver" in globalThis)) {
+  Object.defineProperty(globalThis, "ResizeObserver", {
+    value: ResizeObserverStub,
+    writable: true,
+  });
+}
+
 // jsdom has no layout; the router's scroll restoration calls this on navigation.
 Object.defineProperty(window, "scrollTo", { value: () => undefined, writable: true });
 

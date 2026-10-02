@@ -1658,6 +1658,27 @@ EOF
     esac
     ! git check-ignore -q -- "$rel" 2>/dev/null || exit 0   # scratch the repository ignores
     capped() { if command -v timeout >/dev/null 2>&1; then timeout 25 "$@"; else "$@"; fi; }
+    # Test first: a test written before its module imports a relative path
+    # that does not exist yet, and the linter then reports every use of it as
+    # unsafe. That is the expected red, not a broken file; say so and let the
+    # edit stand. The test still fails when it runs.
+    case "$rel" in
+      *.test.ts|*.test.tsx|*.spec.ts|*.spec.tsx|*.test.js|*.test.jsx)
+        missing=""
+        for spec in $(grep -oE "from ['\"]\.{1,2}/[^'\"]+['\"]" "$rel" 2>/dev/null | sed -E "s/^from ['\"]//; s/['\"]$//"); do
+          base="$(dirname "$rel")/$spec"
+          found_one=0
+          for cand in "$base" "$base.ts" "$base.tsx" "$base.js" "$base.jsx" "$base/index.ts" "$base/index.tsx"; do
+            [ -f "$cand" ] && { found_one=1; break; }
+          done
+          [ "$found_one" -eq 1 ] || missing="$missing $spec"
+        done
+        if [ -n "$missing" ]; then
+          gate_log check-file not-checked "test first, module missing"
+          echo "bearing check: $rel imports$missing, which does not exist yet: the expected red of a test written first; not linted until it does"
+          exit 0
+        fi;;
+    esac
     tool=""; st=0; found=""
     if [ -f Makefile ] && grep -q '^check-file:' Makefile; then
       tool="make check-file"; found="$(capped make -s check-file FILE="$rel" 2>&1)"; st=$?

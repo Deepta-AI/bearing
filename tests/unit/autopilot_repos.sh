@@ -104,6 +104,12 @@ assert_exit 0 ap "done" repos
 assert_contains "$T_OUT" "1 repo in the plan: ShopClient scaffolded beside it"
 t_end
 
+t_begin "an entry with path . is this repository whatever its name"
+at_repos; plan '{"name": "ShopWeb", "git_path": "Shop/ShopWeb", "stack": "next-app", "responsibility": "all", "path": "."}'
+assert_exit 0 ap "done" repos
+assert_contains "$T_OUT" "1 repo in the plan: ShopWeb is this repository"
+t_end
+
 t_begin "the report lists the repositories the run scaffolded"
 at_repos; plan "$API, $WEB"; sibling ShopClient passed
 assert_exit 0 ap "done" repos

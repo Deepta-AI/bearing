@@ -27,7 +27,12 @@ gate that fails when the number drops.
   stops the skill: "name the function or route to evaluate".
 - Gateway and Makefile: used when present; else the harness calls the
   entry point directly and runs as `uv run python evals/<name>/run.py`
-  or `npx tsx@4.23.15 evals/<name>/run.ts`.
+  or `npx tsx@4.23.15 evals/<name>/run.ts`. Where eslint lints with
+  `projectService` and the tsconfig does not include `evals/`, write the
+  runner as `run.mjs` (run with `node`) or add `evals/` to the tsconfig;
+  a `.ts` file outside the project fails lint. An entry point that
+  imports `server-only` (Next.js) loads under tsx only with
+  `--conditions=react-server`.
 
 ## Steps
 

@@ -108,6 +108,18 @@ Unconfirmed:
 
 ## Gotchas
 
+- Managed platforms (Vercel, Netlify, Cloudflare, Supabase, Firebase,
+  Render) have no manifests to read: the ADRs, the platform's config file
+  (`vercel.json`, `netlify.toml`, `wrangler.toml`, `supabase/config.toml`)
+  and the CI file are the sources. Map the template's words before
+  filling it, and say so in the document: a workload is a function or
+  cron job, replicas are per-request instances (min 0, max the plan's
+  concurrency), ingress is the platform's edge, a cluster is a project.
+  Scaling numbers become the plan's limits and each provider's rate and
+  spend limits; rollback is the platform's instant rollback to the
+  previous deployment, with the schema rule (expand-only or a tested
+  Down) stated beside it.
+
 - Compose is dev. Do not describe prod from a compose file; say
   "unconfirmed: from compose" when that is all there is.
 - Never write a production hostname, IP or credential from memory. Copy

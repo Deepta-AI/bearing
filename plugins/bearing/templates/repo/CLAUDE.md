@@ -11,7 +11,7 @@ Stack:        __STACK__
 Databases:    __DATABASES__
 Entrypoint:   __ENTRYPOINT__
 Run, test:    make dev, make test; gate: make check
-Git host:     gitlab | github | both (BEARING_GIT_HOST)
+Git host:     __GIT_HOST__
 Tracker:      __TRACKER__ (BEARING_TRACKER; none is valid)
 Trunk:        main (name develop here if this repository keeps one)
 ```

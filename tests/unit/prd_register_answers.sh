@@ -64,7 +64,7 @@ assert_contains "$q" "needs review: under 2 s on 4G"
 assert_contains "$q" "asked the clinic IT lead on 2026-10-02"
 assert_contains "$q" "Entries: 4   Open: 2   Needs your confirmation: 1"
 assert_eq "- Q-004 Which region hosts it? Assumed: Mumbai. (REQ-003)" "$(grep '^- Q-' "$d/q.md")"
-assert_eq "Q-004 Q-001 Q-002 Q-003" "$(grep -oE '^\| Q-[0-9]+' "$d/q.md" | tr -d '| ' | paste -sd' ')"
+assert_eq "Q-004 Q-001 Q-002 Q-003" "$(grep -oE '^\| Q-[0-9]+' "$d/q.md" | tr -d '| ' | paste -sd' ' -)"
 t_end
 
 t_begin "apply: decide confirms the session's judged decision for an open answer"

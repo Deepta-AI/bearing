@@ -132,12 +132,29 @@ s_type="$(jget type)"; s_stack="$(jget stack)"; s_db="${databases:-$(jget databa
 s_install="$(jget install)"; s_tool="$(jget tool)"
 
 # .bearing/ alone is a run's state (brg-autopilot starts before the repository
-# exists), so a directory holding only that counts as empty.
+# exists), so a directory holding only that counts as empty. A repository
+# holding only documents (docs/, Markdown, licence, .gitignore: the PRD, ADRs
+# and HLD written before the code) is scaffolded too: the stack is built in a
+# staging directory and merged in, every existing file kept as it is and
+# .gitignore merged line by line. Anything else is code: brg-adopt.
+docs_only=0
 if [ -e "$dir" ] && [ -n "$(ls -A "$dir" 2>/dev/null | grep -vx '.bearing')" ]; then
-  echo "target '$dir' exists and is not empty; use brg-adopt for an existing repository" >&2; exit 1
+  others="$(ls -A "$dir" | grep -vxE '\.bearing|\.git|docs|\.gitignore|.*\.(md|txt|rst)|(LICEN[CS]E|NOTICE|COPYING).*' || true)"
+  for o in $others; do
+    # the sandbox's empty placeholders (an empty .claude, .vscode) are not content
+    if [ -z "$(find "$dir/$o" -type f -size +0c 2>/dev/null | head -1)" ]; then continue; fi
+    # nor is what git ignores and does not track (a tool's cache)
+    if [ -d "$dir/.git" ] && [ -z "$(git -C "$dir" ls-files -co --exclude-standard -- "$o" 2>/dev/null | head -1)" ]; then continue; fi
+    echo "target '$dir' exists and holds more than documents ($o); use brg-adopt for an existing repository" >&2; exit 1
+  done
+  docs_only=1
 fi
 mkdir -p "$dir"
 dir="$(cd "$dir" && pwd)"
+if [ "$docs_only" -eq 1 ]; then
+  target="$dir"; dir="$(mktemp -d "${TMPDIR:-/tmp}/brg-scaffold-stage.XXXXXX")"
+  echo "target holds only documents: building in $dir, then merging into $target without overwriting"
+fi
 echo "host: $host ($host_src)"
 
 # 1. Shared repo files (dotfiles included), with the stack's plugin enabled.
@@ -193,6 +210,7 @@ while IFS= read -r -d '' f; do
     sed_i "$f" \
       -e "s|__STACK__|$(escape "$s_stack")|g" \
       -e "s|__REPO_TYPE__|$(escape "$s_type")|g" \
+      -e "s|__GIT_HOST__|$(escape "$host")|g" \
       -e "s|__DATABASES__|$(escape "$s_db")|g" \
       -e "s|__ENTRYPOINT__|$(escape "$s_entry")|g" \
       -e "s|__TRACKER__|$(escape "$tracker_label")|g" \
@@ -215,6 +233,25 @@ while IFS= read -r -d '' pth; do
   nb="$(printf '%s' "$b" | sed -e "s|__REPO_NAME__|$name|g" -e "s|__REPO_SLUG__|$slug|g")"
   if [ "$nb" != "$b" ]; then mv "$pth" "$d/$nb"; renamed=$((renamed+1)); fi
 done < <(find "$dir" -depth -not -path '*/.git/*' -not -path "$dir/.bearing/*" -name '*__REPO_*' -print0)
+
+# 6b2. A documents-only target: merge the staged files in. An existing file is
+#      kept and named; .gitignore keeps its lines and gains the new ones.
+if [ "$docs_only" -eq 1 ]; then
+  kept=0; added=0
+  while IFS= read -r -d '' f; do
+    rel="${f#"$dir"/}"
+    if [ "$rel" = .gitignore ] && [ -f "$target/.gitignore" ]; then
+      while IFS= read -r line || [ -n "$line" ]; do
+        grep -qxF -- "$line" "$target/.gitignore" || printf '%s\n' "$line" >> "$target/.gitignore"
+      done < "$f"
+      continue
+    fi
+    if [ -e "$target/$rel" ]; then echo "kept: $rel (already in the repository)"; kept=$((kept+1)); continue; fi
+    mkdir -p "$(dirname "$target/$rel")"; cp -p "$f" "$target/$rel"; added=$((added+1))
+  done < <(find "$dir" -type f -print0)
+  rm -rf "$dir"; dir="$target"
+  echo "merged: $added files added, $kept existing files kept"
+fi
 
 # 6c. Lockfile: run the stack's install command when its toolchain is here.
 #     Never fails the scaffold; CI installs unfrozen until the lockfile exists.

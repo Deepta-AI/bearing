@@ -18,7 +18,9 @@ test files and extracts what they reference:
          call("DELETE", "/items/A-1")
 
 and looks for each in the source tree (test directories, node_modules,
-build output and .git excluded). An id or a name must appear as written. A
+build output and .git excluded). An id must appear as written; a name must
+too, or be what a template literal in the source renders to
+(`Delete up to ${n} records` covers "Delete up to 3 records"). A
 path is compared segment by segment with every route literal in the source
 ("/orders/{id}/refunds", "POST /orders/{id}", "/users/:id", "<int:id>",
 r"/items/(?P<sku>[A-Z0-9-]+)"): a parameter or regex segment in the route
@@ -100,7 +102,6 @@ PATTERNS = {
     "id": [
         r"getByTestId\(\s*" + Q,
         r"data-testid=\\?['\"]([^'\"\\]+)",
-        r"^\s*-?\s*id:\s*" + Q,
         r"withId\(\s*R\.id\.(\w+)",
         r"\.(?:buttons|textFields|staticTexts|otherElements|cells|images|switches)\[\s*"
         + Q
@@ -110,11 +111,13 @@ PATTERNS = {
     "name": [
         r"getByRole\([^)]*?name:\s*" + Q,
         r"getBy(?:Text|Label|Placeholder|Title|AltText)\(\s*" + Q,
-        r"^\s*-?\s*tapOn:\s*" + Q,
         r"onNodeWithText\(\s*" + Q,
         r"withText\(\s*" + Q,
     ],
 }
+# Maestro flows name elements as YAML keys; in code the same shape is test data
+# (a fixture's id: field), so these apply to .yaml and .yml files only.
+YAML_PATTERNS = {"id": [r"^\s*-?\s*id:\s*" + Q], "name": [r"^\s*-?\s*tapOn:\s*" + Q]}
 # Path references carry a method when the call names one. Each pattern has
 # the named group p (the quoted path body) and optionally m or m2 (method).
 QP = r"""(?P<q>['"`])(?P<p>(?:(?!(?P=q)).){1,200})(?P=q)"""
@@ -148,10 +151,11 @@ def value(m):
     return groups[0] if groups else ""
 
 
-def extract(text):
+def extract(text, yaml=False):
     """(kind, value, method) triples; method is None when the test does not say."""
     refs = []
-    for kind, pats in PATTERNS.items():
+    kinds = {k: PATTERNS[k] + (YAML_PATTERNS[k] if yaml else []) for k in PATTERNS}
+    for kind, pats in kinds.items():
         for p in pats:
             for m in re.finditer(p, text, re.M):
                 v = value(m)
@@ -259,14 +263,37 @@ def path_found(path, method, route_list, src):
     return False
 
 
+TEMPLATE = re.compile(r"`([^`]*\$\{[^`]*)`")
+
+
+def templates(src):
+    """Each template literal with a ${...} part, as a regex its rendered text matches."""
+    out = []
+    for body in TEMPLATE.findall(src):
+        parts = re.split(r"\$\{[^}]*\}", body)
+        if sum(len(p.strip()) for p in parts) >= 3:
+            out.append(re.compile(".+?".join(re.escape(p) for p in parts) + r"\Z", re.S))
+    return out
+
+
+def name_found(v, src, tpls):
+    """A name appears as written, or is what a template literal in the source renders to."""
+    return v in src or any(t.match(v) for t in tpls)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--src", action="append", default=[])
     ap.add_argument("tests", nargs="*")
     a = ap.parse_args()
     files = [t for t in a.tests if os.path.isfile(t)]
+    problems = 0
     for t in a.tests:
-        if not os.path.isfile(t):
+        if os.path.isdir(t):
+            problems += 1
+            print(f"problem: {t}: not a test file (a second source directory needs its own --src)")
+        elif not os.path.isfile(t):
+            problems += 1
             print(f"problem: {t}: no such test file")
     if not files:
         print("test-refs: 0 test files, nothing checked", file=sys.stderr)
@@ -275,7 +302,7 @@ def main():
     for f in files:
         with open(f, encoding="utf-8", errors="ignore") as fh:
             text = fh.read()
-        for kind, v, meth in extract(text):
+        for kind, v, meth in extract(text, f.endswith((".yaml", ".yml"))):
             if (kind, v, meth) not in seen:
                 seen.add((kind, v, meth))
                 refs.append((f, kind, v, meth))
@@ -289,6 +316,7 @@ def main():
         return 1
     src = source_text(a.src or ["."])
     route_list = routes(src.split("\n"))
+    tpls = templates(src)
     missing, absent = [], 0
     for f, kind, v, meth in refs:
         if meth and meth.endswith(ABSENT):
@@ -302,6 +330,9 @@ def main():
         if kind == "path":
             ok = path_found(v, meth, route_list, src)
             label = f"{meth} {v}" if meth else v
+        elif kind == "name":
+            ok = name_found(v, src, tpls)
+            label = v
         else:
             ok = v in src
             label = v
@@ -314,7 +345,7 @@ def main():
         f"(ids {kinds['id']}, names {kinds['name']}, paths {kinds['path']}), {len(missing)} missing"
         + (f", {absent} declared absent (unknown-route tests)" if absent else "")
     )
-    return 1 if missing else 0
+    return 1 if missing or problems else 0
 
 
 if __name__ == "__main__":

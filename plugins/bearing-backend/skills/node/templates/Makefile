@@ -13,7 +13,7 @@ DATABASE_URL ?= postgres://postgres:postgres@localhost:$(POSTGRES_PORT)/__REPO_S
 PSQL_URL = $(DATABASE_URL)
 # Files each gate looks at: tracked plus untracked, minus ignored (so a fresh scaffold counts).
 SRC_FILES = $$(git ls-files -co --exclude-standard -- 'src/*.ts' 'tests/*.ts' '*.config.ts')
-FMT_FILES = $$(git ls-files -co --exclude-standard -- '*.ts' '*.js' '*.json' '*.md' '*.yml' '*.yaml' | grep -Ev '^(pnpm-lock.yaml|drizzle/meta/)' || true)
+FMT_FILES = $$(git ls-files -co --exclude-standard -- '*.ts' '*.js' '*.json' '*.md' '*.yml' '*.yaml' | grep -Ev '^(pnpm-lock.yaml|drizzle/meta/)' | while IFS= read -r f; do [ -f "$$f" ] && [ ! -L "$$f" ] && printf '%s\n' "$$f"; done || true)
 TEST_FILES = $$(git ls-files -co --exclude-standard -- 'src/*.test.ts')
 INTEGRATION_FILES = $$(git ls-files -co --exclude-standard -- 'tests/integration/*.test.ts')
 

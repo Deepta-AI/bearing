@@ -113,11 +113,28 @@ assert_exit 2 scaffold go-api ProbeBad "$(tmpdir)/probe-bad" bitbucket
 assert_contains "$T_OUT" "--host must be gitlab, github or both (got 'bitbucket')"
 t_end
 
-t_begin "a non-empty target and a bad name are refused"
+t_begin "a target holding code and a bad name are refused"
 assert_exit 1 scaffold go-api ProbeGh "$gh" both
-assert_contains "$T_OUT" "exists and is not empty; use brg-adopt"
+assert_contains "$T_OUT" "holds more than documents"
+assert_contains "$T_OUT" "use brg-adopt"
 assert_exit 2 scaffold go-api probe-lower "$(tmpdir)/probe-lower" both
 assert_contains "$T_OUT" "name must be PascalCase"
+t_end
+
+# A product's PRD, ADRs and HLD can be committed before its code: the stack is
+# merged in beside them and no document is overwritten or rewritten.
+t_begin "a repository holding only documents gets the stack merged in, its files kept"
+dd="$(tmpdir)/probe-docs"
+git init -q -b main "$dd"; mkdir -p "$dd/docs/product" "$dd/.claude"
+printf '# PRD\nREQ-001 keeps __REPO_NAME__ as typed\n' > "$dd/docs/product/PRD.md"
+printf '# Notes\n' > "$dd/TODOS.md"; printf '.mine/\n' > "$dd/.gitignore"
+assert_exit 0 scaffold go-api ProbeDocs "$dd" gitlab
+assert_contains "$T_OUT" "target holds only documents"
+assert_contains "$T_OUT" "existing files kept"
+assert_file "$dd/Makefile"
+assert_contains "$(cat "$dd/docs/product/PRD.md")" "keeps __REPO_NAME__ as typed"
+assert_contains "$(cat "$dd/.gitignore")" ".mine/"
+assert_contains "$(cat "$dd/.gitignore")" ".scratch/"
 t_end
 
 # brg-autopilot launch writes its log into .bearing/state before the repo stage

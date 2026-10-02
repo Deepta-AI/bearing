@@ -7,7 +7,8 @@
 # and a deployment architecture with its diagram, after arch_check
 # and (profile data) model_check pass. ux runs the flows, contrast,
 # screen-state and design-bundle checkers for a UI. test_cases runs cases_check.
-# test_automation needs every automatable TC id named by a test. design_review
+# build needs make build too when the Makefile records it. test_automation
+# needs every automatable TC id named by a test. design_review
 # needs a review for a UI. dod refuses a profile the code contradicts.
 set -u
 . "$(dirname "$0")/../lib/assert.sh"
@@ -71,11 +72,20 @@ archset() {
     > "$r/docs/architecture/repo-plan.json"
 }
 # datamodel <repo>: the data-model templates, which model_check passes as shipped.
+# threats <repo>: a threat model whose one threat names a new story (threats_check passes it).
+threats() {
+  mkdir -p "$1/docs/security"
+  { printf '# Threat model: site\n\n- Sensitive classes: PII\n\n## 4. Threats (STRIDE)\n\n'
+    echo '| Id | Entry or boundary | Category | Threat | Likelihood | Impact | Mitigation | Status |'
+    echo '| --- | --- | --- | --- | --- | --- | --- | --- |'
+    echo '| T-01 | E1 | Information disclosure | leads read by anyone | M | H | new story: staff-only reads | planned |'
+  } > "$1/docs/security/threat-model-site.md"
+}
 datamodel() { cp "$KIT/plugins/bearing/skills/data-model/templates/"{schema.sql,data-dictionary.csv,data-model.md} "$1/docs/design/"; }
 
 t_begin "the stage list runs architecture, ux, test cases and test automation in order"
 assert_exit 0 python3 "$AP" stages
-assert_eq "repo prd stories decide architecture design repos ux test_cases branch build test_automation design_review review dod mr" "$(printf '%s' "$T_OUT" | tr '\n' ' ' | sed 's/ $//')" "stage order"
+assert_eq "repo branch prd stories decide architecture design repos ux lld test_cases build test_automation design_review review dod mr" "$(printf '%s' "$T_OUT" | tr '\n' ' ' | sed 's/ $//')" "stage order"
 t_end
 
 t_begin "decide needs the product profile, recorded in the digest"
@@ -90,7 +100,7 @@ assert_exit 0 ap "done" decide
 assert_exit 0 ap status
 assert_contains "$T_OUT" "profile: ui=yes data=no api=yes deploy=yes"
 assert_exit 0 ap report
-assert_contains "$(cat "$d/docs/autopilot/r.md")" "| profile | ui=yes data=no api=yes deploy=yes ui_stack=react-shadcn scope=full |"
+assert_contains "$(cat "$d/docs/autopilot/r.md")" "| profile | ui=yes data=no api=yes deploy=yes llm=no ui_stack=react-shadcn scope=full |"
 t_end
 
 t_begin "architecture needs a C4 file with at least one diagram"
@@ -127,7 +137,7 @@ printf '# Deployment\nno picture\n' > "$d/docs/architecture/deployment.md"
 assert_exit 1 ap "done" design
 assert_contains "$T_OUT" "arch_check failed"
 assert_contains "$T_OUT" "Gate: FAILED"
-archset "$d"
+archset "$d"; threats "$d"
 assert_exit 1 ap "done" design
 assert_contains "$T_OUT" "model_check failed"
 datamodel "$d"
@@ -135,14 +145,39 @@ assert_exit 1 ap "done" design
 assert_contains "$T_OUT" "docs/architecture/deployment.md has no mermaid diagram"
 mermaid "$d/docs/architecture/deployment.md" "Deployment"
 assert_exit 0 ap "done" design
-assert_contains "$T_OUT" "HLD 1, LLD 1, data model, API contract, deployment with 1 diagram(s)"
+assert_contains "$T_OUT" "HLD 1, threat models 1, data model, API contract, deployment with 1 diagram(s)"
 t_end
 
-t_begin "a full-scope profile without data, API or deployment needs only the HLD and LLD"
-at design; ap profile --ui no --data no --api no --deploy no --scope full --why fixture >/dev/null
-archset "$d"; printf '# LLD\n' > "$d/docs/design/x-lld.md"
+t_begin "a product that calls a model owes the GenAI solution, then guardrails and evals"
+at design; ap profile --ui no --data no --api no --deploy no --llm yes --scope full --why fixture >/dev/null
+assert_contains "$(ap status)" "llm=yes"
+archset "$d"; printf '# LLD\n' > "$d/docs/design/x-lld.md"; threats "$d"
+assert_exit 1 ap "done" design
+assert_contains "$T_OUT" "docs/genai/*-solution.md (genai-design"
+rm "$d/docs/security/threat-model-site.md"
+assert_exit 1 ap "done" design
+assert_contains "$T_OUT" "docs/security/threat-model-*.md (threat-model"
+threats "$d"
+mkdir -p "$d/docs/genai"; printf '# Q&A solution\n' > "$d/docs/genai/qa-solution.md"
 assert_exit 0 ap "done" design
-assert_contains "$T_OUT" "HLD 1, LLD 1; profile: data=no api=no deploy=no"
+assert_contains "$T_OUT" "GenAI solution"
+t_end
+
+t_begin "a full-scope profile without data, API or deployment needs only the HLD and the threat model"
+at design; ap profile --ui no --data no --api no --deploy no --scope full --why fixture >/dev/null
+archset "$d"; printf '# LLD\n' > "$d/docs/design/x-lld.md"; threats "$d"
+assert_exit 0 ap "done" design
+assert_contains "$T_OUT" "HLD 1, threat models 1; profile: data=no api=no deploy=no"
+t_end
+
+t_begin "the low-level design comes after the screens, one written this run"
+at lld; profile yes yes yes yes
+assert_exit 1 ap "done" lld
+assert_contains "$T_OUT" "no docs/design/*-lld.md written this run"
+mkdir -p "$d/docs/design"
+python3 -c "print('# LLD: Site API\n\n' + 'The handlers validate input, call one service function each and map errors once. ' * 4)" > "$d/docs/design/site-api-lld.md"
+assert_exit 0 ap "done" lld
+assert_contains "$T_OUT" "LLD 1: docs/design/site-api-lld.md"
 t_end
 
 t_begin "lean scope: a change to an existing repository, or a product with nothing but code, owes one design note"
@@ -176,6 +211,10 @@ assert_eq "False" "$(python3 -c "import json;print(json.load(open('$d/.bearing/s
 d="$(tmpdir)/old"; git init -q -b main "$d"; printf 'x = 1\n' > "$d/app.py"; commit init
 assert_exit 0 ap start "add a flag"
 assert_eq "True" "$(python3 -c "import json;print(json.load(open('$d/.bearing/state/autopilot.json'))['existing'])")" "repository with code"
+d="$(tmpdir)/docsonly"; git init -q -b main "$d"; mkdir -p "$d/docs/product"
+printf '# PRD\n' > "$d/docs/product/PRD.md"; printf 'x\n' > "$d/TODOS.md"; printf '.scratch/\n' > "$d/.gitignore"; commit init
+assert_exit 0 ap start "build the product the PRD describes"
+assert_eq "False" "$(python3 -c "import json;print(json.load(open('$d/.bearing/state/autopilot.json'))['existing'])")" "repository holding only documents"
 t_end
 
 # ux fixtures: the shapes the checker tests pass (ux_flows_check, design_contrast, screen_states).
@@ -356,6 +395,28 @@ assert_exit 0 ap "done" test_cases
 assert_contains "$T_OUT" "test-cases: 2 ACs, 2 with cases"
 t_end
 
+t_begin "build needs a test, make check and, where the Makefile records it, make build"
+at build; git -C "$d" checkout -qb feature/T-1-Add
+mkdir -p "$d/src"; printf 'test("adds", () => {});\n' > "$d/src/add.test.ts"; commit tests
+( cd "$d" && make -s check )
+assert_exit 0 ap "done" build
+assert_contains "$T_OUT" "make build: not recorded by this Makefile"
+at build; git -C "$d" checkout -qb feature/T-1-Add
+printf 'build:\n\t@mkdir -p .bearing/state && touch .bearing/state/.build-passed\n' >> "$d/Makefile"
+mkdir -p "$d/src"; printf 'test("adds", () => {});\n' > "$d/src/add.test.ts"; commit tests
+( cd "$d" && make -s check )
+assert_exit 1 ap "done" build
+assert_contains "$T_OUT" "make build has never passed"
+( cd "$d" && make -s build )
+sleep 1; printf 'test("adds two", () => {});\n' > "$d/src/add.test.ts"
+( cd "$d" && make -s check )
+assert_exit 1 ap "done" build
+assert_contains "$T_OUT" "make build has not passed since 1 change(s): src/add.test.ts"
+( cd "$d" && make -s build )
+assert_exit 0 ap "done" build
+assert_contains "$T_OUT" "make build passed after the last change"
+t_end
+
 t_begin "test automation needs every automatable TC id named by a test"
 at test_automation; profile yes no no no
 cases "$d/docs/testing/test-cases.md" "ui: heading 'Dashboard' visible; not: no error alert"
@@ -369,6 +430,16 @@ assert_contains "$T_OUT" "make check has not passed since"
 ( cd "$d" && make -s check )
 assert_exit 0 ap "done" test_automation
 assert_contains "$T_OUT" "1 of 1 automatable case(s) named by a test (1 manual-only or retired)"
+t_end
+
+t_begin "test automation reads past a binary fixture beside the tests"
+at test_automation; profile yes no no no
+cases "$d/docs/testing/test-cases.md" "ui: heading 'Dashboard' visible; not: no error alert"
+mkdir -p "$d/e2e/fixtures"; printf 'test("TC-0001 valid sign in", () => {});\n' > "$d/e2e/sign-in.spec.ts"
+printf '\x1a\x45\xdf\xa3\x9f\x42\x86\x81' > "$d/e2e/fixtures/speech.webm"; commit tests
+( cd "$d" && make -s check )
+assert_exit 0 ap "done" test_automation
+assert_contains "$T_OUT" "1 of 1 automatable case(s) named by a test"
 t_end
 
 # test-automation names a Python test test_tc_0001_<what>: the _ after the

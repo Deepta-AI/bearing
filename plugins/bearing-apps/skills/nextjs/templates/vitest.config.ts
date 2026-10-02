@@ -14,6 +14,9 @@ export default defineConfig({
   },
   test: {
     environment: "jsdom",
+    // jsdom accessibility queries are slow under coverage on a loaded machine;
+    // 5 s timed out synchronous tests. Any assertion still fails at once.
+    testTimeout: 15_000,
     setupFiles: ["src/test/setup.ts"],
     include: ["src/**/*.test.{ts,tsx}"],
     env: { API_URL: "http://api.test", NEXT_PUBLIC_APP_NAME: "Test App" },
@@ -35,6 +38,13 @@ export default defineConfig({
         "src/app/loading.tsx",
         "src/app/global-error.tsx",
         "src/proxy.ts",
+        // The design gallery's routes and generated list, exercised by Gallery.test.tsx.
+        "src/app/%5F%5Fdesign/**",
+        "src/design/screens.generated.ts",
+        // Generated with src/components/ui; screen designs are fixtures the
+        // design gallery and gallery_check cover, not product logic.
+        "src/hooks/use-mobile.ts",
+        "src/features/**/screens/**",
       ],
       thresholds: { lines: 80, functions: 80, branches: 80, statements: 80 },
     },

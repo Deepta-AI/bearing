@@ -14,3 +14,5 @@ SECURITY.md
 docs/
 .claude/
 .gitlab/
+# Written by scripts/design-registry.mjs and compared byte for byte by make design-registry-check
+src/design/screens.generated.ts

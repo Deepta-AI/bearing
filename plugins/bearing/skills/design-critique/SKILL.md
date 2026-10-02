@@ -2,7 +2,7 @@
 name: design-critique
 description: 'Scores a UI design (design gallery, running app or HTML prototype) at three widths, both themes, eleven categories, with an AI-slop check. Use when asked to "critique this design", "review the prototype" or "score this".'
 argument-hint: "<folder, html file or URL> [--rounds N, default 3] [--report-only]"
-allowed-tools: Read, Write, Edit, Grep, Glob, Bash(ls:*), Bash(mkdir:*), Bash(test:*), Bash(make:*), Bash(git status:*), Bash(git diff:*), Bash(~/.claude/skills/gstack/browse/dist/browse:*), Bash(python3 -m http.server:*), Bash(kill:*), Bash(python3 *skills/design-critique/scripts/*)
+allowed-tools: Read, Write, Edit, Grep, Glob, Bash(ls:*), Bash(mkdir:*), Bash(test:*), Bash(make:*), Bash(git status:*), Bash(git diff:*), Bash(~/.claude/skills/gstack/browse/dist/browse:*), Bash(python3 -m http.server:*), Bash(kill:*), Bash(python3 *skills/design-critique/scripts/*), Bash(node *skills/design-critique/scripts/*)
 ---
 
 # design-critique
@@ -25,7 +25,9 @@ flows is gstack `/design-review`'s job.
 
 - Target: `$1` (folder, `.html` file or URL); if absent, the design gallery
   when the app has `src/design/screen.ts` (`make dev`, then
-  `http://127.0.0.1:<port>/__design/`); if absent, the newest folder under
+  `http://localhost:<port>/__design/`: a Next.js dev server does not
+  hydrate a page loaded by IP, so dialogs and client states shoot blank at
+  127.0.0.1); if absent, the newest folder under
   `docs/design/` that holds html; if none, stop with "give a folder, an
   html file or a URL".
 - The contract, read before any page: `docs/design/flows/<feature>/flows*.md`
@@ -54,6 +56,13 @@ flows is gstack `/design-review`'s job.
    that links the same token file (find them with Grep; a token change
    lands on all of them):
    `python3 "${CLAUDE_PLUGIN_ROOT}/skills/design-critique/scripts/pairs.py" <page>...`
+   A framework gallery (Next.js or Vite with Tailwind v4) has no static
+   stylesheet pairs.py can resolve: its colours sit in `@layer` blocks and
+   runtime classes. Render the gallery's pages to static snapshots first,
+   from the app's root (it uses the app's Playwright), then measure those:
+   `node "${CLAUDE_PLUGIN_ROOT}/skills/design-critique/scripts/snapshot.mjs" --base http://localhost:<port>/__design --out .scratch/design-snapshots <page>...`
+   and pairs.py over `.scratch/design-snapshots/*.html`. Hover states are
+   not in a snapshot; the report says so.
    It prints every failing text pair, field edge and focus ring in light,
    data-theme dark and prefers-color-scheme dark with file:line (a ring is
    measured on the surface it is drawn on, so the same button can pass on

@@ -182,6 +182,7 @@
   "$defs": {
     "colorValue": {
       "type": "object",
+      "description": "An opaque colour. A translucent role (a border at 14 percent, an overlay scrim) is stored as its opaque composite over the surface it sits on, so contrast.py measures what the eye sees; the CSS binding may write the translucent form beside it.",
       "required": ["oklch", "hex"],
       "properties": {
         "oklch": { "type": "string", "pattern": "^oklch\\(" },

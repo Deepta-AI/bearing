@@ -4,13 +4,13 @@
   "skills": 106,
   "commandSkills": 0,
   "stackSkills": 12,
-  "scripts": 84,
-  "scriptLines": 27983,
+  "scripts": 85,
+  "scriptLines": 28466,
   "hooks": 6,
   "agents": 8,
-  "makeTargets": 26,
-  "gates": 15,
-  "tests": 74,
+  "makeTargets": 29,
+  "gates": 16,
+  "tests": 78,
   "fixtures": 21,
   "stacks": 13,
   "templates": 38,
@@ -18,7 +18,7 @@
   "ghJobs": 6,
   "ghWorkflows": 2,
   "evals": 106,
-  "skillFiles": 917
+  "skillFiles": 963
  },
  "plugins": [
   {
@@ -26,7 +26,7 @@
    "dir": "plugins/bearing",
    "description": "A developer workflow for coding agents: skills for every stage from brief to runbook, review subagents, one guard behind every hook, and repository templates. The stack conventions come in bearing-backend and bearing-apps.",
    "required": true,
-   "files": 428,
+   "files": 429,
    "skills": [
     "ab-experiment",
     "accessibility",
@@ -144,7 +144,7 @@
    "dir": "plugins/bearing-apps",
    "description": "Bearing stack conventions and repository templates for apps: React, Next.js, React Native (Expo), Flutter, native iOS and native Android. Needs the bearing plugin.",
    "required": false,
-   "files": 321,
+   "files": 366,
    "skills": [
     "android",
     "flutter",
@@ -1373,7 +1373,7 @@
     },
     {
      "title": "Steps",
-     "lines": 119
+     "lines": 160
     },
     {
      "title": "Output contract",
@@ -1399,11 +1399,11 @@
     "Start or resume: `python3 \"${CLAUDE_PLUGIN_ROOT}/bin/brg-autopilot\" start \"<statement>\"`, or `status` then `next` on `--resume`. Print the run id. 1a. The repo stage on an existing repository. The gates read a git repository, a Makefile `check` target that records a pass (`.bearing/state/.check-passed`), and `.scratch/` and `.bearing/state/` kept out of git. Whatever of that is present stays as it is; `done repo` pa…",
     "Loop until `next` says every stage is done or a stage is blocked: 1. `next` names the stage, its skill and its gate. 2. Run the stage's skill in auto mode (below). 3. `done <stage>`. On \"gate not met\", fix what it names and run `done` again; when the same stage cannot be fixed, `fail <stage> \"<why>\"`, which allows three attempts before the stage is blocked.",
     "Auto mode, for every stage: wherever a skill says to ask the user, to stop and wait, or to confirm, take the option the skill recommends and go on. Then: - record the choice with `decision <key> \"<choice>\" \"<alternatives>\" \"<why>\" --adr <path>`, one row per choice, in the words a reviewer needs; - any ADR or decision record the stage writes has status Proposed and names no decider; `done decide` fails on an Accepted…",
-    "The product profile, at the end of the decide stage: `profile --ui yes|no --data yes|no --api yes|no --deploy yes|no [--ui-stack <stack>] [--scope lean|full] --why \"<reason>\"`. The ui stack is React with shadcn/ui and Tailwind (`react-shadcn`) unless the statement or the repository names another; only then pass `--ui-stack` (flutter, react-native, compose, swiftui, html) and record why. It decides which stages apply…",
+    "The product profile, at the end of the decide stage: `profile --ui yes|no --data yes|no --api yes|no --deploy yes|no [--llm yes|no] [--ui-stack <stack>] [--scope lean|full] --why \"<reason>\"`. The ui stack is React with shadcn/ui and Tailwind (`react-shadcn`) unless the statement or the repository names another; only then pass `--ui-stack` (flutter, react-native, compose, swiftui, html) and record why. It decides whi…",
     "Tools go through the repository's make targets: `make setup` once the repo stage is done, `make check` for the gate, `make fix` for format. Never call a package manager directly (`uv sync`, `pnpm install`): the repository asks before those and nobody is there to answer.",
-    "Before the build, in lean scope: the design note, then test-cases (the risk register and the case table only). In full scope: architecture-diagram writes the C4 file; design runs high-level-design, then data-model, openapi-spec and deployment-architecture as the profile names, then low-level-design; repos runs new-repo once for each entry of docs/architecture/repo-plan.json, in `<parent>/<Name>` beside this reposito…",
-    "Build is test first, story by story, in the order of the backlog: a failing test named for the story, the code, `make check`, a commit per story with the task id. The edit hook's lint findings are fixed when they arrive; the Stop hook's `make check` demand is met, not argued with. No test asserts on wall-clock time: it passes on the laptop and flakes in CI. Before the first line of code, read the traps below and put…",
-    "After the build: test-automation names a test after every case that is not manual-only or retired (its TC id in the test name); for a UI, design-critique scores the design gallery of the running app (`make dev`) across every screen and state, fixes the top findings and re-scores until the bar holds: overall 8.0, no category below 7, every screenshot present. The design_review gate reads the report; a design under th…",
+    "Before the build, in lean scope: the design note, then test-cases (the risk register and the case table only). In full scope: architecture-diagram writes the C4 file; design runs high-level-design, then data-model, openapi-spec and deployment-architecture as the profile names, then threat-model (it needs the entry points and stored fields those wrote) and genai-design when the profile says llm; repos runs new-repo o…",
+    "Build is test first, story by story, in the order of the backlog: a failing test named for the story, the code, `make check`, a commit per story with the task id. Where the Makefile records a build pass (the Next.js and React templates do), `make build` runs too before the stage is done: a page that cannot prerender passes every check and fails only the build. Those templates' build also holds the bundle budget, so…",
+    "After the build: test-automation names a test after every case that is not manual-only or retired (its TC id in the test name); with llm in the profile, llm-guardrails writes `guardrails/policy.yaml` and wires it at the call sites, and llm-eval writes `docs/genai/evals.md` (an eval that needs a provider key the run lacks is written and marked not run, never reported as passed); for a UI, design-critique scores the d…",
     "Review is `branch-review`; fix every Critical and High it confirms, then `make check` again. `definition-of-done` walks the definition of done, including item 13: start what the repository ships and drive its main flow, sign-in first, against the real backend. A bug the smoke run finds is fixed test first like any other, then the smoke runs again; the dod gate refuses a smoke file older than the last commit. Headles…",
     "The mr stage: `merge-request` prepares the description; `report` writes `docs/autopilot/<run>.md`; commit it, and let that commit be the last write (`git status` clean after it: a progress file touched later is work the MR does not carry); paste its decisions table into the description, with the exact push command (`git push -u origin <branch>`) under it; print the same command in the last message. Do not run it.",
     "Blocked or finished, the last message is the report: stages done, the decisions to review, what is not done and why, and the push command when the MR is ready."
@@ -1419,11 +1419,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 257,
+   "lines": 298,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 257
+     "lines": 298
     }
    ],
    "groups": {
@@ -1702,6 +1702,8 @@
     "Bash(git apply --check *)",
     "Bash(git apply --directory=.scratch/review/*)",
     "Bash(tar -x -C .scratch/review/*)",
+    "Bash(git init -q .scratch/review/*)",
+    "Bash(ln -s * .scratch/review/*)",
     "Bash(make -C .scratch/review/*)",
     "Bash(rm -rf .scratch/review/*)",
     "Bash(ls:*)",
@@ -1719,7 +1721,7 @@
     },
     {
      "title": "Steps",
-     "lines": 97
+     "lines": 109
     },
     {
      "title": "Output contract",
@@ -1742,7 +1744,7 @@
     "Resolve the target as in Inputs. For a range or patch, `git diff --stat <range>` or `git apply --check --stat <patch>`; zero files means stop with \"0 files in diff, nothing to review\".",
     "Collect the change for the agents, with this skill's own git grants: `mkdir -p .scratch/review/<slug>`, then for a range `git diff --output=.scratch/review/<slug>/diff.patch <range>`, `git diff --stat --output=.scratch/review/<slug>/stat.txt <range>`, `git diff --name-only --output=.scratch/review/<slug>/files.txt <range>` and `git log --format='%h %s' --output=.scratch/review/<slug>/log.txt <range>`. A patch file o…",
     "Run the project check against the change in a throwaway copy, so the working tree, the branches and the worktree list end exactly as they began: `mkdir -p .scratch/review/<slug>/tree`, then `git archive <rev> | tar -x -C .scratch/review/<slug>/tree`, where `<rev>` is the head of the range, `HEAD` for a patch or a path, or the base when the range includes the working tree; then, for a patch or that working-tree range…",
-    "Run the engine. - gstack: invoke the `review` skill (Skill tool) with this as its argument: \"Base: <base of the range>. In addition to your checklist, apply every item of these files and report each as a finding or 'checked, none found': <checklist paths>. Report only: apply no fix, write no file outside .scratch/review, do not commit or push.\" Keep its findings as reported, with its severity mapped: CRITICAL to Cri…",
+    "Run the engine. - gstack: invoke the `review` skill (Skill tool) with this as its argument: \"Base: <base of the range>. The change is exactly the committed range <range> (git diff <range>); ignore the working tree, which may hold someone else's edits, and do not look for a remote branch: the base is given. In addition to your checklist, apply every item of these files and report each as a finding or 'checked, none f…",
     "Independent verification. For every open Critical and High, fork one `verifier` (Agent tool), all in one message so they run in parallel, at most 12; beyond that, the 12 most severe are verified and the rest listed as \"not verified\". Each verifier gets only the `path:line`, the one-sentence claim, the failure scenario and the path of `.scratch/review/<slug>/diff.patch` (or the path under review); never the engine's…",
     "Reproduce what you can. For each confirmed Critical and High, when the throwaway copy from step 3 runs, write a short probe under `.scratch/review/<slug>/` that drives the failure through the public entry point (the handler, the CLI, the endpoint function) with the repository's own fixtures or seed data, and run it against the copy (`python3 .scratch/review/<slug>/probe.py`, the probe putting `tree/` first on its im…",
     "Check the commits in the range (for a patch file, its Subject line) against the conventions. Decide the verdict: any confirmed Critical or High, or a merge rule broken, means not ready. Print the contract."
@@ -1760,11 +1762,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 214,
+   "lines": 226,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 214
+     "lines": 226
     },
     {
      "path": "references/universal-checklist.md",
@@ -2487,7 +2489,7 @@
     },
     {
      "path": "scripts/apply_check.sh",
-     "lines": 57
+     "lines": 66
     },
     {
      "path": "scripts/model_check.py",
@@ -3064,7 +3066,7 @@
     },
     {
      "title": "Steps",
-     "lines": 105
+     "lines": 112
     },
     {
      "title": "Output contract",
@@ -3099,15 +3101,15 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 167,
+   "lines": 174,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 167
+     "lines": 174
     },
     {
      "path": "scripts/red_proof.sh",
-     "lines": 102
+     "lines": 124
     }
    ],
    "groups": {
@@ -3285,7 +3287,7 @@
     },
     {
      "title": "Gotchas",
-     "lines": 8
+     "lines": 20
     }
    ],
    "inputs": [
@@ -3310,6 +3312,7 @@
    ],
    "output": "",
    "gotchas": [
+    "Managed platforms (Vercel, Netlify, Cloudflare, Supabase, Firebase, Render) have no manifests to read: the ADRs, the platform's config file (`vercel.json`, `netlify.toml`, `wrangler.toml`, `supabase/config.toml`) and the CI file are the sources. Map the template's words before filling it, and say so in the document: a workload is a function or cron job, replicas are per-request instances (min 0, max the plan's concu…",
     "Compose is dev. Do not describe prod from a compose file; say \"unconfirmed: from compose\" when that is all there is.",
     "Never write a production hostname, IP or credential from memory. Copy it from a file with its line, or leave it unconfirmed.",
     "A rollback that needs a migration Down is only a rollback if the Down was tested (`db-migration`). Say which.",
@@ -3318,11 +3321,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 118,
+   "lines": 130,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 118
+     "lines": 130
     },
     {
      "path": "templates/deployment.md",
@@ -3366,18 +3369,19 @@
     "Bash(~/.claude/skills/gstack/browse/dist/browse:*)",
     "Bash(python3 -m http.server:*)",
     "Bash(kill:*)",
-    "Bash(python3 *skills/design-critique/scripts/*)"
+    "Bash(python3 *skills/design-critique/scripts/*)",
+    "Bash(node *skills/design-critique/scripts/*)"
    ],
    "extra": {},
    "intro": "A review is measured findings against the page's own contract (its flows, its design system, what the client approved), worst first, each one located and each fix checked before it is proposed. Every finding names a file and line or a screenshot and says change X to Y because Z. Numbers come from a script, never from the eye: contrast is computed per theme and per surface, and a proposed colour is recomputed before it is written.",
    "sections": [
     {
      "title": "Inputs",
-     "lines": 20
+     "lines": 22
     },
     {
      "title": "Steps",
-     "lines": 90
+     "lines": 97
     },
     {
      "title": "Output contract",
@@ -3389,7 +3393,7 @@
     }
    ],
    "inputs": [
-    "Target: `$1` (folder, `.html` file or URL); if absent, the design gallery when the app has `src/design/screen.ts` (`make dev`, then `http://127.0.0.1:<port>/__design/`); if absent, the newest folder under `docs/design/` that holds html; if none, stop with \"give a folder, an html file or a URL\".",
+    "Target: `$1` (folder, `.html` file or URL); if absent, the design gallery when the app has `src/design/screen.ts` (`make dev`, then `http://localhost:<port>/__design/`: a Next.js dev server does not hydrate a page loaded by IP, so dialogs and client states shoot blank at 127.0.0.1); if absent, the newest folder under `docs/design/` that holds html; if none, stop with \"give a folder, an html file or a URL\".",
     "The contract, read before any page: `docs/design/flows/<feature>/flows*.md` (each screen's job, every state, the exact copy), `DESIGN.md` or `docs/design/tokens.*` (type, colour, spacing, layout rules), `approved.json` or the board (what the client chose and must keep). If no flows exist, the page's `<title>` and first heading, and the report says \"job inferred\". These files are the yardstick; a review never edits t…",
     "The request's mode: \"don't change\", \"review\", \"before they see it\" or `--report-only` is report only; \"fix\", \"clean up\", \"before handoff\" is review then fix (step 8). Unattended with no signal: report only.",
     "Checklist: `references/review-checklist.md`. Doctrine: `../design-directions/references/design-doctrine.md` when present, else the checklist's slop section.",
@@ -3397,7 +3401,7 @@
    ],
    "steps": [
     "Resolve the target and print each input as read or absent. Pages: every `.html` in the folder except `index.html` boards. Zero pages: stop. Run the repo's own check (`make check` or what the README names) and record its line; it is the baseline a fix must not break.",
-    "Measure colour with one command over the pages, plus every other page that links the same token file (find them with Grep; a token change lands on all of them): `python3 \"${CLAUDE_PLUGIN_ROOT}/skills/design-critique/scripts/pairs.py\" <page>...` It prints every failing text pair, field edge and focus ring in light, data-theme dark and prefers-color-scheme dark with file:line (a ring is measured on the surface it is d…",
+    "Measure colour with one command over the pages, plus every other page that links the same token file (find them with Grep; a token change lands on all of them): `python3 \"${CLAUDE_PLUGIN_ROOT}/skills/design-critique/scripts/pairs.py\" <page>...` A framework gallery (Next.js or Vite with Tailwind v4) has no static stylesheet pairs.py can resolve: its colours sit in `@layer` blocks and runtime classes. Render the galle…",
     "Screenshots, one command for every page: `python3 \"${CLAUDE_PLUGIN_ROOT}/skills/design-critique/scripts/evidence.py\" shoot --base <folder or URL> --out docs/design/reviews/<feature>/shots <page>...` then `python3 \"${CLAUDE_PLUGIN_ROOT}/skills/design-critique/scripts/evidence.py\" check --out docs/design/reviews/<feature>/shots <page>...` Shoot uses gstack browse (dark via `data-theme`) and falls back to a local headl…",
     "First impression per page, before the checklist: the first three things the eye lands on, compared with the page's job from the flows. A mismatch is a hierarchy finding with the element named.",
     "Contract diff, the findings a generalist misses most: - States: list every state and every line of copy in flows.md; each state with no page, and each page that shows a state the flows put elsewhere (an error baked into the default screen), is a finding. - Design system: each rule in DESIGN.md checked against each page (face, sizes, weights, raw colours, spacing scale, table overflow). - Content: the sample data mus…",
@@ -3423,11 +3427,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 190,
+   "lines": 199,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 190
+     "lines": 199
     },
     {
      "path": "references/review-checklist.md",
@@ -3435,17 +3439,21 @@
     },
     {
      "path": "scripts/evidence.py",
-     "lines": 314
+     "lines": 332
     },
     {
      "path": "scripts/pairs.py",
      "lines": 962
+    },
+    {
+     "path": "scripts/snapshot.mjs",
+     "lines": 208
     }
    ],
    "groups": {
     ".": 1,
     "references": 1,
-    "scripts": 2
+    "scripts": 3
    },
    "evals": true,
    "hasSections": [
@@ -3614,7 +3622,7 @@
     },
     {
      "title": "Steps",
-     "lines": 73
+     "lines": 81
     },
     {
      "title": "The lint",
@@ -3641,9 +3649,9 @@
     "Colour primitives in oklch: accent hue from the direction; neutrals at the hue the direction asks for (warm, cool, or the accent's) with chroma 0.004 to 0.016; success, warning, danger, info at their own hues; each scale 0 to 1000, hue held, lightness varied. Compute every sRGB value with the snippet in `references/stack-bindings.md`; a value that clips gets less chroma. Refuse the default looks (cream and terracott…",
     "Roles for light, then dark designed on its own: surfaces lift with lightness, accent one step lighter, chroma down 10 to 20 percent, text near white not pure white. Never invert. Text pairs 4.5:1, focus rings, borders that carry meaning and icons 3:1, in both modes. Include the pairs the components render that the role table misses: grep the class strings for each `text-*` on each `bg-*` actually used together (`tex…",
     "Type and shape. A face the direction names is the face, with its fallbacks and how it loads (self-hosted files, a link, or \"still to do\" in the report); a different face is at most a proposal. When the direction leaves the face free, choose one for this product rather than a default (Inter, Roboto, Arial, system-ui). A mono for data, ids and code; tabular figures wherever numbers align (times, money, counts). Three…",
-    "Write `docs/design/tokens.json` (schema `templates/tokens.schema.json`, validate with `python3`; update an existing file in place with `meta.version` bumped and the changed roles named). Measure: `python3 \"${CLAUDE_PLUGIN_ROOT}/skills/design-system/scripts/contrast.py\" --tokens docs/design/tokens.json --strict-hex`. Its count line is the report's contrast line, verbatim; zero pairs checked is a failure; a failed pai…",
+    "Write `docs/design/tokens.json` (schema `templates/tokens.schema.json`, validate with `uvx --with jsonschema==4.25.1 python -c \"import json,jsonschema; jsonschema.validate(json.load(open('docs/design/tokens.json')), json.load(open('<schema>')))\"` (stdlib Python has no validator; without uv, say \"schema: not validated\"); update an existing file in place with `meta.version` bumped and the changed roles named). Measure…",
     "Bind each stack per `references/stack-bindings.md`, in the form the repo consumes (Read the repo, 1 to 3). On react-shadcn: one file of the variables shadcn reads (`src/styles/tokens.css` or `src/index.css` itself), replacing the defaults shadcn init wrote, never a parallel `--color-*` set the components do not read. Each generated file starts with a generated-from header. Then remove what the direction rules out fr…",
-    "Full setup only: `docs/design/components.md` from `templates/components.md` (each entry names its `src/components/ui` component and allowed variants; a missing need becomes a variant there; `- States:` stays one comma list on one line). Then `system_page.py tokens-css`, `build` and `check` (paths in the script's help); `check` must exit 0; open the page in both themes. Write `docs/design/DESIGN.md` from `templates/D…",
+    "Full setup only: `docs/design/components.md` from `templates/components.md` (each entry names its `src/components/ui` component and allowed variants; a missing need becomes a variant there; `- States:` stays one comma list on one line). Then `system_page.py tokens-css`, `build` and `check` (paths in the script's help; `build --fonts-css <file>` links the product's own `@font-face` stylesheet, and `--google-fonts` is…",
     "The lint (next section) and `make check`."
    ],
    "output": "Changed, Verified, Not done, Noticed. Lead with anything that was broken before (dark mode never switching, variables in a form the config cannot read). Then:",
@@ -3662,15 +3670,15 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 251,
+   "lines": 259,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 251
+     "lines": 259
     },
     {
      "path": "references/stack-bindings.md",
-     "lines": 347
+     "lines": 352
     },
     {
      "path": "scripts/contrast.py",
@@ -3678,7 +3686,7 @@
     },
     {
      "path": "scripts/system_page.py",
-     "lines": 601
+     "lines": 613
     },
     {
      "path": "templates/DESIGN.md",
@@ -3690,15 +3698,15 @@
     },
     {
      "path": "templates/design-lint.sh",
-     "lines": 396
+     "lines": 397
     },
     {
      "path": "templates/design-system.html",
-     "lines": 409
+     "lines": 407
     },
     {
      "path": "templates/tokens.schema.json",
-     "lines": 215
+     "lines": 216
     }
    ],
    "groups": {
@@ -4936,7 +4944,7 @@
     },
     {
      "path": "templates/.githooks/pre-commit",
-     "lines": 159
+     "lines": 161
     },
     {
      "path": "templates/.githooks/pre-push",
@@ -5514,7 +5522,7 @@
     },
     {
      "title": "Steps",
-     "lines": 128
+     "lines": 132
     },
     {
      "title": "Traps",
@@ -5569,15 +5577,15 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 313,
+   "lines": 317,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 313
+     "lines": 317
     },
     {
      "path": "scripts/arch_check.py",
-     "lines": 471
+     "lines": 476
     },
     {
      "path": "templates/HLD.md",
@@ -5923,7 +5931,7 @@
     },
     {
      "path": "references/review-checklist.md",
-     "lines": 112
+     "lines": 127
     },
     {
      "path": "references/rules.md",
@@ -6674,7 +6682,7 @@
    "sections": [
     {
      "title": "Inputs",
-     "lines": 15
+     "lines": 20
     },
     {
      "title": "Steps",
@@ -6694,7 +6702,7 @@
     "Task class: `--task`, else the solution doc, else inferred from the entry point's output shape (enum, record, prose, tool calls, hits).",
     "Golden set: `evals/<name>/cases.jsonl`; if absent, builds a seed set from real inputs the user pastes or points to, else from fixtures in the code (`tests/`, `fixtures/`), marked `source: seed`.",
     "Entry point: the function or route that calls the model; if not obvious from a grep for the SDK, asks for its path. Nothing to call stops the skill: \"name the function or route to evaluate\".",
-    "Gateway and Makefile: used when present; else the harness calls the entry point directly and runs as `uv run python evals/<name>/run.py` or `npx tsx@4.23.15 evals/<name>/run.ts`."
+    "Gateway and Makefile: used when present; else the harness calls the entry point directly and runs as `uv run python evals/<name>/run.py` or `npx tsx@4.23.15 evals/<name>/run.ts`. Where eslint lints with `projectService` and the tsconfig does not include `evals/`, write the runner as `run.mjs` (run with `node`) or add `evals/` to the tsconfig; a `.ts` file outside the project fails lint. An entry point that imports `…"
    ],
    "steps": [
     "Name from `$1`; task class from `--task` or inferred from the solution doc (`docs/design/<name>-hld.md` or the PRD). Read the success criteria there. Zero criteria: ask the Inputs question, propose a metric from the class below, and continue. Map each to a metric: - classification: accuracy, macro F1, per-class recall - extraction: field-level F1 against a labelled record - generation: rubric score (0 to 3 per crite…",
@@ -6719,11 +6727,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 116,
+   "lines": 121,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 116
+     "lines": 121
     },
     {
      "path": "templates/cases.jsonl",
@@ -7016,11 +7024,11 @@
    "sections": [
     {
      "title": "Inputs",
-     "lines": 15
+     "lines": 18
     },
     {
      "title": "Steps",
-     "lines": 134
+     "lines": 137
     },
     {
      "title": "Output contract",
@@ -7037,7 +7045,7 @@
     "Stack: `$2`, else `pyproject.toml` versus `package.json`; neither: asks.",
     "Gateway: `llm/` from `llm-gateway`; if absent, the module wraps each call site directly (one wrapper function) and the gateway is a follow-up, not a prerequisite.",
     "Tool registry: `llm-agent`'s; if absent, the tool-call checks run against the policy's own tier table.",
-    "Fixture test: `templates/test-guardrails.md` (Python and TypeScript); the module exports `CHECKS` and `POLICY` in the shape it names."
+    "Fixture test: `templates/test-guardrails.md` (Python and TypeScript); the module exports `CHECKS` and `POLICY` in the shape it names. Checks that only run inside the feature's entry point (a guard after the model call) are tested through that entry point with a scripted model that obeys each attack, instead of a `CHECKS` map."
    ],
    "steps": [
     "Scope from `$ARGUMENTS`: one feature or the whole service. Stack from `$2` or from `pyproject.toml` versus `package.json`. Load the `claude-api` skill before writing any classifier call. Find every model call (`messages.create`, `messages.parse`, `tool_runner`, `toolRunner`, `messages.stream`, or the repo's own client wrapper) and every tool registry; count the call sites. Zero call sites: ask once where the model w…",
@@ -7066,11 +7074,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 211,
+   "lines": 217,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 211
+     "lines": 217
     },
     {
      "path": "references/adversarial-set.md",
@@ -8004,11 +8012,15 @@
     },
     {
      "title": "Layout",
-     "lines": 16
+     "lines": 20
+    },
+    {
+     "title": "When the app owns its data",
+     "lines": 19
     },
     {
      "title": "On a foreign layout",
-     "lines": 14
+     "lines": 23
     },
     {
      "title": "Rules that matter most",
@@ -8059,15 +8071,15 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 215,
+   "lines": 250,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 215
+     "lines": 250
     },
     {
      "path": "references/guidelines.md",
-     "lines": 223
+     "lines": 244
     },
     {
      "path": "references/review-checklist.md",
@@ -8099,7 +8111,7 @@
     },
     {
      "path": "templates/.prettierignore",
-     "lines": 16
+     "lines": 18
     },
     {
      "path": "templates/.prettierrc.json",
@@ -8111,7 +8123,7 @@
     },
     {
      "path": "templates/Makefile",
-     "lines": 180
+     "lines": 202
     },
     {
      "path": "templates/README.md",
@@ -8123,7 +8135,7 @@
     },
     {
      "path": "templates/eslint.config.mjs",
-     "lines": 50
+     "lines": 55
     },
     {
      "path": "templates/lighthouserc.json",
@@ -8135,7 +8147,7 @@
     },
     {
      "path": "templates/package.json",
-     "lines": 69
+     "lines": 71
     },
     {
      "path": "templates/playwright.config.ts",
@@ -8152,6 +8164,22 @@
     {
      "path": "templates/skeleton/public/favicon.svg",
      "lines": 1
+    },
+    {
+     "path": "templates/skeleton/scripts/design-registry.mjs",
+     "lines": 68
+    },
+    {
+     "path": "templates/skeleton/scripts/smoke.mjs",
+     "lines": 153
+    },
+    {
+     "path": "templates/skeleton/src/app/%5F%5Fdesign/[id]/page.tsx",
+     "lines": 34
+    },
+    {
+     "path": "templates/skeleton/src/app/%5F%5Fdesign/page.tsx",
+     "lines": 13
     },
     {
      "path": "templates/skeleton/src/app/api/healthz/route.test.ts",
@@ -8183,11 +8211,11 @@
     },
     {
      "path": "templates/skeleton/src/app/globals.css",
-     "lines": 122
+     "lines": 124
     },
     {
      "path": "templates/skeleton/src/app/layout.tsx",
-     "lines": 38
+     "lines": 43
     },
     {
      "path": "templates/skeleton/src/app/loading.tsx",
@@ -8206,8 +8234,160 @@
      "lines": 26
     },
     {
-     "path": "templates/skeleton/src/components/ui/button.tsx",
+     "path": "templates/skeleton/src/app/theme-script.ts",
+     "lines": 9
+    },
+    {
+     "path": "templates/skeleton/src/components/ui/README.md",
+     "lines": 35
+    },
+    {
+     "path": "templates/skeleton/src/components/ui/alert.tsx",
      "lines": 59
+    },
+    {
+     "path": "templates/skeleton/src/components/ui/avatar.tsx",
+     "lines": 95
+    },
+    {
+     "path": "templates/skeleton/src/components/ui/badge.tsx",
+     "lines": 45
+    },
+    {
+     "path": "templates/skeleton/src/components/ui/breadcrumb.tsx",
+     "lines": 101
+    },
+    {
+     "path": "templates/skeleton/src/components/ui/button.tsx",
+     "lines": 61
+    },
+    {
+     "path": "templates/skeleton/src/components/ui/card.tsx",
+     "lines": 74
+    },
+    {
+     "path": "templates/skeleton/src/components/ui/checkbox.tsx",
+     "lines": 28
+    },
+    {
+     "path": "templates/skeleton/src/components/ui/command.tsx",
+     "lines": 161
+    },
+    {
+     "path": "templates/skeleton/src/components/ui/dialog.tsx",
+     "lines": 144
+    },
+    {
+     "path": "templates/skeleton/src/components/ui/dropdown-menu.tsx",
+     "lines": 228
+    },
+    {
+     "path": "templates/skeleton/src/components/ui/hover-card.tsx",
+     "lines": 37
+    },
+    {
+     "path": "templates/skeleton/src/components/ui/input.tsx",
+     "lines": 20
+    },
+    {
+     "path": "templates/skeleton/src/components/ui/label.tsx",
+     "lines": 20
+    },
+    {
+     "path": "templates/skeleton/src/components/ui/pagination.tsx",
+     "lines": 106
+    },
+    {
+     "path": "templates/skeleton/src/components/ui/popover.tsx",
+     "lines": 73
+    },
+    {
+     "path": "templates/skeleton/src/components/ui/progress.tsx",
+     "lines": 27
+    },
+    {
+     "path": "templates/skeleton/src/components/ui/radio-group.tsx",
+     "lines": 44
+    },
+    {
+     "path": "templates/skeleton/src/components/ui/scroll-area.tsx",
+     "lines": 55
+    },
+    {
+     "path": "templates/skeleton/src/components/ui/select.tsx",
+     "lines": 174
+    },
+    {
+     "path": "templates/skeleton/src/components/ui/separator.tsx",
+     "lines": 27
+    },
+    {
+     "path": "templates/skeleton/src/components/ui/sheet.tsx",
+     "lines": 133
+    },
+    {
+     "path": "templates/skeleton/src/components/ui/sidebar.tsx",
+     "lines": 694
+    },
+    {
+     "path": "templates/skeleton/src/components/ui/skeleton.tsx",
+     "lines": 13
+    },
+    {
+     "path": "templates/skeleton/src/components/ui/slider.tsx",
+     "lines": 63
+    },
+    {
+     "path": "templates/skeleton/src/components/ui/sonner.tsx",
+     "lines": 38
+    },
+    {
+     "path": "templates/skeleton/src/components/ui/switch.tsx",
+     "lines": 34
+    },
+    {
+     "path": "templates/skeleton/src/components/ui/table.tsx",
+     "lines": 89
+    },
+    {
+     "path": "templates/skeleton/src/components/ui/tabs.tsx",
+     "lines": 80
+    },
+    {
+     "path": "templates/skeleton/src/components/ui/textarea.tsx",
+     "lines": 17
+    },
+    {
+     "path": "templates/skeleton/src/components/ui/toggle-group.tsx",
+     "lines": 82
+    },
+    {
+     "path": "templates/skeleton/src/components/ui/toggle.tsx",
+     "lines": 45
+    },
+    {
+     "path": "templates/skeleton/src/components/ui/tooltip.tsx",
+     "lines": 52
+    },
+    {
+     "path": "templates/skeleton/src/design/Gallery.test.tsx",
+     "lines": 100
+    },
+    {
+     "path": "templates/skeleton/src/design/Gallery.tsx",
+     "lines": 123
+    },
+    {
+     "path": "templates/skeleton/src/design/registry.ts",
+     "lines": 50
+    },
+    {
+     "path": "templates/skeleton/src/design/screen.ts",
+     "lines": 30
+    },
+    {
+     "path": "templates/skeleton/src/design/screens.generated.ts",
+     "lines": 6
     },
     {
      "path": "templates/skeleton/src/env.server.test.ts",
@@ -8255,11 +8435,23 @@
     },
     {
      "path": "templates/skeleton/src/features/health/components/HealthCard.tsx",
-     "lines": 50
+     "lines": 26
+    },
+    {
+     "path": "templates/skeleton/src/features/health/components/HealthCardView.tsx",
+     "lines": 37
     },
     {
      "path": "templates/skeleton/src/features/health/schemas.ts",
      "lines": 9
+    },
+    {
+     "path": "templates/skeleton/src/features/health/screens/S-00-health.screen.tsx",
+     "lines": 18
+    },
+    {
+     "path": "templates/skeleton/src/hooks/use-mobile.ts",
+     "lines": 25
     },
     {
      "path": "templates/skeleton/src/lib/api.test.ts",
@@ -8295,7 +8487,7 @@
     },
     {
      "path": "templates/skeleton/src/test/setup.ts",
-     "lines": 8
+     "lines": 28
     },
     {
      "path": "templates/stack.json",
@@ -8307,19 +8499,20 @@
     },
     {
      "path": "templates/vitest.config.ts",
-     "lines": 42
+     "lines": 52
     }
    ],
    "groups": {
     ".": 1,
     "references": 3,
-    "templates": 58
+    "templates": 103
    },
    "evals": true,
    "hasSections": [
     "Inputs",
     "When this skill is active",
     "Layout",
+    "When the app owns its data",
     "On a foreign layout",
     "Rules that matter most",
     "Commands",
@@ -8994,7 +9187,7 @@
     },
     {
      "title": "Steps",
-     "lines": 77
+     "lines": 82
     },
     {
      "title": "Output contract",
@@ -9002,7 +9195,7 @@
     },
     {
      "title": "Gotchas",
-     "lines": 18
+     "lines": 22
     }
    ],
    "inputs": [
@@ -9018,7 +9211,7 @@
    "steps": [
     "Mode from `$1`: `new` writes a spec; `check` audits one. No argument: `check` when `api/openapi.yaml` exists, else `new`. Read `references/api-style.md` in both modes.",
     "`new`: read the stories and the HLD interfaces section for the operations and the ids they serve. Copy `templates/openapi.yaml` to `api/openapi.yaml` and fill it: every path and operation with `operationId`, `x-story-ids`, request and response schemas that each carry an `example`, the shared error envelope on every 4xx and 5xx, cursor pagination on every list, the auth scheme from the ADR, `X-API-Version` on every o…",
-    "`check`: extract routes from the code, per stack: - Go: `HandleFunc(\"METHOD /path\"`, `mux.Handle`, and chi, gin or echo `r.Get(`, `r.Post(` and friends; - FastAPI: `@router.get(\"`, `@app.post(\"` and the router prefix; - Express: `app.get(`, `router.post(`; - TanStack Start: server routes under `app/routes/api/` and `createServerFileRoute`; UI file routes are not API routes. Normalise path params (`{id}`, `:id`, `<id…",
+    "`check`: extract routes from the code, per stack: - Go: `HandleFunc(\"METHOD /path\"`, `mux.Handle`, and chi, gin or echo `r.Get(`, `r.Post(` and friends; - FastAPI: `@router.get(\"`, `@app.post(\"` and the router prefix; - Express: `app.get(`, `router.post(`; - TanStack Start: server routes under `app/routes/api/` and `createServerFileRoute`; UI file routes are not API routes. - Next.js App Router: each `app/**/route.t…",
     "Compare: routes in code not in spec; spec operations not in code; method mismatches; schema mismatches, checked per route by comparing the handler's request and response types with the spec's required fields. List each with file and line.",
     "Lint: `command -v npx` then `npx @redocly/cli@2.54.3 lint api/openapi.yaml`; print SKIPPED when unavailable. Breaking changes: the tag from `--against` or `git tag --sort=-v:refname | head -1`; write the old spec with `git show <tag>:api/openapi.yaml` to `.scratch/`, then `oasdiff breaking <old> api/openapi.yaml`; SKIPPED when unavailable or when no tag has a spec.",
     "Conformance: the grep in step 3 reads the code; this sends real requests. Paste `templates/api-conformance.mk` into the Makefile when it has no `api-conformance` target, and add a CI job `api-conformance` in stage `test` that starts the service (the stack's `docker compose up -d --wait` plus `make migrate`) and runs the target with `API_BASE_URL` set to it. When a local server answers its health route at `API_BASE_U…",
@@ -9034,15 +9227,16 @@
     "Never delete an operation from the spec; deprecate it with `deprecated: true` and a `Sunset` header so oasdiff can see it.",
     "`docs/api/API.md` is generated. Never edit it by hand; change the spec (or `references/api-style.md` for a convention) and rerun the script, or the page and the contract disagree the day after.",
     "A convention without its reason is a rule people route around. The style reference's numbered list carries a Why on every line; a project convention goes in the spec's `x-conventions` as `{rule, why}`.",
-    "No em dashes, including in descriptions inside the YAML."
+    "No em dashes, including in descriptions inside the YAML.",
+    "Redocly accepts flow-map values that PyYAML (which `api_doc.py` uses) rejects: an unquoted value with `?`, `: ` or a comma inside `{ }`. Quote every free-text value in a flow map (`{ text: \"How big are the plots?\" }`); a spec that lints but stops `api_doc.py` has no readable design."
    ],
    "layout": "",
    "commands": [],
-   "lines": 154,
+   "lines": 163,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 154
+     "lines": 163
     },
     {
      "path": "references/api-style.md",
@@ -9050,7 +9244,7 @@
     },
     {
      "path": "scripts/api_doc.py",
-     "lines": 421
+     "lines": 423
     },
     {
      "path": "templates/api-conformance.mk",
@@ -9699,7 +9893,7 @@
     },
     {
      "path": "scripts/prose_check.py",
-     "lines": 220
+     "lines": 222
     }
    ],
    "groups": {
@@ -10330,7 +10524,7 @@
     },
     {
      "path": "templates/Makefile",
-     "lines": 172
+     "lines": 177
     },
     {
      "path": "templates/README.md",
@@ -10342,7 +10536,7 @@
     },
     {
      "path": "templates/eslint.config.js",
-     "lines": 87
+     "lines": 89
     },
     {
      "path": "templates/index.html",
@@ -10418,7 +10612,7 @@
     },
     {
      "path": "templates/skeleton/src/components/ui/README.md",
-     "lines": 32
+     "lines": 35
     },
     {
      "path": "templates/skeleton/src/components/ui/alert.tsx",
@@ -10514,7 +10708,7 @@
     },
     {
      "path": "templates/skeleton/src/components/ui/slider.tsx",
-     "lines": 58
+     "lines": 63
     },
     {
      "path": "templates/skeleton/src/components/ui/sonner.tsx",
@@ -10554,7 +10748,7 @@
     },
     {
      "path": "templates/skeleton/src/design/Gallery.tsx",
-     "lines": 120
+     "lines": 125
     },
     {
      "path": "templates/skeleton/src/design/registry.ts",
@@ -10589,7 +10783,7 @@
      "lines": 9
     },
     {
-     "path": "templates/skeleton/src/features/health/screens/S-01-health.screen.tsx",
+     "path": "templates/skeleton/src/features/health/screens/S-00-health.screen.tsx",
      "lines": 17
     },
     {
@@ -10642,7 +10836,7 @@
     },
     {
      "path": "templates/skeleton/src/test/setup.ts",
-     "lines": 25
+     "lines": 45
     },
     {
      "path": "templates/skeleton/src/vite-env.d.ts",
@@ -10662,7 +10856,7 @@
     },
     {
      "path": "templates/vitest.config.ts",
-     "lines": 32
+     "lines": 35
     }
    ],
    "groups": {
@@ -11466,7 +11660,7 @@
     "Per screen `src/features/<feature>/screens/<id>-<name>.screen.tsx` exporting `screen: ScreenSpec` (`id`, `name`, `feature`, `job`, `states`), one entry per state from the reconciliation, rendering the view with fixtures in the flows' copy. Fixtures use invented companies and people on reserved domains (`example.com`, `example.in`).",
     "Responsive by design: at 375 the table becomes a card list or scrolls inside its own container with the key columns readable, two columns stack, the primary action stays reachable without horizontal scroll; at 1440 no half-width column beside dead space.",
     "Gates: `python3 \"${CLAUDE_PLUGIN_ROOT}/skills/screen-design/scripts/gallery_check.py\" --src <src> --flows <flows file>` until it exits 0; then the repository's own checks that exist (`make check`, `make design-lint`). A target that does not exist, or a build that needs `node_modules` that are absent, is reported as not run.",
-    "Screenshots from the running gallery when it runs (`<id>?state=<name>&chrome=0`): `python3 \"${CLAUDE_PLUGIN_ROOT}/skills/design-critique/scripts/evidence.py\" shoot --base http://127.0.0.1:<port>/__design/ --out docs/design/screens/shots <id>?state=<state>&chrome=0...` then `check`. `docs/design/screens/README.md` lists the screens, states and the gallery URL.",
+    "Screenshots from the running gallery when it runs (`<id>?state=<name>&chrome=0`): `python3 \"${CLAUDE_PLUGIN_ROOT}/skills/design-critique/scripts/evidence.py\" shoot --base http://localhost:<port>/__design/ --out docs/design/screens/shots <id>?state=<state>&chrome=0...` then `check`. `docs/design/screens/README.md` lists the screens, states and the gallery URL.",
     "When the repository already has mockups for the feature, extend them in their own format and skip the manifest steps (9). Otherwise create or update `docs/design/design.json` against the schema: `brief`, `directions`, `stories`, a `sitemap` with a leaf per screen keyed `<feature>/S-nn`, and a `navigation` generated from the flows' section 4 maps (top-level destinations; three to five on the phone tab bar; `why`; `so…",
     "Screen plan, one block per screen: its single job, the regions with `data-component` names, the states from the reconciliation, the copy per state, controls in tab order with event names, the links out (one per navigation edge), the current item in the chrome, and the 375 px arrangement: what moves, what docks, what drops to one line. A phone layout that only stacks the desktop columns is not an arrangement. Write t…",
     "Tokens: link the one tokens file; no page declares a colour. When `docs/design/tokens.css` is absent and `tokens.json` exists: `python3 \"${CLAUDE_PLUGIN_ROOT}/skills/design-system/scripts/system_page.py\" tokens-css --tokens docs/design/tokens.json --out docs/design/tokens.css`.",
@@ -11504,11 +11698,11 @@
     },
     {
      "path": "scripts/gallery_check.py",
-     "lines": 138
+     "lines": 160
     },
     {
      "path": "scripts/states_check.py",
-     "lines": 155
+     "lines": 183
     },
     {
      "path": "templates/CHANGES.md",
@@ -12702,7 +12896,7 @@
     },
     {
      "title": "Gotchas",
-     "lines": 58
+     "lines": 65
     }
    ],
    "inputs": [
@@ -12727,6 +12921,7 @@
    ],
    "output": "",
    "gotchas": [
+    "A case whose feature was never built (no route, screen or script to reach) is a finding, not a test against an invented path: ref_check would rightly fail it. Name the case, the missing piece and where the design puts it in the report; the case stays `planned` and blocks the stage until the feature is built or the case is deferred by a recorded decision. A copy label the source builds in a template literal is not in…",
     "Durability: a read on the same database connection sees its own uncommitted write, so a test that writes and reads through one connection passes with the `commit()` deleted. Read back through a second connection or a fresh app on the same file.",
     "Side effect after commit: when the handler commits and then calls a webhook, a queue or a publisher, make that call fail in a test and assert what the client is told against what is stored. A 500 over a committed change invites a retry that applies it twice: a finding.",
     "Invariants over sums (refunds never exceed the total, stock never below zero) are check-then-act. A sequential test cannot catch the race; start N requests together behind a barrier (goroutines and a `sync.WaitGroup`, a thread pool), run with `-race` where the stack has it, and assert the invariant after. Code that reads, checks and writes under separate locks or transactions is a finding even when the sequential te…",
@@ -12737,20 +12932,19 @@
     "A generated test that asserts what the code does instead of the row's expected result is a tautology. The row wins. When the code disagrees, that is a finding to report, not a test to rewrite. A row derived from a gap has only the route's observable contract as its expected result; say so in the test's comment.",
     "The reference gate runs on what the test uses, not on what it asserts. A test id that exists but sits on the wrong element still passes it; the review and the run catch that.",
     "Never add a second framework to a stack. Cypress beside Playwright, Detox beside Maestro, or unittest beside pytest is a finding.",
-    "Web specs mock the API with `page.route`; a spec that reaches a real server flakes. Mobile flows run against a build with a stubbed backend.",
-    "A visual baseline made on a laptop differs from CI in fonts and antialiasing, and the first CI run fails for nothing. Baselines are only written by `make test-visual-update`, inside the image. Updating a baseline to turn CI green is healing a regression unless the change was intended; `test-heal` decides which."
+    "Web specs mock the API with `page.route`; a spec that reaches a real server flakes. Mobile flows run against a build with a stubbed backend."
    ],
    "layout": "",
    "commands": [],
-   "lines": 335,
+   "lines": 342,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 335
+     "lines": 342
     },
     {
      "path": "scripts/ref_check.py",
-     "lines": 321
+     "lines": 352
     },
     {
      "path": "templates/page-object.ts",
@@ -12871,7 +13065,7 @@
     },
     {
      "path": "scripts/cases_check.py",
-     "lines": 446
+     "lines": 488
     },
     {
      "path": "templates/risks.md",
@@ -13710,6 +13904,10 @@
      "lines": 107
     },
     {
+     "title": "A product with several packages, or no code yet",
+     "lines": 21
+    },
+    {
      "title": "Re-issuing with feedback",
      "lines": 30
     },
@@ -13762,11 +13960,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 249,
+   "lines": 273,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 249
+     "lines": 273
     },
     {
      "path": "references/flow-review.md",
@@ -13774,7 +13972,7 @@
     },
     {
      "path": "scripts/flows_check.py",
-     "lines": 307
+     "lines": 334
     },
     {
      "path": "templates/flows.md",
@@ -13791,6 +13989,7 @@
    "hasSections": [
     "Inputs",
     "Steps",
+    "A product with several packages, or no code yet",
     "Re-issuing with feedback",
     "Output contract",
     "Gotchas"
@@ -14283,8 +14482,8 @@
    "name": "brg-autopilot",
    "lang": "python",
    "group": "workflow",
-   "lines": 1288,
-   "header": "brg-autopilot: the state, the gates and the report of an unattended run from\none requirement statement to a prepared merge request.\n\nThe autopilot skill drives the stages; this script is the part that cannot\nbe talked around: which stage is next, whether its gate holds (checked on\ndisk, never taken from the model's word), how many attempts are left, the\ndigest of every decision taken on the user's behalf, and the report. Nothing\nhere pushes, merges or deploys; the run stops at a prepared merge request.\n\n  brg-autopilot start \"<statement>\" [--dir D]   begin a run (refuses when one is open)\n  brg-autopilot next [--dir D]                  the next stage, its skill and its gate\n  brg-autopilot done <stage> [--dir D]          check the gate; mark done or say what is missing\n  brg-autopilot fail <stage> \"<why>\" [--dir D]  count a failed attempt (3 and the stage is blocked)\n  brg-autopilot decision <key> <choice> <alternatives> <why> [--adr PATH] [--dir D]\n                                                one row of the decision digest\n  brg-autopilot report [--dir D]                write docs/autopilot/<run>.md (the MR carries it)\n  brg-autopilot status [--dir D]                the stages, attempts and decisions so far\n  brg-autopilot profile --ui|--data|--api|--deploy yes|no [--scope lean|full] --why W [--dir D]\n                                                what the product has; decides which stages apply\n                                                and how much document each one needs\n  brg-autopilot stages                          the stage names, in order\n  brg-autopilot launch \"<statement>\" [--dir D] [--print]\n                                                run it headless: claude -p with autopilot,\n                                                then any smoke it asked for, outside the sandbox\n  brg-autopilot smoke-request [--id ID] [--dir D]\n                                                headless dod: ask the launcher to run the smoke\n  brg-autopilot repos-request [--dir D]         headless repos: ask the launcher to scaffold the\n                                                repo plan's missing repositories beside this one\n\nState lives in <dir>/.bearing/state/autopilot.json. Every command prints what it\nchecked and exits 1 when a gate fails or there is nothing to act on.",
+   "lines": 1365,
+   "header": "brg-autopilot: the state, the gates and the report of an unattended run from\none requirement statement to a prepared merge request.\n\nThe autopilot skill drives the stages; this script is the part that cannot\nbe talked around: which stage is next, whether its gate holds (checked on\ndisk, never taken from the model's word), how many attempts are left, the\ndigest of every decision taken on the user's behalf, and the report. Nothing\nhere pushes, merges or deploys; the run stops at a prepared merge request.\n\n  brg-autopilot start \"<statement>\" [--dir D]   begin a run (refuses when one is open)\n  brg-autopilot next [--dir D]                  the next stage, its skill and its gate\n  brg-autopilot done <stage> [--dir D]          check the gate; mark done or say what is missing\n  brg-autopilot fail <stage> \"<why>\" [--dir D]  count a failed attempt (3 and the stage is blocked)\n  brg-autopilot decision <key> <choice> <alternatives> <why> [--adr PATH] [--dir D]\n                                                one row of the decision digest\n  brg-autopilot report [--dir D]                write docs/autopilot/<run>.md (the MR carries it)\n  brg-autopilot status [--dir D]                the stages, attempts and decisions so far\n  brg-autopilot profile --ui|--data|--api|--deploy yes|no [--llm yes|no] [--scope lean|full] --why W [--dir D]\n                                                what the product has; decides which stages apply\n                                                and how much document each one needs\n  brg-autopilot stages                          the stage names, in order\n  brg-autopilot launch \"<statement>\" [--dir D] [--print]\n                                                run it headless: claude -p with autopilot,\n                                                then any smoke it asked for, outside the sandbox\n  brg-autopilot smoke-request [--id ID] [--dir D]\n                                                headless dod: ask the launcher to run the smoke\n  brg-autopilot repos-request [--dir D]         headless repos: ask the launcher to scaffold the\n                                                repo plan's missing repositories beside this one\n\nState lives in <dir>/.bearing/state/autopilot.json. Every command prints what it\nchecked and exits 1 when a gate fails or there is nothing to act on.",
    "functions": [
     "sh",
     "git",
@@ -14321,6 +14520,7 @@
     "g_ux",
     "newest_flows",
     "ux_screens_as_code",
+    "g_lld",
     "g_test_cases",
     "tc_named",
     "g_test_automation",
@@ -14371,7 +14571,7 @@
    "name": "brg-checklists",
    "lang": "bash",
    "group": "workflow",
-   "lines": 109,
+   "lines": 110,
    "header": "brg-checklists: the review checklists that apply, as absolute paths, one\nper line: the universal checklist first, then one per detected stack.\n\n  brg-checklists --repo [dir]        stacks from the repository's markers\n                                     (go.mod, pyproject.toml, package.json\n                                     dependencies, *.tf, pubspec.yaml ...)\n  brg-checklists --range <range>     stacks from the files a diff touches\n                                     (git diff --name-only <range>), with\n                                     package.json deciding react, next,\n                                     react-native or node for .ts/.tsx\n  brg-checklists --files <f>...      stacks from the named files\n\nEvery consumer (branch-review, the reviewer agent, the SessionStart line\nthat lets gstack /review apply them) detects stacks here, so they agree.\nThe last line is \"brg-checklists: N checklists (stacks: ...)\"; exit 1 when\nno file was examined or the universal checklist is missing. bash 3.2 safe.",
    "functions": [
     "js_stack",
@@ -14497,7 +14697,7 @@
    "name": "brg-guard",
    "lang": "bash",
    "group": "guard",
-   "lines": 1775,
+   "lines": 1796,
    "header": "brg-guard: the harness-neutral guard logic behind every hook adapter.\n\n  brg-guard command \"<shell command>\"   exit 2 and a message when the command\n                                        publishes, rewrites history, deploys\n                                        or destroys; exit 2 when the command\n                                        cannot be read (fail closed)\n  brg-guard format <file>               format one file with the repo's formatter\n  brg-guard task-id [\"<prompt>\"]        print \"Task: <ID> ...\" when the branch\n                                        carries a ticket id the prompt lacks\n  brg-guard session                     print branch, task, changes, handoff state\n  brg-guard stop                        print a reminder when changes are unchecked\n  brg-guard stop-gate --id <session> [--active]\n                                        exit 2 (reason on stderr) when files\n                                        changed in this session since make\n                                        check last passed; --active (the\n                                        harness already continued once) only\n                                        reminds, so it never loops\n  brg-guard check-file <file>           lint one edited file (make check-file\n                                        when the Makefile has it); exit 2 and\n                                        the problems on stderr\n  brg-guard precompact [<transcript>]   write .bearing/state/<branch>.compact.md\n  brg-guard session [--id <session>] [--source startup|resume|compact]\n  brg-guard stats                       what the gates decided here, how often\n                                        and at what cost (.bearing/state/gates.log)\n  brg-guard readonly \"<shell command>\"  exit 2 unless every program in the\n                                        command is a read-only tool (git\n                                        diff|log|show|status|blame|ls-files,\n                                        ls, cat, grep, rg, find without -exec,\n                                        sed without -i, jq and similar);\n                                        used by the read-only subagents\n  brg-guard --verbs                     the blocked verb table (tool, pattern,\n                                        label; tab-separated) for generators\n  brg-guard --version                   the version stamp\n\nClaude Code hooks, Cursor hooks and any other harness adapter call these\nsubcommands and translate their own event JSON into arguments. One logic,\none behaviour on every harness. Runs on bash 3.2 (macOS) and needs no tool\nbeyond git for the session subcommands.",
    "functions": [
     "verb_table",
@@ -14770,7 +14970,7 @@
    "name": "brg-scaffold",
    "lang": "bash",
    "group": "scaffold",
-   "lines": 251,
+   "lines": 288,
    "header": "brg-scaffold: create a repository from the Bearing templates.\n\n  brg-scaffold <stack> <PascalName> [--dir <path>] [--module <go module>]\n               [--host gitlab|github|both] [--tracker PREFIX|none]\n               [--lead @user] [--group @group] [--databases \"PostgreSQL\"]\n               [--org com.example] [--kit-remote <url>] [--check]\n\nDefaults for --host, --tracker, --org and --kit-remote come from BEARING_GIT_HOST,\nBEARING_TASK_ID_PREFIX, BEARING_ORG_ID and BEARING_KIT_REMOTE in\n~/.config/bearing/bearing.env (then both, the BEARING_TRACKER name or none,\ncom.example and the kit's own git remote). Explicit flags win.\n--host gitlab copies .gitlab-ci.yml and .gitlab/ only; github copies .github/\nonly; both copies both sets. A host file the templates do not ship yet is\nskipped with a note. Stacks are discovered from skills/*/templates*/\nstack.json in every Bearing plugin present (bin/brg-kit-paths); a stack\nwhose plugin is not installed names the plugin to install. The shared\nrepo files come from templates/repo, then the stack's templates, then the\nstack's skeleton. Placeholders (__REPO_NAME__ and\nfriends) are substituted in every text file. When the stack's toolchain\n(stack.json \"tool\") is installed, its \"install\" command runs once so the\nlockfile exists before the first commit; that step never fails the scaffold.\nPrints the count of files written and fails if zero.",
    "functions": [
     "usage",
@@ -14792,7 +14992,8 @@
     "brg-adopt",
     "brg-autopilot",
     "brg-kit-paths",
-    "brg-scaffold-install"
+    "brg-scaffold-install",
+    "brg-scaffold-stage"
    ]
   },
   {
@@ -15032,6 +15233,21 @@
    "lines": 51,
    "header": "lint-plugin-size: the plugin directory's limits, per plugin folder under\nplugins/: fewer than 512 files, and no file of 256 KiB or more unless it is an\nimage or a font. Counts what a git-sourced install ships: tracked files plus\nuntracked files .gitignore does not exclude (git ls-files -co\n--exclude-standard). Prints the count per plugin; fails on zero plugins.\nUsage: lint-plugin-size.py [repository root]",
    "functions": [],
+   "env": [],
+   "calls": []
+  },
+  {
+   "path": "bin/lint-portable.py",
+   "name": "lint-portable.py",
+   "lang": "python",
+   "group": "quality",
+   "lines": 127,
+   "header": "lint-portable: shell commands that pass on this workstation and fail in CI.\n\nCI runs the unit tests under bash 3.2 in the bash:3.2 image (Alpine, BusyBox,\nno perl) and the whole suite on macOS (BSD sed, grep and date). This reads\nshell scripts and names, by file and line, each command in command position\n(line start, or after |, ||, &&, ;, $( or a backtick) that one of them lacks\nor runs differently:\n\n  perl            not installed in the bash:3.2 image\n  sed -i          BSD sed takes a suffix argument; use sed -i.bak and remove\n                  the .bak, or replace_in from tests/lib/assert.sh\n  grep -P         BSD grep has no Perl regex\n  readlink -f     older macOS readlink has no -f\n  date -d         BSD date parses dates with -j -f\n\nQuoted strings (a guard's deny table), heredoc bodies and comments are not\ncommands and pass; a command always has an argument, so perl as a case\npattern (ruby|perl|php) is not one.\n\n  lint-portable.py [--root DIR] [<file>...]\n\nWith no files it reads every shell script of the repository at DIR (default:\nthis repository): install.sh, the brg-* scripts, hook scripts, git hooks,\nskill scripts and tests. Prints one line per problem and \"lint-portable: N\nfiles, P problems\"; exits 1 on any problem or when no file is found.",
+   "functions": [
+    "strip",
+    "repo_scripts",
+    "main"
+   ],
    "env": [],
    "calls": []
   },
@@ -15453,8 +15669,8 @@
    "lang": "bash",
    "group": "skill",
    "skill": "data-model",
-   "lines": 57,
-   "header": "apply_check.sh: prove a schema.sql applies to an empty PostgreSQL.\n\nStarts a throwaway postgres container, runs the file with ON_ERROR_STOP in a\nsingle transaction and removes the container. Nothing is published on a\nport and no shared database is touched. Docker absent or its daemon down\nprints SKIPPED and exits 0: the stdlib gate (model_check.py) still ran, and\na skipped proof is said, never passed off as a pass.\n\nUsage: apply_check.sh [schema.sql] [image]\n  defaults: docs/design/schema.sql, postgres:16\nPrints one line: \"schema-apply: <file> applied to <image>, N tables\" or the\npsql error; exits 1 when the file is missing, empty, or fails to apply.\nbash 3.2 safe.",
+   "lines": 66,
+   "header": "apply_check.sh: prove a schema.sql applies to an empty PostgreSQL.\n\nStarts a throwaway postgres container, runs the file with ON_ERROR_STOP in a\nsingle transaction and removes the container. Nothing is published on a\nport and no shared database is touched. Docker absent or its daemon down\nprints SKIPPED and exits 0: the stdlib gate (model_check.py) still ran, and\na skipped proof is said, never passed off as a pass.\n\nUsage: apply_check.sh [schema.sql] [image]\n  defaults: docs/design/schema.sql, postgres:16; pgvector/pgvector:pg16\n  when the schema creates the vector extension (plain postgres has no\n  pgvector, so the first CREATE EXTENSION would fail the proof)\nPrints one line: \"schema-apply: <file> applied to <image>, N tables\" or the\npsql error; exits 1 when the file is missing, empty, or fails to apply.\nbash 3.2 safe.",
    "functions": [],
    "env": [],
    "calls": []
@@ -15488,9 +15704,10 @@
    "lang": "bash",
    "group": "skill",
    "skill": "definition-of-done",
-   "lines": 102,
-   "header": "red_proof.sh: prove a regression test fails without the fix, without\ntouching the working tree.\n\n  red_proof.sh <base> '<test command>'\n\nIn a throwaway worktree of HEAD under .scratch/: link the dependency\nfolders (node_modules, .venv, vendor), run the test command and require\nit to pass (the control: the environment works and the test is green with\nthe fix); then put every changed file that is not a test back to <base>\n(files the branch added are removed) and run it again, requiring it to\nfail. The only difference between the two runs is the fix, so a red second\nrun is the proof, provided the test ran and its assertion failed: a red run\nthat stops at an import, collection or build error (the test names a symbol\nthe fix added) proves only that the symbol is new. The worktree is removed\non exit.\n\nPrints \"red-proof: ...\" with the counts and the tail of each run. Exits 0\nwhen green then red on an assertion; 1 when the test passes without the\nfix, fails with it, is red only because it cannot load or build without the\nfix, or when there are zero test files or zero non-test files in the diff\n(nothing to prove); 2 on a usage error. bash 3.2 safe.",
+   "lines": 124,
+   "header": "red_proof.sh: prove a regression test fails without the fix, without\ntouching the working tree.\n\n  red_proof.sh <base> '<test command>'\n  red_proof.sh --commit <sha> '<test command>'\n\n--commit proves one fix commit of a long branch: the base is that commit's\nparent and only the files that commit changed are considered, so a branch\nof many fixes is proved one fix at a time.\n\nIn a throwaway worktree of HEAD under .scratch/: link the dependency\nfolders (node_modules, .venv, vendor), run the test command and require\nit to pass (the control: the environment works and the test is green with\nthe fix); then put every changed file that is not a test back to <base>\n(files the branch added are removed) and run it again, requiring it to\nfail. Toolchain files (package manifests, lockfiles, build and test\nconfigs, the Makefile) stay at HEAD: reverting them breaks the runner, and\na runner that cannot start is not a red. The only difference between the\ntwo runs is the fix, so a red second\nrun is the proof, provided the test ran and its assertion failed: a red run\nthat stops at an import, collection or build error (the test names a symbol\nthe fix added) proves only that the symbol is new. The worktree is removed\non exit.\n\nPrints \"red-proof: ...\" with the counts and the tail of each run. Exits 0\nwhen green then red on an assertion; 1 when the test passes without the\nfix, fails with it, is red only because it cannot load or build without the\nfix, or when there are zero test files or zero non-test files in the diff\n(nothing to prove); 2 on a usage error. bash 3.2 safe.",
    "functions": [
+    "is_toolchain",
     "is_test",
     "cleanup",
     "run"
@@ -15526,7 +15743,7 @@
    "lang": "python",
    "group": "skill",
    "skill": "design-critique",
-   "lines": 314,
+   "lines": 332,
    "header": "evidence: take and check the design review's screenshots, so the widths\nand themes in the report are counted from files, not claimed.\n\n  evidence.py shoot --base <url or folder> --out <shots dir> [--browse BIN] [--chrome BIN] <page>...\n      For each page: goto, then a viewport screenshot at 375x812, 768x1024\n      and 1440x900 in light, then dark (documentElement.dataset.theme =\n      'dark') at the same three widths. Records the computed background and\n      text colours of the first 60 elements in each theme to\n      <page>.theme.json, and console errors to <page>.console.txt.\n      A <page> is a file name in the folder (a.html) or a path under the URL.\n      When browse is absent or its browser cannot start, it falls back to a\n      local headless Chrome or Chromium: the same six shots, dark through\n      prefers-color-scheme (--force-dark-mode) instead of data-theme, the\n      theme record holds the shot digests and console errors are not\n      recorded. The last line names the engine and the dark path used.\n\n  evidence.py check --out <shots dir> <page>...\n      Every page needs six PNGs: <page>-<w>.png and <page>-<w>-dark.png for\n      w in 375, 768, 1440. Each must be a PNG whose width is the viewport\n      width (or a whole multiple of it, for a device pixel ratio above 1).\n      A dark shot byte-identical to its light shot, or a theme record whose\n      dark colours equal its light colours, means the dark theme never\n      applied: a colour finding, and a failed check. The counts line names\n      the dark path the shots used; the other path was not rendered.\n\nBrowse runs with its state and logs in a temporary folder, stopped and\nremoved after the shoot; a tool folder that still appears at the repository\nroot (.gstack, .playwright-mcp) is removed and named.\n\nBoth print \"design-evidence: ...\" with counts and exit 1 on any problem, or\nwhen zero pages were given.",
    "functions": [
     "stem",
@@ -15611,7 +15828,7 @@
    "lang": "python",
    "group": "skill",
    "skill": "design-system",
-   "lines": 601,
+   "lines": 613,
    "header": "system_page: the shared tokens.css and the visual design-system page, both\ngenerated from tokens.json, and a gate that the page draws every component in\nevery state in both themes.\n\n  system_page.py tokens-css [--tokens docs/design/tokens.json] [--out docs/design/tokens.css]\n  system_page.py build [--tokens ...] [--components docs/design/components.md]\n                       [--template <skill>/templates/design-system.html]\n                       [--out docs/design/design-system.html]\n  system_page.py check [--page docs/design/design-system.html]\n                       [--components docs/design/components.md]\n\ntokens-css writes one custom property per token (--color-<role>, --space-<n>,\n--radius-<name>, --text-<role>, --duration-<name> ...) with the light roles on\n:root and on any [data-theme=\"light\"] element, the dark roles on any\n[data-theme=\"dark\"] element and under prefers-color-scheme, so a page can show\nboth themes side by side. Colours resolve through themes's theme-lint.py,\nthe kit's one colour calculator: hex in the theme blocks, oklch only in an\n@supports (color: oklch(0 0 0)) block, because a custom property holding\nhex then oklch keeps the oklch and falls back to nothing.\n\nbuild fills the template's foundations (every role swatch, type role, space,\nradius, elevation and duration, read from tokens.json), draws each component's\nspecimens twice (a light pane and a dark pane) and cuts any component that\ncomponents.md does not list.\n\ncheck reads each \"## <Component>\" entry and its \"- States:\" line in\ncomponents.md and requires a data-state=\"<state>\" specimen inside that\ncomponent's section in the light pane and in the dark pane. It also fails on an\nunfilled {{PLACEHOLDER}}, on a colour literal in a style block or attribute\n(only tokens.css names colours), and on a page that neither links tokens.css\nnor carries it inline. Prints the count line\n\n  design-system: C components, S states, P specimens (light L, dark D), K missing, H hardcoded colours\n\nand exits 1 on any problem or when zero components were checked.",
    "functions": [
     "load_theme_lint",
@@ -15765,8 +15982,8 @@
    "lang": "python",
    "group": "skill",
    "skill": "high-level-design",
-   "lines": 471,
-   "header": "arch_check: the architecture set high-level-design writes is complete and agrees\nwith itself, computed from the files.\n\n  - HLD (docs/design/*-hld.md, or the paths given): a \"- Status:\" line; the\n    sections Summary, What gets built, External integrations, Analytics,\n    Outside the standard stack, Repository plan and What the review found;\n    a diagram path docs/architecture/diagrams/<Project>_SystemArchitecture_v<N>.svg\n    in the summary; every major section (architecture, data, external\n    integrations, scaling, security, observability, analytics, rollout)\n    ends with \"**Risks this leaves open**\" and at least one bullet;\n    \"Deliberately not integrated\" with at least one bullet; a \"What gets\n    built\" table (Component | Kind | Stack | Responsibility | Repository)\n    whose Repository cells name a repo-plan entry or start \"existing\" or\n    \"none\"; a review with a \"Reviewed by:\" line and findings headed\n    \"### BLOCKER|MAJOR|MINOR|NIT: <title>\", each with \"Conflicts with:\",\n    \"Fix:\" and \"Status: open|fixed|accepted\". Approved with an open BLOCKER,\n    an open conflict or no drawn diagram is a problem.\n  - Tenets (<arch>/tenets.md): 5 to 8 \"## \" tenets, each with a bold rule\n    line and \"A breach looks like:\" followed by text.\n  - Decisions index (<arch>/decisions.md): a table whose header has\n    Reversibility; every ADR file in the ADR directory appears by number,\n    no row names a missing file, reversibility starts cheap, awkward or\n    irreversible, status is Proposed, Accepted, Superseded, Deprecated or\n    Rejected. \"Conflicts that were settled\" holds \"### \" entries, each with\n    Between:, Decision, Why, \"Settled by:\" and \"What now has to change to\n    match:\", or one \"None found:\" line saying what was compared.\n  - Repo plan (<arch>/repo-plan.json): project and group, a non-empty repos\n    list; each name PascalCase, prefixed by the project and unique;\n    git_path <group>/<Client|Server|Infrastructure>/<name>, the subgroup\n    matching the stack's type; stack a kit stack id (from\n    */templates*/stack.json in every Bearing plugin's skills, as\n    bin/brg-kit-paths lists them) or \"none\" with a stack_note;\n    a responsibility; apps entries with path, name and for, paths unique.\n\nUsage: arch_check.py [hld files...] [--arch docs/architecture] [--adr-dir docs/adr] [--kit K]\nPrints one \"problem:\" line per failure, the counts and the gate line; exits\n1 on any problem, or when no HLD or no architecture file was read.",
+   "lines": 476,
+   "header": "arch_check: the architecture set high-level-design writes is complete and agrees\nwith itself, computed from the files.\n\n  - HLD (docs/design/*-hld.md, or the paths given): a \"- Status:\" line; the\n    sections Summary, What gets built, External integrations, Analytics,\n    Outside the standard stack, Repository plan and What the review found;\n    a diagram path docs/architecture/diagrams/<Project>_SystemArchitecture_v<N>.svg\n    in the summary; every major section (architecture, data, external\n    integrations, scaling, security, observability, analytics, rollout)\n    ends with \"**Risks this leaves open**\" and at least one bullet;\n    \"Deliberately not integrated\" with at least one bullet; a \"What gets\n    built\" table (Component | Kind | Stack | Responsibility | Repository)\n    whose Repository cells name a repo-plan entry or start \"existing\" or\n    \"none\"; a review with a \"Reviewed by:\" line and findings headed\n    \"### BLOCKER|MAJOR|MINOR|NIT: <title>\", each with \"Conflicts with:\",\n    \"Fix:\" and \"Status: open|fixed|accepted\". Approved with an open BLOCKER,\n    an open conflict or no drawn diagram is a problem.\n  - Tenets (<arch>/tenets.md): 5 to 8 \"## \" tenets, each with a bold rule\n    line and \"A breach looks like:\" followed by text.\n  - Decisions index (<arch>/decisions.md): a table whose header has\n    Reversibility; every ADR file in the ADR directory appears by number,\n    no row names a missing file, reversibility starts cheap, awkward or\n    irreversible, status is Proposed, Accepted, Superseded, Deprecated or\n    Rejected. \"Conflicts that were settled\" holds \"### \" entries, each with\n    Between:, Decision, Why, \"Settled by:\" and \"What now has to change to\n    match:\", or one \"None found:\" line saying what was compared.\n  - Repo plan (<arch>/repo-plan.json): project and group, a non-empty repos\n    list; each name PascalCase, prefixed by the project and unique;\n    git_path <group>/<Client|Server|Infrastructure>/<name>, the subgroup\n    matching the stack's type, except for an entry with \"path\": \".\" (the\n    code lives in the repository holding these documents), whose git_path\n    is that repository's own and only needs to be non-empty; stack a kit stack id (from\n    */templates*/stack.json in every Bearing plugin's skills, as\n    bin/brg-kit-paths lists them) or \"none\" with a stack_note;\n    a responsibility; apps entries with path, name and for, paths unique.\n\nUsage: arch_check.py [hld files...] [--arch docs/architecture] [--adr-dir docs/adr] [--kit K]\nPrints one \"problem:\" line per failure, the counts and the gate line; exits\n1 on any problem, or when no HLD or no architecture file was read.",
    "functions": [
     "sections",
     "norm",
@@ -15866,7 +16083,7 @@
    "lang": "python",
    "group": "skill",
    "skill": "openapi-spec",
-   "lines": 421,
+   "lines": 423,
    "header": "api_doc: write docs/api/API.md, the human-readable API design, from api/openapi.yaml.\n\nThe spec is the contract; this is the page a reviewer, a client developer or\na tester reads first. It is generated so the two cannot disagree:\n\n  header       title and version; Style, Base path and Versioning; an\n               Authentication paragraph; the error code table (code, HTTP\n               status, meaning) from x-error-codes on the error envelope.\n  Conventions  numbered, each with its reason: \"N. <rule>. Why: <reason>.\"\n               lines from the style reference (--style), then the spec's\n               own x-conventions ([{rule, why}]).\n  per-status   an operation may narrow the codes behind a status with\n  codes        x-error-codes: {\"409\": [invoice_closed]}; a shared response\n               may carry x-error-codes: [code, ...]; otherwise every code\n               the envelope declares for that status is listed.\n  resources    one section per tag: its description as the purpose,\n               \"Serves US-...\" from the operations' x-story-ids, and a\n               table Method | Path | Does | Auth | Success | Errors, then\n               the idempotency note for each write.\n\nReads YAML with PyYAML (run it as `uv run --quiet --with pyyaml==6.0.3 python\napi_doc.py ...`); a spec written as JSON also loads without PyYAML.\n\nUsage: api_doc.py --spec api/openapi.yaml [--style api-style.md] [--out docs/api/API.md]\nPrints the findings (an operation with no x-story-ids, a create POST with no\nIdempotency-Key, a PATCH not documented idempotent, an error status with no\ndeclared code) and one counts line:\n  api-doc: N operations in N resources, N paths, N error codes, N conventions, N stories, N findings -> <out>\nExits 1 on zero operations, zero conventions from a given --style, or an\nunreadable spec; the document is not written then. Findings do not fail the\nrun; the skill reports them.",
    "functions": [
     "load",
@@ -15929,8 +16146,8 @@
    "lang": "python",
    "group": "skill",
    "skill": "prose-lint",
-   "lines": 220,
-   "header": "prose_check: find the tells of generated prose, line by line, in the\nfiles given, and count them. It finds; the skill rewrites.\n\n  - Files: the paths given (a file of any type is read, so a source file\n    named on purpose has its comments linted; a directory is walked for\n    .md, .mdx, .txt, .rst, .xcstrings, .strings and strings.xml), plus the\n    prose files among the paths listed one per line in --files-from (for\n    example `git diff --name-only` output; `-` reads stdin), filtered by\n    the same extensions. A listed path that no longer exists (a deleted\n    file) is skipped and counted.\n  - Classes and patterns:\n      em dash: U+2014 anywhere; a table cell holding only the dash is\n        typography for \"no value\" and is counted as left, not a hit.\n      filler: delve, leverage, robust, seamless(ly), comprehensive,\n        streamline, \"it's worth noting\", \"in today's fast-paced\", \"I hope\n        this helps\", \"great question\", certainly.\n      praise: \"as requested\", \"as you asked\", \"I have successfully\",\n        \"great job\", excellent.\n      trailer: a Co-Authored-By line naming Claude, Anthropic, GPT,\n        OpenAI, Copilot, Gemini or an AI assistant; \"Generated with\"; the\n        robot emoji U+1F916.\n      hedge: \"should work\", \"this ensures\".\n  - Not hits, counted as left: anything inside a fenced code block or an\n    inline code span (code, commands and quoted program output must match\n    the program, so they are not prose), and a filler or praise word that\n    is also a string literal in the repository's source (for example\n    \"excellent\" as a rating value); each literal is printed as a \"left:\"\n    line naming where the value is defined, so the skill can confirm it.\n  - --text - lints stdin as one text named <stdin> (commit messages from\n    `git log --format=%B`, or pasted text); it counts as one file.\n  - .prose-lint-ignore (in the current directory or --ignore) lists\n    allowed words or phrases, one per line; a hit on one is not counted.\n\nUsage: prose_check.py [paths...] [--files-from F|-] [--text -] [--ignore F]\nPrints one \"problem: file:line: class: match\" line per hit and the counts;\nexits 1 on any hit, or when zero files were read.",
+   "lines": 222,
+   "header": "prose_check: find the tells of generated prose, line by line, in the\nfiles given, and count them. It finds; the skill rewrites.\n\n  - Files: the paths given (a file of any type is read, so a source file\n    named on purpose has its comments linted; a directory is walked for\n    .md, .mdx, .txt, .rst, .xcstrings, .strings and strings.xml), plus the\n    prose files among the paths listed one per line in --files-from (for\n    example `git diff --name-only` output; `-` reads stdin), filtered by\n    the same extensions. A listed path that no longer exists (a deleted\n    file) is skipped and counted.\n  - Classes and patterns:\n      em dash: U+2014 anywhere; a table cell holding only the dash is\n        typography for \"no value\" and is counted as left, not a hit.\n      filler: delve, leverage, robust, seamless(ly), comprehensive,\n        streamline, \"it's worth noting\", \"in today's fast-paced\", \"I hope\n        this helps\", \"great question\", certainly.\n      praise: \"as requested\", \"as you asked\", \"I have successfully\",\n        \"great job\", excellent.\n      trailer: a Co-Authored-By line naming Claude, Anthropic, GPT,\n        OpenAI, Copilot, Gemini or an AI assistant; a line that starts\n        \"Generated with\" (a bullet or a sentence saying how something was\n        made is content, not a trailer); the\n        robot emoji U+1F916.\n      hedge: \"should work\", \"this ensures\".\n  - Not hits, counted as left: anything inside a fenced code block or an\n    inline code span (code, commands and quoted program output must match\n    the program, so they are not prose), and a filler or praise word that\n    is also a string literal in the repository's source (for example\n    \"excellent\" as a rating value); each literal is printed as a \"left:\"\n    line naming where the value is defined, so the skill can confirm it.\n  - --text - lints stdin as one text named <stdin> (commit messages from\n    `git log --format=%B`, or pasted text); it counts as one file.\n  - .prose-lint-ignore (in the current directory or --ignore) lists\n    allowed words or phrases, one per line; a hit on one is not counted.\n\nUsage: prose_check.py [paths...] [--files-from F|-] [--text -] [--ignore F]\nPrints one \"problem: file:line: class: match\" line per hit and the counts;\nexits 1 on any hit, or when zero files were read.",
    "functions": [
     "source_literals",
     "walk",
@@ -15973,8 +16190,8 @@
    "lang": "python",
    "group": "skill",
    "skill": "screen-design",
-   "lines": 138,
-   "header": "gallery_check: screens as code hold every state their inventory lists.\n\nThe gate for the default react-shadcn stack, where a screen design is a\nReact module, not an HTML page: src/features/<feature>/screens/<id>-<name>.screen.tsx\nexporting `screen: ScreenSpec` with a `states` map (see src/design/screen.ts\nin the react-web template). The design gallery at /__design renders each\nstate with fixtures inside the real layout.\n\nThe inventory is section 2 of the flows file, parsed by states_check.py in\nthis folder (a row whose second cell starts with \"n/a\" is out of scope).\nEach inventory screen needs its screen file with every state as a key of\n`states`; a screen file whose id is not in the inventory is a problem, and\nso is a raw <table>, <button>, <input>, <select>, <textarea> or <dialog>\nin a screen file: screens compose src/components/ui.\n\nUsage: gallery_check.py --src <app src dir> --flows <flows.md>... [--only S-10,S-12]\nSeveral flows files (one per feature) merge into one inventory.\nPrints one line per problem and the counts; exits 1 on any problem, or when\nzero screen files were found.",
+   "lines": 160,
+   "header": "gallery_check: screens as code hold every state their inventory lists.\n\nThe gate for the default react-shadcn stack, where a screen design is a\nReact module, not an HTML page: src/features/<feature>/screens/<id>-<name>.screen.tsx\nexporting `screen: ScreenSpec` with a `states` map (see src/design/screen.ts\nin the react-web template). The design gallery at /__design renders each\nstate with fixtures inside the real layout.\n\nThe inventory is section 2 of the flows file, parsed by states_check.py in\nthis folder (a row whose second cell starts with \"n/a\" is out of scope). A\nstate with several rows (three error rows, one per rejection) needs as many\nstates: the state's own key or keys that start with it (error-rate-limited).\nEach inventory screen needs its screen file with every state as a key of\n`states`; a screen file whose id is not in the inventory is a problem, and\nso is a raw <table>, <button>, <input>, <select>, <textarea> or <dialog>\nin a screen file: screens compose src/components/ui.\n\nUsage: gallery_check.py --src <app src dir> --flows <flows.md>... [--only S-10,S-12]\nSeveral flows files (one per feature) merge into one inventory.\nPrints one line per problem and the counts; exits 1 on any problem, or when\nzero screen files were found.",
    "functions": [
     "screen_files",
     "states_of",
@@ -15989,10 +16206,11 @@
    "lang": "python",
    "group": "skill",
    "skill": "screen-design",
-   "lines": 155,
+   "lines": 183,
    "header": "states_check: every screen prototype renders every state its inventory lists.\n\nThe inventory is section 2 (\"Interaction states\") of the flows file: one\n\"### S-nn <name>\" heading per screen and a table of states under it; a row\nwhose second cell starts with \"n/a\" is out of scope. With no flows file,\neach screen must render the five baseline states (loading, empty, error,\nsuccess, partial) unless the page carries <!-- n/a: <state> because ... -->.\n\nA screen's prototype is <screens dir>/<id>-<name>.html (S-01-orders.html).\nIts states are the values of data-state=\"...\" on its panels; each panel also\nneeds a control that reaches it (data-state-target=\"...\", a repo's own\ndata-target=\"...\", or an href=\"#state=...\" link), and the file must hold no\nunfilled {{PLACEHOLDER}}. State names compare case-blind with spaces and\nunderscores read as hyphens, so the flows' \"no slots\" is the page's\n\"no-slots\": a repository's existing mockups are checked as they are, never\nrewritten to suit this gate.\n\nUsage: states_check.py --screens <dir> [--flows <flows.md>] [--only S-01,S-03]\nPrints one line per problem and the counts; exits 1 on any problem, or when\nzero screens were checked.",
    "functions": [
     "norm",
+    "row_counts",
     "inventory",
     "screen_file",
     "main"
@@ -16113,8 +16331,8 @@
    "lang": "python",
    "group": "skill",
    "skill": "test-automation",
-   "lines": 321,
-   "header": "ref_check: generated tests only reference things that exist in the source.\n\nA generated test that targets a test id, a label, a button name or a route\nthe application does not have is an invented API: it fails for the wrong\nreason, or worse, is healed into passing against nothing. This reads the\ntest files and extracts what they reference:\n\n  ids    getByTestId('x'), [data-testid=\"x\"], Maestro id: \"x\",\n         withId(R.id.x), accessibilityIdentifier / app.buttons[\"x\"]\n  names  getByRole(..., { name: 'x' }), getByText('x'), getByLabel('x'),\n         getByPlaceholder('x'), Maestro tapOn: \"x\", onNodeWithText(\"x\")\n  paths  page.goto('/x'), request.get|post|put|patch|delete('/x'),\n         client.get|post(...)(\"/x\"), httptest.NewRequest(M, \"/x\", ...),\n         http.NewRequest(M, \"/x\", ...), and any call whose arguments give a\n         method and then a path, which is how suites reach routes through\n         their own helper: do(t, h, http.MethodPost, \"/orders/\"+id, body),\n         call(\"DELETE\", \"/items/A-1\")\n\nand looks for each in the source tree (test directories, node_modules,\nbuild output and .git excluded). An id or a name must appear as written. A\npath is compared segment by segment with every route literal in the source\n(\"/orders/{id}/refunds\", \"POST /orders/{id}\", \"/users/:id\", \"<int:id>\",\nr\"/items/(?P<sku>[A-Z0-9-]+)\"): a parameter or regex segment in the route\nmatches any value, so /orders/ord_1/refunds matches /orders/{id}/refunds; a\nliteral cut short by concatenation (\"/orders/\" + id) matches as a prefix; a\nroute may match the tail of the path when the head's segments appear in the\nsource (a mount prefix). When the test names the method and the route's line\ndoes too (the Go \"POST /x\" pattern, a (\"POST\", r\"/x\") table, router.post,\nmethods=[\"POST\"]), they must agree, so DELETE on a GET-only route is missing.\n\nUsage: ref_check.py [--src DIR ...] <test file>...\nPrints one line per missing reference and the counts; exits 1 on a missing\nreference, on zero test files, or on zero references. Zero references is a\ngate that checked nothing, so it never passes: a batch of pure unit tests\nwith no ids, names or routes reports the type check as its only gate. A\ntest that calls an unknown route on purpose (a 404 or 405 check) carries\n`ref_check: absent` in a comment on that line; it is counted apart, and\nfails if the source does serve the route.",
+   "lines": 352,
+   "header": "ref_check: generated tests only reference things that exist in the source.\n\nA generated test that targets a test id, a label, a button name or a route\nthe application does not have is an invented API: it fails for the wrong\nreason, or worse, is healed into passing against nothing. This reads the\ntest files and extracts what they reference:\n\n  ids    getByTestId('x'), [data-testid=\"x\"], Maestro id: \"x\",\n         withId(R.id.x), accessibilityIdentifier / app.buttons[\"x\"]\n  names  getByRole(..., { name: 'x' }), getByText('x'), getByLabel('x'),\n         getByPlaceholder('x'), Maestro tapOn: \"x\", onNodeWithText(\"x\")\n  paths  page.goto('/x'), request.get|post|put|patch|delete('/x'),\n         client.get|post(...)(\"/x\"), httptest.NewRequest(M, \"/x\", ...),\n         http.NewRequest(M, \"/x\", ...), and any call whose arguments give a\n         method and then a path, which is how suites reach routes through\n         their own helper: do(t, h, http.MethodPost, \"/orders/\"+id, body),\n         call(\"DELETE\", \"/items/A-1\")\n\nand looks for each in the source tree (test directories, node_modules,\nbuild output and .git excluded). An id must appear as written; a name must\ntoo, or be what a template literal in the source renders to\n(`Delete up to ${n} records` covers \"Delete up to 3 records\"). A\npath is compared segment by segment with every route literal in the source\n(\"/orders/{id}/refunds\", \"POST /orders/{id}\", \"/users/:id\", \"<int:id>\",\nr\"/items/(?P<sku>[A-Z0-9-]+)\"): a parameter or regex segment in the route\nmatches any value, so /orders/ord_1/refunds matches /orders/{id}/refunds; a\nliteral cut short by concatenation (\"/orders/\" + id) matches as a prefix; a\nroute may match the tail of the path when the head's segments appear in the\nsource (a mount prefix). When the test names the method and the route's line\ndoes too (the Go \"POST /x\" pattern, a (\"POST\", r\"/x\") table, router.post,\nmethods=[\"POST\"]), they must agree, so DELETE on a GET-only route is missing.\n\nUsage: ref_check.py [--src DIR ...] <test file>...\nPrints one line per missing reference and the counts; exits 1 on a missing\nreference, on zero test files, or on zero references. Zero references is a\ngate that checked nothing, so it never passes: a batch of pure unit tests\nwith no ids, names or routes reports the type check as its only gate. A\ntest that calls an unknown route on purpose (a 404 or 405 check) carries\n`ref_check: absent` in a comment on that line; it is counted apart, and\nfails if the source does serve the route.",
    "functions": [
     "value",
     "extract",
@@ -16124,6 +16342,8 @@
     "routes",
     "seg_match",
     "path_found",
+    "templates",
+    "name_found",
     "main"
    ],
    "env": [],
@@ -16135,10 +16355,12 @@
    "lang": "python",
    "group": "skill",
    "skill": "test-cases",
-   "lines": 446,
-   "header": "cases_check: every acceptance criterion has cases, and every case says how\nit will be verified, counted from the files.\n\n  - Criteria: the AC ids (AC-US-nn-nnn-k, AC-US-LOCAL-nnn-k) in the backlog,\n    skipping stories marked withdrawn:. With --story, only that story's.\n  - Cases: the rows of the test-case table (| TC-nnnn | ...), status\n    `retired` excluded. A duplicate TC id is a problem.\n  - Coverage: an AC id with no live row is a problem.\n  - Oracles: the table's Oracles column, designed after the scenarios, holds\n    tagged checks separated by \";\": ui: (what the user sees), data:\n    (persisted state read back), not: (what must not happen), effect: (an\n    event, a message, a log line), inv: (an invariant that must hold). Every\n    live row needs one; a P1 row needs two categories, one of them not:. A\n    check that says only \"works\", \"succeeds\", \"correct\" or \"as expected\" is\n    not a check.\n  - Risks: the register (| R-nnn | ...) rates each risk's likelihood and\n    impact (L, M, H) and its level follows from them: High when one is H and\n    the other at least M, Low when both are L or one is L and the other M,\n    Medium otherwise. Every story in scope has a risk, every threat id (T-nn)\n    in the threat models is the source of one, and the level sets the depth\n    of its live cases: High needs three, one with a not: oracle and one of\n    type integration or e2e; Medium needs two, one with not:; Low needs one.\n\n  - Types: a test-types line counts the live cases by type and by who runs\n    them (a machine: automated or planned; a person: manual type or\n    manual-only), always printed.\n  - Steps (--steps F): the step table (| Step | Case | Action | Expected |,\n    step ids TC-nnnn.k) gives every live manual or e2e case at least one\n    step; every step names a live case, its id matches its case, and its\n    Action and Expected are written and specific.\n  - Plan (--plan F): the test plan quotes this run's test-cases and\n    test-types lines verbatim; has the Entry criteria, Exit criteria,\n    Environments and \"What QA raised\" sections; its scenario rows\n    (| Scenario | ... | Proves that | ... | Cases |, ids TS-US-nn-nnn-k)\n    each say what they prove and name live cases, cover every story in\n    scope and every live case, and match its \"Scenarios: N\" line; every\n    concern QA raised is tagged [assumption], [untestable], [undefined],\n    [contradiction] or [risk]; and it claims every criterion has a case\n    only when none lacks one.\n\nUsage: cases_check.py [--backlog B] [--cases C] [--risks R]\n                      [--threats GLOB] [--story US-nn-nnn]\n                      [--steps F] [--plan F]\nPrints one line per problem, the types line, the steps and plan lines when\nasked, and the counts last; exits 1 on any problem, or when zero criteria,\nzero cases or zero risks were read, or a named steps or plan file is\nmissing or empty.",
+   "lines": 488,
+   "header": "cases_check: every acceptance criterion has cases, and every case says how\nit will be verified, counted from the files.\n\n  - Criteria: the AC ids (AC-US-nn-nnn-k, AC-US-LOCAL-nnn-k) in the backlog,\n    skipping stories marked withdrawn: in the heading or on a Status line.\n    With --story, only that story's.\n  - Cases: the rows of the test-case table (| TC-nnnn | ...), status\n    `retired` excluded. A duplicate TC id is a problem.\n  - Coverage: an AC id with no live row is a problem.\n  - Oracles: the table's Oracles column, designed after the scenarios, holds\n    tagged checks separated by \";\": ui: (what the user sees), data:\n    (persisted state read back), not: (what must not happen), effect: (an\n    event, a message, a log line), inv: (an invariant that must hold). Every\n    live row needs one; a P1 row needs two categories, one of them not:. A\n    check that says only \"works\", \"succeeds\", \"correct\" or \"as expected\" is\n    not a check.\n  - Risks: the register (| R-nnn | ...) rates each risk's likelihood and\n    impact (L, M, H) and its level follows from them: High when one is H and\n    the other at least M, Low when both are L or one is L and the other M,\n    Medium otherwise. Every story in scope has a risk, every threat id (T-nn)\n    in the threat models is the source of one, and the level sets the depth\n    of its live cases: High needs three, one with a not: oracle and one of\n    type integration or e2e; Medium needs two, one with not:; Low needs one.\n\n  - Types: a test-types line counts the live cases by type and by who runs\n    them (a machine: automated or planned; a person: manual type or\n    manual-only), always printed.\n  - Steps (--steps F): the step table (| Step | Case | Action | Expected |,\n    step ids TC-nnnn.k) gives every live manual or e2e case at least one\n    step; every step names a live case, its id matches its case, and its\n    Action and Expected are written and specific.\n  - Plan (--plan F): the test plan quotes this run's test-cases and\n    test-types lines verbatim; has the Entry criteria, Exit criteria,\n    Environments and \"What QA raised\" sections; its scenario rows\n    (| Scenario | ... | Proves that | ... | Cases |, ids TS-US-nn-nnn-k)\n    each say what they prove and name live cases, cover every story in\n    scope and every live case, and match its \"Scenarios: N\" line; every\n    concern QA raised is tagged [assumption], [untestable], [undefined],\n    [contradiction] or [risk]; and it claims every criterion has a case\n    only when none lacks one.\n\nUsage: cases_check.py [--backlog B] [--cases C] [--risks R]\n                      [--threats GLOB] [--story US-nn-nnn]\n                      [--steps F] [--plan F]\nPrints one line per problem, the types line, the steps and plan lines when\nasked, and the counts last; exits 1 on any problem, or when zero criteria,\nzero cases or zero risks were read, or a named steps or plan file is\nmissing or empty.",
    "functions": [
+    "split_checks",
     "read",
+    "withdrawn_ids",
     "criteria",
     "table",
     "level",
@@ -16202,8 +16424,8 @@
    "lang": "python",
    "group": "skill",
    "skill": "ux-flows",
-   "lines": 307,
-   "header": "flows_check: a UX flow package has no dead end, no unflowed screen and no\nmissing state, computed from the mermaid and the tables in the file.\n\n  - File: --file, else per feature under docs/design/flows/<feature>/ the\n    highest flows-v<n>.md, or flows.md when there is no versioned file.\n  - Screens: the ids (S-nn, \"(modal)\" allowed) in the first column of the\n    table under the \"Screen inventory\" (or \"Screens\") heading. A row whose\n    Exits cell says `terminal` is a screen allowed no way forward. A row\n    whose Status cell says `removed` or `retired` (a screen dropped in a\n    later version, its id kept) is counted as removed and not checked.\n  - Edges: every ```mermaid block that starts with `flowchart` or `graph`.\n    A node is a screen when its id is S-nn or Snn, or its label starts\n    with S-nn. Edges are -->, ---, -.->, ==>, with |labels| or -- text -->,\n    chained (A --> B --> C) and grouped (A & B --> C); --- links both\n    ways. An edge through a decision node counts as a way forward.\n    `%% terminal: S-nn <reason>` in a block also marks a terminal screen.\n  - Dead end: an inventory screen with no outgoing edge that is not\n    terminal. Unflowed: an inventory screen in no flowchart. Unknown: a\n    screen in a flowchart that is not in the inventory.\n  - Dialogs: an inventory row whose Id cell says \"(modal)\" or whose Screen\n    cell names a dialog, modal or confirmation. Unless terminal, its Exits\n    cell must name a way back (cancel, back, close, dismiss, keep, Escape).\n  - States: under \"### S-nn\" headings, a table whose first column is the\n    state (a cell naming several, \"Loading, Empty\", fills each). loading,\n    empty, error and success are required on every\n    screen; a row that reads `n/a` needs a reason (`n/a: <reason>`); a\n    required row missing, blank, or n/a without a reason is a problem, and\n    so is an inventory screen with no state table.\n\nUsage: flows_check.py [--file F ...] [--root docs/design/flows]\nPrints one \"problem:\" line per failure, the Dead ends line and the counts;\nexits 1 on any problem, or when zero files or zero screens were read.",
+   "lines": 334,
+   "header": "flows_check: a UX flow package has no dead end, no unflowed screen and no\nmissing state, computed from the mermaid and the tables in the file.\n\n  - File: --file, else per feature under docs/design/flows/<feature>/ the\n    highest flows-v<n>.md, or flows.md when there is no versioned file.\n  - Screens: the ids (S-nn, \"(modal)\" allowed) in the first column of the\n    table under the \"Screen inventory\" (or \"Screens\") heading. A row whose\n    Exits cell says `terminal` is a screen allowed no way forward. A row\n    whose Status cell says `removed` or `retired` (a screen dropped in a\n    later version, its id kept) is counted as removed and not checked.\n  - Edges: every ```mermaid block that starts with `flowchart` or `graph`.\n    A node is a screen when its id is S-nn or Snn, or its label starts\n    with S-nn. Edges are -->, ---, -.->, ==>, with |labels| or -- text -->,\n    chained (A --> B --> C) and grouped (A & B --> C); --- links both\n    ways. An edge through a decision node counts as a way forward.\n    `%% terminal: S-nn <reason>` in a block also marks a terminal screen.\n  - Ids across packages: every package read in one run shares the id\n    space (the design gallery merges them); an id in two packages is a\n    problem.\n  - Dead end: an inventory screen with no outgoing edge that is not\n    terminal. Unflowed: an inventory screen in no flowchart. Unknown: a\n    screen in a flowchart that is not in the inventory.\n  - Dialogs: an inventory row whose Id cell says \"(modal)\", whose Kind or\n    Type column says dialog or modal, or whose Screen cell names a dialog,\n    modal or confirmation and not a page or screen (\"Newsletter\n    confirmation page\" is a page). Unless terminal, its Exits cell must\n    name a way back (cancel, back, close, dismiss, keep, Escape).\n  - States: under \"### S-nn\" headings, a table whose first column is the\n    state (a cell naming several, \"Loading, Empty\", fills each; a label\n    with a qualifier, \"error: slot_unavailable\" or \"error (409)\", is that\n    state, and a screen may have one such row per rejection). loading,\n    empty, error and success are required on every\n    screen; a row that reads `n/a` needs a reason (`n/a: <reason>`); a\n    required row missing, blank, or n/a without a reason is a problem, and\n    so is an inventory screen with no state table.\n\nUsage: flows_check.py [--file F ...] [--root docs/design/flows]\nPrints one \"problem:\" line per failure, the Dead ends line and the counts;\nexits 1 on any problem, or when zero files or zero screens were read.",
    "functions": [
     "read",
     "pick_files",
@@ -16214,6 +16436,7 @@
     "flowcharts",
     "parse_block",
     "screen_of",
+    "filled",
     "states",
     "check",
     "main"
@@ -16597,6 +16820,11 @@
    "inCheck": true
   },
   {
+   "name": "lint-portable",
+   "does": "Commands the CI images lack or run differently (perl, sed -i, grep -P, readlink -f, date -d) in every script",
+   "inCheck": true
+  },
+  {
    "name": "lint-shell",
    "does": "bash -n on every script (shellcheck when installed)",
    "inCheck": true
@@ -16635,6 +16863,16 @@
    "name": "test",
    "does": "Unit and integration tests under tests/",
    "inCheck": true
+  },
+  {
+   "name": "hooks",
+   "does": "Install this repository's pre-push gate (make check, then the bash32 CI job) for this clone",
+   "inCheck": false
+  },
+  {
+   "name": "gate",
+   "does": "Before a push: make check, then the bash32 CI job (with Docker); records the commit it passed on so the pre-push hook lets it straight through",
+   "inCheck": false
   },
   {
    "name": "harness-eval",
@@ -16685,6 +16923,7 @@
   "lint-triggers",
   "lint-json",
   "lint-shell",
+  "lint-portable",
   "lint-prose",
   "lint-docs",
   "lint-neutral",
@@ -16841,6 +17080,13 @@
  ],
  "tests": [
   {
+   "path": "tests/ci-bash32.sh",
+   "kind": "runner",
+   "lines": 22,
+   "header": "tests/ci-bash32.sh: the bash32 CI job's body, run inside the bash:3.2 image (Alpine, BusyBox, no perl) by .github/workflows/ci.yml and by make ci-bash32 on a workstation, so the job a push will run can be run before it. It runs every unit test file even after a failure, prints each failure, and ends with a count; it exits 1 on any failure or on zero files.",
+   "asserts": 0
+  },
+  {
    "path": "tests/contract/fake_tracker.py",
    "kind": "contract",
    "lines": 627,
@@ -16899,14 +17145,14 @@
   {
    "path": "tests/integration/scaffold_each_stack.sh",
    "kind": "integration",
-   "lines": 174,
+   "lines": 191,
    "header": "tests/integration/scaffold_each_stack.sh: plugins/bearing/bin/brg-scaffold for every stack id found in plugins/*/skills/*/templates*/stack.json. Each scaffold runs with a PATH that holds git, python3, make and coreutils but no stack toolchain, so the install step is skipped deterministically (no network, no lockfile) and the assertions are about the templates: exit 0, no unfilled placeholders, a git repository with core.hooksPath=.githooks and executable hooks, CLAUDE.md importing AGENTS.md, a parsing .claude/settings.json, both hosts' CI and change templates under --host both, a Makefile who…",
-   "asserts": 97
+   "asserts": 105
   },
   {
    "path": "tests/lib/assert.sh",
    "kind": "lib",
-   "lines": 94,
+   "lines": 108,
    "header": "tests/lib/assert.sh: sourced by every test file. bash 3.2 safe (macOS). t_begin <case> open a named case (counted; a case that runs no t_end assertion is a failure, so an empty test cannot pass) t_run <cmd...> run with $T_IN on stdin; sets T_RC and T_OUT (stdout+stderr) assert_exit <rc> <cmd...> t_run and check the exit code assert_eq <expected> <actual> [what] assert_contains <haystack> <needle> [what] assert_not_contains <haystack> <needle> [what] assert_file <path> [mode] the file exists (and has that octal mode) tmpdir print a fresh directory, removed at exit minimal_path <tool>... print…",
    "asserts": 11
   },
@@ -16934,9 +17180,9 @@
   {
    "path": "tests/unit/api_doc_generate.sh",
    "kind": "unit",
-   "lines": 113,
+   "lines": 120,
    "header": "tests/unit/api_doc_generate.sh: plugins/bearing/skills/openapi-spec/scripts/api_doc.py writes docs/api/API.md from an OpenAPI spec: header (style, base path, versioning, authentication, error code table), numbered conventions with reasons from the style reference, one section per tag with Serves and the operation table, idempotency notes, findings; and it fails on zero operations. The fixture spec is JSON (valid YAML) so the test needs no PyYAML.",
-   "asserts": 32
+   "asserts": 34
   },
   {
    "path": "tests/unit/architecture_diagram.sh",
@@ -16948,9 +17194,9 @@
   {
    "path": "tests/unit/autopilot_repos.sh",
    "kind": "unit",
-   "lines": 169,
+   "lines": 175,
    "header": "tests/unit/autopilot_repos.sh: the repos stage scaffolds every repository in docs/architecture/repo-plan.json beside the run's own repository. The run repository is the product's home (its PRD, ADRs and designs); an entry named like it is that repository and is not created again. The gate fails on an empty plan, a missing sibling and one whose make check never passed. A headless run cannot write outside its directory, so it asks the launcher (brg-autopilot repos-request), which runs brg-scaffold outside the sandbox and resumes the session with what it made.",
-   "asserts": 53
+   "asserts": 55
   },
   {
    "path": "tests/unit/autopilot_smoke.sh",
@@ -16962,23 +17208,23 @@
   {
    "path": "tests/unit/autopilot_stages.sh",
    "kind": "unit",
-   "lines": 437,
-   "header": "tests/unit/autopilot_stages.sh: the stages brg-autopilot gained after the first real run skipped every skill no gate checked. The decide gate needs a product profile (ui, data, api, deploy). architecture needs a C4 file with a diagram and an architecture.json whose SVGs pass diagram_check. design adds, by profile, the data model, the API contract and a deployment architecture with its diagram, after arch_check and (profile data) model_check pass. ux runs the flows, contrast, screen-state and design-bundle checkers for a UI. test_cases runs cases_check. test_automation needs every automatable…",
-   "asserts": 126
+   "lines": 508,
+   "header": "tests/unit/autopilot_stages.sh: the stages brg-autopilot gained after the first real run skipped every skill no gate checked. The decide gate needs a product profile (ui, data, api, deploy). architecture needs a C4 file with a diagram and an architecture.json whose SVGs pass diagram_check. design adds, by profile, the data model, the API contract and a deployment architecture with its diagram, after arch_check and (profile data) model_check pass. ux runs the flows, contrast, screen-state and design-bundle checkers for a UI. test_cases runs cases_check. build needs make build too when the Make…",
+   "asserts": 154
   },
   {
    "path": "tests/unit/autopilot_state.sh",
    "kind": "unit",
-   "lines": 240,
+   "lines": 257,
    "header": "tests/unit/autopilot_state.sh: plugins/bearing/bin/brg-autopilot keeps the order and checks every gate on disk. A new run starts at repo; done on a stage whose gate is not met fails and says what is missing; stages run in order; an ADR this run wrote as Accepted fails the decide gate; three failed attempts block a stage; an upstream on the branch fails the mr gate (the run never pushes); the report carries the digest; a second start on an open run is refused.",
-   "asserts": 70
+   "asserts": 76
   },
   {
    "path": "tests/unit/checklists.sh",
    "kind": "unit",
-   "lines": 53,
+   "lines": 60,
    "header": "tests/unit/checklists.sh: plugins/bearing/bin/brg-checklists names the universal checklist first and one per detected stack, from repository markers, a diff range or files, with package.json deciding the JavaScript lane; every path it prints exists; it fails on zero files; and brg-guard session lists the checklists so any review in the session sees them.",
-   "asserts": 20
+   "asserts": 23
   },
   {
    "path": "tests/unit/data_model_check.sh",
@@ -17011,9 +17257,9 @@
   {
    "path": "tests/unit/design_evidence.sh",
    "kind": "unit",
-   "lines": 97,
+   "lines": 114,
    "header": "tests/unit/design_evidence.sh: plugins/bearing/skills/design-critique/scripts/evidence.py check passes six real-shaped PNGs per page with a dark theme that applied, and fails, with the reason, on a missing width, a PNG at the wrong width, a file that is not a PNG, a dark shot identical to light, equal computed colours, a missing theme record, and zero pages. shoot fails on a page that is not in the folder, and when neither browse nor chrome can be used. No browser is needed: the PNGs are written here.",
-   "asserts": 34
+   "asserts": 38
   },
   {
    "path": "tests/unit/design_lint.sh",
@@ -17028,6 +17274,13 @@
    "lines": 94,
    "header": "tests/unit/design_pairs.sh: plugins/bearing/skills/design-critique/scripts/pairs.py computes text and field-edge contrast in light, data-theme dark and prefers-color-scheme dark from the CSS a page loads; passes a page where every pair holds, fails a muted token, a raw background that does not follow the theme (and names the background as the fault), a dark token set in one dark block only, a font nothing loads, a focus ring under 3:1 on the panel it is drawn on and an outline removed with nothing in its place; ratio recomputes a colour typed by hand; fails on zero pages.",
    "asserts": 27
+  },
+  {
+   "path": "tests/unit/design_snapshot.sh",
+   "kind": "unit",
+   "lines": 26,
+   "header": "tests/unit/design_snapshot.sh: plugins/bearing/skills/design-critique/scripts/snapshot.mjs, the bridge that renders a framework gallery page and writes static HTML and CSS of its computed colours for pairs.py. Rendering needs a browser and the app's Playwright, so this proves the refusals that need neither: zero pages, a missing --base or --out, and a repository without playwright-core.",
+   "asserts": 7
   },
   {
    "path": "tests/unit/design_system_page.sh",
@@ -17046,9 +17299,9 @@
   {
    "path": "tests/unit/dod_red_proof.sh",
    "kind": "unit",
-   "lines": 66,
+   "lines": 112,
    "header": "tests/unit/dod_red_proof.sh: plugins/bearing/skills/definition-of-done/scripts/red_proof.sh proves a regression test is green with the fix and red without it, in a throwaway worktree, leaving the working tree untouched; and fails when the test passes without the fix, fails with it, or when the diff holds no test or no non-test file.",
-   "asserts": 17
+   "asserts": 29
   },
   {
    "path": "tests/unit/feature_flags_check.sh",
@@ -17102,9 +17355,9 @@
   {
    "path": "tests/unit/guard_harness_gates.sh",
    "kind": "unit",
-   "lines": 218,
+   "lines": 229,
    "header": "tests/unit/guard_harness_gates.sh: the three harness gates. check-file lints one edited file (stub linters on a fake PATH, the Makefile override, a tool that cannot run); stop-gate holds a session to the files it changed since make check last passed, once, and never loops; precompact writes a snapshot that session --source compact reads back. Then the Claude Code adapters turn a gate's exit 2 into {\"decision\": \"block\"}.",
-   "asserts": 100
+   "asserts": 105
   },
   {
    "path": "tests/unit/guard_latency.sh",
@@ -17137,9 +17390,9 @@
   {
    "path": "tests/unit/hld_arch_check.sh",
    "kind": "unit",
-   "lines": 135,
+   "lines": 142,
    "header": "tests/unit/hld_arch_check.sh: plugins/bearing/skills/high-level-design/scripts/arch_check.py passes a complete architecture set and fails on a section with no risks, nothing deliberately left out, an ungraded or unsourced finding, Approved with an open BLOCKER or an open conflict, an ADR missing from the index, a bad reversibility, a conflict with no Settled by, too few tenets or a tenet with no breach, a repo plan with a wrong name, path or stack, and empty input.",
-   "asserts": 32
+   "asserts": 34
   },
   {
    "path": "tests/unit/install_dry_run.sh",
@@ -17161,6 +17414,13 @@
    "lines": 39,
    "header": "tests/unit/lint_plugin_size.sh: bin/lint-plugin-size.py holds each plugin folder to the plugin directory's limits (under 512 files, no non-image file of 256 KiB or more) and fails when there is no plugin to check.",
    "asserts": 9
+  },
+  {
+   "path": "tests/unit/lint_portable.sh",
+   "kind": "unit",
+   "lines": 47,
+   "header": "tests/unit/lint_portable.sh: bin/lint-portable.py rejects commands that are not on every CI image (perl is missing from bash:3.2) or behave differently on macOS (sed -i, grep -P, readlink -f, date -d), in command position only; quoted strings and comments pass; zero files fail.",
+   "asserts": 13
   },
   {
    "path": "tests/unit/lint_tools.sh",
@@ -17189,6 +17449,13 @@
    "lines": 171,
    "header": "tests/unit/motion_check.sh: plugins/bearing/skills/motion-design/scripts/motion_check.py counts animations across web CSS, web scripts, React Native, Compose and SwiftUI, and passes only when every one moves transform and opacity and has a reduced-motion path (in the file or a shared tokens module). It fails, with file:line, on each layout or paint property per stack, on an unguarded animation, and on empty input (no file, zero animations). The kit's own hero and banner templates pass.",
    "asserts": 40
+  },
+  {
+   "path": "tests/unit/next_smoke.sh",
+   "kind": "unit",
+   "lines": 53,
+   "header": "tests/unit/next_smoke.sh: the Next.js template's scripts/smoke.mjs. A stand-in .next/standalone/server.js (a plain node http server) answers on the port the script gives it, so the whole loop runs without a Next build: no build is refused with 0 checked; the default checks pass; a plan's checks run and a wrong status fails with the evidence written; a render error the server logs fails though every status passed.",
+   "asserts": 11
   },
   {
    "path": "tests/unit/pins_match.py",
@@ -17228,9 +17495,9 @@
   {
    "path": "tests/unit/prose_lint_check.sh",
    "kind": "unit",
-   "lines": 95,
+   "lines": 102,
    "header": "tests/unit/prose_lint_check.sh: plugins/bearing/skills/prose-lint/scripts/prose_check.py passes clean prose and reports file:line and the class for an em dash, filler, praise, an attribution trailer and a hedged claim; leaves a table-cell dash; honours .prose-lint-ignore; reads a git diff file list (skipping deleted paths); and fails on empty input. The em dash and the robot emoji are written as bytes so this file carries neither.",
-   "asserts": 36
+   "asserts": 38
   },
   {
    "path": "tests/unit/runbook_check.sh",
@@ -17249,9 +17516,9 @@
   {
    "path": "tests/unit/screen_gallery.sh",
    "kind": "unit",
-   "lines": 95,
+   "lines": 116,
    "header": "tests/unit/screen_gallery.sh: plugins/bearing/skills/screen-design/scripts/gallery_check.py, the gate for screens as code on the default react-shadcn stack. Every inventory screen needs a src/features/*/screens/<id>-*.screen.tsx whose states map holds every inventory state; a screen file whose id is not in the inventory, a state missing, a raw <table>/<button>/<input>/<select>/ <textarea>/<dialog> in a screen file, and zero screen files all fail.",
-   "asserts": 10
+   "asserts": 16
   },
   {
    "path": "tests/unit/screen_states.sh",
@@ -17305,9 +17572,9 @@
   {
    "path": "tests/unit/test_cases_refs.sh",
    "kind": "unit",
-   "lines": 281,
+   "lines": 320,
    "header": "tests/unit/test_cases_refs.sh: plugins/bearing/skills/test-cases/scripts/cases_check.py (every AC has a live case, every case has tagged oracles, a P1 case has two categories including not:, every story and threat has a risk and every risk has the cases its level needs; --steps gives every manual and e2e case its steps; --plan quotes the gate and places every case in a scenario) and plugins/bearing/skills/test-automation/scripts/ref_check.py (test ids, names and routes a generated test uses exist in the source), each with its empty-input failure.",
-   "asserts": 83
+   "asserts": 92
   },
   {
    "path": "tests/unit/theme_lint_css.sh",
@@ -17340,9 +17607,9 @@
   {
    "path": "tests/unit/ux_flows_check.sh",
    "kind": "unit",
-   "lines": 125,
+   "lines": 147,
    "header": "tests/unit/ux_flows_check.sh: plugins/bearing/skills/ux-flows/scripts/flows_check.py passes a package whose screens all have a way forward (or are marked terminal), all appear in a flowchart and all have the four required states; fails on a dead end, an unflowed screen, a flowchart screen not in the inventory, a missing state, n/a without a reason, a screen with no state table, a dialog with no way back, and on empty input. It reads the highest flows-v<n>.md and skips screens marked removed.",
-   "asserts": 26
+   "asserts": 31
   },
   {
    "path": "tests/unit/vapt_findings.sh",
@@ -17750,6 +18017,10 @@
     "postcss.config.mjs",
     "skeleton/e2e/health.spec.ts",
     "skeleton/public/favicon.svg",
+    "skeleton/scripts/design-registry.mjs",
+    "skeleton/scripts/smoke.mjs",
+    "skeleton/src/app/%5F%5Fdesign/[id]/page.tsx",
+    "skeleton/src/app/%5F%5Fdesign/page.tsx",
     "skeleton/src/app/api/healthz/route.test.ts",
     "skeleton/src/app/api/healthz/route.ts",
     "skeleton/src/app/api/readyz/route.test.ts",
@@ -17763,7 +18034,45 @@
     "skeleton/src/app/not-found.test.tsx",
     "skeleton/src/app/not-found.tsx",
     "skeleton/src/app/page.tsx",
+    "skeleton/src/app/theme-script.ts",
+    "skeleton/src/components/ui/README.md",
+    "skeleton/src/components/ui/alert.tsx",
+    "skeleton/src/components/ui/avatar.tsx",
+    "skeleton/src/components/ui/badge.tsx",
+    "skeleton/src/components/ui/breadcrumb.tsx",
     "skeleton/src/components/ui/button.tsx",
+    "skeleton/src/components/ui/card.tsx",
+    "skeleton/src/components/ui/checkbox.tsx",
+    "skeleton/src/components/ui/command.tsx",
+    "skeleton/src/components/ui/dialog.tsx",
+    "skeleton/src/components/ui/dropdown-menu.tsx",
+    "skeleton/src/components/ui/hover-card.tsx",
+    "skeleton/src/components/ui/input.tsx",
+    "skeleton/src/components/ui/label.tsx",
+    "skeleton/src/components/ui/pagination.tsx",
+    "skeleton/src/components/ui/popover.tsx",
+    "skeleton/src/components/ui/progress.tsx",
+    "skeleton/src/components/ui/radio-group.tsx",
+    "skeleton/src/components/ui/scroll-area.tsx",
+    "skeleton/src/components/ui/select.tsx",
+    "skeleton/src/components/ui/separator.tsx",
+    "skeleton/src/components/ui/sheet.tsx",
+    "skeleton/src/components/ui/sidebar.tsx",
+    "skeleton/src/components/ui/skeleton.tsx",
+    "skeleton/src/components/ui/slider.tsx",
+    "skeleton/src/components/ui/sonner.tsx",
+    "skeleton/src/components/ui/switch.tsx",
+    "skeleton/src/components/ui/table.tsx",
+    "skeleton/src/components/ui/tabs.tsx",
+    "skeleton/src/components/ui/textarea.tsx",
+    "skeleton/src/components/ui/toggle-group.tsx",
+    "skeleton/src/components/ui/toggle.tsx",
+    "skeleton/src/components/ui/tooltip.tsx",
+    "skeleton/src/design/Gallery.test.tsx",
+    "skeleton/src/design/Gallery.tsx",
+    "skeleton/src/design/registry.ts",
+    "skeleton/src/design/screen.ts",
+    "skeleton/src/design/screens.generated.ts",
     "skeleton/src/env.server.test.ts",
     "skeleton/src/env.server.ts",
     "skeleton/src/env.test.ts",
@@ -17776,7 +18085,10 @@
     "skeleton/src/features/health/HealthCard.test.tsx",
     "skeleton/src/features/health/api.ts",
     "skeleton/src/features/health/components/HealthCard.tsx",
+    "skeleton/src/features/health/components/HealthCardView.tsx",
     "skeleton/src/features/health/schemas.ts",
+    "skeleton/src/features/health/screens/S-00-health.screen.tsx",
+    "skeleton/src/hooks/use-mobile.ts",
     "skeleton/src/lib/api.test.ts",
     "skeleton/src/lib/api.ts",
     "skeleton/src/lib/auth.test.ts",
@@ -18080,7 +18392,7 @@
     "skeleton/src/features/health/components/HealthCard.tsx",
     "skeleton/src/features/health/hooks.ts",
     "skeleton/src/features/health/schemas.ts",
-    "skeleton/src/features/health/screens/S-01-health.screen.tsx",
+    "skeleton/src/features/health/screens/S-00-health.screen.tsx",
     "skeleton/src/hooks/use-mobile.ts",
     "skeleton/src/index.css",
     "skeleton/src/lib/api.test.ts",
@@ -18149,7 +18461,7 @@
   },
   {
    "path": "repo/.githooks/pre-commit",
-   "lines": 159
+   "lines": 161
   },
   {
    "path": "repo/.githooks/pre-push",
@@ -18265,7 +18577,7 @@
     "Changed",
     "Fixed"
    ],
-   "entries": 20,
+   "entries": 52,
    "summary": "First public release, under the MIT licence."
   }
  ],
@@ -19113,10 +19425,10 @@
   ],
   "sessionBytes": {
    "agents": 2864,
-   "claude": 1294,
+   "claude": 1265,
    "unscopedRules": 840
   },
-  "sessionTokens": 1249
+  "sessionTokens": 1242
  },
  "autopilot": {
   "maxAttempts": 3,
@@ -19125,6 +19437,11 @@
     "name": "repo",
     "skill": "new-repo (empty directory); an existing repository gets only what this gate reads, never a full onboard-repo",
     "gate": "a git repository whose Makefile check target records a pass (.check-passed)"
+   },
+   {
+    "name": "branch",
+    "skill": "start-task",
+    "gate": "a working branch that is not the trunk"
    },
    {
     "name": "prd",
@@ -19148,8 +19465,8 @@
    },
    {
     "name": "design",
-    "skill": "scope full: high-level-design, then data-model (profile data), openapi-spec (profile api), deployment-architecture (profile deploy), then low-level-design; lean: low-level-design as one note",
-    "gate": "scope full: docs/design/*-hld.md and *-lld.md; by profile, docs/design/data-model.md, api/openapi.yaml and docs/architecture/deployment.md with a mermaid diagram; lean: one docs/design/*.md written this run"
+    "skill": "scope full: high-level-design, then data-model (profile data), openapi-spec (profile api), deployment-architecture (profile deploy), threat-model, genai-design (profile llm); lean: low-level-design as one note",
+    "gate": "scope full: docs/design/*-hld.md, docs/security/threat-model-*.md passing threats_check; by profile, docs/design/data-model.md, api/openapi.yaml, docs/architecture/deployment.md with a mermaid diagram and docs/genai/*-solution.md; lean: one docs/design/*.md written this run"
    },
    {
     "name": "repos",
@@ -19162,24 +19479,24 @@
     "gate": "profile ui: flows passing flows_check and tokens passing contrast; on react-shadcn (the default) a direction chosen from 3 scored variants, docs/design/motion.md, every screen in the design gallery passing gallery_check, and design-lint; on another stack HTML screens passing states_check"
    },
    {
+    "name": "lld",
+    "skill": "scope full: low-level-design, one per component in the HLD's What gets built table that this run builds; lean: the design note already is the low-level design",
+    "gate": "scope full: at least one docs/design/*-lld.md written this run; lean: nothing"
+   },
+   {
     "name": "test_cases",
     "skill": "test-cases",
     "gate": "docs/testing/risks.md and docs/testing/test-cases.md passing cases_check against docs/product/backlog.md and the threat models"
    },
    {
-    "name": "branch",
-    "skill": "start-task",
-    "gate": "a working branch that is not the trunk"
-   },
-   {
     "name": "build",
     "skill": "test-first implementation, story by story (superpowers:test-driven-development), the stack skill (go, react, ...) and the design system for UI",
-    "gate": "tests added on the branch, and make check passed after the last change"
+    "gate": "tests added on the branch, and make check passed after the last change (and make build, when the Makefile records a build pass)"
    },
    {
     "name": "test_automation",
-    "skill": "test-automation",
-    "gate": "every case in docs/testing/test-cases.md not manual-only or retired is named by its TC id in a test file, and make check passed after the last change"
+    "skill": "test-automation; profile llm: llm-guardrails and llm-eval",
+    "gate": "every case in docs/testing/test-cases.md not manual-only or retired is named by its TC id in a test file, and make check passed after the last change; profile llm: guardrails/policy.yaml and docs/genai/evals.md"
    },
    {
     "name": "design_review",

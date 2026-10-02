@@ -86,6 +86,27 @@ assert_exit 1 python3 "$CHK" --src "$d/src" --flows "$d/flows.md"
 assert_contains "$T_OUT" "S-12 (S-12-run-view.screen.tsx): raw <table>, <button>; use src/components/ui"
 t_end
 
+t_begin "two error rows need two error states; a labelled row names its key"
+d="$(tmpdir)"; flows "$d/flows.md"
+replace_in "$d/flows.md" '| error | a banner | "Could not load runs. Retry." |' "$(printf '%s\n%s\n%s' '| error | a banner | "Could not load runs. Retry." |' '| error | too many requests | "Try again at 14:02." |' '| error: not_found | the run is gone | "That run was deleted." |')"
+screen "$d/src/features/runs/screens/S-10-runs.screen.tsx" S-10 loading empty error success error-not-found
+screen "$d/src/features/runs/screens/S-12-run-view.screen.tsx" S-12 loading success failed
+assert_exit 1 python3 "$CHK" --src "$d/src" --flows "$d/flows.md"
+assert_contains "$T_OUT" "S-10 (S-10-runs.screen.tsx): 2 error rows in the flows, 1 error states (error); name each, such as error-rate-limited"
+assert_not_contains "$T_OUT" "no state error-not-found"
+screen "$d/src/features/runs/screens/S-10-runs.screen.tsx" S-10 loading empty error error-rate-limited success error-not-found
+assert_exit 0 python3 "$CHK" --src "$d/src" --flows "$d/flows.md"
+t_end
+
+t_begin "the scaffold's example screen S-00 is named, not counted as a stray"
+d="$(tmpdir)"; flows "$d/flows.md"
+screen "$d/src/features/runs/screens/S-10-runs.screen.tsx" S-10 loading empty error success
+screen "$d/src/features/runs/screens/S-12-run-view.screen.tsx" S-12 loading success failed
+screen "$d/src/features/health/screens/S-00-health.screen.tsx" S-00 error success
+assert_exit 0 python3 "$CHK" --src "$d/src" --flows "$d/flows.md"
+assert_contains "$T_OUT" "the scaffold's example S-00-health.screen.tsx is not checked"
+t_end
+
 t_begin "zero screen files fail"
 d="$(tmpdir)"; flows "$d/flows.md"; mkdir -p "$d/src"
 assert_exit 1 python3 "$CHK" --src "$d/src" --flows "$d/flows.md"

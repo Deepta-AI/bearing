@@ -1,4 +1,4 @@
-# __REPO_NAME__ CI on GitHub Actions: the twin of .gitlab-ci.yml. Same stages
+# __REPO_NAME__ CI on GitHub Actions, in step with the GitLab pipeline. Same stages
 # (validate, lint, test, build, then publish and deploy on request) and
 # every gate is `make <target>`, so the Makefile stays the single source of
 # what a gate does. GitHub sets CI=true, so a gate whose tool is missing

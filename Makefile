@@ -4,12 +4,12 @@
 SHELL := /bin/bash
 KITP := plugins/bearing
 .DEFAULT_GOAL := help
-.PHONY: help site devguide wiki check check-file validate lint-skills lint-tools lint-evals lint-triggers lint-neutral lint-docs lint-json lint-shell lint-prose lint-version lint-budget lint-templates lint-plugin-size test install doctor docs harness-eval trigger-eval
+.PHONY: help hooks gate ci-bash32 site devguide wiki check check-file validate lint-skills lint-tools lint-evals lint-triggers lint-neutral lint-docs lint-json lint-shell lint-portable lint-prose lint-version lint-budget lint-templates lint-plugin-size test install doctor docs harness-eval trigger-eval
 
 help: ## List targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-14s %s\n", $$1, $$2}'
 
-check: validate lint-skills lint-tools lint-evals lint-triggers lint-json lint-shell lint-prose lint-docs lint-neutral lint-version lint-budget lint-templates lint-plugin-size test ## The gate for this repository
+check: validate lint-skills lint-tools lint-evals lint-triggers lint-json lint-shell lint-portable lint-prose lint-docs lint-neutral lint-version lint-budget lint-templates lint-plugin-size test ## The gate for this repository
 	@echo "check: passed"
 
 validate: ## claude plugin validate --strict: the marketplace, then each plugin, its skills and (bearing) its agents
@@ -93,8 +93,11 @@ lint-json: ## Manifests and settings parse
 	  python3 -c "import json,sys; json.load(open(sys.argv[1]))" "$$f" || { echo "invalid JSON: $$f"; exit 1; }; n=$$((n+1)); done; \
 	[ "$$n" -gt 0 ] || { echo "lint-json: 0 files parsed, nothing checked" >&2; exit 1; }; echo "lint-json: $$n files parsed"
 
+lint-portable: ## Commands the CI images lack or run differently (perl, sed -i, grep -P, readlink -f, date -d) in every script
+	@python3 bin/lint-portable.py
+
 lint-shell: ## bash -n on every script (shellcheck when installed)
-	@n=0; files="install.sh $$(for f in $(KITP)/bin/brg-*; do head -1 "$$f" | grep -qE "bash|/sh" && echo "$$f"; done) $$(ls $(KITP)/hooks/scripts/*.sh) $$(ls $(KITP)/templates/repo/.githooks/*) $$(find plugins -path "*/skills/*/scripts/*.sh" | sort) $$(find tests -name "*.sh" | sort)"; \
+	@n=0; files="install.sh $$(for f in $(KITP)/bin/brg-*; do head -1 "$$f" | grep -qE "bash|/sh" && echo "$$f"; done) $$(ls $(KITP)/hooks/scripts/*.sh) $$(ls $(KITP)/templates/repo/.githooks/*) .githooks/pre-push $$(find plugins -path "*/skills/*/scripts/*.sh" | sort) $$(find tests -name "*.sh" | sort)"; \
 	for f in $$files; do bash -n "$$f" || exit 1; n=$$((n+1)); done; \
 	[ "$$n" -gt 0 ] || { echo "lint-shell: 0 scripts parsed, nothing checked" >&2; exit 1; }; \
 	if command -v shellcheck >/dev/null; then shellcheck -S warning -e SC2034,SC2010,SC2088 $$files && echo "lint-shell: $$n scripts, shellcheck clean"; \
@@ -140,6 +143,27 @@ lint-plugin-size: ## Each plugin folder holds under 512 files and no non-image, 
 
 test: ## Unit and integration tests under tests/
 	@bash tests/run.sh
+
+hooks: ## Install this repository's pre-push gate (make check, then the bash32 CI job) for this clone
+	git config core.hooksPath .githooks
+	@echo "hooks: .githooks/pre-push installed; run make gate before git push"
+
+gate: ## Before a push: make check, then the bash32 CI job (with Docker); records the commit it passed on so the pre-push hook lets it straight through
+	@[ -z "$$(git status --porcelain --untracked-files=no)" ] || { echo "gate: commit first; the gate is recorded against a commit" >&2; exit 1; }
+	@head=$$(git rev-parse HEAD); mark="$$(git rev-parse --git-dir)/bearing-gate-passed"; rm -f "$$mark"; \
+	log="$${TMPDIR:-/tmp}/bearing-gate.log"; \
+	echo "gate: make check on $$(echo $$head | cut -c1-7)"; \
+	$(MAKE) --no-print-directory check >"$$log" 2>&1 || { tail -30 "$$log" >&2; echo "gate: make check failed (log: $$log)" >&2; exit 1; }; \
+	if command -v docker >/dev/null && docker info >/dev/null 2>&1; then \
+	  echo "gate: make ci-bash32"; \
+	  $(MAKE) --no-print-directory ci-bash32 >"$$log" 2>&1 || { grep -E "^FAIL|bash32:" "$$log" | tail -30 >&2; echo "gate: the bash32 CI job failed (log: $$log)" >&2; exit 1; }; \
+	  grep "bash32:" "$$log"; \
+	else echo "gate: Docker is not running, so the bash32 CI job was not run here; CI will run it"; fi; \
+	[ "$$(git rev-parse HEAD)" = "$$head" ] || { echo "gate: HEAD moved during the run; nothing recorded" >&2; exit 1; }; \
+	echo "$$head" > "$$mark"; echo "gate: passed on $$(echo $$head | cut -c1-7); git push will not run it again"
+
+ci-bash32: ## The bash32 CI job, in the same bash:3.2 image (needs Docker): run before a push
+	docker run --rm -v "$$PWD:/kit" -w /kit bash:3.2 bash tests/ci-bash32.sh
 
 harness-eval: ## Real Claude Code sessions against the hooks: push, deploy, edit lint, stop gate (green and red), compaction (uses the claude CLI; not part of check)
 	python3 bin/harness-eval.py $(if $(ONLY),--only $(ONLY))

@@ -405,12 +405,22 @@ def build(args):
         m = re.match(r'\s*"([^"]+)"', str(fam))
         if m and m.group(1) not in faces:
             faces.append(m.group(1))
-    fonts = (
-        '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?%s&display=swap">'
-        % "&".join("family=" + f.replace(" ", "+") for f in faces)
-        if faces
-        else ""
-    )
+    # The faces load the way the product loads them: a stylesheet the
+    # caller names (--fonts-css, a self-hosted or package @font-face file)
+    # or, only on request, Google Fonts. Never an outside host by default:
+    # a product whose CSP or ADR forbids one (self-hosted Fontsource faces)
+    # got a broken Google link named after the package's family.
+    if args.fonts_css:
+        fonts = '<link rel="stylesheet" href="%s">' % html.escape(args.fonts_css, quote=True)
+    elif args.google_fonts and faces:
+        fonts = (
+            '<link rel="preconnect" href="https://fonts.googleapis.com">'
+            '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>'
+            '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?%s&display=swap">'
+            % "&".join("family=" + f.replace(" ", "+") for f in faces)
+        )
+    else:
+        fonts = "<!-- faces: %s; not loaded here (pass --fonts-css) -->" % html.escape(", ".join(faces) or "none")
     page = page.replace("{{FONTS_LINK}}", fonts)
     toc = "\n".join(
         '<a href="#c-%s">%s</a>'
@@ -580,6 +590,8 @@ def main():
     b.add_argument("--components", default="docs/design/components.md")
     b.add_argument("--template", default=DEFAULT_TEMPLATE)
     b.add_argument("--out", default="docs/design/design-system.html")
+    b.add_argument("--fonts-css", default="", help="a stylesheet with the @font-face rules, linked as given")
+    b.add_argument("--google-fonts", action="store_true", help="link the faces from Google Fonts (an outside host)")
     c = sub.add_parser("check")
     c.add_argument("--page", default="docs/design/design-system.html")
     c.add_argument("--components", default="docs/design/components.md")

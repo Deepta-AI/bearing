@@ -9,8 +9,8 @@ SKIPPED := $(STATE)/.skipped
 # CI job and a manual target, not part of check.
 GATES := format-check lint typecheck test vuln
 # Files each gate looks at: tracked plus untracked, minus ignored (so a fresh scaffold counts).
-SRC_FILES = $$(git ls-files -co --exclude-standard -- 'src/*.ts' 'src/*.tsx' 'e2e/*.ts' '*.config.ts')
-FMT_FILES = $$(git ls-files -co --exclude-standard -- '*.ts' '*.tsx' '*.js' '*.json' '*.css' '*.md' '*.yml' '*.yaml' '*.html' | grep -v '^pnpm-lock.yaml$$' || true)
+SRC_FILES = $$(git ls-files -co --exclude-standard -- 'src/*.ts' 'src/*.tsx' 'e2e/*.ts' '*.config.ts' | while IFS= read -r f; do [ -f "$$f" ] && printf '%s\n' "$$f"; done || true)
+FMT_FILES = $$(git ls-files -co --exclude-standard -- '*.ts' '*.tsx' '*.js' '*.json' '*.css' '*.md' '*.yml' '*.yaml' '*.html' | grep -v '^pnpm-lock.yaml$$' | while IFS= read -r f; do [ -f "$$f" ] && [ ! -L "$$f" ] && printf '%s\n' "$$f"; done || true)
 TEST_FILES = $$(git ls-files -co --exclude-standard -- 'src/*.test.ts' 'src/*.test.tsx')
 E2E_FILES = $$(git ls-files -co --exclude-standard -- 'e2e/*.spec.ts' | grep -v '^e2e/visual/' || true)
 VISUAL_FILES = $$(git ls-files -co --exclude-standard -- 'e2e/visual/*.spec.ts')
@@ -54,9 +54,12 @@ setup: ## Install dependencies (writes pnpm-lock.yaml), Playwright chromium and 
 dev: ## Run the Vite dev server (reads .env if present)
 	$(PNPM) exec vite --port 5173 --strictPort
 
-build: ## Production build into dist/
+build: ## Production build into dist/, held to BUNDLE_BUDGET_KB
+	@mkdir -p $(STATE); rm -f $(STATE)/.build-passed
 	$(PNPM) exec vite build
 	@echo "build: $$(find dist -type f | wc -l | tr -d ' ') files in dist/"
+	@$(MAKE) --no-print-directory bundle-budget
+	@touch $(STATE)/.build-passed
 
 format: ## Prettier --write
 	@$(PNPM) exec prettier --log-level warn --write $(FMT_FILES)
@@ -123,11 +126,13 @@ bundle-budget: ## Gzipped JavaScript in dist/assets/ under BUNDLE_BUDGET_KB (run
 
 lighthouse: ## Lighthouse CI against the production build: fails on the assertions in lighthouserc.json (needs Chrome or Playwright's chromium)
 	@[ -f lighthouserc.json ] || { echo "lighthouse: no lighthouserc.json, nothing checked" >&2; exit 1; }; \
+	n=$$(grep -o '"http[^"]*"' lighthouserc.json | wc -l | tr -d ' '); \
+	[ "$$n" -gt 0 ] || { echo "lighthouse: 0 URLs in lighthouserc.json, nothing checked" >&2; exit 1; }; \
 	command -v $(PNPM) >/dev/null || $(call skip,lighthouse,pnpm); \
 	c="$${CHROME_PATH:-$$(find "$${PLAYWRIGHT_BROWSERS_PATH:-$$HOME/.cache/ms-playwright}" /ms-playwright -type f -name chrome -path '*chromium-*' 2>/dev/null | head -1)}"; \
 	[ -n "$$c" ] || { echo "lighthouse: no Chrome found; run make setup or set CHROME_PATH" >&2; exit 1; }; \
 	CHROME_PATH="$$c" $(PNPM) dlx @lhci/cli@0.15.1 autorun --config=lighthouserc.json && \
-	echo "lighthouse: $$(grep -o '"http[^"]*"' lighthouserc.json | wc -l | tr -d ' ') pages checked against lighthouserc.json"
+	echo "lighthouse: $$n pages checked against lighthouserc.json"
 
 vuln: ## pnpm audit at high and above over the committed lockfile
 	@command -v $(PNPM) >/dev/null || $(call skip,vuln,pnpm); \
@@ -169,4 +174,4 @@ doctor: ## Environment diagnostics
 	@echo "hooksPath:  $$(git config core.hooksPath || echo 'NOT SET (run make setup)')"
 
 clean: ## Remove build and test output
-	rm -rf dist coverage playwright-report test-results .lighthouseci $(STATE)/.check-passed $(SKIPPED)
+	rm -rf dist coverage playwright-report test-results .lighthouseci $(STATE)/.check-passed $(STATE)/.build-passed $(SKIPPED)

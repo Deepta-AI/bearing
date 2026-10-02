@@ -43,6 +43,7 @@ stack_of() {
     *.go) echo go ;;
     *.py) if [ -f "$root/dbt_project.yml" ] || [ -d "$root/dags" ]; then echo data-pipeline; else echo python; fi ;;
     *.tf|*.tfvars|k8s/*|*/k8s/*|kustomization.yaml|*/kustomization.yaml) echo infra ;;
+    .github/workflows/*|.gitlab-ci.yml|*/.gitlab-ci.yml|Dockerfile|*/Dockerfile|*.Dockerfile|docker-compose*.y*ml|*/docker-compose*.y*ml|compose*.y*ml|helm/*|*/helm/*) echo infra ;;
     *.kt|*.kts) echo android ;;
     *.swift) echo ios ;;
     *.dart) echo flutter ;;

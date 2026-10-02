@@ -11,6 +11,9 @@
 #   assert_file <path> [mode]  the file exists (and has that octal mode)
 #   tmpdir                    print a fresh directory, removed at exit
 #   minimal_path <tool>...    print a PATH holding only those tools (symlinks)
+#   replace_in <file> <old> <new>  replace one literal occurrence in a fixture (python3,
+#                             which every CI image has; perl and GNU sed -i are not portable);
+#                             fails unless old occurs exactly once
 #   t_summary                 print "<file>: N assertions, M failed" and exit
 set -u
 T_FILE="${T_FILE:-$0}"
@@ -61,6 +64,17 @@ assert_file() {
     [ "$mode" = "$2" ] || { _t_fail "$1 has mode $mode, wanted $2"; return 0; }
   fi
   _t_pass
+}
+
+replace_in() {
+  python3 - "$1" "$2" "$3" <<'PY' || { echo "replace_in: $2 does not occur exactly once in $1" >&2; return 1; }
+import sys
+path, old, new = sys.argv[1], sys.argv[2], sys.argv[3]
+text = open(path).read()
+if text.count(old) != 1:
+    sys.exit(1)
+open(path, "w").write(text.replace(old, new))
+PY
 }
 
 tmpdir() {

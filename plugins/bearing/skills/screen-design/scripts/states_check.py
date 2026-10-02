@@ -31,8 +31,36 @@ BASELINE = ["loading", "empty", "error", "success", "partial"]
 
 
 def norm(state):
-    """One spelling per state: lower case, spaces and underscores as hyphens."""
-    return re.sub(r"[\s_]+", "-", state.strip().lower())
+    """One spelling per state: lower case; spaces, underscores, colons and
+    brackets as hyphens ("error: slot_unavailable" is error-slot-unavailable,
+    "error (409)" is error-409)."""
+    return re.sub(r"[\s_:()]+", "-", state.strip().lower()).strip("-")
+
+
+def row_counts(flows_path):
+    """{screen id: {state: rows}}: how many rows of section 2 carry each
+    state, so a screen with three bare "error" rows is known to need three
+    error states, not one."""
+    text = open(flows_path, encoding="utf-8").read()
+    m = re.search(r"^## 2\. .*?$(.*?)(?=^## \d+\. |\Z)", text, re.M | re.S)
+    out, cur = {}, None
+    for line in (m.group(1) if m else "").split("\n"):
+        h = re.match(r"^###\s+(S-\d{2,3})\b", line)
+        if h:
+            cur = h.group(1)
+            out[cur] = {}
+            continue
+        if cur is None or not line.startswith("|"):
+            continue
+        cells = [c.strip() for c in line.strip().strip("|").split("|")]
+        if len(cells) < 2 or cells[0].lower() in ("state", "") or set(cells[0]) <= set("-: "):
+            continue
+        if cells[1].lower().startswith("n/a"):
+            continue
+        state = norm(re.sub(r"[`*]", "", cells[0]))
+        if state:
+            out[cur][state] = out[cur].get(state, 0) + 1
+    return out
 
 
 def inventory(flows_path):

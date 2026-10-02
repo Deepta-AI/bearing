@@ -57,6 +57,38 @@ First public release, under the MIT licence.
   repository.
 
 ### Changed
+- `autopilot` runs a product whose documents came before its code. A
+  repository holding only documents (a PRD, ADRs, an HLD) is a new
+  product in full scope, not a change; `brg-scaffold` merges the stack in
+  beside the documents without overwriting one; and a repo plan entry
+  with `"path": "."` places the code in that repository (`arch_check`
+  accepts its own git path). The branch stage now comes right after the
+  repo stage, so no stage writes documents on the trunk; low-level design
+  moved from the design stage to a new `lld` stage after the screens (the
+  handbook's order, since a front-end component's design names its
+  screens); the design gate requires a threat model; and `profile --llm`
+  adds `genai-design` to design and `llm-guardrails` and `llm-eval` to
+  test automation. A run started before a stage existed gets it as
+  pending. Found by running a marketing website's autopilot after its
+  PRD, backlog, ADRs and HLD were already committed.
+- The Next.js stack (`next-app`) gets the design gallery at `/__design`
+  that screen-design and design-critique read on react-web: screens as
+  `*.screen.tsx`, a registry written by `make design-registry` (Next.js has
+  no `import.meta.glob`) and checked by `make design-registry-check`, the
+  33 shadcn components, an example screen, a theme script that sets dark
+  before the first paint, dark that follows `data-theme` as well as the
+  class, pages that own their width, and a test setup with a
+  `ResizeObserver` stand-in for Radix (react-web too).
+- `deployment-architecture` maps its template onto managed platforms
+  (Vercel, Netlify, Cloudflare, Supabase): functions for workloads,
+  per-request instances for replicas, the edge for ingress.
+- `ux-flows` says how to handle a product designed contract first (the
+  API contract's error codes are the rejections), a site with no visitor
+  accounts, several packages sharing one id space, site-wide stories and
+  page chrome.
+- `openapi-spec` extracts Next.js App Router route handlers, and warns
+  that Redocly accepts flow-map values PyYAML (and so `api_doc.py`)
+  rejects.
 - The handbook's four flows were reviewed against the skills and updated.
   Greenfield runs `estimate` after the backlog, then `architecture-diagram`
   after `high-level-design` (the HLD cannot be Approved without a drawn
@@ -121,6 +153,119 @@ First public release, under the MIT licence.
   `tests/contract/rest_documents.sh` against the fake tracker.
 
 ### Fixed
+- `CLAUDE.md` from the scaffold said `Git host: gitlab | github | both`
+  literally; `brg-scaffold` and `brg-adopt` now fill in the chosen host.
+- `apply_check.sh` proved a schema that creates the vector extension
+  against plain `postgres:16`, which has no pgvector; it now uses
+  `pgvector/pgvector:pg16` for such a schema.
+- `flows_check.py` took a page named "confirmation" for a dialog, let a
+  second error row overwrite the first (so a labelled `error: code` row
+  failed), and did not notice two packages using one screen id.
+- `evidence.py` named every shot of one gallery screen the same, so three
+  design directions overwrote each other's screenshots; the query keys
+  that change the picture (`state`, `variant`) now name the file. The
+  galleries follow the system theme when no `?theme` is given, so the
+  Chrome fallback's dark shots are dark.
+- The Next.js gallery's screen route read `params` outside Suspense,
+  which Cache Components refuses.
+- `design-system`'s `system_page.py` takes `--fonts-css` or
+  `--google-fonts` and fetches no font from an outside host by default;
+  design-lint skips the stylesheet that defines the tokens; the
+  validator `jsonschema==4.25.1` is pinned and named in the README; the
+  schema documents opaque composite tokens; the Tailwind 4 binding adds a
+  `--text` size for any token size the default scale lacks.
+- The pre-commit hook format-checks YAML and `.mjs` files and skips
+  symlinks, which prettier refuses on the command line.
+- `gallery_check` needs one state per repeated row and normalises colons
+  and brackets in state names; the scaffold's example screen is S-00,
+  noted and never failed; the Next.js template ignores its generated
+  registry in prettier and eslint, and `.mts` files skip type-aware lint.
+- The slider in the React and Next.js templates takes `thumbLabels`, so
+  each thumb of a range has its own accessible name.
+- vitest in the React and Next.js templates waits 15 seconds a test: a
+  full suite under parallel load timed out on the default 5.
+- The `nextjs` skill says how to build when the app owns its data
+  (Supabase or a driver): route handlers on a typed server layer, the
+  migrations tested by a `make test-db` that fails on zero files.
+- `cases_check` reads a case's withdrawal from its Status line, splits
+  oracles outside quotes, and compares the plan's quote without its
+  problem count.
+- The edit hook's `check-file` reports a test written before its module
+  as the expected red, not a wall of unsafe-call errors.
+- `autopilot`'s build gate also requires `make build` after the last
+  change when the Makefile records a build pass, which the Next.js and
+  React templates now do: a page that cannot prerender passed every
+  check and failed only the build. The skill says how a build split
+  across parallel subagents shares one local database.
+- The format and lint file lists in the Next.js, React and Node templates
+  skip a file deleted but not yet staged (prettier and eslint failed on the
+  missing path) and symlinks; the Next.js and React templates do not lint
+  `public/` and fail `make lighthouse` on an empty URL list; the GitHub
+  workflows no longer name a `.gitlab-ci.yml` that a GitHub scaffold removes.
+- `ref_check` matches a name the source builds in a template literal,
+  reads Maestro `id:` and `tapOn:` keys only in YAML flows (a fixture's
+  `id:` field was taken for a test id), and fails when a directory is
+  passed where a test file goes. `test-automation` says that a case whose
+  feature was never built is a finding that blocks the stage, not a test
+  against an invented path.
+- `llm-eval` names the lint and `server-only` traps of a TypeScript
+  runner; `llm-guardrails` lets a feature that stores no personal data
+  skip redaction with the reason recorded, and tests checks inside an
+  entry point through that entry point.
+- `api_doc.py` names each operation's `operationId` beside what it
+  does, so API.md can be checked against the contract by id.
+- The test-automation gate in `brg-autopilot` reads past binary fixtures
+  (an audio file beside the e2e specs) instead of crashing.
+- `branch-review` runs the project check in a copy that is its own git
+  repository with the dependencies linked, so file-list gates no longer
+  see the enclosing repository and check zero files, and tells gstack
+  `/review` to keep to the committed range. `brg-checklists` gives CI
+  workflows, Dockerfiles and compose files the infra checklist, which
+  gains a CI workflows section from the 7 Hills review.
+- `make build` in the Next.js and React templates runs the bundle budget
+  before it records a pass, so autopilot's build gate catches an app that
+  outgrew it (7 Hills shipped 620 KB against 350 and only CI would have
+  said so).
+- Tests run on macOS again: `wc -l` counts are trimmed, `paste` reads
+  standard input with `-`, and in-place edits use `perl -pi` with quoted
+  patterns instead of GNU-only `sed -i`. The React template's test setup
+  wraps a line prettier refused.
+- `design-critique` measures a framework gallery: `snapshot.mjs` renders each
+  page in Chrome through the app's Playwright, light and dark, and writes
+  static HTML and CSS of the computed colours and focus rings for
+  `pairs.py`, which cannot resolve Tailwind v4's `@layer` output. The Chrome
+  fallback in `evidence.py` waits on virtual time so a screenshot catches
+  the hydrated page and an open dialog, and both design skills point at
+  `localhost`, since a Next.js dev server never hydrates a page loaded by IP.
+- The Next.js template has `make smoke`: it starts the standalone build with
+  `.env.local` loaded (never printed), drives `.scratch/smoke-plan-<id>.txt`
+  or the health probe and home page, and writes the evidence file the
+  autopilot dod gate reads; the plan runner alone could only start stacks
+  with `make up` or compose. Its bundle budget leaves out the nomodule
+  polyfill file, which no module browser downloads.
+- The `nextjs` guidelines record what the 7 Hills smoke found on the built
+  server and no unit test caught: under Cache Components `notFound()` after
+  the shell streams answers 200, a status on a proxy rewrite is ignored, an
+  app with several root layouts needs `global-not-found`, and a random
+  value read in a client render leaves a hole in the prerendered shell. The
+  template's smoke fails on a render error the server logs.
+- `red_proof.sh` keeps toolchain files at HEAD (it used to revert
+  package.json on a branch whose base had no app, so pnpm failed and the
+  script printed "proven"), restores a deleted file's folder, treats
+  "Cannot find package", "is not a function" and pnpm errors as the wrong
+  reason, and takes `--commit <sha>` to prove one fix of a long branch.
+  `prose_check` reads "Generated with" as a trailer only at the start of a
+  line, so content saying how audio was made is not flagged.
+- The Bearing repository gates its own pushes: `make gate` runs `make
+  check` and `make ci-bash32` and records the commit it passed on, and
+  the pre-push hook `make hooks` installs lets that commit through (a
+  gate run inside the hook outlasted the SSH connection to GitHub). `make
+  ci-bash32` is the bash32 CI job in the same `bash:3.2` image, now one script
+  (`tests/ci-bash32.sh`) that CI and the target share. `make check` gains
+  `lint-portable`, which rejects commands a CI image lacks or runs
+  differently (`perl`, `sed -i`, `grep -P`, `readlink -f`, `date -d`).
+  Two pushes on 2 Oct failed CI on exactly these after `make check` passed.
+  Tests edit fixtures with `replace_in` from `tests/lib/assert.sh`.
 - `brg-tracker --help` printed three lines of code after its header (the
   range ran past the comment); it now stops at the last comment line.
 - The guard refused a `for` loop that runs its own variable over literal

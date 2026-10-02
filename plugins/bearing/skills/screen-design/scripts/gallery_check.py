@@ -8,7 +8,9 @@ in the react-web template). The design gallery at /__design renders each
 state with fixtures inside the real layout.
 
 The inventory is section 2 of the flows file, parsed by states_check.py in
-this folder (a row whose second cell starts with "n/a" is out of scope).
+this folder (a row whose second cell starts with "n/a" is out of scope). A
+state with several rows (three error rows, one per rejection) needs as many
+states: the state's own key or keys that start with it (error-rate-limited).
 Each inventory screen needs its screen file with every state as a key of
 `states`; a screen file whose id is not in the inventory is a problem, and
 so is a raw <table>, <button>, <input>, <select>, <textarea> or <dialog>
@@ -27,8 +29,9 @@ import re
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from states_check import inventory  # noqa: E402
+from states_check import inventory, row_counts  # noqa: E402
 
+SCAFFOLD_EXAMPLE = "S-00"
 RAW = ("table", "button", "input", "select", "textarea", "dialog")
 
 
@@ -80,10 +83,11 @@ def main():
             f"screen-gallery: 0 screen files under {a.src} (src/features/*/screens/*.screen.tsx), nothing checked"
         )
         return 1
-    inv = {}
+    inv, rows = {}, {}
     for fl in a.flows:
         if os.path.isfile(fl):
             inv.update(inventory(fl))
+            rows.update(row_counts(fl))
     source = a.flows[0] if len(a.flows) == 1 else f"{len(a.flows)} flows files"
     only = [s.strip() for s in a.only.split(",") if s.strip()]
     if only:
@@ -94,7 +98,7 @@ def main():
         )
         return 1
 
-    problems, by_id, states_total, complete = [], {}, 0, 0
+    problems, by_id, states_total, complete, example = [], {}, 0, 0, ""
     for f in files:
         text = open(f, encoding="utf-8").read()
         m = re.search(r'\bid\s*:\s*["\'](S-\d{2,3})["\']', text)
@@ -104,6 +108,11 @@ def main():
             continue
         sid = m.group(1)
         by_id[sid] = (name, text)
+        if sid == SCAFFOLD_EXAMPLE and sid not in inv:
+            # the react-web and next-app scaffolds ship one example screen as
+            # S-00; a product's own inventory starts at S-01
+            example = name
+            continue
         if sid not in inv and not only:
             problems.append(f"{sid} ({name}): not in the inventory")
         raw = [t for t in RAW if re.search(rf"<{t}[\s>/]", text)]
@@ -122,6 +131,18 @@ def main():
         missing = [s for s in want if s not in have]
         for s in missing:
             problems.append(f"{sid} ({name}): no state {s}")
+        # several rows of one state (three error rows, one per rejection)
+        # need as many states: the state itself or <state>-<something>
+        for s, n in rows.get(sid, {}).items():
+            # a key that is itself a labelled row (error-not-found) is that
+            # row's state, not one of the bare rows
+            got = [k for k in have if k == s or (k.startswith(s + "-") and k not in want)]
+            if n > 1 and len(got) < n:
+                missing.append(s)
+                problems.append(
+                    f"{sid} ({name}): {n} {s} rows in the flows, {len(got)} {s} states "
+                    f"({', '.join(got) or 'none'}); name each, such as {s}-rate-limited"
+                )
         if not missing:
             complete += 1
 
@@ -130,6 +151,7 @@ def main():
     print(
         f"screen-gallery: {len(inv)} screens from {source}, {states_total} states, "
         f"{complete} of {len(inv)} screens with all inventory states, {len(problems)} problems"
+        + (f" (the scaffold's example {example} is not checked; delete it once the product's screens exist)" if example else "")
     )
     return 1 if problems else 0
 

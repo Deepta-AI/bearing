@@ -172,7 +172,7 @@ while IFS= read -r -d '' f; do
   grep -Iq . "$f" 2>/dev/null || continue
   sed_i "$f" -e "s|__REPO_NAME__|$(escape "$name")|g" -e "s|__REPO_SLUG__|$(escape "$slug")|g" \
     -e "s|__STACK__|$(escape "${stack_line:-fill in}")|g" -e "s|__REPO_TYPE__|$(escape "${stack_type:-fill in}")|g" \
-    -e "s|__DATABASES__|$(escape "${stack_db:-fill in}")|g" -e "s|__ENTRYPOINT__|$(escape "${stack_entry:-fill in}")|g" \
+    -e "s|__GIT_HOST__|$(escape "$host")|g" -e "s|__DATABASES__|$(escape "${stack_db:-fill in}")|g" -e "s|__ENTRYPOINT__|$(escape "${stack_entry:-fill in}")|g" \
     -e "s|__TRACKER__|$(escape "$tracker_label")|g" -e "s|__ORG_ID__|$(escape "$org")|g" -e "s|__KIT_REMOTE__|$(escape "$kit_remote")|g" -e "s|__LEAD__|$(escape "${lead#@}")|g" -e "s|__TEAM_GROUP__|$(escape "${group#@}")|g"
 done < <(find "$stage" -type f -print0)
 

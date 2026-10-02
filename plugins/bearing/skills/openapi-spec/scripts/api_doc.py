@@ -378,6 +378,8 @@ def main():
                 or op.get("operationId")
                 or ""
             )
+            if op.get("operationId") and does != op["operationId"]:
+                does = f"{does} (`{op['operationId']}`)"
             if op.get("deprecated"):
                 does = f"Deprecated. {does}"
             success, errors = describe_responses(spec, op, by_status, findings, where)

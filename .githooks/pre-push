@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# .githooks/pre-push for the Bearing repository itself (make hooks installs
+# it): the gate CI runs, before anything leaves the machine. `make gate` runs
+# it ahead of the push (make check, then make ci-bash32: the bash32 CI job in
+# the same bash:3.2 image) and records the commit it passed on; this hook lets
+# that commit through at once. Otherwise it runs the gate here, but git opens
+# the connection to the remote before the hook, and a gate this long (about
+# 15 minutes) can outlast it, so the push then fails though the gate passed:
+# run `make gate`, then push. The macos and scaffold jobs run only in CI. No
+# Docker: the bash32 run is skipped and said so, never reported as passed.
+set -u
+cd "$(git rev-parse --show-toplevel)" || exit 1
+mark="$(git rev-parse --git-dir)/bearing-gate-passed"
+head="$(git rev-parse HEAD)"
+if [ -f "$mark" ] && [ "$(cat "$mark")" = "$head" ] && [ -z "$(git status --porcelain --untracked-files=no)" ]; then
+  echo "pre-push: the gate passed on ${head:0:7} (make gate); pushing" >&2
+  exit 0
+fi
+echo "pre-push: the gate has not passed on ${head:0:7}; running it now (about 15 minutes, which can outlast the connection to the remote: next time run make gate first)" >&2
+exec make gate

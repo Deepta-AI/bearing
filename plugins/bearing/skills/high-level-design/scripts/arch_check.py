@@ -28,7 +28,9 @@ with itself, computed from the files.
   - Repo plan (<arch>/repo-plan.json): project and group, a non-empty repos
     list; each name PascalCase, prefixed by the project and unique;
     git_path <group>/<Client|Server|Infrastructure>/<name>, the subgroup
-    matching the stack's type; stack a kit stack id (from
+    matching the stack's type, except for an entry with "path": "." (the
+    code lives in the repository holding these documents), whose git_path
+    is that repository's own and only needs to be non-empty; stack a kit stack id (from
     */templates*/stack.json in every Bearing plugin's skills, as
     bin/brg-kit-paths lists them) or "none" with a stack_note;
     a responsibility; apps entries with path, name and for, paths unique.
@@ -178,7 +180,10 @@ def check_plan(path, stacks, problems):
             problems.append(f"{path}: {name} stack '{stack}' is not a kit stack id")
         gp = r.get("git_path", "")
         parts = gp.split("/")
-        if (
+        if r.get("path") == ".":
+            if not gp:
+                problems.append(f"{path}: {name} has path . and no git_path")
+        elif (
             len(parts) != 3
             or parts[0] != group
             or parts[1] not in SUBGROUPS

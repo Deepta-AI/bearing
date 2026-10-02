@@ -137,9 +137,9 @@ listed under "ADRs needed", with no ADR written for it.
      and going back. The back-out target exists today or is built in
      this plan; "fall back to the old path" when the old path was never
      built is not a back-out.
-   Architecture, data, external integrations, scaling, security,
-   observability, analytics and rollout each end with
-   "**Risks this leaves open**" and at least one bullet.
+     Architecture, data, external integrations, scaling, security,
+     observability, analytics and rollout each end with
+     "**Risks this leaves open**" and at least one bullet.
 4. Source every claim. Grep the code for each component, route, table
    and queue you name. A claim with no source is prefixed "assumption:".
    A store, queue or auth choice with no ADR behind it is written as
@@ -151,9 +151,13 @@ listed under "ADRs needed", with no ADR written for it.
    one entry per repository, name `<Project><Component>` PascalCase,
    `git_path` `<group>/<Client|Server|Infrastructure>/<name>`, `stack` a
    kit stack id, `tech`, `responsibility`, and `apps[]` (path, name, for)
-   for a monorepo. `new-repo` creates each entry from its stack and
-   name (autopilot's repos stage does it for every entry, beside the
-   run's repository); this skill creates none. Mirror it as the section 14 table.
+   for a monorepo. An entry whose code lives in the repository that
+   holds these documents gets `"path": "."` (a small team often keeps
+   one repository for the PRD, the designs and the code); ask whether it
+   does when the request does not say, and record the answer as an open
+   question until it is given. `new-repo` creates each other entry from
+   its stack and name (autopilot's repos stage does it for every entry,
+   beside the run's repository); this skill creates none. Mirror it as the section 14 table.
 6. Tenets. Write `docs/architecture/tenets.md` from `templates/tenets.md`:
    five to eight, each a bold checkable rule, why this team needs it, and
    "A breach looks like:" with a concrete bad merge request. A tenet

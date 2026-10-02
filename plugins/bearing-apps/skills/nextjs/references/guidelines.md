@@ -91,6 +91,19 @@
   imports nothing from the app.
 - `notFound()` from a server component or action renders the closest
   `not-found.tsx`; `redirect()` throws, so it is never inside `try`.
+- Under Cache Components the shell streams before a page throws, so a
+  `notFound()` there renders the page but answers 200. A catch-all route
+  that calls it to give unknown paths the site's 404 page answers 200 to
+  every one of them. Let Next resolve unmatched paths itself (it answers
+  404); an app with several root layouts has no app-wide not-found, so it
+  needs `app/global-not-found.tsx` with `experimental.globalNotFound`.
+  Prove the status on the built server (`make smoke`), not in a unit test.
+- A random or time value read while a client component renders
+  (`crypto.randomUUID()` or `Date.now()` in `useState`'s initialiser) is
+  request data during prerender: it leaves a hole in the shell, and every
+  request then logs "Couldn't find all resumable slots" and falls back to
+  client rendering. Make the value in the event that needs it (an id on
+  first submit), or render the component inside a request-time boundary.
 
 ## Server actions
 
@@ -147,7 +160,11 @@
   in an ADR.
 - No database, no heavy import, no authorisation decision that the page
   or action does not make again. The matcher excludes `_next/static`,
-  `_next/image` and the favicon.
+  `_next/image`, the favicon and every other static file under `public/`.
+- The server ignores a status on `NextResponse.rewrite(url, { status })`:
+  the rewritten page answers with its own status. A proxy unit test that
+  reads the status off the response object passes anyway; a 404 comes
+  from rewriting to a path no route serves, never from the option.
 
 ## Images and fonts
 
@@ -212,6 +229,10 @@
 - Heavy client dependencies load with `next/dynamic` in the component
   that uses them, with `ssr: false` only when they touch `window`.
 - Third-party scripts through `next/script` with a `strategy`.
+- Zod is imported as `import * as z from "zod"` in anything a client
+  component reaches: the named import keeps every locale in the bundle
+  (about 56 KB gzipped). `make bundle-budget` counts what a module browser
+  downloads; `make build` runs it, so a heavy import fails the build.
 
 ## Style
 

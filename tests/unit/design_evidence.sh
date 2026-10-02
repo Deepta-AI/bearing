@@ -65,6 +65,18 @@ assert_exit 1 python3 "$EV" shoot --base "$d" --out "$d/o" --browse "$d/no-brows
 assert_contains "$T_OUT" "no chrome or chromium found; no screenshots taken"
 t_end
 
+t_begin "the chrome fallback waits for hydration and entrances before each screenshot"
+d="$(tmpdir)"; printf '<!doctype html><title>x</title>\n' > "$d/home.html"
+cat > "$d/fake-chrome" <<'EOF2'
+#!/usr/bin/env bash
+printf '%s\n' "$*" >> "$(dirname "$0")/chrome-args"
+for a in "$@"; do case "$a" in --screenshot=*) : > "${a#--screenshot=}";; esac; done
+EOF2
+chmod 755 "$d/fake-chrome"
+assert_exit 0 python3 "$EV" shoot --base "$d" --out "$d/o" --browse "$d/no-browse" --chrome "$d/fake-chrome" home.html
+assert_eq "6" "$(grep -c -- '--virtual-time-budget=' "$d/chrome-args" | tr -d ' ')" "every shot waits"
+t_end
+
 t_begin "browse keeps its state outside the repository; a left-over tool folder is removed and named"
 d="$(tmpdir)"; git -C "$d" init -q; printf '<!doctype html><title>x</title>\n' > "$d/home.html"
 cat > "$d/fake-browse" <<'EOF2'
@@ -95,3 +107,8 @@ assert_contains "$T_OUT" "dark shot via data-theme"
 t_end
 
 t_summary
+
+t_begin "the query keys that change the picture name the files; chrome and theme do not"
+assert_eq "S-01~state-error~variant-2-plot" "$(python3 -c "import sys;sys.path.insert(0,'$(dirname "$EV")');import evidence;print(evidence.stem('__design/S-01?state=error&chrome=0&variant=2-plot&theme=dark'))")" "stem"
+assert_eq "list" "$(python3 -c "import sys;sys.path.insert(0,'$(dirname "$EV")');import evidence;print(evidence.stem('list.html#chrome=0'))")" "stem without a query"
+t_end

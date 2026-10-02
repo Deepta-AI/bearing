@@ -57,7 +57,7 @@ const TERMS: [string, string][] = [
   ["handoff note", ".bearing/state/<branch>.md, written by start-task and session-handoff, printed at the next SessionStart."],
   ["harness", "A coding agent host: Claude Code, Cursor, Codex, Gemini CLI, Copilot, OpenCode, Windsurf, Cline, Zed, Kiro."],
   ["pinned pack", "A third-party skill fetched at a fixed commit by brg-install-packs, with a .bearing-pack provenance file."],
-  ["profile", "minimal, standard or full: how much install.sh installs. Also, in autopilot, the product profile (ui, data, api, deploy) that decides which stages apply."],
+  ["profile", "minimal, standard or full: how much install.sh installs. Also, in autopilot, the product profile (ui, data, api, deploy, llm) that decides which stages apply."],
   ["progress record", "docs/progress/<ID>.md, the committed, shared status of a task, written only through progress.py."],
   ["Proposed", "The status autopilot gives every decision it takes on your behalf. Only a person makes a decision Accepted."],
   ["session mark", ".bearing/state/.session-<id>, created at SessionStart. The Stop gate holds a session only to files changed after it."],
