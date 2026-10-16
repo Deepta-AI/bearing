@@ -1,6 +1,6 @@
-# backlog: open points, epics and story ids
+# backlog: open points and story ids
 
-Read when: steps 3 and 4: the question register and the id scheme.
+Read when: steps 3 and 4: the question register columns and the id scheme.
 
 3. Open points. Every ambiguity, gap or contradiction met while judging,
 and every decision the PRD leaves open that a story had to take (a

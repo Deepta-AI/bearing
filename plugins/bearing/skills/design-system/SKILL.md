@@ -74,7 +74,8 @@ and name each answer in the report:
    it in full; list what it fixes and what it leaves free. `--lint-only`: go to the
    lint section.
 2. **Measure the direction before designing.** Compute the contrast of every pair it
-   implies (brand fill behind its label, link text, focus ring) with `scripts/contrast.py` or the WCAG formula. A
+   implies (brand fill behind its label, link text, focus ring) with
+   `scripts/contrast.py` or the WCAG formula. A
    failing pair keeps its hue and moves in lightness until it passes (or swaps the
    label to a dark one); the report gives the direction's ratio, the shipped ratio
    and the alternative.
@@ -145,8 +146,8 @@ runs on alpine, busybox and macOS without bash, python3 or node) and add
    per category with file and line.
 3. Existing debt: fix a literal only when a token holds the same value in both
    themes; a literal with no matching token stays as debt (a near match is a visual
-   change, and needs saying). Record the rest with `sh scripts/design-lint.sh
-   --write-baseline`. The baseline is keyed by file and literal with a count, so a
+   change, and needs saying). Record the rest with
+   `sh scripts/design-lint.sh --write-baseline`. The baseline is keyed by file and literal with a count, so a
    new literal anywhere, including a second copy on an old line, fails, and paying a
    debt does not make room for another. A total allowance (`ALLOW_COLOR=7`) is not a
    ratchet. Paying a debt also fails until the baseline is lowered in the same
