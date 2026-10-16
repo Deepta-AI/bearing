@@ -141,7 +141,7 @@ not exercised: <real <harness> session, skill install if skipped>
 - Hook formats change between releases; if a harness renames its command
   key every shell command is refused with "could not read the command".
   Fix the key, never loosen the guard. Harnesses on the `unverified:` line
-  have been checked against recorded fixtures only: ask the user to try one
+  have been checked against recorded fixtures only: tell the user to try one
   blocked command (`git push --dry-run`) in the real tool.
 - A Zed setup has no hooks by design: the settings deny list and the git
   pre-push confirmation are the enforcement.

@@ -2,7 +2,7 @@
 name: high-level-design
 description: 'Writes a High Level Design (HLD): goals and non-goals agreed first, then architecture, data, interfaces, failure modes, rollout. Use when asked for an "HLD", "system design" or "an architecture overview".'
 argument-hint: "<title> [path to PRD or notes] [--continue after the goal is agreed]"
-allowed-tools: Read, Write, Grep, Glob, Skill, Agent, Bash(python3 *skills/high-level-design/scripts/arch_check.py*), Bash(bash *bin/brg-kit-paths*)
+allowed-tools: Read, Write, Grep, Glob, Skill, Agent, AskUserQuestion, Bash(python3 *skills/high-level-design/scripts/arch_check.py*), Bash(bash *bin/brg-kit-paths*)
 ---
 
 # high-level-design
@@ -64,8 +64,8 @@ listed under "ADRs needed", with no ADR written for it.
    them at the top of the document. Detail: references/inputs.md
 2. Without `--continue`: write section 1, goal and non-goals, into
    `docs/design/<kebab-title>-hld.md`. Three sentences for the goal, a
-   list for the non-goals. Ask the user "agree the goal and
-   non-goals?" and wait. On a yes, go on; on changes, rewrite section 1
+   list for the non-goals. Ask with AskUserQuestion as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says
+   ("agree the goal and non-goals?": yes, changes, stop here) and wait. On a yes, go on; on changes, rewrite section 1
    and ask again; when the user stops here, print the contract with
    `Waiting for: agree section 1`. With `--continue` (a later session):
    read section 1 from the file as agreed and go on. Never draft section

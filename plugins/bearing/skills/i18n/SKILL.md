@@ -2,7 +2,7 @@
 name: i18n
 description: 'Internationalises the app: string catalogs per platform, ICU plurals, locale formatting, fallbacks, an RTL check, a missing-key count. Use when asked to "add a language", "translate the app", "add i18n" or "support RTL".'
 argument-hint: "[add <locale>] [--check-only]"
-allowed-tools: Read, Write, Edit, Grep, Glob, Bash(ls:*), Bash(make:*), Bash(python3 -c:*), Bash(node:*), Bash(pnpm test:*), Bash(./gradlew test:*), Bash(swift test:*)
+allowed-tools: Read, Write, Edit, Grep, Glob, AskUserQuestion, Bash(bash *bin/brg-config*), Bash(ls:*), Bash(make:*), Bash(python3 -c:*), Bash(node:*), Bash(pnpm test:*), Bash(./gradlew test:*), Bash(swift test:*)
 ---
 
 # i18n
@@ -20,7 +20,7 @@ lint config) outrank every default below.
   `go.mod` or `pyproject.toml`: stop with "no client stack; services return
   `messageKey` and the client translates".
 - source files: the stack's source tree (`src/`, `app/`, `app/src/main`,
-  `Sources/`); zero files: ask once for the path; still zero: stop with "0
+  `Sources/`); zero files: ask once with AskUserQuestion as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says for the path and record it with `brg-config set i18n.src <path>`; still zero: stop with "0
   source files under <path>; name the source directory".
 - repo decisions: every ADR, `docs/`, README section and API contract that
   mentions locale, language, currency, time zone, errors or translation. Read
