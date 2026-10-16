@@ -9,7 +9,7 @@
   "hooks": 8,
   "agents": 8,
   "makeTargets": 31,
-  "gates": 17,
+  "gates": 18,
   "tests": 94,
   "fixtures": 21,
   "stacks": 13,
@@ -8207,18 +8207,19 @@
     "Bash(claude plugin validate:*)",
     "Bash(ls:*)",
     "Bash(make:*)",
-    "Bash(mkdir -p .scratch/skill-evals:*)"
+    "Bash(mkdir -p .scratch/skill-evals:*)",
+    "AskUserQuestion"
    ],
    "extra": {},
    "intro": "One skill does one job. The description is what makes it trigger; write it first, then the steps, then the gotchas (the most valuable part).",
    "sections": [
     {
      "title": "Inputs",
-     "lines": 25
+     "lines": 26
     },
     {
      "title": "Steps",
-     "lines": 113
+     "lines": 115
     },
     {
      "title": "Output contract",
@@ -8230,7 +8231,7 @@
     }
    ],
    "inputs": [
-    "A checkout of the kit: the current directory when it holds `.claude-plugin/marketplace.json` with name `bearing` and `plugins/bearing/`; if not, one question: \"where is your Bearing checkout?\" (the installed plugin copy under `~/.claude/plugins` is read-only and does not count). No path: stop with \"provide the path to a Bearing git checkout\".",
+    "A checkout of the kit: the current directory when it holds `.claude-plugin/marketplace.json` with name `bearing` and `plugins/bearing/`; if not, ask one question with AskUserQuestion (as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says), \"where is your Bearing checkout?\", options \"enter the path\" (the answer comes as free text via Other) and \"stop\" (the installed plugin copy under `~/.claude/plugins` is read-only…",
     "The kit's own rules: `CONTRIBUTING.md`, `CLAUDE.md` and `docs/adr/` in the checkout, read before writing anything. Where they differ from this skill, they win.",
     "The `Makefile`: the gate targets this checkout defines. A target named below that it lacks is reported as missing, never invented.",
     "Name: `$1`; if absent, asked in the interview.",
@@ -8246,7 +8247,7 @@
     "Should it exist, and on what? Before naming anything: - grep every skill's description and body for the job; if one already does it, propose extending that one instead; - verify everything the request refers to (\"same idea as the node one\", \"like the release skill\"). If it does not exist, say so in the report, name what you model on instead, and never cite or copy a thing that is not there; - audit the precedent you…",
     "Name: lowercase words joined by hyphens, at most 64 characters (`^[a-z0-9]+(-[a-z0-9]+)*$`), saying what the skill does, no folder of that name in any plugin. Refuse a name that spans two jobs.",
     "If the source is an existing document (a team checklist, a runbook), decide each of its steps: keep, generalise, change, reorder or drop. What a generalist misses: - Team facts are more than names. Hosts, channels, ticket prefixes and team names, and also policy values (severity thresholds, approvers, SLAs, time windows). The skill reads each from the adopting repository (its `CLAUDE.md` or `.bearing/company.json`)…",
-    "Interview briefly, one question at a time, until you can fill: what it does in one sentence; three or more phrases a developer would say; whether Claude may load it on its own (almost always yes); inputs, where each is looked for first and its fallback; outputs; tools (least privilege); the two or three ways it goes wrong. With nobody to ask, pick the recommended option and record the question and the choice.",
+    "Interview briefly, one question at a time with AskUserQuestion (as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says), two to four options each (the recommended first; a free-text answer comes via Other), until you can fill: what it does in one sentence; three or more phrases a developer would say; whether Claude may load it on its own (almost always yes); inputs, where each is looked for first and its fallback; ou…",
     "Write `<plugin>/skills/<name>/SKILL.md` from the template. Description: what it does, naming the deliverable, then \"Use when\" with two to four quoted phrases, most common first; 220 characters at most. Sections in order: title, purpose paragraph, optional `Not this:` line naming the neighbour, Inputs (each with its fallback; never a prerequisite on another skill), Steps, Output contract (a fenced block with counts),…",
     "If the skill ships a check (a script that passes or fails something), that is the part most likely to be wrong while its tests pass: - it lives in `<plugin>/bin/`, runs as `${CLAUDE_PLUGIN_ROOT}/bin/<script>`, and `allowed-tools` grants that script by name (never an interpreter wildcard such as python3 or bash, and never bare Bash); - its unittest under `tests/` covers at least: a violation reported with file, line…",
     "Validate: `make validate` (or `claude plugin validate --strict` on the marketplace and each plugin) and each lint target the Makefile has.",
@@ -8267,11 +8268,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 193,
+   "lines": 196,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 193
+     "lines": 196
     },
     {
      "path": "templates/SKILL.template.md",
@@ -9163,18 +9164,19 @@
     "Bash(npm view:*)",
     "Bash(pip index versions:*)",
     "Bash(go list -m:*)",
-    "Bash(bash *bin/brg-runbook-check*)"
+    "Bash(bash *bin/brg-runbook-check*)",
+    "AskUserQuestion"
    ],
    "extra": {},
    "intro": "Three signals, one id. A trace id on the log line, a span around every call that leaves the process, and RED metrics per route. The dashboard and the alerts read the same metric names in every service.",
    "sections": [
     {
      "title": "Inputs",
-     "lines": 26
+     "lines": 28
     },
     {
      "title": "Steps",
-     "lines": 93
+     "lines": 95
     },
     {
      "title": "Output contract",
@@ -9186,7 +9188,7 @@
     }
    ],
    "inputs": [
-    "services and stacks: `cmd/*`, `apps/*`, `services/*`; if none, the repository root as one service when a stack file is found (`go.mod`, `pyproject.toml`, `package.json` with `react` or `expo`, `build.gradle.kts`, `Package.swift`); ambiguous or none: ask one question naming the entrypoint; still none: stop, \"no service entrypoint found; name the file that starts the process\".",
+    "services and stacks: `cmd/*`, `apps/*`, `services/*`; if none, the repository root as one service when a stack file is found (`go.mod`, `pyproject.toml`, `package.json` with `react` or `expo`, `build.gradle.kts`, `Package.swift`); ambiguous or none: ask one question with AskUserQuestion (as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says), options \"enter the entrypoint\" (the file comes as free text via Other) and…",
     "service name: `$1`; if absent, the module name (`go.mod`, `package.json`, `pyproject.toml`); if absent, the directory name.",
     "templates: this skill's own `templates/` (collector, compose, dashboard, alerts, SLOs); nothing is read from the repository.",
     "names: `references/telemetry-conventions.md` in this skill holds the trace id rule, the log fields, the metric and span names and the alert naming that `logging` and `health-checks` share; read it before wiring and never introduce a second name for the same thing.",
@@ -9220,11 +9222,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 189,
+   "lines": 193,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 189
+     "lines": 193
     },
     {
      "path": "references/telemetry-conventions.md",
@@ -9286,18 +9288,19 @@
     "Bash(promtool check:*)",
     "Bash(amtool check-config:*)",
     "Bash(git log:*)",
-    "Bash(bash *bin/brg-runbook-check*)"
+    "Bash(bash *bin/brg-runbook-check*)",
+    "AskUserQuestion"
    ],
    "extra": {},
    "intro": "A pager is a contract between an alert and a person. This skill writes who is on the hook, how a page climbs, what each severity does and what a burnt error budget costs the roadmap, and it proves from the config (not from label names) that nothing pages without a runbook.",
    "sections": [
     {
      "title": "Inputs",
-     "lines": 32
+     "lines": 34
     },
     {
      "title": "Steps",
-     "lines": 91
+     "lines": 92
     },
     {
      "title": "Output contract",
@@ -9314,7 +9317,7 @@
     "Runbooks: `docs/runbooks/*.md`; absent means every paging alert lacks one.",
     "SLOs: `docs/observability/slos.md` (target, window, indicator, traffic volume if stated). Absent: propose 99.9 percent availability, marked proposed.",
     "Severity scale: `docs/operations/severity.md`. When it exists it is the routing rule; it is usually shared across teams, so a disagreement is proposed to its owners, never edited. Only when it is absent use: Sev 1 page any hour, Sev 2 page any hour, Sev 3 channel next business day, Sev 4 ticket, marked proposed.",
-    "People: the team table (README, CODEOWNERS teams, `.bearing/company.json`) with location, time zone, leave and departure dates. Unknown: ask once for names, zones and dates; otherwise `<rotation>` placeholders, counted.",
+    "People: the team table (README, CODEOWNERS teams, `.bearing/company.json`) with location, time zone, leave and departure dates. Unknown: ask once with AskUserQuestion (as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says), options \"enter names, zones and dates\" (free text via Other) and \"use placeholders\"; no answer or placeholders: `<rotation>` placeholders, counted.",
     "Paging tool: from config (`opsgenie_configs`, `pagerduty_configs`, `.env.example` keys), then the user, then prose. None: tool-neutral.",
     "ADRs and policies that constrain a freeze or a release (`docs/adr/`).",
     "`review`: a pasted export or `docs/postmortems/*.md` of the week; absent: \"0 pages examined\".",
@@ -9323,7 +9326,7 @@
    "steps": [
     "`setup`: write `docs/operations/on-call.md` from `templates/on-call.md`, Status Proposed until the team agrees; name nobody as approver. - Rotation from who is available on the start date: drop anyone who leaves before it, and note anyone on leave during the first shifts with the dates. Give the load: with N people on weekly primary plus secondary, each person is on call 2 weeks in every N. Under four people is a bu…",
     "`check`: find the paging set from routing, then the runbook for each. - Route walk: for each loaded rule, take its labels through the tree (first matching child wins unless `continue`; no match falls to the root receiver; matchers are exact and case-sensitive). The alerts that reach a paging receiver are the paging set, whatever their severity label says. A missing severity label, or a value like `ticket` with no ro…",
-    "`handover`: write `docs/operations/handover/<date>.md` from `templates/handover.md`: open incidents, silences with expiry, alerts that fired more than three times, changes this week (`git log --since='7 days ago' --format=%s`), risks next week, budget left. Ask once for what files cannot show; never invent a row.",
+    "`handover`: write `docs/operations/handover/<date>.md` from `templates/handover.md`: open incidents, silences with expiry, alerts that fired more than three times, changes this week (`git log --since='7 days ago' --format=%s`), risks next week, budget left. Ask once with AskUserQuestion, options \"enter it\" (free text via Other) and \"nothing more\", for what files cannot show; never invent a row.",
     "`review`: write `docs/operations/reviews/<date>.md` from `templates/weekly-review.md`: pages by alert and hour, out-of-hours count, actionable against not, MTTA and MTTR, alerts to tune or delete, budget and the freeze decision. Print \"N pages examined\".",
     "Report (contract below). Always list what the repo cannot do: the schedule, escalation policy and team in the paging tool; deploying or reloading changed rules and Alertmanager config (and by when, if the user named a date); tools not run."
    ],
@@ -9341,11 +9344,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 179,
+   "lines": 182,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 179
+     "lines": 182
     },
     {
      "path": "templates/handover.md",
@@ -9405,7 +9408,8 @@
     "Bash(git init:*)",
     "Bash(ls:*)",
     "Bash(diff:*)",
-    "Bash(make:*)"
+    "Bash(make:*)",
+    "AskUserQuestion"
    ],
    "extra": {},
    "intro": "An existing repository already has conventions: a CI file that is the real gate, a hook mechanism, a commit format, owners, a package manager, domain rules someone wrote down after a bad day. Adoption adds the standard's pieces *into* those conventions. The failure this skill exists to prevent is the confident one: a pile of template files, a hook path that silently turns the team's hooks off, a commit hook that rejects every subject in the history, a `make check` that is green locally and red in CI.",
@@ -9428,7 +9432,7 @@
     }
    ],
    "inputs": [
-    "repository: `git rev-parse --show-toplevel`; not a git repository: ask once whether to `git init`; on no, write the files and list hooks as not active under Not done.",
+    "repository: `git rev-parse --show-toplevel`; not a git repository: ask once with AskUserQuestion (as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says), options `git init` and \"no git\"; on no, write the files and list hooks as not active under Not done.",
     "working tree: `git status --porcelain`. Dirty files are the engineer's work in progress: never stash, revert, format or commit them; edit around them and list them in the report. Run the gate with them present.",
     "scope: what the request names (AGENTS.md, CLAUDE.md, `make check`, hooks, CODEOWNERS, rules). `--full`, or \"adopt the whole standard\", adds the rest of the standard's files, each still subject to the survey. Nothing outside scope is added.",
     "host: evidence in the repository wins: `git remote get-url origin`, `.gitlab-ci.yml` or `.gitlab/`, `.github/`. `BEARING_GIT_HOST` in the user's config is a default for new repositories and never adds `.github/` to a GitLab repository or `.gitlab/` to a GitHub one; pass `--host` explicitly.",
@@ -9851,11 +9855,11 @@
    "sections": [
     {
      "title": "Inputs",
-     "lines": 27
+     "lines": 28
     },
     {
      "title": "Steps",
-     "lines": 111
+     "lines": 110
     },
     {
      "title": "Output contract",
@@ -9867,12 +9871,12 @@
     }
    ],
    "inputs": [
-    "Product input: looks in `$1` as a file path, then a document attached to the message (the app hands over its path, or inlines a text file, which counts as pasted), then the text of the message, then `docs/product/PRD.md` to re-normalise; if absent, looks in `README.md` and `docs/**/*.md` for a brief or a feature list and, when none describes the product, asks one question for an attached document, a pasted brief or…",
+    "Product input: looks in `$1` as a file path, then a document attached to the message (the app hands over its path, or inlines a text file, which counts as pasted), then the text of the message, then `docs/product/PRD.md` to re-normalise; if absent, looks in `README.md` and `docs/**/*.md` for a brief or a feature list and, when none describes the product, asks one question with AskUserQuestion (as `${CLAUDE_PLUGIN_RO…",
     "Existing PRD: looks in `docs/product/PRD.md` for ids to keep; if absent, numbering starts at `REQ-001`.",
     "Templates: `templates/PRD.md` and `templates/questions.md` in this skill; no repository copy is needed.",
     "Existing register: looks in `docs/product/questions.md` for Q ids and decisions to keep; if absent, numbering starts at `Q-001`.",
-    "Input format: text formats are read as they are; a `.pdf` with Read (20 pages per call); a `.docx` or `.odt` by `scripts/doc_to_text.py` in this skill. Only a legacy `.doc`, a Google Doc or a Notion link gets one question asking for a `.docx`, PDF or text export. Detail: references/register-and-scope.md",
-    "Target repository: the git repository the session runs in (`git rev-parse --show-toplevel`). When the working directory is not one, or is a folder holding several repositories, ask one question for the product's repository path; never write `docs/product` into a parent folder.",
+    "Input format: text formats are read as they are; a `.pdf` with Read (20 pages per call); a `.docx` or `.odt` by `scripts/doc_to_text.py` in this skill. Only a legacy `.doc`, a Google Doc or a Notion link gets one AskUserQuestion, options \"enter an export path\" (`.docx`, PDF or text, via Other) and \"stop\". Detail: references/register-and-scope.md",
+    "Target repository: the git repository the session runs in (`git rev-parse --show-toplevel`). When the working directory is not one, or is a folder holding several repositories, ask one question with AskUserQuestion, options \"enter the repository path\" (via Other) and \"stop\"; never write `docs/product` into a parent folder.",
     "Repository decisions: `docs/adr/*.md` (or wherever the README keeps decisions) and the code that already handles the domain; if absent, the input is checked against itself only and the report says so.",
     "Existing stories: looks in `docs/product/stories.md` (or the tracker export the README names) for the story ids that carry each REQ; if absent, Affects stays on REQ ids."
    ],
@@ -9886,7 +9890,7 @@
     "Write the register from `templates/questions.md`: per entry the Kind (open-question, gap, contradiction), Where (the REQ id or section), Basis (stated, inferred, convention, assumption), every reading the input allows, the Decision taken so work is not blocked, Why, Affects (REQ ids, never empty; `backlog` replaces them with story ids) and Status `open`. Open assumptions go first and are listed again under \"Needs yo…",
     "Write `docs/product/PRD.md` and `docs/product/questions.md` (`mkdir -p docs/product`); section 7 of the PRD states the register's counts. Print the counts. Zero statements extracted is a failed run, not an empty PRD.",
     "Do not offer a critique. Only when the user asks for one, fork `critic` (Agent tool) with the document path and report its findings; a finding enters the register only when it meets the rule in step 7 (unclear about what gets built), never for business, delivery or legal doubts.",
-    "Resolve the register in this session; nothing is sent outside it. Run `python3 \"${CLAUDE_PLUGIN_ROOT}/skills/prd/scripts/register_answers.py\" rank` for the open entries, ranked (open assumptions first, then by how many statements each affects). Print the count and ask how to go through them (highest impact first in rounds of four, only the assumptions, or none now), then ask round by round with AskUserQuestion, up t…"
+    "Resolve the register in this session; nothing is sent outside it. Run `python3 \"${CLAUDE_PLUGIN_ROOT}/skills/prd/scripts/register_answers.py\" rank` for the open entries, ranked (open assumptions first, then by how many statements each affects). Print the count and ask how to go through them with AskUserQuestion: highest impact first in rounds of four, only the assumptions, or none now (the default if unanswered); th…"
    ],
    "output": "",
    "gotchas": [
@@ -9915,11 +9919,11 @@
     },
     {
      "path": "references/register-and-scope.md",
-     "lines": 36
+     "lines": 37
     },
     {
      "path": "references/resolve-register.md",
-     "lines": 29
+     "lines": 30
     },
     {
      "path": "references/step-6-boundaries.md",
@@ -11688,18 +11692,19 @@
     "Bash(griffe check:*)",
     "Bash(pnpm changeset status:*)",
     "Bash(pnpm exec nx show projects:*)",
-    "Bash(pnpm exec turbo run build --dry-run:*)"
+    "Bash(pnpm exec turbo run build --dry-run:*)",
+    "AskUserQuestion"
    ],
    "extra": {},
    "intro": "Version from what changed, changelog from the version, commands for the engineer. A service or app takes its version from what its consumers see: the commits, checked against the contract diff. A package (a library, an SDK, a CLI others install) takes it from its exported surface: `--package` adds the API diff, the pack check, the install snippet, the release order and provenance. Never tags, pushes or publishes.",
    "sections": [
     {
      "title": "Inputs",
-     "lines": 53
+     "lines": 52
     },
     {
      "title": "Steps",
-     "lines": 91
+     "lines": 92
     },
     {
      "title": "Output contract",
@@ -11711,9 +11716,9 @@
     }
    ],
    "inputs": [
-    "Mode: `--package [path]` for a library, SDK or CLI; if absent, a service or app. A path without the flag, or a workspace with no deployable entrypoint, asks once which mode.",
+    "Mode: `--package [path]` for a library, SDK or CLI; if absent, a service or app. A path without the flag, or a workspace with no deployable entrypoint, asks once which mode with AskUserQuestion (as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says), options service or app, and package.",
     "Release branch: `develop` (or `release/*`) as the current branch; if the repository has no `develop`, `main`; else the HEAD branch from `git remote show origin`; else the current branch. Say which.",
-    "Clean tree: `git status --porcelain`; if dirty, list the files and ask once: commit first, or continue (the report then says which files the release commit would sweep in).",
+    "Clean tree: `git status --porcelain`; if dirty, list the files and ask once with AskUserQuestion: commit first, or continue (the report then says which files the release commit would sweep in).",
     "Last tag: `git describe --tags --abbrev=0`; in a workspace `git tag -l '<name>@*'`; none means `v0.0.0` and everything counts. When the user names the last version, compare: a disagreement is reported, the tags win.",
     "Shipped but unmerged: `git tag --no-merged HEAD` and `git branch -a --no-merged HEAD` (`hotfix/*`, `release/*`). A release tag there is a version users run whose fix this branch lacks: releasing as-is regresses it. Resolve it per the written policy (merge the branch back, its test and CHANGELOG section with it, and say so), or stop and report it as the first blocker. Never describe the new version as containing a fi…",
     "Bump: `$1` overrides the derived bump, with a warning when it is lower.",
@@ -13047,18 +13052,19 @@
     "Bash(date:*)",
     "Bash(git ls-files:*)",
     "Bash(git log:*)",
-    "Bash(git blame:*)"
+    "Bash(git blame:*)",
+    "AskUserQuestion"
    ],
    "extra": {},
    "intro": "Debt is a loan with interest. The register names what each item costs every week and what paying it off costs once, so the next cleanup is chosen by arithmetic rather than by whoever complains loudest.",
    "sections": [
     {
      "title": "Inputs",
-     "lines": 19
+     "lines": 21
     },
     {
      "title": "Steps",
-     "lines": 27
+     "lines": 29
     },
     {
      "title": "Output contract",
@@ -13075,12 +13081,12 @@
     "marker patterns: `\\b(TODO|FIXME|HACK|XXX)\\b`; suppressions: `eslint-disable`, `@ts-ignore`, `@ts-expect-error`, `nolint`, `noqa`, `type: ignore`, `@Suppress`, `@SuppressWarnings`, `swiftlint:disable`, `#pragma warning disable`; skipped tests: `t.Skip(`, `pytest.mark.skip`, `it.skip(`, `test.skip(`, `xit(`, `xdescribe(`, `@Ignore`, `@Disabled`, `XCTSkip`; quarantine: `docs/testing/quarantine.md` rows and `quarantine`…",
     "owner: the team owning the path in `CODEOWNERS`; if absent, the last author from `git blame -L <line>,<line> --porcelain`; else `unowned`.",
     "interest and principal: numbers the user gives; if absent, estimated from the item with the `est.` prefix (interest in hours per week, principal in hours).",
-    "task id for `pay`: the id in the current branch name; if absent, ask once; with `BEARING_TRACKER=none` the row carries `task: none`."
+    "task id for `pay`: the id in the current branch name; if absent, ask once with AskUserQuestion (as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says), options \"enter the id\" (via Other) and \"no task\" (`task: none`, also the answer when unanswered); with `BEARING_TRACKER=none` the row carries `task: none`."
    ],
    "steps": [
     "Inventory the four classes over the file list. Print \"F files scanned: markers M, suppressions S, skipped tests T, quarantined Q\". F of zero: stop non-zero. All four zero: a valid result, written into the register as \"0 findings on <date>\".",
     "`seed`: one row per finding, grouped when the same text repeats in one file (count kept). Id `DEBT-nnn` continues from the highest in the register; ids are never reused. Description: the marker text or the suppressed rule or the skipped test name, with `file:line`. Interest `est.`: a skipped test is the regression it would have caught (high); a suppression is the bug class it hides; a marker is read for what it defe…",
-    "`add \"<description>\"`: one row; ask once, in one message, for interest per week, principal, trigger and owner.",
+    "`add \"<description>\"`: one row; ask once, in one AskUserQuestion call of three questions (interest per week with principal, trigger, owner), each with options \"enter it\" (via Other) and \"unknown\" (estimated or filled from Inputs; also the answer when unanswered).",
     "`review`: rank open rows by interest over principal; rows with an unknown number rank last under \"needs an estimate\". Rows whose trigger has fired (date passed, `git log -1 -- <file>` newer than the row's date, quarantine deadline passed) go to the top regardless. Print the top ten with triggers and the total interest per week.",
     "`pay <DEBT-nnn>`: print the row, the files, the tests that prove it is paid, and the branch command (`start-task <TASK-ID> Pay<Name>`). When the fix lands, move the row to Paid with the date and the task id (or `task: none`).",
     "Print the contract."
@@ -13097,11 +13103,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 97,
+   "lines": 101,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 97
+     "lines": 101
     },
     {
      "path": "templates/DEBT.md",
@@ -13264,7 +13270,8 @@
     "Bash(xcodebuild build-for-testing:*)",
     "Bash(git diff:*)",
     "Bash(python3 *skills/test-automation/scripts/ref_check.py*)",
-    "Bash(bash *bin/brg-kit-paths*)"
+    "Bash(bash *bin/brg-kit-paths*)",
+    "AskUserQuestion"
    ],
    "extra": {},
    "intro": "One row in `docs/testing/test-cases.md`, one test that carries its id. The suite is the stack's own (never a second framework) and each test mirrors the nearest existing test. This skill creates suites and generates tests; running the suites is `test-run` and healing failures is `test-heal`.",
@@ -13275,7 +13282,7 @@
     },
     {
      "title": "Steps",
-     "lines": 23
+     "lines": 26
     },
     {
      "title": "Output contract",
@@ -13298,8 +13305,8 @@
    ],
    "steps": [
     "Mode from `$1`: `suite` or `generate`; no argument runs suite then generate. Detect the stack and obtain the case table as in Inputs. In `generate` mode, zero rows with automation `planned` and zero gaps: report \"0 cases to generate\" and finish after the suite step.",
-    "Suite. Skip what exists; never replace a working suite. Detail: references/suite-setup.md",
-    "Generate. For each `planned` row (or the story or TC in `$2`), find the nearest existing test, then fork `test-writer` (Agent tool) with the row; the test name carries the TC id. Detail: references/generating-tests.md",
+    "Suite. Skip what exists; never replace a working suite; add a dependency only after one AskUserQuestion (as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says), options \"add <library>\" and \"do without\", no answer meaning without. Detail: references/suite-setup.md",
+    "Generate. For each `planned` row (or the story or TC in `$2`), find the nearest existing test, then fork `test-writer` (Agent tool) with the row; the test name carries the TC id; a property-testing library is added only on a yes to that same question. Detail: references/generating-tests.md",
     "Invented-API gate, before anything runs: the stack's type check, then `ref_check.py` over the new tests; print both results. Detail: references/verify-and-run.md",
     "Visual baselines: list every new or changed png for a person to look at. Detail: references/verify-and-run.md",
     "Prove the tests can fail: make the smallest mutation that breaks each rule covered, run, restore; mutations always reverted, never run against a shared environment. Detail: references/verify-and-run.md",
@@ -13321,11 +13328,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 133,
+   "lines": 136,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 133
+     "lines": 136
     },
     {
      "path": "references/generalist-misses.md",
@@ -13333,11 +13340,11 @@
     },
     {
      "path": "references/generating-tests.md",
-     "lines": 60
+     "lines": 61
     },
     {
      "path": "references/suite-setup.md",
-     "lines": 87
+     "lines": 88
     },
     {
      "path": "references/verify-and-run.md",
@@ -14307,14 +14314,15 @@
     "Bash(mkdir:*)",
     "Bash(wc:*)",
     "Bash(grep:*)",
-    "Bash(python3 *skills/ux-flows/scripts/flows_check.py*)"
+    "Bash(python3 *skills/ux-flows/scripts/flows_check.py*)",
+    "AskUserQuestion"
    ],
    "extra": {},
    "intro": "A flow package says what the user sees at every step, including when the thing fails, before anyone picks a typeface. Every screen names the stories it serves, every screen has a way forward and a way back, and every state has its copy written. Krug's rule governs the shape: three obvious clicks beat one click that needs thought.",
    "sections": [
     {
      "title": "Inputs",
-     "lines": 26
+     "lines": 29
     },
     {
      "title": "Steps",
@@ -14338,12 +14346,12 @@
     }
    ],
    "inputs": [
-    "Feature: looks in `$1`; if absent, asks one question.",
-    "Spec: looks in `$2`; if absent, `docs/product/backlog.md` (stories whose epic or title names the feature, with `US-` and `AC-` ids); if absent, `docs/product/PRD.md`; if absent, asks once for a ticket or a pasted brief, numbered `US-LOCAL-001` by this skill. Nothing after that: stop with \"provide stories, a PRD, a ticket or a brief\".",
+    "Feature: looks in `$1`; if absent, asks one question with AskUserQuestion (as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says), options \"enter the feature\" (via Other) and \"stop\".",
+    "Spec: looks in `$2`; if absent, `docs/product/backlog.md` (stories whose epic or title names the feature, with `US-` and `AC-` ids); if absent, `docs/product/PRD.md`; if absent, asks once with AskUserQuestion, options \"paste a ticket or brief\" (via Other, numbered `US-LOCAL-001` by this skill) and \"stop\". Nothing after that: stop with \"provide stories, a PRD, a ticket or a brief\".",
     "Existing screens: the code's routes, screens and page components, so names are reused; a green-field repository has none and every screen is marked `new`.",
     "The code behind the flow: the handlers, limits, plan or pricing tables and router the feature calls, and the ADRs; step 2 reconciles them with the spec.",
     "Event sheet: `docs/analytics/EVENT_SHEET.md`; if absent, the event column of the interaction inventory reads `no sheet` and no name is invented (`analytics-events` owns the taxonomy).",
-    "Previous version: `docs/design/flows/<feature>/flows.md` or the highest `flows-v<n>.md`; with `--feedback`, or when the request asks for changes to it, it is the base for the next version (see Re-issuing with feedback), and its review notes (`docs/design/reviews/`) and the tickets citing it are read too; otherwise ask once whether to iterate or overwrite.",
+    "Previous version: `docs/design/flows/<feature>/flows.md` or the highest `flows-v<n>.md`; with `--feedback`, or when the request asks for changes to it, it is the base for the next version (see Re-issuing with feedback), and its review notes (`docs/design/reviews/`) and the tickets citing it are read too; otherwise ask once with AskUserQuestion, options iterate and overwrite (no answer: iterate, the previous file sta…",
     "Template: `templates/flows.md` in this skill. Checklist: `references/flow-review.md`.",
     "Gate: `scripts/flows_check.py` in this skill, Python 3 only, run from the repository root; it parses the written file's inventory, mermaid flowcharts and state tables, never the model's counts."
    ],
@@ -14377,11 +14385,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 193,
+   "lines": 196,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 193
+     "lines": 196
     },
     {
      "path": "references/flow-review.md",
@@ -14457,7 +14465,8 @@
     "Bash(mkdir -p docs/security)",
     "Bash(mkdir -p .scratch)",
     "Bash(mkdir -p .scratch/vapt/*)",
-    "Bash(python3 *skills/vapt-report/scripts/collect_findings.py*)"
+    "Bash(python3 *skills/vapt-report/scripts/collect_findings.py*)",
+    "AskUserQuestion"
    ],
    "extra": {},
    "intro": "A release ships with a written security position or it does not ship. The scanners find; this skill decides what their output means for one commit and writes that down. claude-security (a researcher per component, three verifiers per finding) and gstack `/cso` (fifteen phases, a verifier per finding) out-find a single read-only pass, so they run first. What they do not do, and what goes wrong when a report is transcribed from them: they scan a scope (often only the diff) at a moment (often not the release commit), they report one bug at several lines, they have false positives, and they never check the working tree, the tag, the CHANGELOG or the deployment manifests. This skill does.",
@@ -14468,7 +14477,7 @@
     },
     {
      "title": "Steps",
-     "lines": 103
+     "lines": 106
     },
     {
      "title": "Output contract",
@@ -14491,7 +14500,7 @@
    ],
    "steps": [
     "Pin the release. `git rev-parse <version>^{commit}` is the release commit; `git log -1 --format=%cI <sha>` its time; the range start is the previous tag's commit time. Then `git status --porcelain` and `git diff --stat <sha>`: when the working tree is not the release commit (main ahead of the tag, uncommitted edits), every judgement is about the release commit. Read files with `git show <sha>:<path>`; for agents tha…",
-    "Collect the scanner findings: `python3 \"${CLAUDE_PLUGIN_ROOT}/skills/vapt-report/scripts/collect_findings.py\" --commit <sha> --commit-time <release commit time> --since <range start> --out .scratch/vapt-findings.json` It prints a counts line, a `coverage:` line per source, any `problem:` (stale, unreadable) and any `check: possible duplicate`. - No report: ask once which scanner to run. claude-security is the deeper…",
+    "Collect the scanner findings: `python3 \"${CLAUDE_PLUGIN_ROOT}/skills/vapt-report/scripts/collect_findings.py\" --commit <sha> --commit-time <release commit time> --since <range start> --out .scratch/vapt-findings.json` It prints a counts line, a `coverage:` line per source, any `problem:` (stale, unreadable) and any `check: possible duplicate`. - No report: ask once which scanner to run, with AskUserQuestion (as `${C…",
     "Look where the scanners did not. A diff-scoped scan (`coverage: changes`, `/cso diff`) never saw code the range did not touch, yet a fallback secret in an unchanged config loader ships in every release. When `insecure-defaults:audit` is installed, load it (Skill tool) with scope `.`; its confirmed findings join the table with source `insecure-defaults`, its counts on their own line; `no-candidates` is \"0 candidates\"…",
     "Triage every row. This is the job; a table copied from the scanners is not a position. - Confirm each Critical and High, and anything else that decides the release, in the release commit's code: quote the line that makes it true. A scanner's \"verified\" is a vote at its scanned commit, not proof at this one. A row the code refutes goes under \"Refuted\" with the quoted line and is not counted. - Merge by root cause, no…",
     "Link the threat model. A confirmed finding in a threat's component or at its mitigation's `file:line` means that mitigation does not hold; cite the threat id and say what the threat model claims versus the code. A `planned` threat with no mitigation at the release commit is open risk. Count threats read, linked and planned-still-open.",
@@ -14506,11 +14515,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 174,
+   "lines": 177,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 174
+     "lines": 177
     },
     {
      "path": "scripts/collect_findings.py",
@@ -14558,14 +14567,15 @@
     "Bash(python3 *skills/verify-deploy/scripts/verify_deploy.py*)",
     "Bash(/usr/bin/python3 *skills/verify-deploy/scripts/verify_deploy.py*)",
     "Bash(make synthetic:*)",
-    "Bash(make -n synthetic:*)"
+    "Bash(make -n synthetic:*)",
+    "AskUserQuestion"
    ],
    "extra": {},
    "intro": "The engineer deploys; this skill checks what landed. One committed file says where each environment lives and what \"up\" means there, so the check after a deploy is the same list every time, in the same order, with a report that counts what it examined. It reads over GET only and never deploys, redeploys, rolls back or writes to a server.",
    "sections": [
     {
      "title": "Inputs",
-     "lines": 26
+     "lines": 29
     },
     {
      "title": "Steps",
@@ -14581,7 +14591,7 @@
     }
    ],
    "inputs": [
-    "environment: `$1` (`dev`, `qa`, `staging`, `prod` or any section name in the file); if absent, ask once which environment was deployed.",
+    "environment: `$1` (`dev`, `qa`, `staging`, `prod` or any section name in the file); if absent, ask once which environment was deployed, with AskUserQuestion (as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says), options the environment sections found (up to four; any other via Other) and \"stop\"; no answer: stop.",
     "environments file: `docs/environments.md`; if absent, copied from `templates/environments.md` and the run stops for the engineer to fill it (step 1). Never guess a URL from `.env.example`, the README, CI variables or a naming pattern.",
     "expected version: `$2`, the commit or tag the engineer says was deployed. If absent, find how the environment is deployed (README, CI file): an environment deployed from tags may use the latest tag from `git describe --tags --abbrev=0`, said so; an environment deployed from a branch (qa from develop, say) has no tag to compare, and neither the latest tag nor this checkout's HEAD is what went out. Then ask once for t…",
     "the checker: `scripts/verify_deploy.py` in this skill, python3 standard library only.",
@@ -14614,11 +14624,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 181,
+   "lines": 184,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 181
+     "lines": 184
     },
     {
      "path": "scripts/verify_deploy.py",
@@ -17420,7 +17430,7 @@
   {
    "name": "lint-questions",
    "does": "A skill that asks the user does it with AskUserQuestion and follows references/console.md",
-   "inCheck": false
+   "inCheck": true
   },
   {
    "name": "lint-triggers",
@@ -17547,6 +17557,7 @@
   "validate",
   "lint-skills",
   "lint-skill-size",
+  "lint-questions",
   "lint-tools",
   "lint-evals",
   "lint-triggers",
