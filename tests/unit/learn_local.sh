@@ -92,9 +92,30 @@ assert_not_contains "$(cat "$lg")" 'bearing:prd'
 assert_exit 0 bash "$L" top --skills "prd" --n 20
 assert_contains "$T_OUT" "- prd rerun (1x)"
 assert_exit 0 bash "$L" top --skills "adr" --n 20
-assert_contains "$T_OUT" "- stop gate lesson (1x)"
-assert_contains "$T_OUT" "- check file lesson (1x)"
+assert_contains "$T_OUT" "- check file lesson (1x)" "the most recent gate lesson"
+assert_not_contains "$T_OUT" "- stop gate lesson" "one gate line only"
 assert_not_contains "$T_OUT" "prd rerun"
+t_end
+t_begin "gate blocks never crowd out the next step: one line, after its entries"
+h="$(tmpdir)"; mkdir -p "$h/bearing"; echo BEARING_LEARNING=on > "$h/bearing/bearing.env"
+hl() { XDG_CONFIG_HOME="$h" bash "$L" "$@"; }
+for i in 1 2 3 4 5; do hl log --kind gate-block --skill stop-gate --key mk --insight "stop gate lesson"; done
+for i in 1 2 3 4; do hl log --kind gate-block --skill check-file --key cf --insight "check file lesson"; done
+hl log --kind rerun --skill adr --key a1 --insight "adr one"
+hl log --kind manual --skill adr --key a2 --insight "adr two"
+hl log --kind manual --skill general --key g1 --insight "general tip"
+assert_exit 0 hl top --skills "adr" --n 5
+assert_eq 1 "$(printf '%s\n' "$T_OUT" | grep -c 'gate lesson\|file lesson')" "one gate line"
+assert_contains "$(printf '%s\n' "$T_OUT" | tail -1)" "stop gate lesson (5x)" "the gate line comes last"
+assert_contains "$T_OUT" "- adr one (1x)"
+assert_contains "$T_OUT" "- adr two (1x)"
+assert_contains "$T_OUT" "- general tip (1x)"
+assert_exit 0 hl top --skills "adr" --n 2
+assert_not_contains "$T_OUT" "lesson" "the step's own entries fill a short list"
+assert_eq 2 "$(printf '%s\n' "$T_OUT" | grep -c .)" "two lines"
+assert_exit 0 hl top --skills "prd" --n 5
+assert_eq "- general tip (1x)
+- stop gate lesson (5x)" "$T_OUT" "no step entries: general, then one gate line"
 t_end
 t_begin "add stores a manual entry and list reads it"
 bash "$L" add "run the linter first" --skill general >/dev/null

@@ -5,7 +5,8 @@
 #   log --kind K --skill S --key K --insight T
 #                                           K is gate-block|rerun|override|manual; only when on
 #   add "<text>" [--skill S]                a manual entry
-#   top --skills "a b" [--n N]              "- <insight> (<count>x)", count then recency
+#   top --skills "a b" [--n N]              "- <insight> (<count>x)", count then recency;
+#                                           at most one gate-block line, last
 #   list                                    every entry, "<count>x  <skill>  <insight>"
 #   propose [--out FILE]                    a redacted issue body of entries seen 3+ times, and the
 #                                           gh command for the engineer to run (never run here);
@@ -76,10 +77,13 @@ case "$sub" in
   top)
     [ -f "$f" ] || exit 0
     case "$n" in ''|*[!0-9]*) n=5;; esac
+    # The next step's own entries and general ones, ranked; then at most one
+    # gate-block line (stop-gate, check-file), only in the room they leave.
     jq -cR 'fromjson? | select(type=="object")' "$f" 2>/dev/null | jq -r -s --arg s " $skills " --argjson n "$n" '
-      map(select((.skill | sub("^.*:"; "")) as $k
-        | $k == "general" or $k == "stop-gate" or $k == "check-file" or ($s | contains(" " + $k + " "))))
-      | sort_by([.count, .ts]) | reverse | .[:$n] | .[] | "- \(.insight) (\(.count)x)"' 2>/dev/null;;
+      map(. + {k: (.skill | sub("^.*:"; ""))})
+      | (map(select(.k as $k | $k == "general" or ($s | contains(" " + $k + " ")))) | sort_by([.count, .ts]) | reverse | .[:$n]) as $own
+      | (map(select(.k == "stop-gate" or .k == "check-file")) | sort_by([.count, .ts]) | reverse | .[:1]) as $gate
+      | ($own + (if ($own | length) < $n then $gate else [] end)) | .[] | "- \(.insight) (\(.count)x)"' 2>/dev/null;;
   list) [ -f "$f" ] && { jq -cR 'fromjson? | select(type=="object")' "$f" 2>/dev/null | jq -r -s 'sort_by([.count, .ts]) | reverse | .[] | "\(.count)x  \(.skill)  \(.insight)"' 2>/dev/null; };;
   propose)
     out="${out:-.scratch/learn-proposal.md}"
