@@ -84,7 +84,8 @@ story per line. Detail: references/register-and-scope.md
    sections is one REQ citing both lines. A long input (more than 150 lines or 60 bullets) is drafted in parallel:
    split it at top-level headings into 3 to 6 contiguous ranges (never inside a
    list or a table), fork one `prd-drafter` agent per range in a single
-   message, merge in source order, check every draft against the rules above,
+   message, each given the source file path, its range and the product name,
+   merge in source order, check every draft against the rules above,
    and only then number after the highest existing id. Steps 3, 5, 6 and 7
    stay in this session; a range whose drafter returned nothing is drafted
    here, never skipped; print the ranges and each drafter's count. Detail: references/parallel-drafting.md
@@ -133,8 +134,7 @@ story per line. Detail: references/register-and-scope.md
     treating it as existing); new statements follow step 6. Then list every
     story carrying a withdrawn, replaced or blocked id (in progress first) and
     the code or tests citing it (grep for it). Never edit stories, tests or
-    code from this skill; name them for the user. Detail:
-    references/changes-to-an-existing-prd.md
+    code from this skill; name them for the user. Detail: references/changes-to-an-existing-prd.md
 8. Write `docs/product/PRD.md` and `docs/product/questions.md`
    (`mkdir -p docs/product`); section 7 of the PRD states the register's
    counts. Print the counts. Zero statements extracted is a failed run, not an

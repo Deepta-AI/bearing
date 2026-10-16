@@ -5833,7 +5833,7 @@
     },
     {
      "title": "Steps",
-     "lines": 99
+     "lines": 95
     },
     {
      "title": "Output contract",
@@ -5886,11 +5886,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 198,
+   "lines": 194,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 198
+     "lines": 194
     },
     {
      "path": "references/catalog-and-formatting.md",
@@ -8289,7 +8289,7 @@
     },
     {
      "path": "references/stack-and-versions.md",
-     "lines": 28
+     "lines": 33
     },
     {
      "path": "references/traps-actions.md",
@@ -9298,7 +9298,7 @@
     },
     {
      "title": "Steps",
-     "lines": 121
+     "lines": 120
     },
     {
      "title": "Output contract",
@@ -9320,17 +9320,9 @@
    "steps": [
     "**Survey.** Record each fact with the file or command that shows it; the rest of the run is checked against this list. - Gate: every CI job (`.gitlab-ci.yml`, `.github/workflows/*`): working directory, commands, flags, variables, services, `allow_failure`, rules. Run each offline job's commands locally, exactly as written, and note the counts (files linted, tests run, skipped, deselected). - Scripts CI calls: changi…",
     "**Preview the standard, off the live repository.** Clone it into a temporary folder (`mktemp -d`, then `git clone -q . \"$preview\"`) and run `bash \"${CLAUDE_PLUGIN_ROOT}/bin/brg-adopt\" --dir \"$preview\" --host <host>` (add `--stack <id>` for the main service's stack). Never run the adopter on the live repository: it writes every file in the standard, a root CODEOWNERS, and sets `core.hooksPath` when it is unset, which…",
-    "**Makefile and `make check`.** `make check` is CI's blocking jobs, run locally, in each job's directory, with each job's flags and variables. For each job, one target; `check` depends on the offline ones.",
-    "Keep every existing target and what it does; add prerequisites and targets, never replace a recipe wholesale.",
-    "Copy CI's variables into the targets (`TZ=UTC` in CI means the gate sets `TZ=UTC`; a suite that passes only under it is a finding to report, not a test or source file to edit).",
-    "A job that needs a service or secret (database, cloud credentials) gets its own target that fails loudly when its variable is missing, and stays out of `check`; `check` must pass on a laptop with no network, and the report says CI covers that job. A skipped gate that fails `check` makes the gate useless; one that passes silently hides it; print what was not run. - Fail on what CI fails on (a lister such as gofmt -l…",
-    "Compare counts with CI's, including skips: a job variable that unlocks a test belongs in the target, or `check` passes on less. Detail: references/makefile-and-hooks.md",
-    "The adopter's `check` recipe ends with a `.bearing/state/.check-passed` marker. Bearing's Stop gate reads it and nothing else does: keep it only when the team uses the Bearing plugin in this repository, with `.bearing/state/` ignored, and say so in Changed; otherwise leave it out. - Do not change CI unless asked. If you make CI call make targets, keep every job, image, service and variable.",
+    "**Makefile and `make check`.** `make check` is CI's blocking jobs, run locally, in each job's directory, with each job's flags and variables. For each job, one target; `check` depends on the offline ones. - Keep every existing target and what it does; add prerequisites and targets, never replace a recipe wholesale. - Copy CI's variables into the targets (`TZ=UTC` in CI means the gate sets `TZ=UTC`; a suite that pass…",
     "**AGENTS.md and CLAUDE.md.** AGENTS.md is for this repository, not the template: what it is (each service, its language, its folder), the exact commands you proved in step 3, the commit format the team uses, the domain rules from existing notes, and the traps the survey found (append-only migrations, tracked secrets, the time-zone dependence). Take a rule from the template only when it holds for this stack (no TypeS…",
-    "**Hooks: one mechanism, the team's.** Add the standard's checks into the mechanism already in use, never beside it.",
-    "`core.hooksPath` set (Husky's `.husky`, a `tools/githooks`): leave it; call the new hook from that directory's hook, or add the new hook file there. The `setup` target and the live value must agree.",
-    "Pre-commit framework in `.git/hooks`: leave `core.hooksPath` unset and `.pre-commit-config.yaml`'s existing hooks untouched; a new check goes in as a `repo: local` hook (a new hook type needs `pre-commit install --hook-type <type>` per clone: say so), or stays inactive with the wiring step in the report. - Nothing in place: `.githooks/` with `bash .githooks/install.sh`.",
-    "Fit every hook you write, active or not, to the survey: run the commit-msg hook on every subject in the history (up to the last 100) and get zero rejections by following the team's format, not the kit's; drop pre-push rules the practice breaks (push from main, task-id branch names, terminal confirmation, refusing a push of zero new commits such as a tag); a pre-commit hook must let a reword (`--amend` with nothing s…",
+    "**Hooks: one mechanism, the team's.** Add the standard's checks into the mechanism already in use, never beside it. - `core.hooksPath` set (Husky's `.husky`, a `tools/githooks`): leave it; call the new hook from that directory's hook, or add the new hook file there. The `setup` target and the live value must agree. - Pre-commit framework in `.git/hooks`: leave `core.hooksPath` unset and `.pre-commit-config.yaml`'s e…",
     "**The rest of scope.** CODEOWNERS only where the host reads it first and only with real handles (the team's existing file, or `--lead`/`--group` from the engineer); a placeholder owner blocks every approval, so no handles means no file and a line under Not done. `.claude/settings.json` only when not ignored (narrow the ignore to `.claude/settings.local.json` when the team wants shared settings) and with the reposito…",
     "**Prove it.** Run `make check` for real with the dirty tree present and compare its counts with step 1's direct runs; run it once with CI's variables absent from your shell to show the Makefile sets them. Dry-run each hook (commit-msg on the history's subjects, pre-commit on a staged scratch file, then unstage). A hook run by hand is not a commit through git: say which you did. `git diff --stat` against the survey:…",
     "**Report** (Output contract). Leave the commit to the engineer: print the list of files to add and a commit command in the team's format."
@@ -9348,11 +9340,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 209,
+   "lines": 208,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 209
+     "lines": 208
     },
     {
      "path": "references/makefile-and-hooks.md",
@@ -13989,7 +13981,7 @@
    "sections": [
     {
      "title": "Inputs",
-     "lines": 30
+     "lines": 31
     },
     {
      "title": "Steps",
@@ -14040,11 +14032,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 208,
+   "lines": 209,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 208
+     "lines": 209
     },
     {
      "path": "references/adapters-and-payloads.md",

@@ -66,8 +66,7 @@ lint config) outrank every default below.
 3. Count the hard-coded strings. Grep, per stack, for text a user would read,
    strings built with `+` or template literals around a value, and enum names
    or API `message` fields rendered as text. Exclude tests, storybook and
-   fixtures. Print the count before any change. Detail:
-   references/catalog-and-formatting.md
+   fixtures. Print the count before any change. Detail: references/catalog-and-formatting.md
 4. Set up the catalog if missing (react-i18next with ICU or an existing in-repo
    lookup on web and RN; `res/values/strings.xml` plus `values-<lang>/` with
    `<plurals>` on Android; `Localizable.xcstrings` with `String(localized:)` on
@@ -95,8 +94,7 @@ lint config) outrank every default below.
    decision says otherwise; a visible change in date shape or zone is listed as
    a Proposed decision in the report. Update the tests that asserted the old
    output to the new output with an explicit locale; never delete a money or
-   date test without its replacement. Detail:
-   references/catalog-and-formatting.md
+   date test without its replacement. Detail: references/catalog-and-formatting.md
 6. Errors: the UI never shows a server `message` meant for logs. Map each
    documented `code` or `messageKey` to a catalog message, one key per code,
    with a generic catalog message for any unknown code and for network
@@ -110,14 +108,12 @@ lint config) outrank every default below.
    resolves to its sibling catalog); the catalog loader, the formatters and the
    document `lang` and `dir` (web) all read the result. Do not add
    `Accept-Language` headers or change API calls unless the API contract asks
-   for it; say so as a follow-up instead. Detail:
-   references/resolution-rtl-and-fallback.md
+   for it; say so as a follow-up instead. Detail: references/resolution-rtl-and-fallback.md
 8. RTL: `dir` on `html` from the resolved locale (web), `I18nManager` (RN),
    `android:supportsRtl="true"` with start and end everywhere (Android),
    leading and trailing (iOS). Direction icons mirror; values that stay left to
    right inside RTL text (tracking IDs, emails, amounts) are bidi-isolated.
-   List what was not rendered. Detail:
-   references/resolution-rtl-and-fallback.md
+   List what was not rendered. Detail: references/resolution-rtl-and-fallback.md
 9. Untranslated text never reaches a user as a marker. A new locale file
    carries every key; a key not yet translated holds the default text, and its
    status lives outside the displayed value: a translator worklist file, XLIFF

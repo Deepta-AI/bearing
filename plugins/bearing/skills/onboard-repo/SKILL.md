@@ -92,12 +92,12 @@ and the standard's rule is offered as a Proposed change in the report.
 3. **Makefile and `make check`.** `make check` is CI's blocking jobs,
    run locally, in each job's directory, with each job's flags and
    variables. For each job, one target; `check` depends on the offline ones.
-- Keep every existing target and what it does; add prerequisites and targets,
+   - Keep every existing target and what it does; add prerequisites and targets,
      never replace a recipe wholesale.
-- Copy CI's variables into the targets (`TZ=UTC` in CI means the gate sets
+   - Copy CI's variables into the targets (`TZ=UTC` in CI means the gate sets
      `TZ=UTC`; a suite that passes only under it is a finding to report, not a
      test or source file to edit).
-- A job that needs a service or secret (database, cloud credentials) gets its
+   - A job that needs a service or secret (database, cloud credentials) gets its
      own target that fails loudly when its variable is missing, and stays out
      of `check`; `check` must pass on a laptop with no network, and the report
      says CI covers that job. A skipped gate that fails `check` makes the gate
@@ -109,10 +109,9 @@ and the standard's rule is offered as a Proposed change in the report.
    - The gate must pass on this machine with no arguments: resolve tools the way
      the engineer's shell does (the interpreter behind `pytest` on PATH), keep it
      overridable, and fail with the install line only when none has it.
-- Compare counts with CI's, including skips: a job variable that unlocks a test
-     belongs in the target, or `check` passes on less. Detail:
-     references/makefile-and-hooks.md
-- The adopter's `check` recipe ends with a `.bearing/state/.check-passed`
+   - Compare counts with CI's, including skips: a job variable that unlocks a test
+     belongs in the target, or `check` passes on less. Detail: references/makefile-and-hooks.md
+   - The adopter's `check` recipe ends with a `.bearing/state/.check-passed`
      marker. Bearing's Stop gate reads it and nothing else does: keep it only
      when the team uses the Bearing plugin in this repository, with
      `.bearing/state/` ignored, and say so in Changed; otherwise leave it out.
@@ -129,16 +128,16 @@ and the standard's rule is offered as a Proposed change in the report.
    wrote, especially a "things Claude gets wrong" list.
 5. **Hooks: one mechanism, the team's.** Add the standard's checks into the
    mechanism already in use, never beside it.
-- `core.hooksPath` set (Husky's `.husky`, a `tools/githooks`): leave it; call
+   - `core.hooksPath` set (Husky's `.husky`, a `tools/githooks`): leave it; call
      the new hook from that directory's hook, or add the new hook file there.
      The `setup` target and the live value must agree.
-- Pre-commit framework in `.git/hooks`: leave `core.hooksPath` unset and
+   - Pre-commit framework in `.git/hooks`: leave `core.hooksPath` unset and
      `.pre-commit-config.yaml`'s existing hooks untouched; a new check goes in
      as a `repo: local` hook (a new hook type needs
      `pre-commit install --hook-type <type>` per clone: say so), or stays
      inactive with the wiring step in the report.
    - Nothing in place: `.githooks/` with `bash .githooks/install.sh`.
-- Fit every hook you write, active or not, to the survey: run the commit-msg
+   - Fit every hook you write, active or not, to the survey: run the commit-msg
      hook on every subject in the history (up to the last 100) and get zero
      rejections by following the team's format, not the kit's; drop pre-push
      rules the practice breaks (push from main, task-id branch names, terminal

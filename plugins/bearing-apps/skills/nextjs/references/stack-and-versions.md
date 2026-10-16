@@ -17,6 +17,11 @@ Next when pages must render on the server (SEO, first paint, data close
 to the request); choose React when the app lives behind a login and an
 API already exists.
 
+Hard rules anywhere: 1, 2, 3, 4 and 8. Advisory: the directory layout,
+`src/`, shadcn/ui, Tailwind tokens (rule 7 applies only where Tailwind
+is configured), pnpm and the Makefile targets: use the styling, data
+library and package manager the repository already has (a Pages Router
+app keeps `getServerSideProps` until an ADR moves it); propose a switch
 in an ADR, never inside a feature change. Rule 4 in its written form needs
 `cacheComponents`; an app without it (Next 15, or 16 not yet migrated)
 keeps the fetch-level model, where every `fetch` names its cache and a

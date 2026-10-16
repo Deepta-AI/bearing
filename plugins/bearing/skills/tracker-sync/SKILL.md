@@ -48,8 +48,9 @@ brg-tracker doc-put --title <s> --file <f> [--type t] [--parent <id>] [--source 
 
 The document commands exist on the REST tracker only (elsewhere they print
 `documents: not supported` and exit 3); on rest, `create` and `update` also
-take `--document <id>`. Adapter facts are in the header comment of
-`bin/brg-tracker` and of each adapter script. Detail: references/adapters-and-payloads.md
+take `--document <id>`. Adapter facts (hierarchy, how `--parent` maps, status
+names, configuration keys) are in the header comment of `bin/brg-tracker` and
+of each adapter script; read the one for the configured tracker. Detail: references/adapters-and-payloads.md
 
 ## Steps
 

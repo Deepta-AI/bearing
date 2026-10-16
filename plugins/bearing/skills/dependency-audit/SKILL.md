@@ -76,36 +76,36 @@ commit. The plan is ordered by what can hurt, not by what is newest.
      package (say which were checked by hand).
    - infra: `terraform providers` and
      `terraform init -upgrade=false -backend=false` to read the lock; compare
-     with the registry versions in the constraint. Zero packages audited in a
-     detected stack is a failure, not a clean result. Then the supply-chain
-     checks no audit tool makes, for every stack at once:
-     `python3 "${CLAUDE_PLUGIN_ROOT}/skills/dependency-audit/scripts/supply-chain.py" --root .`
-     It checks that every manifest has its lockfile and that git tracks it, and
-     lists every production dependency (the `dependencies` closure, never
-     `devDependencies`) that runs a `preinstall`, `install` or `postinstall`
-     script, reading the installed `node_modules`. Native builds
-     (`binding.gyp`, a bare `node-gyp rebuild`) are listed as expected. Its
-     count line goes in the report verbatim. Severity: an unexpected install
-     script or a missing lockfile in an application is HIGH; an untracked
-     lockfile is MEDIUM; a library that leaves its lockfile out on purpose is
-     not a finding, and the report says which manifest was judged a library. A
-     `package.json` with no `node_modules` is "not checked", never clean. Then
-     the risk the audit tools do not measure, for npm, PyPI and Go manifests:
-     when the `supply-chain-risk-auditor` skill is installed, load it through
-     the Skill tool and follow its workflow, writing its output to
-     `.scratch/supply-chain-findings.json` and
-     `.scratch/supply-chain-report.md`. It never installs or upgrades anything,
-     so this skill still classifies, plans, applies and gates. Its advisories
-     join the `vulnerable` rows; an abandoned or archived dependency goes in
-     the replace group, judged by the engineer, never swapped here. For a pnpm
-     project its transitive sweep falls back to the pins and the report says
-     so. Quote the assessed counts from its coverage table verbatim; its
-     unassessable rows are not findings and not clean. Do not start it when the
-     host is offline or every dependency is private: write
-     "supply-chain-risk-auditor: not run (offline)" or "(private modules
-     only)"; write "supply-chain-risk-auditor: not run (<reason>)" and continue
-     when the skill is not installed or the stack is android, ios or infra.
-     Detail: references/go-and-supply-chain.md
+     with the registry versions in the constraint.
+   Zero packages audited in a detected stack is a failure, not a clean result.
+   Then the supply-chain checks no audit tool makes, for every stack at once:
+   `python3 "${CLAUDE_PLUGIN_ROOT}/skills/dependency-audit/scripts/supply-chain.py" --root .`
+   It checks that every manifest has its lockfile and that git tracks it, and
+   lists every production dependency (the `dependencies` closure, never
+   `devDependencies`) that runs a `preinstall`, `install` or `postinstall`
+   script, reading the installed `node_modules`. Native builds (`binding.gyp`,
+   a bare `node-gyp rebuild`) are listed as expected. Its count line goes in
+   the report verbatim. Severity: an unexpected install script or a missing
+   lockfile in an application is HIGH; an untracked lockfile is MEDIUM; a
+   library that leaves its lockfile out on purpose is not a finding, and the
+   report says which manifest was judged a library. A `package.json` with no
+   `node_modules` is "not checked", never clean.
+   Then the risk the audit tools do not measure, for npm, PyPI and Go
+   manifests: when the `supply-chain-risk-auditor` skill is installed, load it
+   through the Skill tool and follow its workflow, writing its output to
+   `.scratch/supply-chain-findings.json` and `.scratch/supply-chain-report.md`.
+   It never installs or upgrades anything, so this skill still classifies,
+   plans, applies and gates. Its advisories join the `vulnerable` rows; an
+   abandoned or archived dependency goes in the replace group, judged by the
+   engineer, never swapped here. For a pnpm project its transitive sweep falls
+   back to the pins and the report says so. Quote the assessed counts from its
+   coverage table verbatim; its unassessable rows are not findings and not
+   clean. Do not start it when the host is offline or every dependency is
+   private: write "supply-chain-risk-auditor: not run (offline)" or "(private
+   modules only)"; write "supply-chain-risk-auditor: not run (<reason>)" and
+   continue when the skill is not installed or the stack is android, ios or
+   infra.
+   Detail: references/go-and-supply-chain.md
 3. Classify each finding: `vulnerable` (with the advisory id, the fixed
    version, and whether the vulnerable symbol is reached from the code, with
    the call path), `patch`, `minor`, `major`, `held` (with the ADR or pin that
