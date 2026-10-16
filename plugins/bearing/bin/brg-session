@@ -23,7 +23,7 @@ while [ $# -gt 0 ]; do
 done
 root="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 0
 [ -d "$root/.bearing" ] || exit 0
-case "$sub" in timeline-start|timeline-close|timeline-recent|not-run) ;; *) exit 0;; esac
+case "$sub" in timeline-start|timeline-close|timeline-recent|not-run|checkpoint) ;; *) exit 0;; esac
 st="$root/.bearing/state"; mkdir -p "$st"; tl="$st/timeline.jsonl"
 [ -n "$branch" ] || branch="$(git -C "$root" branch --show-current 2>/dev/null)"; branch="${branch:-detached}"
 esc() { # JSON string body: escape \ and ", encode \n \r \t, drop other control characters
@@ -58,5 +58,36 @@ case "$sub" in
       skill_of | tail -n "$n";;
   not-run) # not-run --skill <reason>: same line format as brg-guard gate_log
     printf '%s\ttimeline\tnot-run\t0\t%s\n' "$(date +%Y-%m-%dT%H:%M:%S)" "$(printf '%s' "$skill" | tr '\t\n' '  ' | cut -c1-120)" >> "$st/gates.log";;
+  checkpoint)
+    t0="$(date +%s)"
+    task=""; re='[A-Z][A-Z0-9]*(-[0-9]+)+'
+    [[ "$branch" =~ $re ]] && task="${BASH_REMATCH[0]}"
+    base=none; bsha=none
+    for cand in origin/HEAD main; do
+      if git -C "$root" rev-parse -q --verify "$cand" >/dev/null 2>&1; then
+        base="$cand"; bsha="$(git -C "$root" rev-parse --short "$cand" 2>/dev/null || echo none)"; break
+      fi
+    done
+    ab=""
+    [ "$base" = none ] || ab="$(git -C "$root" rev-list --left-right --count "$base...HEAD" 2>/dev/null | awk '{print $2"/"$1}')"
+    unc="$(git -C "$root" status --porcelain 2>/dev/null | wc -l | tr -d ' ')"
+    recent="$(bash "$0" timeline-recent --branch "$branch" --n 3 2>/dev/null | tr '\n' ',' | sed 's/,$//; s/,/, /g')"
+    nxt="$(bash "$0" next-step --branch "$branch" 2>/dev/null)"
+    bf="$(printf '%s' "$branch" | tr '/' '_')"
+    sf="$st/$bf.md"; sn=""
+    [ -f "$sf" ] && sn="$(grep -m1 '^Next:' "$sf" | sed 's/^Next: *//')"
+    out="$st/$bf.checkpoint.md"
+    {
+      echo "# Checkpoint $(date -u '+%Y-%m-%d %H:%M') UTC"
+      echo "Task: ${task:-none}"
+      echo "Branch: $branch"
+      echo "Base: $base $bsha"
+      echo "Ahead/behind: ${ab:-0/0}"
+      echo "Uncommitted: $unc file(s)"
+      echo "Recent skills: ${recent:-none}"
+      echo "Next flow step: ${nxt:-unknown}"
+      echo "Next (from state file): ${sn:-none}"
+    } > "$out.tmp" && mv "$out.tmp" "$out"
+    printf '%s\tcheckpoint\twritten\t%s\t\n' "$(date +%Y-%m-%dT%H:%M:%S)" "$(( ($(date +%s) - t0) * 1000 ))" >> "$st/gates.log";;
 esac
 exit 0

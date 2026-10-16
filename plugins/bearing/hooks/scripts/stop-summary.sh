@@ -10,4 +10,5 @@ guard="$(dirname "$0")/../../bin/brg-guard"
 set -- --id "$(json_field session_id)"
 [ "$(json_field stop_hook_active)" = "true" ] && set -- "$@" --active
 bash "$(dirname "$0")/../../bin/brg-session" timeline-close --id "$(json_field session_id)" >/dev/null 2>&1
+bash "$(dirname "$0")/../../bin/brg-session" checkpoint >/dev/null 2>&1
 block_or_print "$guard" stop-gate "$@"

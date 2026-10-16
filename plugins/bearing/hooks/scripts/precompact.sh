@@ -5,4 +5,5 @@
 set -u
 # shellcheck source=lib.sh
 . "$(dirname "$0")/lib.sh"
+bash "$(dirname "$0")/../../bin/brg-session" checkpoint >/dev/null 2>&1
 exec bash "$(dirname "$0")/../../bin/brg-guard" precompact "$(json_field transcript_path)"

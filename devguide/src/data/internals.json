@@ -5,12 +5,12 @@
   "commandSkills": 0,
   "stackSkills": 12,
   "scripts": 88,
-  "scriptLines": 28671,
+  "scriptLines": 28704,
   "hooks": 7,
   "agents": 8,
   "makeTargets": 30,
   "gates": 17,
-  "tests": 85,
+  "tests": 86,
   "fixtures": 21,
   "stacks": 13,
   "templates": 38,
@@ -15346,7 +15346,7 @@
    "name": "brg-session",
    "lang": "bash",
    "group": "quality",
-   "lines": 62,
+   "lines": 93,
    "header": "brg-session: session memory for Bearing, all local and model-free.\n  timeline-start --id <sid> --skill <name>   record a skill start (ends the open one)\n  timeline-close --id <sid>                   end the open skill of this session\n  timeline-recent [--branch <b>] [--n <k>]    last k ended skills on the branch\n  not-run --skill <reason>                    log `timeline not-run <reason>` to gates.log\n  checkpoint                                  write .bearing/state/<branch>.checkpoint.md\n  next-step                                   the next flow step after the timeline\n  resume [--source startup|resume|compact]    the block SessionStart prints\nRuns on bash 3.2; needs git; uses jq when present. Exit 0 always.",
    "functions": [
     "esc",
@@ -15826,12 +15826,13 @@
    "name": "precompact.sh",
    "lang": "bash",
    "group": "hooks",
-   "lines": 8,
+   "lines": 9,
    "header": "PreCompact (manual, auto): adapter over bin/brg-guard precompact, which\nwrites the branch, changes, check state and the user's last requests to\n.bearing/state/<branch>.compact.md; SessionStart (compact) reads it back.",
    "functions": [],
    "env": [],
    "calls": [
-    "brg-guard"
+    "brg-guard",
+    "brg-session"
    ]
   },
   {
@@ -15865,7 +15866,7 @@
    "name": "stop-summary.sh",
    "lang": "bash",
    "group": "hooks",
-   "lines": 13,
+   "lines": 14,
    "header": "Stop: adapter over bin/brg-guard stop-gate. When files this session changed\nhave not passed make check, Claude is sent back once with the reason\n({\"decision\": \"block\"}); on the second stop (stop_hook_active) the guard\nonly reminds, so the hook can never loop.",
    "functions": [],
    "env": [],
@@ -16924,7 +16925,7 @@
    "guard": [
     "precompact"
    ],
-   "body": "#!/usr/bin/env bash\n# PreCompact (manual, auto): adapter over bin/brg-guard precompact, which\n# writes the branch, changes, check state and the user's last requests to\n# .bearing/state/<branch>.compact.md; SessionStart (compact) reads it back.\nset -u\n# shellcheck source=lib.sh\n. \"$(dirname \"$0\")/lib.sh\"\nexec bash \"$(dirname \"$0\")/../../bin/brg-guard\" precompact \"$(json_field transcript_path)\""
+   "body": "#!/usr/bin/env bash\n# PreCompact (manual, auto): adapter over bin/brg-guard precompact, which\n# writes the branch, changes, check state and the user's last requests to\n# .bearing/state/<branch>.compact.md; SessionStart (compact) reads it back.\nset -u\n# shellcheck source=lib.sh\n. \"$(dirname \"$0\")/lib.sh\"\nbash \"$(dirname \"$0\")/../../bin/brg-session\" checkpoint >/dev/null 2>&1\nexec bash \"$(dirname \"$0\")/../../bin/brg-guard\" precompact \"$(json_field transcript_path)\""
   },
   {
    "event": "Stop",
@@ -16935,7 +16936,7 @@
     "set",
     "stop-gate"
    ],
-   "body": "#!/usr/bin/env bash\n# Stop: adapter over bin/brg-guard stop-gate. When files this session changed\n# have not passed make check, Claude is sent back once with the reason\n# ({\"decision\": \"block\"}); on the second stop (stop_hook_active) the guard\n# only reminds, so the hook can never loop.\nset -u\n# shellcheck source=lib.sh\n. \"$(dirname \"$0\")/lib.sh\"\nguard=\"$(dirname \"$0\")/../../bin/brg-guard\"\nset -- --id \"$(json_field session_id)\"\n[ \"$(json_field stop_hook_active)\" = \"true\" ] && set -- \"$@\" --active\nbash \"$(dirname \"$0\")/../../bin/brg-session\" timeline-close --id \"$(json_field session_id)\" >/dev/null 2>&1\nblock_or_print \"$guard\" stop-gate \"$@\""
+   "body": "#!/usr/bin/env bash\n# Stop: adapter over bin/brg-guard stop-gate. When files this session changed\n# have not passed make check, Claude is sent back once with the reason\n# ({\"decision\": \"block\"}); on the second stop (stop_hook_active) the guard\n# only reminds, so the hook can never loop.\nset -u\n# shellcheck source=lib.sh\n. \"$(dirname \"$0\")/lib.sh\"\nguard=\"$(dirname \"$0\")/../../bin/brg-guard\"\nset -- --id \"$(json_field session_id)\"\n[ \"$(json_field stop_hook_active)\" = \"true\" ] && set -- \"$@\" --active\nbash \"$(dirname \"$0\")/../../bin/brg-session\" timeline-close --id \"$(json_field session_id)\" >/dev/null 2>&1\nbash \"$(dirname \"$0\")/../../bin/brg-session\" checkpoint >/dev/null 2>&1\nblock_or_print \"$guard\" stop-gate \"$@\""
   }
  ],
  "agents": [
@@ -17967,6 +17968,13 @@
    "lines": 85,
    "header": "tests/unit/secrets_ci_credentials.sh: plugins/bearing/skills/secrets/scripts/ci-credentials.py passes CI files that read every credential from the secret store and counts a throwaway service-container password without failing; fails, and names file, line and key but never the value, on a literal token in a GitLab variable, a literal inside a GitHub flow map, a --password flag, a URL with a password and a credential-shaped string; fails on zero CI files.",
    "asserts": 17
+  },
+  {
+   "path": "tests/unit/session_checkpoint.sh",
+   "kind": "unit",
+   "lines": 45,
+   "header": "tests/unit/session_checkpoint.sh: checkpoint content on a task branch and on a branch without an id.",
+   "asserts": 13
   },
   {
    "path": "tests/unit/session_timeline.sh",
