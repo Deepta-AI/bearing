@@ -21,7 +21,7 @@ define skip
 { mkdir -p $(STATE); echo "$(1): SKIPPED ($(2) not installed)"; echo "$(1) $(2)" >> $(SKIPPED); exit 0; }
 endef
 
-.PHONY: help setup tools run build check check-file fmt fmt-check vet lint test vuln fix doctor clean
+.PHONY: help setup tools run build check check-file check-changed fmt fmt-check vet lint test vuln fix doctor clean
 
 help: ## List targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-18s %s\n", $$1, $$2}'
@@ -95,6 +95,20 @@ check-file: ## Lint one edited file, FILE=path (the Bearing edit hook runs this)
 	  *) echo "check-file: no per-file check for $(FILE)"; exit 0;; \
 	esac; \
 	echo "check-file: 1 file checked"
+
+CHANGED = git status --porcelain -z --untracked-files=all | tr '\0' '\n' | awk 'skip{skip=0;next} {c=substr($$0,1,2);p=substr($$0,4)} c~/^R|^.R|^C/{print p;skip=1;next} {print p}' | sort -u | while IFS= read -r f; do [ -e "$$f" ] || continue; for m in $(STATE)/.check-passed $(STATE)/.check-changed-passed; do [ -f "$$m" ] && ! [ "$$f" -nt "$$m" ] && continue 2; done; printf '%s\n' "$$f"; done
+
+check-changed: ## Format, vet, lint and test only the packages changed since the last check (the Bearing Stop gate runs this; make check stays the full gate)
+	@mkdir -p $(STATE); files=$$($(CHANGED) | grep -E '\.go$$|go\.(mod|sum)$$' || true); \
+	f=$$(printf '%s' "$$files" | grep -c . || true); \
+	[ "$$f" -gt 0 ] || { echo "check-changed: 0 files, nothing to check"; exit 0; }; \
+	if printf '%s\n' "$$files" | grep -qE 'go\.(mod|sum)$$'; then pkgs="./..."; p=$$(go list ./... | wc -l | tr -d ' '); \
+	else pkgs=$$(printf '%s\n' "$$files" | xargs -n1 dirname | sort -u | sed 's|^|./|'); p=$$(printf '%s\n' "$$pkgs" | wc -l | tr -d ' '); fi; \
+	bad=$$(gofmt -l $$(printf '%s\n' "$$files" | grep '\.go$$') 2>/dev/null); [ -z "$$bad" ] || { echo "check-changed: unformatted: $$bad" >&2; exit 1; }; \
+	go vet $$pkgs || exit 1; \
+	if command -v golangci-lint >/dev/null; then golangci-lint run $$pkgs || exit 1; else echo "check-changed: golangci-lint missing, lint not run"; fi; \
+	set -o pipefail; go test -race -count=1 $$pkgs 2>&1 | tail -60 || exit 1; \
+	touch $(STATE)/.check-changed-passed; echo "check-changed: $$f files, $$p packages checked"
 
 fix: fmt ## Apply every automatic fix
 	@command -v golangci-lint >/dev/null && golangci-lint run --fix ./... || true

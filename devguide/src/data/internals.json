@@ -10,7 +10,7 @@
   "agents": 8,
   "makeTargets": 29,
   "gates": 16,
-  "tests": 80,
+  "tests": 81,
   "fixtures": 21,
   "stacks": 13,
   "templates": 38,
@@ -5092,7 +5092,7 @@
     },
     {
      "path": "templates/Makefile",
-     "lines": 152
+     "lines": 166
     },
     {
      "path": "templates/README.md",
@@ -5212,7 +5212,7 @@
     },
     {
      "path": "templates-cli/Makefile",
-     "lines": 112
+     "lines": 126
     },
     {
      "path": "templates-cli/README.md",
@@ -17238,6 +17238,13 @@
    "lines": 53,
    "header": "tests/unit/changed_files.sh: brg-changed lists changed files rename-safe and space-safe; stop-gate prefers make check-changed and falls back to make check.",
    "asserts": 13
+  },
+  {
+   "path": "tests/unit/check_changed_targets.sh",
+   "kind": "unit",
+   "lines": 23,
+   "header": "tests/unit/check_changed_targets.sh: every stack Makefile template has a check-changed target that prints its counts, never writes .check-passed, and writes .check-changed-passed. Toolchain runs are in the scaffold job.",
+   "asserts": 7
   },
   {
    "path": "tests/unit/checklists.sh",
