@@ -1267,7 +1267,8 @@ def cmd_launch(a):
     os.makedirs(a.dir, exist_ok=True)
     log = os.path.join(a.dir, ".bearing", "state", "autopilot.log")
     os.makedirs(os.path.dirname(log), exist_ok=True)
-    env = dict(os.environ, BRG_AUTOPILOT_HEADLESS="1")
+    # BEARING_AUTOPILOT tells the child's SessionStart hook nobody is there to ask.
+    env = dict(os.environ, BRG_AUTOPILOT_HEADLESS="1", BEARING_AUTOPILOT="1")
     print(f"brg-autopilot: running headless in {a.dir}; the stream goes to {os.path.relpath(log, a.dir)}")
 
     def claude_run(args):

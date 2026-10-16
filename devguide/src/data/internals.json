@@ -5,12 +5,12 @@
   "commandSkills": 0,
   "stackSkills": 12,
   "scripts": 94,
-  "scriptLines": 29228,
+  "scriptLines": 29264,
   "hooks": 8,
   "agents": 8,
   "makeTargets": 31,
   "gates": 18,
-  "tests": 94,
+  "tests": 95,
   "fixtures": 21,
   "stacks": 13,
   "templates": 38,
@@ -14929,7 +14929,7 @@
    "name": "brg-autopilot",
    "lang": "python",
    "group": "workflow",
-   "lines": 1384,
+   "lines": 1385,
    "header": "brg-autopilot: the state, the gates and the report of an unattended run from\none requirement statement to a prepared merge request.\n\nThe autopilot skill drives the stages; this script is the part that cannot\nbe talked around: which stage is next, whether its gate holds (checked on\ndisk, never taken from the model's word), how many attempts are left, the\ndigest of every decision taken on the user's behalf, and the report. Nothing\nhere pushes, merges or deploys; the run stops at a prepared merge request.\n\n  brg-autopilot start \"<statement>\" [--dir D]   begin a run (refuses when one is open)\n  brg-autopilot next [--dir D]                  the next stage, its skill and its gate\n  brg-autopilot done <stage> [--dir D]          check the gate; mark done or say what is missing\n  brg-autopilot fail <stage> \"<why>\" [--dir D]  count a failed attempt (3 and the stage is blocked)\n  brg-autopilot decision <key> <choice> <alternatives> <why> [--adr PATH] [--dir D]\n                                                one row of the decision digest\n  brg-autopilot report [--dir D]                write docs/autopilot/<run>.md (the MR carries it)\n  brg-autopilot status [--dir D]                the stages, attempts and decisions so far\n  brg-autopilot profile --ui|--data|--api|--deploy yes|no [--llm yes|no] [--scope lean|full] --why W [--dir D]\n                                                what the product has; decides which stages apply\n                                                and how much document each one needs\n  brg-autopilot stages                          the stage names, in order\n  brg-autopilot launch \"<statement>\" [--dir D] [--print]\n                                                run it headless: claude -p with autopilot,\n                                                then any smoke it asked for, outside the sandbox\n  brg-autopilot smoke-request [--id ID] [--dir D]\n                                                headless dod: ask the launcher to run the smoke\n  brg-autopilot repos-request [--dir D]         headless repos: ask the launcher to scaffold the\n                                                repo plan's missing repositories beside this one\n\nState lives in <dir>/.bearing/state/autopilot.json. Every command prints what it\nchecked and exits 1 when a gate fails or there is nothing to act on.",
    "functions": [
     "sh",
@@ -15007,6 +15007,7 @@
     "main"
    ],
    "env": [
+    "BEARING_AUTOPILOT",
     "CLAUDE_PLACEHOLDERS"
    ],
    "calls": [
@@ -15172,7 +15173,7 @@
    "name": "brg-guard",
    "lang": "bash",
    "group": "guard",
-   "lines": 1828,
+   "lines": 1836,
    "header": "brg-guard: the harness-neutral guard logic behind every hook adapter.\n\n  brg-guard command \"<shell command>\"   exit 2 and a message when the command\n                                        publishes, rewrites history, deploys\n                                        or destroys; exit 2 when the command\n                                        cannot be read (fail closed)\n  brg-guard format <file>               format one file with the repo's formatter\n  brg-guard task-id [\"<prompt>\"]        print \"Task: <ID> ...\" when the branch\n                                        carries a ticket id the prompt lacks\n  brg-guard session                     print branch, task, changes, handoff state\n  brg-guard stop                        print a reminder when changes are unchecked\n  brg-guard stop-gate --id <session> [--active]\n                                        exit 2 (reason on stderr) when files\n                                        changed in this session since make\n                                        check last passed; --active (the\n                                        harness already continued once) only\n                                        reminds, so it never loops\n  brg-guard check-file <file>           lint one edited file (make check-file\n                                        when the Makefile has it); exit 2 and\n                                        the problems on stderr\n  brg-guard precompact [<transcript>]   write .bearing/state/<branch>.compact.md\n  brg-guard session [--id <session>] [--source startup|resume|compact]\n  brg-guard stats                       what the gates decided here, how often\n                                        and at what cost (.bearing/state/gates.log)\n  brg-guard readonly \"<shell command>\"  exit 2 unless every program in the\n                                        command is a read-only tool (git\n                                        diff|log|show|status|blame|ls-files,\n                                        ls, cat, grep, rg, find without -exec,\n                                        sed without -i, jq and similar);\n                                        used by the read-only subagents\n  brg-guard --verbs                     the blocked verb table (tool, pattern,\n                                        label; tab-separated) for generators\n  brg-guard --version                   the version stamp\n\nClaude Code hooks, Cursor hooks and any other harness adapter call these\nsubcommands and translate their own event JSON into arguments. One logic,\none behaviour on every harness. Runs on bash 3.2 (macOS) and needs no tool\nbeyond git for the session subcommands.",
    "functions": [
     "verb_table",
@@ -15232,14 +15233,17 @@
     "guard_command"
    ],
    "env": [
+    "BEARING_AUTOPILOT",
     "BEARING_GUARD_DEBUG",
     "BEARING_GUARD_VERSION",
     "BEARING_LEARNING",
+    "BEARING_NONINTERACTIVE",
     "BEARING_NO_GATE_LOG",
     "BEARING_UPDATE",
     "CLAUDE_PLUGIN_ROOT"
    ],
    "calls": [
+    "brg-autopilot",
     "brg-changed",
     "brg-checklists",
     "brg-config",
@@ -15508,7 +15512,7 @@
    "name": "brg-session",
    "lang": "bash",
    "group": "quality",
-   "lines": 125,
+   "lines": 133,
    "header": "brg-session: session memory for Bearing, all local and model-free.\n  timeline-start --id <sid> --skill <name>   record a skill start (ends the open one)\n  timeline-close --id <sid>                   end the open skill of this session\n  timeline-recent [--branch <b>] [--n <k>]    last k ended skills on the branch\n  not-run --skill <reason>                    log `timeline not-run <reason>` to gates.log\n  checkpoint                                  write .bearing/state/<branch>.checkpoint.md\n  next-step                                   the next flow step after the timeline\n  resume [--source startup|resume|compact]    the block SessionStart prints\nRuns on bash 3.2; needs git; uses jq when present. Exit 0 always.",
    "functions": [
     "esc",
@@ -15516,8 +15520,12 @@
     "event",
     "open_skill"
    ],
-   "env": [],
+   "env": [
+    "BEARING_AUTOPILOT",
+    "BEARING_NONINTERACTIVE"
+   ],
    "calls": [
+    "brg-autopilot",
     "brg-guard",
     "brg-learn"
    ]
@@ -16058,13 +16066,14 @@
    "name": "session-end.sh",
    "lang": "bash",
    "group": "hooks",
-   "lines": 40,
+   "lines": 59,
    "header": "SessionEnd: refresh docs/progress/<ID>.md from the checkpoint so a teammate\nsees where this task stands after the engineer commits and pushes. Never\ncommits. Branches without a task id are left alone. Always exits 0; a skip\nor failure is logged as `session-end not-run <reason>` when a state dir exists.",
    "functions": [
     "skip"
    ],
    "env": [],
    "calls": [
+    "brg-progress",
     "brg-session"
    ]
   },
@@ -17166,7 +17175,7 @@
    "script": "session-end.sh",
    "timeout": 5,
    "guard": [],
-   "body": "#!/usr/bin/env bash\n# SessionEnd: refresh docs/progress/<ID>.md from the checkpoint so a teammate\n# sees where this task stands after the engineer commits and pushes. Never\n# commits. Branches without a task id are left alone. Always exits 0; a skip\n# or failure is logged as `session-end not-run <reason>` when a state dir exists.\nset -u\n# shellcheck source=lib.sh\n. \"$(dirname \"$0\")/lib.sh\"\nroot=\"$(repo_root)\" || exit 0\n[ -n \"$root\" ] || exit 0\n[ -d \"$root/.bearing\" ] || exit 0\nskip() { # skip <reason>\n  [ -d \"$root/.bearing/state\" ] || exit 0\n  printf '%s\\tsession-end\\tnot-run\\t0\\t%s\\n' \"$(date +%Y-%m-%dT%H:%M:%S)\" \\\n    \"$(printf '%s' \"$1\" | tr '\\t\\n' '  ' | cut -c1-120)\" >> \"$root/.bearing/state/gates.log\"\n  exit 0\n}\nbranch=\"$(current_branch)\"\ntask=\"$(task_id_from_branch)\"; [ -n \"$task\" ] || skip \"no task id on branch\"\nkit=\"$(dirname \"$0\")/../..\"\nbash \"$kit/bin/brg-session\" checkpoint >/dev/null 2>&1\ncpf=\"$root/.bearing/state/$(printf '%s' \"$branch\" | tr '/' '_').checkpoint.md\"\nnxt=\"$(sed -n 's/^Next (from state file): //p' \"$cpf\" 2>/dev/null)\"\nif [ -z \"$nxt\" ] || [ \"$nxt\" = none ]; then nxt=\"$(sed -n 's/^Next flow step: //p' \"$cpf\" 2>/dev/null)\"; fi\nif [ -z \"$nxt\" ] || [ \"$nxt\" = none ] || [ \"$nxt\" = unknown ]; then skip \"no next step\"; fi\ncd \"$root\" || skip \"cannot enter repo root\"\npf=\"docs/progress/$task.md\"\nmark=\"$root/.bearing/state/$(printf '%s' \"$branch\" | tr '/' '_').progress-next\"\nif [ -f \"$pf\" ]; then\n  status=\"$(sed -n 's/^- Status: *//p' \"$pf\" | head -1)\"\n  case \"$status\" in merged|abandoned) skip \"closed task\";; esac\n  cur=\"$(awk '/^## Next/{f=1;next} /^## /{f=0} f && !/^<!--/ && NF {sub(/^- /,\"\"); print; exit}' \"$pf\")\"\n  last=\"$(cat \"$mark\" 2>/dev/null)\"\n  # keep a person-written Next: overwrite only a placeholder or our own last value\n  case \"$cur\" in ''|none|unknown) ;; *) [ \"$cur\" = \"$last\" ] || exit 0;; esac\nfi\npython3 \"$kit/skills/session-handoff/scripts/progress.py\" write --task \"$task\" --branch \"$branch\" --next \"$nxt\" >/dev/null 2>&1 \\\n  || skip \"progress.py write failed\"\nprintf '%s\\n' \"$nxt\" > \"$mark.tmp\" && mv \"$mark.tmp\" \"$mark\"\nexit 0"
+   "body": "#!/usr/bin/env bash\n# SessionEnd: refresh docs/progress/<ID>.md from the checkpoint so a teammate\n# sees where this task stands after the engineer commits and pushes. Never\n# commits. Branches without a task id are left alone. Always exits 0; a skip\n# or failure is logged as `session-end not-run <reason>` when a state dir exists.\nset -u\n# shellcheck source=lib.sh\n. \"$(dirname \"$0\")/lib.sh\"\nroot=\"$(repo_root)\" || exit 0\n[ -n \"$root\" ] || exit 0\n[ -d \"$root/.bearing\" ] || exit 0\nskip() { # skip <reason>\n  [ -d \"$root/.bearing/state\" ] || exit 0\n  printf '%s\\tsession-end\\tnot-run\\t0\\t%s\\n' \"$(date +%Y-%m-%dT%H:%M:%S)\" \\\n    \"$(printf '%s' \"$1\" | tr '\\t\\n' '  ' | cut -c1-120)\" >> \"$root/.bearing/state/gates.log\"\n  exit 0\n}\nbranch=\"$(current_branch)\"\ntask=\"$(task_id_from_branch)\"; [ -n \"$task\" ] || skip \"no task id on branch\"\nkit=\"$(dirname \"$0\")/../..\"\nbash \"$kit/bin/brg-session\" checkpoint >/dev/null 2>&1\ncpf=\"$root/.bearing/state/$(printf '%s' \"$branch\" | tr '/' '_').checkpoint.md\"\nnxt=\"$(sed -n 's/^Next (from state file): //p' \"$cpf\" 2>/dev/null)\"\nif [ -z \"$nxt\" ] || [ \"$nxt\" = none ]; then nxt=\"$(sed -n 's/^Next flow step: //p' \"$cpf\" 2>/dev/null)\"; fi\nif [ -z \"$nxt\" ] || [ \"$nxt\" = none ] || [ \"$nxt\" = unknown ]; then skip \"no next step\"; fi\ncd \"$root\" || skip \"cannot enter repo root\"\npf=\"docs/progress/$task.md\"\nmark=\"$root/.bearing/state/$(printf '%s' \"$branch\" | tr '/' '_').progress-next\"\nif [ -f \"$pf\" ]; then\n  status=\"$(sed -n 's/^- Status: *//p' \"$pf\" | head -1)\"\n  case \"$status\" in merged|abandoned) skip \"closed task\";; esac\n  cur=\"$(awk '/^## Next/{f=1;next} /^## /{f=0} f && !/^<!--/ && NF {sub(/^- /,\"\"); print; exit}' \"$pf\")\"\n  last=\"$(cat \"$mark\" 2>/dev/null)\"\n  # keep a person-written Next: overwrite only a placeholder or our own last value\n  case \"$cur\" in ''|none|unknown) ;; *) [ \"$cur\" = \"$last\" ] || exit 0;; esac\nfi\n# progress.py re-renders from the template, so a line a person added outside\n# its fields would be lost. Rehearse the write on a copy first; if any\n# non-empty line (other than the Next items, Branch and Updated, which the\n# write replaces) is missing from the result, leave the file alone.\nif [ -f \"$pf\" ]; then\n  tmp=\"$(mktemp -d \"${TMPDIR:-/tmp}/brg-progress.XXXXXX\")\" || skip \"cannot make a temp dir\"\n  mkdir -p \"$tmp/docs/progress\" && cp \"$pf\" \"$tmp/$pf\" || { rm -rf \"$tmp\"; skip \"cannot copy progress file\"; }\n  if ! python3 \"$kit/skills/session-handoff/scripts/progress.py\" write --root \"$tmp\" --task \"$task\" --branch \"$branch\" --next \"$nxt\" >/dev/null 2>&1; then\n    rm -rf \"$tmp\"; skip \"progress.py write failed\"\n  fi\n  lost=0\n  while IFS= read -r line; do\n    grep -qxF -- \"$line\" \"$tmp/$pf\" || { lost=1; break; }\n  done <<EOF\n$(awk '/^## /{nx=($0 ~ /^## Next[[:space:]]*$/)} nx && !/^## / {next} /^- (Updated|Branch):/ {next} NF' \"$pf\")\nEOF\n  rm -rf \"$tmp\"\n  [ \"$lost\" -eq 0 ] || skip \"would drop lines\"\nfi\npython3 \"$kit/skills/session-handoff/scripts/progress.py\" write --task \"$task\" --branch \"$branch\" --next \"$nxt\" >/dev/null 2>&1 \\\n  || skip \"progress.py write failed\"\nprintf '%s\\n' \"$nxt\" > \"$mark.tmp\" && mv \"$mark.tmp\" \"$mark\"\nexit 0"
   },
   {
    "event": "Stop",
@@ -17848,9 +17857,9 @@
   {
    "path": "tests/unit/autopilot_smoke.sh",
    "kind": "unit",
-   "lines": 157,
+   "lines": 159,
    "header": "tests/unit/autopilot_smoke.sh: the headless run hands its smoke to the launcher. On 26 Sep 2026 a run under the template sandbox could not start Docker or read .env, so the dod gate refused and a person ran the smoke by hand. Now the model calls `brg-autopilot smoke-request` and ends its turn; `launch` runs the smoke outside the sandbox (make smoke, else up, the model's plan, down), writes .scratch/smoke-<ID>.md and resumes the session with the verdict, at most three rounds.",
-   "asserts": 50
+   "asserts": 51
   },
   {
    "path": "tests/unit/autopilot_stages.sh",
@@ -18261,16 +18270,23 @@
   {
    "path": "tests/unit/session_end.sh",
    "kind": "unit",
-   "lines": 84,
-   "header": "tests/unit/session_end.sh: SessionEnd refreshes docs/progress/<ID>.md on a task branch, keeps person-written content, and does nothing elsewhere.",
-   "asserts": 26
+   "lines": 98,
+   "header": "tests/unit/session_end.sh: SessionEnd refreshes docs/progress/<ID>.md on a task branch, keeps person-written content (a hand-added line the template would drop stops the rewrite), and does nothing elsewhere.",
+   "asserts": 30
+  },
+  {
+   "path": "tests/unit/session_headless.sh",
+   "kind": "unit",
+   "lines": 46,
+   "header": "tests/unit/session_headless.sh: a non-interactive session (brg-autopilot's claude -p child sets BEARING_AUTOPILOT=1; anyone sets BEARING_NONINTERACTIVE=1 in the environment or bearing.env) gets no \"Ask the user with AskUserQuestion\" line at startup: not for the update offer, the learning consent or the resume. An interactive session still gets all three.",
+   "asserts": 11
   },
   {
    "path": "tests/unit/session_resume.sh",
    "kind": "unit",
-   "lines": 90,
-   "header": "tests/unit/session_resume.sh: next step from the timeline and the resume block, with and without a task id.",
-   "asserts": 23
+   "lines": 100,
+   "header": "tests/unit/session_resume.sh: next step from the timeline and the resume block, with and without a task id; a Next: in the state file wins.",
+   "asserts": 28
   },
   {
    "path": "tests/unit/session_timeline.sh",
@@ -19317,7 +19333,7 @@
   },
   {
    "path": "user/bearing.env",
-   "lines": 70
+   "lines": 88
   }
  ],
  "changelog": [

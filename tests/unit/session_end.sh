@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # tests/unit/session_end.sh: SessionEnd refreshes docs/progress/<ID>.md on a
-# task branch, keeps person-written content, and does nothing elsewhere.
+# task branch, keeps person-written content (a hand-added line the template
+# would drop stops the rewrite), and does nothing elsewhere.
 set -u
 . "$(dirname "$0")/../lib/assert.sh"
 H="$KIT/plugins/bearing/hooks/scripts/session-end.sh"
@@ -40,6 +41,19 @@ python3 "$KIT/plugins/bearing/skills/session-handoff/scripts/progress.py" write 
 printf 'Next: something else\n' > "$sf"
 assert_exit 0 run "$repo"
 assert_eq "ask Priya about the cap" "$(nextof "$pf")" "person next kept"
+t_end
+
+t_begin "a hand-added line the template would drop stops the rewrite"
+mark="$repo/.bearing/state/feature_TASK-3-list.progress-next"
+python3 "$KIT/plugins/bearing/skills/session-handoff/scripts/progress.py" write --root "$repo" --task TASK-3 --next "hook value" >/dev/null 2>&1
+printf 'hook value\n' > "$mark"
+printf '\n## Notes\n- pairing notes: keep the cap at 50\n' >> "$pf"
+before="$(cat "$pf")"
+printf 'Next: a newer step\n' > "$sf"
+assert_exit 0 run "$repo"
+assert_eq "$before" "$(cat "$pf")" "file unchanged"
+assert_contains "$(cat "$repo/.bearing/state/gates.log")" "session-end	not-run	0	would drop lines"
+assert_eq "" "$(git -C "$repo" status --porcelain | grep -v '^?? docs/' | grep -v '^?? .bearing/')" "no stray files in the repository"
 t_end
 
 t_begin "no real next step writes nothing"

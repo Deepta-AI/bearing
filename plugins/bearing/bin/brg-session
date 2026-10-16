@@ -120,6 +120,14 @@ case "$sub" in
     [ -f "$cpf" ] && sed -n '2,12p' "$cpf"
     task=""; re='[A-Z][A-Z0-9]*(-[0-9]+)+'
     [[ "$branch" =~ $re ]] && task="${BASH_REMATCH[0]}"
-    echo "Resume ${task:-this branch}: last ran ${last:-nothing yet}. Next: ${nxt:-see the workflow skill}. Ask the user with AskUserQuestion whether to continue with it.";;
+    # A person-written Next: in the state file wins over the computed step,
+    # as session-end.sh does; "none" or an empty value falls back.
+    sn=""; [ -f "$st/$bf.md" ] && sn="$(grep -m1 '^Next:' "$st/$bf.md" | sed 's/^Next: *//; s/[. ]*$//')"
+    case "$sn" in ''|none) ;; *) nxt="$sn";; esac
+    ask=" Ask the user with AskUserQuestion whether to continue with it."
+    # A non-interactive session (brg-autopilot's child, or the documented
+    # switch) has nobody to ask.
+    if [ -n "${BEARING_AUTOPILOT:-}" ] && [ "${BEARING_AUTOPILOT}" != 0 ] || [ "${BEARING_NONINTERACTIVE:-}" = 1 ]; then ask=""; fi
+    echo "Resume ${task:-this branch}: last ran ${last:-nothing yet}. Next: ${nxt:-see the workflow skill}.${ask}";;
 esac
 exit 0

@@ -1576,20 +1576,28 @@ esac
     task="$(printf '%s' "$branch" | grep -oE '[A-Z][A-Z0-9]*(-[0-9]+)+' | head -1)"
     changed="$(git -C "$root" status --porcelain 2>/dev/null | wc -l | tr -d ' ')"
     echo "bearing session: branch=${branch:-detached} task=${task:-none} changed_files=${changed}"
+    # Nobody to ask in a non-interactive session: brg-autopilot's claude -p
+    # child (BEARING_AUTOPILOT), or BEARING_NONINTERACTIVE=1 in the
+    # environment or bearing.env. Then no AskUserQuestion line is printed.
+    headless=0
+    if [ -n "${BEARING_AUTOPILOT:-}" ] && [ "${BEARING_AUTOPILOT}" != 0 ]; then headless=1
+    elif [ -n "${BEARING_NONINTERACTIVE+x}" ]; then [ "$BEARING_NONINTERACTIVE" = 1 ] && headless=1
+    elif [ -f "$(dirname "$0")/brg-config" ] && [ "$(bash "$(dirname "$0")/brg-config" get noninteractive --user 2>/dev/null)" = 1 ]; then headless=1; fi
+    [ "$headless" -eq 0 ] || export BEARING_NONINTERACTIVE=1
     # A newer release, once a day, on a fresh start only; 3 s at most inside the hook's 10 s.
     if [ "$source" = "startup" ] && [ -f "$(dirname "$0")/brg-update-check" ]; then
       up="$(bash "$(dirname "$0")/brg-update-check" --budget 3 2>/dev/null)"
       if [ -n "$up" ]; then
         upold="$(printf '%s\n' "$up" | sed -n '1s/^BEARING_UPDATE: \([^ ]*\) -> .*/\1/p')"; upnew="$(printf '%s\n' "$up" | sed -n '1s/.* -> \(.*\)$/\1/p')"
         printf '%s\n' "$up"
-        echo "Bearing $upnew is available (you have $upold). Ask the user with AskUserQuestion: Upgrade now (run the upgrade-tools skill) / Remind me tomorrow (brg-config set update-snooze-until $(( $(date +%s) + 86400 )) --user) / Skip this version (brg-config set update-skip $upnew --user)."
+        [ "$headless" -eq 1 ] || echo "Bearing $upnew is available (you have $upold). Ask the user with AskUserQuestion: Upgrade now (run the upgrade-tools skill) / Remind me tomorrow (brg-config set update-snooze-until $(( $(date +%s) + 86400 )) --user) / Skip this version (brg-config set update-skip $upnew --user)."
       fi
     fi
     # Opt-in local learnings: ask once, or read back the top few for the next step.
     if [ "$source" = "startup" ] && [ -f "$(dirname "$0")/brg-learn" ]; then
       lstate="$(bash "$(dirname "$0")/brg-learn" state 2>/dev/null)"
       if [ "$lstate" = ask ]; then
-        echo "BEARING_LEARNING: ask. Ask the user once with AskUserQuestion: Yes, learn locally (brg-config set learning on --user) / No (brg-config set learning off --user). Nothing leaves this machine."
+        [ "$headless" -eq 1 ] || echo "BEARING_LEARNING: ask. Ask the user once with AskUserQuestion: Yes, learn locally (brg-config set learning on --user) / No (brg-config set learning off --user). Nothing leaves this machine."
       elif [ "$lstate" = on ]; then
         nx="$(bash "$(dirname "$0")/brg-session" next-step --branch "$branch" 2>/dev/null)"
         tops="$(bash "$(dirname "$0")/brg-learn" top --skills "$nx" --n 5 2>/dev/null)"

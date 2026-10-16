@@ -34,6 +34,25 @@ if [ -f "$pf" ]; then
   # keep a person-written Next: overwrite only a placeholder or our own last value
   case "$cur" in ''|none|unknown) ;; *) [ "$cur" = "$last" ] || exit 0;; esac
 fi
+# progress.py re-renders from the template, so a line a person added outside
+# its fields would be lost. Rehearse the write on a copy first; if any
+# non-empty line (other than the Next items, Branch and Updated, which the
+# write replaces) is missing from the result, leave the file alone.
+if [ -f "$pf" ]; then
+  tmp="$(mktemp -d "${TMPDIR:-/tmp}/brg-progress.XXXXXX")" || skip "cannot make a temp dir"
+  mkdir -p "$tmp/docs/progress" && cp "$pf" "$tmp/$pf" || { rm -rf "$tmp"; skip "cannot copy progress file"; }
+  if ! python3 "$kit/skills/session-handoff/scripts/progress.py" write --root "$tmp" --task "$task" --branch "$branch" --next "$nxt" >/dev/null 2>&1; then
+    rm -rf "$tmp"; skip "progress.py write failed"
+  fi
+  lost=0
+  while IFS= read -r line; do
+    grep -qxF -- "$line" "$tmp/$pf" || { lost=1; break; }
+  done <<EOF
+$(awk '/^## /{nx=($0 ~ /^## Next[[:space:]]*$/)} nx && !/^## / {next} /^- (Updated|Branch):/ {next} NF' "$pf")
+EOF
+  rm -rf "$tmp"
+  [ "$lost" -eq 0 ] || skip "would drop lines"
+fi
 python3 "$kit/skills/session-handoff/scripts/progress.py" write --task "$task" --branch "$branch" --next "$nxt" >/dev/null 2>&1 \
   || skip "progress.py write failed"
 printf '%s\n' "$nxt" > "$mark.tmp" && mv "$mark.tmp" "$mark"

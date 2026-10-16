@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # tests/unit/session_resume.sh: next step from the timeline and the resume
-# block, with and without a task id.
+# block, with and without a task id; a Next: in the state file wins.
 set -u
 . "$(dirname "$0")/../lib/assert.sh"
 S="$KIT/plugins/bearing/bin/brg-session"
@@ -86,5 +86,15 @@ i=0; : > "$repo/.bearing/state/bugfix_TASK-9-crash.md"
 while [ $i -lt 100 ]; do echo "Next: line $i" >> "$repo/.bearing/state/bugfix_TASK-9-crash.md"; i=$((i+1)); done
 assert_exit 0 in_repo resume --source startup
 assert_eq 1 "$([ "$(printf '%s\n' "$T_OUT" | wc -l)" -le 40 ] && [ "$(printf '%s\n' "$T_OUT" | wc -l)" -ge 5 ] && echo 1 || echo 0)" "5 to 40 lines"
+t_end
+t_begin "a person-written Next: in the state file wins over the flow step"
+git -C "$repo" checkout -q -b bugfix/TASK-31-next
+printf '# Handoff\n\nNext: wire the retry into the client\n' > "$repo/.bearing/state/bugfix_TASK-31-next.md"
+assert_exit 0 in_repo resume --source startup
+assert_contains "$T_OUT" "Resume TASK-31: last ran nothing yet. Next: wire the retry into the client."
+assert_not_contains "$T_OUT" "Next: $first." "the computed step is not offered"
+printf '# Handoff\n\nNext: none\n' > "$repo/.bearing/state/bugfix_TASK-31-next.md"
+assert_exit 0 in_repo resume --source startup
+assert_contains "$T_OUT" "Next: $first." "none falls back to the flow step"
 t_end
 t_summary
