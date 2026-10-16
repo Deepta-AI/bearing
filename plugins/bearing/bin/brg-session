@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+# brg-session: session memory for Bearing, all local and model-free.
+#   timeline-start --id <sid> --skill <name>   record a skill start (ends the open one)
+#   timeline-close --id <sid>                   end the open skill of this session
+#   timeline-recent [--branch <b>] [--n <k>]    last k ended skills on the branch
+#   checkpoint                                  write .bearing/state/<branch>.checkpoint.md
+#   next-step                                   the next flow step after the timeline
+#   resume [--source startup|resume|compact]    the block SessionStart prints
+# Runs on bash 3.2; needs git; uses jq when present. Exit 0 always.
+set -u
+sub="${1:-}"; shift || true
+id=""; skill=""; branch=""; n=3; source=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --id) id="${2:-}"; shift 2 || shift;;
+    --skill) skill="${2:-}"; shift 2 || shift;;
+    --branch) branch="${2:-}"; shift 2 || shift;;
+    --n) n="${2:-3}"; shift 2 || shift;;
+    --source) source="${2:-}"; shift 2 || shift;;
+    *) shift;;
+  esac
+done
+root="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 0
+[ -d "$root/.bearing" ] || exit 0
+st="$root/.bearing/state"; mkdir -p "$st"; tl="$st/timeline.jsonl"
+[ -n "$branch" ] || branch="$(git -C "$root" branch --show-current 2>/dev/null)"; branch="${branch:-detached}"
+esc() { printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'; }
+event() { # <skill> <start|end>
+  [ -f "$tl" ] && [ "$(wc -c < "$tl" | tr -d ' ')" -gt 524288 ] && mv -f "$tl" "$tl.1"
+  printf '{"ts":"%s","epoch":%s,"session":"%s","branch":"%s","skill":"%s","event":"%s"}\n' \
+    "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$(date +%s)" "$(esc "$id")" "$(esc "$branch")" "$(esc "$1")" "$2" >> "$tl"
+}
+open_skill() { # the skill this session started and has not ended
+  [ -f "$tl" ] || return 0
+  grep "\"session\":\"$(esc "$id")\"" "$tl" | tail -1 | grep '"event":"start"' | sed 's/.*"skill":"\([^"]*\)".*/\1/'
+}
+case "$sub" in
+  timeline-start)
+    [ -n "$skill" ] || exit 0
+    prev="$(open_skill)"; [ -z "$prev" ] || event "$prev" end
+    event "$skill" start;;
+  timeline-close)
+    prev="$(open_skill)"; [ -z "$prev" ] || event "$prev" end;;
+  timeline-recent)
+    [ -f "$tl" ] || exit 0
+    cat "$tl.1" "$tl" 2>/dev/null | grep "\"branch\":\"$(esc "$branch")\"" | grep '"event":"end"' |
+      sed 's/.*"skill":"\([^"]*\)".*/\1/' | tail -n "$n";;
+esac
+exit 0

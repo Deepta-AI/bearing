@@ -4,13 +4,13 @@
   "skills": 106,
   "commandSkills": 0,
   "stackSkills": 12,
-  "scripts": 86,
-  "scriptLines": 28596,
-  "hooks": 6,
+  "scripts": 88,
+  "scriptLines": 28654,
+  "hooks": 7,
   "agents": 8,
   "makeTargets": 30,
   "gates": 17,
-  "tests": 84,
+  "tests": 85,
   "fixtures": 21,
   "stacks": 13,
   "templates": 38,
@@ -26,7 +26,7 @@
    "dir": "plugins/bearing",
    "description": "A developer workflow for coding agents: skills for every stage from brief to runbook, review subagents, one guard behind every hook, and repository templates. The stack conventions come in bearing-backend and bearing-apps.",
    "required": true,
-   "files": 499,
+   "files": 501,
    "skills": [
     "ab-experiment",
     "accessibility",
@@ -15117,7 +15117,7 @@
    "name": "brg-harness",
    "lang": "bash",
    "group": "guard",
-   "lines": 681,
+   "lines": 682,
    "header": "brg-harness: make a repository and a machine work with a coding harness\nother than Claude Code, from the same standard and the same guard logic.\n\n  brg-harness <harness> [--dir <repo>] [--kit-url <git url>] [--kit-ref <tag or commit>] [--no-skills]\n\nHarnesses: cursor, codex, gemini, copilot, opencode, windsurf, cline, zed,\n           kiro, all\n\nWrites into the repository (idempotent; a file that exists with different\ncontent is left alone and the proposal goes to <file>.bearing-new):\n  every harness   .bearing/bin/brg-guard (the guard logic, vendored with the kit\n                  version stamped in, so hooks do not depend on where the\n                  kit is installed) and the hook adapters under .bearing/hooks/\n  cursor          .cursor/hooks.json, .cursor/rules/*.mdc from .claude/rules\n  codex           .codex/hooks.json, .codex/rules/bearing.rules (execpolicy)\n  gemini          .gemini/settings.json (BeforeTool hook, tools.exclude),\n                  GEMINI.md importing AGENTS.md\n  copilot         .github/hooks/bearing.json, .github/copilot-instructions.md,\n                  .github/instructions/brg-*.instructions.md (applyTo globs),\n                  .bearing/copilot-deny-tools.txt for the CLI\n  opencode        .opencode/plugins/brg-guard.js, opencode.json permissions\n  windsurf        .devin/hooks.json, .devin/rules/*.md (glob triggers)\n  cline           .clinerules/hooks/PreToolUse, .clinerules/brg-*.md (paths:)\n  zed             .zed/settings.json (tool_permissions deny), .rules pointer;\n                  Zed has no agent hooks, so no adapters by design\n  kiro            .kiro/hooks/brg-guard.json, .kiro/steering/brg-*.md,\n                  .bearing/kiro-permissions.yaml to merge at user level\nEvery command policy (execpolicy, tools.exclude, always_deny, opencode\npermissions, the Kiro and Copilot lists) is derived from `brg-guard\n--verbs`, so the lists and the hook never drift. The policies are prefix\nmatches and advisory; the hook adapter over brg-guard is the control.\nOn the machine (unless --no-skills): installs the Bearing skills into that\nharness's skills folder through the skills CLI (the version pinned in\nbin/pinned-packs.txt), from the kit's git remote at the release tag of this\nkit's version (v<VERSION>) or --kit-ref.\n\nThe git hooks in .githooks/ hold the push, commit and format rules on every\nharness; this script adds each harness's own adapters on top. The summary\ncounts a harness as wired only when its config file references every\nadapter and neither has an unresolved .bearing-new; exit 1 when any selected\nharness is not wired. Harnesses whose hook format has been checked only\nagainst recorded fixtures (Copilot, Kiro, Windsurf, Codex, Cline, OpenCode)\nare marked unverified; Cursor and Gemini CLI have been run for real.",
    "functions": [
     "load_env",
@@ -15340,6 +15340,21 @@
     "brg-scaffold-install",
     "brg-scaffold-stage"
    ]
+  },
+  {
+   "path": "plugins/bearing/bin/brg-session",
+   "name": "brg-session",
+   "lang": "bash",
+   "group": "quality",
+   "lines": 49,
+   "header": "brg-session: session memory for Bearing, all local and model-free.\n  timeline-start --id <sid> --skill <name>   record a skill start (ends the open one)\n  timeline-close --id <sid>                   end the open skill of this session\n  timeline-recent [--branch <b>] [--n <k>]    last k ended skills on the branch\n  checkpoint                                  write .bearing/state/<branch>.checkpoint.md\n  next-step                                   the next flow step after the timeline\n  resume [--source startup|resume|compact]    the block SessionStart prints\nRuns on bash 3.2; needs git; uses jq when present. Exit 0 always.",
+   "functions": [
+    "esc",
+    "event",
+    "open_skill"
+   ],
+   "env": [],
+   "calls": []
   },
   {
    "path": "plugins/bearing/bin/brg-stacks",
@@ -15830,16 +15845,30 @@
    ]
   },
   {
+   "path": "plugins/bearing/hooks/scripts/skill-start.sh",
+   "name": "skill-start.sh",
+   "lang": "bash",
+   "group": "hooks",
+   "lines": 7,
+   "header": "PreToolUse (Skill): record which skill started, for resume and the menu.",
+   "functions": [],
+   "env": [],
+   "calls": [
+    "brg-session"
+   ]
+  },
+  {
    "path": "plugins/bearing/hooks/scripts/stop-summary.sh",
    "name": "stop-summary.sh",
    "lang": "bash",
    "group": "hooks",
-   "lines": 12,
+   "lines": 13,
    "header": "Stop: adapter over bin/brg-guard stop-gate. When files this session changed\nhave not passed make check, Claude is sent back once with the reason\n({\"decision\": \"block\"}); on the second stop (stop_hook_active) the guard\nonly reminds, so the hook can never loop.",
    "functions": [],
    "env": [],
    "calls": [
-    "brg-guard"
+    "brg-guard",
+    "brg-session"
    ]
   },
   {
@@ -16866,6 +16895,14 @@
    "body": "#!/usr/bin/env bash\n# PreToolUse (Bash): adapter over bin/brg-guard command. Exit 2 blocks.\nset -u\n# shellcheck source=lib.sh\n. \"$(dirname \"$0\")/lib.sh\"\nexec bash \"$(dirname \"$0\")/../../bin/brg-guard\" command \"$(json_field tool_input.command)\""
   },
   {
+   "event": "PreToolUse",
+   "matcher": "Skill",
+   "script": "skill-start.sh",
+   "timeout": 5,
+   "guard": [],
+   "body": "#!/usr/bin/env bash\n# PreToolUse (Skill): record which skill started, for resume and the menu.\nset -u\n# shellcheck source=lib.sh\n. \"$(dirname \"$0\")/lib.sh\"\ns=\"$(json_field tool_input.skill)\"; [ \"$s\" != \"__BRG_UNPARSED__\" ] || exit 0\nexec bash \"$(dirname \"$0\")/../../bin/brg-session\" timeline-start --id \"$(json_field session_id)\" --skill \"$s\""
+  },
+  {
    "event": "PostToolUse",
    "matcher": "Edit|Write|MultiEdit",
    "script": "format-file.sh",
@@ -16895,7 +16932,7 @@
     "set",
     "stop-gate"
    ],
-   "body": "#!/usr/bin/env bash\n# Stop: adapter over bin/brg-guard stop-gate. When files this session changed\n# have not passed make check, Claude is sent back once with the reason\n# ({\"decision\": \"block\"}); on the second stop (stop_hook_active) the guard\n# only reminds, so the hook can never loop.\nset -u\n# shellcheck source=lib.sh\n. \"$(dirname \"$0\")/lib.sh\"\nguard=\"$(dirname \"$0\")/../../bin/brg-guard\"\nset -- --id \"$(json_field session_id)\"\n[ \"$(json_field stop_hook_active)\" = \"true\" ] && set -- \"$@\" --active\nblock_or_print \"$guard\" stop-gate \"$@\""
+   "body": "#!/usr/bin/env bash\n# Stop: adapter over bin/brg-guard stop-gate. When files this session changed\n# have not passed make check, Claude is sent back once with the reason\n# ({\"decision\": \"block\"}); on the second stop (stop_hook_active) the guard\n# only reminds, so the hook can never loop.\nset -u\n# shellcheck source=lib.sh\n. \"$(dirname \"$0\")/lib.sh\"\nguard=\"$(dirname \"$0\")/../../bin/brg-guard\"\nset -- --id \"$(json_field session_id)\"\n[ \"$(json_field stop_hook_active)\" = \"true\" ] && set -- \"$@\" --active\nbash \"$(dirname \"$0\")/../../bin/brg-session\" timeline-close --id \"$(json_field session_id)\" >/dev/null 2>&1\nblock_or_print \"$guard\" stop-gate \"$@\""
   }
  ],
  "agents": [
@@ -17483,9 +17520,9 @@
   {
    "path": "tests/integration/harness_each.sh",
    "kind": "integration",
-   "lines": 341,
+   "lines": 342,
    "header": "tests/integration/harness_each.sh: generate every harness into a temporary git repository with plugins/bearing/bin/brg-harness, assert the file set and modes, pipe the recorded hook fixtures (blocked command substituted at run time) into the matching adapter and assert deny; hostile and missing-key inputs must deny rather than allow; every JSON file parses; the OpenCode plugin loads. Copilot's toolArgs is exercised as an object and as a JSON string. The summary counts a harness wired only when its config references every adapter and nothing is left as .bearing-new (exit 1 otherwise); the env…",
-   "asserts": 177
+   "asserts": 178
   },
   {
    "path": "tests/integration/plugin_split.sh",
@@ -17927,6 +17964,13 @@
    "lines": 85,
    "header": "tests/unit/secrets_ci_credentials.sh: plugins/bearing/skills/secrets/scripts/ci-credentials.py passes CI files that read every credential from the secret store and counts a throwaway service-container password without failing; fails, and names file, line and key but never the value, on a literal token in a GitLab variable, a literal inside a GitHub flow map, a --password flag, a URL with a password and a credential-shaped string; fails on zero CI files.",
    "asserts": 17
+  },
+  {
+   "path": "tests/unit/session_timeline.sh",
+   "kind": "unit",
+   "lines": 34,
+   "header": "tests/unit/session_timeline.sh: timeline start, implicit end, close, recent, no-op outside a Bearing repo, and a branch without a task id.",
+   "asserts": 12
   },
   {
    "path": "tests/unit/skill_evals.sh",

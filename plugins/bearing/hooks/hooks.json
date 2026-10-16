@@ -22,6 +22,12 @@
         "hooks": [
           { "type": "command", "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/block-publish.sh\"", "timeout": 10 }
         ]
+      },
+      {
+        "matcher": "Skill",
+        "hooks": [
+          { "type": "command", "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/skill-start.sh\"", "timeout": 5 }
+        ]
       }
     ],
     "PostToolUse": [
