@@ -7559,7 +7559,7 @@
     }
    ],
    "inputs": [
-    "stack: detected from `go.mod` (go-api), `pyproject.toml` (python-api), `package.json` with `react` (react-web) or `expo` (react-native), `build.gradle.kts` (android), `Package.swift` or `*.xcodeproj` (ios); more than one match or none: `brg-config get stack`, else ask once with AskUserQuestion (as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says), one option per matching stack, or when none matched \"enter the stac…",
+    "stack: detected from `go.mod` (go-api), `pyproject.toml` (python-api), `package.json` with `react` (react-web) or `expo` (react-native), `build.gradle.kts` (android), `Package.swift` or `*.xcodeproj` (ios); more than one match: ask each run with AskUserQuestion (as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says), one option per matching stack, and record nothing; none matched: `brg-config get stack.<slug>` (slug…",
     "path: `$1`; if absent, the repository root.",
     "guide and templates: this skill's own `references/logging-guide.md` and `templates/http-logging/`; nothing is read from the repository.",
     "field names and the request id rule: the shared telemetry conventions under `observability`'s references; the guide's table is a copy of that file and the conventions win when they differ.",

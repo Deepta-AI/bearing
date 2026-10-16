@@ -27,7 +27,7 @@ conventions.md.
 - stack: detected from `go.mod` (go-api), `pyproject.toml` (python-api),
   `package.json` with `react` (react-web) or `expo` (react-native),
   `build.gradle.kts` (android), `Package.swift` or `*.xcodeproj` (ios);
-  more than one match or none: `brg-config get stack`, else ask once with AskUserQuestion (as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says), one option per matching stack, or when none matched "enter the stack" (the answer comes as free text via Other) and "stop"; record it with `brg-config set stack <value>`.
+  more than one match: ask each run with AskUserQuestion (as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says), one option per matching stack, and record nothing; none matched: `brg-config get stack.<slug>` (slug is the directory path with `/` replaced by `-`, the root written as `root`), used only while detection for that directory still finds nothing, else ask once with AskUserQuestion, options "enter the stack" (the answer comes as free text via Other) and "stop", and record it with `brg-config set stack.<slug> <value>`.
 - path: `$1`; if absent, the repository root.
 - guide and templates: this skill's own `references/logging-guide.md`
   and `templates/http-logging/`; nothing is read from the repository.
