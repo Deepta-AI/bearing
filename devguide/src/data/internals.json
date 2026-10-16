@@ -14735,6 +14735,7 @@
     "Read",
     "Grep",
     "Glob",
+    "AskUserQuestion",
     "Bash(git status:*)",
     "Bash(git branch:*)",
     "Bash(git log:*)",
@@ -14753,7 +14754,6 @@
     "Bash(bash *bin/brg-state-path*)",
     "Bash(bash *bin/brg-session*)",
     "Bash(bash *bin/brg-learn*)",
-    "AskUserQuestion",
     "Bash(python3 *skills/session-handoff/scripts/progress.py*)"
    ],
    "extra": {},
@@ -14808,11 +14808,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 181,
+   "lines": 189,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 181
+     "lines": 189
     },
     {
      "path": "references/agent-split.md",
