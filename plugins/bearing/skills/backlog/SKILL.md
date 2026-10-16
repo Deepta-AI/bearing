@@ -29,7 +29,7 @@ standard and proves coverage with a gate.
   absent, each story's "Why it matters" names the outcome in words and
   the report says "0 objectives".
 - Open questions: looks in `docs/product/questions.md`; if absent, the
-  register is created here with the columns listed in step 3 (the same
+  register is created here with the columns listed in step 3 Detail (the same
   shape `prd` writes).
 - Existing backlog: looks in `docs/product/backlog.md` (and
   `docs/product/tasks.md`); if present, this is an update (see "Updating
@@ -54,164 +54,51 @@ standard and proves coverage with a gate.
 
 1. Read the PRD (`$1` or `docs/product/PRD.md`) and collect every id
    matching `REQ-[0-9]{3}` from the statements table, skipping rows marked
-   `withdrawn:`, and the `B` ids of its objectives. No PRD: take the source
-   under Inputs, split it into one testable statement per line, number
-   them `REQ-001` upward, and write them as a "Statements (inline, from
-   <source>)" table at the top of `docs/product/coverage.md` so every id
-   resolves; say the fuller PRD comes from `prd`. Read the existing
-   backlog, tasks and register; keep every epic, story, AC, task and
-   question id in whatever scheme they use; never renumber.
-   Then read the code, config and tests the statements land on. A PRD is
-   written against a system that already exists, and the traps live in
-   the gap between the two. For each rule a statement sets (a limit, a
-   threshold, a required field, who may act), find where the code holds
-   it and note one of: enforced as stated; held with another value (name
-   the constant, the test that pins it and any policy it cites); checked
-   nowhere below the screen (a rule the service does not refuse is not
-   enforced: an API call or an import skips the form); or contradicted
-   by a rule the code enforces that the statement breaks (a permission, a
-   state transition). The first is a note; the second and fourth are
-   Q-nnn contradictions; the third becomes a criterion that the service
-   itself refuses, with the file and function named. Also read any notes,
-   minutes or ADRs beside the PRD: a decision recorded there and not yet
-   in the PRD is raised, never cited under a REQ id.
+   `withdrawn:`, and the `B` ids of its objectives; never renumber an
+   existing id. Detail: references/read-and-judge.md
 2. Judge each REQ and record the judgement and one sentence of why (both
-   go into coverage.md):
-   - story: a user can do something new when it lands; it seeds a story;
-   - criterion-of: it qualifies another statement (a limit, a message, a
-     timing); it becomes an AC of that story;
-   - platform-detail-of: the same capability on web, iOS, Android; one
-     story, the platforms named in its AC or tasks;
-   - duplicate-of: same outcome as another REQ; merge, cite both ids;
-   - split: it hides two capabilities; two stories, both citing the REQ;
-   - non-functional: a quality (security, performance, accessibility)
-     carried as AC by every story it constrains;
-   - out-of-scope: the input or a decision puts it out; it needs a Q-nnn
-     whose Decision says so, cited in the Why cell.
-3. Open points. Every ambiguity, gap or contradiction met while judging,
-   and every decision the PRD leaves open that a story had to take (a
-   limit, a timing, a routing rule, what happens at the edge), becomes a
-   `Q-nnn` row in `docs/product/questions.md` (or in the existing
-   backlog's own question table, continuing its numbering): Kind
-   (open-question, gap, contradiction), Where, Basis (stated, inferred,
-   convention, assumption), the readings available, the Decision taken
-   so the work is not blocked, Why, Affects and Status. Open assumptions
-   come first and are listed under "Needs your confirmation". Replace
-   every Affects cell, including `prd`'s REQ ids, with the story ids
-   the decision changes; it is never empty.
-4. Group stories into epics `EP-nn` by user goal, never by layer ("API",
-   "database" are not epics). New backlog: assign the persona group from
-   the PRD's personas (00 end users, 01 admins, 02 operators, 03
-   integrations) and the story id is `US-<group>-<nnn>`, sequential within
-   the group, chosen by who triggers the behaviour. Existing backlog: a
-   new story takes the backlog's own scheme, the next number after the
-   highest ever used (withdrawn ids count, never reused); no second id
-   scheme is added beside it.
+   go into coverage.md): story, criterion-of, platform-detail-of,
+   duplicate-of, split, non-functional or out-of-scope (needs a Q-nnn).
+   Detail: references/read-and-judge.md
+3. Open points. Every ambiguity, gap or contradiction met while judging
+   becomes a `Q-nnn` row in `docs/product/questions.md` (columns in the
+   reference); Affects is never empty. Detail: references/open-points-and-epics.md
+4. Group stories into epics `EP-nn` by user goal, never by layer. Story
+   ids: a new backlog uses `US-<group>-<nnn>`; an existing one keeps its
+   own scheme and never reuses a number. Detail: references/open-points-and-epics.md
 5. New backlog: write `docs/product/backlog.md` from `templates/story.md`
-   (an existing one is edited in its own shape, below): the story
-   index, then per story: narrative; "Why it matters" citing a `B` id and
-   how the story moves it; "From the PRD" quoting every covered REQ in the
-   PRD's words; preconditions; at most seven acceptance criteria in
-   Given/When/Then with ids `AC-US-nn-nnn-k` and a `Covers: REQ-nnn` line
-   each; "Not in this story", each exclusion naming where it lives;
-   "Depends on" with the reason; assumptions citing their Q-nnn; Points
-   (`TBD` until `estimate`); priority (Must, Should, Could). Every REQ
-   the story covers appears in at least one AC.
-6. Full pack only (see Scope). Write `docs/product/tasks.md` from `templates/tasks.md`: per story the
-   development tasks `US-nn-nnn-D1` upward and the test tasks
-   `US-nn-nnn-T1` upward, each with discipline (backend, frontend, mobile,
-   qa, devops, or design and content for deliverables that are not code;
-   a test task is qa), Estimate (hours from `estimate`,
-   else `TBD`), Depends on, Done when and the AC ids it verifies. Every
-   story gets both kinds and every AC is verified by a test task. A task
-   over 8 hours is two tasks.
+   (an existing one is edited in its own shape, below): at most seven
+   acceptance criteria per story, each with a `Covers: REQ-nnn` line.
+   Detail: references/write-the-pack.md
+6. Full pack only (see Scope). Write `docs/product/tasks.md` from
+   `templates/tasks.md`: development and test tasks per story; every AC
+   is verified by a test task. A task over 8 hours is two tasks. Detail:
+   references/write-the-pack.md
 7. Write `docs/product/coverage.md` from `templates/coverage.md`: one row
    per REQ with judgement, why and covering stories; gaps are REQ rows with
-   no story. Also list orphan stories (no REQ) marked `inferred:` for the
-   user to accept or drop. Write the files anyway so a gap is visible.
-8. Full pack only. Write `docs/product/user-flows.md` from `templates/user-flows.md`: at
-   least one journey per epic with persona, platforms, trigger, what holds
-   before it starts, the step table (Screen, The user, The system, Story),
-   alternate paths, failures with the story that handles each, and the end
-   state. A failure no story handles is a `gap:` for the user.
+   no story. Detail: references/write-the-pack.md
+8. Full pack only. Write `docs/product/user-flows.md` from
+   `templates/user-flows.md`: at least one journey per epic. A failure no
+   story handles is a `gap:` for the user. Detail: references/write-the-pack.md
 9. Run the gate:
    `python3 "${CLAUDE_PLUGIN_ROOT}/skills/backlog/scripts/coverage_check.py"`
    (add `--prd <path>` when `$1` named another PRD). It detects the id
    scheme from the committed backlog (`--story-id REGEX` overrides) and
-   checks tasks.md and questions.md when they exist. It computes coverage
-   from the AC `Covers:` lines (an adopted backlog may trace at story
-   level, and a definition of done may carry a non-functional REQ) and
-   fails on a story id at HEAD that is gone or renumbered, a withdrawn id
-   made live, a live story covering a withdrawn REQ with no question
-   raised, a withdrawn story that code or tests outside docs/ still name
-   with no question raised, an uncovered REQ, an unknown or
-   withdrawn REQ in a Covers line, a story over seven AC, a story without
-   its objective, quotes or exclusions, an index row missing or out of
-   step, a matrix row without its judgement or why, an out-of-scope REQ
-   with no Q-nnn, an epic with no journey, a task table that breaks the
-   rules in step 6, and a register row with an empty Affects or an
-   assumption outside "Needs your confirmation". The house-format blocks
-   (objective, quotes, exclusions, Points) are checked on a US-nn-nnn
-   backlog only. Fix what it reports and rerun until it exits 0. Copy its
-   "tasks:" line into the backlog's "Hours by discipline" (full pack) and
-   its counts line into coverage.md.
-10. Full pack only. Write `docs/product/IMPORT.md` from `templates/import.md`: the files
-    and how each imports (`tracker-sync sync` for epics and stories, CSV
-    for tasks), the open assumptions to confirm before committing, what is
-    still open, and what is out of scope. Print the gate's lines unchanged.
-    Never write a count the script did not print.
+   checks tasks.md and questions.md when they exist. Fix what it reports
+   and rerun until it exits 0. Copy its "tasks:" line into the backlog's
+   "Hours by discipline" (full pack) and its counts line into coverage.md.
+   Detail: references/gate.md
+10. Full pack only. Write `docs/product/IMPORT.md` from
+    `templates/import.md`. Print the gate's lines unchanged. Never write a
+    count the script did not print. Detail: references/write-the-pack.md
 
 ## Updating an existing backlog
 
 A backlog people are tracking is edited, not rebuilt. Find what changed
-and touch only the stories a change lands on.
-
-- Diff the statements themselves, not the change log. Compare each REQ's
-  current wording with the criteria that cover it (and the previous PRD
-  in git history when there is one). Change logs omit edits, and the
-  omitted ones are small: a boundary made inclusive, "days" becoming
-  "working days", "each" becoming "any", a unit. A boundary change against a Done story is new work like
-  any other.
-- A new statement changes existing stories it never names. For each
-  one, ask who acts, who is notified, who may decide and when, and check
-  those against every Done and In progress story and the code behind
-  them: a new actor who must approve breaks a shipped "only the owner
-  may approve" check, and a new recipient changes a notification story
-  under way. Name each such story and
-  the code rule it breaks.
-- Where a new statement overlaps an existing story, state the difference
-  in one line (who acts, on what trigger, for how long) or merge them.
-
-- Shape: keep the file's headings, id scheme, AC numbering, status column
-  and question table. New stories are written in that same shape. Stories
-  no change touches keep their text; do not upgrade them to the house
-  template.
-- Each changed statement, by the status of the story it lands on:
-  - To do: edit the story in place and say so in the report.
-  - In progress: do not change the scope mid-sprint silently. Leave the
-    criteria, add a note naming the change, and raise a Q-nnn with the
-    readings (finish as planned and follow up, change it in this sprint,
-    stop it).
-  - Done: never rewrite a shipped criterion as if the new value had been
-    delivered. Add a new story that changes it, citing the Done story, and
-    name the code, config and tests that still hold the old value.
-- A withdrawn statement: a To do story is marked `withdrawn:` in place
-  with the reason. An In progress story keeps its status: someone is
-  building it and the tracker mirrors it, so withdrawal is proposed in a
-  Q-nnn with the readings and the team changes the status. Search code and tests for the
-  story id (the gate lists them): each hit is work someone must keep,
-  repoint or remove, so it goes in that Q-nnn. Never edit code or tests
-  from this skill.
-- A new statement that restates an existing capability is folded into that
-  story (its Covers line), not given a story of its own.
-- A new statement that conflicts with an accepted ADR or the PRD's own
-  non-goals is not written as ready work: the story is blocked on its
-  Q-nnn, whatever reading you assume.
-- New stories are not placed in the running sprint; propose, do not
-  schedule.
-- The report lists the stories added, changed, reopened and withdrawn, and
-  copies the gate's `ids:` line, whose "changed since HEAD" list must
-  match that summary.
+and touch only the stories a change lands on. Never rewrite a Done
+story's shipped criterion, never change an In progress story's scope
+silently, never edit code or tests from this skill, and propose new
+stories without scheduling them. Detail: references/updating-an-existing-backlog.md
 
 ## Output contract
 
