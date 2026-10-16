@@ -36,3 +36,7 @@ leave it unset), `config names:` lines are config files naming a flag
 (override maps, remote-config defaults), and `client read:` lines are
 the places the browser reads a flag by key. A `reads as ON` problem is
 the parser trap of step 2, already found.
+
+The hard part is never the `if`. It is knowing every place the feature reaches,
+what value each environment really resolves to, and whether a change to the
+flag changes production. Most of this skill is those three checks.

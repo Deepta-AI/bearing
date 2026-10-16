@@ -1,4 +1,4 @@
-# .: what the engine does and what this skill adds
+# branch-review: what the engine does and what this skill adds
 
 Read when you wonder how this skill relates to gstack /review, /code-review or gsd-code-review.
 

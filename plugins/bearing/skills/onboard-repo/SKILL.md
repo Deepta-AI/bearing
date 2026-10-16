@@ -56,22 +56,31 @@ format, branch rules, push to main), the team's convention stays in force
 and the standard's rule is offered as a Proposed change in the report.
 
 1. **Survey.** Record each fact with the file or command that shows it; the
-   rest of the run is checked against this list: the gate (every CI job: working
-   directory, commands, flags, variables, services, `allow_failure`, rules; run
-   each offline job's commands locally, exactly as written, and note the counts:
-   files linted, tests run, skipped, deselected), the scripts CI calls (changing
-   one is a CI change), the existing Makefile (what `check` really runs versus
-   what the README claims), hooks (`git config --get core.hooksPath`, `ls
-   .git/hooks`, pre-commit framework, Husky, lefthook, a hand-written hook),
-   conventions (commit format from CONTRIBUTING and from `git log --format=%s
-   -30`; merges or direct commits from `git log --merges --oneline -5`), owners
-   (which CODEOWNERS file the host reads; a new root file shadows the team's real
-   one), ignore rules (`git check-ignore -v .claude/settings.json AGENTS.md` for
-   every path you intend to add), the package manager from the lockfile, tracked
-   secrets (`git ls-files` for `.env*`, `*.pem`, `*.key`, credentials JSON; note
-   the path only, do not open it or print a value), agent notes already here
-   (their rules are the most valuable text in the repository), and doc claims the
-   survey falsifies (do not copy a false claim into AGENTS.md). Detail: references/survey.md
+   rest of the run is checked against this list.
+   - Gate: every CI job (`.gitlab-ci.yml`, `.github/workflows/*`): working
+     directory, commands, flags, variables, services, `allow_failure`, rules.
+     Run each offline job's commands locally, exactly as written, and note the
+     counts (files linted, tests run, skipped, deselected).
+   - Scripts CI calls: changing one is a CI change. Existing Makefile: what
+     `check` really runs versus what the README or CONTRIBUTING claims.
+   - Hooks: `git config --get core.hooksPath`; `ls .git/hooks` for non-sample
+     files; pre-commit framework, Husky, lefthook or a hand-written hook, and
+     whether the tools they call are installed here.
+   - Conventions: commit format from CONTRIBUTING and from
+     `git log --format=%s -30` (where they disagree, the history is what a
+     hook meets tomorrow, and the disagreement is a finding); merges or direct
+     commits from `git log --merges --oneline -5`.
+   - Owners: which CODEOWNERS file the host reads (GitLab: the first of
+     `CODEOWNERS`, `docs/CODEOWNERS`, `.gitlab/CODEOWNERS`; GitHub: the first
+     of `.github/`, root, `docs/`); a new root file shadows the team's real one.
+   - Ignore rules: `git check-ignore -v .claude/settings.json AGENTS.md` for
+     every path you intend to add. Package manager from the lockfile.
+   - Tracked secrets: `git ls-files` for `.env*` (not `.example`), `*.pem`,
+     `*.key`, credentials JSON; note the path only, do not open it or print a
+     value.
+   - Agent notes already here (their rules are the most valuable text in the
+     repository) and doc claims the survey falsifies (do not copy a false
+     claim into AGENTS.md). Detail: references/survey.md
 2. **Preview the standard, off the live repository.** Clone it into a
    temporary folder (`mktemp -d`, then `git clone -q . "$preview"`) and run
    `bash "${CLAUDE_PLUGIN_ROOT}/bin/brg-adopt" --dir "$preview" --host <host>`
@@ -83,17 +92,16 @@ and the standard's rule is offered as a Proposed change in the report.
 3. **Makefile and `make check`.** `make check` is CI's blocking jobs,
    run locally, in each job's directory, with each job's flags and
    variables. For each job, one target; `check` depends on the offline ones.
-   - Keep every existing target and what it does; add prerequisites and
-     targets, never replace a recipe wholesale.
-   - Copy CI's variables into the targets (`TZ=UTC` in CI means the gate
-     sets `TZ=UTC`; a suite that passes only under it is a finding to
-     report, not a test or source file to edit).
-   - A job that needs a service or secret (database, cloud credentials)
-     gets its own target that fails loudly when its variable is missing,
-     and stays out of `check`; `check` must pass on a laptop with no
-     network, and the report says CI covers that job. A skipped gate that
-     fails `check` makes the gate useless; one that passes silently hides
-     it; print what was not run.
+- Keep every existing target and what it does; add prerequisites and targets,
+     never replace a recipe wholesale.
+- Copy CI's variables into the targets (`TZ=UTC` in CI means the gate sets
+     `TZ=UTC`; a suite that passes only under it is a finding to report, not a
+     test or source file to edit).
+- A job that needs a service or secret (database, cloud credentials) gets its
+     own target that fails loudly when its variable is missing, and stays out
+     of `check`; `check` must pass on a laptop with no network, and the report
+     says CI covers that job. A skipped gate that fails `check` makes the gate
+     useless; one that passes silently hides it; print what was not run.
    - Fail on what CI fails on (a lister such as gofmt -l exits 0 while it lists
      files; CI wraps it in test -z, and so must the gate); prove each check by
      making it fail once on a scratch file, then remove the file.
@@ -101,13 +109,13 @@ and the standard's rule is offered as a Proposed change in the report.
    - The gate must pass on this machine with no arguments: resolve tools the way
      the engineer's shell does (the interpreter behind `pytest` on PATH), keep it
      overridable, and fail with the install line only when none has it.
-   - Compare counts with CI's, including skips: a job variable that unlocks a
-     test belongs in the target, or `check` passes on less. Detail: references/makefile-and-hooks.md
-   - The adopter's `check` recipe ends with a `.bearing/state/.check-passed`
-     marker. Bearing's Stop gate reads it and nothing else does: keep it
-     only when the team uses the Bearing plugin in this repository, with
-     `.bearing/state/` ignored, and say so in Changed; otherwise leave it
-     out.
+- Compare counts with CI's, including skips: a job variable that unlocks a test
+     belongs in the target, or `check` passes on less. Detail:
+     references/makefile-and-hooks.md
+- The adopter's `check` recipe ends with a `.bearing/state/.check-passed`
+     marker. Bearing's Stop gate reads it and nothing else does: keep it only
+     when the team uses the Bearing plugin in this repository, with
+     `.bearing/state/` ignored, and say so in Changed; otherwise leave it out.
    - Do not change CI unless asked. If you make CI call make targets, keep
      every job, image, service and variable.
 4. **AGENTS.md and CLAUDE.md.** AGENTS.md is for this repository, not the
@@ -121,22 +129,24 @@ and the standard's rule is offered as a Proposed change in the report.
    wrote, especially a "things Claude gets wrong" list.
 5. **Hooks: one mechanism, the team's.** Add the standard's checks into the
    mechanism already in use, never beside it.
-   - `core.hooksPath` set (Husky's `.husky`, a `tools/githooks`): leave
-     it; call the new hook from that directory's hook, or add the new hook
-     file there. The `setup` target and the live value must agree.
-   - Pre-commit framework in `.git/hooks`: leave `core.hooksPath` unset
-     and `.pre-commit-config.yaml`'s existing hooks untouched; a new check
-     goes in as a `repo: local` hook (a new hook type needs
+- `core.hooksPath` set (Husky's `.husky`, a `tools/githooks`): leave it; call
+     the new hook from that directory's hook, or add the new hook file there.
+     The `setup` target and the live value must agree.
+- Pre-commit framework in `.git/hooks`: leave `core.hooksPath` unset and
+     `.pre-commit-config.yaml`'s existing hooks untouched; a new check goes in
+     as a `repo: local` hook (a new hook type needs
      `pre-commit install --hook-type <type>` per clone: say so), or stays
      inactive with the wiring step in the report.
    - Nothing in place: `.githooks/` with `bash .githooks/install.sh`.
-   - Fit every hook you write, active or not, to the survey: run the commit-msg
+- Fit every hook you write, active or not, to the survey: run the commit-msg
      hook on every subject in the history (up to the last 100) and get zero
      rejections by following the team's format, not the kit's; drop pre-push
-     rules the practice breaks; a pre-commit hook must let a reword (`--amend`
-     with nothing staged) and an `--allow-empty` commit through; cut branches
-     for stacks the repository does not have. Any refusal that stays is named in
-     the report as a change the team must agree to. Detail: references/makefile-and-hooks.md
+     rules the practice breaks (push from main, task-id branch names, terminal
+     confirmation, refusing a push of zero new commits such as a tag); a
+     pre-commit hook must let a reword (`--amend` with nothing staged) and an
+     `--allow-empty` commit through; cut branches for stacks the repository
+     does not have. Any refusal that stays is named in the report as a change
+     the team must agree to. Detail: references/makefile-and-hooks.md
    - The documented setup path must produce the state you verified: no
      README or AGENTS.md line telling people to run a target that sets
      `core.hooksPath` in a repository whose hooks live in `.git/hooks`.

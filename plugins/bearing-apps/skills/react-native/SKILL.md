@@ -6,18 +6,14 @@ allowed-tools: Read, Grep, Glob, Skill, Bash(pnpm run:*), Bash(pnpm test:*), Bas
 
 # react-native
 
-The mobile stack on this standard: Expo SDK 57 on React Native 0.86 with the new
-architecture and Hermes, `expo-router` for file-based navigation, TypeScript
-strict, TanStack Query for server state, Zustand for client state, Zod at
-every boundary, NativeWind for styling, EAS Build and EAS Update for
-delivery, Maestro for end-to-end flows, `jest-expo` with Testing Library for
-unit tests, ESLint flat config plus Prettier, pnpm with a hoisted
-`node_modules`. One codebase ships iOS and Android.
+The mobile stack on this standard: Expo SDK 57 on React Native 0.86 (new
+architecture, Hermes), `expo-router`, TypeScript strict, TanStack Query,
+Zustand, Zod at every boundary, NativeWind, EAS, Maestro, `jest-expo`, pnpm.
+One codebase ships iOS and Android. Detail: references/stack-background.md
 
 NativeWind over `StyleSheet`: design tokens live in one `tailwind.config.js`
 under the web lanes' role names; a token changed on one side changes on the
-other in the same MR.
-Detail: references/styling-and-layout.md
+other in the same MR. Detail: references/styling-and-layout.md
 
 ## Inputs
 
@@ -34,16 +30,17 @@ Detail: references/styling-and-layout.md
 - Writing or changing `.ts`/`.tsx` files under `app/` or `src/`: apply
   `references/guidelines.md`. Read it once per session, then work.
 - Reviewing a diff with mobile files: apply `references/review-checklist.md`
-  and report every finding as severity (Critical, High, Medium, Low), `file:line`, the claim, a concrete failure scenario and the fix, then list what was checked and found clean and what was not reviewed.
+  and report every finding as severity (Critical, High, Medium, Low),
+  `file:line`, the claim, a concrete failure scenario and the fix, then list
+  what was checked and found clean and what was not reviewed.
 - Scaffolding (`new-repo react-native <Name>`): `templates/` holds the
   skeleton and configs; `bin/brg-scaffold` in the bearing plugin copies them. Do not hand-copy.
 - Generating CI (`bearing:ci-pipeline`): `templates/.gitlab-ci.yml` is the source.
 
 ## Pack skills
 
-The Expo team's expo/skills pack tracks the current SDK. When one is
-installed, load it with the Skill tool for its job; when
-it is not, work from the Expo changelog for the target SDK and name the
+The Expo team's expo/skills pack tracks the current SDK: load it with the Skill
+tool when installed; otherwise work from the Expo changelog and name the
 missing skill in the report.
 
 - `expo-upgrade`: an Expo SDK bump or a deprecated package; its version floors
@@ -52,25 +49,21 @@ missing skill in the report.
   never `@react-navigation/*`. Rule 5 still holds.
 - `expo-dev-client` is not loaded: its commands are EAS cloud builds the
   repository settings deny. A local dev client comes from `make ios` or
-  `make android`.
-
-Detail: references/pack-skills.md
+  `make android`. Detail: references/pack-skills.md
 
 ## Layout
 
 Screens under `app/`, feature code under `src/features/<feature>/` (api, schemas,
-hooks, components), the `Makefile` the only entry point.
-Detail: references/styling-and-layout.md
+hooks, components), the `Makefile` the only entry point. Detail: references/styling-and-layout.md
 
 ## On a foreign layout
 
-Hard rules anywhere: 2 (secrets only in the secure store), 3, 5, 6, 7,
-8, and no secret in `EXPO_PUBLIC_*` or any bundled variable. Advisory:
-the directory layout, expo-router (React Navigation stays where it is),
-NativeWind, Zustand, pnpm and EAS: use what the repository already has;
-propose a switch in an ADR, never inside a feature change. A bare React
-Native app without Expo keeps its own build commands. Say which rule
-was relaxed and why.
+Hard rules anywhere: 2 (secrets only in the secure store), 3, 5, 6, 7, 8, and
+no secret in `EXPO_PUBLIC_*` or any bundled variable. Advisory: the directory
+layout, expo-router (React Navigation stays where it is), NativeWind, Zustand,
+pnpm and EAS: use what the repository already has; propose a switch in an ADR,
+never inside a feature change. A bare React Native app without Expo keeps its
+own build commands. Say which rule was relaxed and why.
 
 ## Rules that matter most
 
@@ -108,43 +101,54 @@ the task touches, in the code you write and in any diff you review.
 
 Reading the repository
 - Docs disagree: the API reference and its changelog beat a README; an
-  Accepted ADR beats both. A `z.enum` over a server-owned value fails a page
-  on one new value; render an unknown one as a neutral label, never a throw.
+  Accepted ADR beats both. Say which document you followed and correct or flag
+  the stale one. A `z.enum` over a server-owned value fails a page on one new
+  value; render an unknown one as a neutral label, never a throw.
   Detail: references/traps-reading-and-writes.md
 
 Paginated lists (`useInfiniteQuery`)
-- `getNextPageParam` returns `undefined` at a null cursor; a failed next page
-  shows a footer retry, never a full-screen error over loaded rows; set
-  `maxPages` on long histories.
+- `getNextPageParam` returns `undefined` at a null cursor; call `fetchNextPage`
+  from `onEndReached` only when `hasNextPage && !isFetchingNextPage`. A failed
+  next page shows a footer retry, never a full-screen error over loaded rows;
+  set `maxPages` on long histories.
   Detail: references/traps-lists-and-links.md
 
 Deep links and sessions
 - A signed-out customer who opens a link lands on that target after sign in
-  through a validated in-app `next` param. Sign out clears the query cache
-  (`queryClient.clear()`, and any persisted cache).
+  through a `next` param accepted only as an in-app path (one leading `/`, no
+  `//`, no scheme, not an auth route), else home. A cold-start link needs
+  `unstable_settings = { initialRouteName: '(tabs)' }` in the group layout.
+  Sign out clears the query cache (`queryClient.clear()`, and any persisted
+  cache).
   Detail: references/traps-lists-and-links.md
 
 Writes
 - A submit is a `useMutation`; the button is disabled while `isPending`,
   and a failure shows a message with retry.
 - A POST that creates something carries an idempotency key generated once per
-  user intent, kept across retries. Never default a required choice.
+  user intent, kept across retries. Never default a required choice. Show an
+  action only when the server will accept it (compute it from the data) and
+  map the refusal (422) to copy.
   Detail: references/traps-reading-and-writes.md
 
 Uploads and media
 - Files go to a presigned URL the API issues; the app never holds a storage
-  key or signing secret. Resize camera photos and check the size against the
-  server limit first. Detail: references/traps-uploads-native-tests.md.
+  key or signing secret, never builds a bucket URL, and sends the server's
+  upload id back, not a key it made up (`Date.now()` in a key collides under
+  `Promise.all`). Camera photos at `quality: 1` are often over 5 MB: resize or
+  lower `quality`, then check the size against the server limit.
+  Detail: references/traps-uploads-native-tests.md
 
 Native changes
 - A new native module needs its plugin entry and usage strings in `app.json`;
   under `runtimeVersion` policy `appVersion`, bump `version` (or use
   `fingerprint`) and ship a store build before any `eas update` that needs it.
-  Detail: references/traps-uploads-native-tests.md.
+  Detail: references/traps-uploads-native-tests.md
 
 Tests that count
 - Test the hook with `renderHook` and the screen with Testing Library, not
-  just a schema. Detail: references/traps-uploads-native-tests.md.
+  just a schema.
+  Detail: references/traps-uploads-native-tests.md
 
 Reviews
 - Report only what the branch introduced: diff against the merge base and
@@ -190,7 +194,7 @@ make build-preview  # prints the eas build command; runs only with EAS_CONFIRM=1
   Store review.
 - iOS builds need a macOS runner or EAS cloud; the Linux CI runs export,
   tests and Android only.
-- expo-router typed routes are generated into `.expo/types` by `expo
-  start` or `expo export`; run one before trusting `tsc` on route hrefs.
+- expo-router typed routes are generated into `.expo/types` by `expo start` or
+  `expo export`; run one before trusting `tsc` on route hrefs.
 - `EXPO_PUBLIC_*` variables are inlined into the JavaScript bundle. They are
   configuration, never secrets.

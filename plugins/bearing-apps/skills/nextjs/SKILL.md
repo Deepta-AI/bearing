@@ -6,12 +6,10 @@ allowed-tools: Read, Grep, Glob, Bash(pnpm install:*), Bash(pnpm run:*), Bash(pn
 
 # nextjs
 
-The Next.js stack on this standard: Next 16 App Router with React 19 and Cache
-Components, server components by default, Zod-validated server actions,
-Tailwind v4 with shadcn/ui, vitest and Playwright, pnpm. Choose Next when
-pages must render on the server; choose React (`react`) when the app lives
-behind a login and an API already exists.
-Detail: references/stack-and-versions.md
+The Next.js stack on this standard: Next 16 App Router, React 19, Cache
+Components, Zod-validated server actions, Tailwind v4 with shadcn/ui, vitest,
+Playwright, pnpm. Choose React (`react`) when the app lives behind a login and
+an API already exists. Detail: references/stack-and-versions.md
 
 ## Inputs
 
@@ -38,19 +36,18 @@ Detail: references/stack-and-versions.md
 Feature code under `src/features/<feature>/` (schemas, api, actions,
 components, screens), routes under `src/app/`, shadcn output in
 `src/components/ui/` (added with the CLI, never hand-edited), the `Makefile`
-the only entry point.
-Detail: references/layout-and-owned-data.md
+the only entry point. Detail: references/layout-and-owned-data.md
 
 ## When the app owns its data
 
 The scaffold assumes a separate API. When the Next.js app is itself the
 backend (its handlers or actions write a database, and an ADR says so),
 replace that layer rather than keep it beside the real one: `src/server/`
-(every file imports `server-only`), delete the placeholder `src/env.server.ts`,
-`src/lib/api.ts`, auth and example features once nothing imports them, and
-test migrations on a real database with a `make test-db` target that fails
-on zero test files (a CI job, not part of `make check`).
-Detail: references/layout-and-owned-data.md
+(every file imports `server-only`; `env.ts` parsed on first use, not at module
+load, so `next build` needs no production secret), delete the placeholder
+`src/env.server.ts`, `src/lib/api.ts`, auth and example features once nothing
+imports them (`readyz` asks the database, not an API), and test migrations on a real database with a `make test-db` target that fails
+on zero test files (a CI job, not part of `make check`). Detail: references/layout-and-owned-data.md
 
 ## On a foreign layout
 
@@ -59,17 +56,19 @@ Hard rules anywhere: 1, 2, 3, 4 and 8. Advisory: the directory layout,
 is configured), pnpm and the Makefile targets: use the styling, data
 library and package manager the repository already has (a Pages Router
 app keeps `getServerSideProps` until an ADR moves it); propose a switch
-Rule 4 needs `cacheComponents`; without it keep the fetch-level model (every
-`fetch` names its cache; a mutation calls `revalidateTag` or
-`revalidatePath`). Keep the majors the repository pins and write their API;
-check `package.json` before the first line. Say which rule was relaxed.
-Detail: references/stack-and-versions.md
+in an ADR, never inside a feature change. Rule 4 needs `cacheComponents`;
+without it (Next 15, or 16 not yet migrated) keep the fetch-level model: every
+`fetch` names its cache and a mutation calls `revalidateTag` or
+`revalidatePath`. A Next 15 app keeps `middleware.ts`. Keep the majors the
+repository pins and write their API: Next 15 has no `updateTag`, `"use cache"`,
+`cacheLife` or `cacheTag`; Zod 3 has `parsed.error.flatten()` and
+`z.string().email()`, where Zod 4 has `z.flattenError`, `z.prettifyError` and
+`z.email()`. Check `package.json` before the first line. Say which rule was relaxed. Detail: references/stack-and-versions.md
 
 Screens as code: a `*.screen.tsx` renders the real view components with
 fixture props. Import the presentational view, never the server component
 that fetches or anything that imports `server-only`; `make design-registry`
-lists the screens and `make check` fails when the list is stale.
-Detail: references/layout-and-owned-data.md
+lists the screens and `make check` fails when the list is stale. Detail: references/layout-and-owned-data.md
 
 ## Rules that matter most
 
@@ -150,10 +149,11 @@ pnpm dlx shadcn@4.21.0 add button   # add a shadcn component
 - Batch actions: settle each item, return which succeeded and which failed,
   expire the tags anyway, and bound the batch size.
 - A read schema stays loose for legacy rows; the write schema carries the
-  current rules.
+  current rules. A legacy row the write rules reject cannot be edited in place:
+  say so on the page and refuse it in the action.
 - Tests prove the boundary, not the mock: the "another tenant" test stubs the
   API (or `fetch`) to return someone else's resource and asserts no write was
-  sent.
+  sent. Stubbing your own ownership helper to say "not yours" tests nothing.
   Detail: references/traps-batch-and-tests.md
 
 ## Reviewing

@@ -14,7 +14,7 @@ directly. It reads `BEARING_TRACKER` from the environment, then
 `bin/brg-gitlab`, `bin/brg-github` or `bin/brg-rest`. The adapters read
 credentials and never print them; never open `bearing.env` yourself.
 
-The value of this skill is deciding what is true before anything is sent. Do
+The value of this skill is deciding what is true before anything is sent: do
 that analysis in full whether or not a tracker is reachable.
 Detail: references/adapters-and-payloads.md
 
@@ -46,13 +46,10 @@ brg-tracker docs [--type prd|design|doc]                      # rest only
 brg-tracker doc-put --title <s> --file <f> [--type t] [--parent <id>] [--source <path>]
 ```
 
-The document commands exist on the REST tracker only; on Jira, GitLab and
-GitHub they print `documents: not supported` and exit 3. On rest, `create`
-and `update` also take `--document <id>`. Adapter facts (hierarchy, `--parent`,
-status names, configuration keys) are in the header comment of
-`bin/brg-tracker` and of each adapter script; read the one for the configured
-tracker.
-Detail: references/adapters-and-payloads.md
+The document commands exist on the REST tracker only (elsewhere they print
+`documents: not supported` and exit 3); on rest, `create` and `update` also
+take `--document <id>`. Adapter facts are in the header comment of
+`bin/brg-tracker` and of each adapter script. Detail: references/adapters-and-payloads.md
 
 ## Steps
 
@@ -71,15 +68,16 @@ Detail: references/adapters-and-payloads.md
 
 ### Step 2: read the repository's own rules
 
-README, CONTRIBUTING, the backlog header: project key, tracker URL, status
-workflow and conditions, long-lived branch. They override every default below.
+README, CONTRIBUTING, the backlog header: project key, tracker URL, where keys
+are recorded, status workflow and the condition for each status, long-lived
+branch, how tests carry test case ids. They override every default below.
 Detail: references/adapters-and-payloads.md
 
 ### Step 3a: `sync [backlog]` and `create`
 
-Source: `$1`, else `docs/product/backlog.md`; test cases from
-`docs/testing/test-cases.md` (absent: that pass is 0, reported). No
-backlog: offer a pasted list, the test case file, or `create` one at a time.
+Source and test cases as in Inputs (no test case file: that pass is 0,
+reported). No backlog: offer a pasted list, the test case file, or `create`
+one at a time.
 
 1. **Git state of the source.** `git status` and `git diff` on the
    backlog. Items that exist only as uncommitted edits are named in the
@@ -89,22 +87,27 @@ backlog: offer a pasted list, the test case file, or `create` one at a time.
    anything ties a project key to it (a `Ticket:` or other key line, a key in
    its text, `git log --all --format='%h %s%n%b' | grep '<PREFIX>-[0-9]'`,
    `grep -rn '<PREFIX>-[0-9]'` in code and tests); a key found only in history
-   or code is still a key: no second ticket.
-3. **Duplicates the repository cannot show.** When reachable, `brg-tracker
-   list --q "<title words>"` for each item before creating; when not, say
-   this search is the first step of the filing run.
+   or code is still a key: no second ticket. Say what tied each key to its item
+   and propose recording it in the backlog.
+3. **Duplicates the repository cannot show.** When reachable,
+   `brg-tracker list --q "<title words>"` for each item before creating; when
+   not, say this search is the first step of the filing run.
 4. **Hierarchy.** Epics first, then stories with `--parent <epic key>`, then
    test cases under their story. `update` has no `--parent`: `link` an
    existing ticket to its new epic and list the parent change for the user.
 5. **Readiness.** Hold an item back (report it, do not file it as ordinary
    work) when an acceptance criterion contradicts an Accepted ADR, a stated
-   constraint or another item. Raising the conflict is yours; settling it is
-   the user's, so no ADR or story text is edited. Flag items with no criteria.
-6. **Bodies.** Write each item's description file (every `AC-` id verbatim);
-   every `--description-file` you name must exist when you finish.
-7. **Counts.** Already in the tracker, to create, held back, pending as
-   uncommitted; check they add up to the items in the backlog.
-7a. **Story to PRD (rest).** When the PRD is a published document, create every
+   constraint or another item: name the criterion, the decision, and what would
+   unblock it (rewrite the criterion, or a superseding ADR). Raising the
+   conflict is yours; settling it is the user's, so no ADR or story text is
+   edited. Flag items with no criteria.
+6. **Bodies.** Write each item's description file: narrative, every `AC-` id
+   verbatim, non-goals, its `TC-` ids, the ADRs it rests on. Every
+   `--description-file` you name must exist when you finish.
+7. **Counts.** Already in the tracker (keys, and how each was found), to
+   create, held back, pending as uncommitted; check they add up to the items in the backlog.
+7a. **Story to PRD (rest).** When the PRD is published as a document
+   (`brg-tracker docs --type prd`, or Step 3c in the same run), create every
    story with `--document <PRD id>` and `update` existing tickets the same.
 8. **Write-back, only with real keys.** Record a returned key as the
    repository's convention says (`Ticket: <KEY>`) and leave that change
@@ -113,9 +116,10 @@ backlog: offer a pasted list, the test case file, or `create` one at a time.
 
 ### Step 3b: `update`, `trace`, and "mark it done"
 
-1. **Base branch.** From CONTRIBUTING or README, else `git symbolic-ref
-   refs/remotes/origin/HEAD`, else whichever of `origin/main`,
-   `origin/master`, `origin/develop` exists. Never assume `develop`.
+1. **Base branch.** From CONTRIBUTING or README, else
+   `git symbolic-ref refs/remotes/origin/HEAD`, else whichever of
+   `origin/main`, `origin/master`, `origin/develop` exists. Never assume
+   `develop`.
 2. **Merged or not.** `git merge-base --is-ancestor HEAD origin/<base>`
    (remote-tracking refs are as of the last fetch; say so). A ticket goes
    to the done status only when the repository's rules are met (merged,
@@ -128,30 +132,35 @@ backlog: offer a pasted list, the test case file, or `create` one at a time.
 4. **Test cases: promised against delivered.** For each id the test case
    file assigns to this key, a test must name it, run and pass; run the suite
    (`make check` or the repository's command) and read its summary. A
-   `todo`, `skip` or commented-out test is not coverage. Report covered,
+   `todo`, `skip` or commented-out test is not coverage, and a commit subject
+   claiming an id is not evidence. Report covered,
    missing and placeholder ids with counts.
 5. **Behaviour against the decision.** For each ADR the branch adds or cites,
    quote its `Status:` line (Proposed is not Accepted) and check the code
    does what its Decision section says. A gap here or in step 4 means the
    ticket is not complete; say so plainly.
-6. **MR link.** From `--mr` or the user; never guess a number. Without the
-   link, ask for it and leave the field empty.
+6. **MR link.** From `--mr` or the user. The remote gives the host and project
+   (`git remote -v`), never the MR number: without the link, ask for it and
+   leave the field empty, or give the branch URL on the remote's host. Never
+   guess a number.
 7. Run `brg-tracker update` and `brg-tracker trace` with those facts or,
    with no tracker, print them as exact commands (Step 4). Called from
    `merge-request`, exit 3 means "tracker: none", reported, not a failure.
-   An unknown status name stops with the adapter's list. Detail: references/status-and-trace.md
+   Status names match case-insensitively against what the tracker offers; an
+   unknown name stops with the adapter's list.
+   Detail: references/status-and-trace.md
 
 ### Step 3c: `docs`, the repository's documents (rest)
 
-Publishes the project's documents as tracker documents; run it before `sync`
-on a first filing, so stories can point at the PRD. Publish each committed
-file, `docs/product/PRD.md` first as `prd` (an uncommitted one is named and
-skipped unless the user says otherwise). One call per file: `brg-tracker
-doc-put --title "<the file's first # heading>" --file <path> --source <path>
---type <t>`. **Never** call the tracker's own story generation from a
-document (`backlog` owns the stories). `documents: not supported` (exit 3) is
-a skip, reported; `this tracker does not support documents` (exit 1): report
-it and file the tickets anyway. Detail: references/docs-publish.md
+Publishes the project's documents as tracker documents; run it before `sync` on
+a first filing, so stories can point at the PRD. Publish each committed file,
+`docs/product/PRD.md` first as `prd` (an uncommitted one is named and skipped
+unless the user says otherwise). One call per file:
+`brg-tracker doc-put --title "<the file's first # heading>" --file <path> --source <path> --type <t>`.
+**Never** call the tracker's own story generation from a document (`backlog`
+owns the stories). `documents: not supported` (exit 3) is a skip, reported;
+`this tracker does not support documents` (exit 1): report it and file the
+tickets anyway. Detail: references/docs-publish.md
 
 `get`, `list`, `config`: print what the script returns.
 
@@ -178,9 +187,8 @@ was sent. With no tracker, name what to set, never the values: in
 `~/.config/bearing/bearing.env` (template `templates/user/bearing.env` in
 the plugin), `BEARING_TRACKER=<jira|gitlab|github|rest>` plus the keys
 the adapter's header lists (for Jira `BEARING_TRACKER_URL`,
-`BEARING_TRACKER_PROJECT`, `BEARING_TRACKER_EMAIL`,
-`BEARING_TRACKER_TOKEN`), then rerun the printed commands. A suite you did
-not run is "not run".
+`BEARING_TRACKER_PROJECT`, `BEARING_TRACKER_EMAIL`, `BEARING_TRACKER_TOKEN`),
+then rerun the printed commands. A suite you did not run is "not run".
 
 ## Gotchas
 

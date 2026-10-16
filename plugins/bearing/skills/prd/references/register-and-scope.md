@@ -28,3 +28,9 @@ Not this: pm-skills `create-prd` writes an eight-section product
 document from scratch; this normalises any input into a PRD on this
 standard, whose numbered REQ statements are intents to be judged and
 combined by `backlog`, never one story per line.
+
+- Input format: `.md`, `.txt`, `.html` and pasted text are read as they are; a
+`.pdf` is read with Read (20 pages per call); a `.docx` or `.odt` is
+converted by `scripts/doc_to_text.py` in this skill (standard library
+Python). Only a legacy `.doc`, a Google Doc or a Notion link gets one
+question asking for a `.docx`, PDF or text export.

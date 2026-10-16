@@ -35,3 +35,5 @@ component set cannot render is not a direction.
   primary-foreground on primary, muted-foreground on background, card
   and muted, and every status pair, per direction and theme. Print the
   count; zero pairs checked is a failure, not a pass.
+
+Examples of the user and condition a direction serves first: a dispatcher at a desk all day, a driver in sun on a phone, a patient at arm's length.

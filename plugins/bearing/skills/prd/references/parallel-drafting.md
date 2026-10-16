@@ -10,7 +10,7 @@ in a single message so they run at once, each given the source file
 path, its range and the product name. Each returns draft statements
 with sources, constraints, ambiguity themes and the gaps it saw. Then
 merge in source order: drop a draft that repeats another range's (one
-REQ, both lines cited), check every draft against the rules above
+REQ, both lines cited), check every draft against the rules in SKILL.md step 4
 (rewrite one that names a solution or is in story form), and only then
 number them after the highest existing id. Steps 3, 5, 6 and 7 stay in
 this session, because sections, contradictions between ranges and the

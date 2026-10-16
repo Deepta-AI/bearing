@@ -11,9 +11,9 @@ A flag is a loan against the codebase. It is taken out with a name, an owner
 and a date it is paid back. Every read goes through one module so the loan can
 be found and closed.
 
-The hard part is never the `if`. It is knowing every place the feature reaches,
-what value each environment really resolves to, and whether a change to the
-flag changes production. Most of this skill is those three checks.
+The hard part is never the `if`: it is every place the feature reaches, what
+each environment really resolves to, and whether a change changes production.
+Detail: references/parser-and-values.md
 
 ## Inputs
 
@@ -22,7 +22,9 @@ flag changes production. Most of this skill is those three checks.
 - stack: from `go.mod`, `pyproject.toml`, `package.json` with `react` or
   `expo`, `build.gradle.kts`, `Package.swift` or `*.xcodeproj`.
 - flags module: the stack path in step 2 when it exists, else created from the
-  shape (Detail: references/flags-module-shape.md).
+  shape: one typed enumeration (a string literal flag name anywhere else is a
+  finding), only "true", "1" and "on" parse as on, and no network call inside
+  `Enabled`. Detail: references/flags-module-shape.md
 - register: `docs/operations/flags.md` (or the path an ADR names). When it
   exists, its columns, headings and conventions are the team's: add or move one
   row in its own shape and never restructure it. When absent, create it from
@@ -64,16 +66,17 @@ flags module has settled it.
    setting whose meaning is inverted and what is running in production today
    because of it. Fixing the parser changes production, so either fix it with a
    test for `"false"` and state which flags switch off in which environment on
-   deploy, or leave it and recommend the fix; never fix it silently.
+   deploy, or leave it and recommend the fix; never fix it silently. Detail: references/parser-and-values.md
 3. **Map the effective value everywhere.** List the environments from the
    deploy directory and manifests, not from the `values:` lines: a region or
    workload that never mentions the flag runs the default. Include values that
    arrive indirectly (`envFrom` ConfigMaps and Secrets, shared env files, base
-   images, Helm values). Then write the value each deployed environment and
+   images, Helm values; in Kubernetes an explicit `env` entry wins over
+   `envFrom` for the same name). Then write the value each deployed environment and
    each overridden account resolves to, under the parser from step 2. Every
-   separate process loads flags itself. Example and template files are not
-   environments.
-   Detail: references/parser-and-values.md
+   separate process loads flags itself (a CronJob, worker or second binary has
+   its own env list and its own `main`). Example and template files are not
+   environments. Detail: references/parser-and-values.md
 
 ### add
 
@@ -94,12 +97,14 @@ flags module has settled it.
 
 ### use
 
-5. **Find every exposure from the diff, not from one function.** Run `git diff
-   <base>...HEAD` and list what this branch adds that a user, customer or
-   another system can reach (routes, links inside other responses, emails,
-   attachments, notifications, jobs, client payloads, public API specs). Grep
-   the route path and the feature's user-visible strings as well as its entry
-   function. Detail: references/add-and-use.md
+5. **Find every exposure from the diff, not from one function.** Run
+   `git diff <base>...HEAD` and list what this branch adds that a user,
+   customer or another system can reach (routes, links inside other responses,
+   emails, attachments, notifications, jobs, client payloads, public API
+   specs). Grep the route path and the feature's user-visible strings as well
+   as its entry function; a link to the new endpoint in an existing JSON
+   response or email body is an exposure even though it never calls the new
+   code. Detail: references/add-and-use.md
 6. **Gate only what is new.** Code that already ships on the base branch stays
    ungated, even when it calls the same function: a default off flag in front
    of it switches off live behaviour on merge. Leave the shared core (the
@@ -132,14 +137,14 @@ flags module has settled it.
 13. **A removal must be a no-op in production.** If any environment or
     account still resolves to the branch being deleted, merging the removal
     changes what they see. Do the removal on the branch, but the report opens
-    with a blocker: who changes, why they were held, whether that reason
-    still holds, and the safe order: flip them as their own change, observe,
+    with a blocker: who changes (region, account ids, count), why they were held,
+    whether that reason still holds, and the safe order: flip them as their own change, observe,
     then merge the removal. An override that encodes a commitment (a
     contract, a regulator, a customer's written terms) is not rollout state,
     and no engineer's reading of the CHANGELOG releases it: carry it into an
-    explicit dated rule that is not a flag, or hold the merge until the
-    commitment ends or its owner signs off. Say which, and name the owner.
-    Detail: references/remove.md
+    explicit dated rule that is not a flag (with a test for an account inside and
+    past its date), keeping the old path for them only, or hold the merge until
+    the commitment ends or its owner signs off. Say which, and name the owner. Detail: references/remove.md
 14. Survivor: the register or the user says which branch survives (on when it
     graduated, off when abandoned); else the branch every production
     environment runs.

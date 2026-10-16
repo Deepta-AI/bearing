@@ -1,6 +1,6 @@
 # feature-flags: removing a flag
 
-Read when you run remove (steps 13 and 15).
+Read when you run remove (steps 12, 13 and 15).
 
 13. **A removal must be a no-op in production.** If any environment or
     account still resolves to the branch being deleted, merging the

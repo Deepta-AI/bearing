@@ -18,7 +18,7 @@
   "ghJobs": 6,
   "ghWorkflows": 2,
   "evals": 106,
-  "skillFiles": 1045
+  "skillFiles": 1046
  },
  "plugins": [
   {
@@ -144,7 +144,7 @@
    "dir": "plugins/bearing-apps",
    "description": "Bearing stack conventions and repository templates for apps: React, Next.js, React Native (Expo), Flutter, native iOS and native Android. Needs the bearing plugin.",
    "required": false,
-   "files": 380,
+   "files": 381,
    "skills": [
     "android",
     "flutter",
@@ -1771,7 +1771,7 @@
     },
     {
      "title": "Steps",
-     "lines": 87
+     "lines": 86
     },
     {
      "title": "Output contract",
@@ -1812,11 +1812,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 200,
+   "lines": 199,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 200
+     "lines": 199
     },
     {
      "path": "references/engine-and-scope.md",
@@ -3227,7 +3227,9 @@
     "Bash(govulncheck:*)",
     "Bash(uv:*)",
     "Bash(./gradlew dependencyUpdates:*)",
+    "Bash(./gradlew test:*)",
     "Bash(swift package:*)",
+    "Bash(swift test:*)",
     "Bash(terraform:*)",
     "Bash(mkdir -p .scratch)",
     "Bash(gh auth status:*)",
@@ -3243,7 +3245,7 @@
     },
     {
      "title": "Steps",
-     "lines": 101
+     "lines": 100
     },
     {
      "title": "Output contract",
@@ -3289,11 +3291,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 197,
+   "lines": 196,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 197
+     "lines": 196
     },
     {
      "path": "references/go-and-supply-chain.md",
@@ -3573,11 +3575,11 @@
    "sections": [
     {
      "title": "Inputs",
-     "lines": 38
+     "lines": 36
     },
     {
      "title": "Steps",
-     "lines": 96
+     "lines": 99
     },
     {
      "title": "Output contract",
@@ -3597,7 +3599,7 @@
     "Previous round: `docs/design/variants/<feature>/approved.json`; with `--round 2` its chosen traits are fixed.",
     "Screenshots: the gstack browse binary `~/.claude/skills/gstack/browse/dist/browse` when executable, or a local headless Chrome; otherwise none are taken and the output says so.",
     "Measurement: `${CLAUDE_PLUGIN_ROOT}/skills/design-critique/scripts/evidence.py` (shots at 375, 768, 1440 in light and dark) and `${CLAUDE_PLUGIN_ROOT}/skills/design-critique/scripts/pairs.py` (contrast of every text pair in static pages); Python 3 only.",
-    "Templates: `templates/variant.html`, `templates/board.html` (HTML targets only).",
+    "Templates: `templates/variant.html`, `templates/board.html` (HTML only).",
     "Target: the ui stack in the autopilot profile, else a React app with `components.json` or no UI code yet means react-shadcn; any other stack uses the HTML variants.",
     "Reference looks the user names (Stripe dashboard, Linear): each direction states which trait it borrows and never copies a brand.",
     "`--unattended` (autopilot): no one chooses; step 10 scores the three."
@@ -3608,8 +3610,8 @@
     "Design plan: read `references/design-doctrine.md`. One paragraph per variant: the direction row, the user and condition it serves first and its weak spot, the faces (only faces the constraints allow), four to six colours in oklch or hex each with its reason, the layout rhythm in one sentence plus an ASCII wireframe, the signature element, the motion moment. Under a design system the colour and face lines cite the to…",
     "Distinctness gate, before any code: every pair differs on display family, palette temperature and layout rhythm (under a system: layout, hierarchy and type scale). Then the swapped-headline test per pair. A failing pair: rewrite the weaker brief from another row and test again. This is a judgement, not a measurement; the output says so.",
     "Generic-default pass: write the default answer to the same brief. A plan line that matches it (the three AI looks, a stat-and-gradient hero, Inter or Space Grotesk as display) is revised; the count goes in the output.",
-    "react-shadcn build (instead of step 7): one file per direction, `src/design/variants/<n>-<name>.css`, overriding the fonts, type scale and colour roles shadcn reads, scoped to `:root[data-variant=\"<n>-<name>\"]` (dark: `.dark` or `[data-theme=\"dark\"]`, whichever the app sets, on the same element). The default look is untouched: `:root` and `.dark` keep their values and nothing applies without the switch. The switch i…",
-    "HTML targets. Build `<n>-<name>.html` per variant from `templates/variant.html`: tokens on `:root`, the screens as sections with the flows' copy word for word including the state screen, at the project's sizes, dark only when the product has dark, `:focus-visible` on every control, the motion moment behind the reduced-motion guard and inside the project's limit, the theme toggle as the only script. Fonts load the wa…",
+    "react-shadcn build (instead of step 7): one file per direction, `src/design/variants/<n>-<name>.css`, overriding the fonts, type scale and colour roles shadcn reads, scoped to `:root[data-variant=\"<n>-<name>\"]` (a bare `[data-variant]` ties `:root` on specificity and wins only by import order, which a refactor breaks) with dark as `.dark` or `[data-theme=\"dark\"]`, whichever the app sets, on the same element (dark un…",
+    "HTML targets. Build `<n>-<name>.html` per variant from `templates/variant.html`: tokens on `:root`, the screens as sections with the flows' copy word for word including the state screen, at the project's sizes (the device size and orientation when fixed; else no horizontal scroll at 375, 768 and 1440 and no half-width desktop column beside dead space), dark only when the product has dark, `:focus-visible` on every c…",
     "Check each direction and fix before showing; record each fix: - Contrast, computed from the values written, in every theme the product has, against the project's ratios. HTML pages: `python3 \"${CLAUDE_PLUGIN_ROOT}/skills/design-critique/scripts/pairs.py\" --need <body ratio> <n>-<name>.html...` (its large-text threshold is 3:1; apply a stricter project rule by hand). react-shadcn: compute every text pair per directio…",
     "Screenshots when a browser runs. Responsive products: `python3 \"${CLAUDE_PLUGIN_ROOT}/skills/design-critique/scripts/evidence.py\" shoot --base <folder or dev URL> --out docs/design/variants/<feature>/shots <page>...` then `check` with the same `--out` and pages; read every PNG; fix and re-shoot until `check` exits 0. A fixed device or a single theme does not fit `check`: shoot at the device size in the product's the…",
     "Board `docs/design/variants/<feature>/index.html` from `templates/board.html` (react-shadcn: a README with the view link per direction instead): one column per variant with the user it serves, the shots or iframes at the product's size, rating 1 to 5, comment, remix field, chosen radio. The board chrome stays neutral, loads nothing from another host and posts nothing. Serve it with `python3 -m http.server 0 --bind 1…",
@@ -3640,7 +3642,7 @@
     },
     {
      "path": "references/constraints-and-checks.md",
-     "lines": 37
+     "lines": 39
     },
     {
      "path": "references/design-doctrine.md",
@@ -4257,11 +4259,11 @@
    "sections": [
     {
      "title": "Inputs",
-     "lines": 24
+     "lines": 26
     },
     {
      "title": "Steps",
-     "lines": 122
+     "lines": 125
     },
     {
      "title": "Output contract",
@@ -4275,7 +4277,7 @@
    "inputs": [
     "mode and flag name: `$ARGUMENTS`; \"merge it dark\" or \"put it behind a flag\" is `add` then `use`; \"rip it out\" is `remove`.",
     "stack: from `go.mod`, `pyproject.toml`, `package.json` with `react` or `expo`, `build.gradle.kts`, `Package.swift` or `*.xcodeproj`.",
-    "flags module: the stack path in step 2 when it exists, else created from the shape (Detail: references/flags-module-shape.md).",
+    "flags module: the stack path in step 2 when it exists, else created from the shape: one typed enumeration (a string literal flag name anywhere else is a finding), only \"true\", \"1\" and \"on\" parse as on, and no network call inside `Enabled`. Detail: references/flags-module-shape.md",
     "register: `docs/operations/flags.md` (or the path an ADR names). When it exists, its columns, headings and conventions are the team's: add or move one row in its own shape and never restructure it. When absent, create it from this skill's `templates/flags.md`.",
     "the team's rules: every ADR (list the directory; a later one may amend an earlier one) and README section on flags. Where it is stricter than this skill (a 60 or 90 day limit, a ticket format), it wins.",
     "removal task id: `--task`; else the ticket id in the branch name; else `tbd`, written as the plain word. Never write a placeholder that looks like a real id (`REP-TBD`, `REP-000`) and never invent a number.",
@@ -4287,9 +4289,9 @@
    "steps": [
     "**Audit before touching anything.** Run `python3 \"${CLAUDE_PLUGIN_ROOT}/skills/feature-flags/scripts/flags_check.py\"` (`--module <path>` for a module elsewhere). Keep its output: `problem:` lines are the state you found; `values:`, `config names:` and `client read:` lines map where the flag is set and read. A `reads as ON` problem is the parser trap of step 2, already found. Detail: references/parser-and-values.md",
     "**Read how a value becomes \"on\".** Open the module and answer, with the line: which sources feed it, in what order, and how a string becomes a boolean. Test the parser against what the deploy config actually contains: `\"false\"`, `\"0\"`, `\"off\"` and `\"\"` must be off. A parser that treats any non-empty value as on turns every `FLAG_X=false` into on: name each deployed setting whose meaning is inverted and what is runni…",
-    "**Map the effective value everywhere.** List the environments from the deploy directory and manifests, not from the `values:` lines: a region or workload that never mentions the flag runs the default. Include values that arrive indirectly (`envFrom` ConfigMaps and Secrets, shared env files, base images, Helm values). Then write the value each deployed environment and each overridden account resolves to, under the pa…",
+    "**Map the effective value everywhere.** List the environments from the deploy directory and manifests, not from the `values:` lines: a region or workload that never mentions the flag runs the default. Include values that arrive indirectly (`envFrom` ConfigMaps and Secrets, shared env files, base images, Helm values; in Kubernetes an explicit `env` entry wins over `envFrom` for the same name). Then write the value ea…",
     "**Check the name is free before using it.** Grep every config source from step 3 for `FLAG_<NAME>`: a shared ConfigMap or env file another team owns may already set it, and a workload that loads it turns the new flag on at merge. Pick a name nothing sets, or override it to off in your own workloads; never edit another team's shared config to make room. Then: snake_case name, one typed constant in the module, include…",
-    "**Find every exposure from the diff, not from one function.** Run `git diff <base>...HEAD` and list what this branch adds that a user, customer or another system can reach (routes, links inside other responses, emails, attachments, notifications, jobs, client payloads, public API specs). Grep the route path and the feature's user-visible strings as well as its entry function. Detail: references/add-and-use.md",
+    "**Find every exposure from the diff, not from one function.** Run `git diff <base>...HEAD` and list what this branch adds that a user, customer or another system can reach (routes, links inside other responses, emails, attachments, notifications, jobs, client payloads, public API specs). Grep the route path and the feature's user-visible strings as well as its entry function; a link to the new endpoint in an existin…",
     "**Gate only what is new.** Code that already ships on the base branch stays ungated, even when it calls the same function: a default off flag in front of it switches off live behaviour on merge. Leave the shared core (the builder, the serialiser) ungated; gate at each boundary.",
     "**Gate first, before side effects.** With the flag off, the boundary returns before loading, auditing, metering, calling out or logging a business event, and answers as if the feature were never deployed (404 for a route, the field or link absent, no attachment), not 403.",
     "Wire the flag into every process that exposes the feature: each binary loads the flags itself (`flags.FromEnv()` in its own `main`) and passes them in; a struct with a nil flag set must read as off.",
@@ -4297,7 +4299,7 @@
     "Grep for `os.Getenv(\"FLAG_`, `process.env.FLAG_`, `import.meta.env.VITE_FLAG_`, `BuildConfig.FLAG_`, `os.environ` with `FLAG_` outside the module: each hit is a finding. Routing it through the module is in scope only when the request asks for it or the change touches that code; otherwise report it with the line.",
     "Report how to turn it on: the exact variable and every workload that must carry it (a Deployment and a CronJob are two places), so the first rollout does not light up half the feature.",
     "**\"At 100%\" is a claim to verify.** From step 3, list every environment and account where the flag does not resolve to the surviving branch, find why for each and whether that reason still holds, counting by the module's own rules. Detail: references/remove.md",
-    "**A removal must be a no-op in production.** If any environment or account still resolves to the branch being deleted, merging the removal changes what they see. Do the removal on the branch, but the report opens with a blocker: who changes, why they were held, whether that reason still holds, and the safe order: flip them as their own change, observe, then merge the removal. An override that encodes a commitment (a…",
+    "**A removal must be a no-op in production.** If any environment or account still resolves to the branch being deleted, merging the removal changes what they see. Do the removal on the branch, but the report opens with a blocker: who changes (region, account ids, count), why they were held, whether that reason still holds, and the safe order: flip them as their own change, observe, then merge the removal. An override…",
     "Survivor: the register or the user says which branch survives (on when it graduated, off when abandoned); else the branch every production environment runs.",
     "Delete the dead branch and the code only it used; before deleting a file, grep its other importers: a shared helper moves or stays. Then delete the constant, every read including string-keyed client reads (`client read:` lines, the client serialisation, templates), the `FLAG_` line and its comment in every env file and manifest, entries in override maps (keep the other flags' entries), the off-state test (keep one p…",
     "Register: move the row to Removed with the date and the surviving branch, in the register's own shape. A CHANGELOG line names any behaviour change from step 13.",
@@ -4315,11 +4317,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 200,
+   "lines": 205,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 200
+     "lines": 205
     },
     {
      "path": "references/add-and-use.md",
@@ -4331,7 +4333,7 @@
     },
     {
      "path": "references/parser-and-values.md",
-     "lines": 38
+     "lines": 42
     },
     {
      "path": "references/remove.md",
@@ -5827,11 +5829,11 @@
    "sections": [
     {
      "title": "Inputs",
-     "lines": 31
+     "lines": 30
     },
     {
      "title": "Steps",
-     "lines": 98
+     "lines": 99
     },
     {
      "title": "Output contract",
@@ -5839,7 +5841,7 @@
     },
     {
      "title": "Gotchas",
-     "lines": 32
+     "lines": 30
     }
    ],
    "inputs": [
@@ -5861,10 +5863,10 @@
     "Set up the catalog if missing (react-i18next with ICU or an existing in-repo lookup on web and RN; `res/values/strings.xml` plus `values-<lang>/` with `<plurals>` on Android; `Localizable.xcstrings` with `String(localized:)` on iOS). Keys dotted by feature and meaning (`invoice.list.empty`), never the English text. Keep every existing key: a key the code no longer references is reported as unused, never deleted in t…",
     "Move every string into the catalog and replace the literal with the lookup, keeping the copy word for word. An existing key whose text differs from the literal is not a match; add a new key, because reusing it changes the copy. Never drop a string instead of moving it: text shown before the locale is known resolves from the browser or device, then the default, and keeps its accessible text. One message per sentence…",
     "Errors: the UI never shows a server `message` meant for logs. Map each documented `code` or `messageKey` to a catalog message, one key per code, with a generic catalog message for any unknown code and for network failures. Test the mapping including the unknown case.",
-    "Locale resolution, one function per stack, tested branch by branch: (a) the user's saved choice when set (if set but not supported, it goes through the fallback chain and then to the default, never to the device language); (b) the device or browser languages only when there is no saved choice, each through the fallback chain; (c) the default. The chain drops region before language (`hi-IN`, `hi`, then default); the…",
+    "Locale resolution, one function per stack, tested branch by branch: (a) the user's saved choice when set (if set but not supported, it goes through the fallback chain and then to the default, never to the device language); (b) the device or browser languages only when there is no saved choice, each through the fallback chain; (c) the default. The chain drops region before language (`hi-IN`, `hi`, then default; a sup…",
     "RTL: `dir` on `html` from the resolved locale (web), `I18nManager` (RN), `android:supportsRtl=\"true\"` with start and end everywhere (Android), leading and trailing (iOS). Direction icons mirror; values that stay left to right inside RTL text (tracking IDs, emails, amounts) are bidi-isolated. List what was not rendered. Detail: references/resolution-rtl-and-fallback.md",
     "Untranslated text never reaches a user as a marker. A new locale file carries every key; a key not yet translated holds the default text, and its status lives outside the displayed value: a translator worklist file, XLIFF `state=\"needs-translation\"`, or an xml comment. A `TODO(hi)` prefix in a value ships to users. Text you draft yourself (any language) is labelled machine draft in the worklist and in the report, an…",
-    "`i18n-check`, the gate. It reads the supported-locales list and fails when: a listed locale has no catalog, zero keys were compared, a key is missing from any listed locale's catalog (the worklist never excuses an absent key), placeholders differ between locales, a plural set lacks a category the language requires (CLDR), or the code looks up a key the default catalog lacks. It prints `i18n-check: N keys, M locales,…",
+    "`i18n-check`, the gate. It reads the supported-locales list and fails when: a listed locale has no catalog, zero keys were compared, a key is missing from any listed locale's catalog (the worklist never excuses an absent key), placeholders differ between locales, a plural set lacks a category the language requires (CLDR: Arabic zero, one, two, few, many, other; Hindi one, other), or the code looks up a key the defau…",
     "Run the gate and every test, then report as below. Nothing is committed; changes stay in the working tree. State what could not run here (no node_modules, no Android SDK, no device) and that the layouts were not rendered; never claim they passed."
    ],
    "output": "",
@@ -5884,11 +5886,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 200,
+   "lines": 198,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 200
+     "lines": 198
     },
     {
      "path": "references/catalog-and-formatting.md",
@@ -8192,7 +8194,7 @@
     "Bash(npm run:*)"
    ],
    "extra": {},
-   "intro": "The Next.js stack on this standard: Next 16 App Router with React 19 and Cache Components, server components by default, Zod-validated server actions, Tailwind v4 with shadcn/ui, vitest and Playwright, pnpm. Choose Next when pages must render on the server; choose React (`react`) when the app lives behind a login and an API already exists. Detail: references/stack-and-versions.md",
+   "intro": "The Next.js stack on this standard: Next 16 App Router, React 19, Cache Components, Zod-validated server actions, Tailwind v4 with shadcn/ui, vitest, Playwright, pnpm. Choose React (`react`) when the app lives behind a login and an API already exists. Detail: references/stack-and-versions.md",
    "sections": [
     {
      "title": "Inputs",
@@ -8204,7 +8206,7 @@
     },
     {
      "title": "Layout",
-     "lines": 5
+     "lines": 4
     },
     {
      "title": "When the app owns its data",
@@ -8212,7 +8214,7 @@
     },
     {
      "title": "On a foreign layout",
-     "lines": 16
+     "lines": 18
     },
     {
      "title": "Rules that matter most",
@@ -8224,7 +8226,7 @@
     },
     {
      "title": "Traps a careful generalist still misses",
-     "lines": 25
+     "lines": 26
     },
     {
      "title": "Reviewing",
@@ -9296,7 +9298,7 @@
     },
     {
      "title": "Steps",
-     "lines": 111
+     "lines": 121
     },
     {
      "title": "Output contract",
@@ -9316,11 +9318,19 @@
     "the standard: `${CLAUDE_PLUGIN_ROOT}/templates/repo/` and `${CLAUDE_PLUGIN_ROOT}/bin/brg-adopt`. If the plugin root is unset, stop: \"install Bearing (`bash install.sh`) and rerun\"."
    ],
    "steps": [
-    "**Survey.** Record each fact with the file or command that shows it; the rest of the run is checked against this list: the gate (every CI job: working directory, commands, flags, variables, services, `allow_failure`, rules; run each offline job's commands locally, exactly as written, and note the counts: files linted, tests run, skipped, deselected), the scripts CI calls (changing one is a CI change), the existing M…",
+    "**Survey.** Record each fact with the file or command that shows it; the rest of the run is checked against this list. - Gate: every CI job (`.gitlab-ci.yml`, `.github/workflows/*`): working directory, commands, flags, variables, services, `allow_failure`, rules. Run each offline job's commands locally, exactly as written, and note the counts (files linted, tests run, skipped, deselected). - Scripts CI calls: changi…",
     "**Preview the standard, off the live repository.** Clone it into a temporary folder (`mktemp -d`, then `git clone -q . \"$preview\"`) and run `bash \"${CLAUDE_PLUGIN_ROOT}/bin/brg-adopt\" --dir \"$preview\" --host <host>` (add `--stack <id>` for the main service's stack). Never run the adopter on the live repository: it writes every file in the standard, a root CODEOWNERS, and sets `core.hooksPath` when it is unset, which…",
-    "**Makefile and `make check`.** `make check` is CI's blocking jobs, run locally, in each job's directory, with each job's flags and variables. For each job, one target; `check` depends on the offline ones. - Keep every existing target and what it does; add prerequisites and targets, never replace a recipe wholesale. - Copy CI's variables into the targets (`TZ=UTC` in CI means the gate sets `TZ=UTC`; a suite that pass…",
+    "**Makefile and `make check`.** `make check` is CI's blocking jobs, run locally, in each job's directory, with each job's flags and variables. For each job, one target; `check` depends on the offline ones.",
+    "Keep every existing target and what it does; add prerequisites and targets, never replace a recipe wholesale.",
+    "Copy CI's variables into the targets (`TZ=UTC` in CI means the gate sets `TZ=UTC`; a suite that passes only under it is a finding to report, not a test or source file to edit).",
+    "A job that needs a service or secret (database, cloud credentials) gets its own target that fails loudly when its variable is missing, and stays out of `check`; `check` must pass on a laptop with no network, and the report says CI covers that job. A skipped gate that fails `check` makes the gate useless; one that passes silently hides it; print what was not run. - Fail on what CI fails on (a lister such as gofmt -l…",
+    "Compare counts with CI's, including skips: a job variable that unlocks a test belongs in the target, or `check` passes on less. Detail: references/makefile-and-hooks.md",
+    "The adopter's `check` recipe ends with a `.bearing/state/.check-passed` marker. Bearing's Stop gate reads it and nothing else does: keep it only when the team uses the Bearing plugin in this repository, with `.bearing/state/` ignored, and say so in Changed; otherwise leave it out. - Do not change CI unless asked. If you make CI call make targets, keep every job, image, service and variable.",
     "**AGENTS.md and CLAUDE.md.** AGENTS.md is for this repository, not the template: what it is (each service, its language, its folder), the exact commands you proved in step 3, the commit format the team uses, the domain rules from existing notes, and the traps the survey found (append-only migrations, tracked secrets, the time-zone dependence). Take a rule from the template only when it holds for this stack (no TypeS…",
-    "**Hooks: one mechanism, the team's.** Add the standard's checks into the mechanism already in use, never beside it. - `core.hooksPath` set (Husky's `.husky`, a `tools/githooks`): leave it; call the new hook from that directory's hook, or add the new hook file there. The `setup` target and the live value must agree. - Pre-commit framework in `.git/hooks`: leave `core.hooksPath` unset and `.pre-commit-config.yaml`'s e…",
+    "**Hooks: one mechanism, the team's.** Add the standard's checks into the mechanism already in use, never beside it.",
+    "`core.hooksPath` set (Husky's `.husky`, a `tools/githooks`): leave it; call the new hook from that directory's hook, or add the new hook file there. The `setup` target and the live value must agree.",
+    "Pre-commit framework in `.git/hooks`: leave `core.hooksPath` unset and `.pre-commit-config.yaml`'s existing hooks untouched; a new check goes in as a `repo: local` hook (a new hook type needs `pre-commit install --hook-type <type>` per clone: say so), or stays inactive with the wiring step in the report. - Nothing in place: `.githooks/` with `bash .githooks/install.sh`.",
+    "Fit every hook you write, active or not, to the survey: run the commit-msg hook on every subject in the history (up to the last 100) and get zero rejections by following the team's format, not the kit's; drop pre-push rules the practice breaks (push from main, task-id branch names, terminal confirmation, refusing a push of zero new commits such as a tag); a pre-commit hook must let a reword (`--amend` with nothing s…",
     "**The rest of scope.** CODEOWNERS only where the host reads it first and only with real handles (the team's existing file, or `--lead`/`--group` from the engineer); a placeholder owner blocks every approval, so no handles means no file and a line under Not done. `.claude/settings.json` only when not ignored (narrow the ignore to `.claude/settings.local.json` when the team wants shared settings) and with the reposito…",
     "**Prove it.** Run `make check` for real with the dirty tree present and compare its counts with step 1's direct runs; run it once with CI's variables absent from your shell to show the Makefile sets them. Dry-run each hook (commit-msg on the history's subjects, pre-commit on a staged scratch file, then unstage). A hook run by hand is not a commit through git: say which you did. `git diff --stat` against the survey:…",
     "**Report** (Output contract). Leave the commit to the engineer: print the list of files to add and a commit command in the team's format."
@@ -9338,11 +9348,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 199,
+   "lines": 209,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 199
+     "lines": 209
     },
     {
      "path": "references/makefile-and-hooks.md",
@@ -9731,11 +9741,11 @@
    "sections": [
     {
      "title": "Inputs",
-     "lines": 28
+     "lines": 27
     },
     {
      "title": "Steps",
-     "lines": 106
+     "lines": 111
     },
     {
      "title": "Output contract",
@@ -9751,7 +9761,7 @@
     "Existing PRD: looks in `docs/product/PRD.md` for ids to keep; if absent, numbering starts at `REQ-001`.",
     "Templates: `templates/PRD.md` and `templates/questions.md` in this skill; no repository copy is needed.",
     "Existing register: looks in `docs/product/questions.md` for Q ids and decisions to keep; if absent, numbering starts at `Q-001`.",
-    "Input format: `.md`, `.txt`, `.html` and pasted text are read as they are; a `.pdf` is read with Read (20 pages per call); a `.docx` or `.odt` is converted by `scripts/doc_to_text.py` in this skill (standard library Python). Only a legacy `.doc`, a Google Doc or a Notion link gets one question asking for a `.docx`, PDF or text export.",
+    "Input format: text formats are read as they are; a `.pdf` with Read (20 pages per call); a `.docx` or `.odt` by `scripts/doc_to_text.py` in this skill. Only a legacy `.doc`, a Google Doc or a Notion link gets one question asking for a `.docx`, PDF or text export. Detail: references/register-and-scope.md",
     "Target repository: the git repository the session runs in (`git rev-parse --show-toplevel`). When the working directory is not one, or is a folder holding several repositories, ask one question for the product's repository path; never write `docs/product` into a parent folder.",
     "Repository decisions: `docs/adr/*.md` (or wherever the README keeps decisions) and the code that already handles the domain; if absent, the input is checked against itself only and the report says so.",
     "Existing stories: looks in `docs/product/stories.md` (or the tracker export the README names) for the story ids that carry each REQ; if absent, Affects stays on REQ ids."
@@ -9766,7 +9776,7 @@
     "Write the register from `templates/questions.md`: per entry the Kind (open-question, gap, contradiction), Where (the REQ id or section), Basis (stated, inferred, convention, assumption), every reading the input allows, the Decision taken so work is not blocked, Why, Affects (REQ ids, never empty; `backlog` replaces them with story ids) and Status `open`. Open assumptions go first and are listed again under \"Needs yo…",
     "Write `docs/product/PRD.md` and `docs/product/questions.md` (`mkdir -p docs/product`); section 7 of the PRD states the register's counts. Print the counts. Zero statements extracted is a failed run, not an empty PRD.",
     "Do not offer a critique. Only when the user asks for one, fork `critic` (Agent tool) with the document path and report its findings; a finding enters the register only when it meets the rule in step 7 (unclear about what gets built), never for business, delivery or legal doubts.",
-    "Resolve the register in this session; nothing is sent outside it. Run `python3 \"${CLAUDE_PLUGIN_ROOT}/skills/prd/scripts/register_answers.py\" rank` for the open entries, ranked. Print the count and ask how to go through them (highest impact first in rounds of four, only the assumptions, or none now), then ask round by round with AskUserQuestion, up to four entries a call, the assumed reading first, labelled \"(Assume…"
+    "Resolve the register in this session; nothing is sent outside it. Run `python3 \"${CLAUDE_PLUGIN_ROOT}/skills/prd/scripts/register_answers.py\" rank` for the open entries, ranked (open assumptions first, then by how many statements each affects). Print the count and ask how to go through them (highest impact first in rounds of four, only the assumptions, or none now), then ask round by round with AskUserQuestion, up t…"
    ],
    "output": "",
    "gotchas": [
@@ -9779,11 +9789,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 199,
+   "lines": 202,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 199
+     "lines": 202
     },
     {
      "path": "references/changes-to-an-existing-prd.md",
@@ -9795,7 +9805,7 @@
     },
     {
      "path": "references/register-and-scope.md",
-     "lines": 30
+     "lines": 36
     },
     {
      "path": "references/resolve-register.md",
@@ -11136,7 +11146,7 @@
     "Bash(make:*)"
    ],
    "extra": {},
-   "intro": "The mobile stack on this standard: Expo SDK 57 on React Native 0.86 with the new architecture and Hermes, `expo-router` for file-based navigation, TypeScript strict, TanStack Query for server state, Zustand for client state, Zod at every boundary, NativeWind for styling, EAS Build and EAS Update for delivery, Maestro for end-to-end flows, `jest-expo` with Testing Library for unit tests, ESLint flat config plus Prettier, pnpm with a hoisted `node_modules`. One codebase ships iOS and Android.",
+   "intro": "The mobile stack on this standard: Expo SDK 57 on React Native 0.86 (new architecture, Hermes), `expo-router`, TypeScript strict, TanStack Query, Zustand, Zod at every boundary, NativeWind, EAS, Maestro, `jest-expo`, pnpm. One codebase ships iOS and Android. Detail: references/stack-background.md",
    "sections": [
     {
      "title": "Inputs",
@@ -11144,19 +11154,19 @@
     },
     {
      "title": "When this skill is active",
-     "lines": 7
+     "lines": 9
     },
     {
      "title": "Pack skills",
-     "lines": 14
+     "lines": 11
     },
     {
      "title": "Layout",
-     "lines": 3
+     "lines": 2
     },
     {
      "title": "On a foreign layout",
-     "lines": 7
+     "lines": 6
     },
     {
      "title": "Rules that matter most",
@@ -11164,7 +11174,7 @@
     },
     {
      "title": "Traps a strong generalist still ships",
-     "lines": 49
+     "lines": 60
     },
     {
      "title": "Commands",
@@ -11204,11 +11214,11 @@
    ],
    "layout": "Screens under `app/`, feature code under `src/features/<feature>/` (api, schemas, hooks, components), the `Makefile` the only entry point. Detail: references/styling-and-layout.md",
    "commands": [],
-   "lines": 196,
+   "lines": 200,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 196
+     "lines": 200
     },
     {
      "path": "references/guidelines.md",
@@ -11225,6 +11235,10 @@
     {
      "path": "references/rules.md",
      "lines": 32
+    },
+    {
+     "path": "references/stack-background.md",
+     "lines": 16
     },
     {
      "path": "references/styling-and-layout.md",
@@ -11385,7 +11399,7 @@
    ],
    "groups": {
     ".": 1,
-    "references": 8,
+    "references": 9,
     "templates": 35
    },
    "evals": true,
@@ -13975,15 +13989,15 @@
    "sections": [
     {
      "title": "Inputs",
-     "lines": 33
+     "lines": 30
     },
     {
      "title": "Steps",
-     "lines": 107
+     "lines": 119
     },
     {
      "title": "Output contract",
-     "lines": 15
+     "lines": 14
     },
     {
      "title": "Gotchas",
@@ -14000,20 +14014,20 @@
     "Reachable: continue; every write below is real.",
     "`none`, env file absent, or a credential or host missing: this is a configuration, not an error. Do not stop there. Do Steps 2 and 3 in full as a dry run, write the payloads (Step 4) and end with exactly what the user must set (Output contract). Never invent a key, never ask for a token or password in the conversation, never point a client at another tracker or reuse credentials found for another service, and never…",
     "**Git state of the source.** `git status` and `git diff` on the backlog. Items that exist only as uncommitted edits are named in the report and filed only once committed (or on the user's say-so). Never commit, stash or discard someone else's edit.",
-    "**Existing keys, in every form.** An item is already in the tracker if anything ties a project key to it (a `Ticket:` or other key line, a key in its text, `git log --all --format='%h %s%n%b' | grep '<PREFIX>-[0-9]'`, `grep -rn '<PREFIX>-[0-9]'` in code and tests); a key found only in history or code is still a key: no second ticket.",
+    "**Existing keys, in every form.** An item is already in the tracker if anything ties a project key to it (a `Ticket:` or other key line, a key in its text, `git log --all --format='%h %s%n%b' | grep '<PREFIX>-[0-9]'`, `grep -rn '<PREFIX>-[0-9]'` in code and tests); a key found only in history or code is still a key: no second ticket. Say what tied each key to its item and propose recording it in the backlog.",
     "**Duplicates the repository cannot show.** When reachable, `brg-tracker list --q \"<title words>\"` for each item before creating; when not, say this search is the first step of the filing run.",
     "**Hierarchy.** Epics first, then stories with `--parent <epic key>`, then test cases under their story. `update` has no `--parent`: `link` an existing ticket to its new epic and list the parent change for the user.",
-    "**Readiness.** Hold an item back (report it, do not file it as ordinary work) when an acceptance criterion contradicts an Accepted ADR, a stated constraint or another item. Raising the conflict is yours; settling it is the user's, so no ADR or story text is edited. Flag items with no criteria.",
-    "**Bodies.** Write each item's description file (every `AC-` id verbatim); every `--description-file` you name must exist when you finish.",
-    "**Counts.** Already in the tracker, to create, held back, pending as uncommitted; check they add up to the items in the backlog. story with `--document <PRD id>` and `update` existing tickets the same.",
+    "**Readiness.** Hold an item back (report it, do not file it as ordinary work) when an acceptance criterion contradicts an Accepted ADR, a stated constraint or another item: name the criterion, the decision, and what would unblock it (rewrite the criterion, or a superseding ADR). Raising the conflict is yours; settling it is the user's, so no ADR or story text is edited. Flag items with no criteria.",
+    "**Bodies.** Write each item's description file: narrative, every `AC-` id verbatim, non-goals, its `TC-` ids, the ADRs it rests on. Every `--description-file` you name must exist when you finish.",
+    "**Counts.** Already in the tracker (keys, and how each was found), to create, held back, pending as uncommitted; check they add up to the items in the backlog. (`brg-tracker docs --type prd`, or Step 3c in the same run), create every story with `--document <PRD id>` and `update` existing tickets the same.",
     "**Write-back, only with real keys.** Record a returned key as the repository's convention says (`Ticket: <KEY>`) and leave that change uncommitted for the user. Never write a placeholder, a guessed next number or a status note into the backlog. Detail: references/sync-items.md",
     "**Base branch.** From CONTRIBUTING or README, else `git symbolic-ref refs/remotes/origin/HEAD`, else whichever of `origin/main`, `origin/master`, `origin/develop` exists. Never assume `develop`.",
     "**Merged or not.** `git merge-base --is-ancestor HEAD origin/<base>` (remote-tracking refs are as of the last fetch; say so). A ticket goes to the done status only when the repository's rules are met (merged, and deployed if it says so). Otherwise propose the status its rules give for the current state (usually In Review for an open MR) and say what moves it on. The request's wording never overrides this.",
     "**Commits.** `git log --format='%h %s' origin/<base>..HEAD`. Attach those carrying this key; another key's commit belongs to that ticket, change nothing on it; list keyless ones for the user to place.",
-    "**Test cases: promised against delivered.** For each id the test case file assigns to this key, a test must name it, run and pass; run the suite (`make check` or the repository's command) and read its summary. A `todo`, `skip` or commented-out test is not coverage. Report covered, missing and placeholder ids with counts.",
+    "**Test cases: promised against delivered.** For each id the test case file assigns to this key, a test must name it, run and pass; run the suite (`make check` or the repository's command) and read its summary. A `todo`, `skip` or commented-out test is not coverage, and a commit subject claiming an id is not evidence. Report covered, missing and placeholder ids with counts.",
     "**Behaviour against the decision.** For each ADR the branch adds or cites, quote its `Status:` line (Proposed is not Accepted) and check the code does what its Decision section says. A gap here or in step 4 means the ticket is not complete; say so plainly.",
-    "**MR link.** From `--mr` or the user; never guess a number. Without the link, ask for it and leave the field empty.",
-    "Run `brg-tracker update` and `brg-tracker trace` with those facts or, with no tracker, print them as exact commands (Step 4). Called from `merge-request`, exit 3 means \"tracker: none\", reported, not a failure. An unknown status name stops with the adapter's list. Detail: references/status-and-trace.md"
+    "**MR link.** From `--mr` or the user. The remote gives the host and project (`git remote -v`), never the MR number: without the link, ask for it and leave the field empty, or give the branch URL on the remote's host. Never guess a number.",
+    "Run `brg-tracker update` and `brg-tracker trace` with those facts or, with no tracker, print them as exact commands (Step 4). Called from `merge-request`, exit 3 means \"tracker: none\", reported, not a failure. Status names match case-insensitively against what the tracker offers; an unknown name stops with the adapter's list. Detail: references/status-and-trace.md"
    ],
    "output": "Then Changed, Verified, Not done, Noticed. Say plainly whether anything was sent. With no tracker, name what to set, never the values: in `~/.config/bearing/bearing.env` (template `templates/user/bearing.env` in the plugin), `BEARING_TRACKER=<jira|gitlab|github|rest>` plus the keys the adapter's header lists (for Jira `BEARING_TRACKER_URL`, `BEARING_TRACKER_PROJECT`, `BEARING_TRACKER_EMAIL`, `BEARING_TRACKER_TOKEN`), then rerun the printed commands. A suite you did not run is \"not run\".",
    "gotchas": [
@@ -14026,11 +14040,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 200,
+   "lines": 208,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 200
+     "lines": 208
     },
     {
      "path": "references/adapters-and-payloads.md",

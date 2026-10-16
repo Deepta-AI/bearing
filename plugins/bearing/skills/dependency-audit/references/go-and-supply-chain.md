@@ -45,4 +45,4 @@ write "supply-chain-risk-auditor: not run (offline)" or "(private
 modules only)". When the skill is not installed, or the
 stack is android, ios or infra, write "supply-chain-risk-auditor: not
 run (<reason>)" and continue: the audit tools and `supply-chain.py`
-above still stand.
+in SKILL.md step 2 still stand.

@@ -30,4 +30,4 @@ brg-tracker comment PROJ-88 --file .scratch/tracker/PROJ-88-trace.md
 README, CONTRIBUTING, the backlog header: the project key and tracker URL,
 where keys are recorded, the status workflow and the condition for each
 status, the long-lived branch, how tests carry test case ids. These
-override every default below.
+override every default in SKILL.md (Steps 3 to 4).

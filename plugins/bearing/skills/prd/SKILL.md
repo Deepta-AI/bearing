@@ -7,18 +7,17 @@ allowed-tools: Read, Write, Grep, Glob, Agent, AskUserQuestion, Bash(ls:*), Bash
 
 # prd
 
-The PRD is the root of the traceability chain. Every `REQ-nnn` written here
-is carried by stories, criteria, tests and commits, so the skill extracts
-only what the input says, marks what it had to infer, and never renumbers.
+The PRD is the root of the traceability chain. Every `REQ-nnn` written here is
+carried by stories, criteria, tests and commits, so the skill extracts only
+what the input says, marks what it had to infer, and never renumbers.
 
-It records what to build. It does not review the idea, the business case
-or the delivery: that is office hours or the `critic`, run when the user
-asks. The PRD is vendor-neutral. It never names the company doing the
-work and never assumes who the user is: they may be the client, a member
-of the client's team, or a supplier.
+It records what to build. It does not review the idea, the business case or the
+delivery: that is office hours or the `critic`, run when the user asks. The PRD
+is vendor-neutral. It never names the company doing the work and never assumes
+who the user is: they may be the client, a member of the client's team, or a
+supplier.
 
-Not this: pm-skills `create-prd` writes a product document from scratch; this
-normalises any input into a PRD whose REQ statements are intents, never one
+Not this: pm-skills `create-prd`; REQ statements here are intents, never one
 story per line. Detail: references/register-and-scope.md
 
 ## Inputs
@@ -36,15 +35,14 @@ story per line. Detail: references/register-and-scope.md
   repository copy is needed.
 - Existing register: looks in `docs/product/questions.md` for Q ids and
   decisions to keep; if absent, numbering starts at `Q-001`.
-- Input format: `.md`, `.txt`, `.html` and pasted text are read as they are; a
-  `.pdf` is read with Read (20 pages per call); a `.docx` or `.odt` is
-  converted by `scripts/doc_to_text.py` in this skill (standard library
-  Python). Only a legacy `.doc`, a Google Doc or a Notion link gets one
-  question asking for a `.docx`, PDF or text export.
-- Target repository: the git repository the session runs in (`git rev-parse
-  --show-toplevel`). When the working directory is not one, or is a folder
-  holding several repositories, ask one question for the product's repository
-  path; never write `docs/product` into a parent folder.
+- Input format: text formats are read as they are; a `.pdf` with Read (20 pages
+  per call); a `.docx` or `.odt` by `scripts/doc_to_text.py` in this skill. Only
+  a legacy `.doc`, a Google Doc or a Notion link gets one question asking for a
+  `.docx`, PDF or text export. Detail: references/register-and-scope.md
+- Target repository: the git repository the session runs in
+  (`git rev-parse --show-toplevel`). When the working directory is not one, or
+  is a folder holding several repositories, ask one question for the product's
+  repository path; never write `docs/product` into a parent folder.
 - Repository decisions: `docs/adr/*.md` (or wherever the README keeps
   decisions) and the code that already handles the domain; if absent, the input
   is checked against itself only and the report says so.
@@ -57,13 +55,12 @@ story per line. Detail: references/register-and-scope.md
 1. Locate the input in the order under Inputs and save its text as
    `docs/product/source/<input name>.txt` (`mkdir -p docs/product/source`), so
    every REQ's Source cites `L<n>` of a file in the repository: a `.docx` or
-   `.odt` with `python3
-   "${CLAUDE_PLUGIN_ROOT}/skills/prd/scripts/doc_to_text.py" <input>
-   docs/product/source/<input name>.txt` (it fails on a document with no text),
-   a PDF, an attachment or a paste with Write, a repository file cited where it
-   is. Print its size (`wc -l`) and its source. A README or a docs page used as
-   the brief is named as the source so the reader knows the PRD was inferred
-   from it.
+   `.odt` with
+   `python3 "${CLAUDE_PLUGIN_ROOT}/skills/prd/scripts/doc_to_text.py" <input> docs/product/source/<input name>.txt`
+   (it fails on a document with no text), a PDF, an attachment or a paste with
+   Write, a repository file cited where it is. Print its size (`wc -l`) and its
+   source. A README or a docs page used as the brief is named as the source so
+   the reader knows the PRD was inferred from it.
 2. Read `templates/PRD.md` and `templates/questions.md`. If
    `docs/product/PRD.md` exists, read it and keep every existing `REQ-nnn` id
    and text; new statements append after the highest id in the whole file (ids
@@ -84,22 +81,18 @@ story per line. Detail: references/register-and-scope.md
    ("As a user I want") to a statement and keep the persona. Keep a solution
    only if the input names it, then move it to Constraints. Record the source
    line or quote next to each REQ. A capability the input repeats in two
-   sections is one REQ citing both lines. A long input (more than 150 lines or
-   60 bullets) is drafted in parallel: split it at top-level headings into 3 to
-   6 contiguous ranges (never inside a list or a table) and fork one
-   `prd-drafter` agent per range in a single message, each given the source
-   file path, its range and the product name. Merge in source order, check
-   every draft against the rules above, and only then number after the highest
-   existing id. Steps 3, 5, 6 and 7 stay in this session. Print the ranges and
-   each drafter's count; a range whose drafter returned nothing is drafted
-   here, never skipped.
-   Detail: references/parallel-drafting.md
+   sections is one REQ citing both lines. A long input (more than 150 lines or 60 bullets) is drafted in parallel:
+   split it at top-level headings into 3 to 6 contiguous ranges (never inside a
+   list or a table), fork one `prd-drafter` agent per range in a single
+   message, merge in source order, check every draft against the rules above,
+   and only then number after the highest existing id. Steps 3, 5, 6 and 7
+   stay in this session; a range whose drafter returned nothing is drafted
+   here, never skipped; print the ranges and each drafter's count. Detail: references/parallel-drafting.md
 5. Flag ambiguity. A statement with a vague word (fast, easy, simple,
    appropriate, etc., some, various) or with no observable outcome is kept and
    marked `ambiguous: acceptance set in design`, not a question. Only when the
    vague word leaves the scope itself unclear (what gets built, not how well)
-   does it get a register entry, marked `ambiguous: Q-nnn`.
-   Detail: references/register-and-scope.md
+   does it get a register entry, marked `ambiguous: Q-nnn`. Detail: references/register-and-scope.md
 6. Mark inference and conflict. Anything you add that the input does not state
    is prefixed `inferred:`; two passages that disagree are a contradiction; a
    capability the input needs but never states is a gap; each is one `Q-nnn`
@@ -107,13 +100,16 @@ story per line. Detail: references/register-and-scope.md
    ADR, grep the code for the statement's nouns): one an accepted ADR forbids,
    or that needs data or events the code shows the system does not receive, is
    a contradiction naming the ADR or file and line, flagged `blocked: Q-nnn`;
-   never edit or supersede the ADR on the client's behalf. Design behaviour, a
-   choice between technologies the input names as alternatives, and delivery
-   matters (who builds, hosts, pays, signs off, the launch date, the budget)
-   are never a REQ or a register entry. A legal duty the input names is a
-   constraint, with no legal analysis; details a new capability leaves out stay
-   open questions.
-   Detail: references/step-6-boundaries.md
+   never edit or supersede the ADR on the client's behalf. Behaviour the team
+   would add for a sound build and a choice between technologies the input
+   names as alternatives are left to design, never a REQ or a register entry.
+   Who builds, supplies, translates, hosts, pays for, owns, staffs or signs off
+   anything, and the launch date and budget, are delivery questions: they never
+   enter the PRD or the register. A legal duty the input names is a constraint;
+   add no legal analysis and do not question the client's registrations.
+   Details the input leaves out of a new capability (amounts, limits, validity,
+   refund rules) stay open questions; do not choose them. Numbers the input
+   derives are recomputed, and any alternative offered to the client too. Detail: references/step-6-boundaries.md
 7. Write the register from `templates/questions.md`: per entry the Kind
    (open-question, gap, contradiction), Where (the REQ id or section), Basis
    (stated, inferred, convention, assumption), every reading the input allows,
@@ -123,43 +119,50 @@ story per line. Detail: references/register-and-scope.md
    register; a confirmed entry stays. A new entry is written only where the
    input is unclear or contradicts itself about what the product does and the
    answer changes what gets built; a long register means the skill is reviewing
-   the idea instead of recording it.
-   Detail: references/register-and-scope.md
+   the idea instead of recording it. Detail: references/register-and-scope.md
 7a. Changes to an existing PRD (a client email after a demo, a change request).
-   Per statement the input touches: a dropped one keeps its id and text,
-   flagged `withdrawn:` with date and passage (deferred or removed); a changed
-   meaning never reuses the id: flag the old one `withdrawn: replaced by
-   REQ-nnn` and write a new id (only a wording fix that changes no test is
-   amended in place, with a dated note); a reversed confirmed decision is not
-   rewritten: add a dated line and record the new answer, so history shows
-   both; an answer to an open entry is recorded with date and passage and the
-   entry set `confirmed`; new statements follow step 6. Then list every story
-   carrying a withdrawn, replaced or blocked id (in progress first) and the
-   code or tests citing it (grep for it). Never edit stories, tests or code
-   from this skill; name them for the user.
-   Detail: references/changes-to-an-existing-prd.md
-8. Write `docs/product/PRD.md` and `docs/product/questions.md` (`mkdir -p
-   docs/product`); section 7 of the PRD states the register's counts. Print the
-   counts. Zero statements extracted is a failed run, not an empty PRD.
+    Per statement the input touches: a dropped one keeps its id and text,
+    flagged `withdrawn:` with date and passage (deferred or removed); a changed
+    meaning never reuses the id: flag the old one
+    `withdrawn: replaced by REQ-nnn` and write a new id (only a wording fix
+    that changes no test is amended in place, with a dated note); a reversed
+    confirmed decision is not rewritten: add a dated line and record the new
+    answer, so history shows both; an answer to an open entry is recorded with
+    date and passage and the entry set `confirmed` (when the input asserts the
+    PRD already says something it does not, say so in the entry rather than
+    treating it as existing); new statements follow step 6. Then list every
+    story carrying a withdrawn, replaced or blocked id (in progress first) and
+    the code or tests citing it (grep for it). Never edit stories, tests or
+    code from this skill; name them for the user. Detail:
+    references/changes-to-an-existing-prd.md
+8. Write `docs/product/PRD.md` and `docs/product/questions.md`
+   (`mkdir -p docs/product`); section 7 of the PRD states the register's
+   counts. Print the counts. Zero statements extracted is a failed run, not an
+   empty PRD.
 9. Do not offer a critique. Only when the user asks for one, fork `critic`
    (Agent tool) with the document path and report its findings; a finding
    enters the register only when it meets the rule in step 7 (unclear about
    what gets built), never for business, delivery or legal doubts.
 10. Resolve the register in this session; nothing is sent outside it. Run
-   `python3 "${CLAUDE_PLUGIN_ROOT}/skills/prd/scripts/register_answers.py"
-   rank` for the open entries, ranked. Print the count and ask how to go
-   through them (highest impact first in rounds of four, only the assumptions,
-   or none now), then ask round by round with AskUserQuestion, up to four
-   entries a call, the assumed reading first, labelled "(Assumed)", at most
-   four options; without AskUserQuestion, ask the same round as a numbered
-   list. A user who cannot answer yet: record `ask-client` with who will be
-   asked. Write the answers to `.bearing/answers-<date>.json` and apply them
-   with `register_answers.py apply --answers <file> --source "<who> in
-   session"`. An `other` answer stays open: judge it under step 7a (a changed
-   rule is a new REQ, never an edit), then set the entry. Finally update the
-   counts in section 7 of the PRD and print what was confirmed, what needs
-   review and what waits on the client.
-   Detail: references/resolve-register.md
+    `python3 "${CLAUDE_PLUGIN_ROOT}/skills/prd/scripts/register_answers.py" rank`
+    for the open entries, ranked (open assumptions first, then by how many
+    statements each affects). Print the count and ask how to go through them
+    (highest impact first in rounds of four, only the assumptions, or none
+    now), then ask round by round with AskUserQuestion, up to four entries a
+    call, each a question in plain words (the register's text is for
+    engineers): the assumed reading first, labelled "(Assumed)", then the other
+    readings, at most four options (the user can always type their own); put
+    the experiment in an option's description when the entry has one, and group
+    entries on one topic in the same round. Without AskUserQuestion, ask the
+    same round as a numbered list and accept short answers ("Q-005 c, Q-021
+    keep, Q-006 ask"). A user who cannot answer yet: record `ask-client` with
+    who will be asked. Write the answers to `.bearing/answers-<date>.json` and
+    apply them with
+    `register_answers.py apply --answers <file> --source "<who> in session"`.
+    An `other` answer stays open: judge it under step 7a (a changed rule is a
+    new REQ, never an edit), then set the entry. Finally update the counts in
+    section 7 of the PRD and print what was confirmed, what needs review and
+    what waits on the client. Detail: references/resolve-register.md
 
 ## Output contract
 

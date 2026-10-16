@@ -54,9 +54,9 @@ skips the independent verification. Detail: references/engine-and-scope.md
 
 ## Steps
 
-1. Resolve the target as in Inputs. For a range or patch, `git diff --stat
-   <range>` or `git apply --check --stat <patch>`; zero files means stop with
-   "0 files in diff, nothing to review".
+1. Resolve the target as in Inputs. For a range or patch,
+   `git diff --stat <range>` or `git apply --check --stat <patch>`; zero files
+   means stop with "0 files in diff, nothing to review".
 2. Collect the change for the agents, with this skill's own git grants:
    `mkdir -p .scratch/review/<slug>`, then for a range
    `git diff --output=.scratch/review/<slug>/diff.patch <range>`,
@@ -83,8 +83,7 @@ skips the independent verification. Detail: references/engine-and-scope.md
    `rm -rf .scratch/review/<slug>/tree`. A check that needs what git does not
    hold and cannot be linked (a database, a service) is "not run" with the
    reason. Never test a change with git am, a new worktree, a new branch, a
-   stash, or git apply into the working tree.
-   Detail: references/throwaway-copy-and-probes.md
+   stash, or git apply into the working tree. Detail: references/throwaway-copy-and-probes.md
 4. Run the engine.
    - gstack: invoke the `review` skill (Skill tool) with this as its
      argument: "Base: <base of the range>. The change is exactly the
@@ -97,12 +96,10 @@ skips the independent verification. Detail: references/engine-and-scope.md
      Keep its findings as reported, with its severity mapped: CRITICAL
      to Critical or High by its own wording, INFORMATIONAL with
      confidence 7 or more to Medium, the rest to Low.
-   - Bearing: fork `reviewer` (Agent tool) with the target, the
-     paths under `.scratch/review/<slug>/`, the merge rules and the
-     checklist paths.
-   Then hold the change to its own claims: the commit message, the docs
-   it edits and the ADRs it touches. A claim the code does not keep is
-   a finding.
+   - Bearing: fork `reviewer` (Agent tool) with the target, the paths under
+     `.scratch/review/<slug>/`, the merge rules and the checklist paths.
+   Then hold the change to its own claims: the commit message, the docs it
+   edits and the ADRs it touches. A claim the code does not keep is a finding.
    Then read past the diff yourself; the engine and the agents mostly read what
    changed, and the costliest bugs sit in lines the change did not touch. For
    every table, column, function, setting and external call the change adds or
@@ -112,7 +109,8 @@ skips the independent verification. Detail: references/engine-and-scope.md
    the sequence of normal calls that breaks it; the states the operation is
    allowed from and what happens on each failure after a side effect; defaults
    and absent inputs that make a check fail open; windows, TTLs, retries and
-   limits with the numbers computed from the code; and messages that arrive
+   limits with the numbers computed from the code (a constant's name and comment
+   are not its value); and messages that arrive
    twice, together, late or out of order. A finding from this pass goes to
    step 5 like any other. Detail: references/read-past-the-diff.md
 5. Independent verification. For every open Critical and High, fork one
@@ -134,10 +132,11 @@ skips the independent verification. Detail: references/engine-and-scope.md
    "Dropped" with the verifier's quoted defence, UNCERTAIN moves to "Questions";
    Medium and Low stay as the engine reported them, marked unverified. For each
    confirmed finding, say whether the project check from step 3 passes with it
-   present; a suite that passes with a blocking bug is itself a finding.
+   present; a suite that passes with a blocking bug is itself a finding (name
+   the test that looks as if it covers the case and why it cannot fail).
    Calibrate severity against the deployment the repository describes: a race
-   that a single-threaded writer (an ADR says so) cannot hit is not blocking.
-   Detail: references/throwaway-copy-and-probes.md
+   that a single-threaded writer (an ADR says so) cannot hit is not blocking; the same money bug reached by two ordinary
+   sequential calls is. Detail: references/throwaway-copy-and-probes.md
 7. Check the commits in the range (for a patch file, its Subject line) against
    the conventions. Decide the verdict: any confirmed Critical or High, or a
    merge rule broken, means not ready. Print the contract.

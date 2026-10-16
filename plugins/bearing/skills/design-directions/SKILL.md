@@ -7,17 +7,16 @@ allowed-tools: Read, Write, Edit, Grep, Glob, Bash(ls:*), Bash(mkdir:*), Bash(te
 
 # design-directions
 
-Three variants exist so the user chooses between real alternatives, not
-shades of one idea. The test is the swapped headline: if the headline of
-one page could sit in another unnoticed, that pair failed. Each page is a
-working artefact with real copy, visible focus and one motion moment,
-built inside the project's own rules. `references/design-doctrine.md`
-governs every choice and is read in full before the plan is written.
+Three variants exist so the user chooses between real alternatives, not shades
+of one idea. The test is the swapped headline: if the headline of one page
+could sit in another unnoticed, that pair failed. Each page is a working
+artefact with real copy, visible focus and one motion moment, built inside the
+project's own rules. `references/design-doctrine.md` governs every choice and
+is read in full before the plan is written.
 
-A direction is judged by the people who use the screen, not by its name.
-Every direction says which user and which condition it serves first (a
-dispatcher at a desk all day, a driver in sun on a phone, a patient at
-arm's length) and where it is weakest for the others.
+A direction is judged by the people who use the screen, not by its name. Every
+direction says which user and which condition it serves first and where it is
+weakest for the others. Detail: references/constraints-and-checks.md
 
 On React with shadcn/ui and Tailwind, a direction is a theme, not a page: it
 overrides the variables the components already read and the real screens
@@ -39,15 +38,14 @@ not a direction. Detail: references/constraints-and-checks.md
   ADRs under `docs/adr/`, the Content-Security-Policy, the README's hardware
   and deployment notes, brand notes (where fonts may come from, a fixed device
   size, light only, a contrast floor, a touch-target floor, a motion limit,
-  privacy rules). A brand note never outranks an Accepted ADR.
-  Detail: references/constraints-and-checks.md
+  privacy rules). A brand note never outranks an Accepted ADR. Detail: references/constraints-and-checks.md
 - Design system: `DESIGN.md`, `docs/design/tokens.json`, the token CSS file.
   When they disagree, the newest Accepted ADR and the file the code loads win,
   and the stale document is named in the output. A system freezes colour and
   faces; variants then differ in layout, hierarchy, type scale within the
   allowed faces, density and the motion moment.
-- Previous round: `docs/design/variants/<feature>/approved.json`; with `--round
-  2` its chosen traits are fixed.
+- Previous round: `docs/design/variants/<feature>/approved.json`; with
+  `--round 2` its chosen traits are fixed.
 - Screenshots: the gstack browse binary
   `~/.claude/skills/gstack/browse/dist/browse` when executable, or a local
   headless Chrome; otherwise none are taken and the output says so.
@@ -56,8 +54,7 @@ not a direction. Detail: references/constraints-and-checks.md
   375, 768, 1440 in light and dark) and
   `${CLAUDE_PLUGIN_ROOT}/skills/design-critique/scripts/pairs.py` (contrast of
   every text pair in static pages); Python 3 only.
-- Templates: `templates/variant.html`, `templates/board.html` (HTML targets
-  only).
+- Templates: `templates/variant.html`, `templates/board.html` (HTML only).
 - Target: the ui stack in the autopilot profile, else a React app with
   `components.json` or no UI code yet means react-shadcn; any other stack uses
   the HTML variants.
@@ -70,9 +67,9 @@ not a direction. Detail: references/constraints-and-checks.md
 1. Read the inputs; print each as read or absent, then list the constraints
    found with their source. They replace the defaults: the device size for
    widths 375, 768 and 1440, one theme for two when a rule says so, stricter
-   project numbers for 44 px, 4.5:1 and 200 to 700 ms motion. Zero screens
-   and no brief: stop with "provide flows, stories, code with screens, or a
-   brief". Detail: references/constraints-and-checks.md
+   project numbers for 44 px, 4.5:1 and 200 to 700 ms motion. Zero screens and
+   no brief: stop with "provide flows, stories, code with screens, or a brief".
+   Detail: references/constraints-and-checks.md
 2. Audit what the directions will sit on, before designing; each finding goes
    in the output, even when it is outside the feature: colours outside the
    tokens (Grep the screens and components for fixed palette classes, hex,
@@ -98,38 +95,43 @@ not a direction. Detail: references/constraints-and-checks.md
    Space Grotesk as display) is revised; the count goes in the output.
 6. react-shadcn build (instead of step 7): one file per direction,
    `src/design/variants/<n>-<name>.css`, overriding the fonts, type scale and
-   colour roles shadcn reads, scoped to `:root[data-variant="<n>-<name>"]` (dark: `.dark` or
-   `[data-theme="dark"]`, whichever the app sets, on the same element). The
-   default look is untouched: `:root` and `.dark` keep their values and
-   nothing applies without the switch. The switch is the project's design
-   gallery, else a dev-only `?variant=` behind `import.meta.env.DEV`; print
-   how to view each one. Colours found in step 2 move onto variables with the
-   old values as defaults, or are listed as not following the directions. Density and shape go through variables or neutral hook
-   attributes (`data-slot`, `data-part`), never per-direction class names or
-   conditionals in components. A direction restyles: it adds no content,
-   fields, computed values or controls. With phone users every direction
-   reaches 44 px (or the project's floor). Fonts: bundled faces, Fontsource
-   packages or self-hosted files, never a third-party host when the CSP or an
-   ADR forbids it; the CSP is never loosened; packages added but not
-   installed are said to be not installed. Then step 8, and continue at step 9.
-   Detail: references/react-shadcn-build.md
+   colour roles shadcn reads, scoped to `:root[data-variant="<n>-<name>"]` (a
+   bare `[data-variant]` ties `:root` on specificity and wins only by import
+   order, which a refactor breaks) with dark as `.dark` or `[data-theme="dark"]`,
+   whichever the app sets, on the same element (dark under
+   `@media (prefers-color-scheme)` alone is wrong when the app stores the user's
+   choice). The default look is untouched: `:root` and `.dark` keep their values
+   and nothing applies without the switch. The switch is the project's design
+   gallery, else a dev-only `?variant=` behind `import.meta.env.DEV`; print how
+   to view each one. Colours found in step 2 move onto variables with the old
+   values as defaults, or are listed as not following the directions. Density
+   and shape go through variables or neutral hook attributes (`data-slot`,
+   `data-part`), never per-direction class names or conditionals in components.
+   A direction restyles: it adds no content, fields, computed values or
+   controls. With phone users every direction reaches 44 px (or the project's
+   floor). Fonts: bundled faces, Fontsource packages or self-hosted files, never
+   a third-party host when the CSP or an ADR forbids it; the CSP is never
+   loosened; packages added but not installed are said to be not installed; a
+   face with no self-hostable source is dropped with the reason. Then step 8,
+   and continue at step 9. Detail: references/react-shadcn-build.md
 7. HTML targets. Build `<n>-<name>.html` per variant from
    `templates/variant.html`: tokens on `:root`, the screens as sections with
    the flows' copy word for word including the state screen, at the project's
-   sizes, dark only when the product has dark, `:focus-visible` on every
-   control, the motion moment behind the reduced-motion guard and inside the
-   project's limit, the theme toggle as the only script. Fonts load the way
-   the product can load them (a Google Fonts link only when no constraint
-   forbids it); sample data follows the flows' privacy rules; copy not in the
-   flows is marked `proposed`. Detail: references/html-build.md
+   sizes (the device size and orientation when fixed; else no horizontal scroll
+   at 375, 768 and 1440 and no half-width desktop column beside dead space),
+   dark only when the product has dark, `:focus-visible` on every control, the
+   motion moment behind the reduced-motion guard and inside the project's limit,
+   the theme toggle as the only script. Fonts load the way the product can load
+   them (a Google Fonts link only when no constraint forbids it); sample data
+   follows the flows' privacy rules, and a sensitive input shows no typed value
+   in plain view; copy not in the flows is marked `proposed`. Detail: references/html-build.md
 8. Check each direction and fix before showing; record each fix:
    - Contrast, computed from the values written, in every theme the product
      has, against the project's ratios. HTML pages:
      `python3 "${CLAUDE_PLUGIN_ROOT}/skills/design-critique/scripts/pairs.py" --need <body ratio> <n>-<name>.html...`
      (its large-text threshold is 3:1; apply a stricter project rule by
      hand). react-shadcn: compute every text pair per direction and theme.
-     Print the count; zero pairs checked is a failure, not a pass.
-     Detail: references/constraints-and-checks.md
+     Print the count; zero pairs checked is a failure, not a pass. Detail: references/constraints-and-checks.md
    - Targets, text floor, motion duration and the reduced-motion guard,
      from the CSS values.
    - The doctrine's hard rules and anti-slop list.
@@ -143,22 +145,20 @@ not a direction. Detail: references/constraints-and-checks.md
    describe how a direction looks on screen.
 10. Board `docs/design/variants/<feature>/index.html` from
     `templates/board.html` (react-shadcn: a README with the view link per
-    direction instead): one column per variant with the user it serves,
-    the shots or iframes at the product's size, rating 1 to 5, comment,
-    remix field, chosen radio. The board chrome stays neutral, loads
-    nothing from another host and posts nothing. Serve it with
-    `python3 -m http.server 0 --bind 127.0.0.1 --directory <folder>` only
-    when someone will open it now; else say to open the file.
-    Record `approved.json` (`round`, `date`, `recommended`, `chosen`,
-    `ratings`, `comments`, `remix`, `notes`). `chosen` stays null until
-    the user picks: a recommendation goes in `recommended`, never in
-    `chosen`, and no direction becomes the default. When feedback
-    arrives, repeat it back in one paragraph before writing it.
+    direction instead): one column per variant with the user it serves, the
+    shots or iframes at the product's size, rating 1 to 5, comment, remix
+    field, chosen radio. The board chrome stays neutral, loads nothing from
+    another host and posts nothing. Serve it with
+    `python3 -m http.server 0 --bind 127.0.0.1 --directory <folder>` only when
+    someone will open it now; else say to open the file. Record `approved.json`
+    (`round`, `date`, `recommended`, `chosen`, `ratings`, `comments`, `remix`,
+    `notes`). `chosen` stays null until the user picks: a recommendation goes
+    in `recommended`, never in `chosen`, and no direction becomes the default.
+    When feedback arrives, repeat it back in one paragraph before writing it.
     `--unattended`: score each direction with the ten categories of
     `../design-critique/references/review-checklist.md`, write `scores`,
-    `chosen` (the highest), `chosen_by: "score"` and one line per
-    direction on why it won or lost; the user can overrule it at the
-    merge request.
+    `chosen` (the highest), `chosen_by: "score"` and one line per direction on
+    why it won or lost; the user can overrule it at the merge request.
 11. Round two on request: variants 4 to 6 keep the chosen traits (the remix
     spec, or the chosen variant's axes) and vary the rest; steps 4 to 10 again;
     the board keeps round one below.
