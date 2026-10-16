@@ -113,6 +113,7 @@ if [ -n "$root" ] && [ "$in_kit" -eq 0 ]; then
   ts="$(trust_state "$root")"
   case "$ts" in
     trusted) pass "workspace trusted by Claude Code";;
+    "untrusted 0") optional "workspace not trusted; no allow entries to ignore";;
     untrusted*) fail "workspace not trusted: Claude Code ignores ${ts#untrusted } allow entries, so each command waits on a prompt. Run claude here once and accept the trust dialog";;
     *) optional "workspace trust unknown (no ~/.claude.json or no jq)";;
   esac

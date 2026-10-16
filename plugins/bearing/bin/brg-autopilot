@@ -849,10 +849,19 @@ def cmd_start(a):
     # so every command in the run would wait on a prompt nobody answers
     top = git(d, "rev-parse", "--show-toplevel") if os.path.isdir(d) else ""
     root = top.strip() or d
-    ts = subprocess.run(["bash", os.path.join(os.path.dirname(os.path.abspath(__file__)), "brg-doctor"), "--trust-state", root],
-                        capture_output=True, text=True).stdout.strip()
-    if ts.startswith("untrusted"):
-        print(f"brg-autopilot: workspace not trusted; {ts[len('untrusted'):].strip()} allow entries would be ignored and every command would wait. "
+    ts = ""
+    try:
+        r = subprocess.run(["bash", os.path.join(os.path.dirname(os.path.abspath(__file__)), "brg-doctor"), "--trust-state", root],
+                           capture_output=True, text=True, timeout=10)
+        ts = r.stdout.strip()
+        why = "" if ts else f"brg-doctor printed nothing (exit {r.returncode})"
+    except (OSError, subprocess.SubprocessError) as e:
+        why = str(e)
+    if not ts:
+        print(f"autopilot: trust check not run: {why}", file=sys.stderr)
+    m = re.match(r"untrusted (\d+)$", ts)
+    if m and int(m.group(1)) > 0:
+        print(f"brg-autopilot: workspace not trusted; {m.group(1)} allow entries would be ignored and every command would wait. "
               f"Run claude in {root} once and accept the trust dialog, then rerun.", file=sys.stderr)
         return 1
     if os.path.isfile(state_path(d)):

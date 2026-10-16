@@ -24,6 +24,13 @@ assert_exit 0 test ! -f "$ud/.bearing/state/autopilot.json"
 rm -f "$HOME/.claude.json"
 t_end
 
+t_begin "start proceeds in an untrusted workspace that has no allow entries"
+zd="$(tmpdir)/zero"; git init -q -b main "$zd"
+printf '{"projects":{"%s":{"hasTrustDialogAccepted":false}}}\n' "$(git -C "$zd" rev-parse --show-toplevel)" > "$HOME/.claude.json"
+assert_exit 0 python3 "$AP" start "a word counter" --dir "$zd"
+rm -f "$HOME/.claude.json"
+t_end
+
 t_begin "a run starts at the repo stage and refuses a second start"
 assert_exit 0 ap start "a word counter"
 assert_contains "$T_OUT" "17 stages"

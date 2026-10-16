@@ -22,4 +22,18 @@ rm -f "$home/.claude.json"
 assert_exit 0 env HOME="$home" bash "$D" --trust-state "$repo"
 assert_eq "unknown" "$T_OUT"
 t_end
+t_begin "untrusted with allow entries is a MISSING line in full doctor output"
+printf '{"projects":{"%s":{"hasTrustDialogAccepted":false}}}\n' "$repo" > "$home/.claude.json"
+out="$(cd "$repo" && HOME="$home" bash "$D" 2>&1)"
+assert_contains "$out" "MISSING   workspace not trusted: Claude Code ignores 2 allow entries"
+t_end
+t_begin "untrusted with zero entries is optional, not a blocker"
+repo0="$(tmpdir)"; git -C "$repo0" init -q -b main
+printf '{"projects":{"%s":{"hasTrustDialogAccepted":false}}}\n' "$repo0" > "$home/.claude.json"
+assert_exit 0 env HOME="$home" bash "$D" --trust-state "$repo0"
+assert_eq "untrusted 0" "$T_OUT"
+out="$(cd "$repo0" && HOME="$home" bash "$D" 2>&1)"
+assert_contains "$out" "optional  workspace not trusted; no allow entries to ignore"
+assert_not_contains "$out" "ignores 0 allow"
+t_end
 t_summary
