@@ -9,8 +9,8 @@
 - `src/features/<feature>/` owns one domain: `schemas.ts` (Zod),
   `api.ts` (server-only fetch functions), `actions.ts` (server actions),
   `components/` (server by default, client per file).
-- `src/components/ui/` is shadcn output. Add with `pnpm dlx shadcn@4.21.0
-  add <name>`, never hand-edit. `src/components/` holds shared components
+- `src/components/ui/` is shadcn output. Add with `pnpm dlx shadcn@4.21.0 add <name>`,
+  never hand-edit. `src/components/` holds shared components
   built on top of them.
 - `src/lib/` holds the API client, auth helpers, `cn`. No dumping ground.
 - A component file under 200 lines with one component exported.
@@ -60,8 +60,8 @@
   - cookies and headers are read outside the cached function and passed
     in as arguments; a `"use cache"` body that calls `cookies()` fails.
 - After a mutation: `updateTag("invoices")` in the server action, so the
-  user who wrote sees the write on the next render; `revalidateTag(
-  "invoices", "max")` from a route handler or webhook (stale while it
+  user who wrote sees the write on the next render; `revalidateTag( "invoices", "max")`
+  from a route handler or webhook (stale while it
   refreshes); `revalidatePath` only when no tag fits. `updateTag` throws
   outside a server action.
 - Route segment `dynamic`, `revalidate` and `fetchCache` are build errors
@@ -69,8 +69,7 @@
   belong to the pre-16 model. Do not mix the two models in one app.
 - `cookies()`, `headers()`, `params` and `searchParams` are async only:
   `await` them, inside a `Suspense` boundary.
-- No request waterfalls. Independent reads start together: `const
-  [user, invoices] = await Promise.all([getUser(id), listInvoices(id)])`,
+- No request waterfalls. Independent reads start together: `const [user, invoices] = await Promise.all([getUser(id), listInvoices(id)])`,
   never one `await` after another. A read that needs a slow value starts
   as a promise and is awaited where it is used. Sibling async server
   components fetch in parallel; a parent that awaits before rendering its

@@ -107,8 +107,8 @@ skill and against a baseline without it. Neither replaces the other.
    Gotchas. `argument-hint` when it takes arguments. Under 140 lines. No
    em dashes, no company name, no tracker default. A skill in another
    plugin is named with its prefix (`bearing-backend:go`, `bearing:<name>`);
-   a path into another plugin goes through `bin/brg-kit-paths --skill
-   <name>` where the kit has it. Files the skill reads go in
+   a path into another plugin goes through `bin/brg-kit-paths --skill <name>`
+   where the kit has it. Files the skill reads go in
    `references/`, files it copies in `templates/`, beside its SKILL.md.
    Every file, script, target or template the skill names exists or is
    added in this change.

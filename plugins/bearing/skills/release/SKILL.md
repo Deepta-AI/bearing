@@ -94,8 +94,8 @@ and calls this skill for the version and changelog.
    effect; list what it changed for users (response shape, log format,
    config keys, defaults, CLI flags). When unprefixed commits are the
    majority, ask for the bump.
-   Service: diff the contract since the tag (`git diff <tag> -- api/
-   '*.proto' '*openapi*'`, JSON tags on response types). A removed or
+   Service: diff the contract since the tag (`git diff <tag> -- api/ '*.proto' '*openapi*'`,
+   JSON tags on response types). A removed or
    renamed field is major whatever the messages say; name every endpoint
    that returns it. A service's major changes no module path (`/vN` is for
    libraries others import).
@@ -128,12 +128,12 @@ and calls this skill for the version and changelog.
      tag): if earlier releases could have shipped it, tell the engineer to
      inspect the published tarball and rotate the credential. Never
      delete or edit the engineer's local file;
-   - README install snippet (`npm i`, `pnpm add`, `go get`, `pip
-     install`, `uv add`): the name equals the manifest name (not an old or
+   - README install snippet (`npm i`, `pnpm add`, `go get`, `pip install`,
+     `uv add`): the name equals the manifest name (not an old or
      deprecated name) and a pinned version equals the new one; the usage
      shows the current API, not a removed or renamed one;
-   - workspace order: the dependency graph (`pnpm exec nx show projects
-     --affected`, `pnpm exec turbo run build --dry-run`, else the
+   - workspace order: the dependency graph (`pnpm exec nx show projects --affected`,
+     `pnpm exec turbo run build --dry-run`, else the
      `dependencies` fields), topological, every dependent of a bumped
      package at least a patch;
    - provenance: npm `--provenance` and PyPI trusted publishing need a CI

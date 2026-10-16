@@ -3,8 +3,8 @@
 Read when: step 5, writing the tables, collections or ClickHouse tables of each store.
 
 5. Per store, following the reference for that store:
-- Postgres: per table, in foreign-key order, the purpose, `Serves
-  US-...`, expected volume with its order of magnitude (10^n) and what
+- Postgres: per table, in foreign-key order, the purpose, `Serves US-...`,
+  expected volume with its order of magnitude (10^n) and what
   drives it, hot or not. A column table (Column, Type, Null, Key,
   Default, Description, Why): Why quotes the acceptance criterion or
   names the rule the column exists for; a column with no Why is cut.

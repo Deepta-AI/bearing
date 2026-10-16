@@ -13,8 +13,8 @@ Read when you write or extend the check (step 10): what it fails on, how to prov
     catalog lacks (scan the `t('...')` calls: i18next renders a missing
     key's name to the user; Android's `R.string` already fails the
     compile). It prints
-    `i18n-check: N keys, M locales, K missing, P placeholder
-    mismatches, T awaiting translation, U unused`. Awaiting translation
+    `i18n-check: N keys, M locales, K missing, P placeholder mismatches, T awaiting translation, U unused`.
+    Awaiting translation
     is counted, not fatal in `make check`: the release gate is a
     separate `i18n-check --release` that fails while T is above zero.
     Prove it in a scratch copy: delete one key from the new locale,

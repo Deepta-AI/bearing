@@ -56,8 +56,8 @@ skill manages how it changes over time. `release` cuts the version.
    inventory, removal gate.
 2. `deprecate <METHOD /path>`: add `deprecated: true` and
    `x-sunset` to the operation in the spec; add the middleware or
-   handler lines that send `Deprecation: @<unix time>` and `Sunset:
-   <HTTP date>` and `Link: <successor>; rel="successor-version"`; write
+   handler lines that send `Deprecation: @<unix time>` and `Sunset: <HTTP date>`
+   and `Link: <successor>; rel="successor-version"`; write
    the notice from `templates/deprecation-notice.md` naming the
    successor, the date and the migration steps; list the consumers to
    tell from the inventory. Print "consumers to notify: N". N=0 with an

@@ -86,8 +86,8 @@ Not this: `threat-model` designs mitigations before the code;
      security sign-off is worth the slower model. Method says "fallback: read-only
      review, no scanner at <sha>"; the best decision it reaches is "cleared,
      pending a scanner run".
-3. Look where the scanners did not. A diff-scoped scan (`coverage:
-   changes`, `/cso diff`) never saw code the range did not touch, yet a
+3. Look where the scanners did not. A diff-scoped scan (`coverage: changes`,
+   `/cso diff`) never saw code the range did not touch, yet a
    fallback secret in an unchanged config loader ships in every release.
    When `insecure-defaults:audit` is installed, load it (Skill tool) with
    scope `.`; its confirmed findings join the table with source
@@ -113,8 +113,8 @@ Not this: `threat-model` designs mitigations before the code;
      proof at this one. A row the code refutes goes under "Refuted" with
      the quoted line and is not counted.
    - Merge by root cause, not by line: one missing check is reported at the
-     route, the handler and the sink. Resolve every `check: possible
-     duplicate`; a merged row names every source.
+     route, the handler and the sink. Resolve every `check: possible duplicate`;
+     a merged row names every source.
    - Fixed means both: the fix commit is an ancestor of the release commit
      (`git merge-base --is-ancestor <fix> <sha>`) and the flaw is gone at
      `<sha>`. Read the fix; partial fixes are common (a prefix check that

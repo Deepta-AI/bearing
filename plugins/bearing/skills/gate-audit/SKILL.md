@@ -72,15 +72,15 @@ each promise against the repository, not against the green badge. A green
    - Thresholds: compare the configured floor with the documented
      decision and with a measured value; a floor far below both cannot
      catch the regression it was written for.
-   - CI blocking path: `allow_failure`, `continue-on-error`, `when:
-     manual`, `rules: changes` or `paths:` that match no file (count the
+   - CI blocking path: `allow_failure`, `continue-on-error`, `when: manual`,
+     `rules: changes` or `paths:` that match no file (count the
      matches), a check prerequisite that no blocking job runs, a
      job image that lacks the tool the script calls.
    - Hooks: installed only if something sets core.hooksPath (or husky,
      lefthook, pre-commit install); a README step is not installation. A
      hook is local and skippable (`--no-verify`), so a rule that matters
-     needs a CI twin. A pre-commit hook that rewrites files and runs `git
-     add "$f"` commits the unstaged hunks of every file it touches. A hook
+     needs a CI twin. A pre-commit hook that rewrites files and runs `git add "$f"`
+     commits the unstaged hunks of every file it touches. A hook
      ending in `exit 0` cannot block.
 5. Prove the verdicts that matter by mutation, in a scratch copy
    (`d=$(mktemp -d) && cp -R . "$d/repo"`, then `make -C "$d/repo" <gate>`):

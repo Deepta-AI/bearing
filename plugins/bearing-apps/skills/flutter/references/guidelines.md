@@ -92,8 +92,8 @@
 
 ## Widgets and accessibility
 
-- `const` constructors everywhere the tree allows; `flutter analyze
-  --fatal-infos` with `prefer_const_constructors` enforces it.
+- `const` constructors everywhere the tree allows; `flutter analyze --fatal-infos`
+  with `prefer_const_constructors` enforces it.
 - Lists through `ListView.builder` with stable keys; images with a size
   and a placeholder; long text respects the system text scale.
 - Every interactive element: a visible label or a `Tooltip` or
@@ -134,8 +134,8 @@
   `config/prod.json`. `flutter build ipa` needs macOS and Xcode; Linux CI
   builds the APK only and says so.
 - fastlane lanes in `android/fastlane` and `ios/fastlane` upload to the
-  internal track and TestFlight; a person runs them (`make
-  release-android` prints the command). Signing keys and service-account
+  internal track and TestFlight; a person runs them (`make release-android`
+  prints the command). Signing keys and service-account
   JSON never enter the repository.
 - Version and build number come from the pubspec `version: x.y.z+n`; CI
   overrides `+n` with the pipeline id.

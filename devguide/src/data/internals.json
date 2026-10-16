@@ -5,7 +5,7 @@
   "commandSkills": 0,
   "stackSkills": 12,
   "scripts": 86,
-  "scriptLines": 28540,
+  "scriptLines": 28582,
   "hooks": 6,
   "agents": 8,
   "makeTargets": 30,
@@ -702,7 +702,7 @@
     },
     {
      "path": "references/guidelines.md",
-     "lines": 257
+     "lines": 256
     },
     {
      "path": "references/review-checklist.md",
@@ -1373,7 +1373,7 @@
     },
     {
      "title": "Steps",
-     "lines": 39
+     "lines": 38
     },
     {
      "title": "Output contract",
@@ -1419,15 +1419,15 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 125,
+   "lines": 124,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 125
+     "lines": 124
     },
     {
      "path": "references/auto-mode-and-profile.md",
-     "lines": 40
+     "lines": 39
     },
     {
      "path": "references/build-and-after.md",
@@ -1553,7 +1553,7 @@
     },
     {
      "path": "references/mechanisms.md",
-     "lines": 35
+     "lines": 34
     },
     {
      "path": "templates/JOBS.md",
@@ -2172,7 +2172,7 @@
    "sections": [
     {
      "title": "Inputs",
-     "lines": 26
+     "lines": 25
     },
     {
      "title": "Steps",
@@ -2220,11 +2220,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 114,
+   "lines": 113,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 114
+     "lines": 113
     },
     {
      "path": "templates/COST_REVIEW.md",
@@ -5202,7 +5202,7 @@
     },
     {
      "path": "references/guidelines.md",
-     "lines": 89
+     "lines": 88
     },
     {
      "path": "references/layout.md",
@@ -7504,7 +7504,7 @@
     },
     {
      "path": "references/logging-guide.md",
-     "lines": 206
+     "lines": 205
     },
     {
      "path": "templates/http-logging/android.md",
@@ -7567,7 +7567,7 @@
    "sections": [
     {
      "title": "Inputs",
-     "lines": 27
+     "lines": 26
     },
     {
      "title": "Steps",
@@ -7619,11 +7619,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 138,
+   "lines": 137,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 138
+     "lines": 137
     },
     {
      "path": "templates/LLD.md",
@@ -7799,7 +7799,7 @@
     },
     {
      "title": "Steps",
-     "lines": 59
+     "lines": 56
     },
     {
      "title": "Output contract",
@@ -7845,11 +7845,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 145,
+   "lines": 142,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 145
+     "lines": 142
     },
     {
      "path": "templates/mr.md",
@@ -8294,7 +8294,7 @@
     },
     {
      "path": "references/guidelines.md",
-     "lines": 244
+     "lines": 243
     },
     {
      "path": "references/layout-and-owned-data.md",
@@ -9077,7 +9077,7 @@
     },
     {
      "title": "Steps",
-     "lines": 94
+     "lines": 93
     },
     {
      "title": "Output contract",
@@ -9123,11 +9123,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 190,
+   "lines": 189,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 190
+     "lines": 189
     },
     {
      "path": "references/telemetry-conventions.md",
@@ -9564,7 +9564,7 @@
     },
     {
      "title": "Steps",
-     "lines": 82
+     "lines": 81
     },
     {
      "title": "Behaviour changes",
@@ -9615,11 +9615,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 190,
+   "lines": 189,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 190
+     "lines": 189
     },
     {
      "path": "templates/perf-report.md",
@@ -10745,7 +10745,7 @@
     },
     {
      "path": "references/guidelines.md",
-     "lines": 194
+     "lines": 193
     },
     {
      "path": "references/review-checklist.md",
@@ -12202,7 +12202,7 @@
     },
     {
      "title": "Steps",
-     "lines": 105
+     "lines": 101
     },
     {
      "title": "Output contract",
@@ -12238,11 +12238,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 181,
+   "lines": 177,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 181
+     "lines": 177
     },
     {
      "path": "scripts/progress.py",
@@ -12535,7 +12535,8 @@
     "Bash(node:*)",
     "Bash(pnpm exec:*)",
     "Bash(uv run:*)",
-    "Bash(python3:*)"
+    "Bash(python3:*)",
+    "Bash(rm -r .scratch/spike-*)"
    ],
    "extra": {},
    "intro": "A spike buys an answer with a fixed amount of time. The question is written before the code, every number it depends on is taken from the code, the measurement is made under the conditions the answer is for, and the only thing that survives is the document.",
@@ -12662,7 +12663,7 @@
     },
     {
      "title": "Steps",
-     "lines": 103
+     "lines": 99
     },
     {
      "title": "Output contract",
@@ -12704,11 +12705,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 180,
+   "lines": 176,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 180
+     "lines": 176
     }
    ],
    "groups": {
@@ -13443,7 +13444,8 @@
     "Bash(xcodebuild test:*)",
     "Bash(maestro test:*)",
     "Bash(curl -fsS http://localhost:*)",
-    "Bash(bash *bin/brg-state-path*)"
+    "Bash(bash *bin/brg-state-path*)",
+    "Bash(curl -fsS http://localhost:3100/loki/api/v1/query_range*)"
    ],
    "extra": {},
    "intro": "A failing test is evidence. This skill decides what it is evidence of before it changes anything, heals drift in the test, and never touches a test that is right about a product that is wrong.",
@@ -13454,7 +13456,7 @@
     },
     {
      "title": "Steps",
-     "lines": 120
+     "lines": 119
     },
     {
      "title": "Output contract",
@@ -13496,11 +13498,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 184,
+   "lines": 183,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 184
+     "lines": 183
     },
     {
      "path": "references/classification.md",
@@ -13567,7 +13569,10 @@
     "Bash(xcodebuild test:*)",
     "Bash(maestro test:*)",
     "Bash(k6 run:*)",
-    "Bash(bash *bin/brg-state-path*)"
+    "Bash(bash *bin/brg-state-path*)",
+    "Bash(DATABASE_URL=* go test:*)",
+    "Bash(PLAYWRIGHT_JSON_OUTPUT_NAME=* pnpm exec playwright test:*)",
+    "Bash(DATABASE_URL=* uv run pytest:*)"
    ],
    "extra": {},
    "intro": "A green pipeline says nothing about which tests ran. This skill runs every suite the repository has, parses the runner's own machine-readable output, and writes one report that names each test, each failure and each suite that never started. A suite that did not run is never a pass.",
@@ -15615,8 +15620,8 @@
    "name": "lint-skill-tools.py",
    "lang": "python",
    "group": "quality",
-   "lines": 324,
-   "header": "lint-skill-tools: every command a skill tells the agent to run is granted.\n\nA skill's body names commands in its Inputs, Steps and Commands sections\n(backticked spans and ```bash fences). Its frontmatter `allowed-tools` grants\nBash(...) patterns. A command the body asks for but the frontmatter does not\ngrant either prompts on every run or is skipped, and a skipped verification\nstep is a gate that checks nothing.\n\nFor each command segment (split on | && || ;) whose program is a known CLI or\na script path:\n  - a command bin/brg-guard blocks (push, tag, publish, deploy) is for the\n    engineer to run; it is printed, not run, and is exempt;\n  - a command listed in bin/lint-skill-tools.allow as\n    \"<skill>|<command prefix>|<reason>\" is exempt (a line the skill prints\n    for the engineer and never runs);\n  - otherwise a Bash(...) grant must match it, or a bare Bash grant must\n    exist. Grep and rg are also met by the Grep tool; cat and head at the\n    start of a command by Read; ls and find at the start by Glob. A generic\n    mention (`mkdir -p`) is met by a narrower grant (Bash(mkdir -p .bearing:*)).\n\nUsage: lint-skill-tools.py [skills-dir] [allow-file]\n\nPrints one line per ungranted command and a count; exits 1 on any finding,\nand exits 1 when zero skills or zero commands were examined.",
+   "lines": 366,
+   "header": "lint-skill-tools: every command a skill tells the agent to run is granted.\n\nA skill's body names commands in its Inputs, Steps and Commands sections\n(backticked spans and ```bash fences). Its frontmatter `allowed-tools` grants\nBash(...) patterns. A command the body asks for but the frontmatter does not\ngrant either prompts on every run or is skipped, and a skipped verification\nstep is a gate that checks nothing.\n\nFor each command segment (split on | && || ;) whose program is a known CLI or\na script path:\n  - a command bin/brg-guard blocks (push, tag, publish, deploy) is for the\n    engineer to run; it is printed, not run, and is exempt;\n  - a command listed in bin/lint-skill-tools.allow as\n    \"<skill>|<command prefix>|<reason>\" is exempt (a line the skill prints\n    for the engineer and never runs);\n  - otherwise a Bash(...) grant must match it, or a bare Bash grant must\n    exist. Grep and rg are also met by the Grep tool; cat and head at the\n    start of a command by Read; ls and find at the start by Glob. A generic\n    mention (`mkdir -p`) is met by a narrower grant (Bash(mkdir -p .bearing:*)).\n\nEach skill's references/*.md files are scanned in full (no frontmatter, any\nheading) against the same SKILL.md grants. A line outside a fenced block with an\nodd number of backticks is a code span wrapped across lines, which this lint\ncannot see, and is a finding.\n\nUsage: lint-skill-tools.py [skills-dir] [allow-file]\n\nPrints one line per ungranted command and a count; exits 1 on any finding,\nand exits 1 when zero skills or zero commands were examined.",
    "functions": [
     "load_allow",
     "frontmatter",
@@ -15624,6 +15629,7 @@
     "normalise",
     "bash_patterns",
     "section_lines",
+    "wrapped_spans",
     "commands_in",
     "segments",
     "program_of",
@@ -17818,9 +17824,9 @@
   {
    "path": "tests/unit/lint_tools.sh",
    "kind": "unit",
-   "lines": 72,
+   "lines": 101,
    "header": "tests/unit/lint_tools.sh: bin/lint-skill-tools.py finds a command a skill body runs but its allowed-tools does not grant, accepts a granted one, a guard-blocked one (printed for the engineer), an allow-file row and a printed message; reports a stale allow row; and fails on an empty or missing skills directory.",
-   "asserts": 26
+   "asserts": 36
   },
   {
    "path": "tests/unit/llm_callsites.sh",

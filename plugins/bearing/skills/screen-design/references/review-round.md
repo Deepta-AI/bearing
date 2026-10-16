@@ -20,8 +20,8 @@ question back. A comment about a screen that does not exist: say so,
 name the designed screen it most plausibly means from what it
 describes, and ask; never invent the screen.
 3. Colour changes are measured, not eyeballed. Find every use of the
-token, including tokens that alias it (`--color-focus:
-var(--color-primary)`, borders, link text), and measure each rendered
+token, including tokens that alias it (`--color-focus: var(--color-primary)`,
+borders, link text), and measure each rendered
 pair with
 `python3 "${CLAUDE_PLUGIN_ROOT}/skills/accessibility/scripts/contrast.py" FG:BG[:MIN]...`:
 text 4.5:1 (3:1 at 24 px, or 18.66 px bold), focus rings and control

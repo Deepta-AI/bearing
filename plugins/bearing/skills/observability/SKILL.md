@@ -106,15 +106,14 @@ ${CLAUDE_PLUGIN_ROOT}/skills/tech-decision/references/decision-protocol.md.
 4. Local stack: copy `templates/docker-compose.observability.yml` and
    `templates/otel-collector.yaml` to `observability/`. Add
    `observability-up` and `observability-down` to the Makefile
-   (`docker compose -f observability/docker-compose.observability.yml
-   up -d` and `down -v`), or print them when there is no Makefile.
+   (`docker compose -f observability/docker-compose.observability.yml up -d`
+   and `down -v`), or print them when there is no Makefile.
    Grafana at `http://localhost:3000`, anonymous admin, datasources
-   provisioned. Verify with `docker compose -f ... config` and `make -n
-   observability-up`.
+   provisioned. Verify with `docker compose -f ... config` and `make -n observability-up`.
 5. Dashboard: copy `templates/dashboard-red.json` to
    `monitoring/dashboards/<service>-red.json`, set the `service`
-   variable default. One file per service. `python3 -c "import json;
-   json.load(open(...))"` on each.
+   variable default. One file per service. `python3 -c "import json; json.load(open(...))"`
+   on each.
 6. Alerts: copy `templates/alerts.yaml` to
    `monitoring/alerts/<service>.yaml`, substitute `__SERVICE__` and
    `__RUNBOOK_BASE__`. Every rule keeps its `runbook_url`. For each rule
@@ -124,8 +123,8 @@ ${CLAUDE_PLUGIN_ROOT}/skills/tech-decision/references/decision-protocol.md.
    `bash "${CLAUDE_PLUGIN_ROOT}/bin/brg-runbook-check" monitoring/alerts`
    (every alert has a `runbook_url` that resolves to a file under
    `docs/runbooks/`; zero alerts fails). Fix what it reports and rerun
-   until it exits 0; the report is not done before that. `promtool check
-   rules` when installed. Fire each new
+   until it exits 0; the report is not done before that. `promtool check rules`
+   when installed. Fire each new
    alert once before it counts: lower its threshold for one evaluation
    in the local stack or staging, confirm the notification reaches the
    intended channel and its runbook link opens, restore the threshold,

@@ -102,11 +102,11 @@ hold the build rules.
    reason APIs in `PrivacyInfo.xcprivacy`. Count answered and unknown.
 8. Release notes: user-facing, no ticket ids; under 4000 characters for
    iOS and 500 for Play; never mention a feature that ships dark.
-9. Print, never run, the commands the repository supports: `fastlane
-   ios beta`, `fastlane ios release`, `fastlane android internal`,
-   `fastlane supply --track production --rollout 0.1`, `eas build
-   --platform <p> --profile production`, `eas submit --platform <p>
-   --latest`. Placeholders in angle brackets when no lane exists.
+9. Print, never run, the commands the repository supports: `fastlane ios beta`,
+   `fastlane ios release`, `fastlane android internal`,
+   `fastlane supply --track production --rollout 0.1`, `eas build --platform <p> --profile production`,
+   `eas submit --platform <p> --latest`.
+   Placeholders in angle brackets when no lane exists.
    Uploads are guarded against a repeat. Read
    `docs/releases/mobile/uploads.log` (one key per line:
    `<ios|android>.upload.<bundle id>.<build>`, committed so the whole

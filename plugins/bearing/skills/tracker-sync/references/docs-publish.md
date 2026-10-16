@@ -13,13 +13,13 @@ first filing, so stories can point at the PRD.
    - `docs/product/questions.md`, `backlog.md`, `coverage.md`,
      `user-flows.md`, `estimate.md`, `IMPORT.md` and `docs/decisions.md`
      as `doc`;
-   - an "Architecture decisions" document as `design` (`--source
-     docs/adr`, its content the decision log, or one line per ADR when
+   - an "Architecture decisions" document as `design` (`--source docs/adr`,
+     its content the decision log, or one line per ADR when
      there is no log), then every `docs/adr/*.md` as `design` with
      `--parent` set to its id;
    - `docs/architecture/*.md` (high- and low-level designs) as `design`.
-2. **One call per file:** `brg-tracker doc-put --title "<the file's first
-   # heading>" --file <path> --source <path> --type <t>`. The source
+2. **One call per file:** `brg-tracker doc-put --title "<the file's first # heading>" --file <path> --source <path> --type <t>`.
+   The source
    marker makes a rerun update the same document, renamed or not, and an
    unchanged file is reported `unchanged` with nothing written.
 3. **Never** call the tracker's own story generation from a document:

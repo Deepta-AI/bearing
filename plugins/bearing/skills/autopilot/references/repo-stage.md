@@ -10,8 +10,8 @@ repository, a Makefile `check` target that records a pass
 `.bearing/state/` kept out of git. Whatever of that is present
 stays as it is; `done repo` passing on the untouched repository is
 the expected case. What is missing is added at its smallest: the
-one recipe line `@mkdir -p .bearing/state && touch
-.bearing/state/.check-passed` at the end of `check`, a `check` that
+one recipe line `@mkdir -p .bearing/state && touch .bearing/state/.check-passed`
+at the end of `check`, a `check` that
 runs the repository's own test command when there is none, the two
 ignore lines. No CI, hooks, templates, rules files, AGENTS.md or
 CLAUDE.md, and no rewrite of the build: the first run on a 227-line

@@ -70,9 +70,9 @@ the scan.
    Record all of it in `docs/security/leaks/<date>-<name>.md` from the
    template with UTC times.
 4. `scan`: copy `templates/gitleaks.toml` to `.gitleaks.toml` when
-   absent, then `gitleaks git --config .gitleaks.toml --no-banner
-   --redact .` for history and `gitleaks dir --config .gitleaks.toml
-   --redact .` for the tree. Print "scan: N commits, M files, F
+   absent, then `gitleaks git --config .gitleaks.toml --no-banner --redact .`
+   for history and `gitleaks dir --config .gitleaks.toml --redact .`
+   for the tree. Print "scan: N commits, M files, F
    findings". F>0 goes to step 3 per finding. Then the CI files, which
    gitleaks misses when the value is not credential-shaped
    (`DEPLOY_TOKEN: q8Zr4L`):
@@ -86,8 +86,8 @@ the scan.
    `guest`) is counted, not a finding. It prints file, line and key,
    never the value. Each finding is a secret in history: step 3, then
    the value moves to a masked, protected CI variable. Zero CI files
-   exits 1 and the report says "no CI files", not clean. Add `gitleaks protect
-   --staged --redact` to the pre-commit hook when `.githooks/pre-commit`
+   exits 1 and the report says "no CI files", not clean. Add `gitleaks protect --staged --redact`
+   to the pre-commit hook when `.githooks/pre-commit`
    exists and lacks it.
 5. `parity`: install `templates/env-parity.sh` as `scripts/env-parity.sh`
    and run it. It prints "env vars: N read in code, M in .env.example,

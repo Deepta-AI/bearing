@@ -110,8 +110,8 @@ names what appeared or went.
    (`billing.Handler.Charge`), not the container. Add an `alt` branch
    for every status the handler can return (400, 502, 500 alike) and
    show the worker or consumer that picks the work up afterwards; a flow
-   with no error handling on the path gets the note `no error branch in
-   code`. Mark the transaction boundary. An external side effect before
+   with no error handling on the path gets the note `no error branch in code`.
+   Mark the transaction boundary. An external side effect before
    the commit (a charge, an email, a POST to a partner) followed by a
    step that can fail is a dual write: draw that failure branch and say
    what the world is left in ("partner holds the booking, caller got a

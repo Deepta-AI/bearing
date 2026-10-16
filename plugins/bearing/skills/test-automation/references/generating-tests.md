@@ -6,8 +6,8 @@ Read when writing tests from planned rows (step 3): naming, units, oracles, loca
 nearest existing test by feature folder, then fork `test-writer`
 (Agent tool) with the row, the nearest test's path and the naming
 rule; it writes the test in an isolated worktree and returns the
-failing or passing output. The name carries the id: `test("TC-0012
-rejects an expired token")`, `func TestTC0012_RejectsExpiredToken`,
+failing or passing output. The name carries the id: `test("TC-0012 rejects an expired token")`,
+`func TestTC0012_RejectsExpiredToken`,
 `async def test_tc_0012_rejects_expired_token`,
 `fun tc0012RejectsExpiredToken`, `func testTC0012RejectsExpiredToken`,
 and `# TC-0012` on line one of a Maestro flow. Where the name cannot
@@ -29,8 +29,8 @@ tests nothing the row describes. Steps become actions,
 each oracle in the row becomes its own assertion (`ui:` a visible or
 accessible-name assertion, `data:` a read through the API or the store
 after the action, `not:` a negative assertion, `effect:` a spy, a mock
-or an event capture, `inv:` a check after every action in the test, `ui: matches baseline
-<name>.png` a `toHaveScreenshot("<name>.png")` in `e2e/visual/` shaped
+or an event capture, `inv:` a check after every action in the test, `ui: matches baseline <name>.png`
+a `toHaveScreenshot("<name>.png")` in `e2e/visual/` shaped
 like `templates/visual.spec.ts`: API mocked, clock frozen, anything that
 changes on its own masked),
 and the row's test data is used verbatim through a builder. Locators: role and accessible name first,

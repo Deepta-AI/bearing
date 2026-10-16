@@ -2,7 +2,7 @@
 name: test-run
 description: 'Runs every test suite present into one report: failures at file:line, slowest, flaky, coverage; a suite that did not run never passes. Use when asked to "run the tests", "what is failing" or "run TC-0231".'
 argument-hint: "[--suite unit|integration|e2e|matrix|visual|ui|load|synthetic] [--tag @P1] [--tc TC-0231] [--changed] [--timeout 20m]"
-allowed-tools: Read, Write, Edit, Grep, Glob, Bash(make -n:*), Bash(make synthetic:*), Bash(git status:*), Bash(git diff:*), Bash(git log:*), Bash(git rev-parse:*), Bash(git merge-base:*), Bash(git rev-list:*), Bash(git worktree:*), Bash(git archive:*), Bash(go test:*), Bash(pnpm exec:*), Bash(uv run pytest:*), Bash(uv run --offline pytest:*), Bash(python3 -m pytest:*), Bash(pytest:*), Bash(.venv/bin/python -m pytest:*), Bash(python3 -c:*), Bash(./gradlew:*), Bash(swift test:*), Bash(xcodebuild test:*), Bash(maestro test:*), Bash(k6 run:*), Bash(bash *bin/brg-state-path*)
+allowed-tools: Read, Write, Edit, Grep, Glob, Bash(make -n:*), Bash(make synthetic:*), Bash(git status:*), Bash(git diff:*), Bash(git log:*), Bash(git rev-parse:*), Bash(git merge-base:*), Bash(git rev-list:*), Bash(git worktree:*), Bash(git archive:*), Bash(go test:*), Bash(pnpm exec:*), Bash(uv run pytest:*), Bash(uv run --offline pytest:*), Bash(python3 -m pytest:*), Bash(pytest:*), Bash(.venv/bin/python -m pytest:*), Bash(python3 -c:*), Bash(./gradlew:*), Bash(swift test:*), Bash(xcodebuild test:*), Bash(maestro test:*), Bash(k6 run:*), Bash(bash *bin/brg-state-path*), Bash(DATABASE_URL=* go test:*), Bash(PLAYWRIGHT_JSON_OUTPUT_NAME=* pnpm exec playwright test:*), Bash(DATABASE_URL=* uv run pytest:*)
 ---
 
 # test-run
@@ -166,6 +166,6 @@ tests that did not run; say what must happen first.
   unnamed; `load-test` owns the thresholds, this skill only runs them.
 - The report is evidence for its commit only. A dirty tree is marked
   `+dirty` in the header and the summary line. To compare with the
-  committed state, run the suite on a `git worktree add` or `git archive
-  HEAD` copy under `.scratch/`; never stash, reset or check out over the
+  committed state, run the suite on a `git worktree add` or `git archive HEAD`
+  copy under `.scratch/`; never stash, reset or check out over the
   user's working tree.

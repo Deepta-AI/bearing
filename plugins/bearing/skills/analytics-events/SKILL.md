@@ -124,8 +124,8 @@ Proposed and listed in the report; never Accepted.
      that clears on any response (fetch does not throw on 4xx) or sends
      more than the collector contract accepts. Platform differences in
      counts often live here, not in the event calls.
-   - Count: `N in sheet, M distinct names emitted by production code
-     (runtime names expanded), K in both`, and list the names on each
+   - Count: `N in sheet, M distinct names emitted by production code (runtime names expanded), K in both`,
+     and list the names on each
      side so the counts can be checked. A sweep that found zero
      emissions in a codebase with an analytics module is a broken
      search, not a clean result.

@@ -63,13 +63,13 @@ is done by a person.
    agent writes them into the doc under Comms log.
 7. `resolve`: final timeline entry, impact numbers if known (users,
    requests, minutes) or "unknown, measure: <how>", status `resolved`,
-   the follow-up placeholder table, and the line `next: postmortem
-   "<title>" docs/postmortems/<file>` within five working days. Before
+   the follow-up placeholder table, and the line `next: postmortem "<title>" docs/postmortems/<file>`
+   within five working days. Before
    `resolved` is written, the runbook for the alert that fired is updated
    with what the responders actually did: the commands that worked, the
    signal that misled, the step that was missing. Name it in the doc as
-   `runbook: docs/runbooks/<alert>.md updated | none existed, runbook
-   <alert>`; a resolve that leaves the runbook as it was is not done.
+   `runbook: docs/runbooks/<alert>.md updated | none existed, runbook <alert>`;
+   a resolve that leaves the runbook as it was is not done.
 8. Print the contract after every mode.
 
 ## Output contract

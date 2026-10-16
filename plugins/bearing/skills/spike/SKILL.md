@@ -2,7 +2,7 @@
 name: spike
 description: 'Runs a timeboxed spike: a yes, no or number question, a timebox and stop condition, throwaway code never merged, a written recommendation. Use when asked to "spike this", "investigate whether" or "prototype to find out".'
 argument-hint: "<name> \"<question>\" [--hours 4] [--branch]"
-allowed-tools: Read, Write, Edit, Grep, Glob, Bash(ls:*), Bash(mkdir -p:*), Bash(date:*), Bash(printenv:*), Bash(git status:*), Bash(git branch:*), Bash(git switch -c:*), Bash(git log:*), Bash(git diff:*), Bash(git show:*), Bash(git check-ignore:*), Bash(git restore:*), Bash(git checkout --:*), Bash(git clean -n:*), Bash(rm -r .scratch/spike-:*), Bash(rm .scratch/spike-:*), Bash(make check:*), Bash(make test:*), Bash(go run:*), Bash(go test:*), Bash(go tool pprof:*), Bash(go version:*), Bash(GOMAXPROCS=1 go test:*), Bash(GOMAXPROCS=1 go run:*), Bash(env:*), Bash(taskset:*), Bash(systemd-run --user --scope:*), Bash(/usr/bin/time:*), Bash(node:*), Bash(pnpm exec:*), Bash(uv run:*), Bash(python3:*)
+allowed-tools: Read, Write, Edit, Grep, Glob, Bash(ls:*), Bash(mkdir -p:*), Bash(date:*), Bash(printenv:*), Bash(git status:*), Bash(git branch:*), Bash(git switch -c:*), Bash(git log:*), Bash(git diff:*), Bash(git show:*), Bash(git check-ignore:*), Bash(git restore:*), Bash(git checkout --:*), Bash(git clean -n:*), Bash(rm -r .scratch/spike-:*), Bash(rm .scratch/spike-:*), Bash(make check:*), Bash(make test:*), Bash(go run:*), Bash(go test:*), Bash(go tool pprof:*), Bash(go version:*), Bash(GOMAXPROCS=1 go test:*), Bash(GOMAXPROCS=1 go run:*), Bash(env:*), Bash(taskset:*), Bash(systemd-run --user --scope:*), Bash(/usr/bin/time:*), Bash(node:*), Bash(pnpm exec:*), Bash(uv run:*), Bash(python3:*), Bash(rm -r .scratch/spike-*)
 ---
 
 # spike
@@ -24,8 +24,8 @@ Not this: `systematic-debugging` for a bug with a symptom;
   than "look into the export"). Never wait on the user for it: write the
   rewrite and any assumption into the doc and go on.
 - timebox: `--hours`, default 4. Start written as `date -u +%FT%TZ`.
-- location: `.scratch/spike-<name>/` (created; `git check-ignore -q
-  .scratch` tells whether it is ignored); `--branch` creates
+- location: `.scratch/spike-<name>/` (created; `git check-ignore -q .scratch`
+  tells whether it is ignored); `--branch` creates
   `spike/<name>` with `git switch -c` instead. The state file (question,
   start, stop condition, each finding with its UTC time) lives in the
   location, so nothing else is created outside it but the doc.
@@ -50,14 +50,14 @@ Not this: `systematic-debugging` for a bug with a symptom;
    that size, or the artefact that must exist) and the stop condition.
 2. Read prior work and decide whether it still holds. For each earlier
    spike or ADR on the subject: what size, version and code it was
-   measured on; `git log --oneline --since=<its date> -- <the files it
-   measured>` for what changed since; its own revisit condition. A stale
+   measured on; `git log --oneline --since=<its date> -- <the files it measured>`
+   for what changed since; its own revisit condition. A stale
    result is a finding with the reason; its number is never reused as
    evidence. Recheck an ADR's stated reasons against today's versions
    instead of repeating them, and keep the constraints of any ADR still
    Accepted. Earlier documents are not rewritten; a link line is fine.
-3. Baseline before any code: run the repository's own check (`make
-   check` or its equivalent) and write the result. List what cannot run
+3. Baseline before any code: run the repository's own check (`make check`
+   or its equivalent) and write the result. List what cannot run
    here (dependency not installed and no network, no Docker, no
    production data or database) so the doc can say it later.
 4. Investigate inside the location only, with the smallest code that
@@ -66,15 +66,15 @@ Not this: `systematic-debugging` for a bug with a symptom;
      labelled as extrapolation; costs are often not linear (GC, cache
      misses, a quadratic loop, work repeated per item).
    - Measure under the deployment's limits. CPU: 500m is half a core
-     under a CFS quota, so pin to one core (`GOMAXPROCS=1`, `taskset -c
-     0`, or `systemd-run --user --scope -p CPUQuota=50%`) and say how the
-     laptop maps to the pod. Memory: peak RSS or heap (`/usr/bin/time
-     -v`, `runtime.ReadMemStats`, `--heapsnapshot`) against the limit,
+     under a CFS quota, so pin to one core (`GOMAXPROCS=1`, `taskset -c 0`,
+     or `systemd-run --user --scope -p CPUQuota=50%`) and say how the
+     laptop maps to the pod. Memory: peak RSS or heap (`/usr/bin/time -v`,
+     `runtime.ReadMemStats`, `--heapsnapshot`) against the limit,
      multiplied by the concurrency the repo states. A latency target at
      p99 is not shown by one run: repeat (five or more) and give median
      and worst.
-   - Profile before attributing cost (`go test -cpuprofile` then `go tool
-     pprof -top`, `node --cpu-prof`, `python3 -m cProfile`), then time
+   - Profile before attributing cost (`go test -cpuprofile` then `go tool pprof -top`,
+     `node --cpu-prof`, `python3 -m cProfile`), then time
      each large piece alone at the operative size. The change the
      question assumes (a faster library) is often not where the time
      goes; the spike tests that assumption first.
@@ -110,12 +110,12 @@ Not this: `systematic-debugging` for a bug with a symptom;
    was measured, not run or not measured, recommendation, the follow-up
    task (the `tracker-sync create --type task --title "<title>"`
    command, or `tracker: none`) and the throwaway note.
-8. Clean up and prove it: delete the throwaway (`rm -r
-   .scratch/spike-<name>`) unless the doc says where it stays and it
+8. Clean up and prove it: delete the throwaway (`rm -r .scratch/spike-<name>`)
+   unless the doc says where it stays and it
    sits where the build and tests cannot pick it up (never a `*_test.go`
    in a package, a `*.test.js`, or `test_*.py` inside the repo's test
-   globs). Run the repository's check again and `git status
-   --porcelain`: only the doc is new, no tracked file differs, nothing
+   globs). Run the repository's check again and `git status --porcelain`:
+   only the doc is new, no tracked file differs, nothing
    is committed. Print the contract.
 
 ## Output contract

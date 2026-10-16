@@ -22,8 +22,8 @@ regression as healed.
   or the Playwright trace's response headers (`x-request-id`,
   `traceparent`), then read, first that exists: the service logs the CI
   job keeps as an artifact, when it keeps them; the log lines with
-  that `request_id` or `trace_id` in Loki (`curl -fsS
-  http://localhost:3100/loki/api/v1/query_range` on the local stack from
+  that `request_id` or `trace_id` in Loki (`curl -fsS http://localhost:3100/loki/api/v1/query_range`
+  on the local stack from
   `observability`, or the engineer's export from Grafana or
   Datadog); the trace in Tempo or the APM; the Sentry event in the test's
   time window. No id and no logs: say "server side not read" in the

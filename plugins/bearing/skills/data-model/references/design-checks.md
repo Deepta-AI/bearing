@@ -47,8 +47,8 @@ constraint or an open concern, never silence.
 - **Hot-table changes.** On a table over about 10^6 rows: `NOT VALID` then
   `VALIDATE` for CHECK and FK, `CREATE INDEX CONCURRENTLY` outside a
   transaction (goose: `-- +goose NO TRANSACTION`), and note that an
-  exclusion constraint can be neither built concurrently nor added `NOT
-  VALID`, so changing one is a maintenance window.
+  exclusion constraint can be neither built concurrently nor added `NOT VALID`,
+  so changing one is a maintenance window.
 - **Uniqueness has a lifecycle.** Case-insensitive uniqueness is
   `lower(col)` or `citext`; scope it (per tenant or global) from the
   story, and say what happens to a closed or soft-deleted row (partial

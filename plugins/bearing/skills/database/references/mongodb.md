@@ -6,8 +6,8 @@ streams and no majority writes).
 
 ## Validators on every collection
 
-- `db.createCollection(name, { validator: { $jsonSchema: ... },
-  validationLevel: 'strict', validationAction: 'error' })`. A collection
+- `db.createCollection(name, { validator: { $jsonSchema: ... }, validationLevel: 'strict', validationAction: 'error' })`.
+  A collection
   created implicitly by a first insert has no validator and is a finding.
 - The schema lists `required`, a `bsonType` for every field, `enum` for
   discriminators, `maxItems` on every array, `maxLength` on strings, and
@@ -88,8 +88,8 @@ streams and no majority writes).
 
 ## Pagination and aggregation
 
-- Keyset: `find({ ...filter, _id: { $lt: lastId } }).sort({ _id: -1 })
-  .limit(50)` or `(sortField, _id)` pairs. `skip()` past 10,000 walks every
+- Keyset: `find({ ...filter, _id: { $lt: lastId } }).sort({ _id: -1 }) .limit(50)`
+  or `(sortField, _id)` pairs. `skip()` past 10,000 walks every
   skipped document.
 - Pipelines: `$match` first and on indexed fields, `$project` early to cut
   width, `$lookup` only with an index on the foreign field and a bounded

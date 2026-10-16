@@ -132,8 +132,8 @@ where rules live), the config is the fact and the prose is a finding.
      installed; otherwise say not run. Every YAML edited still parses.
 3. `handover`: write `docs/operations/handover/<date>.md` from
    `templates/handover.md`: open incidents, silences with expiry, alerts
-   that fired more than three times, changes this week (`git log
-   --since='7 days ago' --format=%s`), risks next week, budget left. Ask
+   that fired more than three times, changes this week (`git log --since='7 days ago' --format=%s`),
+   risks next week, budget left. Ask
    once for what files cannot show; never invent a row.
 4. `review`: write `docs/operations/reviews/<date>.md` from
    `templates/weekly-review.md`: pages by alert and hour, out-of-hours

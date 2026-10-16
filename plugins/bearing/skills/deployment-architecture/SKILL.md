@@ -79,10 +79,10 @@ ${CLAUDE_PLUGIN_ROOT}/skills/tech-decision/references/decision-protocol.md.
 7. Secrets and identity: the secret manager, how secrets reach a pod,
    workload identities and roles, who can read prod secrets, rotation.
 8. CI to CD: stages from the CI file in order, the artefact and its tag
-   scheme, promotion dev to qa to prod, and every manual gate (`when:
-   manual`, protected environments, required approvals) named.
-9. Rollback per component: mechanism (previous image tag, `helm
-   rollback`, feature flag, migration Down via `db-migration`) and the
+   scheme, promotion dev to qa to prod, and every manual gate (`when: manual`,
+   protected environments, required approvals) named.
+9. Rollback per component: mechanism (previous image tag, `helm rollback`,
+   feature flag, migration Down via `db-migration`) and the
    exact command with placeholders. A component with no rollback path
    is written as `UNDEFINED`.
 10. Disaster recovery: what a zone or region loss does, the failover

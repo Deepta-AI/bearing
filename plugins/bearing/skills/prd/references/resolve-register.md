@@ -3,8 +3,8 @@
 Read when you reach step 10 and ask the open entries round by round.
 
 10. Resolve the register in this session; nothing is sent outside it. Run
-   `python3 "${CLAUDE_PLUGIN_ROOT}/skills/prd/scripts/register_answers.py"
-   rank` for the open entries, ranked: open assumptions first, then by
+   `python3 "${CLAUDE_PLUGIN_ROOT}/skills/prd/scripts/register_answers.py" rank`
+   for the open entries, ranked: open assumptions first, then by
    how many statements each affects, so the first round settles what
    blocks the most. Print the count and ask the user how to go through
    them: highest impact first in rounds of four, stopping whenever they
@@ -20,8 +20,8 @@ Read when you reach step 10 and ask the open entries round by round.
    answer yet says so: record it as `ask-client` with who will be asked.
    Write the answers to
    `.bearing/answers-<date>.json` and apply them with
-   `register_answers.py apply --answers <file> --source "<who> in
-   session"`, which confirms entries with date and source, keeps the old
+   `register_answers.py apply --answers <file> --source "<who> in session"`,
+   which confirms entries with date and source, keeps the old
    decision as history and rewrites the confirmation list and counts.
    An `other` answer stays open: judge it under step 7a (a changed rule
    is a new REQ, never an edit), then set the entry. Finally update the

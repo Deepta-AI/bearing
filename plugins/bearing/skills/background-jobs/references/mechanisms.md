@@ -30,6 +30,5 @@ when the enqueue succeeds and the write rolls back, or the reverse.
   database job store for cron, `celery` when it is already there.
 - Node: `pg-boss` (Postgres) or `BullMQ` (Redis); `process.on('SIGTERM')`
   plus `worker.close()`.
-- Postgres outbox: `outbox(id, aggregate, event, payload, created_at,
-  published_at)`; relay `SELECT ... WHERE published_at IS NULL FOR
-  UPDATE SKIP LOCKED LIMIT 100`.
+- Postgres outbox: `outbox(id, aggregate, event, payload, created_at, published_at)`;
+  relay `SELECT ... WHERE published_at IS NULL FOR UPDATE SKIP LOCKED LIMIT 100`.

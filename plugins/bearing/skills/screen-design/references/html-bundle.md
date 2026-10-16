@@ -26,8 +26,8 @@ that matches it.
 tokens link (or the `data-tokens` copy with `--standalone`), a state
 bar, one `[data-state]` panel per state, each the whole screen: an
 annotation (`data-annotation`), a desktop and a phone frame
-(`data-frame`), each in its app chrome (`data-app-chrome`; `none:
-<reason>` only for a screen with no chrome by design) with
+(`data-frame`), each in its app chrome (`data-app-chrome`; `none: <reason>`
+only for a screen with no chrome by design) with
 `aria-current` on the current item. `#state=<name>`, `#state=all` and
 `#chrome=0` deep links; a skip link, `:focus-visible` on every control,
 44 px targets, labels bound by `for`, `data-event` only for names the
@@ -39,8 +39,8 @@ not squeezed. Fix and count the findings.
 6. States gate:
 `python3 "${CLAUDE_PLUGIN_ROOT}/skills/screen-design/scripts/states_check.py" --screens docs/design/screens/<feature> --flows <flows file>`
 (drop `--flows` when the inventory came from stories, code or a
-brief; a state the screen truly lacks is marked `<!-- n/a: <state>
-because <reason> -->`). States the reconciliation added beyond the
+brief; a state the screen truly lacks is marked `<!-- n/a: <state> because <reason> -->`).
+States the reconciliation added beyond the
 flows are checked by reading, and listed.
 7. Screenshots when browse is executable:
 `python3 "${CLAUDE_PLUGIN_ROOT}/skills/design-critique/scripts/evidence.py" shoot --base docs/design/screens/<feature> --out docs/design/screens/<feature>/shots '<id>-<name>.html#chrome=0'...`

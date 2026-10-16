@@ -3,8 +3,8 @@
 Read when the task touches useInfiniteQuery, deep links, sign in or sign out.
 
 - `getNextPageParam` returns `undefined` when the cursor is null; the list
-  calls `fetchNextPage` from `onEndReached` only when `hasNextPage &&
-  !isFetchingNextPage` (it fires several times per scroll).
+  calls `fetchNextPage` from `onEndReached` only when `hasNextPage && !isFetchingNextPage`
+  (it fires several times per scroll).
 - A failed next page sets `isError` while `data` still holds the pages
   already loaded. Check `data` before `isError`, show the page error as a
   footer with retry (`isFetchNextPageError`), and never replace 60 loaded
@@ -20,8 +20,8 @@ Read when the task touches useInfiniteQuery, deep links, sign in or sign out.
   path (one leading `/`, no `//`, no scheme, not an auth route, ideally
   matched against the routes that may be linked) and `router.replace`s to
   it, else to home.
-- A cold-start deep link has no screen under it: export `unstable_settings
-  = { initialRouteName: '(tabs)' }` from the group layout so Back returns
+- A cold-start deep link has no screen under it: export `unstable_settings = { initialRouteName: '(tabs)' }`
+  from the group layout so Back returns
   to the tabs instead of closing the app.
 - Sign out clears the query cache (`queryClient.clear()`, and any persisted
   cache). Otherwise the next person to sign in on a shared phone sees the

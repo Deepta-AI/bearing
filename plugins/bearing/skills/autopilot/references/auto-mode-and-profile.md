@@ -5,8 +5,8 @@ Read at steps 3 to 5: taking the recommended option, recording decisions, the pr
 3. Auto mode, for every stage: wherever a skill says to ask the user, to
 stop and wait, or to confirm, take the option the skill recommends
 and go on. Then:
-- record the choice with `decision <key> "<choice>" "<alternatives>"
-  "<why>" --adr <path>`, one row per choice, in the words a reviewer
+- record the choice with `decision <key> "<choice>" "<alternatives>" "<why>" --adr <path>`,
+  one row per choice, in the words a reviewer
   needs;
 - any ADR or decision record the stage writes has status Proposed and
   names no decider; `done decide` fails on an Accepted one;
@@ -20,9 +20,8 @@ and go on. Then:
   behaviour the statement does not mention (other commands' exit
   codes, what `make check` does, CI) is not changed. A better
   convention is a proposal under Noticed, not a change in this MR.
-4. The product profile, at the end of the decide stage: `profile --ui
-yes|no --data yes|no --api yes|no --deploy yes|no [--llm yes|no]
-[--ui-stack <stack>] [--scope lean|full] --why "<reason>"`. The ui stack is React with shadcn/ui and Tailwind
+4. The product profile, at the end of the decide stage: `profile --ui yes|no --data yes|no --api yes|no --deploy yes|no [--llm yes|no] [--ui-stack <stack>] [--scope lean|full] --why "<reason>"`.
+The ui stack is React with shadcn/ui and Tailwind
 (`react-shadcn`) unless the statement or the repository names another;
 only then pass `--ui-stack` (flutter, react-native, compose, swiftui,
 html) and record why.

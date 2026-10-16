@@ -36,8 +36,8 @@ against them; `branch-review` checks handlers against them.
 
 ## Pagination
 
-- Cursor pagination on every list: `?cursor=&limit=` in, `page:
-  { next_cursor, has_more }` out. `limit` is capped (100 by default) and
+- Cursor pagination on every list: `?cursor=&limit=` in, `page: { next_cursor, has_more }`
+  out. `limit` is capped (100 by default) and
   the cap is in the spec. Offset pagination only for admin tables under
   10k rows, and the spec says so.
 - The cursor is opaque to the client (base64 of the sort key and id).

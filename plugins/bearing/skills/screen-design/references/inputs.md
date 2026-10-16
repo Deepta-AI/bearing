@@ -13,8 +13,8 @@ Read when a source is missing or unclear (Inputs): flows, requirements, tokens, 
   error codes, fields) for every call a screen makes.
 - Tokens: the file an ADR or README names as the source of colour (on
   react-shadcn usually `src/index.css`); else `docs/design/tokens.css`;
-  else generated from `docs/design/tokens.json` with `system_page.py
-  tokens-css`; else written by hand from the approved variant, else
+  else generated from `docs/design/tokens.json` with `system_page.py tokens-css`;
+  else written by hand from the approved variant, else
   `DESIGN.md`, else the brief, headed `proposed`.
 - Existing mockups: pages already under `docs/design/screens/<feature>/`
   and how they are made (a build script, a JSON source, a template, a

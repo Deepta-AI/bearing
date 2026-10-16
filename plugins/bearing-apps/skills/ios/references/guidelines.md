@@ -124,8 +124,8 @@
   (check with the Xcode accessibility inspector or an environment override
   in a preview).
 - Every interactive element has an accessibility label; decorative images
-  are `accessibilityHidden`; grouped rows use `.accessibilityElement
-  (children: .combine)`; identifiers on elements UI tests touch.
+  are `accessibilityHidden`; grouped rows use `.accessibilityElement (children: .combine)`;
+  identifiers on elements UI tests touch.
 - All user-facing strings live in `Localizable.xcstrings` with dotted keys
   (`health.title`), interpolations through format specifiers, never
   concatenation. `SWIFT_EMIT_LOC_STRINGS` keeps the catalog complete.

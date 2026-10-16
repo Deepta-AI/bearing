@@ -12,8 +12,8 @@
 ## Errors
 
 - Return errors; never panic outside `main` and tests.
-- Wrap with context at each layer boundary: `fmt.Errorf("op detail: %w",
-  err)`. The chain reads like a stack trace.
+- Wrap with context at each layer boundary: `fmt.Errorf("op detail: %w", err)`.
+  The chain reads like a stack trace.
 - Sentinel errors (`var ErrNotFound = errors.New(...)`) live in the domain
   package; handlers map them with `errors.Is` to status codes in one place.
 - Never `_ = err`. If an error is genuinely ignorable, a comment says why.
@@ -23,8 +23,7 @@
 
 ## HTTP
 
-- Standard library mux with method patterns: `mux.HandleFunc("GET
-  /invoices/{id}", h.getInvoice)`.
+- Standard library mux with method patterns: `mux.HandleFunc("GET /invoices/{id}", h.getInvoice)`.
 - Middleware order: recover, request id, logging, auth, then routes.
 - Decode request bodies with `json.NewDecoder(r.Body)` and
   `DisallowUnknownFields()`; validate before use; reject bodies over a size

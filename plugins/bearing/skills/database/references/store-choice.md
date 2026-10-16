@@ -14,8 +14,8 @@ table with one insert per event and no update ever.
 of rows per second (product events, audit trails, metrics, logs, CDC
 copies of Postgres tables for reporting), read by scans and aggregates
 over a time range with a few equality filters, latency in hundreds of
-milliseconds. Signs it was the wrong choice: the app runs `ALTER TABLE
-... UPDATE` or `DELETE` by id; point lookups by key expected in
+milliseconds. Signs it was the wrong choice: the app runs `ALTER TABLE ... UPDATE`
+or `DELETE` by id; point lookups by key expected in
 single-digit milliseconds; one-row inserts from request handlers; a
 foreign key needed for correctness; anything that needs a transaction.
 

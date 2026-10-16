@@ -72,8 +72,8 @@ rule was relaxed and why.
 
 ## Rules that matter most
 
-1. State flows down, events flow up. Screens own an `@Observable
-   @MainActor` view model in `@State`; no `ObservableObject`, `@Published`
+1. State flows down, events flow up. Screens own an `@Observable @MainActor`
+   view model in `@State`; no `ObservableObject`, `@Published`
    or `@StateObject` in new code.
 2. Every network call is `async`, cancellable, decoded with `Codable`, and
    throws `AppError`. Views start work with `.task`, never an unstructured

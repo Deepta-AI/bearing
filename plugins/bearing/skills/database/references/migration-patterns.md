@@ -58,16 +58,16 @@ ALTER TABLE invoices ADD COLUMN state invoice_state;  -- values not restored
 
 ## ClickHouse equivalent
 
-- Add: `ALTER TABLE events ON CLUSTER main ADD COLUMN IF NOT EXISTS status
-  LowCardinality(String) DEFAULT ''`; metadata only, old parts read the
-  default. If old parts must hold real values: one `ALTER ... UPDATE status
-  = lower(state) WHERE status = ''`, off-peak, watched in `system.mutations`.
+- Add: `ALTER TABLE events ON CLUSTER main ADD COLUMN IF NOT EXISTS status LowCardinality(String) DEFAULT ''`;
+  metadata only, old parts read the
+  default. If old parts must hold real values: one `ALTER ... UPDATE status = lower(state) WHERE status = ''`,
+  off-peak, watched in `system.mutations`.
 - Drop: `ALTER TABLE events ON CLUSTER main DROP COLUMN IF EXISTS state`
   after every reader and every MV referencing it has moved.
 - Key change: `CREATE TABLE events_v2 ... ORDER BY (tenant_id, status, ts)`;
   point the MVs at both; `INSERT INTO events_v2 SELECT ... FROM events`
-  partition by partition; `EXCHANGE TABLES events AND events_v2 ON CLUSTER
-  main`; drop the old table a week later. Down is the reverse `EXCHANGE`.
+  partition by partition; `EXCHANGE TABLES events AND events_v2 ON CLUSTER main`;
+  drop the old table a week later. Down is the reverse `EXCHANGE`.
 
 ## MongoDB equivalent
 

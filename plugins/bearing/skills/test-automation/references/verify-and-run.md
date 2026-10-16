@@ -5,10 +5,10 @@ Read when gating, proving and running the new tests (steps 4 to 7): invented-API
 4. Invented-API gate, before anything runs. A test that calls an id, a
 label, a route or a function the code does not have fails for the
 wrong reason, and a heal later makes it pass against nothing.
-- The stack's type check over the new test files: `pnpm exec tsc
-  --noEmit`, `uv run ruff check <files>` (undefined names fail), `go vet
-  ./...`, `./gradlew compileDebugAndroidTestKotlin`, `xcodebuild
-  build-for-testing`. Every error in a new test is fixed against the
+- The stack's type check over the new test files: `pnpm exec tsc --noEmit`,
+  `uv run ruff check <files>` (undefined names fail), `go vet ./...`,
+  `./gradlew compileDebugAndroidTestKotlin`, `xcodebuild build-for-testing`.
+  Every error in a new test is fixed against the
   real code, never by adding what the test expected.
 - `python3 "${CLAUDE_PLUGIN_ROOT}/skills/test-automation/scripts/ref_check.py" --src <source dirs> <new test files>`:
   every test id, accessible name, label, text and route (with its
@@ -22,8 +22,8 @@ wrong reason, and a heal later makes it pass against nothing.
   the code lacks what the criterion needs, reported as a finding with
   the TC id; never by adding the id to the product.
 Print both results.
-5. Visual baselines: when step 3 wrote a visual test, run `make
-test-visual-update` (it runs inside the Playwright image, so fonts match
+5. Visual baselines: when step 3 wrote a visual test, run `make test-visual-update`
+(it runs inside the Playwright image, so fonts match
 CI) and list every new or changed png for a person to look at. A
 baseline nobody has looked at proves only that the page renders the
 same as it did, so the report says "baselines to review: N" until the

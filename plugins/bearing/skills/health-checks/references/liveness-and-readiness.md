@@ -4,8 +4,8 @@ Read when: steps 3 and 4: writing the two endpoints and their tests.
 
 3. **`/healthz` (liveness).** Returns 200 with status and version and
 touches nothing: no database, cache, network or lock that a stuck
-dependency can hold. Version comes from the build (`-ldflags -X
-main.version`, a package version, an env var the image sets); if the
+dependency can hold. Version comes from the build (`-ldflags -X main.version`,
+a package version, an env var the image sets); if the
 build sets none, omit it rather than invent one. A test runs it with
 every dependency check failing and still gets 200.
 

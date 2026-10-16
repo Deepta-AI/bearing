@@ -45,8 +45,8 @@ matches, advisory); Cursor and Cline rely on the hook; Windsurf keeps its
 lists in the UI. In every harness with a hook, the hook over the vendored
 guard screens each shell command: it strips wrappers (`sudo`, `env`, `command`,
 `exec`, `VAR=x`), git's `-C`, `-c`, `--git-dir` and `--work-tree`
-options, and follows `eval`, `sh -c`, `xargs`, `npx`, `timeout`, `docker
-exec` and command substitutions into the command they run.
+options, and follows `eval`, `sh -c`, `xargs`, `npx`, `timeout`, `docker exec`
+and command substitutions into the command they run.
 
 The guard is defence in depth, not the wall. A pattern check over shell
 text can be talked around, and a harness can skip a hook. The hard stops
@@ -60,8 +60,8 @@ repository settings template turns on.
 Three gates run over the same guard subcommands: `stop-gate` (a session
 that changed files and has not passed `make check` since is sent back
 once, never in a loop), `check-file` (the edited file is linted and the
-problems go back to the agent) and `precompact` with `session --source
-compact` (branch, changes, check state and the user's last requests
+problems go back to the agent) and `precompact` with `session --source compact`
+(branch, changes, check state and the user's last requests
 survive compaction).
 
 | Harness | Stop gate | Edit check | Across compaction | Status |

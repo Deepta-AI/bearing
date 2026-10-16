@@ -7,8 +7,8 @@ Read when: step 5: probe timeouts, thresholds and the shared-dependency trade-of
   (the total deadline plus margin). Kubernetes defaults
   `timeoutSeconds` to 1, so a 2 s check behind a default probe times
   out and reads as not ready on every slow ping.
-- liveness points at `/healthz` only, with `failureThreshold x
-  periodSeconds` long enough to ride out a GC pause or a CPU-throttled
+- liveness points at `/healthz` only, with `failureThreshold x periodSeconds`
+  long enough to ride out a GC pause or a CPU-throttled
   second (30 s or more); add a `startupProbe` when start-up is slow
   instead of a long `initialDelaySeconds`.
 - the load balancer health check targets a path that exists without

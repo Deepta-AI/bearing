@@ -5,14 +5,14 @@ Read when you run sync or create and need the full text of the existing-key sear
 2. **Existing keys, in every form.** An item is already in the tracker if
    anything ties a project key to it: its `Ticket:` line, any other
    `Jira:`/`Issue:`/`Key:` line or a key in its heading or text, a commit
-   subject or body (`git log --all --format='%h %s%n%b' | grep
-   '<PREFIX>-[0-9]'`), or a code or test comment naming the item's id or
+   subject or body (`git log --all --format='%h %s%n%b' | grep '<PREFIX>-[0-9]'`),
+   or a code or test comment naming the item's id or
    title (`grep -rn '<PREFIX>-[0-9]'`). Say what tied each key to its
    item. A key found only in history or code is still a key: no second
    ticket; propose recording it in the backlog.
 3. **Duplicates the repository cannot show.** An item with no key
-   anywhere may still have been filed by hand. When reachable, `brg-tracker
-   list --q "<title words>"` for each before creating; when not, say this
+   anywhere may still have been filed by hand. When reachable, `brg-tracker list --q "<title words>"`
+   for each before creating; when not, say this
    search is the first step of the filing run.
 4. **Hierarchy.** Epics first, then stories with `--parent <epic key>`,
    then test cases under their story. An existing ticket whose epic is new

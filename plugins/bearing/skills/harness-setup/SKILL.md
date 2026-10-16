@@ -21,8 +21,8 @@ agent to push. This skill closes them.
 
 - Harness name: from `$1`; if absent, ask one question listing the ids.
 - The repository: the current git repository.
-- The kit's git URL for skill installation: `git -C <kit> remote get-url
-  origin`; if absent, or the network is not available, use `--no-skills`
+- The kit's git URL for skill installation: `git -C <kit> remote get-url origin`;
+  if absent, or the network is not available, use `--no-skills`
   and print the install command for the user.
 - `references/harness-matrix.md`: what each harness supports and loses;
   read it before promising a feature.

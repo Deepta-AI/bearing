@@ -87,8 +87,8 @@ relaxed and why.
 6. Accessibility: every interactive element has a semantic label
    (`Tooltip`, `Semantics`, or visible text), touch targets are at least
    48 dp, text scales with the system setting, contrast passes.
-7. `const` constructors wherever the tree allows; `flutter analyze
-   --fatal-infos` enforces it. A widget rebuilt on every frame without a
+7. `const` constructors wherever the tree allows; `flutter analyze --fatal-infos`
+   enforces it. A widget rebuilt on every frame without a
    reason is a finding.
 8. `make check` = `dart format` check, `flutter analyze --fatal-infos`,
    `flutter test --coverage`. CI runs the same target and builds the
@@ -125,10 +125,10 @@ fallback. Detail: references/commands.md.
   so imports are `package:app/...`; the repository name lives in the
   README and the store listings.
 - `*.freezed.dart`, `*.g.dart` and `lib/l10n/generated/` are generated and
-  git-ignored: `make setup` (or `make gen`) writes them, and `flutter
-  analyze` fails with "URI has not been generated" until it runs.
-- `android/` and `ios/` are created by `flutter create .` inside `make
-  setup`, with `--org` from the scaffold; they are committed after the
+  git-ignored: `make setup` (or `make gen`) writes them, and `flutter analyze`
+  fails with "URI has not been generated" until it runs.
+- `android/` and `ios/` are created by `flutter create .` inside `make setup`,
+  with `--org` from the scaffold; they are committed after the
   first setup. Fastlane files are copied in before that and survive it.
 - `--dart-define-from-file` values are compile-time constants baked into
   the binary and readable from it: configuration, never secrets. Secrets

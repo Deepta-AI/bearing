@@ -56,8 +56,8 @@ and response API, not events.
      header or malformed header, no detail in the body.
    - Replay window: reject a timestamp older than 5 minutes; require
      the timestamp inside the signed payload.
-   - Idempotency: `webhook_events(provider, event_id, received_at,
-     processed_at, status)` with a unique key on `(provider, event_id)`;
+   - Idempotency: `webhook_events(provider, event_id, received_at, processed_at, status)`
+     with a unique key on `(provider, event_id)`;
      the insert is the claim, and a unique violation returns 200
      without work. Keep rows longer than the provider's retry window
      plus any manual resend, never a fixed 24 h.
@@ -73,15 +73,15 @@ and response API, not events.
 3. `outbound <events>`:
    - Catalogue every event: name (`<domain>.<noun>.<verb>`), payload
      schema, version, when it fires, sample. Print "events: N".
-   - Signing: `X-Webhook-Id`, `X-Webhook-Timestamp`, `X-Webhook-Signature:
-     v1=<hmac-sha256(secret, id.timestamp.body)>`, one secret per consumer.
+   - Signing: `X-Webhook-Id`, `X-Webhook-Timestamp`, `X-Webhook-Signature: v1=<hmac-sha256(secret, id.timestamp.body)>`,
+     one secret per consumer.
      `X-Webhook-Id` is the event id, the same on every attempt and every
      replay, so the consumer can dedupe on it; never the delivery id.
    - Delivery: attempts at 0 s, 1 min, 5 min, 30 min, 2 h, 12 h, 24 h;
      success is any 2xx inside 10 s; after the last attempt the delivery
      is dead-lettered and the consumer's endpoint is marked failing.
-   - Delivery log table `webhook_deliveries(id, consumer, event_id,
-     attempt, status_code, duration_ms, next_at, last_error)` and an
+   - Delivery log table `webhook_deliveries(id, consumer, event_id, attempt, status_code, duration_ms, next_at, last_error)`
+     and an
      endpoint (or page) where a consumer sees their own log and can
      replay by id.
    - Isolation: one consumer's slow or dead endpoint never delays

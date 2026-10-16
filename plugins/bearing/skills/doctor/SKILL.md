@@ -60,8 +60,8 @@ exists. The job is whether it works.
      trunk. A step with `|| true`, `continue-on-error`, `allow_failure` or
      `when: manual` does not gate.
    - A passing gate proves only what it examined. Compare the counts it
-     prints with the repository: the files its runner discovers (`node
-     --test` with no paths: `*.test.js`, `*-test.js`, `*_test.js`,
+     prints with the repository: the files its runner discovers (`node --test`
+     with no paths: `*.test.js`, `*-test.js`, `*_test.js`,
      `test-*.js`, `test.js`, `test/**`; pytest: `test_*.py`, `*_test.py`
      under `testpaths`; Go: `*_test.go`; Jest: `testMatch`) against every
      file that defines tests (`grep -rlE 'test\(|def test_|func Test'`).
@@ -71,8 +71,8 @@ exists. The job is whether it works.
      `pass_filenames`, `xargs`) gets every file at once; a tool that takes
      one path checks only the first (`node --check a.js b.js` ignores
      `b.js`). Probe it with a good file first and a broken one second.
-   - A fix that adds files must survive `.gitignore`: `git check-ignore -v
-     <path>` on each file the fix would create (`.claude/rules/*.md`, hook
+   - A fix that adds files must survive `.gitignore`: `git check-ignore -v <path>`
+     on each file the fix would create (`.claude/rules/*.md`, hook
      files). A `.claude/*` rule hides new rules from every other clone.
    - Read a hook's rule before calling its behaviour a fault. A commit-msg
      that takes the task id from the branch name accepts an id-less subject

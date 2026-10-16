@@ -33,8 +33,7 @@ refines one component of an agreed HLD and never reopens them.
   response types are written inline; `openapi-spec` produces the contract.
 - Config: looks in `.env.example`; if absent, every variable is listed as
   missing from it.
-- Ids: from the HLD and `docs/product/backlog.md`; if absent, `Serves:
-  unnumbered`.
+- Ids: from the HLD and `docs/product/backlog.md`; if absent, `Serves: unnumbered`.
 - Template: looks in `docs/templates/LLD.md`; if absent, this skill's
   `templates/LLD.md`.
 - Delivering entity: looks in `.bearing/company.json`; if absent, the title
@@ -77,8 +76,8 @@ critic on changed sections, downstream list). A revision that moves the componen
    migrations in order as `db-migration` names. For every job, queue or
    scheduled work: how many workers can run it at once (the HLD, the
    deployment's replica count, or the worker config) and how two of them
-   are kept from taking the same item (a claim with `FOR UPDATE SKIP
-   LOCKED`, a lease with an expiry, a unique key); "a single worker" is a
+   are kept from taking the same item (a claim with `FOR UPDATE SKIP LOCKED`,
+   a lease with an expiry, a unique key); "a single worker" is a
    design only when the deployment pins it to one and the document says
    what happens when a second one starts anyway. Rules come from
    `docs/design/data-model.md` when it exists.

@@ -10,8 +10,8 @@ fixed test first like any other, then the smoke runs again; the dod
 gate refuses a smoke file older than the last commit. Headless
 (`BRG_AUTOPILOT_HEADLESS=1`, set by `launch`) the sandbox keeps Docker
 and `.env` out of reach: write the checks to
-`.scratch/smoke-plan-<ID>.txt` (`base <url>`, then `METHOD /path
-status` per line) unless the Makefile has a `smoke` target, run
+`.scratch/smoke-plan-<ID>.txt` (`base <url>`, then `METHOD /path status`
+per line) unless the Makefile has a `smoke` target, run
 `brg-autopilot smoke-request --id <ID>` and end your turn. The
 launcher runs the smoke outside the sandbox and resumes the session
 with the file and its verdict; at most 3 rounds. The plan runner starts
@@ -25,6 +25,6 @@ ignored), which is why the smoke drives the built server.
 `docs/autopilot/<run>.md`; commit it, and let that commit be the last
 write (`git status` clean after it: a progress file touched later is
 work the MR does not carry); paste its decisions table into
-the description, with the exact push command (`git push -u origin
-<branch>`) under it; print the same command in the last message. Do
+the description, with the exact push command (`git push -u origin <branch>`)
+under it; print the same command in the last message. Do
 not run it.

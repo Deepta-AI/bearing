@@ -62,8 +62,8 @@ the agent's registry with a tier before the model can see it.
    the four hints unset, fails). The test itself counts: it prints
    `mcp-tools: N exposed, N tested, N annotated` before it asserts and
    fails on zero tools listed or when the three differ (the template's
-   test does this; keep it). Run it with the granted command (`uv run
-   pytest -s tests/test_mcp_tools.py`, `npm test`, or the `make`
+   test does this; keep it). Run it with the granted command (`uv run pytest -s tests/test_mcp_tools.py`,
+   `npm test`, or the `make`
    target) and copy the line; nobody counts by hand.
 5. `make mcp-dev` (or the command itself without a Makefile): runs
    `npx @modelcontextprotocol/inspector@2.8.0` against the stdio command. Registration: `.mcp.json` from

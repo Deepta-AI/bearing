@@ -21,8 +21,8 @@ Writes the user triggers (add, reorder, pay, toggle):
   provider disposed when the row scrolls away loses it.
 - Double taps: the control is disabled while its request is in flight,
   keyed by the item, and a second tap is ignored, not queued.
-- After every `await` the widget may be gone: `if (!context.mounted)
-  return;` before using `context`, `if (!mounted) return;` before
+- After every `await` the widget may be gone: `if (!context.mounted) return;`
+  before using `context`, `if (!mounted) return;` before
   `setState`, and `ref.mounted` in a Riverpod 3 notifier before setting
   `state`.
 - Optimistic UI (a switch flipped before its PUT) rolls back and tells

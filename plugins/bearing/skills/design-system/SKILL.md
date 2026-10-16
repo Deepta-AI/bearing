@@ -154,8 +154,8 @@ on alpine, busybox and macOS without bash, python3 or node) and add `design-lint
    debt does not make room for another. A total allowance (`ALLOW_COLOR=7`) is not a
    ratchet. Paying a debt also fails until the baseline is lowered in the same
    change; tell the team that, with the command, in the report.
-4. Prove it: add a new colour and an off-scale value in a scratch file, run `make
-   check`, see it fail, remove them. If the check has tests, they run under `make check`
+4. Prove it: add a new colour and an off-scale value in a scratch file, run `make check`,
+   see it fail, remove them. If the check has tests, they run under `make check`
    in the CI image too.
 
 ## Output contract

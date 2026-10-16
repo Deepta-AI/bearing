@@ -24,8 +24,8 @@ inside its own container with the key columns readable, two columns
 stack, the primary action stays reachable without horizontal scroll;
 at 1440 no half-width column beside dead space.
 5. Gates: `python3 "${CLAUDE_PLUGIN_ROOT}/skills/screen-design/scripts/gallery_check.py" --src <src> --flows <flows file>`
-until it exits 0; then the repository's own checks that exist (`make
-check`, `make design-lint`). A target that does not exist, or a build
+until it exits 0; then the repository's own checks that exist (`make check`,
+`make design-lint`). A target that does not exist, or a build
 that needs `node_modules` that are absent, is reported as not run.
 6. Screenshots from the running gallery when it runs
 (`<id>?state=<name>&chrome=0`):

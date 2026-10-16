@@ -38,8 +38,8 @@ conventions.md.
   and every place work leaves the request (goroutine, thread, task,
   queue message).
 - gate: `make check` when the Makefile has a `check` target; if absent,
-  the stack's native command (`go test ./...`, `pnpm test`, `uv run
-  pytest`, `./gradlew test`, `swift test`) and the report says the gate
+  the stack's native command (`go test ./...`, `pnpm test`, `uv run pytest`,
+  `./gradlew test`, `swift test`) and the report says the gate
   is improvised.
 - `.env.example` and README: the existing ones are extended in place;
   created only when absent.
@@ -56,8 +56,8 @@ conventions.md.
    (React), `react-native-logs` or `src/lib/log.ts` (RN), `Timber`
    behind the injected `Logger` (Android), `os.Logger` (iOS). Route the
    runtime's own output through it too: in Go `slog.SetDefault` sends
-   `log.Print*` through the handler and `http.Server{ErrorLog:
-   slog.NewLogLogger(h, slog.LevelError)}` catches the server's own
+   `log.Print*` through the handler and `http.Server{ErrorLog: slog.NewLogLogger(h, slog.LevelError)}`
+   catches the server's own
    errors; in Python `ProcessorFormatter` for uvicorn and friends. List
    every `fmt.Print`, `print(`, `console.log`, `Log.d`, `NSLog` outside
    that module and remove each.

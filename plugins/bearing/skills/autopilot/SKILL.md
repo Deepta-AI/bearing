@@ -48,15 +48,14 @@ what is on disk, never from what the model says it did.
    1. `next` names the stage, its skill and its gate.
    2. Run the stage's skill in auto mode (below).
    3. `done <stage>`. On "gate not met", fix what it names and run
-      `done` again; when the same stage cannot be fixed, `fail <stage>
-      "<why>"`, which allows three attempts before the stage is blocked.
+      `done` again; when the same stage cannot be fixed, `fail <stage> "<why>"`,
+      which allows three attempts before the stage is blocked.
 3. Auto mode, for every stage: wherever a skill says to ask the user, to
    stop and wait, or to confirm, take the option the skill recommends and
    go on, and record the choice with `decision`. Detail:
    references/auto-mode-and-profile.md
-4. The product profile, at the end of the decide stage: `profile --ui
-   yes|no --data yes|no --api yes|no --deploy yes|no [--llm yes|no]
-   [--ui-stack <stack>] [--scope lean|full] --why "<reason>"`. Detail:
+4. The product profile, at the end of the decide stage: `profile --ui yes|no --data yes|no --api yes|no --deploy yes|no [--llm yes|no] [--ui-stack <stack>] [--scope lean|full] --why "<reason>"`.
+   Detail:
    references/auto-mode-and-profile.md
 5. Tools go through the repository's make targets; never call a package
    manager directly. Detail: references/auto-mode-and-profile.md

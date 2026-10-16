@@ -87,8 +87,8 @@ ${CLAUDE_PLUGIN_ROOT}/skills/tech-decision/references/decision-protocol.md.
    | Why not table naming the requirement each rejected store fails.
 5. Per store, following the reference for that store:
    - Postgres, MongoDB and ClickHouse each follow the reference for that
-     store. Postgres: per table, in foreign-key order, the purpose, `Serves
-     US-...`, expected volume and hot or not; a column table whose Why
+     store. Postgres: per table, in foreign-key order, the purpose, `Serves US-...`,
+     expected volume and hot or not; a column table whose Why
      quotes the acceptance criterion or names the rule the column exists
      for, and a column with no Why is cut. Detail: references/per-store-tables.md
 6. Enumerations: one row per enum with its values and why the set is
@@ -194,7 +194,7 @@ Revision: v<n> -> v<n+1>, sections changed C, ADRs superseded S, downstream D | 
   ADR, a glossary, a sibling LLD or a migration file is outside the
   request: name what else goes stale under the downstream list instead
   of editing it.
-- The Author line is the person who ran the skill (`git config
-  user.name`) or "draft, unreviewed"; never a name guessed from the
+- The Author line is the person who ran the skill (`git config user.name`)
+  or "draft, unreviewed"; never a name guessed from the
   repository or the prompt.
 - No em dashes, including inside `COMMENT ON` strings and CSV cells.

@@ -118,8 +118,8 @@
 
 ## Stateful resources
 
-- Databases, buckets, disks, queues and clusters carry `lifecycle {
-  prevent_destroy = true }` in prod. `prevent_destroy` must be a literal,
+- Databases, buckets, disks, queues and clusters carry `lifecycle { prevent_destroy = true }`
+  in prod. `prevent_destroy` must be a literal,
   so the prod root declares these directly (with a comment naming this
   rule) or calls a prod-only module variant.
 - Deletion protection, automated backups, point-in-time recovery and
@@ -139,15 +139,15 @@
   cannot overlap. Prod apply runs only from a protected tag.
 - The plan file is stale the moment state changes; Terraform refuses it,
   which is the point. Re-run the pipeline, review again, apply again.
-- The agent never runs `terraform apply`, `terraform destroy` or `kubectl
-  apply`, not locally, not in a script it wrote, not "just for dev".
+- The agent never runs `terraform apply`, `terraform destroy` or `kubectl apply`,
+  not locally, not in a script it wrote, not "just for dev".
 
 ## Kubernetes manifests
 
 - Every container: `resources.requests` and `resources.limits`, a
   `livenessProbe` and a `readinessProbe`, `securityContext` with
-  `runAsNonRoot`, `readOnlyRootFilesystem`, `allowPrivilegeEscalation:
-  false` and `capabilities.drop: [ALL]`.
+  `runAsNonRoot`, `readOnlyRootFilesystem`, `allowPrivilegeEscalation: false`
+  and `capabilities.drop: [ALL]`.
 - More than one replica means a PodDisruptionBudget. A HorizontalPodAutoscaler
   sets the replica range; the overlay sets `minReplicas` per environment.
 - No `latest`. Dev and qa overlays pin a tag the pipeline sets; the prod

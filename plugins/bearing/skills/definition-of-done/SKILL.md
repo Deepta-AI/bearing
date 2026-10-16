@@ -26,8 +26,8 @@ The list below is the standard's; it needs no file in the repository.
   against the stated task and commits without an id, and the table
   header says "no task id".
 - gate: `make check` when the Makefile has a `check` target; if absent,
-  the stack's native command (`go test ./...`, `pnpm test`, `uv run
-  pytest`, `./gradlew test`, `swift test`); item 1 then
+  the stack's native command (`go test ./...`, `pnpm test`, `uv run pytest`,
+  `./gradlew test`, `swift test`); item 1 then
   says "improvised gate" (`new-repo` or `onboard-repo` install the
   Makefile).
 - the list: the thirteen items in step 3, which are the standard's and
@@ -41,16 +41,16 @@ The list below is the standard's; it needs no file in the repository.
 
 ## Steps
 
-1. Establish the diff: `git diff --stat <base>...HEAD` and `git log
-   --oneline <base>..HEAD`. Zero files: stop with "0 files in diff
+1. Establish the diff: `git diff --stat <base>...HEAD` and `git log --oneline <base>..HEAD`.
+   Zero files: stop with "0 files in diff
    between <base> and HEAD".
 2. Run the gate: `<command> 2>&1 | tail -40`. The tail is the evidence
    for item 1.
 3. Walk the list. For each:
    1. gate: the tail above; `make check` must end with `check: passed`,
       a native command must exit 0. Then run the gate on the base too and
-      compare what each checked (files linted, tests collected: `pytest
-      --collect-only -q`, `go test -list . ./...`): a branch that passes by
+      compare what each checked (files linted, tests collected: `pytest --collect-only -q`,
+      `go test -list . ./...`): a branch that passes by
       making the gate check less (an exclude, a skip, a narrowed path) has
       not passed it.
    2. tests: open the test files in the diff; for a bugfix branch there
@@ -58,8 +58,8 @@ The list below is the standard's; it needs no file in the repository.
       proven red without the fix. A bugfix branch is a `bugfix/` or
       `hotfix/` branch, or one with a `fix:` commit in the range. Run
       `bash "${CLAUDE_PLUGIN_ROOT}/skills/definition-of-done/scripts/red_proof.sh" <base> '<the narrowest command that runs that test>'`
-      (`go test -run '^TestTC0012' ./internal/auth/`, `pnpm exec vitest
-      run src/auth/login.test.ts`, `uv run pytest tests/test_login.py::test_tc_0012`).
+      (`go test -run '^TestTC0012' ./internal/auth/`, `pnpm exec vitest run src/auth/login.test.ts`,
+      `uv run pytest tests/test_login.py::test_tc_0012`).
       It runs the test in a throwaway worktree of HEAD (must pass), puts
       every non-test file back to the base (must fail), and never touches
       the working tree. Toolchain files (manifests, lockfiles, configs,
