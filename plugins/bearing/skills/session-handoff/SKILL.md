@@ -22,7 +22,7 @@ not remembered from the session.
 - **You, after /clear or tomorrow, on this machine**: the local state file
   `.bearing/state/<branch with / as _>.md` (`bash "${CLAUDE_PLUGIN_ROOT}/bin/brg-state-path"`
   prints it). It is git-ignored;
-  the SessionStart hook prints its first twenty lines back, so the top
+  the SessionStart hook prints its first eight lines back, so the top
   carries the most useful facts.
 - **Someone else, or another machine** ("someone is picking this up", "I'm
   out", "hand over"): the ignored file never leaves this machine, so the

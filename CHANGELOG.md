@@ -10,19 +10,25 @@ All notable changes to Bearing. Keep a Changelog format, semantic versions.
   packages; Python and JavaScript: the changed files and their related
   tests). The Stop gate asks for `make check-changed` where the Makefile
   has it. The full `make check` is unchanged at `definition-of-done` and in
-  the pre-push hook. `brg-changed` lists the changed files.
+  the pre-push hook. `brg-changed` lists the changed files. A session
+  that changed no file of the stack's kind (a README, a YAML file) passes
+  it; a skipped gate (Go without golangci-lint) does not.
 - Timing: the formatter is timed, and `brg-guard stats` and
   `brg-doctor --timing` show the median and p90 of every gate and hook
   step.
 - Workspace trust check in `doctor` and `autopilot`: an untrusted workspace
-  is reported, and `autopilot` stops before it would wait on a permission
-  prompt.
+  is reported (trust on a parent folder counts), and `autopilot` stops
+  before it would wait on a permission prompt.
 - Sessions: a skill timeline recorded by a PreToolUse Skill hook; a
   checkpoint written on Stop and before compaction; resume at startup that
   prints the checkpoint and the next flow step (from the generated
   `plugins/bearing/bin/flow-steps.tsv`), quiet on trunk with no history;
   SessionEnd refreshes `docs/progress/<ID>.md` without overwriting a
-  person's Next; `start-task` reads the task id from the branch.
+  person's Next or dropping a line they added; resume offers the state
+  file's Next before the flow step; `start-task` reads the task id from
+  the branch. A non-interactive session (`BEARING_NONINTERACTIVE=1`, or
+  `BEARING_AUTOPILOT=1`, which `brg-autopilot` sets) is asked nothing at
+  startup.
 - Updates: a newer Bearing tag is offered once a day (cached, 3 s budget,
   6 h negative cache, hardened against option injection) with Upgrade,
   Remind me tomorrow or Skip this version.
@@ -55,9 +61,11 @@ All notable changes to Bearing. Keep a Changelog format, semantic versions.
   `bin/lint-skill-tools.allow`.
 
 ### Notes for existing repositories
-- Add `check-changed` by copying it from the stack template, or run
-  `onboard-repo`. Until then the Stop gate behaves as in 0.7.0 and asks for
-  the full `make check`.
+- Add `check-changed` by hand: copy the `CHANGED` variable and the
+  `check-changed` target from the stack template
+  (bearing-backend/bearing-apps skills/<stack>/templates/Makefile).
+  `onboard-repo` does not add them. Until then the Stop gate behaves as in
+  0.7.0 and asks for the full `make check`.
 
 ## [0.7.0] - 2026-10-02
 
