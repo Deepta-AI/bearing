@@ -85,6 +85,7 @@ ${CLAUDE_PLUGIN_ROOT}/skills/tech-decision/references/decision-protocol.md.
    `erd.md` with one sentence per relationship.
 4. Why these stores: per store, what it holds and why, with a Considered
    | Why not table naming the requirement each rejected store fails.
+5. Per store, following the reference for that store:
    - Postgres, MongoDB and ClickHouse each follow the reference for that
      store. Postgres: per table, in foreign-key order, the purpose, `Serves
      US-...`, expected volume and hot or not; a column table whose Why
