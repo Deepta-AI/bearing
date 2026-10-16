@@ -20,6 +20,15 @@ if [ "${1:-}" = "--timing" ]; then
   bash "$KIT/bin/brg-guard" stats 2>&1 | sed 's/^/  /'
   exit 0
 fi
+trust_state() { # <root>: trusted | untrusted <n> | unknown
+  local cj="$HOME/.claude.json" n
+  [ -f "$cj" ] && command -v jq >/dev/null 2>&1 || { echo unknown; return 0; }
+  case "$(jq -r --arg p "$1" '.projects[$p].hasTrustDialogAccepted // "unset"' "$cj" 2>/dev/null)" in
+    true) echo trusted;;
+    *) n="$(jq -r '.permissions.allow | length' "$1/.claude/settings.json" 2>/dev/null)"; echo "untrusted ${n:-0}";;
+  esac
+}
+if [ "${1:-}" = "--trust-state" ]; then trust_state "${2:-$PWD}"; exit 0; fi
 ok=0; miss=0; opt=0
 pass() { printf 'ok        %s\n' "$*"; ok=$((ok+1)); }
 fail() { printf 'MISSING   %s\n' "$*"; miss=$((miss+1)); }
@@ -101,6 +110,12 @@ if [ -n "$root" ] && [ "$in_kit" -eq 0 ]; then
     grep -q '__[A-Z_]*__' "$root/CLAUDE.md" && fail "CLAUDE.md snapshot has unfilled placeholders" || pass "CLAUDE.md snapshot filled"
   else fail "CLAUDE.md missing (onboard-repo)"; fi
   [ -f "$root/.claude/settings.json" ] && pass ".claude/settings.json present" || fail ".claude/settings.json missing (onboard-repo)"
+  ts="$(trust_state "$root")"
+  case "$ts" in
+    trusted) pass "workspace trusted by Claude Code";;
+    untrusted*) fail "workspace not trusted: Claude Code ignores ${ts#untrusted } allow entries, so each command waits on a prompt. Run claude here once and accept the trust dialog";;
+    *) optional "workspace trust unknown (no ~/.claude.json or no jq)";;
+  esac
   n="$(ls "$root/.claude/rules" 2>/dev/null | grep -c '\.md$' || true)"; [ "${n:-0}" -gt 0 ] && pass ".claude/rules: $n rule files" || fail ".claude/rules empty (onboard-repo --stack <id>)"
   # A .gitignore that swallows .claude/rules (".claude/*" to hide local
   # settings) means rule files written by the fix never reach other clones.
