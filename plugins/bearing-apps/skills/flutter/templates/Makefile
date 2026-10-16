@@ -123,7 +123,7 @@ CHANGED = git status --porcelain -z --untracked-files=all | tr '\0' '\n' | awk '
 check-changed: ## dart format check, analyze and the tests for the changed Dart files only (the Bearing Stop gate runs this; make check stays the full gate)
 	@mkdir -p $(STATE); files=$$($(CHANGED) | grep -E '\.dart$$|pubspec\.(yaml|lock)$$' || true); \
 	f=$$(printf '%s' "$$files" | grep -c . || true); \
-	[ "$$f" -gt 0 ] || { echo "check-changed: 0 files, nothing to check"; exit 0; }; \
+	[ "$$f" -gt 0 ] || { touch $(STATE)/.check-changed-passed; echo "check-changed: 0 files, nothing to check"; exit 0; }; \
 	dart=$$(printf '%s\n' "$$files" | grep '\.dart$$' || true); \
 	[ -z "$$dart" ] || { dart format --output=none --set-exit-if-changed $$dart && $(FLUTTER) analyze $$dart; } || exit 1; \
 	if printf '%s\n' "$$files" | grep -qE '(^|/)pubspec\.(yaml|lock)$$'; then $(MAKE) --no-print-directory test || exit 1; p=all; \

@@ -5255,7 +5255,7 @@
     },
     {
      "path": "templates/Makefile",
-     "lines": 167
+     "lines": 168
     },
     {
      "path": "templates/README.md",
@@ -5375,7 +5375,7 @@
     },
     {
      "path": "templates-cli/Makefile",
-     "lines": 127
+     "lines": 128
     },
     {
      "path": "templates-cli/README.md",
@@ -17876,9 +17876,9 @@
   {
    "path": "tests/unit/check_changed_targets.sh",
    "kind": "unit",
-   "lines": 29,
-   "header": "tests/unit/check_changed_targets.sh: every stack Makefile template has a check-changed target that prints its counts, never writes .check-passed, and writes .check-changed-passed. Toolchain runs are in the scaffold job.",
-   "asserts": 8
+   "lines": 89,
+   "header": "tests/unit/check_changed_targets.sh: every stack Makefile template has a check-changed target that prints its counts, never writes .check-passed, and writes .check-changed-passed, also when no changed file is its kind (else a README edit holds the Stop gate on every turn). A skipped gate never writes the marker. Then end to end with stub tools: a README-only edit clears the Stop gate (Go), a missing golangci-lint leaves the marker unwritten (Go), and pytest finding no tests is a pass (Python). Full toolchain runs are in the scaffold job.",
+   "asserts": 23
   },
   {
    "path": "tests/unit/checklists.sh",

@@ -107,14 +107,15 @@ CHANGED = git status --porcelain -z --untracked-files=all | tr '\0' '\n' | awk '
 check-changed: ## Format, vet, lint and test only the packages changed since the last check (the Bearing Stop gate runs this; make check stays the full gate)
 	@mkdir -p $(STATE); files=$$($(CHANGED) | grep -E '\.go$$|go\.(mod|sum)$$' || true); \
 	f=$$(printf '%s' "$$files" | grep -c . || true); \
-	[ "$$f" -gt 0 ] || { echo "check-changed: 0 files, nothing to check"; exit 0; }; \
+	[ "$$f" -gt 0 ] || { touch $(STATE)/.check-changed-passed; echo "check-changed: 0 files, nothing to check"; exit 0; }; \
 	if printf '%s\n' "$$files" | grep -qE 'go\.(mod|sum)$$'; then pkgs="./..."; p=$$(go list ./... | wc -l | tr -d ' '); \
 	else pkgs=$$(printf '%s\n' "$$files" | xargs -n1 dirname | sort -u | sed 's|^|./|'); p=$$(printf '%s\n' "$$pkgs" | wc -l | tr -d ' '); fi; \
 	gofiles=$$(printf '%s\n' "$$files" | grep '\.go$$' || true); \
 	[ -z "$$gofiles" ] || bad=$$(gofmt -l $$gofiles 2>/dev/null); [ -z "$${bad:-}" ] || { echo "check-changed: unformatted: $$bad" >&2; exit 1; }; \
 	go vet $$pkgs || exit 1; \
-	if command -v golangci-lint >/dev/null; then golangci-lint run $$pkgs || exit 1; else echo "check-changed: golangci-lint missing, lint not run"; fi; \
+	if command -v golangci-lint >/dev/null; then golangci-lint run $$pkgs || exit 1; else echo "check-changed: golangci-lint missing, lint not run"; skip=1; fi; \
 	set -o pipefail; go test -race -count=1 $$pkgs 2>&1 | tail -60 || exit 1; \
+	[ -z "$${skip:-}" ] || { echo "check-changed: $$f files, a gate was skipped, marker not written"; exit 0; }; \
 	touch $(STATE)/.check-changed-passed; echo "check-changed: $$f files, $$p packages checked"
 
 fix: fmt ## Apply every automatic fix

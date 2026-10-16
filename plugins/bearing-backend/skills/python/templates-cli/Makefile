@@ -103,14 +103,14 @@ CHANGED = git status --porcelain -z --untracked-files=all | tr '\0' '\n' | awk '
 check-changed: ## ruff format check, ruff check and pytest on the tests for the changed modules only (the Bearing Stop gate runs this; make check stays the full gate)
 	@mkdir -p $(STATE); files=$$($(CHANGED) | grep -E '\.py$$|pyproject\.toml$$|uv\.lock$$' || true); \
 	f=$$(printf '%s' "$$files" | grep -c . || true); \
-	[ "$$f" -gt 0 ] || { echo "check-changed: 0 files, nothing to check"; exit 0; }; \
+	[ "$$f" -gt 0 ] || { touch $(STATE)/.check-changed-passed; echo "check-changed: 0 files, nothing to check"; exit 0; }; \
 	py=$$(printf '%s\n' "$$files" | grep '\.py$$' || true); \
 	[ -z "$$py" ] || { $(UV) run ruff format --check $$py && $(UV) run ruff check $$py; } || exit 1; \
 	if printf '%s\n' "$$files" | grep -qE 'pyproject\.toml$$|uv\.lock$$|conftest\.py$$'; then tests=""; \
 	else tests=$$(for x in $$py; do case "$$x" in tests/*test_*.py) echo "$$x";; *) b=$$(basename "$$x" .py); git ls-files -co --exclude-standard "tests/test_$$b.py" "tests/**/test_$$b.py";; esac; done | sort -u); \
 	  [ -n "$$tests" ] || { touch $(STATE)/.check-changed-passed; echo "check-changed: $$f files, 0 packages checked (no tests map to them; make check runs all)"; exit 0; }; fi; \
 	p=$$(printf '%s' "$$tests" | grep -c . || true); [ -n "$$tests" ] || p=all; \
-	set -o pipefail; $(UV) run pytest --no-cov $$tests 2>&1 | tail -60 || exit 1; \
+	set -o pipefail; $(UV) run pytest --no-cov $$tests 2>&1 | tail -60; rc=$$?; [ $$rc -eq 0 ] || [ $$rc -eq 5 ] || exit 1; [ $$rc -ne 5 ] || p=0; \
 	touch $(STATE)/.check-changed-passed; echo "check-changed: $$f files, $$p packages checked"
 
 fix: format ## Apply every automatic fix

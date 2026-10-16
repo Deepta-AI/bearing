@@ -161,7 +161,7 @@ CHANGED = git status --porcelain -z --untracked-files=all | tr '\0' '\n' | awk '
 check-changed: ## terraform fmt, validate and tflint on the roots of the changed files only (the Bearing Stop gate runs this; make check stays the full gate)
 	@mkdir -p $(STATE); files=$$($(CHANGED) | grep -E '\.(tf|tfvars)$$' || true); \
 	f=$$(printf '%s' "$$files" | grep -c . || true); \
-	[ "$$f" -gt 0 ] || { echo "check-changed: 0 files, nothing to check"; exit 0; }; \
+	[ "$$f" -gt 0 ] || { touch $(STATE)/.check-changed-passed; echo "check-changed: 0 files, nothing to check"; exit 0; }; \
 	roots=$$(printf '%s\n' "$$files" | xargs -n1 dirname | sort -u); p=$$(printf '%s\n' "$$roots" | wc -l | tr -d ' '); \
 	terraform fmt -check $$files || exit 1; \
 	for r in $$roots; do (cd "$$r" && terraform init -backend=false -input=false >/dev/null && terraform validate && tflint) || exit 1; done; \

@@ -188,7 +188,7 @@ CHANGED = git status --porcelain -z --untracked-files=all | tr '\0' '\n' | awk '
 check-changed: ## prettier, eslint and the vitest tests related to the changed files only (the Bearing Stop gate runs this; make check stays the full gate)
 	@mkdir -p $(STATE); files=$$($(CHANGED) | grep -E '\.(ts|tsx|js|jsx|mjs|cjs|css|json)$$' || true); \
 	f=$$(printf '%s' "$$files" | grep -c . || true); \
-	[ "$$f" -gt 0 ] || { echo "check-changed: 0 files, nothing to check"; exit 0; }; \
+	[ "$$f" -gt 0 ] || { touch $(STATE)/.check-changed-passed; echo "check-changed: 0 files, nothing to check"; exit 0; }; \
 	$(PNPM) exec prettier --check $$files || exit 1; \
 	src=$$(printf '%s\n' "$$files" | grep -E '\.(ts|tsx|js|jsx|mjs|cjs)$$' || true); \
 	[ -z "$$src" ] || $(PNPM) exec eslint --max-warnings 0 --no-warn-ignored $$src || exit 1; \
