@@ -38,7 +38,7 @@ assert_contains "$(cat "$o")" "*.tsx and *.ts and *.css, also *.go"
 assert_not_contains "$(cat "$o")" "never shown"
 t_end
 for bad in "see src/app/main.go" "see C:\\\\Users\\\\x" "mail a@b.example" "host api.client.example.com" \
-  "token AbCdEfGhIjKlMnOpQrStUv" "ticket ABC-1234 broke" "server 10.0.12.7 down" "call https://x.example/y" "call ftp://host" "see /etc" "see ~/secret" "dir src/ broke" "see \\\\foo" "http:/x"; do
+  "token AbCdEfGhIjKlMnOpQrStUv" "ticket ABC-1234 broke" "server 10.0.12.7 down" "call https://x.example/y" "call ftp://host" "see *.example.com" "x*.evil.com" "see *.clinic-acme.com" "see *.go.evil.com" "see /etc" "see ~/secret" "dir src/ broke" "see \\\\foo" "http:/x"; do
   t_begin "redaction: $bad"
   printf '{"ts":"t","kind":"manual","skill":"go","key":"k","insight":"%s","count":3}\n' "$bad" > "$f"
   rm -f "$o"
@@ -48,9 +48,18 @@ for bad in "see src/app/main.go" "see C:\\\\Users\\\\x" "mail a@b.example" "host
   t_end
 done
 t_begin "multi-dot extension tokens are not hostnames"
-printf '%s\n' '{"ts":"t","kind":"gate-block","skill":"react","key":"a","insight":"types fail in *.d.ts, archive *.tar.gz, also *.go","count":3}' > "$f"
+printf '%s\n' '{"ts":"t","kind":"gate-block","skill":"react","key":"a","insight":"types fail in *.d.ts, archive *.tar.gz, also *.go, (*.tsx) and *.test.ts; *.spec.js.","count":3}' > "$f"
 assert_exit 0 run propose --out "$o"
-assert_contains "$(cat "$o")" "*.d.ts, archive *.tar.gz"
+assert_contains "$(cat "$o")" "*.d.ts, archive *.tar.gz, also *.go, (*.tsx) and *.test.ts; *.spec.js."
+t_end
+t_begin "empty body fails with a message"
+stub="$(tmpdir)"; real="$(command -v jq)"
+printf '#!/bin/sh\ncase " $* " in *" -s "*) exit 0;; esac\nexec "%s" "$@"\n' "$real" > "$stub/jq"; chmod +x "$stub/jq"
+printf '%s\n' '{"ts":"t","kind":"manual","skill":"go","key":"k","insight":"fine","count":3}' > "$f"
+rm -f "$o"
+T_OUT="$(XDG_CONFIG_HOME="$cfg" PATH="$stub:$PATH" bash "$L" propose --out "$o" 2>&1)"; T_RC=$?
+assert_eq 1 "$T_RC" "exit"
+assert_contains "$T_OUT" "could not build the proposal body"
 t_end
 t_begin "a suspect skill name fails too"
 printf '%s\n' '{"ts":"t","kind":"manual","skill":"acme/portal","key":"k","insight":"fine","count":3}' > "$f"

@@ -92,8 +92,13 @@ case "$sub" in
     # Suspect: a path with a slash or backslash, a URL, an email, a hostname, an IPv4 address,
     # a ticket id, or a 20+ character token. The *.ext tokens reduce() writes match none of these.
     [ -n "$body" ] || { echo "learn propose: could not build the proposal body"; exit 1; }
-    # Multi-dot extension tokens (*.d.ts, *.tar.gz) are masked first so they are not read as hostnames.
-    chk="$(printf '%s\n' "$body" | sed -E 's/\*(\.[A-Za-z0-9]+)+/EXT/g')"
+    # Only extension tokens are masked, so a wildcard host (*.example.com) stays visible to the hostname
+    # check: a single extension of 1-5 characters, or one of a closed list of multi-dot extensions. The
+    # token starts at line start, a space or "(", and ends at line end, a space or one of ),;: (or a full stop before those).
+    mx='d\.ts|d\.mts|d\.cts|tar\.gz|test\.tsx?|test\.js|spec\.tsx?|spec\.js|module\.css|config\.[jt]s|min\.js'
+    end='([),;:]|\.?[ ]|\.?$)'
+    chk="$(printf '%s\n' "$body" | sed -E -e "s/(^|[ (])\*\.($mx)$end/\1EXT\3/g" -e "s/(^|[ (])\*\.($mx)$end/\1EXT\3/g" \
+      -e "s/(^|[ (])\*\.[A-Za-z0-9]{1,5}$end/\1EXT\2/g" -e "s/(^|[ (])\*\.[A-Za-z0-9]{1,5}$end/\1EXT\2/g")"
     sus="$(printf '%s\n' "$chk" | grep -oE '[A-Za-z][A-Za-z0-9+.-]*://[^ ]*|[^ ]*[/\\][^ ]*|[^ @]+@[^ @]+\.[A-Za-z]{2,}|[0-9]{1,3}(\.[0-9]{1,3}){3}|([A-Za-z0-9-]+\.)+[A-Za-z]{2,}|[A-Z][A-Z0-9]+-[0-9]+|[A-Za-z0-9_-]{20,}' || true)"
     if [ -n "$sus" ]; then
       echo "learn propose: redaction failed: $(printf '%s\n' "$sus" | wc -l | tr -d ' ') suspect token(s)"; printf '%s\n' "$sus" | sed 's/^/  /'; exit 1

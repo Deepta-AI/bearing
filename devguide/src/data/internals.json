@@ -5,7 +5,7 @@
   "commandSkills": 0,
   "stackSkills": 12,
   "scripts": 94,
-  "scriptLines": 29218,
+  "scriptLines": 29223,
   "hooks": 8,
   "agents": 8,
   "makeTargets": 30,
@@ -15351,7 +15351,7 @@
    "name": "brg-learn",
    "lang": "bash",
    "group": "quality",
-   "lines": 107,
+   "lines": 112,
    "header": "brg-learn: opt-in, local learnings. Nothing leaves this machine; entries\ncarry no repository field and paths are reduced to their extension.\n  state                                   on, off or ask (BEARING_LEARNING, via brg-config)\n  log --kind K --skill S --key K --insight T\n                                          K is gate-block|rerun|override|manual; only when on\n  add \"<text>\" [--skill S]                a manual entry\n  top --skills \"a b\" [--n N]              \"- <insight> (<count>x)\", count then recency\n  list                                    every entry, \"<count>x  <skill>  <insight>\"\n  propose [--out FILE]                    a redacted issue body of entries seen 3+ times, and the\n                                          gh command for the engineer to run (never run here);\n                                          exit 1 if nothing qualifies or a suspect token survives\nThe log sits beside bearing.env (BEARING_ENV, else\n${XDG_CONFIG_HOME:-$HOME/.config}/bearing). log, add and top need jq and do\nnothing without it. Exit 0 always, except propose (exit 1 on failure).",
    "functions": [
     "state",
@@ -18045,9 +18045,9 @@
   {
    "path": "tests/unit/learn_propose.sh",
    "kind": "unit",
-   "lines": 67,
+   "lines": 76,
    "header": "tests/unit/learn_propose.sh: propose writes a body, prints the gh command, fails on zero entries, a missing jq and anything that looks identifying.",
-   "asserts": 24
+   "asserts": 26
   },
   {
    "path": "tests/unit/lint_evals.sh",
