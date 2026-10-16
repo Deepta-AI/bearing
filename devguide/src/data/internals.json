@@ -1373,7 +1373,7 @@
     },
     {
      "title": "Steps",
-     "lines": 36
+     "lines": 39
     },
     {
      "title": "Output contract",
@@ -1399,13 +1399,13 @@
     "Start or resume: `python3 \"${CLAUDE_PLUGIN_ROOT}/bin/brg-autopilot\" start \"<statement>\"`, or `status` then `next` on `--resume`. Print the run id. Detail: references/repo-stage.md",
     "Loop until `next` says every stage is done or a stage is blocked: 1. `next` names the stage, its skill and its gate. 2. Run the stage's skill in auto mode (below). 3. `done <stage>`. On \"gate not met\", fix what it names and run `done` again; when the same stage cannot be fixed, `fail <stage> \"<why>\"`, which allows three attempts before the stage is blocked.",
     "Auto mode, for every stage: wherever a skill says to ask the user, to stop and wait, or to confirm, take the option the skill recommends and go on, and record the choice with `decision`. Detail: references/auto-mode-and-profile.md",
-    "The product profile, at the end of the decide stage: `profile --ui yes|no --data yes|no --api yes|no --deploy yes|no`. Detail: references/auto-mode-and-profile.md",
+    "The product profile, at the end of the decide stage: `profile --ui yes|no --data yes|no --api yes|no --deploy yes|no [--llm yes|no] [--ui-stack <stack>] [--scope lean|full] --why \"<reason>\"`. Detail: references/auto-mode-and-profile.md",
     "Tools go through the repository's make targets; never call a package manager directly. Detail: references/auto-mode-and-profile.md",
     "Before the build, in lean scope: the design note, then test-cases. In full scope: architecture, design, repos and ux stages. Detail: references/design-stages.md",
     "Build is test first, story by story, in the order of the backlog. Read the traps in references/reviewer-checks.md first. Detail: references/build-and-after.md",
     "After the build: test-automation, the LLM stages when the profile says llm, and design-critique until the bar holds. Detail: references/build-and-after.md",
-    "Review is `branch-review`; fix every Critical and High it confirms, then `make check` again; `definition-of-done` includes the smoke run. Detail: references/review-smoke-and-mr.md",
-    "The mr stage: `merge-request` prepares the description; `report` writes `docs/autopilot/<run>.md`; print the push command and do not run it. Detail: references/review-smoke-and-mr.md",
+    "Review is `branch-review`; fix every Critical and High it confirms, then `make check` again; `definition-of-done` includes the smoke run. Read references/reviewer-checks.md again before dod. Detail: references/review-smoke-and-mr.md",
+    "The mr stage: `merge-request` prepares the description; `report` writes `docs/autopilot/<run>.md`; commit it, and let that commit be the last write (`git status` clean after it); paste its decisions table into the description with the exact push command under it, and print the same command in the last message. Do not run it. Detail: references/review-smoke-and-mr.md",
     "Blocked or finished, the last message is the report: stages done, the decisions to review, what is not done and why, and the push command when the MR is ready."
    ],
    "output": "",
@@ -1419,11 +1419,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 122,
+   "lines": 125,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 122
+     "lines": 125
     },
     {
      "path": "references/auto-mode-and-profile.md",
@@ -4447,7 +4447,7 @@
     },
     {
      "title": "Verifying",
-     "lines": 3
+     "lines": 5
     },
     {
      "title": "Commands",
@@ -4487,11 +4487,11 @@
    ],
    "layout": "`lib/main.dart` boots only; `lib/features/<f>/` holds the model, repository, provider and page; IO happens only in the repository. Detail: references/layout.md",
    "commands": [],
-   "lines": 146,
+   "lines": 148,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 146
+     "lines": 148
     },
     {
      "path": "references/commands.md",
@@ -5571,7 +5571,7 @@
     },
     {
      "title": "Steps",
-     "lines": 39
+     "lines": 40
     },
     {
      "title": "Traps",
@@ -5595,7 +5595,7 @@
     "This skill runs in the main conversation, not forked: it needs the Skill tool, the Agent tool and the user's yes on section 1. Its only shell is the gate script."
    ],
    "steps": [
-    "Title from `$ARGUMENTS`; inputs from the sources under Inputs, each printed as read or absent. Collect the ids the design serves and put them at the top of the document. Detail: references/inputs.md",
+    "Title from `$ARGUMENTS`; inputs from the sources under Inputs, each printed as read or absent. Read the template (repository copy when present, else `templates/HLD.md`). Collect the ids the design serves and put them at the top of the document. Detail: references/inputs.md",
     "Without `--continue`: write section 1, goal and non-goals, into `docs/design/<kebab-title>-hld.md`. Three sentences for the goal, a list for the non-goals. Ask the user \"agree the goal and non-goals?\" and wait. On a yes, go on; on changes, rewrite section 1 and ask again; when the user stops here, print the contract with `Waiting for: agree section 1`. With `--continue` (a later session): read section 1 from the fil…",
     "Fill sections 2 to 12 in template order. Detail: references/sections-2-to-12.md",
     "Source every claim. Grep the code for each component, route, table and queue you name. Detail: references/design-set.md",
@@ -5620,11 +5620,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 137,
+   "lines": 138,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 137
+     "lines": 138
     },
     {
      "path": "references/design-set.md",
@@ -11684,7 +11684,7 @@
     },
     {
      "title": "Steps",
-     "lines": 47
+     "lines": 48
     },
     {
      "title": "Output contract",
@@ -11714,7 +11714,7 @@
     "A repository's own mockup system is kept: extend its source, run its build. When a gate here cannot read that system, run the gate on a scratch copy or skip it and say so; never rewrite the system to fit the gate.",
     "No dependency is added; compose the existing components.",
     "Per screen a presentational view in `src/features/<feature>/components/<Name>View.tsx`: props in, markup out, built only from `src/components/ui`. Then the shell, a `*.screen.tsx` per screen, responsive layouts, the gates and screenshots. Detail: references/react-shadcn.md",
-    "When the repository already has mockups for the feature, extend them in their own format. Otherwise create or update `docs/design/design.json`. Then screen plan, tokens, one page per screen, self-review, the states gate, screenshots, the feature index and the manifest. Detail: references/html-bundle.md",
+    "When the repository already has mockups for the feature, extend them in their own format. Otherwise create or update `docs/design/design.json`. Then screen plan, tokens, one page per screen, self-review, the states gate, screenshots, the feature index and the manifest. Never edit the `audit` block by hand; never run `/design-sync` (the push to a shared design system is the person's). Detail: references/html-bundle.md",
     "Find where the pages really come from; triage every comment before editing anything; measure colour changes; change only what the comments need; append the round to `CHANGES.md`. Detail: references/review-round.md"
    ],
    "output": "",
@@ -11734,11 +11734,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 148,
+   "lines": 149,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 148
+     "lines": 149
     },
     {
      "path": "references/html-bundle.md",
@@ -12961,7 +12961,7 @@
     },
     {
      "title": "Steps",
-     "lines": 21
+     "lines": 23
     },
     {
      "title": "Output contract",
@@ -12988,8 +12988,8 @@
     "Generate. For each `planned` row (or the story or TC in `$2`), find the nearest existing test, then fork `test-writer` (Agent tool) with the row; the test name carries the TC id. Detail: references/generating-tests.md",
     "Invented-API gate, before anything runs: the stack's type check, then `ref_check.py` over the new tests; print both results. Detail: references/verify-and-run.md",
     "Visual baselines: list every new or changed png for a person to look at. Detail: references/verify-and-run.md",
-    "Prove the tests can fail: make the smallest mutation that breaks each rule covered, run, restore. Detail: references/verify-and-run.md",
-    "Run the narrowest selection that covers the new tests; flip passing rows to `automated`, leave failing ones `planned`. Detail: references/verify-and-run.md",
+    "Prove the tests can fail: make the smallest mutation that breaks each rule covered, run, restore; mutations always reverted, never run against a shared environment. Detail: references/verify-and-run.md",
+    "Run the narrowest selection that covers the new tests; flip passing rows to `automated`, leave failing ones `planned`; nothing is edited to make a test pass. Detail: references/verify-and-run.md",
     "Print the counts and the file list. Say plainly that the CI pipeline was not run (only the local command, named), and list every file changed outside the tests and the case table with the reason."
    ],
    "output": "",
@@ -13007,11 +13007,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 131,
+   "lines": 133,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 131
+     "lines": 133
     },
     {
      "path": "references/generalist-misses.md",

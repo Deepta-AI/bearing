@@ -55,7 +55,8 @@ what is on disk, never from what the model says it did.
    go on, and record the choice with `decision`. Detail:
    references/auto-mode-and-profile.md
 4. The product profile, at the end of the decide stage: `profile --ui
-   yes|no --data yes|no --api yes|no --deploy yes|no`. Detail:
+   yes|no --data yes|no --api yes|no --deploy yes|no [--llm yes|no]
+   [--ui-stack <stack>] [--scope lean|full] --why "<reason>"`. Detail:
    references/auto-mode-and-profile.md
 5. Tools go through the repository's make targets; never call a package
    manager directly. Detail: references/auto-mode-and-profile.md
@@ -69,11 +70,13 @@ what is on disk, never from what the model says it did.
    llm, and design-critique until the bar holds. Detail:
    references/build-and-after.md
 9. Review is `branch-review`; fix every Critical and High it confirms, then
-   `make check` again; `definition-of-done` includes the smoke run. Detail:
-   references/review-smoke-and-mr.md
+   `make check` again; `definition-of-done` includes the smoke run. Read references/reviewer-checks.md again before
+   dod. Detail: references/review-smoke-and-mr.md
 10. The mr stage: `merge-request` prepares the description; `report` writes
-   `docs/autopilot/<run>.md`; print the push command and do not run it.
-   Detail: references/review-smoke-and-mr.md
+   `docs/autopilot/<run>.md`; commit it, and let that commit be the last
+   write (`git status` clean after it); paste its decisions table into the
+   description with the exact push command under it, and print the same
+   command in the last message. Do not run it. Detail: references/review-smoke-and-mr.md
 11. Blocked or finished, the last message is the report: stages done,
    the decisions to review, what is not done and why, and the push
    command when the MR is ready.

@@ -13,7 +13,7 @@ the bundle, never raise the budget to the measurement. The edit hook's lint find
 when they arrive; the Stop hook's `make check` demand is met, not
 argued with. No test asserts on wall-clock time: it passes on the
 laptop and flakes in CI. Before the first line of code, read the
-traps below and put the ones that apply into the tests.
+traps in references/reviewer-checks.md and put the ones that apply into the tests.
 A build split across parallel subagents gives each a disjoint set of
 files and a migration timestamp range, forbids git commands that
 change state, and has the supervisor commit. Each agent's checks stay

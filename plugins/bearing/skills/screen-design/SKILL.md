@@ -96,8 +96,9 @@ concern (`ambiguity`, `missing-screen`, `undefined-state`, `dead-end`,
 1. When the repository already has mockups for the feature, extend them in
    their own format. Otherwise create or update `docs/design/design.json`.
    Then screen plan, tokens, one page per screen, self-review, the states
-   gate, screenshots, the feature index and the manifest.
-   Detail: references/html-bundle.md
+   gate, screenshots, the feature index and the manifest. Never edit the
+   `audit` block by hand; never run `/design-sync` (the push to a shared
+   design system is the person's). Detail: references/html-bundle.md
 
 ### A review round (client or team comments)
 

@@ -16,7 +16,7 @@ and go on. Then:
 - in an existing repository, its written conventions and then its
   code are the precedent: a new command's output, exit statuses and
   error handling follow them unless the statement says otherwise
-  (where the two disagree, see below), and existing
+  (where the two disagree, see references/reviewer-checks.md), and existing
   behaviour the statement does not mention (other commands' exit
   codes, what `make check` does, CI) is not changed. A better
   convention is a proposal under Noticed, not a change in this MR.

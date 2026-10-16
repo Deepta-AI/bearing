@@ -110,12 +110,14 @@ references/traps.md
 
 Find the SDK before saying it is missing, run tests under a time limit, run
 the gate on the untouched base first, and separate what ran from what did
-not in the final message. Detail: references/verifying.md
+not in the final message. Never `pkill` or `killall` by name, never edit
+`pubspec.yaml` to make it resolve, and never report a run on an overridden
+copy as "make check passes". Detail: references/verifying.md
 
 ## Commands
 
-Each `make` target is used when the Makefile has it; the native form is in
-references/commands.md.
+Each `make` target is used when the Makefile has it; the native form is the
+fallback. Detail: references/commands.md.
 
 ## Gotchas
 

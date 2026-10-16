@@ -59,7 +59,8 @@ Run it with the Skill tool; a key awaiting the user or deferred is
 listed under "ADRs needed", with no ADR written for it.
 
 1. Title from `$ARGUMENTS`; inputs from the sources under Inputs, each
-   printed as read or absent. Collect the ids the design serves and put
+   printed as read or absent. Read the template (repository copy when
+   present, else `templates/HLD.md`). Collect the ids the design serves and put
    them at the top of the document. Detail: references/inputs.md
 2. Without `--continue`: write section 1, goal and non-goals, into
    `docs/design/<kebab-title>-hld.md`. Three sentences for the goal, a

@@ -61,9 +61,11 @@ and writes the tests.
 5. Visual baselines: list every new or changed png for a person to look at.
    Detail: references/verify-and-run.md
 6. Prove the tests can fail: make the smallest mutation that breaks each
-   rule covered, run, restore. Detail: references/verify-and-run.md
+   rule covered, run, restore; mutations always reverted, never run against a
+   shared environment. Detail: references/verify-and-run.md
 7. Run the narrowest selection that covers the new tests; flip passing rows
-   to `automated`, leave failing ones `planned`. Detail:
+   to `automated`, leave failing ones `planned`; nothing is edited to make a test pass.
+   Detail:
    references/verify-and-run.md
 8. Print the counts and the file list. Say plainly that the CI pipeline
    was not run (only the local command, named), and list every file

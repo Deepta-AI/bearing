@@ -9,7 +9,7 @@ Read when choosing the target stack, locating the gallery files, or running the 
   `compose`; `Package.swift` or an `.xcodeproj` is `swiftui`; a React web
   app, or no UI code yet, is `react-shadcn`. Only `react-shadcn` builds
   screens as code, and only when the gallery can run (step 8 of the
-  reconciliation below); every other target builds the HTML bundle.
+  reconciliation in references/reconcile-sources.md); every other target builds the HTML bundle.
 - Gallery files (react-shadcn): `src/design/screen.ts`, `Gallery.tsx`,
   `registry.ts`; absent in an older app: copy them from
   `templates/skeleton/src/design/` in the `bearing-apps:react` skill

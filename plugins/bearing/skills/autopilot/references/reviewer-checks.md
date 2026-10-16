@@ -21,21 +21,21 @@ A strong run and a merely passing one differ here, not in the documents.
   MR.
 - The inputs that break a first version, for the interface in hand:
   - text: case-insensitive means Unicode case folding (`casefold()`,
- not `lower()`: the German sharp s and the Greek final sigma differ);
- a word is letters plus combining marks (categories L and M: `\w`
- and `\pL` alone cut decomposed accents and Indic vowel signs out of
- the word), with NFC normalisation before comparing; bytes that are
- not valid UTF-8 give a clear error or a documented replacement,
- never a stack trace.
+    not `lower()`: the German sharp s and the Greek final sigma differ);
+    a word is letters plus combining marks (categories L and M: `\w`
+    and `\pL` alone cut decomposed accents and Indic vowel signs out of
+    the word), with NFC normalisation before comparing; bytes that are
+    not valid UTF-8 give a clear error or a documented replacement,
+    never a stack trace.
   - arguments: missing, empty, repeated, zero, negative, not a number;
- a user's search term is a literal (escaped, or matched without a
- regex), and a word-boundary regex is checked against terms that
- start or end in punctuation, where `\b` does not match beside them.
+    a user's search term is a literal (escaped, or matched without a
+    regex), and a word-boundary regex is checked against terms that
+    start or end in punctuation, where `\b` does not match beside them.
   - files: missing, unreadable, empty, not the expected format (invalid
- JSON), and an older layout of the same format.
+    JSON), and an older layout of the same format.
   - errors: the argument library's own output counts; argparse and Go's
- flag print a usage block plus the error, which is not the "one-line
- error" a PRD may have promised. Decide the shape, write it down,
- and test the exact stderr.
+    flag print a usage block plus the error, which is not the "one-line
+    error" a PRD may have promised. Decide the shape, write it down,
+    and test the exact stderr.
 - Every example in the README or the design note is run and its output
   pasted from that run, not written from memory.
