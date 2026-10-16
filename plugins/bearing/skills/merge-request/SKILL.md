@@ -2,7 +2,7 @@
 name: merge-request
 description: 'Prepares the merge request for the current branch: gate run, commit audit, diff summary, description, ticket link, push command; never pushes. Use when asked to "prepare the MR", "write the PR description".'
 argument-hint: "[target branch, default develop]"
-allowed-tools: Read, Write, Grep, Glob, Bash(bash *bin/brg-tracker *), Bash(make:*), Bash(git status:*), Bash(git diff:*), Bash(git log:*), Bash(git branch:*), Bash(git fetch:*), Bash(git remote:*), Bash(mkdir -p .scratch), Bash(tail -40), Bash(go test:*), Bash(pnpm test:*), Bash(uv run pytest:*), Bash(./gradlew test:*), Bash(swift test:*), Bash(bash *bin/brg-state-path*), Bash(python3 *skills/session-handoff/scripts/progress.py*)
+allowed-tools: Read, Write, Grep, Glob, Bash(bash *bin/brg-tracker *), Bash(make:*), Bash(git status:*), Bash(git diff:*), Bash(git log:*), Bash(git branch:*), Bash(git fetch:*), Bash(git remote:*), Bash(mkdir -p .scratch), Bash(tail -40), Bash(go test:*), Bash(pnpm test:*), Bash(uv run pytest:*), Bash(./gradlew test:*), Bash(swift test:*), Bash(bash *bin/brg-state-path*), Bash(python3 *skills/session-handoff/scripts/progress.py*), AskUserQuestion
 ---
 
 # merge-request
@@ -16,7 +16,8 @@ only makes the inputs below quicker to find.
 - branch: `git branch --show-current`; detached HEAD stops with "check
   out the branch to merge".
 - task id: looks in the branch name (`[A-Z][A-Z0-9]*(-[0-9]+)+`); if
-  absent, the state file `.bearing/state/<branch with / as _>.md` (`bash "${CLAUDE_PLUGIN_ROOT}/bin/brg-state-path"` prints it); if absent, ask once; if
+  absent, the state file `.bearing/state/<branch with / as _>.md` (`bash "${CLAUDE_PLUGIN_ROOT}/bin/brg-state-path"` prints it); if absent, ask once with
+  AskUserQuestion (as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says), free text via Other; if
   none, proceed with no id and say so in the description and the report.
 - target: looks in `$1`; if absent, `develop` when `origin/develop`
   exists; else `main`; else the HEAD branch from `git remote show origin`;
