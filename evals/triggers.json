@@ -846,6 +846,24 @@
   ]
  },
  {
+  "skill": "learn",
+  "should": [
+   "show me everything Bearing has picked up from my sessions on this laptop",
+   "keep a note that our go repos use table tests so it comes up next time",
+   "draft something from our recurring learnings that the Bearing maintainers could use"
+  ],
+  "near": [
+   {
+    "prompt": "explain how the booking service is wired together",
+    "expect": "explain-codebase"
+   },
+   {
+    "prompt": "check whether my installed plugins and skill packs are healthy",
+    "expect": "doctor"
+   }
+  ]
+ },
+ {
   "skill": "license-compliance",
   "should": [
    "are we allowed to ship all these packages commercially?",

@@ -657,6 +657,20 @@
    "args": ""
   },
   {
+   "name": "learn",
+   "plugin": "bearing",
+   "category": "meta",
+   "what": "Lists, adds and proposes Bearing learnings kept on this machine (opt-in)",
+   "when": "asked \"what has Bearing learned\", \"remember this for next time\" or \"send our learnings upstream\"",
+   "phrases": [
+    "what has Bearing learned",
+    "remember this for next time",
+    "send our learnings upstream"
+   ],
+   "invocation": "auto",
+   "args": "[add <text> | propose]"
+  },
+  {
    "name": "license-compliance",
    "plugin": "bearing",
    "category": "platform",

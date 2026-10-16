@@ -17,6 +17,7 @@ doctor|git update-index|a fix line printed for the engineer
 doctor|npm install|named as the step that resets core.hooksPath, never run
 gate-audit|git ls-files|an example of a gate pattern that passes on empty input
 mcp-server|claude mcp add|a registration line printed for the user
+learn|gh issue create|a command printed for the engineer to file the proposal, never run
 postmortem|git log|output the caller pasted; the skill reads it, never runs it
 release|npm i|a README install line the skill greps for
 release|pnpm add|a README install line the skill greps for

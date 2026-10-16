@@ -1,24 +1,24 @@
 {
  "version": "0.7.0",
  "counts": {
-  "skills": 106,
+  "skills": 107,
   "commandSkills": 0,
   "stackSkills": 12,
   "scripts": 94,
-  "scriptLines": 29188,
+  "scriptLines": 29214,
   "hooks": 8,
   "agents": 8,
   "makeTargets": 30,
   "gates": 17,
-  "tests": 92,
+  "tests": 93,
   "fixtures": 21,
   "stacks": 13,
   "templates": 38,
   "ciJobs": 16,
   "ghJobs": 6,
   "ghWorkflows": 2,
-  "evals": 106,
-  "skillFiles": 1051
+  "evals": 107,
+  "skillFiles": 1052
  },
  "plugins": [
   {
@@ -26,7 +26,7 @@
    "dir": "plugins/bearing",
    "description": "A developer workflow for coding agents: skills for every stage from brief to runbook, review subagents, one guard behind every hook, and repository templates. The stack conventions come in bearing-backend and bearing-apps.",
    "required": true,
-   "files": 507,
+   "files": 508,
    "skills": [
     "ab-experiment",
     "accessibility",
@@ -69,6 +69,7 @@
     "high-level-design",
     "i18n",
     "incident",
+    "learn",
     "license-compliance",
     "llm-agent",
     "llm-eval",
@@ -6622,6 +6623,78 @@
     "Rules that matter most",
     "Traps a strong generalist misses",
     "Commands",
+    "Gotchas"
+   ]
+  },
+  {
+   "name": "learn",
+   "plugin": "bearing",
+   "category": "meta",
+   "what": "Lists, adds and proposes Bearing learnings kept on this machine (opt-in)",
+   "when": "asked \"what has Bearing learned\", \"remember this for next time\" or \"send our learnings upstream\"",
+   "description": "Lists, adds and proposes Bearing learnings kept on this machine (opt-in). Use when asked \"what has Bearing learned\", \"remember this for next time\" or \"send our learnings upstream\".",
+   "invocation": "auto",
+   "kind": "step",
+   "args": "[add <text> | propose]",
+   "tools": [
+    "AskUserQuestion",
+    "Read",
+    "Bash(bash *bin/brg-learn*)",
+    "Bash(bash *bin/brg-config*)"
+   ],
+   "extra": {},
+   "intro": "Bearing learns only with consent and only on this machine. This skill is the way in and the way out. Questions follow `${CLAUDE_PLUGIN_ROOT}/references/console.md`.",
+   "sections": [
+    {
+     "title": "Inputs",
+     "lines": 2
+    },
+    {
+     "title": "Steps",
+     "lines": 17
+    },
+    {
+     "title": "Output contract",
+     "lines": 4
+    },
+    {
+     "title": "Gotchas",
+     "lines": 6
+    }
+   ],
+   "inputs": [
+    "`$1`: absent (list), `add` with the text, or `propose`.",
+    "The consent state from `brg-learn state`; nothing else is read."
+   ],
+   "steps": [
+    "State: `bash \"${CLAUDE_PLUGIN_ROOT}/bin/brg-learn\" state`. - `ask`: ask once with AskUserQuestion (Yes, learn locally / No; nothing leaves this machine) and record the answer with `bash \"${CLAUDE_PLUGIN_ROOT}/bin/brg-config\" set learning on --user` (or `off`). - `off`: say so and stop, unless the user asked to turn it on.",
+    "No argument: `bash \"${CLAUDE_PLUGIN_ROOT}/bin/brg-learn\" list`. Show it newest and most frequent first, with the count of entries.",
+    "`add <text>`: `bash \"${CLAUDE_PLUGIN_ROOT}/bin/brg-learn\" add \"<text>\" --skill <skill, if the user named one>`. The text goes in as the user wrote it, minus anything that names a file, host, person or ticket.",
+    "`propose`: `bash \"${CLAUDE_PLUGIN_ROOT}/bin/brg-learn\" propose`. - Redaction failure: show the suspect tokens and stop. Never edit the proposal file to make it pass. - Success: Read the file and show it, then print the `gh issue create` line the script gave, for the engineer to run. Never run it yourself. - Nothing seen 3 or more times: say so; there is nothing to send."
+   ],
+   "output": "",
+   "gotchas": [
+    "The log holds no code, prompts or repository names, and paths are reduced to extensions. A proposal that fails redaction means an entry carries a real name (an email, host, ticket id, address or URL). Fix the entry with the user; do not weaken the check.",
+    "Only entries seen 3 or more times are proposed. One-off notes stay local.",
+    "The engineer files the issue. This skill prints the command and stops."
+   ],
+   "layout": "",
+   "commands": [],
+   "lines": 53,
+   "files": [
+    {
+     "path": "SKILL.md",
+     "lines": 53
+    }
+   ],
+   "groups": {
+    ".": 1
+   },
+   "evals": true,
+   "hasSections": [
+    "Inputs",
+    "Steps",
+    "Output contract",
     "Gotchas"
    ]
   },
@@ -15278,8 +15351,8 @@
    "name": "brg-learn",
    "lang": "bash",
    "group": "quality",
-   "lines": 78,
-   "header": "brg-learn: opt-in, local learnings. Nothing leaves this machine; entries\ncarry no repository field and paths are reduced to their extension.\n  state                                   on, off or ask (BEARING_LEARNING, via brg-config)\n  log --kind K --skill S --key K --insight T\n                                          K is gate-block|rerun|override|manual; only when on\n  add \"<text>\" [--skill S]                a manual entry\n  top --skills \"a b\" [--n N]              \"- <insight> (<count>x)\", count then recency\n  list                                    every entry, \"<count>x  <skill>  <insight>\"\nThe log sits beside bearing.env (BEARING_ENV, else\n${XDG_CONFIG_HOME:-$HOME/.config}/bearing). log, add and top need jq and do\nnothing without it. Exit 0 always.",
+   "lines": 103,
+   "header": "brg-learn: opt-in, local learnings. Nothing leaves this machine; entries\ncarry no repository field and paths are reduced to their extension.\n  state                                   on, off or ask (BEARING_LEARNING, via brg-config)\n  log --kind K --skill S --key K --insight T\n                                          K is gate-block|rerun|override|manual; only when on\n  add \"<text>\" [--skill S]                a manual entry\n  top --skills \"a b\" [--n N]              \"- <insight> (<count>x)\", count then recency\n  list                                    every entry, \"<count>x  <skill>  <insight>\"\n  propose [--out FILE]                    a redacted issue body of entries seen 3+ times, and the\n                                          gh command for the engineer to run (never run here);\n                                          exit 1 if nothing qualifies or a suspect token survives\nThe log sits beside bearing.env (BEARING_ENV, else\n${XDG_CONFIG_HOME:-$HOME/.config}/bearing). log, add and top need jq and do\nnothing without it. Exit 0 always, except propose (exit 1 on failure).",
    "functions": [
     "state",
     "reduce",
@@ -15580,7 +15653,7 @@
    "name": "gen-guide.py",
    "lang": "python",
    "group": "generators",
-   "lines": 1390,
+   "lines": 1391,
    "header": "Generate the documents that derive from the skills in this repository:\n\n  site/src/data/handbook.json   everything the handbook site renders\n  docs/WORKFLOW.md              the stage tables between the markers\n\nEvery table comes from one source: the skill frontmatter (name,\ndescription, invocation), CATEGORY and STAGES below, plus one reviewed\nfile: docs/flows.json (the four task flows). Fails when zero skills are\nfound, when a skill has no category, when a row names more than one skill,\nor when a row or a flow names a skill that is neither a Bearing skill nor\nlisted in docs/known-skills.txt.\n\n    gen-guide.py                        write every document\n    gen-guide.py --write-known-skills   rewrite docs/known-skills.txt from\n                                        the skills installed on this\n                                        machine, then continue\n    gen-guide.py --check-names          the default; kept as a flag so a\n                                        caller can name the intent",
    "functions": [
     "scan_installed",
@@ -17970,6 +18043,13 @@
    "asserts": 67
   },
   {
+   "path": "tests/unit/learn_propose.sh",
+   "kind": "unit",
+   "lines": 62,
+   "header": "tests/unit/learn_propose.sh: propose writes a body, prints the gh command, fails on zero entries, a missing jq and anything that looks identifying.",
+   "asserts": 22
+  },
+  {
    "path": "tests/unit/lint_evals.sh",
    "kind": "unit",
    "lines": 66,
@@ -19253,6 +19333,7 @@
   "incident",
   "infra",
   "ios",
+  "learn",
   "license-compliance",
   "llm-agent",
   "llm-eval",
