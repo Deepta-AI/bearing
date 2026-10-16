@@ -3,6 +3,7 @@
 #   timeline-start --id <sid> --skill <name>   record a skill start (ends the open one)
 #   timeline-close --id <sid>                   end the open skill of this session
 #   timeline-recent [--branch <b>] [--n <k>]    last k ended skills on the branch
+#   not-run --skill <reason>                    log `timeline not-run <reason>` to gates.log
 #   checkpoint                                  write .bearing/state/<branch>.checkpoint.md
 #   next-step                                   the next flow step after the timeline
 #   resume [--source startup|resume|compact]    the block SessionStart prints
@@ -22,9 +23,19 @@ while [ $# -gt 0 ]; do
 done
 root="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 0
 [ -d "$root/.bearing" ] || exit 0
+case "$sub" in timeline-start|timeline-close|timeline-recent|not-run) ;; *) exit 0;; esac
 st="$root/.bearing/state"; mkdir -p "$st"; tl="$st/timeline.jsonl"
 [ -n "$branch" ] || branch="$(git -C "$root" branch --show-current 2>/dev/null)"; branch="${branch:-detached}"
-esc() { printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'; }
+esc() { # JSON string body: escape \ and ", encode \n \r \t, drop other control characters
+  local s="$1"
+  s="${s//\\/\\\\}"; s="${s//\"/\\\"}"
+  s="${s//$'\n'/\\n}"; s="${s//$'\r'/\\r}"; s="${s//$'\t'/\\t}"
+  printf '%s' "$s" | LC_ALL=C tr -d '\000-\010\013\014\016-\037\177'
+}
+skill_of() { # skill field of each JSON line on stdin
+  if command -v jq >/dev/null 2>&1; then jq -r '.skill' 2>/dev/null
+  else sed 's/.*"skill":"\([^"]*\)".*/\1/'; fi
+}
 event() { # <skill> <start|end>
   [ -f "$tl" ] && [ "$(wc -c < "$tl" | tr -d ' ')" -gt 524288 ] && mv -f "$tl" "$tl.1"
   printf '{"ts":"%s","epoch":%s,"session":"%s","branch":"%s","skill":"%s","event":"%s"}\n' \
@@ -32,7 +43,7 @@ event() { # <skill> <start|end>
 }
 open_skill() { # the skill this session started and has not ended
   [ -f "$tl" ] || return 0
-  grep "\"session\":\"$(esc "$id")\"" "$tl" | tail -1 | grep '"event":"start"' | sed 's/.*"skill":"\([^"]*\)".*/\1/'
+  grep -F "\"session\":\"$(esc "$id")\"" "$tl" | tail -1 | grep -F '"event":"start"' | skill_of
 }
 case "$sub" in
   timeline-start)
@@ -42,8 +53,10 @@ case "$sub" in
   timeline-close)
     prev="$(open_skill)"; [ -z "$prev" ] || event "$prev" end;;
   timeline-recent)
-    [ -f "$tl" ] || exit 0
-    cat "$tl.1" "$tl" 2>/dev/null | grep "\"branch\":\"$(esc "$branch")\"" | grep '"event":"end"' |
-      sed 's/.*"skill":"\([^"]*\)".*/\1/' | tail -n "$n";;
+    [ -f "$tl" ] || [ -f "$tl.1" ] || exit 0
+    cat "$tl.1" "$tl" 2>/dev/null | grep -F "\"branch\":\"$(esc "$branch")\"" | grep -F '"event":"end"' |
+      skill_of | tail -n "$n";;
+  not-run) # not-run --skill <reason>: same line format as brg-guard gate_log
+    printf '%s\ttimeline\tnot-run\t0\t%s\n' "$(date +%Y-%m-%dT%H:%M:%S)" "$(printf '%s' "$skill" | tr '\t\n' '  ' | cut -c1-120)" >> "$st/gates.log";;
 esac
 exit 0
