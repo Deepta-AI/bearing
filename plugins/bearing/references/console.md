@@ -18,6 +18,8 @@ session feels like one product.
    `brg-config set ... --user` (personal preferences). A recommendation the
    user did not pick is never recorded as their answer. No answer: record
    nothing and say in one line which default this run uses.
+   When the user picks an option other than the recommended one and learning
+   is on, run `bash "${CLAUDE_PLUGIN_ROOT}/bin/brg-learn" log --kind override --skill <skill> --key <question id> --insight "<question>: chose <option> over <recommended>"`.
 5. Prose fallback only when AskUserQuestion is unavailable; say so in one
    line, then ask the same options as a numbered list.
 

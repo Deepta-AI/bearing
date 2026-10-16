@@ -161,6 +161,7 @@ vendor_guard() {
   putx ".bearing/bin/brg-session" < "$KIT/bin/brg-session"   # guard session subcommands call it beside the guard
   putx ".bearing/bin/brg-update-check" < "$KIT/bin/brg-update-check"   # guard session calls it beside the guard; a no-op without a marketplace entry
   putx ".bearing/bin/brg-config" < "$KIT/bin/brg-config"   # it reads skip and snooze through this
+  putx ".bearing/bin/brg-learn" < "$KIT/bin/brg-learn"   # guard session and the gates call it beside the guard; a no-op unless learning is on
   putx ".bearing/hooks/read-json.sh" <<'EOF'
 #!/usr/bin/env bash
 # read-json.sh <dot.path> [<dot.path> ...]: print the first non-empty field of

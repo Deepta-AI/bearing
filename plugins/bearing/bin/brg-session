@@ -50,6 +50,14 @@ case "$sub" in
   timeline-start)
     [ -n "$skill" ] || exit 0
     prev="$(open_skill)"; [ -z "$prev" ] || event "$prev" end
+    # The same skill starting again in this session within ten minutes is a rerun.
+    last="$(grep -F "\"session\":\"$(esc "$id")\"" "$tl" 2>/dev/null | grep -F '"event":"start"' | tail -1)"
+    if [ -n "$last" ] && [ "$(printf '%s\n' "$last" | skill_of)" = "$skill" ]; then
+      le="$(printf '%s' "$last" | sed -n 's/.*"epoch":\([0-9]*\).*/\1/p')"
+      if [ -n "$le" ] && [ $(( $(date +%s) - le )) -le 600 ]; then
+        bash "$(dirname "$0")/brg-learn" log --kind rerun --skill "$skill" --key rerun --insight "$skill rerun within ten minutes in one session" >/dev/null 2>&1
+      fi
+    fi
     event "$skill" start;;
   timeline-close)
     prev="$(open_skill)"; [ -z "$prev" ] || event "$prev" end;;

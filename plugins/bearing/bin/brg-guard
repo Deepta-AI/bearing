@@ -1585,6 +1585,17 @@ esac
         echo "Bearing $upnew is available (you have $upold). Ask the user with AskUserQuestion: Upgrade now (run the upgrade-tools skill) / Remind me tomorrow (brg-config set update-snooze-until $(( $(date +%s) + 86400 )) --user) / Skip this version (brg-config set update-skip $upnew --user)."
       fi
     fi
+    # Opt-in local learnings: ask once, or read back the top few for the next step.
+    if [ "$source" = "startup" ] && [ -f "$(dirname "$0")/brg-learn" ]; then
+      lstate="$(bash "$(dirname "$0")/brg-learn" state 2>/dev/null)"
+      if [ "$lstate" = ask ]; then
+        echo "BEARING_LEARNING: ask. Ask the user once with AskUserQuestion: Yes, learn locally (brg-config set learning on --user) / No (brg-config set learning off --user). Nothing leaves this machine."
+      elif [ "$lstate" = on ]; then
+        nx="$(bash "$(dirname "$0")/brg-session" next-step --branch "$branch" 2>/dev/null)"
+        tops="$(bash "$(dirname "$0")/brg-learn" top --skills "$nx" --n 5 2>/dev/null)"
+        [ -z "$tops" ] || { echo "Learnings for the next step:"; printf '%s\n' "$tops"; }
+      fi
+    fi
     sf="$root/.bearing/state/$(printf '%s' "$branch" | tr '/' '_').md"
     [ -f "$sf" ] && { echo "Handoff state from the previous session (${sf#"$root"/}):"; head -8 "$sf"; }
     if [ "$source" != "compact" ]; then
@@ -1660,6 +1671,7 @@ EOF
     fi
     echo "$msg Run ${target} and fix what fails before finishing. If it cannot run here, say why under Not done in the report and stop." >&2
     gate_log stop-gate blocked "$fresh file(s), ${target}"
+    bash "$(dirname "$0")/brg-learn" log --kind gate-block --skill stop-gate --key "$target" --insight "stop gate blocked; ${target} needed" >/dev/null 2>&1
     exit 2;;
   check-file)
     file="${1:-}"
@@ -1741,6 +1753,7 @@ EOF
       [ "$n" -le 40 ] || echo "... $((n-40)) more line(s)"
     } >&2
     gate_log check-file problems "$tool"
+    bash "$(dirname "$0")/brg-learn" log --kind gate-block --skill check-file --key "${file##*.}" --insight "check-file problems on *.${file##*.} via $tool" >/dev/null 2>&1
     exit 2;;
   precompact)
     transcript="${1:-}"; [ "$transcript" != "$SENTINEL" ] || transcript=""
