@@ -4,13 +4,13 @@
   "skills": 106,
   "commandSkills": 0,
   "stackSkills": 12,
-  "scripts": 92,
-  "scriptLines": 28972,
+  "scripts": 93,
+  "scriptLines": 29067,
   "hooks": 8,
   "agents": 8,
   "makeTargets": 30,
   "gates": 17,
-  "tests": 90,
+  "tests": 91,
   "fixtures": 21,
   "stacks": 13,
   "templates": 38,
@@ -26,7 +26,7 @@
    "dir": "plugins/bearing",
    "description": "A developer workflow for coding agents: skills for every stage from brief to runbook, review subagents, one guard behind every hook, and repository templates. The stack conventions come in bearing-backend and bearing-apps.",
    "required": true,
-   "files": 505,
+   "files": 506,
    "skills": [
     "ab-experiment",
     "accessibility",
@@ -15057,7 +15057,7 @@
    "name": "brg-guard",
    "lang": "bash",
    "group": "guard",
-   "lines": 1806,
+   "lines": 1815,
    "header": "brg-guard: the harness-neutral guard logic behind every hook adapter.\n\n  brg-guard command \"<shell command>\"   exit 2 and a message when the command\n                                        publishes, rewrites history, deploys\n                                        or destroys; exit 2 when the command\n                                        cannot be read (fail closed)\n  brg-guard format <file>               format one file with the repo's formatter\n  brg-guard task-id [\"<prompt>\"]        print \"Task: <ID> ...\" when the branch\n                                        carries a ticket id the prompt lacks\n  brg-guard session                     print branch, task, changes, handoff state\n  brg-guard stop                        print a reminder when changes are unchecked\n  brg-guard stop-gate --id <session> [--active]\n                                        exit 2 (reason on stderr) when files\n                                        changed in this session since make\n                                        check last passed; --active (the\n                                        harness already continued once) only\n                                        reminds, so it never loops\n  brg-guard check-file <file>           lint one edited file (make check-file\n                                        when the Makefile has it); exit 2 and\n                                        the problems on stderr\n  brg-guard precompact [<transcript>]   write .bearing/state/<branch>.compact.md\n  brg-guard session [--id <session>] [--source startup|resume|compact]\n  brg-guard stats                       what the gates decided here, how often\n                                        and at what cost (.bearing/state/gates.log)\n  brg-guard readonly \"<shell command>\"  exit 2 unless every program in the\n                                        command is a read-only tool (git\n                                        diff|log|show|status|blame|ls-files,\n                                        ls, cat, grep, rg, find without -exec,\n                                        sed without -i, jq and similar);\n                                        used by the read-only subagents\n  brg-guard --verbs                     the blocked verb table (tool, pattern,\n                                        label; tab-separated) for generators\n  brg-guard --version                   the version stamp\n\nClaude Code hooks, Cursor hooks and any other harness adapter call these\nsubcommands and translate their own event JSON into arguments. One logic,\none behaviour on every harness. Runs on bash 3.2 (macOS) and needs no tool\nbeyond git for the session subcommands.",
    "functions": [
     "verb_table",
@@ -15120,14 +15120,17 @@
     "BEARING_GUARD_DEBUG",
     "BEARING_GUARD_VERSION",
     "BEARING_NO_GATE_LOG",
+    "BEARING_UPDATE",
     "CLAUDE_PLUGIN_ROOT"
    ],
    "calls": [
     "brg-changed",
     "brg-checklists",
+    "brg-config",
     "brg-kit-paths",
     "brg-session",
-    "brg-stacks"
+    "brg-stacks",
+    "brg-update-check"
    ]
   },
   {
@@ -15135,7 +15138,7 @@
    "name": "brg-harness",
    "lang": "bash",
    "group": "guard",
-   "lines": 683,
+   "lines": 685,
    "header": "brg-harness: make a repository and a machine work with a coding harness\nother than Claude Code, from the same standard and the same guard logic.\n\n  brg-harness <harness> [--dir <repo>] [--kit-url <git url>] [--kit-ref <tag or commit>] [--no-skills]\n\nHarnesses: cursor, codex, gemini, copilot, opencode, windsurf, cline, zed,\n           kiro, all\n\nWrites into the repository (idempotent; a file that exists with different\ncontent is left alone and the proposal goes to <file>.bearing-new):\n  every harness   .bearing/bin/brg-guard (the guard logic, vendored with the kit\n                  version stamped in, so hooks do not depend on where the\n                  kit is installed) and the hook adapters under .bearing/hooks/\n  cursor          .cursor/hooks.json, .cursor/rules/*.mdc from .claude/rules\n  codex           .codex/hooks.json, .codex/rules/bearing.rules (execpolicy)\n  gemini          .gemini/settings.json (BeforeTool hook, tools.exclude),\n                  GEMINI.md importing AGENTS.md\n  copilot         .github/hooks/bearing.json, .github/copilot-instructions.md,\n                  .github/instructions/brg-*.instructions.md (applyTo globs),\n                  .bearing/copilot-deny-tools.txt for the CLI\n  opencode        .opencode/plugins/brg-guard.js, opencode.json permissions\n  windsurf        .devin/hooks.json, .devin/rules/*.md (glob triggers)\n  cline           .clinerules/hooks/PreToolUse, .clinerules/brg-*.md (paths:)\n  zed             .zed/settings.json (tool_permissions deny), .rules pointer;\n                  Zed has no agent hooks, so no adapters by design\n  kiro            .kiro/hooks/brg-guard.json, .kiro/steering/brg-*.md,\n                  .bearing/kiro-permissions.yaml to merge at user level\nEvery command policy (execpolicy, tools.exclude, always_deny, opencode\npermissions, the Kiro and Copilot lists) is derived from `brg-guard\n--verbs`, so the lists and the hook never drift. The policies are prefix\nmatches and advisory; the hook adapter over brg-guard is the control.\nOn the machine (unless --no-skills): installs the Bearing skills into that\nharness's skills folder through the skills CLI (the version pinned in\nbin/pinned-packs.txt), from the kit's git remote at the release tag of this\nkit's version (v<VERSION>) or --kit-ref.\n\nThe git hooks in .githooks/ hold the push, commit and format rules on every\nharness; this script adds each harness's own adapters on top. The summary\ncounts a harness as wired only when its config file references every\nadapter and neither has an unresolved .bearing-new; exit 1 when any selected\nharness is not wired. Harnesses whose hook format has been checked only\nagainst recorded fixtures (Copilot, Kiro, Windsurf, Codex, Cline, OpenCode)\nare marked unverified; Cursor and Gemini CLI have been run for real.",
    "functions": [
     "load_env",
@@ -15175,10 +15178,12 @@
    "calls": [
     "brg-agents",
     "brg-changed",
+    "brg-config",
     "brg-guard",
     "brg-kit-paths",
     "brg-session",
-    "brg-tracker"
+    "brg-tracker",
+    "brg-update-check"
    ]
   },
   {
@@ -15432,6 +15437,32 @@
     "brg-gitlab",
     "brg-jira",
     "brg-rest"
+   ]
+  },
+  {
+   "path": "plugins/bearing/bin/brg-update-check",
+   "name": "brg-update-check",
+   "lang": "bash",
+   "group": "quality",
+   "lines": 84,
+   "header": "brg-update-check [--remote <url>] [--installed <ver>] [--budget <s>]\nIs a newer Bearing release tag published? At most one git ls-remote a day,\ninside a time budget; prints \"BEARING_UPDATE: <old> -> <new>\" and a few\nchangelog lines, or nothing. Reads only (no fetch, no push, no telemetry);\nnever blocks a session and never prints on failure. Exit 0 always.\nSettings: BEARING_UPDATE_CHECK=off, BEARING_UPDATE_SKIP=<ver>,\nBEARING_UPDATE_SNOOZE_UNTIL=<epoch>, from the environment, then bearing.env\nthrough the brg-config beside this script (absent: no check, not nagging).\nOnly release tags (vN.N.N) count; pre-releases such as v0.8.0-rc1 do not.",
+   "functions": [
+    "setting",
+    "log_fail",
+    "vnum"
+   ],
+   "env": [
+    "BEARING_ENV",
+    "BEARING_NO_GATE_LOG",
+    "BEARING_UPDATE",
+    "BEARING_UPDATE_CHECK",
+    "BEARING_UPDATE_SKIP",
+    "BEARING_UPDATE_SNOOZE_UNTIL"
+   ],
+   "calls": [
+    "brg-config",
+    "brg-guard",
+    "brg-update"
    ]
   },
   {
@@ -17593,9 +17624,9 @@
   {
    "path": "tests/integration/harness_each.sh",
    "kind": "integration",
-   "lines": 343,
+   "lines": 345,
    "header": "tests/integration/harness_each.sh: generate every harness into a temporary git repository with plugins/bearing/bin/brg-harness, assert the file set and modes, pipe the recorded hook fixtures (blocked command substituted at run time) into the matching adapter and assert deny; hostile and missing-key inputs must deny rather than allow; every JSON file parses; the OpenCode plugin loads. Copilot's toolArgs is exercised as an object and as a JSON string. The summary counts a harness wired only when its config references every adapter and nothing is left as .bearing-new (exit 1 otherwise); the env…",
-   "asserts": 179
+   "asserts": 181
   },
   {
    "path": "tests/integration/plugin_split.sh",
@@ -18149,6 +18180,13 @@
    "lines": 64,
    "header": "tests/unit/trigger_eval.sh: bin/trigger-eval.py grades what Claude loaded, and bin/lint-triggers.py holds evals/triggers.json to every skill. A stub claude loads the skill named after \"LOAD:\" in the request (none otherwise) and \"FAIL\" makes the session error. The real sessions run under make trigger-eval, not here.",
    "asserts": 15
+  },
+  {
+   "path": "tests/unit/update_check.sh",
+   "kind": "unit",
+   "lines": 139,
+   "header": "tests/unit/update_check.sh: brg-update-check and its place in brg-guard session. A local bare repo is the remote; HOME and XDG_CONFIG_HOME are temp dirs, so the network and the real ~/.claude are never touched.",
+   "asserts": 55
   },
   {
    "path": "tests/unit/ux_flows_check.sh",

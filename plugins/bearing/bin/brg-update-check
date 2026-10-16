@@ -1,0 +1,84 @@
+#!/usr/bin/env bash
+# brg-update-check [--remote <url>] [--installed <ver>] [--budget <s>]
+# Is a newer Bearing release tag published? At most one git ls-remote a day,
+# inside a time budget; prints "BEARING_UPDATE: <old> -> <new>" and a few
+# changelog lines, or nothing. Reads only (no fetch, no push, no telemetry);
+# never blocks a session and never prints on failure. Exit 0 always.
+# Settings: BEARING_UPDATE_CHECK=off, BEARING_UPDATE_SKIP=<ver>,
+# BEARING_UPDATE_SNOOZE_UNTIL=<epoch>, from the environment, then bearing.env
+# through the brg-config beside this script (absent: no check, not nagging).
+# Only release tags (vN.N.N) count; pre-releases such as v0.8.0-rc1 do not.
+set -u
+remote=""; installed=""; budget=3
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --remote) remote="${2:-}"; shift 2 || shift;;
+    --installed) installed="${2:-}"; shift 2 || shift;;
+    --budget) budget="${2:-3}"; shift 2 || shift;;
+    *) shift;;
+  esac
+done
+case "$budget" in ''|*[!0-9]*) budget=3;; esac
+here="$(cd "$(dirname "$0")" && pwd)"
+dir="${XDG_CONFIG_HOME:-$HOME/.config}/bearing"; cache="$dir/update-check"
+envf="${BEARING_ENV:-$dir/bearing.env}"
+
+setting() { # setting <ENV_NAME> <brg-config key>: environment first, then bearing.env
+  local v; eval "v=\${$1:-}"
+  if [ -z "$v" ] && [ -f "$envf" ]; then v="$(bash "$here/brg-config" get "$2" --user 2>/dev/null)"; fi
+  printf '%s' "$v"
+}
+[ "$(setting BEARING_UPDATE_CHECK update-check)" = off ] && exit 0
+[ -f "$envf" ] && [ ! -f "$here/brg-config" ] && exit 0   # cannot read skip or snooze, so do not nag
+
+log_fail() { # log_fail <reason>: one gates.log line when this is a Bearing repo; always exit 0
+  local r
+  if [ -z "${BEARING_NO_GATE_LOG:-}" ] && r="$(git rev-parse --show-toplevel 2>/dev/null)" && [ -d "$r/.bearing" ]; then
+    mkdir -p "$r/.bearing/state" 2>/dev/null &&
+      printf '%s\tupdate-check\tnot-run\t0\t%s\n' "$(date +%Y-%m-%dT%H:%M:%S 2>/dev/null)" "$1" >> "$r/.bearing/state/gates.log" 2>/dev/null
+  fi
+  exit 0
+}
+
+[ -n "$installed" ] || installed="$(bash "$here/brg-guard" --version 2>/dev/null | awk '{print $2}')"
+if [ -z "$remote" ] && command -v jq >/dev/null 2>&1; then
+  remote="$(jq -r '.bearing.source | (.url // (if .repo then "https://github.com/" + .repo + ".git" else empty end)) // empty' "$HOME/.claude/plugins/known_marketplaces.json" 2>/dev/null)"
+fi
+[ -n "$installed" ] && [ -n "$remote" ] || exit 0
+
+vnum() { printf '%s' "$1" | sed 's/^v//' | awk -F. '{printf "%06d%06d%06d", $1, $2, $3}'; }
+now="$(date +%s)"; newest=""
+if [ -f "$cache" ]; then
+  ts="$(cut -f1 "$cache" 2>/dev/null)"
+  case "$ts" in ''|*[!0-9]*) ts=0;; esac
+  [ $(( now - ts )) -ge 0 ] && [ $(( now - ts )) -lt 86400 ] && newest="$(cut -f2 "$cache" 2>/dev/null)"
+fi
+if [ -z "$newest" ]; then
+  out="$(mktemp "${TMPDIR:-/tmp}/brg-update.XXXXXX")" || exit 0
+  # exec: the pid is git's own, so the kill below stops it. The child writes only
+  # to $out; the cache is written by this process alone, after a clean finish.
+  ( exec env GIT_TERMINAL_PROMPT=0 git ls-remote --tags --refs "$remote" 'v*' > "$out" 2>/dev/null < /dev/null ) & pid=$!
+  i=0
+  while kill -0 "$pid" 2>/dev/null; do
+    if [ "$i" -ge $(( budget * 10 )) ]; then kill "$pid" 2>/dev/null; wait "$pid" 2>/dev/null; rm -f "$out"; log_fail timeout; fi
+    sleep 0.1; i=$((i+1))
+  done
+  wait "$pid" || { rm -f "$out"; log_fail ls-remote-failed; }
+  newest="$(sed -n 's|.*refs/tags/\(v[0-9][0-9]*\(\.[0-9][0-9]*\)*\)$|\1|p' "$out" | while read -r t; do echo "$(vnum "$t") $t"; done | sort | tail -1 | awk '{print $2}')"
+  rm -f "$out"
+  [ -n "$newest" ] || log_fail no-tags
+  mkdir -p "$dir" 2>/dev/null && printf '%s\t%s\n' "$now" "$newest" > "$cache.tmp.$$" && mv "$cache.tmp.$$" "$cache" || rm -f "$cache.tmp.$$"
+fi
+new="${newest#v}"
+[ "$(vnum "$new")" \> "$(vnum "$installed")" ] || exit 0
+[ "$(setting BEARING_UPDATE_SKIP update-skip)" = "$new" ] && exit 0
+su="$(setting BEARING_UPDATE_SNOOZE_UNTIL update-snooze-until)"
+case "$su" in ''|*[!0-9]*) ;; *) [ "$now" -lt "$su" ] && exit 0;; esac
+echo "BEARING_UPDATE: $installed -> $new"
+cl="$here/../../../CHANGELOG.md"
+if [ -f "$cl" ] && grep -qF "## [$new]" "$cl"; then
+  awk -v h="## [$new]" 'index($0, h) == 1 {p=1; next} p && /^## /{exit} p' "$cl" | grep . | head -8
+else
+  echo "See CHANGELOG.md at $remote"
+fi
+exit 0
