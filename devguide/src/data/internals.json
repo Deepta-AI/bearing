@@ -5,7 +5,7 @@
   "commandSkills": 0,
   "stackSkills": 12,
   "scripts": 94,
-  "scriptLines": 29223,
+  "scriptLines": 29228,
   "hooks": 8,
   "agents": 8,
   "makeTargets": 31,
@@ -15061,7 +15061,7 @@
    "name": "brg-doctor",
    "lang": "bash",
    "group": "install",
-   "lines": 224,
+   "lines": 229,
    "header": "brg-doctor: verify the Bearing installation on this machine and, when run\ninside a repository, in that repository. Prints one line per check and a\nsummary; exits 1 when any required check is missing. Accepts either git\nhost: CI is .gitlab-ci.yml or .github/workflows/*.yml or *.yaml and must run\nmake check; the change template is .gitlab/merge_request_templates/*.md or\npull_request_template.md in any case (GitHub's rule). The third-party packs (Superpowers, gstack)\nare required only when BEARING_PROFILE (environment, then bearing.env) is\nstandard or full; unset or minimal makes them optional, so a\n`install.sh --profile minimal` machine can pass. core.hooksPath passes as\n.githooks, or as another directory whose three hooks each call .githooks/\nwith their arguments and keep its exit status. A hook counts only when git\nwould run it: present, executable, and committed as 100755; make setup\ncounts only when every script its dry run calls exists.",
    "functions": [
     "trust_state",
@@ -17967,9 +17967,9 @@
   {
    "path": "tests/unit/doctor_trust.sh",
    "kind": "unit",
-   "lines": 39,
-   "header": "tests/unit/doctor_trust.sh: doctor reports an untrusted workspace with the number of allow entries Claude Code is ignoring, and the fix.",
-   "asserts": 11
+   "lines": 52,
+   "header": "tests/unit/doctor_trust.sh: doctor reports an untrusted workspace with the number of allow entries Claude Code is ignoring, and the fix. Trust on any ancestor folder counts, as Claude Code inherits it.",
+   "asserts": 17
   },
   {
    "path": "tests/unit/dod_red_proof.sh",

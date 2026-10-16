@@ -21,9 +21,14 @@ if [ "${1:-}" = "--timing" ]; then
   exit 0
 fi
 trust_state() { # <root>: trusted | untrusted <n> | unknown
-  local cj="$HOME/.claude.json" n
+  # Claude Code inherits trust from a parent folder, so the root or any
+  # ancestor with hasTrustDialogAccepted true counts as trusted.
+  local cj="$HOME/.claude.json" n p="${1%/}" ps=""
   [ -f "$cj" ] && command -v jq >/dev/null 2>&1 || { echo unknown; return 0; }
-  case "$(jq -r --arg p "$1" '.projects[$p].hasTrustDialogAccepted // "unset"' "$cj" 2>/dev/null)" in
+  [ -n "$p" ] || p=/
+  while :; do ps="$ps$p
+"; [ "$p" = / ] || [ "$p" = . ] && break; p="$(dirname "$p")"; done
+  case "$(jq -r --arg ps "$ps" '[$ps | split("\n")[] | select(. != "")] as $all | [$all[] as $p | .projects[$p].hasTrustDialogAccepted == true] | any' "$cj" 2>/dev/null)" in
     true) echo trusted;;
     *) n="$(jq -r '.permissions.allow | length' "$1/.claude/settings.json" 2>/dev/null)"; echo "untrusted ${n:-0}";;
   esac
