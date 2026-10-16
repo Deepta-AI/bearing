@@ -53,8 +53,9 @@ prompt, since the fork has no Skill tool; the test still carries the
 TC id and the row's oracles. It contributes the property and the
 generator; this skill still owns the row, the name, the gates and the
 status. No property-testing library in the repository: adding one is a dependency
-the engineer approves, asked once with the property it would test;
-without a yes, or when the skill is not installed, the row gets
+the engineer approves, asked once with AskUserQuestion, options "add <library>"
+and "use example tests", naming the property it would test;
+without a yes (no answer), or when the skill is not installed, the row gets
 example tests from its test data and the report says "property: not
 run (<reason>)". A property that only proves "no crash" is not worth
 the dependency; write the example tests.

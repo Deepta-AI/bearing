@@ -2,7 +2,7 @@
 name: vapt-report
 description: 'Writes the VAPT security report for a release from scanner findings, linked to the threat model, with a ship or block decision. Use when asked for a "VAPT report", "security sign-off" or "pentest report".'
 argument-hint: "<version or tag> [scope notes] [--allow-stale]"
-allowed-tools: Read, Write, Grep, Glob, Skill, Agent, Bash(git diff:*), Bash(git log:*), Bash(git tag -l:*), Bash(git ls-files:*), Bash(git show:*), Bash(git rev-parse:*), Bash(git rev-list:*), Bash(git status:*), Bash(git merge-base:*), Bash(git grep:*), Bash(git archive:*), Bash(tar -x:*), Bash(ls:*), Bash(mkdir -p docs/security), Bash(mkdir -p .scratch), Bash(mkdir -p .scratch/vapt/*), Bash(python3 *skills/vapt-report/scripts/collect_findings.py*)
+allowed-tools: Read, Write, Grep, Glob, Skill, Agent, Bash(git diff:*), Bash(git log:*), Bash(git tag -l:*), Bash(git ls-files:*), Bash(git show:*), Bash(git rev-parse:*), Bash(git rev-list:*), Bash(git status:*), Bash(git merge-base:*), Bash(git grep:*), Bash(git archive:*), Bash(tar -x:*), Bash(ls:*), Bash(mkdir -p docs/security), Bash(mkdir -p .scratch), Bash(mkdir -p .scratch/vapt/*), Bash(python3 *skills/vapt-report/scripts/collect_findings.py*), AskUserQuestion
 ---
 
 # vapt-report
@@ -59,17 +59,20 @@ Not this: `threat-model` designs mitigations before the code;
    `python3 "${CLAUDE_PLUGIN_ROOT}/skills/vapt-report/scripts/collect_findings.py" --commit <sha> --commit-time <release commit time> --since <range start> --out .scratch/vapt-findings.json`
    It prints a counts line, a `coverage:` line per source, any
    `problem:` (stale, unreadable) and any `check: possible duplicate`.
-   - No report: ask once which scanner to run. claude-security is the
-     deeper one; the user types `/claude-security` ("scan changes" for a
-     range, "scan the codebase" for a first release), since a skill cannot
-     start it. `/cso` is faster: on a yes, invoke the `cso` skill with
-     `--diff` for a range or `--comprehensive` for a first release, then
-     rerun the collector. Nobody to ask: go to the fallback below.
+   - No report: ask once which scanner to run, with AskUserQuestion
+     (as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says), options claude-security, `/cso` and the
+     fallback review. claude-security is the deeper one; the user types
+     `/claude-security` ("scan changes" for a range, "scan the codebase" for a
+     first release), since a skill cannot start it. `/cso` is faster: on that
+     pick, invoke the `cso` skill with `--diff` for a range or `--comprehensive`
+     for a first release, then rerun the collector. Nobody to ask, or no
+     answer: go to the fallback below.
    - Stale (claude-security scanned another commit; a `/cso` report is older
      than the release commit): a stale scan is evidence about other code.
-     Tell the user which commit or date it covered and offer a rerun;
-     `--allow-stale` only on their explicit yes, named in Method. Nobody to
-     ask, or no rerun before the deadline: do not accept it; review the
+     Tell the user which commit or date it covered and ask once with
+     AskUserQuestion, options rerun the scan, `--allow-stale` (only on this
+     explicit pick, named in Method) and review the range yourself. Nobody to
+     ask, no answer, or no rerun before the deadline: do not accept it; review the
      range yourself (fallback below) and re-check every stale finding
      against the release commit: fixed (the fix commit is in the range and
      the flaw is gone, step 4), still open, or in a file unchanged since the

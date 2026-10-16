@@ -2,7 +2,7 @@
 name: verify-deploy
 description: 'Checks one environment after the engineer deploys: readiness, health, version, smoke pages, synthetic suite; read-only, never rolls back. Use when asked to "verify the deploy", "check qa after deploying".'
 argument-hint: "<env> [deployed commit or tag]"
-allowed-tools: Read, Write, Edit, Grep, Glob, Bash(ls:*), Bash(git describe:*), Bash(git tag -l:*), Bash(git log:*), Bash(git rev-parse:*), Bash(python3 *skills/verify-deploy/scripts/verify_deploy.py*), Bash(/usr/bin/python3 *skills/verify-deploy/scripts/verify_deploy.py*), Bash(make synthetic:*), Bash(make -n synthetic:*)
+allowed-tools: Read, Write, Edit, Grep, Glob, Bash(ls:*), Bash(git describe:*), Bash(git tag -l:*), Bash(git log:*), Bash(git rev-parse:*), Bash(python3 *skills/verify-deploy/scripts/verify_deploy.py*), Bash(/usr/bin/python3 *skills/verify-deploy/scripts/verify_deploy.py*), Bash(make synthetic:*), Bash(make -n synthetic:*), AskUserQuestion
 ---
 
 # verify-deploy
@@ -21,7 +21,9 @@ check is already hurting users.
 ## Inputs
 
 - environment: `$1` (`dev`, `qa`, `staging`, `prod` or any section name
-  in the file); if absent, ask once which environment was deployed.
+  in the file); if absent, ask once which environment was deployed, with
+  AskUserQuestion (as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says), options the environment
+  sections found (up to four; any other via Other) and "stop"; no answer: stop.
 - environments file: `docs/environments.md`; if absent, copied from
   `templates/environments.md` and the run stops for the engineer to fill
   it (step 1). Never guess a URL from `.env.example`, the README, CI
@@ -32,7 +34,8 @@ check is already hurting users.
   `git describe --tags --abbrev=0`, said so; an environment deployed from
   a branch (qa from develop, say) has no tag to compare, and neither the
   latest tag nor this checkout's HEAD is what went out. Then ask once for
-  the commit or tag; still none: run without `--expect` and say the
+  the commit or tag with AskUserQuestion, options "enter it" (via Other) and
+  "run without it"; still none, or no answer: run without `--expect` and say the
   version was read, not compared.
 - the checker: `scripts/verify_deploy.py` in this skill, python3 standard
   library only.

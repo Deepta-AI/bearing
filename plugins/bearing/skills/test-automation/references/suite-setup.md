@@ -66,8 +66,9 @@ against a spec".
 Dependencies: every library named in this step (a test client, a
 container module, a validator, a runner plugin) is used only when the
 repository already has it. Adding one to `go.mod`, `pyproject.toml` or
-`package.json` is a decision for the engineer: ask once, naming the
-library and what it would test; without a yes, write the suite with the
+`package.json` is a decision for the engineer: ask once with AskUserQuestion, options
+"add <library>" and "do without", naming the library and what it would test;
+without a yes (no answer), write the suite with the
 standard library and what is already there, and list the dependency
 under what was not done.
 Test data follows `templates/test-data-builder.md`: reference data comes

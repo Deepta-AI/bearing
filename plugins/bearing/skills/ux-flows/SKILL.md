@@ -2,7 +2,7 @@
 name: ux-flows
 description: 'Maps UX flows: screen inventory tied to stories, every state with copy, storyboard, flow diagrams and a zero dead-end check. Use when asked to "map the user flows", "what screens do we need" or "user journey".'
 argument-hint: "<feature> [path to stories, PRD or ticket] [--feedback \"...\" to re-issue as the next version]"
-allowed-tools: Read, Write, Edit, Grep, Glob, Skill, Bash(ls:*), Bash(mkdir:*), Bash(wc:*), Bash(grep:*), Bash(python3 *skills/ux-flows/scripts/flows_check.py*)
+allowed-tools: Read, Write, Edit, Grep, Glob, Skill, Bash(ls:*), Bash(mkdir:*), Bash(wc:*), Bash(grep:*), Bash(python3 *skills/ux-flows/scripts/flows_check.py*), AskUserQuestion
 ---
 
 # ux-flows
@@ -15,12 +15,15 @@ beat one click that needs thought.
 
 ## Inputs
 
-- Feature: looks in `$1`; if absent, asks one question.
+- Feature: looks in `$1`; if absent, asks one question with AskUserQuestion
+  (as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says),
+  options "enter the feature" (via Other) and "stop".
 - Spec: looks in `$2`; if absent, `docs/product/backlog.md` (stories whose
   epic or title names the feature, with `US-` and `AC-` ids); if absent,
-  `docs/product/PRD.md`; if absent, asks once for a ticket or a pasted
-  brief, numbered `US-LOCAL-001` by this skill. Nothing after that: stop
-  with "provide stories, a PRD, a ticket or a brief".
+  `docs/product/PRD.md`; if absent, asks once with AskUserQuestion, options
+  "paste a ticket or brief" (via Other, numbered `US-LOCAL-001` by this skill)
+  and "stop". Nothing after that: stop with "provide stories, a PRD, a ticket
+  or a brief".
 - Existing screens: the code's routes, screens and page components, so
   names are reused; a green-field repository has none and every screen is
   marked `new`.
@@ -34,8 +37,8 @@ beat one click that needs thought.
   `flows-v<n>.md`; with `--feedback`, or when the request asks for changes
   to it, it is the base for the next version (see Re-issuing with
   feedback), and its review notes (`docs/design/reviews/`) and the tickets
-  citing it are read too; otherwise ask once whether to iterate or
-  overwrite.
+  citing it are read too; otherwise ask once with AskUserQuestion, options
+  iterate and overwrite (no answer: iterate, the previous file stays as is).
 - Template: `templates/flows.md` in this skill. Checklist:
   `references/flow-review.md`.
 - Gate: `scripts/flows_check.py` in this skill, Python 3 only, run from

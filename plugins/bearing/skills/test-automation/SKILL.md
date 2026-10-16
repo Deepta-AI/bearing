@@ -2,7 +2,7 @@
 name: test-automation
 description: 'Sets up or extends the automated test suite (Playwright, Maestro, Espresso, pytest, Go httptest), one test per planned test case by TC id. Use when asked to "automate the test cases", "set up Playwright" or "e2e tests".'
 argument-hint: "[suite|generate] [TC id or story id to limit]"
-allowed-tools: Read, Write, Edit, Grep, Glob, Agent, Skill, Bash(ls:*), Bash(make:*), Bash(pnpm exec playwright:*), Bash(pnpm install:*), Bash(pnpm exec tsc --noEmit:*), Bash(maestro test:*), Bash(uv run pytest:*), Bash(uv run --offline:*), Bash(python -m pytest:*), Bash(python3 -m pytest:*), Bash(uv run ruff check:*), Bash(go test:*), Bash(go vet:*), Bash(./gradlew connectedDebugAndroidTest:*), Bash(./gradlew compileDebugAndroidTestKotlin:*), Bash(xcodebuild test:*), Bash(xcodebuild build-for-testing:*), Bash(git diff:*), Bash(python3 *skills/test-automation/scripts/ref_check.py*), Bash(bash *bin/brg-kit-paths*)
+allowed-tools: Read, Write, Edit, Grep, Glob, Agent, Skill, Bash(ls:*), Bash(make:*), Bash(pnpm exec playwright:*), Bash(pnpm install:*), Bash(pnpm exec tsc --noEmit:*), Bash(maestro test:*), Bash(uv run pytest:*), Bash(uv run --offline:*), Bash(python -m pytest:*), Bash(python3 -m pytest:*), Bash(uv run ruff check:*), Bash(go test:*), Bash(go vet:*), Bash(./gradlew connectedDebugAndroidTest:*), Bash(./gradlew compileDebugAndroidTestKotlin:*), Bash(xcodebuild test:*), Bash(xcodebuild build-for-testing:*), Bash(git diff:*), Bash(python3 *skills/test-automation/scripts/ref_check.py*), Bash(bash *bin/brg-kit-paths*), AskUserQuestion
 ---
 
 # test-automation
@@ -51,10 +51,13 @@ and writes the tests.
    generate. Detect the stack and obtain the case table as in Inputs.
    In `generate` mode, zero rows with automation `planned` and zero gaps:
    report "0 cases to generate" and finish after the suite step.
-2. Suite. Skip what exists; never replace a working suite. Detail: references/suite-setup.md
+2. Suite. Skip what exists; never replace a working suite; add a dependency only
+   after one AskUserQuestion (as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says), options "add <library>" and
+   "do without", no answer meaning without. Detail: references/suite-setup.md
 3. Generate. For each `planned` row (or the story or TC in `$2`), find the
    nearest existing test, then fork `test-writer` (Agent tool) with the row;
-   the test name carries the TC id. Detail: references/generating-tests.md
+   the test name carries the TC id; a property-testing library is added only on a
+   yes to that same question. Detail: references/generating-tests.md
 4. Invented-API gate, before anything runs: the stack's type check, then
    `ref_check.py` over the new tests; print both results. Detail:
    references/verify-and-run.md
