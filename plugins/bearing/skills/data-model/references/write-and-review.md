@@ -16,7 +16,7 @@ the gate are "n/a (no postgres store)".
 
 10. Review: fork `critic` with the paths of `data-model.md` and
  `schema.sql` and the stories file, asking it to argue against the
- schema from the acceptance criteria and the Design checks below, and
+ schema from the acceptance criteria and the Design checks (references/design-checks.md), and
  grade each finding BLOCKER
  (the schema cannot serve a criterion, or does not apply), MAJOR (a
  criterion is served wrongly or a guarantee is missing), MINOR or NIT,
