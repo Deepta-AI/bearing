@@ -79,7 +79,7 @@ listed under "ADRs needed", with no ADR written for it.
 7. Reconcile every ADR, criterion and the data model into
    `docs/architecture/decisions.md`. Detail: references/design-set.md
 8. Summary and components, written last. Detail: references/design-set.md
-9. Review, mandatory. Fork `critic` (Agent tool) in graded mode, and write
+9. Review, mandatory. Fork `critic` (Agent tool) in graded mode (pass model: "opus" on the Agent call), and write
    its findings verbatim under section 16. Detail: references/review-and-gate.md
 10. Open questions and assumptions (section 17), then run `arch_check.py`
     until `Gate: passed`. Detail: references/review-and-gate.md
