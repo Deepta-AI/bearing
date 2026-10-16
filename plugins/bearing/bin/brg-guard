@@ -1521,8 +1521,9 @@ case "$sub" in
   format)
     file="${1:-}"; [ -n "$file" ] && [ -f "$file" ] || exit 0
     root="$(git rev-parse --show-toplevel 2>/dev/null || dirname "$file")"; cd "$root" || exit 0
+    fmt_outcome=skipped
     note() { echo "bearing format: $*"; }
-    run() { if "$@" >/dev/null 2>&1; then note "$1 formatted ${file##*/}"; else note "$1 failed on ${file##*/} (left as written)"; fi; }
+    run() { if "$@" >/dev/null 2>&1; then fmt_outcome=formatted; note "$1 formatted ${file##*/}"; else fmt_outcome=failed; note "$1 failed on ${file##*/} (left as written)"; fi; }
     case "$file" in
   *.go)
     if command -v gofmt >/dev/null; then run gofmt -w "$file"; else note "gofmt not installed"; fi;;
@@ -1543,6 +1544,7 @@ case "$sub" in
   *.sh)
     if command -v shfmt >/dev/null; then run shfmt -w -i 2 "$file"; else note "shfmt not installed"; fi;;
 esac
+    gate_log format "$fmt_outcome" "${file##*.}"
     exit 0;;
   task-id)
     prompt="${1:-}"
@@ -1771,8 +1773,11 @@ EOF
     n="$(cat "$log.1" "$log" 2>/dev/null | wc -l | tr -d ' ')"
     [ "$n" -gt 0 ] || { echo "brg-guard stats: 0 gate decisions logged in ${log#"$root"/}, nothing to report" >&2; exit 1; }
     cat "$log.1" "$log" 2>/dev/null | awk -F'\t' 'NR==1{f=$1} {l=$1} END{printf "brg-guard stats: %d gate decisions, %s to %s\n", NR, f, l}'
-    cat "$log.1" "$log" 2>/dev/null | awk -F'\t' '{k=$2" "$3; c[k]++; s[k]+=$4; if ($4>m[k]) m[k]=$4}
-      END{for (k in c) printf "  %-28s %6d  avg %5d ms  max %6d ms\n", k, c[k], s[k]/c[k], m[k]}' | sort
+    cat "$log.1" "$log" 2>/dev/null | awk -F'\t' '{print $2" "$3"\t"$4}' | sort -t"$(printf '\t')" -k1,1 -k2,2n |
+      awk -F'\t' '
+        function flush() { if (n) { m=v[int((n+1)/2)]; p=v[int(n*0.9+0.999)]; if (p=="") p=v[n];
+          printf "  %-28s %6d  median %5d ms  p90 %5d ms  max %6d ms\n", k, n, m, p, v[n] } }
+        $1!=k { flush(); k=$1; n=0 } { v[++n]=$2+0 } END { flush() }'
     r="$(cat "$log.1" "$log" 2>/dev/null | awk -F'\t' '$3=="refused"{c[$5]++} END{for (k in c) printf "%6d  %s\n", c[k], k}' | sort -rn | head -5)"
     [ -z "$r" ] || { echo "  most refused:"; printf '%s\n' "$r" | sed 's/^/  /'; }
     exit 0;;
