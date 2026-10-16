@@ -4,6 +4,61 @@ All notable changes to Bearing. Keep a Changelog format, semantic versions.
 
 ## [Unreleased]
 
+### Added
+- Scoped Stop gate: a `check-changed` make target in all 13 stack
+  templates checks only what the session changed (Go: the changed
+  packages; Python and JavaScript: the changed files and their related
+  tests). The Stop gate asks for `make check-changed` where the Makefile
+  has it. The full `make check` is unchanged at `definition-of-done` and in
+  the pre-push hook. `brg-changed` lists the changed files.
+- Timing: the formatter is timed, and `brg-guard stats` and
+  `brg-doctor --timing` show the median and p90 of every gate and hook
+  step.
+- Workspace trust check in `doctor` and `autopilot`: an untrusted workspace
+  is reported, and `autopilot` stops before it would wait on a permission
+  prompt.
+- Sessions: a skill timeline recorded by a PreToolUse Skill hook; a
+  checkpoint written on Stop and before compaction; resume at startup that
+  prints the checkpoint and the next flow step (from the generated
+  `plugins/bearing/bin/flow-steps.tsv`), quiet on trunk with no history;
+  SessionEnd refreshes `docs/progress/<ID>.md` without overwriting a
+  person's Next; `start-task` reads the task id from the branch.
+- Updates: a newer Bearing tag is offered once a day (cached, 3 s budget,
+  6 h negative cache, hardened against option injection) with Upgrade,
+  Remind me tomorrow or Skip this version.
+- Learning, opt-in and local only: lessons from gate blocks and reruns are
+  written to `learnings.jsonl` beside `bearing.env`, paths reduced, and read
+  back for the next step. The `learn` skill manages them; `learn propose`
+  drafts a redacted issue and prints the `gh` command for the engineer.
+  Nothing leaves the machine.
+- Console contract: `plugins/bearing/references/console.md` defines how
+  skills ask; `brg-config` keeps project answers (`.bearing/config.json`)
+  and user answers (`bearing.env`); `workflow` with no argument opens a
+  menu of the next two or three skills; 31 skills ask through
+  AskUserQuestion; `lint-questions` in `make check` finds skills that ask
+  in prose.
+- `lint-skill-size`: a SKILL.md is 200 lines or fewer. Eight skills keep
+  per-run rules over that and are listed with a reason and a ceiling in
+  `bin/lint-skill-size.allow`.
+
+### Changed
+- Skills over 200 lines keep the steps in SKILL.md and move detail to
+  `references/`. `lint-tools` now reads each skill's `references/` and
+  flags code spans wrapped across lines.
+- The `verifier`, `critic` and `security-auditor` agents default to
+  `sonnet`; the calling skill asks for `opus` on Critical findings, VAPT
+  and graded HLD reviews.
+- Resume is computed in one pass.
+- Some commands now prompt by design instead of being granted: env-prefixed
+  runs in `test-run`, the throwaway cleanup `rm` in `spike`, and `git -C`
+  in `harness-setup`. They are recorded as `prompts:` rows in
+  `bin/lint-skill-tools.allow`.
+
+### Notes for existing repositories
+- Add `check-changed` by copying it from the stack template, or run
+  `onboard-repo`. Until then the Stop gate behaves as in 0.7.0 and asks for
+  the full `make check`.
+
 ## [0.7.0] - 2026-10-02
 
 First public release, under the MIT licence.
