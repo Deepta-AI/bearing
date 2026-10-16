@@ -9,7 +9,7 @@ KITP := plugins/bearing
 help: ## List targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-14s %s\n", $$1, $$2}'
 
-check: validate lint-skills lint-tools lint-evals lint-triggers lint-json lint-shell lint-portable lint-prose lint-docs lint-neutral lint-version lint-budget lint-templates lint-plugin-size test ## The gate for this repository
+check: validate lint-skills lint-skill-size lint-tools lint-evals lint-triggers lint-json lint-shell lint-portable lint-prose lint-docs lint-neutral lint-version lint-budget lint-templates lint-plugin-size test ## The gate for this repository
 	@echo "check: passed"
 
 validate: ## claude plugin validate --strict: the marketplace, then each plugin, its skills and (bearing) its agents
