@@ -1,0 +1,12 @@
+# lint-skill-size allow list: <path to SKILL.md>|<ceiling lines>|<reason>
+# A skill listed here may exceed 200 lines, up to its ceiling. An entry whose
+# file is gone, or whose file is now at or under 200 lines, fails the lint
+# ("stale allow entry"), so this list only shrinks.
+plugins/bearing/skills/tracker-sync/SKILL.md|209|per-run adapter and payload rules
+plugins/bearing/skills/onboard-repo/SKILL.md|208|per-run adoption and hook rules
+plugins/bearing/skills/feature-flags/SKILL.md|205|per-run exposure and removal rules
+plugins/bearing/skills/prd/SKILL.md|202|per-run delivery never-list and question rules
+plugins/bearing/skills/ab-experiment/SKILL.md|220|per-run design and analysis rules in every step; the rest is examples already one clause long
+plugins/bearing/skills/release/SKILL.md|217|per-run package-mode safety rules (pack check, secrets, provenance, floor) in the steps
+plugins/bearing/skills/llm-guardrails/SKILL.md|217|per-run check lists and required test cases in the steps
+plugins/bearing/skills/git-hooks/SKILL.md|211|per-run proving matrix with exact failing inputs and output strings

@@ -65,13 +65,20 @@ lint-skills: ## Every skill in every plugin: hyphenated name (64 max) equal to i
 lint-tools: ## Every command a skill body runs is granted by its allowed-tools (bin/lint-skill-tools.allow lists print-only lines)
 	@python3 bin/lint-skill-tools.py
 
-lint-skill-size: ## Every SKILL.md is 200 lines or fewer; detail goes in the skill's references/ and is read on demand
-	@n=0; bad=0; big=""; bl=0; \
+lint-skill-size: ## Every SKILL.md is 200 lines or fewer unless bin/lint-skill-size.allow lists it with a ceiling; detail goes in references/
+	@n=0; bad=0; big=""; bl=0; na=0; al=""; af=bin/lint-skill-size.allow; \
 	for f in plugins/*/skills/*/SKILL.md; do [ -f "$$f" ] || continue; n=$$((n+1)); l=$$(wc -l < "$$f" | tr -d ' '); \
-	  [ "$$l" -le "$$bl" ] || { bl=$$l; big=$$f; }; [ "$$l" -le 200 ] || { echo "over 200 lines: $$f $$l"; bad=$$((bad+1)); }; done; \
+	  [ "$$l" -le "$$bl" ] || { bl=$$l; big=$$f; }; \
+	  ceil=""; [ -f "$$af" ] && ceil=$$(awk -F'|' -v f="$$f" '$$1==f{print $$2; exit}' "$$af"); \
+	  if [ -n "$$ceil" ]; then na=$$((na+1)); al="$${al:+$$al, }$$f"; \
+	    [ "$$l" -gt 200 ] || { echo "stale allow entry (file is $$l lines, at or under 200): $$f"; bad=$$((bad+1)); }; \
+	    [ "$$l" -le "$$ceil" ] || { echo "over its ceiling of $$ceil lines: $$f $$l"; bad=$$((bad+1)); }; \
+	  else [ "$$l" -le 200 ] || { echo "over 200 lines: $$f $$l"; bad=$$((bad+1)); }; fi; done; \
+	if [ -f "$$af" ]; then while IFS='|' read -r p c r; do case "$$p" in ''|'#'*) continue;; esac; \
+	  [ -f "$$p" ] || { echo "stale allow entry (file does not exist): $$p"; bad=$$((bad+1)); }; done < "$$af"; fi; \
 	[ "$$n" -gt 0 ] || { echo "lint-skill-size: 0 skills, nothing checked" >&2; exit 1; }; \
-	[ "$$bad" -eq 0 ] || { echo "lint-skill-size: $$bad of $$n skills over 200 lines"; exit 1; }; \
-	echo "lint-skill-size: $$n skills, largest $$big $$bl"
+	[ "$$bad" -eq 0 ] || { echo "lint-skill-size: $$bad problems in $$n skills"; exit 1; }; \
+	echo "lint-skill-size: $$n skills, $$na allowed over 200 ($${al:-none}), largest $$big $$bl"
 
 lint-triggers: ## Every skill has trigger cases in evals/triggers.json (3 should, 2 near misses), none copying the description's quoted phrases
 	@python3 bin/lint-triggers.py
