@@ -46,46 +46,16 @@ fastlane lanes for both stores as text templates.
 
 ## Pack skills
 
-The Flutter team's agent-plugins pack covers three narrow jobs that this
-lane uses it for. When one of the three is installed, load it with the Skill tool for that job; when it is not, do
-the job from this lane's references and name the missing skill.
-
-- `flutter-fix-layout-issues`: a RenderFlex overflow, an unbounded height
-  or width, or an `Expanded` or `Positioned` in the wrong parent.
-- `flutter-setup-declarative-routing`: the platform half of deep links
-  (Android intent filter and assetlinks.json, iOS associated domains and
-  apple-app-site-association). Routes stay named and parameters are
-  validated; ignore its string-path `context.go` examples.
-- `flutter-add-widget-test`: `WidgetTester` mechanics (finders, `pump`
-  against `pumpAndSettle`, scrolling a lazy list). This lane still decides
-  what a screen test covers: loading, error and data, inside a
-  `ProviderScope` with overrides and the localisation delegates.
-
-Not loaded here: `flutter-apply-architecture-best-practices`
-(`ChangeNotifier` view models; only for a repository already built that
-way), `flutter-setup-localization` (deprecated synthetic `flutter_gen`),
-`flutter-add-integration-test` (puts a driver extension in the entry
-point) and `dart-run-static-analysis` (a subset of `make check`).
+When the Flutter team's agent-plugins pack is installed, load its skills for
+layout overflow, deep-link platform setup and widget-test mechanics; when it
+is not, do the job from this lane's references and name the missing skill.
+Detail: references/pack-skills.md
 
 ## Layout
 
-```
-lib/main.dart                     boot only: config check, logging, ProviderScope, runApp
-lib/app.dart                      MaterialApp.router: theme, l10n delegates, router
-lib/router.dart                   GoRouter: routes, error page; names, never string paths
-lib/core/config.dart              AppConfig from dart-define; validated at boot
-lib/core/http.dart                dio factory plus request-id, logging, retry interceptors
-lib/core/logging.dart             package:logging routed to dart:developer; no print
-lib/features/<f>/<f>.dart         freezed model with fromJson
-lib/features/<f>/<f>_repository.dart   the only place IO happens; typed results, typed errors
-lib/features/<f>/<f>_provider.dart     Riverpod providers: repository, async state
-lib/features/<f>/<f>_page.dart         ConsumerWidget: layout only; loading, error, data
-lib/l10n/app_en.arb               strings; generated code lands in lib/l10n/generated
-config/{dev,staging,prod}.json    flavour values for --dart-define-from-file; no secrets
-test/, integration_test/          mirrors lib/; one smoke flow in integration_test
-android/fastlane, ios/fastlane    store lanes; run by a person, printed by the agent
-Makefile                          the only entry point: help setup dev check fix test doctor
-```
+`lib/main.dart` boots only; `lib/features/<f>/` holds the model, repository,
+provider and page; IO happens only in the repository. Detail:
+references/layout.md
 
 ## On a foreign layout
 
@@ -133,153 +103,19 @@ relaxed and why.
 ## Traps a strong generalist still ships
 
 Each of these passes a read-through and fails on a phone. Check every one
-that the change touches, in new code and in the code it relies on.
-
-Writes the user triggers (add, reorder, pay, toggle):
-
-- Read the retry interceptor before adding a write. One that retries
-  every method on a timeout or 5xx repeats a POST the server already
-  committed: the items go in twice. Limit automatic retry to idempotent
-  methods (the skeleton retries GET, HEAD and OPTIONS) or to requests
-  carrying an idempotency key,
-  and name the existing calls that were exposed (fix them or say so).
-- An idempotency key belongs to one user intent, not one request. Make
-  it when the user starts the action; reuse it for every automatic retry
-  and for the user's own retry after an unknown outcome (timeout,
-  connection error, 5xx); drop it only on a definite answer (2xx or 4xx).
-  Keep it in state that outlives the row: an `autoDispose` family
-  provider disposed when the row scrolls away loses it.
-- Double taps: the control is disabled while its request is in flight,
-  keyed by the item, and a second tap is ignored, not queued.
-- After every `await` the widget may be gone: `if (!context.mounted)
-  return;` before using `context`, `if (!mounted) return;` before
-  `setState`, and `ref.mounted` in a Riverpod 3 notifier before setting
-  `state`.
-- Optimistic UI (a switch flipped before its PUT) rolls back and tells
-  the user when the write fails; otherwise the screen shows a setting the
-  server does not hold.
-- Show what the server actually did: a partial success (some items
-  unavailable) names what was left out, and so does a total miss (nothing
-  added still lists the items by name); a plain "done" on every 200
-  hides it.
-
-Lists and values:
-
-- Paginated endpoints: follow the cursor until it is null; raising
-  `limit` past the documented cap is not paging. One page request in
-  flight at a time (scroll fires many events), pages appended once, an
-  error on page n keeps the loaded pages and offers a retry at the end,
-  refresh resets the cursor and replaces the list. Test page two and the
-  end.
-- A timestamp ending in `Z` parses to a UTC `DateTime`, and `DateFormat`
-  prints it in UTC: call `.toLocal()` first, or an order placed at 18:42Z
-  shows the previous day in India.
-- Money is integer minor units plus a currency code, formatted by the
-  repository's helper or `NumberFormat.simpleCurrency`; never a `double`
-  and never `toStringAsFixed`.
-- Enum-like server values (`out_for_delivery`) map to translated labels
-  with a fallback for an unknown value; never a raw value on screen.
-- The other way, a Dart enum's `.name` is not a wire value:
-  `TargetPlatform.iOS.name` is `iOS` where an API may want `ios`. Map to
-  the documented strings explicitly and check each one against the API
-  document.
-
-Side effects and lifecycle:
-
-- `build` runs on every rebuild. Registering, subscribing, posting,
-  navigating or starting a `Future` there (including
-  `ref.read(x).start()`) repeats it and stacks listeners. Start once: in
-  `main`, in a provider body with `ref.onDispose` cancelling the
-  subscription, or in `initState` with `dispose`. An unawaited `Future`
-  sends its error nowhere.
-- `catchError((_) {})` or an empty `catch` turns every failure into an
-  endless spinner; an error needs a state and a retry.
-
-Push notifications (`firebase_messaging`):
-
-- Three tap paths: `getInitialMessage` (cold start from terminated),
-  `onMessageOpenedApp` (background), `onMessage` (foreground, where the
-  system shows no banner by itself). Handling one loses the others.
-- `getToken` can return null or throw (iOS before the APNs token exists,
-  no Play services, offline): guard it, keep it inside the error
-  handling, and never post a null token. Listen to `onTokenRefresh` and
-  register again; unregister on sign-out so the next account on the
-  device does not get this user's updates. The token addresses pushes to
-  the device: never log it.
-- The background handler is a top-level or static function annotated
-  `@pragma('vm:entry-point')`. Without the annotation it works in debug
-  and can be stripped from release builds; an anonymous closure throws.
-- It runs in its own isolate: no `ProviderScope`, no logging that `main`
-  configured, no memory shared with the app. It re-initialises what it
-  uses and writes anything it must record to storage or the server; a
-  handler that only logs does nothing, whatever its comment says.
-- `Firebase.initializeApp()` needs `options:` (`firebase_options.dart`)
-  or the platform files (`google-services.json`,
-  `GoogleService-Info.plist`). With neither in the repository it throws
-  before `runApp`, so the app never draws a frame.
-- The payload is untrusted input: read the documented keys, validate the
-  id, navigate by route name. `router.go(payload['link'])` both misses
-  the real key and lets a payload open any path.
-- The permission prompt comes when the user sees its value (and as the
-  project's decision records say); Android 13 and later also need
-  `POST_NOTIFICATIONS` in the manifest.
-- A shared secret in a define, an asset, `.env` or secure storage ships
-  in the binary and is extractable; once committed it is leaked: rotate
-  it and authenticate with the user's session instead. Obfuscation and
-  moving it are not fixes.
-
-Tests:
-
-- `testWidgets` runs on a fake clock: `await Future.delayed(...)` in the
-  body never completes and hangs the whole suite (so `make check` never
-  finishes). Use `pump`, `pumpAndSettle`, or `tester.runAsync` for real
-  IO. `pumpAndSettle` never settles while a `CircularProgressIndicator`
-  spins; assert the loading branch after a single `pump`.
-- Plugins have no platform side under `flutter test`:
-  `FirebaseMessaging.instance` in a widget test throws. Put the plugin
-  behind a provider and override it.
-- Cover the branches that fail in production: error with retry, empty,
-  the failed write, page two, the double tap.
+that the change touches, in new code and in the code it relies on. Detail:
+references/traps.md
 
 ## Verifying
 
-- Find the SDK before saying it is missing: `command -v flutter`, then
-  `~/flutter/bin/flutter`, `.fvm/flutter_sdk` or `fvm flutter`. Report
-  the version that ran.
-- Resolve offline (`flutter pub get --offline`). When a pinned package is
-  not cached, do not edit `pubspec.yaml` to make it resolve; test on a
-  copy in your own scratch folder with `dependency_overrides` and report
-  it as that ("tests pass on a copy with X overridden"), never as "make
-  check passes". Nothing outside the repository and your scratch folder
-  changes.
-- Run tests under a time limit (`timeout 300 flutter test`) so a hanging
-  test is a finding, not a stuck session. Stop only processes you started,
-  by their PID; never `pkill` or `killall` by name or pattern, which ends
-  other sessions' `flutter` runs on the same machine.
-- Run the gate on the untouched base first. What fails there is the
-  base's: report it as pre-existing and leave it alone (no reformatting
-  of files the change does not touch, no edits to unrelated doc
-  comments) unless the user asked for it; a separate change fixes it.
-  The files you wrote must pass format and analyze on their own.
-- The final message separates what ran (where, with what result) from
-  what did not, and lists risks found but left alone.
+Find the SDK before saying it is missing, run tests under a time limit, run
+the gate on the untouched base first, and separate what ran from what did
+not in the final message. Detail: references/verifying.md
 
 ## Commands
 
-Each target is used when the Makefile has it; the command after the
-colon is the native form to run without one.
-
-```
-make setup            # flutter pub get, platform folders, gen-l10n, build_runner, git hooks
-make dev              # flutter run --dart-define-from-file=config/dev.json
-make check            # dart format --set-exit-if-changed ; flutter analyze --fatal-infos ; flutter test --coverage
-make fix              # dart format ; dart fix --apply
-make gen              # dart run build_runner build ; flutter gen-l10n
-make test-integration # flutter test integration_test (needs a device or desktop target)
-make build-android    # flutter build apk --dart-define-from-file=config/prod.json
-make build-ios        # flutter build ipa (macOS only)
-make release-android  # prints the fastlane command; a person runs it
-```
+Each `make` target is used when the Makefile has it; the native form is in
+references/commands.md.
 
 ## Gotchas
 
