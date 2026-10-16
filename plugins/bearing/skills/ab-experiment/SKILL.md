@@ -2,7 +2,7 @@
 name: ab-experiment
 description: 'Designs and analyses an A/B test: hypothesis, primary and guardrail metrics, sample size and duration, stopping rule, decision. Use when asked to "A/B test this", "how long should it run", "is it significant".'
 argument-hint: "design <name> [--flag <flag_name>] [--metric <event>] | analyse <name> [results.csv]"
-allowed-tools: Read, Write, Edit, Grep, Glob, Bash(ls:*), Bash(mkdir -p:*), Bash(date:*), Bash(python3 -c:*)
+allowed-tools: Read, Write, Edit, Grep, Glob, AskUserQuestion, Bash(ls:*), Bash(mkdir -p:*), Bash(date:*), Bash(python3 -c:*)
 ---
 
 # ab-experiment
@@ -23,14 +23,14 @@ uses both, and names them as skills, never as commands.
 
 ## Inputs
 
-- mode and name: `$ARGUMENTS`; if absent, ask one question.
+- mode and name: `$ARGUMENTS`; if absent, ask one question with AskUserQuestion as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says.
 - flag: `--flag`; if absent, the row in `docs/operations/flags.md`
   whose name contains the experiment name; if absent, the doc says
   `flag: tbd` and the report says it must be added (the `feature-flags`
   skill). An existing flag with a different purpose is not this flag.
 - primary metric: `--metric`; if absent, an event from
-  `docs/analytics/EVENT_SHEET.md`; if absent, ask once: "which event
-  counts as success for one exposed user?".
+  `docs/analytics/EVENT_SHEET.md`; if absent, ask once with AskUserQuestion
+  ("which event counts as success for one exposed user?", candidate events as options).
 - baseline rate and eligible units: from the repository's own data
   (funnel exports, reach or unique-visitor reports) for the segment the
   test targets, before any number in a README or a ticket; numbers the
@@ -49,8 +49,8 @@ uses both, and names them as skills, never as commands.
   add" and the report names the `analytics-events` skill.
 - results for `analyse`: `$2`, a CSV of counts per variant (and per
   segment when present), plus any note on how it was produced (a README
-  beside it, the query); if absent, ask once for the two counts per
-  variant.
+  beside it, the query); if absent, ask once with AskUserQuestion
+  for the two counts per variant.
 - experiment docs: `docs/experiments/`; created with `mkdir -p`.
 - templates in this skill: `templates/EXPERIMENT.md`, `templates/analysis.md`.
 

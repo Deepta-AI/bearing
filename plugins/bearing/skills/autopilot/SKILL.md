@@ -8,7 +8,7 @@ allowed-tools: Read, Write, Edit, Grep, Glob, Skill, Agent, Bash
 # autopilot
 
 One statement in, one prepared merge request out, with nobody answering
-questions in between. Every decision a stage would ask the user is taken
+questions in between. Every decision a stage would put to the user is taken
 with the recommended option, written as Proposed and listed in one
 digest the user reviews at the end. The run never pushes, merges or
 deploys: the guard, the sandbox and, where the repository has it, the
@@ -50,7 +50,7 @@ what is on disk, never from what the model says it did.
    3. `done <stage>`. On "gate not met", fix what it names and run
       `done` again; when the same stage cannot be fixed, `fail <stage> "<why>"`,
       which allows three attempts before the stage is blocked.
-3. Auto mode, for every stage: wherever a skill says to ask the user, to
+3. Auto mode, for every stage: wherever a skill says to ask a question, to
    stop and wait, or to confirm, take the option the skill recommends and
    go on, and record the choice with `decision`. Detail:
    references/auto-mode-and-profile.md

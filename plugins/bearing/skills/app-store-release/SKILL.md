@@ -2,7 +2,7 @@
 name: app-store-release
 description: 'Prepares an App Store or Google Play submission: build numbers, listing, screenshots, privacy forms, phased rollout, rejection fixes. Use when asked to "submit to the App Store", "TestFlight" or "app rejected".'
 argument-hint: "[ios|android|both] [vX.Y.Z] [--rejected]"
-allowed-tools: Read, Write, Edit, Grep, Glob, Bash(ls:*), Bash(mkdir -p:*), Bash(git tag -l:*), Bash(git describe:*), Bash(git log:*), Bash(date:*), Bash(fastlane lanes:*), Bash(file:*)
+allowed-tools: Read, Write, Edit, Grep, Glob, AskUserQuestion, Bash(bash *bin/brg-config*), Bash(ls:*), Bash(mkdir -p:*), Bash(git tag -l:*), Bash(git describe:*), Bash(git log:*), Bash(date:*), Bash(fastlane lanes:*), Bash(file:*)
 ---
 
 # app-store-release
@@ -20,13 +20,15 @@ hold the build rules.
 
 - platform: `$1`; if absent, detected: `project.yml` or `*.xcodeproj`
   (ios), `app/build.gradle.kts` (android), `app.json` with `expo`
-  (both); none: ask once.
+  (both); if absent, `bash "${CLAUDE_PLUGIN_ROOT}/bin/brg-config" get mobile.platform`;
+  none: ask once with AskUserQuestion as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says
+  (ios, android, both) and record it with `brg-config set mobile.platform <value>`.
 - version: `$2`; if absent, `MARKETING_VERSION` in `project.yml`,
   `versionName` in `app/build.gradle.kts`, `expo.version` in `app.json`;
-  if absent, `git describe --tags --abbrev=0`; if absent, ask once.
+  if absent, `git describe --tags --abbrev=0`; if absent, ask once with AskUserQuestion.
 - build number: `CURRENT_PROJECT_VERSION`, `versionCode`,
   `expo.ios.buildNumber` and `expo.android.versionCode`. Last accepted
-  build: `docs/releases/mobile/<previous>.md`; if absent, ask once
+  build: `docs/releases/mobile/<previous>.md`; if absent, ask once with AskUserQuestion
   ("last build number the store accepted?"); unknown: `unconfirmed`.
 - listing metadata: `fastlane/metadata/`, `store/`; if absent, every
   field is written empty and counted.
@@ -39,7 +41,7 @@ hold the build rules.
   `git log --format=%s <last tag>..HEAD`, user-facing lines only.
 - rollout tooling: `fastlane/Fastfile` (`fastlane lanes`), `eas.json`
   submit profiles; if absent, raw commands with placeholders.
-- rejection text for `--rejected`: pasted by the user; if absent, ask once.
+- rejection text for `--rejected`: pasted by the user; if absent, ask once with AskUserQuestion.
 - templates and references in this skill: `templates/store-listing.md`,
   `references/rejection-playbook.md`.
 

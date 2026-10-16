@@ -2,7 +2,7 @@
 
 Read at steps 3 to 5: taking the recommended option, recording decisions, the profile flags, and tools through make.
 
-3. Auto mode, for every stage: wherever a skill says to ask the user, to
+3. Auto mode, for every stage: wherever a skill says to ask a question, to
 stop and wait, or to confirm, take the option the skill recommends
 and go on. Then:
 - record the choice with `decision <key> "<choice>" "<alternatives>" "<why>" --adr <path>`,
