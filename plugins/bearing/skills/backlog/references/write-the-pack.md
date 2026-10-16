@@ -3,7 +3,7 @@
 Read when: steps 5, 6, 8 and 10: what each file contains.
 
 5. New backlog: write `docs/product/backlog.md` from `templates/story.md`
-(an existing one is edited in its own shape, below): the story
+(an existing one is edited in its own shape, see Updating an existing backlog in SKILL.md): the story
 index, then per story: narrative; "Why it matters" citing a `B` id and
 how the story moves it; "From the PRD" quoting every covered REQ in the
 PRD's words; preconditions; at most seven acceptance criteria in

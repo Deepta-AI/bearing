@@ -1635,7 +1635,7 @@
    "steps": [
     "Read the PRD (`$1` or `docs/product/PRD.md`) and collect every id matching `REQ-[0-9]{3}` from the statements table, skipping rows marked `withdrawn:`, and the `B` ids of its objectives. No PRD: take the source under Inputs, split it into one testable statement per line, number them `REQ-001` upward, and write them as a \"Statements (inline, from <source>)\" table at the top of `docs/product/coverage.md` so every id r…",
     "Judge each REQ and record the judgement and one sentence of why (both go into coverage.md): story, criterion-of, platform-detail-of, duplicate-of, split, non-functional or out-of-scope (which needs a Q-nnn whose Decision says so). Detail: references/judge-each-requirement.md",
-    "Open points. Every ambiguity, gap or contradiction met while judging, and every decision the PRD leaves open that a story had to take, becomes a `Q-nnn` row in `docs/product/questions.md` (or in the existing backlog's own question table, continuing its numbering); open assumptions come first under \"Needs your confirmation\", and every Affects cell is filled with the story ids the decision changes; it is never empty.…",
+    "Open points. Every ambiguity, gap or contradiction met while judging, and every decision the PRD leaves open that a story had to take, becomes a `Q-nnn` row in `docs/product/questions.md` (or in the existing backlog's own question table, continuing its numbering); open assumptions come first under \"Needs your confirmation\". Replace every Affects cell, including `prd`'s REQ ids, with the story ids the decision change…",
     "Group stories into epics `EP-nn` by user goal, never by layer (\"API\", \"database\" are not epics). New backlog: assign the persona group from the PRD's personas (00 end users, 01 admins, 02 operators, 03 integrations) and the story id is `US-<group>-<nnn>`, sequential within the group, chosen by who triggers the behaviour. Existing backlog: a new story takes the backlog's own scheme, the next number after the highest…",
     "New backlog: write `docs/product/backlog.md` from `templates/story.md` (an existing one is edited in its own shape, below): the story index, then per story the narrative, \"Why it matters\", \"From the PRD\", at most seven acceptance criteria in Given/When/Then with ids `AC-US-nn-nnn-k` and a `Covers: REQ-nnn` line each, \"Not in this story\", \"Depends on\", Points (`TBD` until `estimate`) and priority. Every REQ the story…",
     "Full pack only (see Scope). Write `docs/product/tasks.md` from `templates/tasks.md`: per story the development tasks `US-nn-nnn-D1` upward and the test tasks `US-nn-nnn-T1` upward. Every story gets both kinds and every AC is verified by a test task. A task over 8 hours is two tasks. Detail: references/write-the-pack.md",
@@ -2531,11 +2531,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 199,
+   "lines": 200,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 199
+     "lines": 200
     },
     {
      "path": "references/design-checks.md",
@@ -3673,15 +3673,15 @@
     },
     {
      "title": "Scope first",
-     "lines": 13
+     "lines": 12
     },
     {
      "title": "Read the repo before choosing a value",
-     "lines": 18
+     "lines": 19
     },
     {
      "title": "Steps",
-     "lines": 62
+     "lines": 64
     },
     {
      "title": "The lint",
@@ -3693,7 +3693,7 @@
     },
     {
      "title": "Gotchas",
-     "lines": 25
+     "lines": 23
     }
    ],
    "inputs": [
@@ -3703,10 +3703,10 @@
     "An existing `docs/design/tokens.json` is updated in place, never rewritten without naming the changed roles."
    ],
    "steps": [
-    "Resolve the direction: `$ARGUMENTS`, else root `DESIGN.md` or `docs/design/DESIGN.md`, else `docs/design/variants/*/approved.json`, else the app's current styles read as the de facto system, else ask once for a brief. Read it in full; list what it fixes and what it leaves free. `--lint-only`: go to the lint section.",
-    "**Measure the direction before designing.** Compute the contrast of every pair it implies (brand fill behind its label, link text, focus ring) with `scripts/contrast.py` or the WCAG formula. A failing pair keeps its hue and moves in lightness until it passes (or swaps the label to a dark one); the report gives the direction's ratio, the shipped ratio and the alternative.",
-    "Colour primitives in oklch: accent hue from the direction; neutrals at the hue the direction asks for with chroma 0.004 to 0.016; success, warning, danger, info at their own hues; each scale 0 to 1000. Compute every sRGB value with the snippet in `references/stack-bindings.md`; a value that clips gets less chroma. Refuse the default looks unless the direction names one.",
-    "Roles for light, then dark designed on its own: surfaces lift with lightness, accent one step lighter, chroma down 10 to 20 percent, text near white not pure white. Never invert. Text pairs 4.5:1, focus rings, borders that carry meaning and icons 3:1, in both modes. Include the pairs the components render that the role table misses: each `text-*` on each `bg-*` actually used together, and every opacity-modified fill…",
+    "Resolve the direction: `$ARGUMENTS`, else root `DESIGN.md` or `docs/design/DESIGN.md`, else `docs/design/variants/*/approved.json`, else the app's current styles read as the de facto system, else ask once for a brief (product, audience, one memorable thing, brand colour or face). Read it in full; list what it fixes (hue, faces, density, shape, devices) and what it leaves free. `--lint-only`: go to the lint section.…",
+    "**Measure the direction before designing.** Compute the contrast of every pair it implies (brand fill behind its label, brand as link text on page and card, brand as focus ring on the page) with `scripts/contrast.py` or the WCAG formula. A failing pair keeps its hue and moves in lightness until it passes (or swaps the label to a dark one); the report gives the direction's ratio, the shipped ratio and the alternative…",
+    "Colour primitives in oklch: accent hue from the direction; neutrals at the hue the direction asks for (warm, cool, or the accent's) with chroma 0.004 to 0.016; success, warning, danger, info at their own hues; each scale 0 to 1000, hue held, lightness varied. Compute every sRGB value with the snippet in `references/stack-bindings.md`; a value that clips gets less chroma. Refuse the default looks (cream and terracott…",
+    "Roles for light, then dark designed on its own: surfaces lift with lightness, accent one step lighter, chroma down 10 to 20 percent, text near white not pure white. Never invert. Text pairs 4.5:1, focus rings, borders that carry meaning and icons 3:1, in both modes. Include the pairs the components render that the role table misses: grep the class strings for each `text-*` on each `bg-*` actually used together, and…",
     "Type and shape. A face the direction names is the face, with its fallbacks and how it loads (self-hosted files, a link, or \"still to do\" in the report); a different face is at most a proposal. When the direction leaves the face free, choose one for this product rather than a default (Inter, Roboto, Arial, system-ui). Touch targets: when the direction or the devices mean touch, interactive controls reach 44 px (iOS)…",
     "Write `docs/design/tokens.json` (schema `templates/tokens.schema.json`, validate with `uvx --with jsonschema==4.25.1 python -c \"import json,jsonschema; jsonschema.validate(json.load(open('docs/design/tokens.json')), json.load(open('<schema>')))\"` (stdlib Python has no validator; without uv, say \"schema: not validated\"); update an existing file in place with `meta.version` bumped and the changed roles named). Measure…",
     "Bind each stack per `references/stack-bindings.md`, in the form the repo consumes (Read the repo, 1 to 3). On react-shadcn: one file of the variables shadcn reads (`src/styles/tokens.css` or `src/index.css` itself), replacing the defaults shadcn init wrote, never a parallel `--color-*` set the components do not read. Each generated file starts with a generated-from header. Then remove what the direction rules out fr…",
@@ -5503,7 +5503,7 @@
     },
     {
      "title": "Steps",
-     "lines": 112
+     "lines": 114
     },
     {
      "title": "Output contract",
@@ -5529,7 +5529,7 @@
     "**Scope.** Build what was asked. \"Liveness and readiness endpoints\" means the endpoints, their wiring, tests, the probe and load balancer manifests, and nothing else: no synthetic suite, blackbox config, alerts, runbooks or status docs, and no process lifecycle changes (SIGTERM drain, `terminationGracePeriodSeconds`, `preStop`), which change rollout behaviour. List those as one-line offers in the report. \"Uptime mon…",
     "**Inventory before changing.** Find the current health handler(s) and grep every path they serve across the repo: kubelet probes in the base AND in every overlay, load balancer checks, blackbox targets, smoke scripts, docs, the auth allow list. Moving or retiring a path means updating every consumer in the same change, or keeping the old path as an alias; never leave a consumer pointing at a 404 or at a path that no…",
     "**Classify each dependency from the code, not its type.** An optional check reports `fail` with the overall body `degraded`, status 200; a required one gives 503. A dependency named only in `.env.example` or removed by an accepted ADR gets no check. A probe that cannot fail is a lie in the readiness body: flag it. Detail: references/inventory-and-classification.md",
-    "**`/healthz` (liveness).** Returns 200 with status and version and touches nothing: no database, cache, network or lock that a stuck dependency can hold. Version comes from the build; if the build sets none, omit it rather than invent one. A test runs it with every dependency check failing and still gets 200.",
+    "**`/healthz` (liveness).** Returns 200 with status and version and touches nothing: no database, cache, network or lock that a stuck dependency can hold. Version comes from the build; if the build sets none, omit it rather than invent one. A test runs it with every dependency check failing and still gets 200. Detail: references/liveness-and-readiness.md",
     "**`/readyz` (readiness).** Copy the checker from the template for the stack. Rules the template carries, keep them when adapting: - Checks run concurrently, each with its own timeout, and the handler returns at a fixed total deadline even when a probe ignores its context; a check with no result by then is reported `fail`, `timeout`. - The body carries a fixed short reason per check (`timeout`, `unreachable`, `unheal…",
     "**Probe arithmetic** (print the numbers in the report): - readiness `timeoutSeconds` must exceed the endpoint's worst case (the total deadline plus margin); Kubernetes defaults it to 1. - liveness points at `/healthz` only, with `failureThreshold x periodSeconds` long enough to ride out a GC pause (30 s or more); add a `startupProbe` when start-up is slow instead of a long `initialDelaySeconds`. - the load balancer…",
     "**Uptime probes** (monitoring in scope). Use the prober the repo already runs (the blackbox exporter in `monitoring/`, or the ADR's choice); add targets for every service in every environment through the public hostname a customer uses. For `/readyz` use a module that fails on `\"status\":\"fail\"` in the body as well as on non-2xx. Remove or flag targets for services an ADR retired. Label every target with its `environ…",
@@ -5549,11 +5549,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 191,
+   "lines": 193,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 191
+     "lines": 193
     },
     {
      "path": "references/inventory-and-classification.md",
@@ -14111,11 +14111,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 194,
+   "lines": 193,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 194
+     "lines": 193
     },
     {
      "path": "references/flow-review.md",

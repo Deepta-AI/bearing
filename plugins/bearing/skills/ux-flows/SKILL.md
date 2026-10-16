@@ -112,7 +112,6 @@ beat one click that needs thought.
     invoke only on a yes. Name `/plan-design-review` (gstack) as the
     heavier interactive review and `design-directions` as next.
 
-
 ## A product with several packages, or no code yet
 
 No handlers yet, no visitor accounts or several packages change the ledger

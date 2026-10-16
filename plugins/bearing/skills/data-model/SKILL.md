@@ -145,6 +145,7 @@ ${CLAUDE_PLUGIN_ROOT}/skills/tech-decision/references/decision-protocol.md.
 A strong generalist gets the tables right and misses these. Walk each one
 against the model before writing; each that applies is a row, a
 constraint or an open concern, never silence. Detail: references/design-checks.md
+
 ## Output contract
 
 ```

@@ -74,6 +74,7 @@ still open proceeds on the in-cluster blackbox exporter, marked Proposed.
    nothing: no database, cache, network or lock that a stuck dependency can hold.
    Version comes from the build; if the build sets none, omit it rather than invent
    one. A test runs it with every dependency check failing and still gets 200.
+   Detail: references/liveness-and-readiness.md
 4. **`/readyz` (readiness).** Copy the checker from the template for the stack.
    Rules the template carries, keep them when adapting:
    - Checks run concurrently, each with its own timeout, and the handler returns at
@@ -138,7 +139,8 @@ still open proceeds on the in-cluster blackbox exporter, marked Proposed.
    - A step that charges a card, sends mail or creates real orders is qa or sandbox
      only; say how prod is covered.
    - A token or password already committed is never copied; flag it for rotation,
-     and make the script fail with a clear message when the variable is unset.
+     and make the script fail with a clear message when the variable is unset, and name the variable
+     each existing job now needs before its next pipeline.
    - Scheduled CI: the job's `stage` must be in `stages` (add it), the job runs only
      on `$CI_PIPELINE_SOURCE == "schedule"`, and every existing job that would also
      run in a schedule pipeline gets a rule that excludes schedules; otherwise a

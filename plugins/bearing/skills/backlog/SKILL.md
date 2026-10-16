@@ -78,8 +78,8 @@ with a gate.
    decision the PRD leaves open that a story had to take, becomes a `Q-nnn` row in
    `docs/product/questions.md` (or in the existing backlog's own question table,
    continuing its numbering); open assumptions come first under "Needs your
-   confirmation", and every Affects cell is filled with the story ids the decision
-   changes; it is never empty. Detail: references/open-points-and-epics.md
+   confirmation". Replace every Affects cell, including `prd`'s REQ ids, with the
+   story ids the decision changes; it is never empty. Detail: references/open-points-and-epics.md
 4. Group stories into epics `EP-nn` by user goal, never by layer ("API", "database"
    are not epics). New backlog: assign the persona group from the PRD's personas (00
    end users, 01 admins, 02 operators, 03 integrations) and the story id is
