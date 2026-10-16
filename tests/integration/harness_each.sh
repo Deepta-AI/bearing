@@ -43,6 +43,7 @@ assert_vendored_guard() {
   assert_file "$repo/.bearing/bin/brg-guard" 755
   assert_file "$repo/.bearing/bin/brg-changed" 755
   assert_file "$repo/.bearing/bin/brg-session" 755
+  assert_file "$repo/.bearing/bin/flow-steps.tsv" 644
   assert_contains "$(sed -n 2p "$repo/.bearing/bin/brg-guard")" "BEARING_GUARD_VERSION=\"$VERSION\"" "version stamp"
   assert_file "$repo/.bearing/hooks/read-json.sh" 755
 }

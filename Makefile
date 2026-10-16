@@ -96,11 +96,11 @@ lint-neutral: ## No company name scars, no private tracker names or task-id lite
 	[ -z "$$rs" ] || { echo "private tracker name or task-id literal (the rest adapter is the public one):"; echo "$$rs"; exit 1; }; \
 	echo "lint-neutral: $$total files, 0 scars, 0 private tracker names or literals"
 
-lint-docs: ## Generated docs (SKILLS.md, WORKFLOW.md, the handbook and developer guide data) match their sources
+lint-docs: ## Generated docs (SKILLS.md, WORKFLOW.md, the handbook, developer guide data and flow-steps.tsv) match their sources
 	@tmp=$$(mktemp -d); n=0; stale=0; \
-	for f in docs/SKILLS.md docs/WORKFLOW.md site/src/data/handbook.json devguide/src/data/internals.json; do cp "$$f" "$$tmp/$$(basename $$f)"; done; \
-	python3 bin/gen-skills-table.py >/dev/null && python3 bin/gen-guide.py >/dev/null && python3 bin/gen-devguide.py >/dev/null || { rm -rf "$$tmp"; exit 1; }; \
-	for f in docs/SKILLS.md docs/WORKFLOW.md site/src/data/handbook.json devguide/src/data/internals.json; do n=$$((n+1)); cmp -s "$$f" "$$tmp/$$(basename $$f)" || { echo "stale generated doc regenerated: $$f (commit it)"; stale=$$((stale+1)); }; done; \
+	for f in docs/SKILLS.md docs/WORKFLOW.md site/src/data/handbook.json devguide/src/data/internals.json plugins/bearing/bin/flow-steps.tsv; do cp "$$f" "$$tmp/$$(basename $$f)"; done; \
+	python3 bin/gen-skills-table.py >/dev/null && python3 bin/gen-guide.py >/dev/null && python3 bin/gen-devguide.py >/dev/null && python3 bin/gen-flow-steps.py >/dev/null || { rm -rf "$$tmp"; exit 1; }; \
+	for f in docs/SKILLS.md docs/WORKFLOW.md site/src/data/handbook.json devguide/src/data/internals.json plugins/bearing/bin/flow-steps.tsv; do n=$$((n+1)); cmp -s "$$f" "$$tmp/$$(basename $$f)" || { echo "stale generated doc regenerated: $$f (commit it)"; stale=$$((stale+1)); }; done; \
 	rm -rf "$$tmp"; [ "$$n" -gt 0 ] || exit 1; \
 	[ "$$stale" -eq 0 ] || { echo "lint-docs: $$stale of $$n generated docs were stale"; exit 1; }; \
 	echo "lint-docs: $$n generated docs up to date"
@@ -198,6 +198,7 @@ docs: ## Regenerate docs/SKILLS.md, docs/WORKFLOW.md, the repo skills maps, the 
 	@python3 bin/gen-skills-table.py
 	@python3 bin/gen-guide.py
 	@python3 bin/gen-devguide.py
+	@python3 bin/gen-flow-steps.py
 
 wiki: ## Export the docs and flows as wiki pages into WIKI_DIR (a clone of the project's .wiki.git); REPO_URL is the repository's web URL for file links
 	@[ -n "$(WIKI_DIR)" ] || { echo "wiki: set WIKI_DIR to a clone of the wiki repository (git clone <repo>.wiki.git)" >&2; exit 1; }

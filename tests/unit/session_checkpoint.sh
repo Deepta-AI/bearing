@@ -21,7 +21,7 @@ assert_contains "$c" "Task: TASK-7"
 assert_contains "$c" "Uncommitted: 1 file(s)"
 assert_contains "$c" "Recent skills: bearing:start-task"
 assert_contains "$c" "Next (from state file): wire the list."
-assert_contains "$c" "Next flow step: unknown"
+assert_contains "$c" "Next flow step: explain-codebase"
 assert_contains "$c" "Ahead/behind: 0/0"
 assert_contains "$(cat "$repo/.bearing/state/gates.log")" "checkpoint	written"
 t_end

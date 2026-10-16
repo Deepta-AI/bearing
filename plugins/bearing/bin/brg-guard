@@ -1577,7 +1577,8 @@ esac
     changed="$(git -C "$root" status --porcelain 2>/dev/null | wc -l | tr -d ' ')"
     echo "bearing session: branch=${branch:-detached} task=${task:-none} changed_files=${changed}"
     sf="$root/.bearing/state/$(printf '%s' "$branch" | tr '/' '_').md"
-    [ -f "$sf" ] && { echo "Handoff state from the previous session (${sf#"$root"/}):"; head -20 "$sf"; }
+    [ -f "$sf" ] && { echo "Handoff state from the previous session (${sf#"$root"/}):"; head -8 "$sf"; }
+    [ "$source" = "compact" ] || bash "$(dirname "$0")/brg-session" resume --source "${source:-startup}" 2>/dev/null
     [ -f "$root/CLAUDE.md" ] && ! head -1 "$root/CLAUDE.md" | grep -q '^@AGENTS.md' && echo "note: CLAUDE.md does not start with @AGENTS.md; run onboard-repo to fix the import."
     # The stack checklists, so any review in this session (gstack /review
     # included) applies them; absent where the guard is vendored alone.

@@ -4,13 +4,13 @@
   "skills": 106,
   "commandSkills": 0,
   "stackSkills": 12,
-  "scripts": 88,
-  "scriptLines": 28704,
+  "scripts": 90,
+  "scriptLines": 28840,
   "hooks": 7,
   "agents": 8,
   "makeTargets": 30,
   "gates": 17,
-  "tests": 86,
+  "tests": 87,
   "fixtures": 21,
   "stacks": 13,
   "templates": 38,
@@ -26,7 +26,7 @@
    "dir": "plugins/bearing",
    "description": "A developer workflow for coding agents: skills for every stage from brief to runbook, review subagents, one guard behind every hook, and repository templates. The stack conventions come in bearing-backend and bearing-apps.",
    "required": true,
-   "files": 501,
+   "files": 502,
    "skills": [
     "ab-experiment",
     "accessibility",
@@ -15040,7 +15040,7 @@
    "name": "brg-guard",
    "lang": "bash",
    "group": "guard",
-   "lines": 1803,
+   "lines": 1804,
    "header": "brg-guard: the harness-neutral guard logic behind every hook adapter.\n\n  brg-guard command \"<shell command>\"   exit 2 and a message when the command\n                                        publishes, rewrites history, deploys\n                                        or destroys; exit 2 when the command\n                                        cannot be read (fail closed)\n  brg-guard format <file>               format one file with the repo's formatter\n  brg-guard task-id [\"<prompt>\"]        print \"Task: <ID> ...\" when the branch\n                                        carries a ticket id the prompt lacks\n  brg-guard session                     print branch, task, changes, handoff state\n  brg-guard stop                        print a reminder when changes are unchecked\n  brg-guard stop-gate --id <session> [--active]\n                                        exit 2 (reason on stderr) when files\n                                        changed in this session since make\n                                        check last passed; --active (the\n                                        harness already continued once) only\n                                        reminds, so it never loops\n  brg-guard check-file <file>           lint one edited file (make check-file\n                                        when the Makefile has it); exit 2 and\n                                        the problems on stderr\n  brg-guard precompact [<transcript>]   write .bearing/state/<branch>.compact.md\n  brg-guard session [--id <session>] [--source startup|resume|compact]\n  brg-guard stats                       what the gates decided here, how often\n                                        and at what cost (.bearing/state/gates.log)\n  brg-guard readonly \"<shell command>\"  exit 2 unless every program in the\n                                        command is a read-only tool (git\n                                        diff|log|show|status|blame|ls-files,\n                                        ls, cat, grep, rg, find without -exec,\n                                        sed without -i, jq and similar);\n                                        used by the read-only subagents\n  brg-guard --verbs                     the blocked verb table (tool, pattern,\n                                        label; tab-separated) for generators\n  brg-guard --version                   the version stamp\n\nClaude Code hooks, Cursor hooks and any other harness adapter call these\nsubcommands and translate their own event JSON into arguments. One logic,\none behaviour on every harness. Runs on bash 3.2 (macOS) and needs no tool\nbeyond git for the session subcommands.",
    "functions": [
     "verb_table",
@@ -15109,6 +15109,7 @@
     "brg-changed",
     "brg-checklists",
     "brg-kit-paths",
+    "brg-session",
     "brg-stacks"
    ]
   },
@@ -15117,7 +15118,7 @@
    "name": "brg-harness",
    "lang": "bash",
    "group": "guard",
-   "lines": 682,
+   "lines": 683,
    "header": "brg-harness: make a repository and a machine work with a coding harness\nother than Claude Code, from the same standard and the same guard logic.\n\n  brg-harness <harness> [--dir <repo>] [--kit-url <git url>] [--kit-ref <tag or commit>] [--no-skills]\n\nHarnesses: cursor, codex, gemini, copilot, opencode, windsurf, cline, zed,\n           kiro, all\n\nWrites into the repository (idempotent; a file that exists with different\ncontent is left alone and the proposal goes to <file>.bearing-new):\n  every harness   .bearing/bin/brg-guard (the guard logic, vendored with the kit\n                  version stamped in, so hooks do not depend on where the\n                  kit is installed) and the hook adapters under .bearing/hooks/\n  cursor          .cursor/hooks.json, .cursor/rules/*.mdc from .claude/rules\n  codex           .codex/hooks.json, .codex/rules/bearing.rules (execpolicy)\n  gemini          .gemini/settings.json (BeforeTool hook, tools.exclude),\n                  GEMINI.md importing AGENTS.md\n  copilot         .github/hooks/bearing.json, .github/copilot-instructions.md,\n                  .github/instructions/brg-*.instructions.md (applyTo globs),\n                  .bearing/copilot-deny-tools.txt for the CLI\n  opencode        .opencode/plugins/brg-guard.js, opencode.json permissions\n  windsurf        .devin/hooks.json, .devin/rules/*.md (glob triggers)\n  cline           .clinerules/hooks/PreToolUse, .clinerules/brg-*.md (paths:)\n  zed             .zed/settings.json (tool_permissions deny), .rules pointer;\n                  Zed has no agent hooks, so no adapters by design\n  kiro            .kiro/hooks/brg-guard.json, .kiro/steering/brg-*.md,\n                  .bearing/kiro-permissions.yaml to merge at user level\nEvery command policy (execpolicy, tools.exclude, always_deny, opencode\npermissions, the Kiro and Copilot lists) is derived from `brg-guard\n--verbs`, so the lists and the hook never drift. The policies are prefix\nmatches and advisory; the hook adapter over brg-guard is the control.\nOn the machine (unless --no-skills): installs the Bearing skills into that\nharness's skills folder through the skills CLI (the version pinned in\nbin/pinned-packs.txt), from the kit's git remote at the release tag of this\nkit's version (v<VERSION>) or --kit-ref.\n\nThe git hooks in .githooks/ hold the push, commit and format rules on every\nharness; this script adds each harness's own adapters on top. The summary\ncounts a harness as wired only when its config file references every\nadapter and neither has an unresolved .bearing-new; exit 1 when any selected\nharness is not wired. Harnesses whose hook format has been checked only\nagainst recorded fixtures (Copilot, Kiro, Windsurf, Codex, Cline, OpenCode)\nare marked unverified; Cursor and Gemini CLI have been run for real.",
    "functions": [
     "load_env",
@@ -15346,7 +15347,7 @@
    "name": "brg-session",
    "lang": "bash",
    "group": "quality",
-   "lines": 93,
+   "lines": 112,
    "header": "brg-session: session memory for Bearing, all local and model-free.\n  timeline-start --id <sid> --skill <name>   record a skill start (ends the open one)\n  timeline-close --id <sid>                   end the open skill of this session\n  timeline-recent [--branch <b>] [--n <k>]    last k ended skills on the branch\n  not-run --skill <reason>                    log `timeline not-run <reason>` to gates.log\n  checkpoint                                  write .bearing/state/<branch>.checkpoint.md\n  next-step                                   the next flow step after the timeline\n  resume [--source startup|resume|compact]    the block SessionStart prints\nRuns on bash 3.2; needs git; uses jq when present. Exit 0 always.",
    "functions": [
     "esc",
@@ -15417,6 +15418,17 @@
    ]
   },
   {
+   "path": "plugins/bearing/bin/flow-steps.tsv",
+   "name": "flow-steps.tsv",
+   "lang": "bash",
+   "group": "quality",
+   "lines": 73,
+   "header": "",
+   "functions": [],
+   "env": [],
+   "calls": []
+  },
+  {
    "path": "bin/gen-devguide.py",
    "name": "gen-devguide.py",
    "lang": "python",
@@ -15470,6 +15482,23 @@
     "brg-state-path",
     "brg-tracker",
     "gen-guide.py"
+   ]
+  },
+  {
+   "path": "bin/gen-flow-steps.py",
+   "name": "gen-flow-steps.py",
+   "lang": "python",
+   "group": "generators",
+   "lines": 42,
+   "header": "gen-flow-steps: docs/flows.json -> plugins/bearing/bin/flow-steps.tsv.\n\nOne line per skill step, depth first through branch options in file order,\nso brg-session can tell the next step without shipping the whole handbook.",
+   "functions": [
+    "bare",
+    "walk",
+    "main"
+   ],
+   "env": [],
+   "calls": [
+    "brg-session"
    ]
   },
   {
@@ -17203,7 +17232,7 @@
   },
   {
    "name": "lint-docs",
-   "does": "Generated docs (SKILLS.md, WORKFLOW.md, the handbook and developer guide data) match their sources",
+   "does": "Generated docs (SKILLS.md, WORKFLOW.md, the handbook, developer guide data and flow-steps.tsv) match their sources",
    "inCheck": true
   },
   {
@@ -17524,9 +17553,9 @@
   {
    "path": "tests/integration/harness_each.sh",
    "kind": "integration",
-   "lines": 342,
+   "lines": 343,
    "header": "tests/integration/harness_each.sh: generate every harness into a temporary git repository with plugins/bearing/bin/brg-harness, assert the file set and modes, pipe the recorded hook fixtures (blocked command substituted at run time) into the matching adapter and assert deny; hostile and missing-key inputs must deny rather than allow; every JSON file parses; the OpenCode plugin loads. Copilot's toolArgs is exercised as an object and as a JSON string. The summary counts a harness wired only when its config references every adapter and nothing is left as .bearing-new (exit 1 otherwise); the env…",
-   "asserts": 178
+   "asserts": 179
   },
   {
    "path": "tests/integration/plugin_split.sh",
@@ -17975,6 +18004,13 @@
    "lines": 45,
    "header": "tests/unit/session_checkpoint.sh: checkpoint content on a task branch and on a branch without an id.",
    "asserts": 13
+  },
+  {
+   "path": "tests/unit/session_resume.sh",
+   "kind": "unit",
+   "lines": 37,
+   "header": "tests/unit/session_resume.sh: next step from the timeline and the resume block, with and without a task id.",
+   "asserts": 10
   },
   {
    "path": "tests/unit/session_timeline.sh",

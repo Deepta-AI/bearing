@@ -23,7 +23,7 @@ while [ $# -gt 0 ]; do
 done
 root="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 0
 [ -d "$root/.bearing" ] || exit 0
-case "$sub" in timeline-start|timeline-close|timeline-recent|not-run|checkpoint) ;; *) exit 0;; esac
+case "$sub" in timeline-start|timeline-close|timeline-recent|not-run|checkpoint|next-step|resume) ;; *) exit 0;; esac
 st="$root/.bearing/state"; mkdir -p "$st"; tl="$st/timeline.jsonl"
 [ -n "$branch" ] || branch="$(git -C "$root" branch --show-current 2>/dev/null)"; branch="${branch:-detached}"
 esc() { # JSON string body: escape \ and ", encode \n \r \t, drop other control characters
@@ -89,5 +89,24 @@ case "$sub" in
       echo "Next (from state file): ${sn:-none}"
     } > "$out.tmp" && mv "$out.tmp" "$out"
     printf '%s\tcheckpoint\twritten\t%s\t\n' "$(date +%Y-%m-%dT%H:%M:%S)" "$(( ($(date +%s) - t0) * 1000 ))" >> "$st/gates.log";;
+  next-step)
+    steps="$(dirname "$0")/flow-steps.tsv"; [ -f "$steps" ] || exit 0
+    case "$branch" in bugfix/*|fix/*|hotfix/*) flow=bugfix;; *) flow=feature;; esac
+    done_list="$(bash "$0" timeline-recent --branch "$branch" --n 200 | sed 's/.*://; s|^/||')"
+    best=0
+    for s in $done_list; do
+      o="$(awk -F'\t' -v f="$flow" -v s="$s" '$1==f && $3==s {print $2; exit}' "$steps")"
+      [ -n "$o" ] && [ "$o" -gt "$best" ] && best="$o"
+    done
+    awk -F'\t' -v f="$flow" -v b="$best" '$1==f && $2==b+1 {print $3; exit}' "$steps";;
+  resume)
+    bash "$0" checkpoint --branch "$branch" >/dev/null 2>&1
+    cpf="$st/$(printf '%s' "$branch" | tr '/' '_').checkpoint.md"
+    [ -f "$cpf" ] && sed -n '2,12p' "$cpf"
+    task=""; re='[A-Z][A-Z0-9]*(-[0-9]+)+'
+    [[ "$branch" =~ $re ]] && task="${BASH_REMATCH[0]}"
+    last="$(bash "$0" timeline-recent --branch "$branch" --n 1)"
+    nxt="$(bash "$0" next-step --branch "$branch")"
+    echo "Resume ${task:-this branch}: last ran ${last:-nothing yet}. Next: ${nxt:-see the workflow skill}. Ask the user with AskUserQuestion whether to continue with it.";;
 esac
 exit 0
