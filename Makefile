@@ -69,12 +69,14 @@ lint-skill-size: ## Every SKILL.md is 200 lines or fewer unless bin/lint-skill-s
 	@n=0; bad=0; big=""; bl=0; na=0; al=""; af=bin/lint-skill-size.allow; \
 	for f in plugins/*/skills/*/SKILL.md; do [ -f "$$f" ] || continue; n=$$((n+1)); l=$$(wc -l < "$$f" | tr -d ' '); \
 	  [ "$$l" -le "$$bl" ] || { bl=$$l; big=$$f; }; \
-	  ceil=""; [ -f "$$af" ] && ceil=$$(awk -F'|' -v f="$$f" '$$1==f{print $$2; exit}' "$$af"); \
+	  ceil=""; [ -f "$$af" ] && ceil=$$(awk -F'|' -v f="$$f" '$$1==f{print $$2; exit}' "$$af"); case "$$ceil" in *[!0-9]*) ceil="";; esac; \
 	  if [ -n "$$ceil" ]; then na=$$((na+1)); al="$${al:+$$al, }$$f"; \
 	    [ "$$l" -gt 200 ] || { echo "stale allow entry (file is $$l lines, at or under 200): $$f"; bad=$$((bad+1)); }; \
 	    [ "$$l" -le "$$ceil" ] || { echo "over its ceiling of $$ceil lines: $$f $$l"; bad=$$((bad+1)); }; \
 	  else [ "$$l" -le 200 ] || { echo "over 200 lines: $$f $$l"; bad=$$((bad+1)); }; fi; done; \
-	if [ -f "$$af" ]; then while IFS='|' read -r p c r; do case "$$p" in ''|'#'*) continue;; esac; \
+	if [ -f "$$af" ]; then while IFS='|' read -r p c r || [ -n "$$p" ]; do case "$$p" in ''|'#'*) continue;; esac; \
+	  ok=1; case "$$c" in ''|*[!0-9]*) ok=0;; esac; \
+	  if [ "$$ok" -eq 0 ] || [ -z "$$r" ]; then echo "malformed allow entry (needs path|ceiling|reason): $$p|$$c|$$r"; bad=$$((bad+1)); continue; fi; \
 	  [ -f "$$p" ] || { echo "stale allow entry (file does not exist): $$p"; bad=$$((bad+1)); }; done < "$$af"; fi; \
 	[ "$$n" -gt 0 ] || { echo "lint-skill-size: 0 skills, nothing checked" >&2; exit 1; }; \
 	[ "$$bad" -eq 0 ] || { echo "lint-skill-size: $$bad problems in $$n skills"; exit 1; }; \

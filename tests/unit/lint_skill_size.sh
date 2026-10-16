@@ -39,6 +39,20 @@ for i in $(seq 1 205); do echo "l$i"; done > "$w/plugins/p/skills/a/SKILL.md"
 assert_exit 2 make -s -C "$w" lint-skill-size
 assert_contains "$T_OUT" "stale allow entry (file does not exist): plugins/p/skills/gone/SKILL.md"
 t_end
+t_begin "a malformed allow entry fails with a message"
+echo "plugins/p/skills/a/SKILL.md|abc|reason" > "$w/bin/lint-skill-size.allow"
+for i in $(seq 1 150); do echo "l$i"; done > "$w/plugins/p/skills/a/SKILL.md"
+assert_exit 2 make -s -C "$w" lint-skill-size
+assert_contains "$T_OUT" "malformed allow entry (needs path|ceiling|reason): plugins/p/skills/a/SKILL.md|abc|reason"
+echo "plugins/p/skills/a/SKILL.md|" > "$w/bin/lint-skill-size.allow"
+assert_exit 2 make -s -C "$w" lint-skill-size
+assert_contains "$T_OUT" "malformed allow entry"
+t_end
+t_begin "an unterminated last allow line is still read"
+printf 'plugins/p/skills/gone/SKILL.md|210|gone' > "$w/bin/lint-skill-size.allow"
+assert_exit 2 make -s -C "$w" lint-skill-size
+assert_contains "$T_OUT" "stale allow entry (file does not exist): plugins/p/skills/gone/SKILL.md"
+t_end
 t_begin "zero skills fails"
 rm -rf "$w/plugins/p/skills/a"
 assert_exit 2 make -s -C "$w" lint-skill-size

@@ -7401,7 +7401,7 @@
     },
     {
      "path": "references/workload.md",
-     "lines": 9
+     "lines": 11
     },
     {
      "path": "templates/k6-script.js",
@@ -17811,9 +17811,9 @@
   {
    "path": "tests/unit/lint_skill_size.sh",
    "kind": "unit",
-   "lines": 47,
+   "lines": 61,
    "header": "tests/unit/lint_skill_size.sh: the size lint fails on a 201-line skill and on zero skills, honours bin/lint-skill-size.allow ceilings, fails stale entries, and passes with counts otherwise.",
-   "asserts": 14
+   "asserts": 20
   },
   {
    "path": "tests/unit/lint_tools.sh",
