@@ -6,20 +6,12 @@ allowed-tools: Read, Grep, Glob, Bash(pnpm install:*), Bash(pnpm run:*), Bash(pn
 
 # nextjs
 
-The Next.js stack on this standard: Next 16 App Router with React 19 and
-Cache Components (`"use cache"`, `cacheLife`, `cacheTag`), server
-components by default and `"use client"` only where a hook or an
-event handler needs it, server actions validated with Zod after an
-authorisation check, TypeScript strict, Tailwind v4 with shadcn/ui, Zod at
-every boundary, env split into public (`src/env.ts`) and server-only
-(`src/env.server.ts`), vitest plus Testing Library for units, Playwright
-against the production build, ESLint flat config (`eslint-config-next`
-plus type-checked rules), Prettier, pnpm, and a standalone-output image.
-
-Not this: `react` is the client-only stack (Vite, TanStack). Choose
-Next when pages must render on the server (SEO, first paint, data close
-to the request); choose React when the app lives behind a login and an
-API already exists.
+The Next.js stack on this standard: Next 16 App Router with React 19 and Cache
+Components, server components by default, Zod-validated server actions,
+Tailwind v4 with shadcn/ui, vitest and Playwright, pnpm. Choose Next when
+pages must render on the server; choose React (`react`) when the app lives
+behind a login and an API already exists.
+Detail: references/stack-and-versions.md
 
 ## Inputs
 
@@ -43,48 +35,22 @@ API already exists.
 
 ## Layout
 
-```
-src/app/layout.tsx                 root layout: metadata, viewport, html and body
-src/app/page.tsx                   a route; server component unless it says otherwise
-src/app/{loading,error,global-error,not-found}.tsx   route states; error files are client
-src/app/api/<probe>/route.ts       route handlers: /api/healthz, /api/readyz, webhooks
-src/features/<feature>/schemas.ts  Zod schemas; types are z.infer
-src/features/<feature>/api.ts      server-only fetch functions with an explicit cache option
-src/features/<feature>/actions.ts  "use server": authorise, validate, act, return state
-src/features/<feature>/components/ server components by default; "use client" per file
-src/features/<feature>/screens/    <id>-<name>.screen.tsx: every state of a screen from fixtures
-src/design/                        the design gallery at /__design (dev, or DESIGN_GALLERY=1)
-src/app/%5F%5Fdesign/              its routes; %5F is how the App Router spells a leading _
-src/design/screens.generated.ts    the screen list, written by make design-registry, checked by make check
-src/components/ui/                 shadcn output (33 components): added with the CLI, never hand-edited
-src/lib/                           api client (server-only), auth, utils (cn)
-src/env.ts, src/env.server.ts      public and server configuration, both Zod-parsed
-src/proxy.ts                       request id, redirects, rewrites; nothing heavy
-e2e/                               Playwright specs against next build and next start
-Makefile                           the only entry point: help setup dev check fix test doctor
-```
+Feature code under `src/features/<feature>/` (schemas, api, actions,
+components, screens), routes under `src/app/`, shadcn output in
+`src/components/ui/` (added with the CLI, never hand-edited), the `Makefile`
+the only entry point.
+Detail: references/layout-and-owned-data.md
 
 ## When the app owns its data
 
-The scaffold assumes a separate API (`API_URL`, `src/lib/api.ts`, the
-health card that calls it). When the Next.js app is itself the backend (its
-route handlers or actions write a database, as with Supabase or a
-Postgres driver, and an ADR says so), replace that layer rather than
-keep it beside the real one:
-
-- `src/server/` (every file imports `server-only`): `env.ts` parsed on
-  first use, not at module load, so `next build` needs no production
-  secret; `http/` with the one error type and the route wrapper (request
-  id, body cap, content type, schema parse, one mapping to the contract's
-  envelope); `db/` with the clients; `providers/` with a port and a fake
-  per third party.
-- Delete `src/env.server.ts`, `src/lib/api.ts`, the scaffold's
-  placeholder auth and its example features once nothing imports them;
-  `readyz` asks the database, not an API.
-- Migrations live with the database's tool (`supabase/migrations/`, a
-  `migrations/` folder for a driver), tested on a real database by a
-  `make test-db` target that fails on zero test files; it is a CI job, not
-  part of `make check`, because it needs Docker.
+The scaffold assumes a separate API. When the Next.js app is itself the
+backend (its handlers or actions write a database, and an ADR says so),
+replace that layer rather than keep it beside the real one: `src/server/`
+(every file imports `server-only`), delete the placeholder `src/env.server.ts`,
+`src/lib/api.ts`, auth and example features once nothing imports them, and
+test migrations on a real database with a `make test-db` target that fails
+on zero test files (a CI job, not part of `make check`).
+Detail: references/layout-and-owned-data.md
 
 ## On a foreign layout
 
@@ -93,24 +59,17 @@ Hard rules anywhere: 1, 2, 3, 4 and 8. Advisory: the directory layout,
 is configured), pnpm and the Makefile targets: use the styling, data
 library and package manager the repository already has (a Pages Router
 app keeps `getServerSideProps` until an ADR moves it); propose a switch
-in an ADR, never inside a feature change. Rule 4 in its written form needs
-`cacheComponents`; an app without it (Next 15, or 16 not yet migrated)
-keeps the fetch-level model, where every `fetch` names its cache and a
-mutation calls `revalidateTag` or `revalidatePath`. A Next 15 app keeps
-`middleware.ts`. Keep the majors the repository pins and write their API:
-Next 15 has no `updateTag`, `"use cache"`, `cacheLife` or `cacheTag`; Zod 3
-has `parsed.error.flatten()` and `z.string().email()`, where Zod 4 has
-`z.flattenError`, `z.prettifyError` and `z.email()`. Check `package.json`
-before the first line. Say which rule was relaxed.
+Rule 4 needs `cacheComponents`; without it keep the fetch-level model (every
+`fetch` names its cache; a mutation calls `revalidateTag` or
+`revalidatePath`). Keep the majors the repository pins and write their API;
+check `package.json` before the first line. Say which rule was relaxed.
+Detail: references/stack-and-versions.md
 
-Screens as code: screen-design writes each screen as a `*.screen.tsx`
-that renders the real view components with fixture props, and the route
-wires the same components to live data. The gallery is a client
-component, so a screen file reaches the browser with all it imports:
-import the presentational view (in a file of its own), never the server
-component that fetches or anything that imports `server-only`. Next.js
-has no `import.meta.glob`, so `make design-registry` lists the screens;
-`make dev` runs it first and `make check` fails when the list is stale.
+Screens as code: a `*.screen.tsx` renders the real view components with
+fixture props. Import the presentational view, never the server component
+that fetches or anything that imports `server-only`; `make design-registry`
+lists the screens and `make check` fails when the list is stale.
+Detail: references/layout-and-owned-data.md
 
 ## Rules that matter most
 
@@ -171,40 +130,31 @@ pnpm dlx shadcn@4.21.0 add button   # add a shadcn component
 
 ## Traps a careful generalist still misses
 
-- Every exported function in a `"use server"` file is a POST endpoint,
-  callable from any browser with any arguments, whether or not a form uses
-  it. A helper such as `removeInvoices(orgId, ids)` exported beside the
-  actions is an open door; keep helpers unexported or in a `server-only`
-  module.
-- `action.bind(null, orgId)` in a server component does not make `orgId`
-  trusted: the bound value travels through the browser, and the action is
-  an endpoint any client can call with any first argument. Hidden inputs
-  are the same. Neither carries authority; read the tenant from the
-  session inside the action.
-- `redirect()` and `notFound()` work by throwing. A `try` around
-  `requireSession()` or around code that redirects turns "signed out" into
-  a generic error message; keep them outside the `try` or call
-  `unstable_rethrow(e)` first in the `catch`.
-- React 19 resets an uncontrolled form when its action settles, so a
-  failed save wipes what the user typed and shows the old `defaultValue`.
-  Return the submitted values in the error state and render them as the
-  defaults (key the form on the state so they apply).
+- Every exported function in a `"use server"` file is a POST endpoint, callable
+  by any browser with any arguments; keep helpers unexported or in a
+  `server-only` module.
+- `action.bind(null, orgId)` and hidden inputs do not make `orgId` trusted:
+  neither carries authority; read the tenant from the session inside the
+  action.
+- `redirect()` and `notFound()` work by throwing: keep them outside the `try`
+  or call `unstable_rethrow(e)` first in the `catch`.
+- React 19 resets an uncontrolled form when its action settles: return the
+  submitted values in the error state and render them as the defaults.
+  Detail: references/traps-actions.md
 - Tags match exactly: the mutation expires the string the read declared
   (`invoices:<orgId>`, not `invoices`), for every cached read the write
   changed (lists, summaries, counts).
 - A `"use cache"` entry is keyed on its arguments only. Anything it reads
   from module scope or a closure over request data is shared by every
   caller: one tenant's result served to another.
-- Batch actions: one ledger failure in `Promise.all` throws away the
-  outcome of the rest. Settle each item, return which succeeded and which
-  failed, expire the tags anyway, and keep the batch size bounded.
+- Batch actions: settle each item, return which succeeded and which failed,
+  expire the tags anyway, and bound the batch size.
 - A read schema stays loose for legacy rows; the write schema carries the
-  current rules. A legacy row the write rules reject cannot be edited in
-  place: say so on the page and refuse it in the action.
-- Tests prove the boundary, not the mock: the "another tenant" test stubs
-  the API (or `fetch`) to return a resource owned by someone else and
-  asserts no write was sent. Stubbing your own ownership helper to say
-  "not yours" tests nothing.
+  current rules.
+- Tests prove the boundary, not the mock: the "another tenant" test stubs the
+  API (or `fetch`) to return someone else's resource and asserts no write was
+  sent.
+  Detail: references/traps-batch-and-tests.md
 
 ## Reviewing
 
