@@ -1627,6 +1627,7 @@ esac
     # the last passing check. Without a start mark, or in a repository whose
     # Makefile never writes the marker, there is nothing fair to hold it to.
     [ -n "$sid" ] && [ -f "$start" ] && grep -qs 'check-passed' "$root/Makefile" || { gate_log stop-gate reminder-only "no session mark or marker"; exec bash "$0" stop; }
+    [ -f "$(dirname "$0")/brg-changed" ] || { gate_log stop-gate not-run "missing brg-changed"; exit 0; }
     cc="$state/.check-changed-passed"
     newest="$marker"; [ -f "$cc" ] && { [ ! -f "$marker" ] || [ "$cc" -nt "$marker" ]; } && newest="$cc"
     fresh=0

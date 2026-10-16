@@ -2,7 +2,7 @@
 # tests/unit/guard_harness_gates.sh: the three harness gates. check-file lints
 # one edited file (stub linters on a fake PATH, the Makefile override, a tool
 # that cannot run); stop-gate holds a session to the files it changed since
-# make check last passed, once, and never loops; precompact writes a snapshot
+# the last check, once, and never loops; precompact writes a snapshot
 # that session --source compact reads back. Then the Claude Code adapters turn
 # a gate's exit 2 into {"decision": "block"}.
 set -u
