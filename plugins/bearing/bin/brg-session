@@ -10,7 +10,7 @@
 # Runs on bash 3.2; needs git; uses jq when present. Exit 0 always.
 set -u
 sub="${1:-}"; shift || true
-id=""; skill=""; branch=""; n=3; source=""
+id=""; skill=""; branch=""; n=3; source=""; nextarg=""; has_next=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --id) id="${2:-}"; shift 2 || shift;;
@@ -18,6 +18,7 @@ while [ $# -gt 0 ]; do
     --branch) branch="${2:-}"; shift 2 || shift;;
     --n) n="${2:-3}"; shift 2 || shift;;
     --source) source="${2:-}"; shift 2 || shift;;
+    --next) nextarg="${2:-}"; has_next=1; shift 2 || shift;;
     *) shift;;
   esac
 done
@@ -72,7 +73,7 @@ case "$sub" in
     [ "$base" = none ] || ab="$(git -C "$root" rev-list --left-right --count "$base...HEAD" 2>/dev/null | awk '{print $2"/"$1}')"
     unc="$(git -C "$root" status --porcelain 2>/dev/null | wc -l | tr -d ' ')"
     recent="$(bash "$0" timeline-recent --branch "$branch" --n 3 2>/dev/null | tr '\n' ',' | sed 's/,$//; s/,/, /g')"
-    nxt="$(bash "$0" next-step --branch "$branch" 2>/dev/null)"
+    if [ "$has_next" = 1 ]; then nxt="$nextarg"; else nxt="$(bash "$0" next-step --branch "$branch" 2>/dev/null)"; fi
     bf="$(printf '%s' "$branch" | tr '/' '_')"
     sf="$st/$bf.md"; sn=""
     [ -f "$sf" ] && sn="$(grep -m1 '^Next:' "$sf" | sed 's/^Next: *//')"
@@ -93,20 +94,22 @@ case "$sub" in
     steps="$(dirname "$0")/flow-steps.tsv"; [ -f "$steps" ] || exit 0
     case "$branch" in bugfix/*|fix/*|hotfix/*) flow=bugfix;; *) flow=feature;; esac
     done_list="$(bash "$0" timeline-recent --branch "$branch" --n 200 | sed 's/.*://; s|^/||')"
-    best=0
-    for s in $done_list; do
-      o="$(awk -F'\t' -v f="$flow" -v s="$s" '$1==f && $3==s {print $2; exit}' "$steps")"
-      [ -n "$o" ] && [ "$o" -gt "$best" ] && best="$o"
-    done
-    awk -F'\t' -v f="$flow" -v b="$best" '$1==f && $2==b+1 {print $3; exit}' "$steps";;
+    printf '%s\n' "$done_list" | awk -F'\t' -v f="$flow" '
+      FNR==NR { if ($1==f) { name[$2]=$3; ord[$3]=$2; if ($2+0>max) max=$2+0 } next }
+      ($0 in ord) && ord[$0]+0>best { best=ord[$0]+0 }
+      END { if (best+1 in name) print name[best+1] }' "$steps" -;;
   resume)
-    bash "$0" checkpoint --branch "$branch" >/dev/null 2>&1
-    cpf="$st/$(printf '%s' "$branch" | tr '/' '_').checkpoint.md"
+    bf="$(printf '%s' "$branch" | tr '/' '_')"
+    last="$(bash "$0" timeline-recent --branch "$branch" --n 1)"
+    case "$branch" in main|master|develop|release/*|detached)
+      [ -n "$last" ] || [ -f "$st/$bf.md" ] || exit 0;;
+    esac
+    nxt="$(bash "$0" next-step --branch "$branch")"
+    bash "$0" checkpoint --branch "$branch" --next "$nxt" >/dev/null 2>&1
+    cpf="$st/$bf.checkpoint.md"
     [ -f "$cpf" ] && sed -n '2,12p' "$cpf"
     task=""; re='[A-Z][A-Z0-9]*(-[0-9]+)+'
     [[ "$branch" =~ $re ]] && task="${BASH_REMATCH[0]}"
-    last="$(bash "$0" timeline-recent --branch "$branch" --n 1)"
-    nxt="$(bash "$0" next-step --branch "$branch")"
     echo "Resume ${task:-this branch}: last ran ${last:-nothing yet}. Next: ${nxt:-see the workflow skill}. Ask the user with AskUserQuestion whether to continue with it.";;
 esac
 exit 0

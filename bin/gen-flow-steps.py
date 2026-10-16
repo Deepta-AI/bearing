@@ -31,6 +31,8 @@ def main():
     for f in flows:
         acc = []
         walk(f.get("steps", []), acc)
+        if not acc:
+            raise SystemExit(f"gen-flow-steps: flow {f['id']} has 0 steps")
         lines += [f"{f['id']}\t{i}\t{s}" for i, s in enumerate(acc, 1)]
     if not lines:
         raise SystemExit("gen-flow-steps: 0 steps found in docs/flows.json")
