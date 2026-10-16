@@ -15,15 +15,9 @@ unit tests, ESLint flat config plus Prettier, pnpm with a hoisted
 `node_modules`. One codebase ships iOS and Android.
 
 NativeWind over `StyleSheet`: design tokens live in one `tailwind.config.js`
-under the role names the web lanes use (`background`, `foreground`,
-`primary`, `destructive`, `border`), dark mode and platform variants are
-class prefixes instead of branches, and it compiles to `StyleSheet` at
-build time so there is no runtime cost. The web lanes are on Tailwind v4,
-which has no config file: their tokens are CSS variables in the global
-stylesheet. NativeWind 4 still compiles against Tailwind v3, so the two
-files share names, not a file; a token changed on one side changes on the
-other in the same MR. `StyleSheet` is still right for one-off
-animated or measured styles.
+under the web lanes' role names; a token changed on one side changes on the
+other in the same MR.
+Detail: references/styling-and-layout.md
 
 ## Inputs
 
@@ -52,37 +46,21 @@ installed, load it with the Skill tool for its job; when
 it is not, work from the Expo changelog for the target SDK and name the
 missing skill in the report.
 
-- `expo-upgrade`: an Expo SDK bump, or replacing a package Expo has
-  deprecated (expo-av, AsyncStorage, direct `@react-navigation/*`
-  imports). Its version floors win over this lane's pins; the gate after
-  it is `make check` then `make doctor`. Its prebuild and cache steps
-  apply only where `ios/` and `android/` are committed.
-- `expo-router`: native navigation UI (stack headers, modals, form sheets,
-  NativeTabs, link previews and menus) and the SDK 56+ rule to import
-  from `expo-router/react-navigation`, never `@react-navigation/*`. Rule 5
-  still holds. Route files under `app/` are URLs and follow expo-router's
-  kebab-case (`app/order-history.tsx`); component files everywhere else
-  keep this lane's naming, the component's name.
-- `expo-dev-client` is not loaded: its commands are EAS cloud builds, some
-  submitting to TestFlight, which the repository settings deny and which
-  are the engineer's call. A local dev client comes from `make ios` or
+- `expo-upgrade`: an Expo SDK bump or a deprecated package; its version floors
+  win, the gate after it is `make check` then `make doctor`.
+- `expo-router`: native navigation UI; import from `expo-router/react-navigation`,
+  never `@react-navigation/*`. Rule 5 still holds.
+- `expo-dev-client` is not loaded: its commands are EAS cloud builds the
+  repository settings deny. A local dev client comes from `make ios` or
   `make android`.
+
+Detail: references/pack-skills.md
 
 ## Layout
 
-```
-app/_layout.tsx                 root providers: QueryClient, SafeArea, Stack
-app/<route>.tsx                 expo-router screens; a screen wires hooks to components
-src/features/<feature>/api.ts   fetch calls that return Zod-parsed types
-src/features/<feature>/schemas.ts  Zod schemas and the types derived from them
-src/features/<feature>/hooks.ts    useQuery / useMutation wrappers, query keys
-src/features/<feature>/components/ feature screens' building blocks
-src/components/                 shared presentational components
-src/lib/                        api client, query client, secure store, stores
-assets/                         fonts, images, splash; nothing generated
-.maestro/                       one flow per user-facing journey
-Makefile                        the only entry point: help setup dev check fix test doctor
-```
+Screens under `app/`, feature code under `src/features/<feature>/` (api, schemas,
+hooks, components), the `Makefile` the only entry point.
+Detail: references/styling-and-layout.md
 
 ## On a foreign layout
 
@@ -129,81 +107,44 @@ Each of these passes a code read and fails a real customer. Check the ones
 the task touches, in the code you write and in any diff you review.
 
 Reading the repository
-- Docs disagree. The API reference and its changelog beat a README line;
-  an Accepted ADR beats both. Read the changelog to its newest entry: a
-  status, field or limit added there and missing from the body is still
-  live. Say which document you followed and correct or flag the stale one.
-- A `z.enum` over a server-owned value (status, type) turns one new value
-  into a failed page for that customer. Accept every value the docs and
-  changelog name, and render an unknown one as a neutral label
-  (`.catch()`, or `z.string()` with a known-label map), never a throw.
+- Docs disagree: the API reference and its changelog beat a README; an
+  Accepted ADR beats both. A `z.enum` over a server-owned value fails a page
+  on one new value; render an unknown one as a neutral label, never a throw.
+  Detail: references/traps-reading-and-writes.md
 
 Paginated lists (`useInfiniteQuery`)
-- `getNextPageParam` returns `undefined` when the cursor is null; the list
-  calls `fetchNextPage` from `onEndReached` only when `hasNextPage &&
-  !isFetchingNextPage` (it fires several times per scroll).
-- A failed next page sets `isError` while `data` still holds the pages
-  already loaded. Check `data` before `isError`, show the page error as a
-  footer with retry (`isFetchNextPageError`), and never replace 60 loaded
-  rows with a full-screen error.
-- Refetch on focus refetches every loaded page in sequence: a customer 20
-  pages deep makes 20 requests on each return to the app. Set `maxPages`,
-  or a `staleTime` with a reason, on long histories.
-- Keys come from the item id; flatten pages once (`select` or `useMemo`).
+- `getNextPageParam` returns `undefined` at a null cursor; a failed next page
+  shows a footer retry, never a full-screen error over loaded rows; set
+  `maxPages` on long histories.
+  Detail: references/traps-lists-and-links.md
 
 Deep links and sessions
-- A signed-out customer who opens a link must land on that target after
-  sign in. The gate passes the path it blocked (`usePathname` plus params)
-  to sign in as a `next` param; sign in accepts `next` only as an in-app
-  path (one leading `/`, no `//`, no scheme, not an auth route, ideally
-  matched against the routes that may be linked) and `router.replace`s to
-  it, else to home.
-- A cold-start deep link has no screen under it: export `unstable_settings
-  = { initialRouteName: '(tabs)' }` from the group layout so Back returns
-  to the tabs instead of closing the app.
-- Sign out clears the query cache (`queryClient.clear()`, and any persisted
-  cache). Otherwise the next person to sign in on a shared phone sees the
-  previous customer's data until the refetch lands.
+- A signed-out customer who opens a link lands on that target after sign in
+  through a validated in-app `next` param. Sign out clears the query cache
+  (`queryClient.clear()`, and any persisted cache).
+  Detail: references/traps-lists-and-links.md
 
 Writes
 - A submit is a `useMutation`; the button is disabled while `isPending`,
   and a failure shows a message with retry.
-- A POST that creates something carries an idempotency key generated once
-  per user intent (when the form opens or on first submit), kept across
-  retries, and replaced only after success. A key made per request does
-  not stop the duplicate a timeout-then-retry creates.
-- Required choices are required: never default a missing reason or
-  selection to a value the customer did not pick.
-- Show an action only when the server will accept it (a return window, a
-  status): compute it from the data, and map the refusal (422) to copy.
+- A POST that creates something carries an idempotency key generated once per
+  user intent, kept across retries. Never default a required choice.
+  Detail: references/traps-reading-and-writes.md
 
 Uploads and media
-- Files go to a presigned URL the API issues; the app never holds a
-  storage key or signing secret, never builds a bucket URL, and sends the
-  server's upload id back, not a key it made up. `Date.now()` in a key
-  collides under `Promise.all`.
-- Camera photos at `quality: 1` are often over 5 MB. Resize (expo-image-
-  manipulator when installed) or lower `quality`, then check the size
-  (`asset.fileSize` can be undefined; stat the file) against the server's
-  limit before asking for the URL.
+- Files go to a presigned URL the API issues; the app never holds a storage
+  key or signing secret. Resize camera photos and check the size against the
+  server limit first. Detail: references/traps-uploads-native-tests.md.
 
 Native changes
-- A new native module (expo-image-picker, MMKV, anything with a config
-  plugin) needs its plugin entry and usage strings in `app.json`; iOS
-  terminates the app the first time the camera or library is opened
-  without `NSCameraUsageDescription` or `NSPhotoLibraryUsageDescription`.
-- With expo-updates and `runtimeVersion: { policy: "appVersion" }`, a new
-  native module under an unchanged `version` lets an `eas update` reach
-  binaries that lack it: the import throws, at launch when it sits in a
-  layout. Bump `version` (or use the `fingerprint` policy) and ship a
-  store build before any update that needs it.
+- A new native module needs its plugin entry and usage strings in `app.json`;
+  under `runtimeVersion` policy `appVersion`, bump `version` (or use
+  `fingerprint`) and ship a store build before any `eas update` that needs it.
+  Detail: references/traps-uploads-native-tests.md.
 
 Tests that count
-- A test of a schema or a URL helper does not test the feature. Test the
-  hook with `renderHook` and a fresh `QueryClient` (`retry: false`) with
-  the `api.ts` module mocked (next page requested with the cursor, stops
-  at null), and the screen with Testing Library (rows render, an invalid
-  id shows the error and calls nothing).
+- Test the hook with `renderHook` and the screen with Testing Library, not
+  just a schema. Detail: references/traps-uploads-native-tests.md.
 
 Reviews
 - Report only what the branch introduced: diff against the merge base and
