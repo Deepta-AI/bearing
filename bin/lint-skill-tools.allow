@@ -18,3 +18,38 @@ release|pnpm add|a README install line the skill greps for
 release|go get|a README install line the skill greps for
 workflow|git init|a next action named for the engineer
 docs-drift|make test|a docs claim the skill checks against the recipe, never runs
+# References and bodies that mention a command in prose, a rule or a recipe text.
+flutter|flutter run|a guideline sentence on the build-define file, never run by the skill
+flutter|flutter build|a guideline sentence on the build-define file, never run by the skill
+flutter|flutter create|a review-checklist line about files it regenerates, never run
+nextjs|pnpm dlx shadcn|a rule telling the engineer how to add a component, never run by the skill
+react|pnpm dlx shadcn|a rule telling the engineer how to add a component, never run by the skill
+react-native|npx expo install --fix|a rule naming the fix for an out-of-range dependency, never run
+data-pipeline|dbt run|a guideline sentence on how models are run, never run by the skill
+data-pipeline|dbt deps|a guideline sentence on package install, never run by the skill
+data-pipeline|dbt source freshness|a guideline sentence on a freshness task, never run by the skill
+data-pipeline|dbt docs generate|a guideline sentence on the docs artifact, never run by the skill
+data-pipeline|airflow backfill create|a backfill command named for the engineer; backfills are run by the engineer
+data-pipeline|uv lock|a rule that the lock file is regenerated, never run by the skill
+python|uv lock|a rule that the lock file is regenerated, never run by the skill
+python|alembic upgrade head|a test-setup sentence in the guidelines, never run by the skill
+go|docker compose|a test-setup sentence in the guidelines, never run by the skill
+go|go 1.21|the text of a go.mod directive in a review item, not a command
+infra|terraform test|a review rule about test files, never run by the skill
+database|diff A B|a verification recipe the scaffolds ship, named for the engineer
+database|make migrate-verify|a target the scaffolds ship; the skill names it and never runs it
+database|goose up-to|a migration step named in a rollback recipe for the engineer
+database|alembic upgrade|a migration step named in a rollback recipe for the engineer
+harness-setup|docker exec|a wrapper command the permission matcher follows, named as an example
+llm-fine-tuning|make train-|a target the recipe adds to the Makefile
+test-heal|make dev|a Makefile target the engineer may need running; the skill grants only db and migrate
+definition-of-done|pnpm exec vitest run|an example of the test command passed to red_proof.sh, the granted entry point
+gate-audit|git add|the body of a pre-commit hook quoted as a defect, never run
+merge-request|git add|a line printed for the engineer to commit the progress file
+merge-request|git commit -m|a line printed for the engineer to commit the progress file
+observability|docker compose -f observability/docker-compose.observability.yml up|the recipe text written into the observability-up target
+openapi-spec|docker compose up -d --wait|a step of the CI job the skill writes, not run by the skill
+openapi-spec|make migrate|a step of the CI job the skill writes, not run by the skill
+release|pip install|a README install line the skill greps for
+release|uv add|a README install line the skill greps for
+harness-setup|git -C|reads the kit remote URL; lint-skills forbids a git -C grant, so the call prompts

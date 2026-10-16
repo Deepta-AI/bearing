@@ -64,6 +64,35 @@ assert_exit 1 python3 "$LINT" "$d/missing" "$empty"
 assert_contains "$T_OUT" "no skills directory"
 t_end
 
+t_begin "a reference file is linted against the SKILL.md grants and named in findings"
+skill "$d/r" sk-ref "Read, Bash(git diff:*)" '1. Run `git diff --stat`.'
+mkdir -p "$d/r/sk-ref/references"
+printf '# Detail\n\nRun `git diff --stat` and `make check` here.\n' > "$d/r/sk-ref/references/x.md"
+assert_exit 1 python3 "$LINT" "$d/r" "$empty"
+assert_contains "$T_OUT" "sk-ref/references/x.md:3: \`make check\` is not granted"
+assert_not_contains "$T_OUT" "git diff --stat\` is not granted"
+assert_contains "$T_OUT" "1 reference files"
+t_end
+
+t_begin "a code span wrapped across lines is a finding in SKILL.md and in a reference"
+skill "$d/w" sk-wrap "Read, Bash(git diff:*)" '1. Run `git diff
+   --stat` now.'
+mkdir -p "$d/w/sk-wrap/references"
+printf '# Detail\n\n```bash\ngit diff --stat\n```\n\nSee `git diff\n--stat` too.\n' > "$d/w/sk-wrap/references/y.md"
+assert_exit 1 python3 "$LINT" "$d/w" "$empty"
+assert_contains "$T_OUT" "sk-wrap/SKILL.md:11: code span wrapped across lines"
+assert_contains "$T_OUT" "sk-wrap/references/y.md:7: code span wrapped across lines"
+assert_contains "$T_OUT" "2 problems"
+t_end
+
+t_begin "a clean skill with a clean reference passes and counts the reference"
+skill "$d/k" sk-clean "Read, Bash(git diff:*)" '1. Run `git diff --stat`.'
+mkdir -p "$d/k/sk-clean/references"
+printf '# Detail\n\nRun `git diff --stat`; the file `src/a.go` is prose.\n' > "$d/k/sk-clean/references/z.md"
+assert_exit 0 python3 "$LINT" "$d/k" "$empty"
+assert_contains "$T_OUT" "1 skills, 1 reference files, 2 commands examined"
+t_end
+
 t_begin "the kit's own skills pass"
 assert_exit 0 python3 "$LINT"
 assert_contains "$T_OUT" "0 problems"
