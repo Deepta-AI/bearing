@@ -66,84 +66,59 @@ decisions (ADRs, API docs, lint config) outrank every default below.
    renders raw braces. Fix a placeholder that would crash or render
    raw, and name every key; a README saying a language is "complete"
    is a claim to check, not a fact.
-3. Count the hard-coded strings. Grep, per stack, for text a user would
-   read: JSX text nodes and `placeholder=`, `title=`, `aria-label=`
-   literals, and strings built with `+` or template literals around a
-   value (web, RN); `Text("`, `label = "`, `contentDescription = "`,
-   `getString(...) +`, notification titles and `android:text="`
-   literals in XML (Android); `Text("`, `Label("`, `Button("`,
-   `.navigationTitle("` in SwiftUI (iOS). Also enum names or API
-   `message` fields rendered as text. Exclude tests, storybook and
+3. Count the hard-coded strings. Grep, per stack, for text a user would read,
+   strings built with `+` or template literals around a value, and enum names
+   or API `message` fields rendered as text. Exclude tests, storybook and
    fixtures. Print the count before any change.
-4. Set up the catalog if missing: react-i18next with ICU
-   (`i18next-icu`) or an existing in-repo lookup on web and RN;
-   `res/values/strings.xml` plus `values-<lang>/` with `<plurals>` on
-   Android; `Localizable.xcstrings` with `String(localized:)` on iOS.
-   Keys dotted by feature and meaning (`invoice.list.empty`), never the
-   English text. Keep every existing key: a key the code no longer
-   references is reported as unused, never deleted in this task, since
-   the server, a flavour or the next release may use it.
-   Import existing translations by exact source match only. A vendor
-   line whose English source differs from today's copy ("Save" against
-   today's "Save changes") is stale: it goes on the worklist
-   as needing re-translation, never into the catalog as current. A
-   placeholder is code, not text: a translated or renamed placeholder
-   is corrected to the code's name and flagged for the translator to
-   confirm. Imported text keeps its provenance (vendor, human); only
-   text you write yourself is a machine draft.
-5. Move every string into the catalog and replace the literal with the
-   lookup, keeping the copy word for word. An existing key whose text
-   differs from the literal (key `Cancel` for a `Cancel order` literal) is
-   not a match; add a new key, because reusing it changes the copy.
-   Never drop a string instead of moving it: text shown before the
-   locale is known (a loading state before the profile arrives)
-   resolves from the browser or device, then the default, and keeps
-   its accessible text. One message per sentence with
-   placeholders, never fragments joined in code; a count is a plural
-   message (ICU `plural`, `<plurals>` read with `pluralStringResource`
-   or `getQuantityString`, iOS plural variation), including counts
-   already in the catalog as plain strings ("Arriving in %1$d minutes"
-   becomes a plural in every locale file). Do not swap a count for a
-   different phrasing (`Due in 1 day` must not become `Due tomorrow`
-   through `RelativeTimeFormat`) unless asked: that is a copy change.
-   Dates, numbers and money through `Intl.DateTimeFormat`,
-   `Intl.NumberFormat`, `NumberFormat.getCurrencyInstance` with
-   `Currency.getInstance(code)`, `DateTimeFormatter.ofLocalizedDateTime`
-   or `FormatStyle`, always passing the resolved locale. Minor units
-   convert by the currency's own fraction digits
-   (`Currency.defaultFractionDigits`, or the formatter's
-   `resolvedOptions().maximumFractionDigits`), not a hard-coded 100:
-   BHD, KWD and OMR have 3, JPY has 0. Keep the time zone
-   the old code used (UTC stays UTC) unless a decision says otherwise;
-   a visible change in date shape or zone is listed as a Proposed
-   decision in the report. Update the tests that asserted the old
-   output to the new output with an explicit locale; never delete a
-   money or date test without its replacement.
+   Detail: references/catalog-and-formatting.md
+4. Set up the catalog if missing (react-i18next with ICU or an existing in-repo
+   lookup on web and RN; `res/values/strings.xml` plus `values-<lang>/` with
+   `<plurals>` on Android; `Localizable.xcstrings` with `String(localized:)` on
+   iOS). Keys dotted by feature and meaning (`invoice.list.empty`), never the
+   English text. Keep every existing key: a key the code no longer references
+   is reported as unused, never deleted in this task. Import existing
+   translations by exact source match only: a vendor line whose English source
+   differs from today's copy is stale and goes on the worklist as needing
+   re-translation, never into the catalog as current; a translated or renamed
+   placeholder is corrected to the code's name and flagged for the translator;
+   imported text keeps its provenance, and only text you write yourself is a
+   machine draft. Detail: references/catalog-and-formatting.md
+5. Move every string into the catalog and replace the literal with the lookup,
+   keeping the copy word for word. An existing key whose text differs from the
+   literal is not a match; add a new key, because reusing it changes the copy.
+   Never drop a string instead of moving it: text shown before the locale is
+   known resolves from the browser or device, then the default, and keeps its
+   accessible text. One message per sentence with placeholders, never
+   fragments joined in code; a count is a plural message, including counts
+   already in the catalog as plain strings. Do not swap a count for a different
+   phrasing unless asked: that is a copy change. Dates, numbers and money go
+   through the platform formatters, always passing the resolved locale; minor
+   units convert by the currency's own fraction digits, not a hard-coded 100.
+   Keep the time zone the old code used unless a decision says otherwise; a
+   visible change in date shape or zone is listed as a Proposed decision in the
+   report. Update the tests that asserted the old output to the new output with
+   an explicit locale; never delete a money or date test without its
+   replacement. Detail: references/catalog-and-formatting.md
 6. Errors: the UI never shows a server `message` meant for logs. Map
    each documented `code` or `messageKey` to a catalog message, one
    key per code, with a generic catalog message for any unknown code
    and for network failures. Test the mapping including the unknown
    case.
-7. Locale resolution, one function per stack, tested branch by branch:
-   (a) the user's saved choice when it is set; if it is set but not
-   supported, it goes through the fallback chain and then to the
-   default, never to the device language, because the user chose;
-   (b) the device or browser languages only when there is no saved
-   choice, each through the fallback chain; (c) the default. The chain
-   drops region before language (`hi-IN`, `hi`, then default); a
-   supported `hi` region variant resolves to its sibling catalog. The
-   catalog loader, the formatters and the document `lang` and `dir`
-   (web) all read the result. Do not add `Accept-Language` headers or
-   change API calls unless the API contract asks for it; say so as a
-   follow-up instead.
-8. RTL: `dir` on `html` from the resolved locale (web), `I18nManager`
-   (RN), `android:supportsRtl="true"` with start and end everywhere
-   including `absolutePadding`, `layout_marginLeft`, `gravity="left"`
-   (Android), leading and trailing (iOS). Direction icons (back,
-   forward, send) mirror: `Icons.AutoMirrored.*` on Compose. Values
-   that stay left to right inside RTL text (tracking IDs, emails,
-   amounts) are bidi-isolated (`BidiFormatter`, `<bdi>`, U+2068 and
-   U+2069). List what was not rendered.
+7. Locale resolution, one function per stack, tested branch by branch: (a) the
+   user's saved choice when set (if set but not supported, it goes through the
+   fallback chain and then to the default, never to the device language); (b)
+   the device or browser languages only when there is no saved choice, each
+   through the fallback chain; (c) the default. The chain drops region before
+   language (`hi-IN`, `hi`, then default); the catalog loader, the formatters
+   and the document `lang` and `dir` (web) all read the result. Do not add
+   `Accept-Language` headers or change API calls unless the API contract asks
+   for it; say so as a follow-up instead.
+   Detail: references/resolution-rtl-and-fallback.md
+8. RTL: `dir` on `html` from the resolved locale (web), `I18nManager` (RN),
+   `android:supportsRtl="true"` with start and end everywhere (Android), leading
+   and trailing (iOS). Direction icons mirror; values that stay left to right
+   inside RTL text (tracking IDs, emails, amounts) are bidi-isolated. List what
+   was not rendered. Detail: references/resolution-rtl-and-fallback.md
 9. Untranslated text never reaches a user as a marker. A new locale
    file carries every key; a key not yet translated holds the default
    text, and its status lives outside the displayed value: a
@@ -153,28 +128,20 @@ decisions (ADRs, API docs, lint config) outrank every default below.
    worklist and in the report, and never called final or reviewed.
    Prove the fallback with the real catalog: one test renders a key
    awaiting translation in the new locale and gets the default text.
-10. `i18n-check`, the gate. It reads the supported-locales list and
-    fails when: a listed locale has no catalog, zero keys were
-    compared, a key is missing from any listed locale's catalog (the
-    worklist says what to translate; it never excuses an absent key,
-    or deleting a key passes while every key awaits translation),
-    placeholders differ between locales, a plural set lacks a category
-    the language requires (CLDR: Arabic zero, one, two, few, many,
-    other; Hindi one, other), or the code looks up a key the default
-    catalog lacks (scan the `t('...')` calls: i18next renders a missing
-    key's name to the user; Android's `R.string` already fails the
-    compile). It prints
-    `i18n-check: N keys, M locales, K missing, P placeholder
-    mismatches, T awaiting translation, U unused`. Awaiting translation
-    is counted, not fatal in `make check`: the release gate is a
-    separate `i18n-check --release` that fails while T is above zero.
-    Prove it in a scratch copy: delete one key from the new locale,
-    delete the whole locale file, rename one placeholder, and add a
-    lookup of an unknown key; show each fails. Web and RN: a small Node script with no
-    dependencies; Android: lint with `MissingTranslation` as error, no
-    extra script outside the app module; iOS: a script over the
-    catalog JSON. If enabling the lint turns CI red (a shipped locale
-    has gaps), say which keys and that CI fails until they are filled.
+10. `i18n-check`, the gate. It reads the supported-locales list and fails when: a
+    listed locale has no catalog, zero keys were compared, a key is missing
+    from any listed locale's catalog (the worklist never excuses an absent
+    key), placeholders differ between locales, a plural set lacks a category
+    the language requires (CLDR), or the code looks up a key the default
+    catalog lacks. It prints `i18n-check: N keys, M locales, K missing, P
+    placeholder mismatches, T awaiting translation, U unused`. Awaiting
+    translation is counted, not fatal in `make check`: the release gate is a
+    separate `i18n-check --release` that fails while T is above zero. Prove it
+    in a scratch copy: delete one key from the new locale, delete the whole
+    locale file, rename one placeholder, and add a lookup of an unknown key;
+    show each fails. If enabling the lint turns CI red (a shipped locale has
+    gaps), say which keys and that CI fails until they are filled.
+    Detail: references/i18n-check.md
 11. Run the gate and every test, then report as below. Nothing is
     committed; changes stay in the working tree. State what could not
     run here (no node_modules, no Android SDK, no device) and that the
