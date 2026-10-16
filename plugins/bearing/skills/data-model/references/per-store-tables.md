@@ -1,6 +1,6 @@
-# data-model: per-store tables, enumerations, retention and the migration plan
+# data-model: per-store tables
 
-Read when: steps 5 to 7: the per-store detail, the closed sets, retention and the migration order.
+Read when: step 5, writing the tables, collections or ClickHouse tables of each store.
 
 5. Per store, following the reference for that store:
 - Postgres: per table, in foreign-key order, the purpose, `Serves
@@ -23,17 +23,3 @@ Read when: steps 5 to 7: the per-store detail, the closed sets, retention and th
   filters first, lowest cardinality first, three to five columns),
   partition key, TTL, the version column for `ReplacingMergeTree`,
   and the materialised views with their `TO` targets.
-6. Enumerations: one row per enum with its values and why the set is
-closed. Retention: one row per table with a lifetime, its rule and the
-mechanism that enforces it (batched hard delete, TTL, partition drop).
-A lifetime no story, PRD or policy states is `UNDEFINED`, with an owner
-question; a number you would suggest goes in that question, never in
-the lifetime cell and never into a purge job, TTL or partition scheme.
-Then the personal-data columns, each with its kind.
-7. Migration plan in order, each item named and numbered the way the
-repository's existing migrations are (next free number, same tool and
-file style; claim no convention the repository does not have), with
-its lock risk on a hot table, the batch note, and the expand, migrate
-or contract phase it belongs to; `db-migration` writes them later.
-The plan writes no migration file. A new database is migration 1:
-`schema.sql`.
