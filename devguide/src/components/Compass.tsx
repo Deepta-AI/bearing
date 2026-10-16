@@ -8,7 +8,7 @@ export const EVENTS: { event: string; short: string; when: string; does: string;
     event: "SessionStart",
     short: "Start",
     when: "A session starts, resumes, or comes back from compaction.",
-    does: "Prints the branch, the task id, how many files are changed and the first 20 lines of the handoff note, so the model starts where the last session stopped. It also records when this session began, which the Stop gate uses later.",
+    does: "Prints the branch, the task id, how many files are changed and the first 8 lines of the handoff note, so the model starts where the last session stopped. It also records when this session began, which the Stop gate uses later.",
     blocks: "Never blocks. What it prints goes into the model's context.",
     tone: "sea",
   },
