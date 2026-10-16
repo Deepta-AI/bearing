@@ -2,7 +2,7 @@
 name: new-skill
 description: 'Creates a new skill for this plugin in its git checkout with the house sections and lints, then evals it against a baseline. Use when asked to "add a skill", "make this a skill" or "turn this checklist into a skill".'
 argument-hint: "<name> [one-line purpose]"
-allowed-tools: Read, Write, Edit, Grep, Glob, Skill, Bash(claude plugin validate:*), Bash(ls:*), Bash(make:*), Bash(mkdir -p .scratch/skill-evals:*)
+allowed-tools: Read, Write, Edit, Grep, Glob, Skill, Bash(claude plugin validate:*), Bash(ls:*), Bash(make:*), Bash(mkdir -p .scratch/skill-evals:*), AskUserQuestion
 ---
 
 # new-skill
@@ -20,10 +20,11 @@ skill and against a baseline without it. Neither replaces the other.
 
 - A checkout of the kit: the current directory when it holds
   `.claude-plugin/marketplace.json` with name `bearing` and
-  `plugins/bearing/`; if not, one question:
-  "where is your Bearing checkout?" (the installed plugin copy under
-  `~/.claude/plugins` is read-only and does not count). No path: stop with
-  "provide the path to a Bearing git checkout".
+  `plugins/bearing/`; if not, ask one question with AskUserQuestion
+  (as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says), "where is your Bearing checkout?", options "enter the path"
+  (the answer comes as free text via Other) and "stop" (the installed plugin
+  copy under `~/.claude/plugins` is read-only and does not count). No path:
+  stop with "provide the path to a Bearing git checkout".
 - The kit's own rules: `CONTRIBUTING.md`, `CLAUDE.md` and `docs/adr/` in
   the checkout, read before writing anything. Where they differ from this
   skill, they win.
@@ -70,7 +71,7 @@ skill and against a baseline without it. Neither replaces the other.
      team names, and also policy values (severity thresholds, approvers,
      SLAs, time windows). The skill reads each from the adopting
      repository (its `CLAUDE.md` or `.bearing/company.json`) and says what
-     it does when absent: ask once, or omit the step. Never bake one
+     it does when absent: ask once with AskUserQuestion, or omit the step. Never bake one
      team's value in as the default. Reuse the keys the kit already
      documents for that file; a key you must add is documented beside
      them in the same change.
@@ -92,7 +93,9 @@ skill and against a baseline without it. Neither replaces the other.
      when you change its mechanism.
    Decide what happens to the source document (left as is, or replaced
    by a pointer to the skill) and say which.
-5. Interview briefly, one question at a time, until you can fill: what
+5. Interview briefly, one question at a time with AskUserQuestion
+   (as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says), two to four options each
+   (the recommended first; a free-text answer comes via Other), until you can fill: what
    it does in one sentence; three or more phrases a developer would say;
    whether Claude may load it on its own (almost always yes); inputs,
    where each is looked for first and its fallback; outputs; tools (least

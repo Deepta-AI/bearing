@@ -2,7 +2,7 @@
 name: onboard-repo
 description: 'Brings an existing repository onto the team conventions (Makefile, hooks, CLAUDE.md, rules) without overwriting; conflicts land beside the file. Use when asked to "onboard this repo" or "adopt the standard".'
 argument-hint: "[--stack <id>] [--full]"
-allowed-tools: Read, Write, Edit, Grep, Glob, Skill, Bash(bash *bin/brg-adopt *), Bash(bash *bin/brg-stacks*), Bash(bash .githooks/install.sh), Bash(mktemp -d:*), Bash(git clone:*), Bash(git status:*), Bash(git rev-parse:*), Bash(git log:*), Bash(git ls-files:*), Bash(git config --get:*), Bash(git remote get-url:*), Bash(git check-ignore:*), Bash(git diff:*), Bash(git init:*), Bash(ls:*), Bash(diff:*), Bash(make:*)
+allowed-tools: Read, Write, Edit, Grep, Glob, Skill, Bash(bash *bin/brg-adopt *), Bash(bash *bin/brg-stacks*), Bash(bash .githooks/install.sh), Bash(mktemp -d:*), Bash(git clone:*), Bash(git status:*), Bash(git rev-parse:*), Bash(git log:*), Bash(git ls-files:*), Bash(git config --get:*), Bash(git remote get-url:*), Bash(git check-ignore:*), Bash(git diff:*), Bash(git init:*), Bash(ls:*), Bash(diff:*), Bash(make:*), AskUserQuestion
 ---
 
 # onboard-repo
@@ -22,8 +22,8 @@ the new piece actually run?
 ## Inputs
 
 - repository: `git rev-parse --show-toplevel`; not a git repository: ask
-  once whether to `git init`; on no, write the files and list hooks as not
-  active under Not done.
+  once with AskUserQuestion (as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says), options `git init` and
+  "no git"; on no, write the files and list hooks as not active under Not done.
 - working tree: `git status --porcelain`. Dirty files are the engineer's
   work in progress: never stash, revert, format or commit them; edit
   around them and list them in the report. Run the gate with them present.

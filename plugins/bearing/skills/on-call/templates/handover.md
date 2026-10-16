@@ -4,8 +4,8 @@
      there (What), what a strong entry has (Good) and a one-line example
      (Example). Delete each comment when you fill its section. Written by the
      outgoing engineer at every shift change and read by the incoming one
-     before their first page. Ask once for what files cannot show (silences,
-     budget); never invent a row. An empty table says "none". -->
+     before their first page. Ask once with AskUserQuestion for what files cannot show
+     (silences, budget); never invent a row. An empty table says "none". -->
 
 From: <outgoing rotation slot>   To: <incoming rotation slot>   Service(s): <list>
 
