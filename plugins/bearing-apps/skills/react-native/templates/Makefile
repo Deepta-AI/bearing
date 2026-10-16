@@ -110,7 +110,7 @@ check-changed: ## prettier, eslint and the jest tests related to the changed fil
 	[ "$$f" -gt 0 ] || { echo "check-changed: 0 files, nothing to check"; exit 0; }; \
 	$(PNPM) exec prettier --check $$files || exit 1; \
 	src=$$(printf '%s\n' "$$files" | grep -E '\.(ts|tsx|js|jsx|mjs|cjs)$$' || true); \
-	[ -z "$$src" ] || $(PNPM) exec eslint --max-warnings 0 $$src || exit 1; \
+	[ -z "$$src" ] || $(PNPM) exec eslint --max-warnings 0 --no-warn-ignored $$src || exit 1; \
 	if printf '%s\n' "$$files" | grep -qE '(^|/)(package\.json|pnpm-lock\.yaml|tsconfig[^/]*\.json|jest\.config\.[a-z]+)$$'; then \
 	  $(MAKE) --no-print-directory test || exit 1; p=all; \
 	elif [ -z "$$src" ]; then p=0; \

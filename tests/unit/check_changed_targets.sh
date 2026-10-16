@@ -5,6 +5,7 @@
 set -u
 . "$(dirname "$0")/../lib/assert.sh"
 n=0
+seen=""
 for mk in $(cd "$KIT" && git ls-files 'plugins/*/skills/*/templates*/Makefile'); do
   grep -q 'check-passed' "$KIT/$mk" || continue
   n=$((n+1))
@@ -16,7 +17,12 @@ for mk in $(cd "$KIT" && git ls-files 'plugins/*/skills/*/templates*/Makefile');
   assert_not_contains "$body" "/.check-passed" "never writes the full marker"
   assert_contains "$body" "packages checked" "prints its count"
   t_end
+  seen="$seen
+$(grep '^CHANGED = ' "$KIT/$mk" | md5sum | cut -d' ' -f1)"
 done
+t_begin "CHANGED variable identical"
+assert_eq 1 "$(printf '%s\n' "$seen" | grep . | sort -u | wc -l | tr -d ' ')" "one distinct CHANGED line across $n templates"
+t_end
 t_begin "templates found"
 assert_eq 13 "$n" "stack Makefile templates with a check marker"
 t_end

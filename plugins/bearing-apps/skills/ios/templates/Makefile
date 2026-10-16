@@ -127,7 +127,8 @@ check-changed: ## This stack cannot scope tests cheaply, so the Stop gate runs l
 	@mkdir -p $(STATE); f=$$($(CHANGED) | grep -c . || true); \
 	[ "$$f" -gt 0 ] || { echo "check-changed: 0 files, nothing to check"; exit 0; }; \
 	echo "check-changed: ios cannot scope, ran all tests"; \
-	$(MAKE) --no-print-directory format-check lint test || exit 1; \
+	rm -f $(SKIPPED); $(MAKE) --no-print-directory format-check lint test || exit 1; \
+	if [ -s $(SKIPPED) ]; then sed 's/^/  skipped: /' $(SKIPPED); echo "check-changed: $$f files, a gate was skipped, marker not written"; exit 0; fi; \
 	touch $(STATE)/.check-changed-passed; echo "check-changed: $$f files, all packages checked"
 
 fix: ## Apply every automatic fix

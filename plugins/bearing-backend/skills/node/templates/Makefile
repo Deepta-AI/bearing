@@ -110,11 +110,11 @@ check-changed: ## prettier, eslint and the vitest tests related to the changed f
 	[ "$$f" -gt 0 ] || { echo "check-changed: 0 files, nothing to check"; exit 0; }; \
 	$(PNPM) exec prettier --check $$files || exit 1; \
 	src=$$(printf '%s\n' "$$files" | grep -E '\.(ts|tsx|js|jsx|mjs|cjs)$$' || true); \
-	[ -z "$$src" ] || $(PNPM) exec eslint --max-warnings 0 $$src || exit 1; \
+	[ -z "$$src" ] || $(PNPM) exec eslint --max-warnings 0 --no-warn-ignored $$src || exit 1; \
 	if printf '%s\n' "$$files" | grep -qE '(^|/)(package\.json|pnpm-lock\.yaml|tsconfig[^/]*\.json|vitest\.config\.[a-z]+)$$'; then \
 	  $(MAKE) --no-print-directory test || exit 1; p=all; \
 	elif [ -z "$$src" ]; then p=0; \
-	else out=$$($(PNPM) exec vitest related --run $$src 2>&1); rc=$$?; printf '%s\n' "$$out" | tail -40; [ $$rc -eq 0 ] || exit 1; \
+	else out=$$($(PNPM) exec vitest related --run --passWithNoTests $$src 2>&1); rc=$$?; printf '%s\n' "$$out" | tail -40; [ $$rc -eq 0 ] || exit 1; \
 	  p=$$(printf '%s\n' "$$out" | sed -n 's/.*Test Files *\([0-9][0-9]*\) passed.*/\1/p' | tail -1); p=$${p:-0}; fi; \
 	touch $(STATE)/.check-changed-passed; echo "check-changed: $$f files, $$p packages checked"
 
