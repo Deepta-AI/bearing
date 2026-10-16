@@ -83,7 +83,7 @@ lint-skill-size: ## Every SKILL.md is 200 lines or fewer unless bin/lint-skill-s
 	echo "lint-skill-size: $$n skills, $$na allowed over 200 ($${al:-none}), largest $$big $$bl"
 
 lint-questions: ## A skill that asks the user does it with AskUserQuestion and follows references/console.md
-	@n=0; r=0; q=0; bad=0; pat='(^|[^A-Za-z])ask (the user|once|one)|(^|[^A-Za-z])ask:'; \
+	@n=0; r=0; q=0; bad=0; pat='(^|[^A-Za-z])ask (the user|once|one|with AskUserQuestion)|(^|[^A-Za-z])ask:'; \
 	for f in plugins/*/skills/*/SKILL.md; do [ -f "$$f" ] || continue; n=$$((n+1)); d=$${f%/SKILL.md}; hit=0; \
 	  tr -s '\n ' '  ' < "$$f" | grep -qiE "$$pat" && hit=1; \
 	  for g in "$$d"/references/*.md; do [ -f "$$g" ] || continue; r=$$((r+1)); tr -s '\n ' '  ' < "$$g" | grep -qiE "$$pat" && hit=1; done; \

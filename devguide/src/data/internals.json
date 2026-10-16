@@ -5444,6 +5444,7 @@
     "Glob",
     "Edit",
     "Write",
+    "AskUserQuestion",
     "Bash(bash *bin/brg-harness *)",
     "Bash(python3 *scripts/harness_check.py *)",
     "Bash(ls:*)",
@@ -17822,9 +17823,9 @@
   {
    "path": "tests/unit/agent_models.sh",
    "kind": "unit",
-   "lines": 16,
+   "lines": 17,
    "header": "tests/unit/agent_models.sh: review agents default to sonnet except reviewer; the skills that need Opus ask for it by name.",
-   "asserts": 5
+   "asserts": 6
   },
   {
    "path": "tests/unit/ai_depth_scripts.sh",
@@ -18130,9 +18131,9 @@
   {
    "path": "tests/unit/lint_questions.sh",
    "kind": "unit",
-   "lines": 48,
-   "header": "tests/unit/lint_questions.sh: a skill that asks in prose fails; one that uses AskUserQuestion and cites console.md passes; \"task:\" is not \"ask:\"; a question in a reference file counts; a phrase wrapped over two lines counts; zero skills fails.",
-   "asserts": 12
+   "lines": 57,
+   "header": "tests/unit/lint_questions.sh: a skill that asks in prose fails; one that uses AskUserQuestion and cites console.md passes; \"task:\" is not \"ask:\"; a question in a reference file counts; a phrase wrapped over two lines counts; \"ask with AskUserQuestion\" needs the grant; zero skills fails.",
+   "asserts": 16
   },
   {
    "path": "tests/unit/lint_skill_size.sh",
@@ -18151,9 +18152,9 @@
   {
    "path": "tests/unit/lint_tools.sh",
    "kind": "unit",
-   "lines": 110,
+   "lines": 120,
    "header": "tests/unit/lint_tools.sh: bin/lint-skill-tools.py finds a command a skill body runs but its allowed-tools does not grant, accepts a granted one, a guard-blocked one (printed for the engineer), an allow-file row and a printed message; reports a stale allow row; and fails on an empty or missing skills directory.",
-   "asserts": 39
+   "asserts": 44
   },
   {
    "path": "tests/unit/llm_callsites.sh",

@@ -2,7 +2,7 @@
 # tests/unit/lint_questions.sh: a skill that asks in prose fails; one that
 # uses AskUserQuestion and cites console.md passes; "task:" is not "ask:";
 # a question in a reference file counts; a phrase wrapped over two lines
-# counts; zero skills fails.
+# counts; "ask with AskUserQuestion" needs the grant; zero skills fails.
 set -u
 . "$(dirname "$0")/../lib/assert.sh"
 w="$(tmpdir)"; mkdir -p "$w/plugins/p/skills/a"; cp "$KIT/Makefile" "$w/Makefile"
@@ -40,6 +40,15 @@ printf -- '---\nname: c\nallowed-tools: Read, AskUserQuestion\n---\nask once.\n'
 assert_exit 2 make -s -C "$w3" lint-questions
 printf -- '---\nname: c\nallowed-tools: Read\n---\nask once (references/console.md).\n' > "$w3/plugins/p/skills/c/SKILL.md"
 assert_exit 2 make -s -C "$w3" lint-questions
+t_end
+t_begin "ask with AskUserQuestion without the grant fails"
+w4="$(tmpdir)"; mkdir -p "$w4/plugins/p/skills/d"; cp "$KIT/Makefile" "$w4/Makefile"
+printf -- '---\nname: d\nallowed-tools: Read\n---\nIf absent, ask with AskUserQuestion as references/console.md says.\n' > "$w4/plugins/p/skills/d/SKILL.md"
+assert_exit 2 make -s -C "$w4" lint-questions
+assert_contains "$T_OUT" "plugins/p/skills/d/SKILL.md"
+printf -- '---\nname: d\nallowed-tools: Read, AskUserQuestion\n---\nIf absent, ask with AskUserQuestion as references/console.md says.\n' > "$w4/plugins/p/skills/d/SKILL.md"
+assert_exit 0 make -s -C "$w4" lint-questions
+assert_contains "$T_OUT" "1 ask the user, 0 in prose"
 t_end
 t_begin "zero skills"
 rm -rf "$w/plugins/p/skills/a"

@@ -53,6 +53,16 @@ assert_exit 1 python3 "$LINT" "$d/e" "$d/allow3"
 assert_contains "$T_OUT" "needs skill|prefix|reason"
 t_end
 
+t_begin "a brg-config or brg-learn command in a skill's own text needs its grant"
+skill "$d/h" sk-six "Read, AskUserQuestion" '1. Record it with `bash "${CLAUDE_PLUGIN_ROOT}/bin/brg-config" set a.b c`, then `bash "${CLAUDE_PLUGIN_ROOT}/bin/brg-learn" log --kind override --skill x --key y --insight z`.'
+assert_exit 1 python3 "$LINT" "$d/h" "$empty"
+assert_contains "$T_OUT" "brg-config"
+assert_contains "$T_OUT" "brg-learn"
+assert_contains "$T_OUT" "2 problems"
+skill "$d/h" sk-six "Read, AskUserQuestion, Bash(bash *bin/brg-config*), Bash(bash *bin/brg-learn*)" '1. Record it with `bash "${CLAUDE_PLUGIN_ROOT}/bin/brg-config" set a.b c`, then `bash "${CLAUDE_PLUGIN_ROOT}/bin/brg-learn" log --kind override --skill x --key y --insight z`.'
+assert_exit 0 python3 "$LINT" "$d/h" "$empty"
+t_end
+
 t_begin "zero commands, zero skills and a missing directory fail"
 skill "$d/f" sk-five "Read" '1. Read the file.'
 assert_exit 1 python3 "$LINT" "$d/f" "$empty"
