@@ -2664,7 +2664,7 @@
     },
     {
      "path": "templates/Makefile",
-     "lines": 175
+     "lines": 192
     },
     {
      "path": "templates/README.md",
@@ -10042,7 +10042,7 @@
     },
     {
      "path": "templates/Makefile",
-     "lines": 145
+     "lines": 160
     },
     {
      "path": "templates/README.md",
@@ -10210,7 +10210,7 @@
     },
     {
      "path": "templates-cli/Makefile",
-     "lines": 115
+     "lines": 130
     },
     {
      "path": "templates-cli/README.md",
