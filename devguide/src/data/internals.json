@@ -221,7 +221,7 @@
     "calendar and operations: sales, launches, code or config freezes, other experiments on the same surface (grep `freeze`, `sale`, `calendar`, `launch` under `docs/`), and how a flag is switched off (runtime, or config plus restart or deploy).",
     "assignment and exposure code: the flag module and the code that fires the exposure event (grep the exposure event name).",
     "event sheet: `docs/analytics/EVENT_SHEET.md`; present: rows appended; absent: the events are listed in the experiment doc under \"Events to add\" and the report names the `analytics-events` skill.",
-    "results for `analyse`: `$2`, a CSV of counts per variant (and per segment when present), plus any note on how it was produced (a README beside it, the query); if absent, ask once with AskUserQuestion for the two counts per variant.",
+    "results for `analyse`: `$2`, a CSV of counts per variant (and per segment when present), plus any note on how it was produced (a README beside it, the query); if absent, ask once with AskUserQuestion (paste now / skip; the two counts per variant come as free text via Other).",
     "experiment docs: `docs/experiments/`; created with `mkdir -p`.",
     "templates in this skill: `templates/EXPERIMENT.md`, `templates/analysis.md`."
    ],
@@ -1054,7 +1054,7 @@
     }
    ],
    "inputs": [
-    "platform: `$1`; if absent, detected: `project.yml` or `*.xcodeproj` (ios), `app/build.gradle.kts` (android), `app.json` with `expo` (both); if absent, `bash \"${CLAUDE_PLUGIN_ROOT}/bin/brg-config\" get mobile.platform`; none: ask once with AskUserQuestion as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says (ios, android, both) and record it with `brg-config set mobile.platform <value>`.",
+    "platform: `$1`; if absent, detected: `project.yml` or `*.xcodeproj` (ios), `app/build.gradle.kts` (android), `app.json` with `expo` (ios and android); if absent, `bash \"${CLAUDE_PLUGIN_ROOT}/bin/brg-config\" get mobile.platform`; none: ask once with AskUserQuestion as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says (ios, android, both) and record it with `brg-config set mobile.platform <value>`.",
     "version: `$2`; if absent, `MARKETING_VERSION` in `project.yml`, `versionName` in `app/build.gradle.kts`, `expo.version` in `app.json`; if absent, `git describe --tags --abbrev=0`; if absent, ask once with AskUserQuestion.",
     "build number: `CURRENT_PROJECT_VERSION`, `versionCode`, `expo.ios.buildNumber` and `expo.android.versionCode`. Last accepted build: `docs/releases/mobile/<previous>.md`; if absent, ask once with AskUserQuestion (\"last build number the store accepted?\"); unknown: `unconfirmed`.",
     "listing metadata: `fastlane/metadata/`, `store/`; if absent, every field is written empty and counted.",
@@ -3166,7 +3166,7 @@
     "gate: `make check` when the Makefile has a `check` target; if absent, the stack's native command (`go test ./...`, `pnpm test`, `uv run pytest`, `./gradlew test`, `swift test`); item 1 then says \"improvised gate\" (`new-repo` or `onboard-repo` install the Makefile).",
     "the list: the thirteen items in step 3, which are the standard's and need no file in the repository; a \"Definition of done additions\" section in AGENTS.md, when present, may add items to them and never removes one.",
     "event sheet: `docs/analytics/EVENT_SHEET.md`; if absent and the diff adds events, item 6 fails with \"no event sheet; `analytics-events` writes one\".",
-    "the task's statement: the state file's acceptance criteria; if absent, the MR or commit bodies; if absent, ask once with AskUserQuestion what the task was."
+    "the task's statement: the state file's acceptance criteria; if absent, the MR or commit bodies; if absent, ask once with AskUserQuestion what the task was (free text via Other)."
    ],
    "steps": [
     "Establish the diff: `git diff --stat <base>...HEAD` and `git log --oneline <base>..HEAD`. Zero files: stop with \"0 files in diff between <base> and HEAD\".",
@@ -3754,7 +3754,7 @@
     "An existing `docs/design/tokens.json` is updated in place, never rewritten without naming the changed roles."
    ],
    "steps": [
-    "Resolve the direction: `$ARGUMENTS`, else root `DESIGN.md` or `docs/design/DESIGN.md`, else `docs/design/variants/*/approved.json`, else the app's current styles read as the de facto system, else ask once with AskUserQuestion as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says for a brief (product, audience, one memorable thing, brand colour or face). Read it in full; list what it fixes (hue, faces, density, shape…",
+    "Resolve the direction: `$ARGUMENTS`, else root `DESIGN.md` or `docs/design/DESIGN.md`, else `docs/design/variants/*/approved.json`, else the app's current styles read as the de facto system, else ask once with AskUserQuestion as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says (the brief as free text via Other) for a brief (product, audience, one memorable thing, brand colour or face). Read it in full; list what i…",
     "**Measure the direction before designing.** Compute the contrast of every pair it implies (brand fill behind its label, brand as link text on page and card, brand as focus ring on the page) with `scripts/contrast.py` or the WCAG formula. A failing pair keeps its hue and moves in lightness until it passes (or swaps the label to a dark one); the report gives the direction's ratio, the shipped ratio and the alternative…",
     "Colour primitives in oklch: accent hue from the direction; neutrals at the hue the direction asks for (warm, cool, or the accent's) with chroma 0.004 to 0.016; success, warning, danger, info at their own hues; each scale 0 to 1000, hue held, lightness varied. Compute every sRGB value with the snippet in `references/stack-bindings.md`; a value that clips gets less chroma. Refuse the default looks (cream and terracott…",
     "Roles for light, then dark designed on its own: surfaces lift with lightness, accent one step lighter, chroma down 10 to 20 percent, text near white not pure white. Never invert. Text pairs 4.5:1, focus rings, borders that carry meaning and icons 3:1, in both modes. Include the pairs the components render that the role table misses: grep the class strings for each `text-*` on each `bg-*` actually used together, and…",
@@ -5479,7 +5479,7 @@
     }
    ],
    "inputs": [
-    "Harness name: from `$1`; if absent, ask one question listing the ids.",
+    "Harness name: from `$1`; if absent, ask with AskUserQuestion as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says (one option per id, the four likeliest, the rest via Other).",
     "The repository: the current git repository.",
     "The kit's git URL for skill installation: `git -C <kit> remote get-url origin`; if absent, or the network is not available, use `--no-skills` and print the install command for the user.",
     "`references/harness-matrix.md`: what each harness supports and loses; read it before promising a feature."
@@ -5864,8 +5864,8 @@
     }
    ],
    "inputs": [
-    "stack: detected from `package.json` with `react` (react-web) or `expo` (react-native), `build.gradle.kts` (android), `Package.swift` or `*.xcodeproj` (ios); more than one match: ask one question; none, or only `go.mod` or `pyproject.toml`: stop with \"no client stack; services return `messageKey` and the client translates\".",
-    "source files: the stack's source tree (`src/`, `app/`, `app/src/main`, `Sources/`); zero files: ask once with AskUserQuestion as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says for the path and record it with `brg-config set i18n.src <path>`; still zero: stop with \"0 source files under <path>; name the source directory\".",
+    "stack: detected from `package.json` with `react` (react-web) or `expo` (react-native), `build.gradle.kts` (android), `Package.swift` or `*.xcodeproj` (ios); more than one match: ask with AskUserQuestion (one option per match, recommended first); none, or only `go.mod` or `pyproject.toml`: stop with \"no client stack; services return `messageKey` and the client translates\".",
+    "source files: the stack's source tree (`src/`, `app/`, `app/src/main`, `Sources/`); zero files: `brg-config get i18n.src`; else ask once with AskUserQuestion as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says (paths found as options, the answer comes as free text via Other) and record it with `brg-config set i18n.src <path>`; still zero: stop with \"0 source files under <path>; name the source directory\".",
     "repo decisions: every ADR, `docs/`, README section and API contract that mentions locale, language, currency, time zone, errors or translation. Read them before step 2; quote the line you follow.",
     "checklist: this skill's own `references/i18n-checklist.md`.",
     "catalog: the existing one if any (`src/locales/`, `res/values/`, `Localizable.xcstrings`); if absent, created in step 4.",
@@ -18097,9 +18097,9 @@
   {
    "path": "tests/unit/lint_questions.sh",
    "kind": "unit",
-   "lines": 37,
+   "lines": 48,
    "header": "tests/unit/lint_questions.sh: a skill that asks in prose fails; one that uses AskUserQuestion and cites console.md passes; \"task:\" is not \"ask:\"; a question in a reference file counts; a phrase wrapped over two lines counts; zero skills fails.",
-   "asserts": 9
+   "asserts": 12
   },
   {
    "path": "tests/unit/lint_skill_size.sh",

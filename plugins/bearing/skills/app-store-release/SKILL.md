@@ -20,7 +20,7 @@ hold the build rules.
 
 - platform: `$1`; if absent, detected: `project.yml` or `*.xcodeproj`
   (ios), `app/build.gradle.kts` (android), `app.json` with `expo`
-  (both); if absent, `bash "${CLAUDE_PLUGIN_ROOT}/bin/brg-config" get mobile.platform`;
+  (ios and android); if absent, `bash "${CLAUDE_PLUGIN_ROOT}/bin/brg-config" get mobile.platform`;
   none: ask once with AskUserQuestion as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says
   (ios, android, both) and record it with `brg-config set mobile.platform <value>`.
 - version: `$2`; if absent, `MARKETING_VERSION` in `project.yml`,

@@ -16,11 +16,11 @@ lint config) outrank every default below.
 
 - stack: detected from `package.json` with `react` (react-web) or `expo`
   (react-native), `build.gradle.kts` (android), `Package.swift` or
-  `*.xcodeproj` (ios); more than one match: ask one question; none, or only
+  `*.xcodeproj` (ios); more than one match: ask with AskUserQuestion (one option per match, recommended first); none, or only
   `go.mod` or `pyproject.toml`: stop with "no client stack; services return
   `messageKey` and the client translates".
 - source files: the stack's source tree (`src/`, `app/`, `app/src/main`,
-  `Sources/`); zero files: ask once with AskUserQuestion as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says for the path and record it with `brg-config set i18n.src <path>`; still zero: stop with "0
+  `Sources/`); zero files: `brg-config get i18n.src`; else ask once with AskUserQuestion as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says (paths found as options, the answer comes as free text via Other) and record it with `brg-config set i18n.src <path>`; still zero: stop with "0
   source files under <path>; name the source directory".
 - repo decisions: every ADR, `docs/`, README section and API contract that
   mentions locale, language, currency, time zone, errors or translation. Read

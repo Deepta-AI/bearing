@@ -19,7 +19,7 @@ agent to push. This skill closes them.
 
 ## Inputs
 
-- Harness name: from `$1`; if absent, ask one question listing the ids.
+- Harness name: from `$1`; if absent, ask with AskUserQuestion as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says (one option per id, the four likeliest, the rest via Other).
 - The repository: the current git repository.
 - The kit's git URL for skill installation: `git -C <kit> remote get-url origin`;
   if absent, or the network is not available, use `--no-skills`

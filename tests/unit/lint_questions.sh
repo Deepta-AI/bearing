@@ -30,6 +30,17 @@ w2="$(tmpdir)"; mkdir -p "$w2/plugins/p/skills/b"; cp "$KIT/Makefile" "$w2/Makef
 printf -- '---\nname: b\nallowed-tools: Read\n---\nZero files: ask\n  once for the path.\n' > "$w2/plugins/p/skills/b/SKILL.md"
 assert_exit 2 make -s -C "$w2" lint-questions
 t_end
+t_begin "ask one question"
+w3="$(tmpdir)"; mkdir -p "$w3/plugins/p/skills/c"; cp "$KIT/Makefile" "$w3/Makefile"
+printf -- '---\nname: c\nallowed-tools: Read\n---\nIf absent, ask one question.\n' > "$w3/plugins/p/skills/c/SKILL.md"
+assert_exit 2 make -s -C "$w3" lint-questions
+t_end
+t_begin "half contract fails"
+printf -- '---\nname: c\nallowed-tools: Read, AskUserQuestion\n---\nask once.\n' > "$w3/plugins/p/skills/c/SKILL.md"
+assert_exit 2 make -s -C "$w3" lint-questions
+printf -- '---\nname: c\nallowed-tools: Read\n---\nask once (references/console.md).\n' > "$w3/plugins/p/skills/c/SKILL.md"
+assert_exit 2 make -s -C "$w3" lint-questions
+t_end
 t_begin "zero skills"
 rm -rf "$w/plugins/p/skills/a"
 assert_exit 2 make -s -C "$w" lint-questions

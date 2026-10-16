@@ -37,7 +37,7 @@ The list below is the standard's; it needs no file in the repository.
   adds events, item 6 fails with "no event sheet; `analytics-events` writes
   one".
 - the task's statement: the state file's acceptance criteria; if absent,
-  the MR or commit bodies; if absent, ask once with AskUserQuestion what the task was.
+  the MR or commit bodies; if absent, ask once with AskUserQuestion what the task was (free text via Other).
 
 ## Steps
 

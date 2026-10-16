@@ -50,7 +50,7 @@ uses both, and names them as skills, never as commands.
 - results for `analyse`: `$2`, a CSV of counts per variant (and per
   segment when present), plus any note on how it was produced (a README
   beside it, the query); if absent, ask once with AskUserQuestion
-  for the two counts per variant.
+  (paste now / skip; the two counts per variant come as free text via Other).
 - experiment docs: `docs/experiments/`; created with `mkdir -p`.
 - templates in this skill: `templates/EXPERIMENT.md`, `templates/analysis.md`.
 

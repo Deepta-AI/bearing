@@ -70,7 +70,7 @@ name each answer in the report:
 
 1. Resolve the direction: `$ARGUMENTS`, else root `DESIGN.md` or
    `docs/design/DESIGN.md`, else `docs/design/variants/*/approved.json`, else the app's
-   current styles read as the de facto system, else ask once with AskUserQuestion as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says for a brief (product,
+   current styles read as the de facto system, else ask once with AskUserQuestion as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says (the brief as free text via Other) for a brief (product,
    audience, one memorable thing, brand colour or face). Read it in full; list what it
    fixes (hue, faces, density, shape, devices) and what it leaves free. `--lint-only`:
    go to the lint section. Detail: references/roles-and-type.md

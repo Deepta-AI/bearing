@@ -25,7 +25,7 @@ changes infrastructure; this skill never does.
   `Type=TAG,Key=env`), `gcloud billing accounts list` then the BigQuery
   export (the CLI has no line items; the CSV is the route), `az consumption usage list --start-date <m-01> --end-date <last>`;
   none
-  usable: ask once with AskUserQuestion as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says for the top ten lines pasted from the console; nothing:
+  usable: ask once with AskUserQuestion as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says (paste now / skip; the pasted top ten lines from the console come as free text via Other); nothing:
   stop with "no billing source: pass --csv or paste the top ten".
 - month: `--month`; default the previous full month
   (`date -d "-1 month" +%Y-%m`).
