@@ -2,7 +2,7 @@
 name: logging
 description: 'Adds structured logging: one logger, request id bound at the edge, shared field names, redaction, sampling, HTTP request logs. Use when asked to "add logging", "improve the logs", "log the requests" or "fix the logs".'
 argument-hint: "[path or package] [--http]"
-allowed-tools: Read, Write, Edit, Grep, Glob, Bash(ls:*), Bash(make:*), Bash(go test:*), Bash(pnpm test:*), Bash(uv run pytest:*), Bash(./gradlew test:*), Bash(swift test:*)
+allowed-tools: Read, Write, Edit, Grep, Glob, Bash(ls:*), Bash(make:*), Bash(go test:*), Bash(pnpm test:*), Bash(uv run pytest:*), Bash(./gradlew test:*), Bash(swift test:*), AskUserQuestion
 ---
 
 # logging
@@ -27,7 +27,8 @@ conventions.md.
 - stack: detected from `go.mod` (go-api), `pyproject.toml` (python-api),
   `package.json` with `react` (react-web) or `expo` (react-native),
   `build.gradle.kts` (android), `Package.swift` or `*.xcodeproj` (ios);
-  more than one match or none: ask one question.
+  more than one match or none: ask with AskUserQuestion, one option per
+  matching stack, or free text via Other when none matched (as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says).
 - path: `$1`; if absent, the repository root.
 - guide and templates: this skill's own `references/logging-guide.md`
   and `templates/http-logging/`; nothing is read from the repository.

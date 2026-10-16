@@ -2,7 +2,7 @@
 name: health-checks
 description: 'Builds /healthz and /readyz endpoints with per-dependency checks, a scheduled synthetic journey suite, uptime probes and alerts. Use when asked to "add health checks", "readiness endpoint" or "uptime monitoring".'
 argument-hint: "[service name] [--probe-only]"
-allowed-tools: Read, Write, Edit, Grep, Glob, Skill, Bash(ls:*), Bash(make -n:*), Bash(git diff:*), Bash(python3 -c:*), Bash(promtool check:*), Bash(bash *bin/brg-runbook-check*)
+allowed-tools: Read, Write, Edit, Grep, Glob, Skill, Bash(ls:*), Bash(make -n:*), Bash(git diff:*), Bash(python3 -c:*), Bash(promtool check:*), Bash(bash *bin/brg-runbook-check*), AskUserQuestion
 ---
 
 # health-checks
@@ -25,7 +25,8 @@ conventions.md.
 - the request, which sets the scope (Step 0).
 - services: `cmd/*`, `apps/*`, `services/*`, else the repository root when a stack
   file exists (`go.mod`, `pyproject.toml`, `package.json`, `build.gradle.kts`,
-  `Package.swift`); none: ask one question naming the entrypoint, still none: stop,
+  `Package.swift`); none: ask with AskUserQuestion for the entrypoint, free text via
+  Other (as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says), still none: stop,
   "no service entrypoint found".
 - dependencies: what the code really connects to (the wiring in `main`, the clients
   it constructs), cross-checked against ADRs, `docs/`, `.env.example` and the

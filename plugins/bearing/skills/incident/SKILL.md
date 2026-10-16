@@ -2,7 +2,7 @@
 name: incident
 description: 'Runs a live incident as scribe: severity, UTC timeline, roles, runbook steps for a person, comms, postmortem hand-off; never remediates. Use when "we have an outage", "declare an incident" or "the alert is firing".'
 argument-hint: "declare <alert or title> [--sev 1|2|3|4] | update \"<note>\" | comms | resolve"
-allowed-tools: Read, Write, Edit, Grep, Glob, Bash(ls:*), Bash(mkdir:*), Bash(date -u:*), Bash(git log:*), Bash(git tag -l:*)
+allowed-tools: Read, Write, Edit, Grep, Glob, Bash(ls:*), Bash(mkdir:*), Bash(date -u:*), Bash(git log:*), Bash(git tag -l:*), AskUserQuestion
 ---
 
 # incident
@@ -34,8 +34,9 @@ is done by a person.
 ## Steps
 
 1. `declare <alert or title>`: read `references/severity.md` and set
-   the severity from user impact, not from the alert's label. Ask one
-   question if the impact is unknown; otherwise pick the higher of the
+   the severity from user impact, not from the alert's label. If the impact is
+   unknown, ask with AskUserQuestion, options sev 1 to sev 4 (as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says);
+   otherwise pick the higher of the
    two candidates and say why. Sev 1 and 2 page the on-call lead now.
 2. Open `docs/postmortems/<YYYY-MM-DD>-<kebab-title>-incident.md` from
    `templates/incident.md` (create the directory). First timeline entry:

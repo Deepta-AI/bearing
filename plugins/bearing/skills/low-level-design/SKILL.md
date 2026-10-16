@@ -2,7 +2,7 @@
 name: low-level-design
 description: 'Writes a Low Level Design (LLD) refining one HLD component into modules, types, error paths, indexed queries, tests and MR-sized work. Use when asked for an "LLD", "low level design" or "detailed design".'
 argument-hint: "<component> [--hld docs/design/<title>-hld.md]"
-allowed-tools: Read, Write, Grep, Glob, Skill, Agent
+allowed-tools: Read, Write, Grep, Glob, Skill, Agent, AskUserQuestion
 ---
 
 # low-level-design
@@ -98,7 +98,8 @@ critic on changed sections, downstream list). A revision that moves the componen
     an earlier one; move or merge items until that holds.
 11. Write `docs/design/<kebab-component>-lld.md` and print the output
     contract.
-12. Critic: ask the user whether to run it. On yes, fork `critic`
+12. Critic: ask with AskUserQuestion, options run and skip (as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says),
+    whether to run it. On run, fork `critic`
     (Agent tool) with the document path, append its weakest claims and
     verdict under "Assumptions", and put its verdict line in the
     contract.
