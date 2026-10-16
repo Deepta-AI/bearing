@@ -47,8 +47,20 @@ beat one click that needs thought.
 1. Read the inputs; print each as read or absent. Write the user's goal
    in one sentence and list the stories with ids. Zero stories and no
    brief: stop as under Inputs.
-2. Reconcile the spec with the code before drawing anything. Detail:
-   references/reconcile-spec-with-code.md
+2. Reconcile the spec with the code before drawing anything. The stories
+   say what someone wants; the code says what ships today, and a flow
+   written from the stories alone promises things the product does not
+   do. For every action the flow touches, open its handler and write a
+   short ledger in the package (section 0 of the template):
+   - Rejections, who is calling, numbers and how they are counted, numbers
+     other documents state, routes and endpoints, and guards the handler
+     does not make: Detail: references/reconcile-spec-with-code.md
+   - Spec against code: each disagreement (a number, a permission, a
+     missing path, an ADR the story contradicts) is a row with both
+     sources. Until product decides, copy states what the code does, or
+     reads the value from the record ("Expires 4 Oct, 14:00"); the spec's
+     value never appears in copy or examples as fact. The conflict goes
+     to open questions with what ships if nobody decides.
 3. Screen inventory: one row per screen and per dialog. Id `S-01`, name,
    purpose in one sentence, story ids served, entry points, exits, and
    `reused` (with its route or component) or `new`. Every story maps to
@@ -57,7 +69,12 @@ beat one click that needs thought.
 4. State table per screen: loading, empty, error and success always;
    partial when the screen shows a list, a batch, or data from more than
    one source; offline when the feature writes data or targets a phone.
-   Detail: references/state-tables-and-copy.md
+   Each cell says what the user sees and gives the copy. A cell that
+   cannot occur reads `n/a: reason`, never blank. Copy rules: the button
+   carries a verb; every error says what happened and gives a next step
+   the user can take on that screen, a control or a pointer, even when
+   the answer is "nothing to do" ("Ana is already a member. View her
+   row."); the empty state invites the first action; no apology words.
 5. Journey storyboard: the goal, then one row per step with what the user
    does, sees, feels, and what the design does about the feeling. Close
    with the five-second read and the five-minute read.
@@ -84,13 +101,17 @@ beat one click that needs thought.
 11. Write `docs/design/flows/<feature>/flows.md` from `templates/flows.md`
     (with `--feedback`, see below). Run the gate:
     `python3 "${CLAUDE_PLUGIN_ROOT}/skills/ux-flows/scripts/flows_check.py" --file <the file written>`.
-    It fails on a screen with no outgoing edge that is not terminal and on
-    more cases. Detail: references/gate-and-handoff.md. Fix and
+    It fails on a screen with no outgoing edge that is not terminal, an
+    inventory screen in no flowchart, a flowchart screen not in the
+    inventory, a dialog with no cancel, back or close in Exits, a screen
+    with no state table, a missing or blank loading, empty, error or
+    success row, `n/a` without a reason, and zero screens read. Fix and
     rerun until it exits 0. Change nothing outside `docs/` (no README
     status line, no code). Print the output contract. If gstack
     `/diagram` is listed in this session, offer to render the mermaid;
     invoke only on a yes. Name `/plan-design-review` (gstack) as the
     heavier interactive review and `design-directions` as next.
+
 
 ## A product with several packages, or no code yet
 
@@ -100,10 +121,14 @@ refuses an id two packages share). Detail: references/several-packages-or-no-cod
 
 ## Re-issuing with feedback
 
+The previous version has readers: review notes, sign-offs and design
+tickets cite its screen ids and its copy. The job is to change what the
+feedback asks and to show every consequence, not to rewrite the package.
+
 - Write `flows-v<n+1>.md` beside the previous file, which stays as is,
   with `## Changes from v<n>` first: each change, the feedback it answers
   and the screen ids touched.
-  Detail: references/re-issuing-with-feedback.md
+Detail: references/re-issuing-with-feedback.md
 
 ## Output contract
 
@@ -136,9 +161,30 @@ A count the script did not print is not written.
   puzzling choice saves a click and costs the user more.
 - Dialogs and confirmations are screens. A dialog with no cancel is a dead
   end; a destructive action with no undo window is an open question.
-- Many items in one input, costs and counts before sending, a removed
-  confirmation and work that outlives the screen each carry rules the
-  package must show. Detail: references/batches-costs-and-queued-work.md
+- Removing a confirmation removes its safety. Replace it in proportion:
+  the parsed count on the button ("Send 12 invites"), or an undo or quick
+  revoke after the send.
+- Many items in one input (pasted addresses, uploaded rows): say which
+  separators are accepted; normalise the way the server does (trim, case)
+  and remove duplicates within the list on that normalised form; show the
+  count and any unreadable entries before sending; report the result per
+  item from the server's reply, since a check made before sending goes
+  stale; let the user retry only the failures without retyping. Per-call
+  limits and caps apply per item: say what happens to the ones over.
+- Costs and counts before sending: show the unit price, the total for
+  what will actually be sent, and when the charge happens. "Actually
+  sent" means after duplicates, unreadable entries and everything the
+  screen already knows will be refused: existing members and pending
+  invites are on the page, so check against them before sending. Label
+  that figure as what the page knows now (another admin or an accept
+  can change it) and let the per-item server replies set the result.
+- Work that outlives the screen: a paced or queued send (rate limit,
+  long batch) meets a user who closes the dialog, navigates or loses the
+  tab. Say what happens to the items still waiting: kept and resumed,
+  or listed as not sent with a way to send them, never dropped silently
+  and never shown as sent. A shared window (per workspace) can already
+  be partly used by someone else, so pace from the server's refusals,
+  not from a client-side count that assumes the first N go through.
 - Time in copy: a date read from the record beats a duration; a stated
   duration is the code's value.
 - Keep screen ids stable across versions so variants and reviews can cite
