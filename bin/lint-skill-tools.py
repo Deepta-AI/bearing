@@ -138,19 +138,33 @@ def section_lines(body, whole=False):
 
 
 def wrapped_spans(text):
-    """Line where each code span opens that is closed on a later line.
+    """Line where each code span opens that does not close on that line.
 
-    A line outside a fenced block with an odd number of backticks opens or
-    closes such a span; only the opening line is reported."""
-    fence, opened, out = False, False, []
+    Backtick runs are matched by length (a span opened by two backticks ends at
+    the next run of two), outside ``` and ~~~ fenced blocks. A blank line ends
+    a paragraph, so an unclosed span is reported once, at its opening line."""
+    fence, opened, start, out = "", 0, 0, []
     for i, line in enumerate(text.split("\n"), 1):
-        if re.match(r"^\s*```", line):
-            fence = not fence
+        f = re.match(r"^\s*(```|~~~)", line)
+        if f:
+            if not fence:
+                fence = f.group(1)
+            elif fence == f.group(1):
+                fence = ""
             continue
-        if not fence and line.count("`") % 2 == 1:
+        if fence:
+            continue
+        if not line.strip():
+            opened = 0
+            continue
+        for m in re.finditer(r"`+", line):
+            n = len(m.group(0))
             if not opened:
-                out.append(i)
-            opened = not opened
+                opened, start = n, i
+            elif n == opened:
+                opened = 0
+        if opened and not out[-1:] == [start]:
+            out.append(start)
     return out
 
 
@@ -304,6 +318,7 @@ def main():
                     files.append((rp, open(rp, encoding="utf-8").read(), 0, True))
         for path, content, off, is_ref in files:
             rel = os.path.relpath(path, ROOT)
+            n_refs += is_ref
             for ln in wrapped_spans(content):
                 findings.append(f"{rel}:{ln + off}: code span wrapped across lines")
         tools = allowed_tools(fm)
@@ -314,7 +329,6 @@ def main():
         seen = set()
         for path, content, off, is_ref in files:
             rel = os.path.relpath(path, ROOT)
-            n_refs += is_ref
             for lineno, cmd in commands_in(content, whole=is_ref):
                 for raw, piped in segments(cmd):
                     seg = normalise(raw)

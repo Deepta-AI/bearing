@@ -19,8 +19,7 @@ stack. Rules the template carries, keep them when adapting:
   hangs on such a probe.
 - The body carries a fixed short reason per check (`timeout`,
   `unreachable`, `unhealthy`), never the driver error. Driver errors
-  carry the host, user and database name (pgx: ``failed to connect to
-  `user=orders database=orders`: 10.0.0.5:5432 (db.internal)``), and a
+  carry the host, user and database name (pgx: ``failed to connect to `user=orders database=orders`: 10.0.0.5:5432 (db.internal)``), and a
   regex scrubber misses some format; log the full error server side,
   sampled.
 - Probes are cheap: `SELECT 1`/ping, `PING` on the cache, a

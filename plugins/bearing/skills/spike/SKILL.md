@@ -2,7 +2,7 @@
 name: spike
 description: 'Runs a timeboxed spike: a yes, no or number question, a timebox and stop condition, throwaway code never merged, a written recommendation. Use when asked to "spike this", "investigate whether" or "prototype to find out".'
 argument-hint: "<name> \"<question>\" [--hours 4] [--branch]"
-allowed-tools: Read, Write, Edit, Grep, Glob, Bash(ls:*), Bash(mkdir -p:*), Bash(date:*), Bash(printenv:*), Bash(git status:*), Bash(git branch:*), Bash(git switch -c:*), Bash(git log:*), Bash(git diff:*), Bash(git show:*), Bash(git check-ignore:*), Bash(git restore:*), Bash(git checkout --:*), Bash(git clean -n:*), Bash(rm -r .scratch/spike-:*), Bash(rm .scratch/spike-:*), Bash(make check:*), Bash(make test:*), Bash(go run:*), Bash(go test:*), Bash(go tool pprof:*), Bash(go version:*), Bash(GOMAXPROCS=1 go test:*), Bash(GOMAXPROCS=1 go run:*), Bash(env:*), Bash(taskset:*), Bash(systemd-run --user --scope:*), Bash(/usr/bin/time:*), Bash(node:*), Bash(pnpm exec:*), Bash(uv run:*), Bash(python3:*), Bash(rm -r .scratch/spike-*)
+allowed-tools: Read, Write, Edit, Grep, Glob, Bash(ls:*), Bash(mkdir -p:*), Bash(date:*), Bash(printenv:*), Bash(git status:*), Bash(git branch:*), Bash(git switch -c:*), Bash(git log:*), Bash(git diff:*), Bash(git show:*), Bash(git check-ignore:*), Bash(git restore:*), Bash(git checkout --:*), Bash(git clean -n:*), Bash(make check:*), Bash(make test:*), Bash(go run:*), Bash(go test:*), Bash(go tool pprof:*), Bash(go version:*), Bash(GOMAXPROCS=1 go test:*), Bash(GOMAXPROCS=1 go run:*), Bash(env:*), Bash(taskset:*), Bash(systemd-run --user --scope:*), Bash(/usr/bin/time:*), Bash(node:*), Bash(pnpm exec:*), Bash(uv run:*), Bash(python3:*)
 ---
 
 # spike

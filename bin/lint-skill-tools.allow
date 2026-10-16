@@ -1,4 +1,9 @@
-# Commands a skill names but never runs, so they need no grant.
+# Two categories of command that need no allowed-tools grant:
+#  - named but never run: printed for the engineer, quoted as a defect, or a
+#    line the skill writes into another file; the reason says so.
+#  - run by the skill but deliberately not pre-approved (a grant would be too
+#    wide or is forbidden by lint-skills): the reason starts with "prompts:"
+#    and the harness asks each time.
 # One row per command: <skill>|<command prefix>|<reason>. Keep the reason
 # specific; lint-tools fails on a row that no longer matches anything.
 api-versioning|make test-contracts|a target the skill adds to the Makefile
@@ -42,7 +47,6 @@ database|goose up-to|a migration step named in a rollback recipe for the enginee
 database|alembic upgrade|a migration step named in a rollback recipe for the engineer
 harness-setup|docker exec|a wrapper command the permission matcher follows, named as an example
 llm-fine-tuning|make train-|a target the recipe adds to the Makefile
-test-heal|make dev|a Makefile target the engineer may need running; the skill grants only db and migrate
 definition-of-done|pnpm exec vitest run|an example of the test command passed to red_proof.sh, the granted entry point
 gate-audit|git add|the body of a pre-commit hook quoted as a defect, never run
 merge-request|git add|a line printed for the engineer to commit the progress file
@@ -52,4 +56,8 @@ openapi-spec|docker compose up -d --wait|a step of the CI job the skill writes, 
 openapi-spec|make migrate|a step of the CI job the skill writes, not run by the skill
 release|pip install|a README install line the skill greps for
 release|uv add|a README install line the skill greps for
-harness-setup|git -C|reads the kit remote URL; lint-skills forbids a git -C grant, so the call prompts
+harness-setup|git -C|prompts: the skill reads the kit remote URL; lint-skills forbids a git -C grant, so the harness asks
+test-run|DATABASE_URL=... go test|prompts: run by the skill; an env-prefix grant would also match a smuggled command, so the harness asks
+test-run|PLAYWRIGHT_JSON_OUTPUT_NAME=|prompts: run by the skill; an env-prefix grant would also match a smuggled command, so the harness asks
+test-run|DATABASE_URL=... uv run pytest|prompts: run by the skill; an env-prefix grant would also match a smuggled command, so the harness asks
+spike|rm -r .scratch/spike-|prompts: run by the skill to delete the throwaway; a glob grant on rm is too wide, so the harness asks

@@ -93,6 +93,15 @@ assert_exit 0 python3 "$LINT" "$d/k" "$empty"
 assert_contains "$T_OUT" "1 skills, 1 reference files, 2 commands examined"
 t_end
 
+t_begin "double-backtick spans, tilde fences and in-fence backticks"
+skill "$d/m" sk-dbl "Read, Bash(git diff:*)" '1. Run `git diff --stat`.'
+mkdir -p "$d/m/sk-dbl/references"
+printf '# Detail\n\nOne line: ``a`b`` is fine.\n\n~~~\nan odd ` backtick in a tilde fence\n~~~\n\n```\nand ` here\n```\n\nWrapped ``x\ny`` span.\n' > "$d/m/sk-dbl/references/d.md"
+assert_exit 1 python3 "$LINT" "$d/m" "$empty"
+assert_contains "$T_OUT" "sk-dbl/references/d.md:13: code span wrapped across lines"
+assert_contains "$T_OUT" "1 problems"
+t_end
+
 t_begin "the kit's own skills pass"
 assert_exit 0 python3 "$LINT"
 assert_contains "$T_OUT" "0 problems"
