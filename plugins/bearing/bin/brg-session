@@ -49,9 +49,11 @@ open_skill() { # the skill this session started and has not ended
 case "$sub" in
   timeline-start)
     [ -n "$skill" ] || exit 0
-    prev="$(open_skill)"; [ -z "$prev" ] || event "$prev" end
+    # One read of this session's events: the open skill, and the last start for rerun detection.
+    sess=""; [ ! -f "$tl" ] || sess="$(grep -F "\"session\":\"$(esc "$id")\"" "$tl")"
+    prev="$(printf '%s\n' "$sess" | tail -1 | grep -F '"event":"start"' | skill_of)"; [ -z "$prev" ] || event "$prev" end
     # The same skill starting again in this session within ten minutes is a rerun.
-    last="$(grep -F "\"session\":\"$(esc "$id")\"" "$tl" 2>/dev/null | grep -F '"event":"start"' | tail -1)"
+    last="$(printf '%s\n' "$sess" | grep -F '"event":"start"' | tail -1)"
     if [ -n "$last" ] && [ "$(printf '%s\n' "$last" | skill_of)" = "$skill" ]; then
       le="$(printf '%s' "$last" | sed -n 's/.*"epoch":\([0-9]*\).*/\1/p')"
       if [ -n "$le" ] && [ $(( $(date +%s) - le )) -le 600 ]; then

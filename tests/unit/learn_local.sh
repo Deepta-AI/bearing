@@ -12,6 +12,7 @@ assert_exit 0 run state
 assert_eq ask "$T_OUT"
 assert_exit 0 run log --kind gate-block --skill go --key vet --insight "vet fails in src/a/b.go"
 nofile=0; [ -e "$f" ] && nofile=1; assert_eq 0 "$nofile" "no file"
+nodir=0; [ -e "$cfg/bearing" ] && nodir=1; assert_eq 0 "$nodir" "config dir not created"
 t_end
 t_begin "off writes nothing"
 mkdir -p "$cfg/bearing"; echo BEARING_LEARNING=off > "$cfg/bearing/bearing.env"
@@ -34,7 +35,8 @@ assert_eq 2 "$(wc -l < "$f" | tr -d ' ')" "two distinct entries"
 assert_contains "$(cat "$f")" '"count":2'
 assert_contains "$(cat "$f")" '*.go'
 assert_not_contains "$(cat "$f")" 'src/a/b.go'
-assert_not_contains "$(cat "$f")" 'repo'
+assert_not_contains "$(cat "$f")" '"repo'
+assert_not_contains "$(cat "$f")" '"path"'
 t_end
 t_begin "top ranks by count"
 assert_exit 0 run top --skills "go" --n 1
@@ -42,21 +44,57 @@ assert_eq "- vet fails in *.go (2x)" "$T_OUT"
 assert_exit 0 run top --skills "python" --n 5
 assert_eq "" "$T_OUT"
 t_end
-t_begin "absolute and extensionless paths are reduced"
+t_begin "path shapes are reduced or dropped, never stored"
 g="$(tmpdir)"; export XDG_CONFIG_HOME="$g"; mkdir -p "$g/bearing"; echo BEARING_LEARNING=on > "$g/bearing/bearing.env"
-bash "$L" log --kind manual --skill go --key a --insight "edit /home/u/x.go and src/dir/Makefile then"
-out="$(cat "$g/bearing/learnings.jsonl")"
-assert_contains "$out" '"insight":"edit *.go and * then"'
-assert_not_contains "$out" 'home'
-assert_not_contains "$out" 'Makefile'
+lg="$g/bearing/learnings.jsonl"
+keep() { bash "$L" log --kind manual --skill go --key "$1" --insight "$2"; }
+keep a "edit /home/u/x.go now"
+keep b "open src/dir/Makefile now"
+keep c "see C:\\x\\secret.go now"
+keep d "see C:\\Users\\x\\proj now"
+keep e "read Secret_Report.go now"
+keep f "open src/my dir/file name.go now"
+out="$(cat "$lg")"
+assert_contains "$out" '"insight":"edit *.go now"'
+assert_contains "$out" '"insight":"open * now"'
+assert_contains "$out" '"insight":"see *.go now"'
+assert_contains "$out" '"insight":"see * now"'
+assert_contains "$out" '"insight":"read *.go now"'
+assert_contains "$out" '"insight":"open *.go now"'
+for w in home Makefile secret Users Secret_Report file name; do assert_not_contains "$out" "$w"; done
+assert_eq 6 "$(wc -l < "$lg" | tr -d ' ')" "six entries"
 t_end
-t_begin "an insight that still holds a slash after reduction is dropped and logged"
+t_begin "an insight that still holds a separator after reduction is dropped and logged"
 repo="$(tmpdir)"; git -C "$repo" init -q -b main; mkdir -p "$repo/.bearing/state"
-before="$(wc -l < "$g/bearing/learnings.jsonl" | tr -d ' ')"
 ( cd "$repo" && bash "$L" log --kind manual --skill go --key b --insight "see the src/ folder" )
-assert_eq "$before" "$(wc -l < "$g/bearing/learnings.jsonl" | tr -d ' ')" "nothing stored"
-assert_not_contains "$(cat "$g/bearing/learnings.jsonl")" 'folder'
-assert_contains "$(cat "$repo/.bearing/state/gates.log")" "learn	not-run"
+( cd "$repo" && bash "$L" log --kind manual --skill go --key b --insight "see C:\\Users\\John Smith\\x folder" )
+assert_eq 6 "$(wc -l < "$lg" | tr -d ' ')" "nothing stored"
+assert_not_contains "$(cat "$lg")" 'folder'
+assert_eq 2 "$(grep -c "learn	not-run" "$repo/.bearing/state/gates.log")" "two not-run lines"
+t_end
+t_begin "a corrupted line does not stop log or top"
+printf 'not json at all\n' >> "$lg"
+keep g "after the corruption"
+assert_contains "$(cat "$lg")" 'after the corruption'
+assert_not_contains "$(cat "$lg")" 'not json'
+printf '{broken\n' >> "$lg"
+assert_exit 0 bash "$L" top --skills "go" --n 9
+assert_contains "$T_OUT" "- after the corruption (1x)"
+assert_exit 0 bash "$L" list
+assert_contains "$T_OUT" "after the corruption"
+t_end
+t_begin "namespaced skills are stored bare; gate lessons are read back for any step"
+bash "$L" log --kind rerun --skill bearing:prd --key rerun --insight "prd rerun"
+bash "$L" log --kind gate-block --skill stop-gate --key mk --insight "stop gate lesson"
+bash "$L" log --kind gate-block --skill check-file --key zz --insight "check file lesson"
+assert_contains "$(cat "$lg")" '"skill":"prd"'
+assert_not_contains "$(cat "$lg")" 'bearing:prd'
+assert_exit 0 bash "$L" top --skills "prd" --n 20
+assert_contains "$T_OUT" "- prd rerun (1x)"
+assert_exit 0 bash "$L" top --skills "adr" --n 20
+assert_contains "$T_OUT" "- stop gate lesson (1x)"
+assert_contains "$T_OUT" "- check file lesson (1x)"
+assert_not_contains "$T_OUT" "prd rerun"
 t_end
 t_begin "add stores a manual entry and list reads it"
 bash "$L" add "run the linter first" --skill general >/dev/null

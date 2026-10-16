@@ -28,10 +28,16 @@ state() { # the same reader as brg-config get learning --user
   [ -f "$(dirname "$0")/brg-config" ] && v="$(BEARING_ENV="$envf" bash "$(dirname "$0")/brg-config" get learning --user 2>/dev/null)"
   case "$v" in on|off) echo "$v";; *) echo ask;; esac
 }
-reduce() { # file paths become *.ext (or * with no extension); absolute paths too
-  printf '%s' "$1" | sed -E 's#/?([A-Za-z0-9_.~-]+/)+[A-Za-z0-9_.-]*[A-Za-z0-9_-]\.([A-Za-z0-9]+)#*.\2#g; s#/?([A-Za-z0-9_.~-]+/)+[A-Za-z0-9_.-]+#*#g'
+reduce() { # file paths become *.ext (or * with no extension), absolute and drive paths too
+  local d='[A-Za-z0-9_.~-]' w='[A-Za-z0-9_-]'
+  printf '%s' "$1" | sed -E \
+    -e 's#[A-Za-z]:[\\/][A-Za-z0-9_.~\\/-]*[A-Za-z0-9_-]\.([A-Za-z][A-Za-z0-9]*)#*.\1#g' \
+    -e 's#[A-Za-z]:[\\/][A-Za-z0-9_.~\\/-]+#*#g' \
+    -e "s#/?${d}+/((${d}+ )*${d}+/)*(${w}+ )*[A-Za-z0-9_.-]*${w}\.([A-Za-z][A-Za-z0-9]*)#*.\4#g" \
+    -e "s#/?(${d}+/)+${d}+#*#g" \
+    -e "s#(^|[^A-Za-z0-9_*.-])${w}+(\.${w}+)*\.([A-Za-z][A-Za-z0-9]*)#\1*.\3#g"
 }
-has_path() { case "$1" in */*) return 0;; esac; return 1; } # a token containing a slash survived reduce
+has_path() { case "$1" in */*|*\\*) return 0;; esac; return 1; } # a path separator survived reduce
 not_run() { # one line in the repository gates.log, when there is one
   local root; root="$(git rev-parse --show-toplevel 2>/dev/null)" || return 0
   [ -d "$root/.bearing/state" ] || return 0
@@ -46,19 +52,27 @@ case "$sub" in
     [ "$sub" = add ] && { kind=manual; insight="$text"; key="$(printf '%s' "$text" | cksum | cut -d' ' -f1)"; }
     case "$kind" in gate-block|rerun|override|manual) ;; *) exit 0;; esac
     [ -n "$insight" ] || exit 0
+    skill="${skill##*:}"   # bearing:prd is stored as prd
     ins="$(reduce "$insight")"; ky="$(reduce "${key:-$ins}")"; sk="$(reduce "$skill")"
     if has_path "$ins" || has_path "$ky" || has_path "$sk"; then not_run "entry dropped, a path survived reduction"; exit 0; fi
-    mkdir -p "$dir" || exit 0; touch "$f"; ts="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-    jq -c --arg k "$kind" --arg s "$sk" --arg y "$ky" --arg i "$ins" --arg t "$ts" -s '
+    mkdir -p "$dir" 2>/dev/null || exit 0; touch "$f" 2>/dev/null; ts="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+    tmp="$f.tmp.$$"
+    # Lines that are not JSON objects are skipped here and so dropped by the rewrite.
+    if jq -cR 'fromjson? | select(type=="object")' "$f" 2>/dev/null | jq -c --arg k "$kind" --arg s "$sk" --arg y "$ky" --arg i "$ins" --arg t "$ts" -s '
       (map(select(.kind==$k and .skill==$s and .key==$y)) | length) as $hit
       | if $hit > 0 then map(if .kind==$k and .skill==$s and .key==$y then .count += 1 | .ts = $t else . end)
-        else . + [{ts:$t, kind:$k, skill:$s, key:$y, insight:$i, count:1}] end | .[]' "$f" > "$f.tmp" && mv "$f.tmp" "$f" || rm -f "$f.tmp";;
+        else . + [{ts:$t, kind:$k, skill:$s, key:$y, insight:$i, count:1}] end | .[]' > "$tmp" 2>/dev/null && [ -s "$tmp" ]; then
+      mv "$tmp" "$f" 2>/dev/null || { rm -f "$tmp"; not_run "could not write the log"; }
+    else
+      rm -f "$tmp"; not_run "could not update the log"
+    fi;;
   top)
     [ -f "$f" ] || exit 0
     case "$n" in ''|*[!0-9]*) n=5;; esac
-    jq -r -s --arg s " $skills " --argjson n "$n" '
-      map(select(.skill as $k | $k == "general" or ($s | contains(" " + $k + " "))))
-      | sort_by([.count, .ts]) | reverse | .[:$n] | .[] | "- \(.insight) (\(.count)x)"' "$f" 2>/dev/null;;
-  list) [ -f "$f" ] && jq -r '"\(.count)x  \(.skill)  \(.insight)"' "$f" 2>/dev/null;;
+    jq -cR 'fromjson? | select(type=="object")' "$f" 2>/dev/null | jq -r -s --arg s " $skills " --argjson n "$n" '
+      map(select((.skill | sub("^.*:"; "")) as $k
+        | $k == "general" or $k == "stop-gate" or $k == "check-file" or ($s | contains(" " + $k + " "))))
+      | sort_by([.count, .ts]) | reverse | .[:$n] | .[] | "- \(.insight) (\(.count)x)"' 2>/dev/null;;
+  list) [ -f "$f" ] && { jq -cR 'fromjson? | select(type=="object")' "$f" 2>/dev/null | jq -r '"\(.count)x  \(.skill)  \(.insight)"' 2>/dev/null; };;
 esac
 exit 0

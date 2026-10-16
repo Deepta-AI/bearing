@@ -5,7 +5,7 @@
   "commandSkills": 0,
   "stackSkills": 12,
   "scripts": 94,
-  "scriptLines": 29172,
+  "scriptLines": 29188,
   "hooks": 8,
   "agents": 8,
   "makeTargets": 30,
@@ -15278,7 +15278,7 @@
    "name": "brg-learn",
    "lang": "bash",
    "group": "quality",
-   "lines": 64,
+   "lines": 78,
    "header": "brg-learn: opt-in, local learnings. Nothing leaves this machine; entries\ncarry no repository field and paths are reduced to their extension.\n  state                                   on, off or ask (BEARING_LEARNING, via brg-config)\n  log --kind K --skill S --key K --insight T\n                                          K is gate-block|rerun|override|manual; only when on\n  add \"<text>\" [--skill S]                a manual entry\n  top --skills \"a b\" [--n N]              \"- <insight> (<count>x)\", count then recency\n  list                                    every entry, \"<count>x  <skill>  <insight>\"\nThe log sits beside bearing.env (BEARING_ENV, else\n${XDG_CONFIG_HOME:-$HOME/.config}/bearing). log, add and top need jq and do\nnothing without it. Exit 0 always.",
    "functions": [
     "state",
@@ -15393,7 +15393,7 @@
    "name": "brg-session",
    "lang": "bash",
    "group": "quality",
-   "lines": 123,
+   "lines": 125,
    "header": "brg-session: session memory for Bearing, all local and model-free.\n  timeline-start --id <sid> --skill <name>   record a skill start (ends the open one)\n  timeline-close --id <sid>                   end the open skill of this session\n  timeline-recent [--branch <b>] [--n <k>]    last k ended skills on the branch\n  not-run --skill <reason>                    log `timeline not-run <reason>` to gates.log\n  checkpoint                                  write .bearing/state/<branch>.checkpoint.md\n  next-step                                   the next flow step after the timeline\n  resume [--source startup|resume|compact]    the block SessionStart prints\nRuns on bash 3.2; needs git; uses jq when present. Exit 0 always.",
    "functions": [
     "esc",
@@ -17965,9 +17965,9 @@
   {
    "path": "tests/unit/learn_local.sh",
    "kind": "unit",
-   "lines": 108,
+   "lines": 146,
    "header": "tests/unit/learn_local.sh: consent states; nothing written unless on; counts increment; paths reduced or dropped; top ranks by count; the guard session ask and read back; gate blocks and reruns feed the log.",
-   "asserts": 44
+   "asserts": 67
   },
   {
    "path": "tests/unit/lint_evals.sh",
