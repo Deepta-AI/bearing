@@ -1,7 +1,7 @@
 ---
 name: workflow
 description: 'Says where the work stands (repository, branch, diff) and which skill or step comes next. Use when asked "what should I do next", "which skill do I use", "how do we work here" or "what is in flight".'
-allowed-tools: Read, Grep, Glob, Bash(git status:*), Bash(git branch:*), Bash(git log:*), Bash(git rev-parse:*), Bash(git rev-list:*), Bash(git diff:*), Bash(git show:*), Bash(git ls-tree:*), Bash(git for-each-ref:*), Bash(git merge-base:*), Bash(git grep:*), Bash(make -n:*), Bash(make check:*), Bash(ls:*), Bash(wc -l), Bash(bash *bin/brg-state-path*), Bash(python3 *skills/session-handoff/scripts/progress.py*)
+allowed-tools: Read, Grep, Glob, Bash(git status:*), Bash(git branch:*), Bash(git log:*), Bash(git rev-parse:*), Bash(git rev-list:*), Bash(git diff:*), Bash(git show:*), Bash(git ls-tree:*), Bash(git for-each-ref:*), Bash(git merge-base:*), Bash(git grep:*), Bash(make -n:*), Bash(make check:*), Bash(ls:*), Bash(wc -l), Bash(bash *bin/brg-state-path*), Bash(bash *bin/brg-session*), Bash(bash *bin/brg-learn*), AskUserQuestion, Bash(python3 *skills/session-handoff/scripts/progress.py*)
 ---
 
 # workflow
@@ -10,6 +10,22 @@ Answer three questions: where are we, what comes next, which skill does it.
 Asked what is in flight, answer for the whole team. Asked whether to run one
 agent, bounded tasks or parallel subagents, answer from
 `references/agent-split.md`.
+
+## With no argument: the menu
+
+1. Run `bash "${CLAUDE_PLUGIN_ROOT}/bin/brg-session" resume` and read the
+   checkpoint, the last skills and the next flow step. On a trunk or
+   release branch with no history it prints nothing: use the repository
+   read in Inputs instead, and lead with `start-task` when there is no
+   task branch.
+2. Lead with the two or three best next skills, each with one line of
+   reason taken from that output or the repository (uncommitted files with
+   no check: `definition-of-done`; next flow step: that skill; a stale
+   progress record: `session-handoff`).
+3. Then the stage table below.
+4. Ask with AskUserQuestion which to run (the first is the recommendation).
+   Never run one without an answer; this skill stays read-only. Questions
+   follow `${CLAUDE_PLUGIN_ROOT}/references/console.md`.
 
 The job is a status read, and a status read is only as good as its
 sources. Progress records, handoff notes and branch names are claims

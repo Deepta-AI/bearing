@@ -14751,11 +14751,18 @@
     "Bash(ls:*)",
     "Bash(wc -l)",
     "Bash(bash *bin/brg-state-path*)",
+    "Bash(bash *bin/brg-session*)",
+    "Bash(bash *bin/brg-learn*)",
+    "AskUserQuestion",
     "Bash(python3 *skills/session-handoff/scripts/progress.py*)"
    ],
    "extra": {},
    "intro": "Answer three questions: where are we, what comes next, which skill does it. Asked what is in flight, answer for the whole team. Asked whether to run one agent, bounded tasks or parallel subagents, answer from `references/agent-split.md`.",
    "sections": [
+    {
+     "title": "With no argument: the menu",
+     "lines": 41
+    },
     {
      "title": "Inputs",
      "lines": 30
@@ -14801,11 +14808,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 165,
+   "lines": 181,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 165
+     "lines": 181
     },
     {
      "path": "references/agent-split.md",
@@ -14818,6 +14825,7 @@
    },
    "evals": true,
    "hasSections": [
+    "With no argument: the menu",
     "Inputs",
     "Steps",
     "Output contract",

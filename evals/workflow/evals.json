@@ -50,6 +50,22 @@
     "The repository is left as the fixture left it: no file created, edited or deleted (no progress record is corrected, including docs/progress/BK-101.md), no commit, no branch created, deleted, reset or moved, the checked-out branch is still main, and nothing is pushed",
     "The final message contains no em dash character"
    ]
+  },
+  {
+   "id": 3,
+   "name": "no-argument-menu",
+   "prompt": "/workflow",
+   "expected_output": "With no argument, the answer opens with two or three skills, each with a one-line reason taken from the repository (on feature/PAY-214-refund-cap with uncommitted paths and no recorded check, so definition-of-done is among them; the progress record is behind the code, so session-handoff may be), then the full stage table, then asks which to run. It runs no skill and leaves the repository exactly as it was.",
+   "files": [
+    "files/payments-refund-cap"
+   ],
+   "expectations": [
+    "The first lines of the answer name two or three skills, each with a one-line reason that comes from the repository (for example uncommitted files with no check run points to definition-of-done), not general advice",
+    "After those skills the answer contains the full stage table (the map from Pressure-test to Pause, one skill per stage)",
+    "The answer asks the user which skill to run, with the first one marked as the recommendation, and does not run any skill itself before an answer",
+    "The repository is left as the fixture left it: no tracked or untracked file created, edited or deleted, no commit, no branch created or moved, nothing pushed",
+    "The final message contains no em dash character"
+   ]
   }
  ]
 }
