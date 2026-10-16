@@ -26,23 +26,24 @@ story per line. Detail: references/register-and-scope.md
   message (the app hands over its path, or inlines a text file, which counts as
   pasted), then the text of the message, then `docs/product/PRD.md` to
   re-normalise; if absent, looks in `README.md` and `docs/**/*.md` for a brief
-  or a feature list and, when none describes the product, asks one question for
-  an attached document, a pasted brief or a file path. Nothing after that stops
-  the skill: "provide a brief, a file path or an existing PRD".
+  or a feature list and, when none describes the product, asks one question with
+  AskUserQuestion (as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says),
+  options "enter a path or brief" (via Other) and "stop"; no answer stops:
+  "provide a brief, a file path or an existing PRD".
 - Existing PRD: looks in `docs/product/PRD.md` for ids to keep; if absent,
   numbering starts at `REQ-001`.
 - Templates: `templates/PRD.md` and `templates/questions.md` in this skill; no
   repository copy is needed.
 - Existing register: looks in `docs/product/questions.md` for Q ids and
   decisions to keep; if absent, numbering starts at `Q-001`.
-- Input format: text formats are read as they are; a `.pdf` with Read (20 pages
-  per call); a `.docx` or `.odt` by `scripts/doc_to_text.py` in this skill. Only
-  a legacy `.doc`, a Google Doc or a Notion link gets one question asking for a
-  `.docx`, PDF or text export. Detail: references/register-and-scope.md
-- Target repository: the git repository the session runs in
-  (`git rev-parse --show-toplevel`). When the working directory is not one, or
-  is a folder holding several repositories, ask one question for the product's
-  repository path; never write `docs/product` into a parent folder.
+- Input format: text formats are read as they are; a `.pdf` with Read (20 pages per call); a
+  `.docx` or `.odt` by `scripts/doc_to_text.py` in this skill. Only a legacy `.doc`, a Google
+  Doc or a Notion link gets one AskUserQuestion, options "enter an export path" (`.docx`, PDF or
+  text, via Other) and "stop". Detail: references/register-and-scope.md
+- Target repository: the git repository the session runs in (`git rev-parse --show-toplevel`).
+  When the working directory is not one, or is a folder holding several repositories, ask one
+  question with AskUserQuestion, options "enter the repository path" (via Other) and "stop";
+  never write `docs/product` into a parent folder.
 - Repository decisions: `docs/adr/*.md` (or wherever the README keeps
   decisions) and the code that already handles the domain; if absent, the input
   is checked against itself only and the report says so.
@@ -144,20 +145,19 @@ story per line. Detail: references/register-and-scope.md
    enters the register only when it meets the rule in step 7 (unclear about
    what gets built), never for business, delivery or legal doubts.
 10. Resolve the register in this session; nothing is sent outside it. Run
-    `python3 "${CLAUDE_PLUGIN_ROOT}/skills/prd/scripts/register_answers.py" rank`
-    for the open entries, ranked (open assumptions first, then by how many
-    statements each affects). Print the count and ask how to go through them
-    (highest impact first in rounds of four, only the assumptions, or none
-    now), then ask round by round with AskUserQuestion, up to four entries a
-    call, each a question in plain words (the register's text is for
-    engineers): the assumed reading first, labelled "(Assumed)", then the other
-    readings, at most four options (the user can always type their own); put
-    the experiment in an option's description when the entry has one, and group
-    entries on one topic in the same round. Without AskUserQuestion, ask the
-    same round as a numbered list and accept short answers ("Q-005 c, Q-021
-    keep, Q-006 ask"). A user who cannot answer yet: record `ask-client` with
-    who will be asked. Write the answers to `.bearing/answers-<date>.json` and
-    apply them with
+    `python3 "${CLAUDE_PLUGIN_ROOT}/skills/prd/scripts/register_answers.py" rank` for
+    the open entries, ranked (open assumptions first, then by how many statements each
+    affects). Print the count and ask how to go through them with AskUserQuestion:
+    highest impact first in rounds of four, only the assumptions, or none now (the
+    default if unanswered); then ask round by round the same way, up to four entries a
+    call, each a question in plain words (the register's text is for engineers): the
+    assumed reading first, labelled "(Assumed)", then the other readings, at most four
+    options (the user can always type their own); put the experiment in an option's
+    description when the entry has one, and group entries on one topic in the same
+    round. Without AskUserQuestion, ask the same round as a numbered list and accept
+    short answers ("Q-005 c, Q-021 keep, Q-006 ask"). A user who cannot answer yet:
+    record `ask-client` with who will be asked. Write the answers to
+    `.bearing/answers-<date>.json` and apply them with
     `register_answers.py apply --answers <file> --source "<who> in session"`.
     An `other` answer stays open: judge it under step 7a (a changed rule is a
     new REQ, never an edit), then set the entry. Finally update the counts in

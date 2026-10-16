@@ -7,9 +7,10 @@ Read when you reach step 10 and ask the open entries round by round.
    for the open entries, ranked: open assumptions first, then by
    how many statements each affects, so the first round settles what
    blocks the most. Print the count and ask the user how to go through
-   them: highest impact first in rounds of four, stopping whenever they
-   like; only the assumptions; or none now. Then ask round by round
-   with AskUserQuestion, up to four entries a call, each a question in
+   them with AskUserQuestion, options highest impact first in rounds of four,
+   stopping whenever they like; only the assumptions; or none now (the default
+   if unanswered). Then ask round by round with AskUserQuestion, up to four
+   entries a call, each a question in
    plain words (the register's text is for engineers): the assumed
    reading first, labelled "(Assumed)", then the other readings, at most
    four options (the user can always type their own); put the
