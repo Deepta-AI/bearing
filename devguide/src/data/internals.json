@@ -18,7 +18,7 @@
   "ghJobs": 6,
   "ghWorkflows": 2,
   "evals": 106,
-  "skillFiles": 1018
+  "skillFiles": 1009
  },
  "plugins": [
   {
@@ -26,7 +26,7 @@
    "dir": "plugins/bearing",
    "description": "A developer workflow for coding agents: skills for every stage from brief to runbook, review subagents, one guard behind every hook, and repository templates. The stack conventions come in bearing-backend and bearing-apps.",
    "required": true,
-   "files": 480,
+   "files": 471,
    "skills": [
     "ab-experiment",
     "accessibility",
@@ -1602,15 +1602,15 @@
    "sections": [
     {
      "title": "Inputs",
-     "lines": 30
+     "lines": 28
     },
     {
      "title": "Steps",
-     "lines": 39
+     "lines": 68
     },
     {
      "title": "Updating an existing backlog",
-     "lines": 5
+     "lines": 31
     },
     {
      "title": "Output contract",
@@ -1618,13 +1618,13 @@
     },
     {
      "title": "Gotchas",
-     "lines": 27
+     "lines": 25
     }
    ],
    "inputs": [
     "Requirement statements: looks in `$1` or `docs/product/PRD.md`; if absent, accepts any pasted brief, a file path, an existing tracker export or the README's feature list, and numbers the statements itself (`REQ-nnn`) before proceeding; `prd` produces the fuller PRD. Zero statements after one question stops the skill: \"provide a PRD, a brief or a file path\".",
     "Business objectives: the PRD's objectives table (`B1` upward); if absent, each story's \"Why it matters\" names the outcome in words and the report says \"0 objectives\".",
-    "Open questions: looks in `docs/product/questions.md`; if absent, the register is created here with the columns listed in step 3 Detail (the same shape `prd` writes).",
+    "Open questions: looks in `docs/product/questions.md`; if absent, the register is created here with the columns listed in step 3 (the same shape `prd` writes).",
     "Existing backlog: looks in `docs/product/backlog.md` (and `docs/product/tasks.md`); if present, this is an update (see \"Updating an existing backlog\") and the backlog's own id scheme, shape and status column are kept; if absent, numbering starts fresh in the house scheme.",
     "Scope: a request for stories (\"write the stories\", \"break the PRD into stories\") gets the backlog, the coverage matrix and, when anything is open, the question register. Tasks, user flows and IMPORT.md are added when the request asks for tasks, estimates, flows or a tracker import, or when those files already exist. Say in the report which you wrote.",
     "Personas: looks in the PRD's personas section; if absent, derived from the roles the statements name, marked `inferred:`, group 00 by default.",
@@ -1633,16 +1633,16 @@
     "Gate: `scripts/coverage_check.py` in this skill, Python 3 only, run from the repository root; it reads the files, never the model's summary."
    ],
    "steps": [
-    "Read the PRD (`$1` or `docs/product/PRD.md`) and collect every id matching `REQ-[0-9]{3}` from the statements table, skipping rows marked `withdrawn:`, and the `B` ids of its objectives; never renumber an existing id. Detail: references/read-and-judge.md",
-    "Judge each REQ and record the judgement and one sentence of why (both go into coverage.md): story, criterion-of, platform-detail-of, duplicate-of, split, non-functional or out-of-scope (needs a Q-nnn). Detail: references/read-and-judge.md",
-    "Open points. Every ambiguity, gap or contradiction met while judging becomes a `Q-nnn` row in `docs/product/questions.md` (columns in the reference); Affects is never empty. Detail: references/open-points-and-epics.md",
-    "Group stories into epics `EP-nn` by user goal, never by layer. Story ids: a new backlog uses `US-<group>-<nnn>`; an existing one keeps its own scheme and never reuses a number. Detail: references/open-points-and-epics.md",
-    "New backlog: write `docs/product/backlog.md` from `templates/story.md` (an existing one is edited in its own shape, below): at most seven acceptance criteria per story, each with a `Covers: REQ-nnn` line. Detail: references/write-the-pack.md",
-    "Full pack only (see Scope). Write `docs/product/tasks.md` from `templates/tasks.md`: development and test tasks per story; every AC is verified by a test task. A task over 8 hours is two tasks. Detail: references/write-the-pack.md",
-    "Write `docs/product/coverage.md` from `templates/coverage.md`: one row per REQ with judgement, why and covering stories; gaps are REQ rows with no story. Detail: references/write-the-pack.md",
+    "Read the PRD (`$1` or `docs/product/PRD.md`) and collect every id matching `REQ-[0-9]{3}` from the statements table, skipping rows marked `withdrawn:`, and the `B` ids of its objectives. No PRD: take the source under Inputs, split it into one testable statement per line, number them `REQ-001` upward, and write them as a \"Statements (inline, from <source>)\" table at the top of `docs/product/coverage.md` so every id r…",
+    "Judge each REQ and record the judgement and one sentence of why (both go into coverage.md): story, criterion-of, platform-detail-of, duplicate-of, split, non-functional or out-of-scope (which needs a Q-nnn whose Decision says so). Detail: references/judge-each-requirement.md",
+    "Open points. Every ambiguity, gap or contradiction met while judging, and every decision the PRD leaves open that a story had to take, becomes a `Q-nnn` row in `docs/product/questions.md` (or in the existing backlog's own question table, continuing its numbering); open assumptions come first under \"Needs your confirmation\", and every Affects cell is filled with the story ids the decision changes; it is never empty.…",
+    "Group stories into epics `EP-nn` by user goal, never by layer (\"API\", \"database\" are not epics). New backlog: assign the persona group from the PRD's personas (00 end users, 01 admins, 02 operators, 03 integrations) and the story id is `US-<group>-<nnn>`, sequential within the group, chosen by who triggers the behaviour. Existing backlog: a new story takes the backlog's own scheme, the next number after the highest…",
+    "New backlog: write `docs/product/backlog.md` from `templates/story.md` (an existing one is edited in its own shape, below): the story index, then per story the narrative, \"Why it matters\", \"From the PRD\", at most seven acceptance criteria in Given/When/Then with ids `AC-US-nn-nnn-k` and a `Covers: REQ-nnn` line each, \"Not in this story\", \"Depends on\", Points (`TBD` until `estimate`) and priority. Every REQ the story…",
+    "Full pack only (see Scope). Write `docs/product/tasks.md` from `templates/tasks.md`: per story the development tasks `US-nn-nnn-D1` upward and the test tasks `US-nn-nnn-T1` upward. Every story gets both kinds and every AC is verified by a test task. A task over 8 hours is two tasks. Detail: references/write-the-pack.md",
+    "Write `docs/product/coverage.md` from `templates/coverage.md`: one row per REQ with judgement, why and covering stories; gaps are REQ rows with no story. Also list orphan stories (no REQ) marked `inferred:` for the user to accept or drop. Write the files anyway so a gap is visible.",
     "Full pack only. Write `docs/product/user-flows.md` from `templates/user-flows.md`: at least one journey per epic. A failure no story handles is a `gap:` for the user. Detail: references/write-the-pack.md",
     "Run the gate: `python3 \"${CLAUDE_PLUGIN_ROOT}/skills/backlog/scripts/coverage_check.py\"` (add `--prd <path>` when `$1` named another PRD). It detects the id scheme from the committed backlog (`--story-id REGEX` overrides) and checks tasks.md and questions.md when they exist. Fix what it reports and rerun until it exits 0. Copy its \"tasks:\" line into the backlog's \"Hours by discipline\" (full pack) and its counts line…",
-    "Full pack only. Write `docs/product/IMPORT.md` from `templates/import.md`. Print the gate's lines unchanged. Never write a count the script did not print. Detail: references/write-the-pack.md"
+    "Full pack only. Write `docs/product/IMPORT.md` from `templates/import.md`: the files and how each imports (`tracker-sync sync` for epics and stories, CSV for tasks), the open assumptions to confirm before committing, what is still open, and what is out of scope. Print the gate's lines unchanged. Never write a count the script did not print."
    ],
    "output": "",
    "gotchas": [
@@ -1659,23 +1659,23 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 149,
+   "lines": 200,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 149
+     "lines": 200
     },
     {
      "path": "references/gate.md",
      "lines": 25
     },
     {
-     "path": "references/open-points-and-epics.md",
-     "lines": 23
+     "path": "references/judge-each-requirement.md",
+     "lines": 17
     },
     {
-     "path": "references/read-and-judge.md",
-     "lines": 40
+     "path": "references/open-points-and-epics.md",
+     "lines": 23
     },
     {
      "path": "references/updating-an-existing-backlog.md",
@@ -1683,7 +1683,7 @@
     },
     {
      "path": "references/write-the-pack.md",
-     "lines": 39
+     "lines": 34
     },
     {
      "path": "scripts/coverage_check.py",
@@ -2477,11 +2477,11 @@
     },
     {
      "title": "Steps",
-     "lines": 49
+     "lines": 99
     },
     {
      "title": "Design checks",
-     "lines": 2
+     "lines": 3
     },
     {
      "title": "Output contract",
@@ -2502,17 +2502,17 @@
     "Critic: the `critic` agent; if the Agent tool is unavailable, the review section reads \"review: not run (no agent)\" and the output contract says so."
    ],
    "steps": [
-    "Read the sources under Inputs, each printed as read or absent: the stories, the HLD data section, ADRs that choose a store, existing migrations and models. Zero stories and zero entities: ask the one question under Inputs. Detail: references/sources-entities-relationships.md",
-    "Entities: one row each with owner, lifecycle (every writer path), the `US-nn-nnn` ids it serves, PII yes or no, retention. An unused entity is cut.",
-    "Relationships: one row per foreign key with cardinality, FK column, `ON DELETE` and why; the `erDiagram` goes to `erd.md`. Detail: references/sources-entities-relationships.md",
+    "Read the sources under Inputs, each printed as read or absent: the stories, the HLD data section, ADRs that choose a store (`grep -il 'postgres\\|mongo\\|clickhouse' docs/adr/`), existing migrations and models. Stores from `--stores` or the ADRs; none named means Postgres (the default in `database`). Read the matching references from the plugin root: `${CLAUDE_PLUGIN_ROOT}/skills/database/references/postgres.md`, `mon…",
+    "Entities: one row each with owner (service or module), lifecycle (created by, changed by, ended by: delete, archive, expiry; every writer path), the `US-nn-nnn` ids it serves, PII yes or no, retention. An entity no story reads or writes is cut and listed under \"not modelled\".",
+    "Relationships: one row per foreign key with its cardinality, FK column, `ON DELETE` and why; the mermaid `erDiagram` (every entity, every relationship with its cardinality, the FK columns named) goes to `erd.md` with one sentence per relationship.",
     "Why these stores: per store, what it holds and why, with a Considered | Why not table naming the requirement each rejected store fails.",
-    "Per store, following the reference for that store: Postgres tables with a column table whose Why quotes the acceptance criterion (a column with no Why is cut), MongoDB collections, ClickHouse tables. Detail: references/stores-retention-migrations.md",
-    "Enumerations: one row per enum with its values and why the set is closed. Retention: one row per table with a lifetime and its mechanism; a lifetime no story states is `UNDEFINED`, never a suggested number. Detail: references/stores-retention-migrations.md",
-    "Migration plan in order, each item named and numbered the way the repository's existing migrations are, with its lock risk on a hot table. The plan writes no migration file. Detail: references/stores-retention-migrations.md",
+    "Per store, following the reference for that store: - Postgres, MongoDB and ClickHouse each follow the reference for that store. Postgres: per table, in foreign-key order, the purpose, `Serves US-...`, expected volume and hot or not; a column table whose Why quotes the acceptance criterion or names the rule the column exists for, and a column with no Why is cut. Detail: references/per-store-tables.md",
+    "Enumerations: one row per enum with its values and why the set is closed. Retention: one row per table with a lifetime, its rule and the mechanism that enforces it (batched hard delete, TTL, partition drop). A lifetime no story, PRD or policy states is `UNDEFINED`, with an owner question; a number you would suggest goes in that question, never in the lifetime cell and never into a purge job, TTL or partition scheme.…",
+    "Migration plan in order, each item named and numbered the way the repository's existing migrations are (next free number, same tool and file style; claim no convention the repository does not have), with its lock risk on a hot table, the batch note, and the expand, migrate or contract phase it belongs to; `db-migration` writes them later. The plan writes no migration file. A new database is migration 1: `schema.sql`.",
     "Rule check: walk the applicable rules of each reference. Every rule is followed or has a line `deviation: <rule>, <why>`. Count both.",
-    "Write the four files (a new model; for a revision see Revising), from this skill's templates, into `docs/design/`. Detail: references/write-and-review.md",
-    "Review: fork `critic` with the paths of `data-model.md` and `schema.sql` and the stories file, asking it to argue against the schema from the acceptance criteria and the Design checks below, and grade each finding. Fix what can be fixed in this run. Detail: references/write-and-review.md",
-    "Gate: `python3 \"${CLAUDE_PLUGIN_ROOT}/skills/data-model/scripts/model_check.py\" --dir docs/design`. It fails on zero tables, on a mismatch between the SQL and the dictionary and on more cases. Detail: references/write-and-review.md. Fix and rerun until it prints 0 problems. Then prove it applies: `bash \"${CLAUDE_PLUGIN_ROOT}/skills/data-model/scripts/apply_check.sh\" docs/design/schema.sql` (a throwaway `postgres:16`…"
+    "Write the four files (a new model; for a revision see Revising), from this skill's templates, replacing the worked example: `docs/design/data-model.md` (headline line: store, tables, columns, indexes, personal-data columns); `docs/design/schema.sql` (one `BEGIN;` ... `COMMIT;`, enum types first, tables in foreign-key order, a `-- Serves US-...` comment before each table, `COMMENT ON TABLE` and `COMMENT ON COLUMN` fo…",
+    "Review: fork `critic` with the paths of `data-model.md` and `schema.sql` and the stories file, asking it to argue against the schema from the acceptance criteria and the Design checks below, and grade each finding BLOCKER (the schema cannot serve a criterion, or does not apply), MAJOR (a criterion is served wrongly or a guarantee is missing), MINOR or NIT, each with the table, the failure and the fix. Fix what can b…",
+    "Gate: `python3 \"${CLAUDE_PLUGIN_ROOT}/skills/data-model/scripts/model_check.py\" --dir docs/design`. It fails on zero tables, on any table or column in the SQL but not in the dictionary or the reverse, on an empty Why, on a table or column with no `COMMENT ON`, on an unnamed CHECK, on FK order, and on headline counts that disagree. Fix and rerun until it prints 0 problems. Then prove it applies: `bash \"${CLAUDE_PLUGI…"
    ],
    "output": "",
    "gotchas": [
@@ -2531,31 +2531,19 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 149,
+   "lines": 199,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 149
+     "lines": 199
     },
     {
      "path": "references/design-checks.md",
      "lines": 55
     },
     {
-     "path": "references/revising-and-decisions.md",
-     "lines": 27
-    },
-    {
-     "path": "references/sources-entities-relationships.md",
+     "path": "references/per-store-tables.md",
      "lines": 25
-    },
-    {
-     "path": "references/stores-retention-migrations.md",
-     "lines": 39
-    },
-    {
-     "path": "references/write-and-review.md",
-     "lines": 32
     },
     {
      "path": "scripts/apply_check.sh",
@@ -2584,7 +2572,7 @@
    ],
    "groups": {
     ".": 1,
-    "references": 5,
+    "references": 2,
     "scripts": 2,
     "templates": 4
    },
@@ -3681,31 +3669,31 @@
    "sections": [
     {
      "title": "Inputs",
-     "lines": 14
-    },
-    {
-     "title": "Scope first",
-     "lines": 9
-    },
-    {
-     "title": "Read the repo before choosing a value",
-     "lines": 6
-    },
-    {
-     "title": "Steps",
-     "lines": 38
-    },
-    {
-     "title": "The lint",
-     "lines": 20
-    },
-    {
-     "title": "Output contract",
      "lines": 13
     },
     {
-     "title": "Gotchas",
+     "title": "Scope first",
+     "lines": 13
+    },
+    {
+     "title": "Read the repo before choosing a value",
+     "lines": 18
+    },
+    {
+     "title": "Steps",
+     "lines": 62
+    },
+    {
+     "title": "The lint",
+     "lines": 22
+    },
+    {
+     "title": "Output contract",
      "lines": 12
+    },
+    {
+     "title": "Gotchas",
+     "lines": 25
     }
    ],
    "inputs": [
@@ -3715,19 +3703,25 @@
     "An existing `docs/design/tokens.json` is updated in place, never rewritten without naming the changed roles."
    ],
    "steps": [
-    "Resolve the direction: `$ARGUMENTS`, else root `DESIGN.md` or `docs/design/DESIGN.md`, else `docs/design/variants/*/approved.json`, else the app's current styles read as the de facto system, else ask once for a brief. `--lint-only`: go to the lint section. Detail: references/roles-and-type.md",
-    "**Measure the direction before designing.** Compute the contrast of every pair it implies with `scripts/contrast.py` or the WCAG formula; a failing pair keeps its hue and moves in lightness. Detail: references/roles-and-type.md",
-    "Colour primitives in oklch, every sRGB value computed with the snippet in `references/stack-bindings.md`; refuse the default looks unless the direction names one. Detail: references/roles-and-type.md",
-    "Roles for light, then dark designed on its own; never invert. Text pairs 4.5:1, focus rings, borders and icons 3:1, in both modes. Detail: references/roles-and-type.md",
-    "Type and shape. A face the direction names is the face, with its fallbacks and how it loads; a different face is at most a proposal. Detail: references/roles-and-type.md",
+    "Resolve the direction: `$ARGUMENTS`, else root `DESIGN.md` or `docs/design/DESIGN.md`, else `docs/design/variants/*/approved.json`, else the app's current styles read as the de facto system, else ask once for a brief. Read it in full; list what it fixes and what it leaves free. `--lint-only`: go to the lint section.",
+    "**Measure the direction before designing.** Compute the contrast of every pair it implies (brand fill behind its label, link text, focus ring) with `scripts/contrast.py` or the WCAG formula. A failing pair keeps its hue and moves in lightness until it passes (or swaps the label to a dark one); the report gives the direction's ratio, the shipped ratio and the alternative.",
+    "Colour primitives in oklch: accent hue from the direction; neutrals at the hue the direction asks for with chroma 0.004 to 0.016; success, warning, danger, info at their own hues; each scale 0 to 1000. Compute every sRGB value with the snippet in `references/stack-bindings.md`; a value that clips gets less chroma. Refuse the default looks unless the direction names one.",
+    "Roles for light, then dark designed on its own: surfaces lift with lightness, accent one step lighter, chroma down 10 to 20 percent, text near white not pure white. Never invert. Text pairs 4.5:1, focus rings, borders that carry meaning and icons 3:1, in both modes. Include the pairs the components render that the role table misses: each `text-*` on each `bg-*` actually used together, and every opacity-modified fill…",
+    "Type and shape. A face the direction names is the face, with its fallbacks and how it loads (self-hosted files, a link, or \"still to do\" in the report); a different face is at most a proposal. When the direction leaves the face free, choose one for this product rather than a default (Inter, Roboto, Arial, system-ui). Touch targets: when the direction or the devices mean touch, interactive controls reach 44 px (iOS)…",
     "Write `docs/design/tokens.json` (schema `templates/tokens.schema.json`, validate with `uvx --with jsonschema==4.25.1 python -c \"import json,jsonschema; jsonschema.validate(json.load(open('docs/design/tokens.json')), json.load(open('<schema>')))\"` (stdlib Python has no validator; without uv, say \"schema: not validated\"); update an existing file in place with `meta.version` bumped and the changed roles named). Measure…",
-    "Bind each stack per `references/stack-bindings.md`, in the form the repo consumes (Read the repo, 1 to 3); on react-shadcn never a parallel `--color-*` set the components do not read. Detail: references/write-and-bind.md",
-    "Full setup only: `docs/design/components.md` from `templates/components.md`. Then `system_page.py tokens-css`, `build` and `check` (paths in the script's help; `build --fonts-css <file>` links the product's own `@font-face` stylesheet, and `--google-fonts` is only for a product that loads its faces from Google); `check` must exit 0; open the page in both themes. Write `docs/design/DESIGN.md` from `templates/DESIGN.m…",
+    "Bind each stack per `references/stack-bindings.md`, in the form the repo consumes (Read the repo, 1 to 3). On react-shadcn: one file of the variables shadcn reads (`src/styles/tokens.css` or `src/index.css` itself), replacing the defaults shadcn init wrote, never a parallel `--color-*` set the components do not read. Each generated file starts with a generated-from header. Then remove what the direction rules out fr…",
+    "Full setup only: `docs/design/components.md` from `templates/components.md` (each entry names its `src/components/ui` component and allowed variants; a missing need becomes a variant there; `- States:` stays one comma list on one line). Then `system_page.py tokens-css`, `build` and `check` (paths in the script's help; `build --fonts-css <file>` links the product's own `@font-face` stylesheet, and `--google-fonts` is…",
     "The lint (next section) and `make check`."
    ],
    "output": "Changed, Verified, Not done, Noticed. Lead with anything that was broken before (dark mode never switching, variables in a form the config cannot read). Then:",
    "gotchas": [
-    "Tailwind 3 and 4, React Native, Material 3 and SwiftUI each have a trap that renders nothing or breaks theming. Detail: references/gotchas-by-stack.md",
+    "`hsl(var(--x))` in a Tailwind 3 config and a hex in `--x` compile without error and render nothing. Grep the config before writing a value.",
+    "Opacity modifiers (`bg-primary/90`) are new colours: a 90 percent primary over white is lighter than the token and can drop a passing label below 4.5:1. Measure the composite, or give hover its own token.",
+    "`@theme` without `inline` snapshots values at build time and breaks runtime theme switching; `inline` keeps the cascade.",
+    "Tailwind's default palette stays reachable unless `--color-*: initial` (v4) or `theme.colors` replaced (v3); that is a scope decision, so it is proposed, not done, when the request did not ask.",
+    "React Native has no oklch and no CSS cascade: the provider supplies `roles[mode]` for `StyleSheet` code as well as the class.",
+    "Material 3 dynamic colour replaces the derived palette with the wallpaper's; leave it off unless the direction asks.",
+    "A SwiftUI `Font.custom` without `relativeTo:` disables Dynamic Type.",
     "The lint is pattern-based: a colour built in a variable named `brand`, or a value split across lines, is missed. Review the diff too.",
     "The design-system page is generated; change the tokens or the contract and build again, never hand-edit it.",
     "A hover or active specimen is drawn with an `is-*` class because a static page cannot hold the pointer; a component that styles only `:hover` still needs the class rule.",
@@ -3735,19 +3729,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 149,
+   "lines": 200,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 149
-    },
-    {
-     "path": "references/direction-and-scope.md",
-     "lines": 12
-    },
-    {
-     "path": "references/gotchas-by-stack.md",
-     "lines": 20
+     "lines": 200
     },
     {
      "path": "references/lint.md",
@@ -3764,10 +3750,6 @@
     {
      "path": "references/stack-bindings.md",
      "lines": 352
-    },
-    {
-     "path": "references/write-and-bind.md",
-     "lines": 37
     },
     {
      "path": "scripts/contrast.py",
@@ -3800,7 +3782,7 @@
    ],
    "groups": {
     ".": 1,
-    "references": 7,
+    "references": 4,
     "scripts": 2,
     "templates": 5
    },
@@ -5517,11 +5499,11 @@
    "sections": [
     {
      "title": "Inputs",
-     "lines": 22
+     "lines": 20
     },
     {
      "title": "Steps",
-     "lines": 63
+     "lines": 112
     },
     {
      "title": "Output contract",
@@ -5529,7 +5511,7 @@
     },
     {
      "title": "Gotchas",
-     "lines": 15
+     "lines": 12
     }
    ],
    "inputs": [
@@ -5546,13 +5528,13 @@
    "steps": [
     "**Scope.** Build what was asked. \"Liveness and readiness endpoints\" means the endpoints, their wiring, tests, the probe and load balancer manifests, and nothing else: no synthetic suite, blackbox config, alerts, runbooks or status docs, and no process lifecycle changes (SIGTERM drain, `terminationGracePeriodSeconds`, `preStop`), which change rollout behaviour. List those as one-line offers in the report. \"Uptime mon…",
     "**Inventory before changing.** Find the current health handler(s) and grep every path they serve across the repo: kubelet probes in the base AND in every overlay, load balancer checks, blackbox targets, smoke scripts, docs, the auth allow list. Moving or retiring a path means updating every consumer in the same change, or keeping the old path as an alias; never leave a consumer pointing at a 404 or at a path that no…",
-    "**Classify each dependency from the code, not its type.** An optional check reports `fail` with the overall body `degraded`, status 200; a required one gives 503. A probe that cannot fail is a lie in the readiness body: flag it. Detail: references/inventory-and-classification.md",
-    "**`/healthz` (liveness).** Returns 200 with status and version and touches nothing: no database, cache, network or lock that a stuck dependency can hold. Detail: references/liveness-and-readiness.md",
-    "**`/readyz` (readiness).** Copy the checker from the template for the stack and keep the rules it carries: concurrent checks under a fixed total deadline, a fixed short reason per check and never the driver error, reachable without credentials. Detail: references/liveness-and-readiness.md",
-    "**Probe arithmetic** (print the numbers in the report): readiness `timeoutSeconds` must exceed the endpoint's worst case. Manifests owned elsewhere (`bearing-backend:infra`, a platform repo): print the exact values to set instead of editing. Detail: references/probe-arithmetic.md",
-    "**Uptime probes** (monitoring in scope). Use the prober the repo already runs, through the public hostname a customer uses; label every target with its `environment`. Detail: references/uptime-and-alerts.md",
-    "**Alerts** (monitoring in scope). Read `rule_files` and the Alertmanager route tree first, and use exactly the label value that reaches the pager. Page on prod only; leave existing rules alone. Then the runbook gate, counted from the rule files: `bash \"${CLAUDE_PLUGIN_ROOT}/bin/brg-runbook-check\" <rules dir>` (zero alerts or a missing runbook exits 1) and `promtool check rules` when installed; say \"not run\" when it…",
-    "**Synthetic journey** (only when asked). One file per journey from `templates/synthetic-journey.md`, reading base URL, environment and credentials from environment variables. A step that charges a card, sends mail or creates real orders is qa or sandbox only; a committed secret is never copied; print the schedule for the engineer to create, never claim it exists. Detail: references/synthetic-journeys.md",
+    "**Classify each dependency from the code, not its type.** An optional check reports `fail` with the overall body `degraded`, status 200; a required one gives 503. A dependency named only in `.env.example` or removed by an accepted ADR gets no check. A probe that cannot fail is a lie in the readiness body: flag it. Detail: references/inventory-and-classification.md",
+    "**`/healthz` (liveness).** Returns 200 with status and version and touches nothing: no database, cache, network or lock that a stuck dependency can hold. Version comes from the build; if the build sets none, omit it rather than invent one. A test runs it with every dependency check failing and still gets 200.",
+    "**`/readyz` (readiness).** Copy the checker from the template for the stack. Rules the template carries, keep them when adapting: - Checks run concurrently, each with its own timeout, and the handler returns at a fixed total deadline even when a probe ignores its context; a check with no result by then is reported `fail`, `timeout`. - The body carries a fixed short reason per check (`timeout`, `unreachable`, `unheal…",
+    "**Probe arithmetic** (print the numbers in the report): - readiness `timeoutSeconds` must exceed the endpoint's worst case (the total deadline plus margin); Kubernetes defaults it to 1. - liveness points at `/healthz` only, with `failureThreshold x periodSeconds` long enough to ride out a GC pause (30 s or more); add a `startupProbe` when start-up is slow instead of a long `initialDelaySeconds`. - the load balancer…",
+    "**Uptime probes** (monitoring in scope). Use the prober the repo already runs (the blackbox exporter in `monitoring/`, or the ADR's choice); add targets for every service in every environment through the public hostname a customer uses. For `/readyz` use a module that fails on `\"status\":\"fail\"` in the body as well as on non-2xx. Remove or flag targets for services an ADR retired. Label every target with its `environ…",
+    "**Alerts** (monitoring in scope). Before writing a rule, read `rule_files` in `prometheus.yml` and the Alertmanager route tree: use exactly the label value that reaches the pager receiver. Rules: probe failing long enough to cover at least two consecutive probes (`for:` greater than the probe interval, typically 3 to 5 minutes at a 1m interval); one per service, `runbook_url` in the form the existing rules use; a ru…",
+    "**Synthetic journey** (only when asked). One file per journey from `templates/synthetic-journey.md`, in the repo's test stack, reading base URL, environment and credentials from environment variables. - A step that charges a card, sends mail or creates real orders is qa or sandbox only; say how prod is covered. - A token or password already committed is never copied; flag it for rotation, and make the script fail wi…",
     "Mobile (react-native, android, ios), when asked: a startup call to `/healthz` with a 3 s timeout routing to an offline or forced-update screen; a breadcrumb in the crash reporter, never a dialog on success.",
     "Verify: the repo's test target, `make -n` for any target added, every YAML written parses. State what was not exercised: manifests not applied to a cluster, checks not run against the real dependencies (name them), probes and synthetics not run against the real environments, tools not installed."
    ],
@@ -5567,11 +5549,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 149,
+   "lines": 191,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 149
+     "lines": 191
     },
     {
      "path": "references/inventory-and-classification.md",
@@ -14070,7 +14052,7 @@
     },
     {
      "title": "Steps",
-     "lines": 47
+     "lines": 67
     },
     {
      "title": "A product with several packages, or no code yet",
@@ -14078,7 +14060,7 @@
     },
     {
      "title": "Re-issuing with feedback",
-     "lines": 4
+     "lines": 8
     },
     {
      "title": "Output contract",
@@ -14086,7 +14068,7 @@
     },
     {
      "title": "Gotchas",
-     "lines": 18
+     "lines": 39
     }
    ],
    "inputs": [
@@ -14101,16 +14083,16 @@
    ],
    "steps": [
     "Read the inputs; print each as read or absent. Write the user's goal in one sentence and list the stories with ids. Zero stories and no brief: stop as under Inputs.",
-    "Reconcile the spec with the code before drawing anything. Detail: references/reconcile-spec-with-code.md",
+    "Reconcile the spec with the code before drawing anything. The stories say what someone wants; the code says what ships today, and a flow written from the stories alone promises things the product does not do. For every action the flow touches, open its handler and write a short ledger in the package (section 0 of the template): - Rejections, who is calling, numbers and how they are counted, numbers other documents s…",
     "Screen inventory: one row per screen and per dialog. Id `S-01`, name, purpose in one sentence, story ids served, entry points, exits, and `reused` (with its route or component) or `new`. Every story maps to at least one screen; a story with none becomes an open question, never a silent gap. Every dialog lists a cancel, back or close in Exits.",
-    "State table per screen: loading, empty, error and success always; partial when the screen shows a list, a batch, or data from more than one source; offline when the feature writes data or targets a phone. Detail: references/state-tables-and-copy.md",
+    "State table per screen: loading, empty, error and success always; partial when the screen shows a list, a batch, or data from more than one source; offline when the feature writes data or targets a phone. Each cell says what the user sees and gives the copy. A cell that cannot occur reads `n/a: reason`, never blank. Copy rules: the button carries a verb; every error says what happened and gives a next step the user…",
     "Journey storyboard: the goal, then one row per step with what the user does, sees, feels, and what the design does about the feeling. Close with the five-second read and the five-minute read.",
     "Navigation map as a mermaid `flowchart` whose node ids are screen ids. Flow diagrams as `flowchart` or `sequenceDiagram`: the happy path, each alternate path, and one error-recovery path per error cell in step 4.",
     "Decision points and dead-end check: list every branch with its condition and the screen ids on each side. For every screen record the way forward and the way back. A screen missing either is a dead end: add the exit. A screen that legitimately ends the journey says `terminal: <reason>` in its inventory Exits cell (or `%% terminal: S-nn <reason>` in a flowchart). The gate counts the dead ends from the mermaid; the co…",
     "Interaction inventory: every control on every screen with label, type, target size (44 px touch, 24 px pointer), keyboard path, and the analytics event: the sheet's name, or `no sheet`, or `needs event: <proposed>`.",
     "Open questions: each with an owner (a role, never a person the run invented), a date, and what ships if it is deferred (\"engineer ships 48-hour links and copy that reads the date from the invite\").",
     "Self-review against `references/flow-review.md`. Fix what can be fixed; list what stays open with the check id. F2 (dead ends) and F4 (state coverage) take their result from the gate, not from reading.",
-    "Write `docs/design/flows/<feature>/flows.md` from `templates/flows.md` (with `--feedback`, see below). Run the gate: `python3 \"${CLAUDE_PLUGIN_ROOT}/skills/ux-flows/scripts/flows_check.py\" --file <the file written>`. It fails on a screen with no outgoing edge that is not terminal and on more cases. Detail: references/gate-and-handoff.md. Fix and rerun until it exits 0. Change nothing outside `docs/` (no README statu…"
+    "Write `docs/design/flows/<feature>/flows.md` from `templates/flows.md` (with `--feedback`, see below). Run the gate: `python3 \"${CLAUDE_PLUGIN_ROOT}/skills/ux-flows/scripts/flows_check.py\" --file <the file written>`. It fails on a screen with no outgoing edge that is not terminal, an inventory screen in no flowchart, a flowchart screen not in the inventory, a dialog with no cancel, back or close in Exits, a screen w…"
    ],
    "output": "A count the script did not print is not written.",
    "gotchas": [
@@ -14118,7 +14100,10 @@
     "A dead end is a defect in the package, not a finding to report. Fix it before printing counts.",
     "Fewest steps means fewest thoughts. Merging two decisions into one puzzling choice saves a click and costs the user more.",
     "Dialogs and confirmations are screens. A dialog with no cancel is a dead end; a destructive action with no undo window is an open question.",
-    "Many items in one input, costs and counts before sending, a removed confirmation and work that outlives the screen each carry rules the package must show. Detail: references/batches-costs-and-queued-work.md",
+    "Removing a confirmation removes its safety. Replace it in proportion: the parsed count on the button (\"Send 12 invites\"), or an undo or quick revoke after the send.",
+    "Many items in one input (pasted addresses, uploaded rows): say which separators are accepted; normalise the way the server does (trim, case) and remove duplicates within the list on that normalised form; show the count and any unreadable entries before sending; report the result per item from the server's reply, since a check made before sending goes stale; let the user retry only the failures without retyping. Per-…",
+    "Costs and counts before sending: show the unit price, the total for what will actually be sent, and when the charge happens. \"Actually sent\" means after duplicates, unreadable entries and everything the screen already knows will be refused: existing members and pending invites are on the page, so check against them before sending. Label that figure as what the page knows now (another admin or an accept can change it…",
+    "Work that outlives the screen: a paced or queued send (rate limit, long batch) meets a user who closes the dialog, navigates or loses the tab. Say what happens to the items still waiting: kept and resumed, or listed as not sent with a way to send them, never dropped silently and never shown as sent. A shared window (per workspace) can already be partly used by someone else, so pace from the server's refusals, not fr…",
     "Time in copy: a date read from the record beats a duration; a stated duration is the code's value.",
     "Keep screen ids stable across versions so variants and reviews can cite them; add ids, never renumber.",
     "Never invent event names. The `needs event:` marker is the handoff to `analytics-events`.",
@@ -14126,23 +14111,15 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 148,
+   "lines": 194,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 148
-    },
-    {
-     "path": "references/batches-costs-and-queued-work.md",
-     "lines": 28
+     "lines": 194
     },
     {
      "path": "references/flow-review.md",
      "lines": 102
-    },
-    {
-     "path": "references/gate-and-handoff.md",
-     "lines": 11
     },
     {
      "path": "references/re-issuing-with-feedback.md",
@@ -14157,10 +14134,6 @@
      "lines": 25
     },
     {
-     "path": "references/state-tables-and-copy.md",
-     "lines": 13
-    },
-    {
      "path": "scripts/flows_check.py",
      "lines": 334
     },
@@ -14171,7 +14144,7 @@
    ],
    "groups": {
     ".": 1,
-    "references": 7,
+    "references": 4,
     "scripts": 1,
     "templates": 1
    },
