@@ -4,7 +4,7 @@
 SHELL := /bin/bash
 KITP := plugins/bearing
 .DEFAULT_GOAL := help
-.PHONY: help hooks gate ci-bash32 site devguide wiki check check-file validate lint-skills lint-tools lint-skill-size lint-evals lint-triggers lint-neutral lint-docs lint-json lint-shell lint-portable lint-prose lint-version lint-budget lint-templates lint-plugin-size test install doctor docs harness-eval trigger-eval
+.PHONY: help hooks gate ci-bash32 site devguide wiki check check-file validate lint-skills lint-tools lint-skill-size lint-questions lint-evals lint-triggers lint-neutral lint-docs lint-json lint-shell lint-portable lint-prose lint-version lint-budget lint-templates lint-plugin-size test install doctor docs harness-eval trigger-eval
 
 help: ## List targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-14s %s\n", $$1, $$2}'
@@ -81,6 +81,17 @@ lint-skill-size: ## Every SKILL.md is 200 lines or fewer unless bin/lint-skill-s
 	[ "$$n" -gt 0 ] || { echo "lint-skill-size: 0 skills, nothing checked" >&2; exit 1; }; \
 	[ "$$bad" -eq 0 ] || { echo "lint-skill-size: $$bad problems in $$n skills"; exit 1; }; \
 	echo "lint-skill-size: $$n skills, $$na allowed over 200 ($${al:-none}), largest $$big $$bl"
+
+lint-questions: ## A skill that asks the user does it with AskUserQuestion and follows references/console.md
+	@n=0; r=0; q=0; bad=0; pat='(^|[^A-Za-z])ask (the user|once)|(^|[^A-Za-z])ask:'; \
+	for f in plugins/*/skills/*/SKILL.md; do [ -f "$$f" ] || continue; n=$$((n+1)); d=$${f%/SKILL.md}; hit=0; \
+	  tr -s '\n ' '  ' < "$$f" | grep -qiE "$$pat" && hit=1; \
+	  for g in "$$d"/references/*.md; do [ -f "$$g" ] || continue; r=$$((r+1)); tr -s '\n ' '  ' < "$$g" | grep -qiE "$$pat" && hit=1; done; \
+	  [ "$$hit" -eq 1 ] || continue; q=$$((q+1)); \
+	  if ! sed -n '/^---$$/,/^---$$/p' "$$f" | grep -q 'AskUserQuestion' || ! grep -q 'references/console.md' "$$f"; then echo "asks in prose: $$f"; bad=$$((bad+1)); fi; done; \
+	[ "$$n" -gt 0 ] || { echo "lint-questions: 0 skills, nothing checked" >&2; exit 1; }; \
+	[ "$$bad" -eq 0 ] || { echo "lint-questions: $$bad of $$q skills ask in prose ($$n skills, $$r reference files scanned)"; exit 1; }; \
+	echo "lint-questions: $$n skills, $$r reference files, $$q ask the user, 0 in prose"
 
 lint-triggers: ## Every skill has trigger cases in evals/triggers.json (3 should, 2 near misses), none copying the description's quoted phrases
 	@python3 bin/lint-triggers.py

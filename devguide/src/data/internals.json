@@ -8,9 +8,9 @@
   "scriptLines": 29223,
   "hooks": 8,
   "agents": 8,
-  "makeTargets": 30,
+  "makeTargets": 31,
   "gates": 17,
-  "tests": 93,
+  "tests": 94,
   "fixtures": 21,
   "stacks": 13,
   "templates": 38,
@@ -17394,6 +17394,11 @@
    "inCheck": true
   },
   {
+   "name": "lint-questions",
+   "does": "A skill that asks the user does it with AskUserQuestion and follows references/console.md",
+   "inCheck": false
+  },
+  {
    "name": "lint-triggers",
    "does": "Every skill has trigger cases in evals/triggers.json (3 should, 2 near misses), none copying the description's quoted phrases",
    "inCheck": true
@@ -18077,6 +18082,13 @@
    "lines": 47,
    "header": "tests/unit/lint_portable.sh: bin/lint-portable.py rejects commands that are not on every CI image (perl is missing from bash:3.2) or behave differently on macOS (sed -i, grep -P, readlink -f, date -d), in command position only; quoted strings and comments pass; zero files fail.",
    "asserts": 13
+  },
+  {
+   "path": "tests/unit/lint_questions.sh",
+   "kind": "unit",
+   "lines": 37,
+   "header": "tests/unit/lint_questions.sh: a skill that asks in prose fails; one that uses AskUserQuestion and cites console.md passes; \"task:\" is not \"ask:\"; a question in a reference file counts; a phrase wrapped over two lines counts; zero skills fails.",
+   "asserts": 9
   },
   {
    "path": "tests/unit/lint_skill_size.sh",
