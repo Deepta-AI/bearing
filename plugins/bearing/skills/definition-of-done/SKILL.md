@@ -2,7 +2,7 @@
 name: definition-of-done
 description: 'Checks a branch or ticket against the Definition of Done, with evidence per item: gate, tests, docs, scope, commits, smoke run. Use when asked "am I done", "is this story complete" or "ready to merge?"'
 argument-hint: "[base branch, default: the state file's Base line, else develop, else main]"
-allowed-tools: Read, Grep, Glob, Write, Skill, Bash(make:*), Bash(docker compose:*), Bash(curl:*), Bash(playwright-cli:*), Bash(pnpm exec playwright:*), Bash(git status:*), Bash(git am:*), Bash(git checkout:*), Bash(git switch:*), Bash(git branch:*), Bash(git worktree:*), Bash(git diff:*), Bash(git log:*), Bash(git remote:*), Bash(git rev-parse:*), Bash(git show:*), Bash(go vet:*), Bash(go test:*), Bash(go run:*), Bash(go build:*), Bash(pnpm test:*), Bash(uv run pytest:*), Bash(pytest:*), Bash(python3 -m pytest:*), Bash(./gradlew test:*), Bash(swift test:*), Bash(tail -40), Bash(bash *skills/definition-of-done/scripts/red_proof.sh *), Bash(bash *bin/brg-state-path*), Bash(python3 *skills/prose-lint/scripts/prose_check.py*)
+allowed-tools: Read, Grep, Glob, Write, Skill, AskUserQuestion, Bash(make:*), Bash(docker compose:*), Bash(curl:*), Bash(playwright-cli:*), Bash(pnpm exec playwright:*), Bash(git status:*), Bash(git am:*), Bash(git checkout:*), Bash(git switch:*), Bash(git branch:*), Bash(git worktree:*), Bash(git diff:*), Bash(git log:*), Bash(git remote:*), Bash(git rev-parse:*), Bash(git show:*), Bash(go vet:*), Bash(go test:*), Bash(go run:*), Bash(go build:*), Bash(pnpm test:*), Bash(uv run pytest:*), Bash(pytest:*), Bash(python3 -m pytest:*), Bash(./gradlew test:*), Bash(swift test:*), Bash(tail -40), Bash(bash *skills/definition-of-done/scripts/red_proof.sh *), Bash(bash *bin/brg-state-path*), Bash(python3 *skills/prose-lint/scripts/prose_check.py*)
 ---
 
 # definition-of-done
@@ -22,7 +22,7 @@ The list below is the standard's; it needs no file in the repository.
   was used and why.
 - red proof: `scripts/red_proof.sh` in this skill, bash and git only.
 - task id: the branch name (`[A-Z][A-Z0-9]*(-[0-9]+)+`); if absent, the
-  state file; if absent, ask once; if none, items 10 and 11 check scope
+  state file; if absent, ask once with AskUserQuestion as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says; if none, items 10 and 11 check scope
   against the stated task and commits without an id, and the table
   header says "no task id".
 - gate: `make check` when the Makefile has a `check` target; if absent,
@@ -37,7 +37,7 @@ The list below is the standard's; it needs no file in the repository.
   adds events, item 6 fails with "no event sheet; `analytics-events` writes
   one".
 - the task's statement: the state file's acceptance criteria; if absent,
-  the MR or commit bodies; if absent, ask once what the task was.
+  the MR or commit bodies; if absent, ask once with AskUserQuestion what the task was.
 
 ## Steps
 

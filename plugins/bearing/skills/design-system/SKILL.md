@@ -2,7 +2,7 @@
 name: design-system
 description: 'Turns a design direction into a design system: oklch tokens, per-stack themes, a component contract, an every-state page and a lint. Use when asked to "set up the design system", "make design tokens" or "lint colours".'
 argument-hint: "[DESIGN.md | variant dir | CSS file | brief text] [--stack web|react-native|android|ios] [--lint-only]"
-allowed-tools: Read, Write, Edit, Grep, Glob, Bash(ls:*), Bash(make:*), Bash(python3:*), Bash(python3 *skills/design-system/scripts/contrast.py*), Bash(python3 *skills/design-system/scripts/system_page.py*), Bash(sh scripts/design-lint.sh:*), Bash(bash scripts/design-lint.sh:*), Bash(git diff:*)
+allowed-tools: Read, Write, Edit, Grep, Glob, AskUserQuestion, Bash(ls:*), Bash(make:*), Bash(python3:*), Bash(python3 *skills/design-system/scripts/contrast.py*), Bash(python3 *skills/design-system/scripts/system_page.py*), Bash(sh scripts/design-lint.sh:*), Bash(bash scripts/design-lint.sh:*), Bash(git diff:*)
 ---
 
 # design-system
@@ -70,7 +70,7 @@ name each answer in the report:
 
 1. Resolve the direction: `$ARGUMENTS`, else root `DESIGN.md` or
    `docs/design/DESIGN.md`, else `docs/design/variants/*/approved.json`, else the app's
-   current styles read as the de facto system, else ask once for a brief (product,
+   current styles read as the de facto system, else ask once with AskUserQuestion as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says for a brief (product,
    audience, one memorable thing, brand colour or face). Read it in full; list what it
    fixes (hue, faces, density, shape, devices) and what it leaves free. `--lint-only`:
    go to the lint section. Detail: references/roles-and-type.md

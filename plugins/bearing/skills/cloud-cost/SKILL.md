@@ -2,7 +2,7 @@
 name: cloud-cost
 description: 'Reviews the cloud bill read-only: spend by service and environment, top ten lines, cost per request, proposed cuts. Use when asked about the "cloud bill", "cost review", "FinOps" or "why is the bill so high".'
 argument-hint: "[--csv <billing export>] [--month YYYY-MM] [--provider aws|gcp|azure|other]"
-allowed-tools: Read, Write, Edit, Grep, Glob, Bash(ls:*), Bash(mkdir -p:*), Bash(date:*), Bash(python3 -c:*), Bash(aws ce get-cost-and-usage:*), Bash(gcloud billing:*), Bash(az consumption usage list:*), Bash(kubectl top:*), Bash(kubectl get:*)
+allowed-tools: Read, Write, Edit, Grep, Glob, AskUserQuestion, Bash(ls:*), Bash(mkdir -p:*), Bash(date:*), Bash(python3 -c:*), Bash(aws ce get-cost-and-usage:*), Bash(gcloud billing:*), Bash(az consumption usage list:*), Bash(kubectl top:*), Bash(kubectl get:*)
 ---
 
 # cloud-cost
@@ -25,7 +25,7 @@ changes infrastructure; this skill never does.
   `Type=TAG,Key=env`), `gcloud billing accounts list` then the BigQuery
   export (the CLI has no line items; the CSV is the route), `az consumption usage list --start-date <m-01> --end-date <last>`;
   none
-  usable: ask once for the top ten lines pasted from the console; nothing:
+  usable: ask once with AskUserQuestion as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says for the top ten lines pasted from the console; nothing:
   stop with "no billing source: pass --csv or paste the top ten".
 - month: `--month`; default the previous full month
   (`date -d "-1 month" +%Y-%m`).
