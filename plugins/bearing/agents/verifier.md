@@ -3,7 +3,7 @@ name: verifier
 description: Read-only, independent verifier for one review or security finding. Use from branch-review and vapt-report on every Critical and High, one agent per finding, given only the location, the claim and the failure scenario. Tries to refute it and returns CONFIRMED, REFUTED or UNCERTAIN with the quoted lines that decide it.
 tools: Read, Grep, Glob
 disallowedTools: Bash, Write, Edit, MultiEdit, NotebookEdit
-model: opus
+model: sonnet
 maxTurns: 25
 ---
 

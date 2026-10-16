@@ -10,7 +10,7 @@
   "agents": 8,
   "makeTargets": 29,
   "gates": 16,
-  "tests": 81,
+  "tests": 82,
   "fixtures": 21,
   "stacks": 13,
   "templates": 38,
@@ -1721,7 +1721,7 @@
     },
     {
      "title": "Steps",
-     "lines": 109
+     "lines": 110
     },
     {
      "title": "Output contract",
@@ -1745,7 +1745,7 @@
     "Collect the change for the agents, with this skill's own git grants: `mkdir -p .scratch/review/<slug>`, then for a range `git diff --output=.scratch/review/<slug>/diff.patch <range>`, `git diff --stat --output=.scratch/review/<slug>/stat.txt <range>`, `git diff --name-only --output=.scratch/review/<slug>/files.txt <range>` and `git log --format='%h %s' --output=.scratch/review/<slug>/log.txt <range>`. A patch file o…",
     "Run the project check against the change in a throwaway copy, so the working tree, the branches and the worktree list end exactly as they began: `mkdir -p .scratch/review/<slug>/tree`, then `git archive <rev> | tar -x -C .scratch/review/<slug>/tree`, where `<rev>` is the head of the range, `HEAD` for a patch or a path, or the base when the range includes the working tree; then, for a patch or that working-tree range…",
     "Run the engine. - gstack: invoke the `review` skill (Skill tool) with this as its argument: \"Base: <base of the range>. The change is exactly the committed range <range> (git diff <range>); ignore the working tree, which may hold someone else's edits, and do not look for a remote branch: the base is given. In addition to your checklist, apply every item of these files and report each as a finding or 'checked, none f…",
-    "Independent verification. For every open Critical and High, fork one `verifier` (Agent tool), all in one message so they run in parallel, at most 12; beyond that, the 12 most severe are verified and the rest listed as \"not verified\". Each verifier gets only the `path:line`, the one-sentence claim, the failure scenario and the path of `.scratch/review/<slug>/diff.patch` (or the path under review); never the engine's…",
+    "Independent verification. For every open Critical and High, fork one `verifier` (Agent tool), all in one message so they run in parallel, at most 12; beyond that, the 12 most severe are verified and the rest listed as \"not verified\". Pass model: \"opus\" on the Agent call for a Critical finding; High findings use the agent's default. Each verifier gets only the `path:line`, the one-sentence claim, the failure scenario…",
     "Reproduce what you can. For each confirmed Critical and High, when the throwaway copy from step 3 runs, write a short probe under `.scratch/review/<slug>/` that drives the failure through the public entry point (the handler, the CLI, the endpoint function) with the repository's own fixtures or seed data, and run it against the copy (`python3 .scratch/review/<slug>/probe.py`, the probe putting `tree/` first on its im…",
     "Check the commits in the range (for a patch file, its Subject line) against the conventions. Decide the verdict: any confirmed Critical or High, or a merge rule broken, means not ready. Print the contract."
    ],
@@ -1762,11 +1762,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 226,
+   "lines": 227,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 226
+     "lines": 227
     },
     {
      "path": "references/universal-checklist.md",
@@ -5560,7 +5560,7 @@
     "Tenets. Write `docs/architecture/tenets.md` from `templates/tenets.md`: five to eight, each a bold checkable rule, why this team needs it, and \"A breach looks like:\" with a concrete bad merge request. A tenet nobody could plausibly break is dropped.",
     "Reconcile. Read every ADR, every acceptance criterion and the data model; each contradiction between them (a table an ADR assumes and the model lacks, a criterion an ADR cannot meet, two ADRs naming different services) is a conflict. Write `docs/architecture/decisions.md` from `templates/architecture-decisions.md`: the index (one row per ADR file: id, title, area, status, reversibility) and one entry per conflict wi…",
     "Summary and components, written last: the two-sentence summary, the line `Diagram: docs/architecture/diagrams/<Project>_SystemArchitecture_v<N>.svg` (`architecture-diagram` draws it from `docs/architecture/architecture.json`; not drawn yet is reported, not faked), and the \"What gets built\" table whose Repository column names the repo-plan entries. Section 15 gives the counts.",
-    "Review, mandatory. Fork `critic` (Agent tool) in graded mode with the HLD, the ADR directory, `docs/architecture/`, the backlog, the data model and the Traps list below, asking it to check each trap that applies. Write its findings verbatim under section 16 with `Reviewed by: critic, <date>` and `Status: open` on each. Fix what the user agrees to, marking it `fixed (<where>)`, or record who accepted it. Status stays…",
+    "Review, mandatory. Fork `critic` (Agent tool) in graded mode (pass model: \"opus\" on the Agent call) with the HLD, the ADR directory, `docs/architecture/`, the backlog, the data model and the Traps list below, asking it to check each trap that applies. Write its findings verbatim under section 16 with `Reviewed by: critic, <date>` and `Status: open` on each. Fix what the user agrees to, marking it `fixed (<where>)`,…",
     "Open questions and assumptions (section 17), each with an owner and a date. Write the HLD, then run the gate: `python3 \"${CLAUDE_PLUGIN_ROOT}/skills/high-level-design/scripts/arch_check.py\" docs/design/<kebab-title>-hld.md --adr-dir <ADR directory>`. Fix every problem it prints and rerun until `Gate: passed`; a problem you cannot fix goes in the contract. Print the output contract."
    ],
    "output": "",
@@ -14039,7 +14039,7 @@
     },
     {
      "title": "Steps",
-     "lines": 102
+     "lines": 103
     },
     {
      "title": "Output contract",
@@ -14077,11 +14077,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 173,
+   "lines": 174,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 173
+     "lines": 174
     },
     {
      "path": "scripts/collect_findings.py",
@@ -16581,7 +16581,7 @@
     "MultiEdit",
     "NotebookEdit"
    ],
-   "model": "opus",
+   "model": "sonnet",
    "maxTurns": "20",
    "isolation": "",
    "intro": "You are paid to be wrong about the document in interesting ways. You never edit and you carry no checklist; you read the document, the code it describes where it exists, and argue against it.",
@@ -16714,7 +16714,7 @@
     "MultiEdit",
     "NotebookEdit"
    ],
-   "model": "opus",
+   "model": "sonnet",
    "maxTurns": "40",
    "isolation": "",
    "intro": "You audit for security. You never edit. Every finding has a reproduction path and a fix; a finding without a reproduction path is a question, and goes under \"Questions for the team\".",
@@ -16765,7 +16765,7 @@
     "MultiEdit",
     "NotebookEdit"
    ],
-   "model": "opus",
+   "model": "sonnet",
    "maxTurns": "25",
    "isolation": "",
    "intro": "You verify one finding someone else reported. You did not write it and you owe it nothing. Your job is to try to prove it wrong. You never edit. You have no shell: Read, Grep and Glob only.",
@@ -17182,6 +17182,13 @@
    "lines": 16,
    "header": "tests/run.sh: run every executable test file under tests/ (unit, integration; not lib, not this runner). A test file that is not executable counts as a failure so nothing is skipped silently. Exits 1 when any test fails or when no test ran. bash 3.2 safe.",
    "asserts": 0
+  },
+  {
+   "path": "tests/unit/agent_models.sh",
+   "kind": "unit",
+   "lines": 16,
+   "header": "tests/unit/agent_models.sh: review agents default to sonnet except reviewer; the skills that need Opus ask for it by name.",
+   "asserts": 5
   },
   {
    "path": "tests/unit/ai_depth_scripts.sh",

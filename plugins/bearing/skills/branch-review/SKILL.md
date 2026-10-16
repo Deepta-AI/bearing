@@ -138,7 +138,8 @@ verification.
 5. Independent verification. For every open Critical and High, fork one
    `verifier` (Agent tool), all in one message so they run in
    parallel, at most 12; beyond that, the 12 most severe are verified and
-   the rest listed as "not verified". Each verifier gets only the
+   the rest listed as "not verified". Pass model: "opus" on the Agent call
+   for a Critical finding; High findings use the agent's default. Each verifier gets only the
    `path:line`, the one-sentence claim, the failure scenario and the path
    of `.scratch/review/<slug>/diff.patch` (or the path under review);
    never the engine's reasoning, its confidence or the other findings.

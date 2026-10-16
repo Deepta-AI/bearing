@@ -3,7 +3,7 @@ name: security-auditor
 description: Read-only security auditor for a branch or service in a repository on this standard. The fallback for vapt-report when neither claude-security nor gstack /cso is installed, and a quick read-only pass on a branch that touches auth, payments, PII or external input. Covers authentication, resource-level authorisation, injection, secrets, PII handling, output encoding, rate limiting and IDOR. Returns severity-ranked findings with reproduction steps.
 tools: Read, Grep, Glob
 disallowedTools: Bash, Write, Edit, MultiEdit, NotebookEdit
-model: opus
+model: sonnet
 maxTurns: 40
 memory: project
 ---

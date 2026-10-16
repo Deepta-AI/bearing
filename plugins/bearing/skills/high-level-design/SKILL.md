@@ -181,7 +181,7 @@ listed under "ADRs needed", with no ADR written for it.
    `docs/architecture/architecture.json`; not drawn yet is reported, not
    faked), and the "What gets built" table whose Repository column names
    the repo-plan entries. Section 15 gives the counts.
-9. Review, mandatory. Fork `critic` (Agent tool) in graded mode with
+9. Review, mandatory. Fork `critic` (Agent tool) in graded mode (pass model: "opus" on the Agent call) with
    the HLD, the ADR directory, `docs/architecture/`, the backlog, the
    data model and the Traps list below, asking it to check each trap that
    applies. Write its findings verbatim under section 16 with

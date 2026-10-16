@@ -82,7 +82,8 @@ Not this: `threat-model` designs mitigations before the code;
      (whole codebase: `git ls-files` at the exported tree). Read the diff
      yourself, then fork `security-auditor` (Agent tool) with the diff and
      the exported tree path, and one `verifier` per Critical and High (all
-     in one message); REFUTED is dropped. Method says "fallback: read-only
+     in one message); REFUTED is dropped. Each verifier call passes model: "opus"; a
+     security sign-off is worth the slower model. Method says "fallback: read-only
      review, no scanner at <sha>"; the best decision it reaches is "cleared,
      pending a scanner run".
 3. Look where the scanners did not. A diff-scoped scan (`coverage:
