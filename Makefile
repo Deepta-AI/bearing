@@ -4,7 +4,7 @@
 SHELL := /bin/bash
 KITP := plugins/bearing
 .DEFAULT_GOAL := help
-.PHONY: help hooks gate ci-bash32 site devguide wiki check check-file validate lint-skills lint-tools lint-evals lint-triggers lint-neutral lint-docs lint-json lint-shell lint-portable lint-prose lint-version lint-budget lint-templates lint-plugin-size test install doctor docs harness-eval trigger-eval
+.PHONY: help hooks gate ci-bash32 site devguide wiki check check-file validate lint-skills lint-tools lint-skill-size lint-evals lint-triggers lint-neutral lint-docs lint-json lint-shell lint-portable lint-prose lint-version lint-budget lint-templates lint-plugin-size test install doctor docs harness-eval trigger-eval
 
 help: ## List targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-14s %s\n", $$1, $$2}'
@@ -64,6 +64,14 @@ lint-skills: ## Every skill in every plugin: hyphenated name (64 max) equal to i
 
 lint-tools: ## Every command a skill body runs is granted by its allowed-tools (bin/lint-skill-tools.allow lists print-only lines)
 	@python3 bin/lint-skill-tools.py
+
+lint-skill-size: ## Every SKILL.md is 200 lines or fewer; detail goes in the skill's references/ and is read on demand
+	@n=0; bad=0; big=""; bl=0; \
+	for f in plugins/*/skills/*/SKILL.md; do [ -f "$$f" ] || continue; n=$$((n+1)); l=$$(wc -l < "$$f" | tr -d ' '); \
+	  [ "$$l" -le "$$bl" ] || { bl=$$l; big=$$f; }; [ "$$l" -le 200 ] || { echo "over 200 lines: $$f $$l"; bad=$$((bad+1)); }; done; \
+	[ "$$n" -gt 0 ] || { echo "lint-skill-size: 0 skills, nothing checked" >&2; exit 1; }; \
+	[ "$$bad" -eq 0 ] || { echo "lint-skill-size: $$bad of $$n skills over 200 lines"; exit 1; }; \
+	echo "lint-skill-size: $$n skills, largest $$big $$bl"
 
 lint-triggers: ## Every skill has trigger cases in evals/triggers.json (3 should, 2 near misses), none copying the description's quoted phrases
 	@python3 bin/lint-triggers.py

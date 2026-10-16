@@ -8,9 +8,9 @@
   "scriptLines": 28540,
   "hooks": 6,
   "agents": 8,
-  "makeTargets": 29,
+  "makeTargets": 30,
   "gates": 16,
-  "tests": 83,
+  "tests": 84,
   "fixtures": 21,
   "stacks": 13,
   "templates": 38,
@@ -16810,6 +16810,11 @@
    "inCheck": true
   },
   {
+   "name": "lint-skill-size",
+   "does": "Every SKILL.md is 200 lines or fewer; detail goes in the skill's references/ and is read on demand",
+   "inCheck": false
+  },
+  {
    "name": "lint-triggers",
    "does": "Every skill has trigger cases in evals/triggers.json (3 should, 2 near misses), none copying the description's quoted phrases",
    "inCheck": true
@@ -17471,6 +17476,13 @@
    "lines": 47,
    "header": "tests/unit/lint_portable.sh: bin/lint-portable.py rejects commands that are not on every CI image (perl is missing from bash:3.2) or behave differently on macOS (sed -i, grep -P, readlink -f, date -d), in command position only; quoted strings and comments pass; zero files fail.",
    "asserts": 13
+  },
+  {
+   "path": "tests/unit/lint_skill_size.sh",
+   "kind": "unit",
+   "lines": 23,
+   "header": "tests/unit/lint_skill_size.sh: the size lint fails on a 201-line skill and on zero skills, and passes with counts otherwise.",
+   "asserts": 6
   },
   {
    "path": "tests/unit/lint_tools.sh",
