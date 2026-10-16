@@ -93,6 +93,7 @@ Not done: <list> | none
 ```
 
 ## What a reviewer checks that the tests do not
+
 A strong run and a merely passing one differ here, not in the documents.
 Read before the first line of code. Detail: references/reviewer-checks.md
 

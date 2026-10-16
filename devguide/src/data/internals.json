@@ -18,7 +18,7 @@
   "ghJobs": 6,
   "ghWorkflows": 2,
   "evals": 106,
-  "skillFiles": 963
+  "skillFiles": 991
  },
  "plugins": [
   {
@@ -26,7 +26,7 @@
    "dir": "plugins/bearing",
    "description": "A developer workflow for coding agents: skills for every stage from brief to runbook, review subagents, one guard behind every hook, and repository templates. The stack conventions come in bearing-backend and bearing-apps.",
    "required": true,
-   "files": 430,
+   "files": 453,
    "skills": [
     "ab-experiment",
     "accessibility",
@@ -144,7 +144,7 @@
    "dir": "plugins/bearing-apps",
    "description": "Bearing stack conventions and repository templates for apps: React, Next.js, React Native (Expo), Flutter, native iOS and native Android. Needs the bearing plugin.",
    "required": false,
-   "files": 366,
+   "files": 371,
    "skills": [
     "android",
     "flutter",
@@ -1369,11 +1369,11 @@
    "sections": [
     {
      "title": "Inputs",
-     "lines": 35
+     "lines": 18
     },
     {
      "title": "Steps",
-     "lines": 160
+     "lines": 36
     },
     {
      "title": "Output contract",
@@ -1381,7 +1381,7 @@
     },
     {
      "title": "What a reviewer checks that the tests do not",
-     "lines": 37
+     "lines": 2
     },
     {
      "title": "Gotchas",
@@ -1392,20 +1392,20 @@
     "statement: `$ARGUMENTS`; with `--resume`, the open run in `.bearing/state/autopilot.json`. Neither: stop with \"give the requirement as one statement\".",
     "directory: the working directory. Empty or not a repository: the repo stage creates one with `new-repo`. An existing repository gets only what the gates read, nothing of the standard it did not ask for (step 1a); `onboard-repo` is the engineer's own decision, never a side effect of a feature request.",
     "stages, gates and state: `python3 \"${CLAUDE_PLUGIN_ROOT}/bin/brg-autopilot\"` (start, next, done, fail, decision, profile, repos-request, report, status, stages).",
-    "the stage skills: loaded with the Skill tool, or, for a command-only skill the Skill tool refuses (most Bearing skills: new-repo, prd, data-model, openapi-spec, deployment-architecture, ux-flows, design-system, screen-design, design-critique, test-cases, test-automation, start-task, merge-request and others), read from `${CLAUDE_PLUGIN_ROOT}/skills/<name>/SKILL.md` and followed the same way. Every skill `next` names…",
-    "scope: `lean` or `full`, printed by `status` and by each gate. Lean is a change to a repository that already had code, or a new product with no UI, data, API or deployment (a CLI, a library). Full is everything else, and a change that adds a service, a store, an external integration or a new UI area (`profile --scope full`, with the reason). In lean scope the stage skills are followed for their method, but the run w…"
+    "the stage skills: loaded with the Skill tool, or read from `${CLAUDE_PLUGIN_ROOT}/skills/<name>/SKILL.md` when the Skill tool refuses. Every skill `next` names is run, each in turn. Detail: references/stage-skills-and-scope.md",
+    "scope: `lean` or `full`, printed by `status` and by each gate. Lean writes only what a reviewer of this change reads. Detail: references/stage-skills-and-scope.md"
    ],
    "steps": [
-    "Start or resume: `python3 \"${CLAUDE_PLUGIN_ROOT}/bin/brg-autopilot\" start \"<statement>\"`, or `status` then `next` on `--resume`. Print the run id. 1a. The repo stage on an existing repository. The gates read a git repository, a Makefile `check` target that records a pass (`.bearing/state/.check-passed`), and `.scratch/` and `.bearing/state/` kept out of git. Whatever of that is present stays as it is; `done repo` pa…",
+    "Start or resume: `python3 \"${CLAUDE_PLUGIN_ROOT}/bin/brg-autopilot\" start \"<statement>\"`, or `status` then `next` on `--resume`. Print the run id. Detail: references/repo-stage.md",
     "Loop until `next` says every stage is done or a stage is blocked: 1. `next` names the stage, its skill and its gate. 2. Run the stage's skill in auto mode (below). 3. `done <stage>`. On \"gate not met\", fix what it names and run `done` again; when the same stage cannot be fixed, `fail <stage> \"<why>\"`, which allows three attempts before the stage is blocked.",
-    "Auto mode, for every stage: wherever a skill says to ask the user, to stop and wait, or to confirm, take the option the skill recommends and go on. Then: - record the choice with `decision <key> \"<choice>\" \"<alternatives>\" \"<why>\" --adr <path>`, one row per choice, in the words a reviewer needs; - any ADR or decision record the stage writes has status Proposed and names no decider; `done decide` fails on an Accepted…",
-    "The product profile, at the end of the decide stage: `profile --ui yes|no --data yes|no --api yes|no --deploy yes|no [--llm yes|no] [--ui-stack <stack>] [--scope lean|full] --why \"<reason>\"`. The ui stack is React with shadcn/ui and Tailwind (`react-shadcn`) unless the statement or the repository names another; only then pass `--ui-stack` (flutter, react-native, compose, swiftui, html) and record why. It decides whi…",
-    "Tools go through the repository's make targets: `make setup` once the repo stage is done, `make check` for the gate, `make fix` for format. Never call a package manager directly (`uv sync`, `pnpm install`): the repository asks before those and nobody is there to answer.",
-    "Before the build, in lean scope: the design note, then test-cases (the risk register and the case table only). In full scope: architecture-diagram writes the C4 file; design runs high-level-design, then data-model, openapi-spec and deployment-architecture as the profile names, then threat-model (it needs the entry points and stored fields those wrote) and genai-design when the profile says llm; repos runs new-repo o…",
-    "Build is test first, story by story, in the order of the backlog: a failing test named for the story, the code, `make check`, a commit per story with the task id. Where the Makefile records a build pass (the Next.js and React templates do), `make build` runs too before the stage is done: a page that cannot prerender passes every check and fails only the build. Those templates' build also holds the bundle budget, so…",
-    "After the build: test-automation names a test after every case that is not manual-only or retired (its TC id in the test name); with llm in the profile, llm-guardrails writes `guardrails/policy.yaml` and wires it at the call sites, and llm-eval writes `docs/genai/evals.md` (an eval that needs a provider key the run lacks is written and marked not run, never reported as passed); for a UI, design-critique scores the d…",
-    "Review is `branch-review`; fix every Critical and High it confirms, then `make check` again. `definition-of-done` walks the definition of done, including item 13: start what the repository ships and drive its main flow, sign-in first, against the real backend. A bug the smoke run finds is fixed test first like any other, then the smoke runs again; the dod gate refuses a smoke file older than the last commit. Headles…",
-    "The mr stage: `merge-request` prepares the description; `report` writes `docs/autopilot/<run>.md`; commit it, and let that commit be the last write (`git status` clean after it: a progress file touched later is work the MR does not carry); paste its decisions table into the description, with the exact push command (`git push -u origin <branch>`) under it; print the same command in the last message. Do not run it.",
+    "Auto mode, for every stage: wherever a skill says to ask the user, to stop and wait, or to confirm, take the option the skill recommends and go on, and record the choice with `decision`. Detail: references/auto-mode-and-profile.md",
+    "The product profile, at the end of the decide stage: `profile --ui yes|no --data yes|no --api yes|no --deploy yes|no`. Detail: references/auto-mode-and-profile.md",
+    "Tools go through the repository's make targets; never call a package manager directly. Detail: references/auto-mode-and-profile.md",
+    "Before the build, in lean scope: the design note, then test-cases. In full scope: architecture, design, repos and ux stages. Detail: references/design-stages.md",
+    "Build is test first, story by story, in the order of the backlog. Read the traps in references/reviewer-checks.md first. Detail: references/build-and-after.md",
+    "After the build: test-automation, the LLM stages when the profile says llm, and design-critique until the bar holds. Detail: references/build-and-after.md",
+    "Review is `branch-review`; fix every Critical and High it confirms, then `make check` again; `definition-of-done` includes the smoke run. Detail: references/review-smoke-and-mr.md",
+    "The mr stage: `merge-request` prepares the description; `report` writes `docs/autopilot/<run>.md`; print the push command and do not run it. Detail: references/review-smoke-and-mr.md",
     "Blocked or finished, the last message is the report: stages done, the decisions to review, what is not done and why, and the push command when the MR is ready."
    ],
    "output": "",
@@ -1419,15 +1419,44 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 298,
+   "lines": 122,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 298
+     "lines": 122
+    },
+    {
+     "path": "references/auto-mode-and-profile.md",
+     "lines": 40
+    },
+    {
+     "path": "references/build-and-after.md",
+     "lines": 35
+    },
+    {
+     "path": "references/design-stages.md",
+     "lines": 37
+    },
+    {
+     "path": "references/repo-stage.md",
+     "lines": 29
+    },
+    {
+     "path": "references/review-smoke-and-mr.md",
+     "lines": 30
+    },
+    {
+     "path": "references/reviewer-checks.md",
+     "lines": 41
+    },
+    {
+     "path": "references/stage-skills-and-scope.md",
+     "lines": 28
     }
    ],
    "groups": {
-    ".": 1
+    ".": 1,
+    "references": 7
    },
    "evals": true,
    "hasSections": [
@@ -4398,11 +4427,11 @@
     },
     {
      "title": "Pack skills",
-     "lines": 20
+     "lines": 4
     },
     {
      "title": "Layout",
-     "lines": 17
+     "lines": 3
     },
     {
      "title": "On a foreign layout",
@@ -4414,15 +4443,15 @@
     },
     {
      "title": "Traps a strong generalist still ships",
-     "lines": 108
+     "lines": 3
     },
     {
      "title": "Verifying",
-     "lines": 20
+     "lines": 3
     },
     {
      "title": "Commands",
-     "lines": 14
+     "lines": 2
     },
     {
      "title": "Gotchas",
@@ -4456,17 +4485,29 @@
     "Riverpod 3 retries a failing provider by itself with backoff (up to ten times). `healthProvider` sets `retry` to null because dio already retries transport failures and the page owns the button; keep the default where a transient failure should heal quietly.",
     "`integration_test` needs a device, an emulator or a desktop target (`-d linux` after `flutter config --enable-linux-desktop`); it is a manual target and a CI job with an emulator, never part of `check`."
    ],
-   "layout": "",
+   "layout": "`lib/main.dart` boots only; `lib/features/<f>/` holds the model, repository, provider and page; IO happens only in the repository. Detail: references/layout.md",
    "commands": [],
-   "lines": 310,
+   "lines": 146,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 310
+     "lines": 146
+    },
+    {
+     "path": "references/commands.md",
+     "lines": 18
     },
     {
      "path": "references/guidelines.md",
      "lines": 150
+    },
+    {
+     "path": "references/layout.md",
+     "lines": 21
+    },
+    {
+     "path": "references/pack-skills.md",
+     "lines": 24
     },
     {
      "path": "references/review-checklist.md",
@@ -4475,6 +4516,14 @@
     {
      "path": "references/rules.md",
      "lines": 35
+    },
+    {
+     "path": "references/traps.md",
+     "lines": 112
+    },
+    {
+     "path": "references/verifying.md",
+     "lines": 24
     },
     {
      "path": "templates/.github/workflows/ci.yml",
@@ -4615,7 +4664,7 @@
    ],
    "groups": {
     ".": 1,
-    "references": 3,
+    "references": 8,
     "templates": 34
    },
    "evals": true,
@@ -5518,15 +5567,15 @@
    "sections": [
     {
      "title": "Inputs",
-     "lines": 38
+     "lines": 20
     },
     {
      "title": "Steps",
-     "lines": 132
+     "lines": 39
     },
     {
      "title": "Traps",
-     "lines": 72
+     "lines": 3
     },
     {
      "title": "Output contract",
@@ -5542,26 +5591,20 @@
     "Requirements and stories: looks in the path given, else `docs/product/PRD.md` and `docs/product/backlog.md`; if absent, the README and the routes, screens and tables in the code; zero ids after that gets one question for the stories or a brief, and a pasted brief is written into section 1 with `Serves: unnumbered`; `prd` and `backlog` produce the fuller chain.",
     "Data model: looks in `docs/design/data-model.md`; if absent, the migrations and schema in the code; if none, the reconciliation covers ADRs against stories only and says so.",
     "Decisions: looks in the ADR directory found the way `adr` finds it (default `docs/adr/`); if absent, the Decisions first protocol below records them, and any choice it does not cover is written as \"ADR needed\".",
-    "Templates: looks in `docs/templates/HLD.md`; if absent, this skill's `templates/HLD.md`; always `templates/tenets.md`, `templates/architecture-decisions.md` and `templates/repo-plan.json`.",
-    "Standard stack: the defaults in `${CLAUDE_PLUGIN_ROOT}/skills/tech-decision/references/catalogue.md`; if unreadable, every named technology is listed under section 13.",
-    "Kit stacks: the ids in `*/templates*/stack.json` under each skill root `bash \"${CLAUDE_PLUGIN_ROOT}/bin/brg-kit-paths\"` prints (Glob and Read; the stacks ship in bearing-backend and bearing-apps, and none installed means none to choose from, said as such); a component none fits gets `\"stack\": \"none\"` and a `stack_note`.",
-    "Project name and group: `.bearing/company.json` and the git remote; if absent, one question for the PascalCase project name, which is also the group.",
-    "Delivering entity: looks in `.bearing/company.json`; if absent, the title page reads \"unattributed\" and the run continues.",
-    "Existing system: the code, for every component named; a green-field design has none and every claim is prefixed \"assumption:\".",
-    "Task id: `.git/HEAD` names the branch; a task id in it goes on the title page, else `Task: none`.",
-    "This skill runs in the main conversation, not forked: it needs the Skill tool for `tech-decision`, the Agent tool for `critic` and the user's yes on section 1, none of which a forked document writer has. Its only shell is the gate script."
+    "Templates, standard stack, kit stacks, project name, delivering entity, existing system, task id: each with its fallback. Detail: references/inputs.md",
+    "This skill runs in the main conversation, not forked: it needs the Skill tool, the Agent tool and the user's yes on section 1. Its only shell is the gate script."
    ],
    "steps": [
-    "Title from `$ARGUMENTS`; inputs from the sources under Inputs, each printed as read or absent. Read the template (repository copy when present, else `templates/HLD.md`). Collect the ids the design serves (`REQ-nnn`, `US-nn-nnn`, `<PREFIX>-<n>`, `ADR-nnnn`) and put them at the top of the document. Zero ids found: ask the one question under Inputs, then continue with what it yields.",
+    "Title from `$ARGUMENTS`; inputs from the sources under Inputs, each printed as read or absent. Collect the ids the design serves and put them at the top of the document. Detail: references/inputs.md",
     "Without `--continue`: write section 1, goal and non-goals, into `docs/design/<kebab-title>-hld.md`. Three sentences for the goal, a list for the non-goals. Ask the user \"agree the goal and non-goals?\" and wait. On a yes, go on; on changes, rewrite section 1 and ask again; when the user stops here, print the contract with `Waiting for: agree section 1`. With `--continue` (a later session): read section 1 from the fil…",
-    "Fill sections 2 to 12 in template order: - users and flows: numbered steps per actor, two or three flows; - architecture: one mermaid diagram, then one paragraph per component (responsibility, owner, what it talks to and how); - data: entities, store, retention, migrations implied; point at `data-model` for the full model; - interfaces: every API, event and message, with the contract path (`api/openapi.yaml`, a sche…",
-    "Source every claim. Grep the code for each component, route, table and queue you name. A claim with no source is prefixed \"assumption:\". A store, queue or auth choice with no ADR behind it is written as \"ADR needed: <title>\" and never decided silently.",
-    "Standard stack and repos. Section 13 lists every technology the ADRs commit to that is not a catalogue default, with its ADR and \"needs Architect or Engineering Manager sign-off\". Write `docs/architecture/repo-plan.json` from `templates/repo-plan.json`: one entry per repository, name `<Project><Component>` PascalCase, `git_path` `<group>/<Client|Server|Infrastructure>/<name>`, `stack` a kit stack id, `tech`, `respon…",
-    "Tenets. Write `docs/architecture/tenets.md` from `templates/tenets.md`: five to eight, each a bold checkable rule, why this team needs it, and \"A breach looks like:\" with a concrete bad merge request. A tenet nobody could plausibly break is dropped.",
-    "Reconcile. Read every ADR, every acceptance criterion and the data model; each contradiction between them (a table an ADR assumes and the model lacks, a criterion an ADR cannot meet, two ADRs naming different services) is a conflict. Write `docs/architecture/decisions.md` from `templates/architecture-decisions.md`: the index (one row per ADR file: id, title, area, status, reversibility) and one entry per conflict wi…",
-    "Summary and components, written last: the two-sentence summary, the line `Diagram: docs/architecture/diagrams/<Project>_SystemArchitecture_v<N>.svg` (`architecture-diagram` draws it from `docs/architecture/architecture.json`; not drawn yet is reported, not faked), and the \"What gets built\" table whose Repository column names the repo-plan entries. Section 15 gives the counts.",
-    "Review, mandatory. Fork `critic` (Agent tool) in graded mode (pass model: \"opus\" on the Agent call) with the HLD, the ADR directory, `docs/architecture/`, the backlog, the data model and the Traps list below, asking it to check each trap that applies. Write its findings verbatim under section 16 with `Reviewed by: critic, <date>` and `Status: open` on each. Fix what the user agrees to, marking it `fixed (<where>)`,…",
-    "Open questions and assumptions (section 17), each with an owner and a date. Write the HLD, then run the gate: `python3 \"${CLAUDE_PLUGIN_ROOT}/skills/high-level-design/scripts/arch_check.py\" docs/design/<kebab-title>-hld.md --adr-dir <ADR directory>`. Fix every problem it prints and rerun until `Gate: passed`; a problem you cannot fix goes in the contract. Print the output contract."
+    "Fill sections 2 to 12 in template order. Detail: references/sections-2-to-12.md",
+    "Source every claim. Grep the code for each component, route, table and queue you name. Detail: references/design-set.md",
+    "Standard stack and repos: section 13 and `docs/architecture/repo-plan.json`. Detail: references/design-set.md",
+    "Tenets: `docs/architecture/tenets.md`, five to eight checkable rules. Detail: references/design-set.md",
+    "Reconcile every ADR, criterion and the data model into `docs/architecture/decisions.md`. Detail: references/design-set.md",
+    "Summary and components, written last. Detail: references/design-set.md",
+    "Review, mandatory. Fork `critic` (Agent tool) in graded mode, and write its findings verbatim under section 16. Detail: references/review-and-gate.md",
+    "Open questions and assumptions (section 17), then run `arch_check.py` until `Gate: passed`. Detail: references/review-and-gate.md"
    ],
    "output": "",
    "gotchas": [
@@ -5577,11 +5620,35 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 317,
+   "lines": 137,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 317
+     "lines": 137
+    },
+    {
+     "path": "references/design-set.md",
+     "lines": 45
+    },
+    {
+     "path": "references/inputs.md",
+     "lines": 37
+    },
+    {
+     "path": "references/review-and-gate.md",
+     "lines": 17
+    },
+    {
+     "path": "references/revising.md",
+     "lines": 19
+    },
+    {
+     "path": "references/sections-2-to-12.md",
+     "lines": 42
+    },
+    {
+     "path": "references/traps.md",
+     "lines": 76
     },
     {
      "path": "scripts/arch_check.py",
@@ -5606,6 +5673,7 @@
    ],
    "groups": {
     ".": 1,
+    "references": 6,
     "scripts": 1,
     "templates": 4
    },
@@ -11612,11 +11680,11 @@
    "sections": [
     {
      "title": "Inputs",
-     "lines": 59
+     "lines": 25
     },
     {
      "title": "Steps",
-     "lines": 187
+     "lines": 47
     },
     {
      "title": "Output contract",
@@ -11629,45 +11697,25 @@
    ],
    "inputs": [
     "Feature: `$1`; if absent, one question.",
-    "Inventory, states, copy and navigation: the newest `docs/design/flows/<feature>/flows*.md` (sections 1, 2, 4 and 7); if absent, the stories in `docs/product/backlog.md` or `docs/product/PRD.md` (navigation proposed and raised as `ambiguity`); if absent, the routes and screens in the code; if absent, one question for a one-paragraph brief. `--screens` limits the set.",
-    "Requirements: `docs/product/PRD.md` with its version and changelog; Accepted ADRs in `docs/adr/`; the API client and its types (statuses, error codes, fields) for every call a screen makes.",
-    "Tokens: the file an ADR or README names as the source of colour (on react-shadcn usually `src/index.css`); else `docs/design/tokens.css`; else generated from `docs/design/tokens.json` with `system_page.py tokens-css`; else written by hand from the approved variant, else `DESIGN.md`, else the brief, headed `proposed`.",
-    "Existing mockups: pages already under `docs/design/screens/<feature>/` and how they are made (a build script, a JSON source, a template, a README note). A repository's own mockup system is used as it is.",
-    "Manifest: `docs/design/design.json` (`templates/design.schema.json`), for a new HTML bundle or one already using it.",
-    "Component contract: `docs/design/components.md`; if absent, `data-component` names come from the region's role and the index says `no contract`.",
-    "Event sheet: `docs/analytics/EVENT_SHEET.md`; if absent, no `data-event` attributes and the index says `no sheet`.",
-    "Target: `--framework`; else the ui stack in `.bearing/state/autopilot.json`; else detected: `react-native` or `expo` in package.json is `react-native`; `pubspec.yaml` with a `flutter:` dependency is `flutter`; `androidx.compose` in a gradle file is `compose`; `Package.swift` or an `.xcodeproj` is `swiftui`; a React web app, or no UI code yet, is `react-shadcn`. Only `react-shadcn` builds screens as code, and only wh…",
-    "Gallery files (react-shadcn): `src/design/screen.ts`, `Gallery.tsx`, `registry.ts`; absent in an older app: copy them from `templates/skeleton/src/design/` in the `bearing-apps:react` skill (`bash \"${CLAUDE_PLUGIN_ROOT}/bin/brg-kit-paths\" --skill react` prints its directory, or names the plugin to install) and say so; when that plugin is absent, use the HTML bundle.",
+    "Inventory, states, copy and navigation: the newest `docs/design/flows/<feature>/flows*.md`; else stories, code, or one question. `--screens` limits the set.",
+    "Requirements: `docs/product/PRD.md` with its changelog; Accepted ADRs in `docs/adr/`; the API client and its types.",
+    "Tokens, existing mockups, manifest, component contract, event sheet: each with its fallback. Detail: references/inputs.md",
+    "Target: `--framework`; else the ui stack in `.bearing/state/autopilot.json`; else detected from the manifests. Only `react-shadcn` builds screens as code. Detail: references/targets-and-gates.md",
+    "Gallery files (react-shadcn): `src/design/screen.ts`, `Gallery.tsx`, `registry.ts`. Detail: references/targets-and-gates.md",
     "Previous rounds: `docs/design/screens/<feature>/CHANGES.md` and `docs/design/feedback/`; `git log` on the mockup pages.",
     "Screenshots: `~/.claude/skills/gstack/browse/dist/browse` when executable; otherwise none are taken and the report says so.",
     "Templates: `templates/screen.html`, `templates/index.html`, `templates/gallery.html`, `templates/design.schema.json`, `templates/DESIGN-SYNC.md`, `templates/CHANGES.md`.",
-    "Gates, Python 3 only: `scripts/gallery_check.py` (react-shadcn: every inventory screen has a `*.screen.tsx`, every state is a key of its `states`, no raw element where a component exists); `scripts/states_check.py` (HTML: every inventory state has a panel and a control that reaches it, no unfilled placeholder; reads a repo's own `data-target` or `#state=` links and treats `no slots` as `no-slots`); `scripts/bundle.p…"
+    "Gates, Python 3 only: `scripts/gallery_check.py`, `scripts/states_check.py`, `scripts/bundle.py`, plus `evidence.py` and `contrast.py` from sibling skills. Detail: references/targets-and-gates.md",
+    "`--standalone`: each page carries a copy of the tokens in `<style data-tokens>` instead of the link, for sending one file."
    ],
    "steps": [
-    "Versions. The flows usually say which PRD version or date they were written against. When the PRD is newer, read its changelog and every requirement added or changed since; each that implies a state, a rule or a screen is designed now and raised as `undefined-state` for whoever owns the flows. Signed off does not mean complete.",
-    "Precedence: an Accepted ADR, then the PRD, then the flows, then older design notes. A design doc an ADR retired (an old palette, an old layout rule) is never copied from, even when it is the more readable file.",
-    "States come from the contract as well as the flows table. For each screen, list every status in the API's lifecycle it can display and every error code its calls return (a 409 conflict, a 403 permission or limit, a 422 validation). Each gets a state or a message that says what happened and what to do; a generic error for a known code is a miss. A requirement with no row in the flows (a confirmation, a second step) g…",
-    "What the screen must know before the action. When a requirement says the person is \"not offered\" an action that would fail, but the API only reveals the condition as an error from that action, the UI cannot know it up front: that is an API gap. Design the state as if the data existed, label the assumption on the state, raise it, and never describe the missing field as existing.",
-    "Rules that combine. Read the requirements that touch the same object together (a threshold and a limit, a role and a count, two approvers and one person who holds a limit) and check that every combination can be satisfied. An impossible or undefined combination is raised as a question, not settled silently by the design.",
-    "Data as the product shows it. Values go through the repository's own formatter (money in minor units, locale digit grouping, the time zone its date formatter uses), and every fixture value is computed by that rule, not typed by eye. Thresholds keep their boundary as written (\"or more\" includes the boundary value). Lists are ordered as the requirement says, not in fixture-file order.",
-    "Navigation. An edge to a screen that is out of scope or not designed is plain text in the design plus a `missing-screen` concern, never a link or a route.",
-    "Where the reviewer will open it. The react-shadcn gallery is the deliverable only when it can run for that reviewer: dependencies are installed (or may be installed) and someone will serve it. Otherwise build the HTML bundle, which opens from a file, with the app's token values copied into it and their source named in a comment; say that views in the app follow once the dependencies install.",
+    "Eight checks: versions, precedence, states from the API contract, what the screen must know before the action, rules that combine, data as the product shows it, navigation, where the reviewer will open it. Detail: references/reconcile-sources.md",
     "Write views, screen specs, mockup pages, the manifest and notes. Do not change library code, API clients, tests, a mockup generator or its template to make the design or a gate easier. A shared shell change adds the new navigation entry and nothing more. A helper the design wants (a formatter, a status mapper) is named as build work, not written.",
     "A repository's own mockup system is kept: extend its source, run its build. When a gate here cannot read that system, run the gate on a scratch copy or skip it and say so; never rewrite the system to fit the gate.",
     "No dependency is added; compose the existing components.",
-    "Per screen a presentational view in `src/features/<feature>/components/<Name>View.tsx`: props in, markup out, no fetching, built only from `src/components/ui` and layout utilities on the spacing scale; colours by role (`bg-card`, `text-muted-foreground`), never a literal; the type scale the tokens set; a `Skeleton` loading layout that holds the success layout's shape.",
-    "The shell once for every screen, following the flows' navigation map, with the feature's entry marked current. Change only the entry list of an existing shell.",
-    "Per screen `src/features/<feature>/screens/<id>-<name>.screen.tsx` exporting `screen: ScreenSpec` (`id`, `name`, `feature`, `job`, `states`), one entry per state from the reconciliation, rendering the view with fixtures in the flows' copy. Fixtures use invented companies and people on reserved domains (`example.com`, `example.in`).",
-    "Responsive by design: at 375 the table becomes a card list or scrolls inside its own container with the key columns readable, two columns stack, the primary action stays reachable without horizontal scroll; at 1440 no half-width column beside dead space.",
-    "Gates: `python3 \"${CLAUDE_PLUGIN_ROOT}/skills/screen-design/scripts/gallery_check.py\" --src <src> --flows <flows file>` until it exits 0; then the repository's own checks that exist (`make check`, `make design-lint`). A target that does not exist, or a build that needs `node_modules` that are absent, is reported as not run.",
-    "Screenshots from the running gallery when it runs (`<id>?state=<name>&chrome=0`): `python3 \"${CLAUDE_PLUGIN_ROOT}/skills/design-critique/scripts/evidence.py\" shoot --base http://localhost:<port>/__design/ --out docs/design/screens/shots <id>?state=<state>&chrome=0...` then `check`. `docs/design/screens/README.md` lists the screens, states and the gallery URL.",
-    "When the repository already has mockups for the feature, extend them in their own format and skip the manifest steps (9). Otherwise create or update `docs/design/design.json` against the schema: `brief`, `directions`, `stories`, a `sitemap` with a leaf per screen keyed `<feature>/S-nn`, and a `navigation` generated from the flows' section 4 maps (top-level destinations; three to five on the phone tab bar; `why`; `so…",
-    "Screen plan, one block per screen: its single job, the regions with `data-component` names, the states from the reconciliation, the copy per state, controls in tab order with event names, the links out (one per navigation edge), the current item in the chrome, and the 375 px arrangement: what moves, what docks, what drops to one line. A phone layout that only stacks the desktop columns is not an arrangement. Write t…",
-    "Tokens: link the one tokens file; no page declares a colour. When `docs/design/tokens.css` is absent and `tokens.json` exists: `python3 \"${CLAUDE_PLUGIN_ROOT}/skills/design-system/scripts/system_page.py\" tokens-css --tokens docs/design/tokens.json --out docs/design/tokens.css`.",
-    "Build `<id>-<name>.html` per screen from `templates/screen.html`: the tokens link (or the `data-tokens` copy with `--standalone`), a state bar, one `[data-state]` panel per state, each the whole screen: an annotation (`data-annotation`), a desktop and a phone frame (`data-frame`), each in its app chrome (`data-app-chrome`; `none: <reason>` only for a screen with no chrome by design) with `aria-current` on the curren…",
-    "Self-review before anything is shown: the three things the eye lands on are the screen's job; every button is a verb and its object; every error says what happened and what to do; the phone frame is arranged, not squeezed. Fix and count the findings.",
-    "States gate: `python3 \"${CLAUDE_PLUGIN_ROOT}/skills/screen-design/scripts/states_check.py\" --screens docs/design/screens/<feature> --flows <flows file>` (drop `--flows` when the inventory came from stories, code or a brief; a state the screen truly lacks is marked `<!-- n/a: <state> because <reason> -->`). States the reconciliation added beyond the flows are checked by reading, and listed.",
-    "Screenshots when browse is executable: `python3 \"${CLAUDE_PLUGIN_ROOT}/skills/design-critique/scripts/evidence.py\" shoot --base docs/design/screens/<feature> --out docs/design/screens/<feature>/shots '<id>-<name>.html#chrome=0'...` then `check`. Read every PNG; fix overflow or collapse and re-shoot."
+    "Per screen a presentational view in `src/features/<feature>/components/<Name>View.tsx`: props in, markup out, built only from `src/components/ui`. Then the shell, a `*.screen.tsx` per screen, responsive layouts, the gates and screenshots. Detail: references/react-shadcn.md",
+    "When the repository already has mockups for the feature, extend them in their own format. Otherwise create or update `docs/design/design.json`. Then screen plan, tokens, one page per screen, self-review, the states gate, screenshots, the feature index and the manifest. Detail: references/html-bundle.md",
+    "Find where the pages really come from; triage every comment before editing anything; measure colour changes; change only what the comments need; append the round to `CHANGES.md`. Detail: references/review-round.md"
    ],
    "output": "",
    "gotchas": [
@@ -11686,11 +11734,35 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 322,
+   "lines": 148,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 322
+     "lines": 148
+    },
+    {
+     "path": "references/html-bundle.md",
+     "lines": 58
+    },
+    {
+     "path": "references/inputs.md",
+     "lines": 28
+    },
+    {
+     "path": "references/react-shadcn.md",
+     "lines": 34
+    },
+    {
+     "path": "references/reconcile-sources.md",
+     "lines": 53
+    },
+    {
+     "path": "references/review-round.md",
+     "lines": 41
+    },
+    {
+     "path": "references/targets-and-gates.md",
+     "lines": 29
     },
     {
      "path": "scripts/bundle.py",
@@ -11731,6 +11803,7 @@
    ],
    "groups": {
     ".": 1,
+    "references": 6,
     "scripts": 3,
     "templates": 6
    },
@@ -12888,7 +12961,7 @@
     },
     {
      "title": "Steps",
-     "lines": 202
+     "lines": 21
     },
     {
      "title": "Output contract",
@@ -12896,7 +12969,7 @@
     },
     {
      "title": "Gotchas",
-     "lines": 65
+     "lines": 35
     }
    ],
    "inputs": [
@@ -12911,36 +12984,50 @@
    ],
    "steps": [
     "Mode from `$1`: `suite` or `generate`; no argument runs suite then generate. Detect the stack and obtain the case table as in Inputs. In `generate` mode, zero rows with automation `planned` and zero gaps: report \"0 cases to generate\" and finish after the suite step.",
-    "Suite. Skip what exists; never replace a working suite. Extending a suite that already runs in CI changes test files and the case table only: the Makefile, the CI file and the build stay as they are unless the request asks, and any change there is named in the report with its reason. A new gate nobody asked for is scope, not quality. CI \"on every MR\": read the whole pipeline file before adding a job. GitLab `workflo…",
-    "Generate. For each `planned` row (or the story or TC in `$2`), find the nearest existing test by feature folder, then fork `test-writer` (Agent tool) with the row, the nearest test's path and the naming rule; it writes the test in an isolated worktree and returns the failing or passing output. The name carries the id: `test(\"TC-0012 rejects an expired token\")`, `func TestTC0012_RejectsExpiredToken`, `async def test_…",
-    "Invented-API gate, before anything runs. A test that calls an id, a label, a route or a function the code does not have fails for the wrong reason, and a heal later makes it pass against nothing. - The stack's type check over the new test files: `pnpm exec tsc --noEmit`, `uv run ruff check <files>` (undefined names fail), `go vet ./...`, `./gradlew compileDebugAndroidTestKotlin`, `xcodebuild build-for-testing`. Ever…",
-    "Visual baselines: when step 3 wrote a visual test, run `make test-visual-update` (it runs inside the Playwright image, so fonts match CI) and list every new or changed png for a person to look at. A baseline nobody has looked at proves only that the page renders the same as it did, so the report says \"baselines to review: N\" until the engineer commits them, on their own.",
-    "Prove the tests can fail. A test never seen red may assert nothing. For each rule the new tests claim to cover, make the smallest mutation that breaks it, run the suite, then restore the line (`git diff` shows it clean): a threshold moved one step each way (`< 5` to `< 4` and to `< 6`, `>` to `>=`), an auth comparison made always true, a `commit()` or `save` removed, a validation branch deleted, a publish call dropp…",
-    "Run the narrowest selection that covers the new tests. Flip each passing row to `automated`. A failing test stays `planned` and is listed with the runner's message and its file:line; nothing is edited to make it pass. A row the team wrote, in a suite that already runs in CI, fails as it is: the row is the spec and the decision is theirs. When this run creates the suite's CI job, a job that is red on the day it appea…",
+    "Suite. Skip what exists; never replace a working suite. Detail: references/suite-setup.md",
+    "Generate. For each `planned` row (or the story or TC in `$2`), find the nearest existing test, then fork `test-writer` (Agent tool) with the row; the test name carries the TC id. Detail: references/generating-tests.md",
+    "Invented-API gate, before anything runs: the stack's type check, then `ref_check.py` over the new tests; print both results. Detail: references/verify-and-run.md",
+    "Visual baselines: list every new or changed png for a person to look at. Detail: references/verify-and-run.md",
+    "Prove the tests can fail: make the smallest mutation that breaks each rule covered, run, restore. Detail: references/verify-and-run.md",
+    "Run the narrowest selection that covers the new tests; flip passing rows to `automated`, leave failing ones `planned`. Detail: references/verify-and-run.md",
     "Print the counts and the file list. Say plainly that the CI pipeline was not run (only the local command, named), and list every file changed outside the tests and the case table with the reason."
    ],
    "output": "",
    "gotchas": [
     "A case whose feature was never built (no route, screen or script to reach) is a finding, not a test against an invented path: ref_check would rightly fail it. Name the case, the missing piece and where the design puts it in the report; the case stays `planned` and blocks the stage until the feature is built or the case is deferred by a recorded decision. A copy label the source builds in a template literal is not in…",
-    "Durability: a read on the same database connection sees its own uncommitted write, so a test that writes and reads through one connection passes with the `commit()` deleted. Read back through a second connection or a fresh app on the same file.",
-    "Side effect after commit: when the handler commits and then calls a webhook, a queue or a publisher, make that call fail in a test and assert what the client is told against what is stored. A 500 over a committed change invites a retry that applies it twice: a finding.",
-    "Invariants over sums (refunds never exceed the total, stock never below zero) are check-then-act. A sequential test cannot catch the race; start N requests together behind a barrier (goroutines and a `sync.WaitGroup`, a thread pool), run with `-race` where the stack has it, and assert the invariant after. Code that reads, checks and writes under separate locks or transactions is a finding even when the sequential te…",
-    "Validation probes beyond the row: zero, negative, the maximum, the empty string, a trailing newline (Python `re` `$` matches before a final `\\n`; `fullmatch` or `\\Z` does not), `true` where an int is expected (`bool` is an `int` in Python), a duplicate. A probe that exposes a defect is a strict expected failure plus a finding.",
-    "Time: build instants in the zone the row states and let the clock seam convert (15:00 IST is 09:30 UTC); inject the clock, never sleep or read the wall clock. Test a window at its edge and one unit past.",
-    "Isolation: no test opens the configured production path, database or URL. Point config at a temporary file and replace the outbound call with a double that records what was sent, or a local server.",
-    "Defaults are findings: a secret with a guessable default (`changeme`) means an unset variable leaves the endpoint open; say that consequence, not only the default.",
     "A generated test that asserts what the code does instead of the row's expected result is a tautology. The row wins. When the code disagrees, that is a finding to report, not a test to rewrite. A row derived from a gap has only the route's observable contract as its expected result; say so in the test's comment.",
     "The reference gate runs on what the test uses, not on what it asserts. A test id that exists but sits on the wrong element still passes it; the review and the run catch that.",
     "Never add a second framework to a stack. Cypress beside Playwright, Detox beside Maestro, or unittest beside pytest is a finding.",
-    "Web specs mock the API with `page.route`; a spec that reaches a real server flakes. Mobile flows run against a build with a stubbed backend."
+    "Web specs mock the API with `page.route`; a spec that reaches a real server flakes. Mobile flows run against a build with a stubbed backend.",
+    "A visual baseline made on a laptop differs from CI in fonts and antialiasing, and the first CI run fails for nothing. Baselines are only written by `make test-visual-update`, inside the image. Updating a baseline to turn CI green is healing a regression unless the change was intended; `test-heal` decides which.",
+    "The browser matrix is for behaviour, not layout. A spec that fails only on webkit is a finding with the browser in it, never a `test.skip` for that browser without a task id.",
+    "Playwright `retries` hides drift. Keep CI retries at 2 and treat a test that needed a retry as a candidate for `test-heal`.",
+    "No `.only`, no `skip` without a task id. Quarantine is a tag, a task id and a deadline, all three.",
+    "The test name is the traceability link. Renaming it breaks `traceability`."
    ],
    "layout": "",
    "commands": [],
-   "lines": 342,
+   "lines": 131,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 342
+     "lines": 131
+    },
+    {
+     "path": "references/generalist-misses.md",
+     "lines": 34
+    },
+    {
+     "path": "references/generating-tests.md",
+     "lines": 60
+    },
+    {
+     "path": "references/suite-setup.md",
+     "lines": 87
+    },
+    {
+     "path": "references/verify-and-run.md",
+     "lines": 60
     },
     {
      "path": "scripts/ref_check.py",
@@ -12965,6 +13052,7 @@
    ],
    "groups": {
     ".": 1,
+    "references": 4,
     "scripts": 1,
     "templates": 4
    },
