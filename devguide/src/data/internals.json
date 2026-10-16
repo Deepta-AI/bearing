@@ -9,7 +9,7 @@
   "hooks": 6,
   "agents": 8,
   "makeTargets": 30,
-  "gates": 16,
+  "gates": 17,
   "tests": 84,
   "fixtures": 21,
   "stacks": 13,
@@ -18,7 +18,7 @@
   "ghJobs": 6,
   "ghWorkflows": 2,
   "evals": 106,
-  "skillFiles": 1046
+  "skillFiles": 1051
  },
  "plugins": [
   {
@@ -26,7 +26,7 @@
    "dir": "plugins/bearing",
    "description": "A developer workflow for coding agents: skills for every stage from brief to runbook, review subagents, one guard behind every hook, and repository templates. The stack conventions come in bearing-backend and bearing-apps.",
    "required": true,
-   "files": 498,
+   "files": 499,
    "skills": [
     "ab-experiment",
     "accessibility",
@@ -130,7 +130,7 @@
    "dir": "plugins/bearing-backend",
    "description": "Bearing stack conventions and repository templates for backend and platform code: Go, Python, Node, data pipelines (dbt, Airflow) and infrastructure (Terraform, Kubernetes). Needs the bearing plugin.",
    "required": false,
-   "files": 249,
+   "files": 252,
    "skills": [
     "data-pipeline",
     "go",
@@ -144,7 +144,7 @@
    "dir": "plugins/bearing-apps",
    "description": "Bearing stack conventions and repository templates for apps: React, Next.js, React Native (Expo), Flutter, native iOS and native Android. Needs the bearing plugin.",
    "required": false,
-   "files": 381,
+   "files": 382,
    "skills": [
     "android",
     "flutter",
@@ -2630,7 +2630,7 @@
     },
     {
      "title": "Layout",
-     "lines": 14
+     "lines": 2
     },
     {
      "title": "On a foreign layout",
@@ -2681,17 +2681,21 @@
     "`AIRFLOW_HOME` is `.airflow/` in the repository (git-ignored) so the import check never writes `~/airflow`.",
     "`uv.lock` pins dbt and Airflow together; both move often. Run `uv lock` after touching `pyproject.toml`, never edit the lock."
    ],
-   "layout": "",
+   "layout": "The repository tree, one line per directory, is in the reference. Detail: references/layout.md",
    "commands": [],
-   "lines": 203,
+   "lines": 191,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 203
+     "lines": 191
     },
     {
      "path": "references/guidelines.md",
      "lines": 153
+    },
+    {
+     "path": "references/layout.md",
+     "lines": 18
     },
     {
      "path": "references/review-checklist.md",
@@ -2848,7 +2852,7 @@
    ],
    "groups": {
     ".": 1,
-    "references": 3,
+    "references": 4,
     "templates": 36
    },
    "evals": true,
@@ -5142,7 +5146,7 @@
     },
     {
      "title": "Layout",
-     "lines": 11
+     "lines": 2
     },
     {
      "title": "On a foreign layout",
@@ -5188,17 +5192,21 @@
     "Tools are pinned with the `tool` directive (Go 1.24 and newer) in `tools/go.mod`, a module of its own so golangci-lint's dependencies never enter the service's `go.mod` or its govulncheck scan. `go install ...@latest` in a Makefile or CI job is a finding: two pipelines a day apart lint with different rules. Bump with `go -C tools get -tool <package>@<version>` and commit `tools/go.sum`.",
     "A handler that returns after writing an error without `return` writes twice. `golangci-lint` catches some of these; the reviewer catches the rest."
    ],
-   "layout": "",
+   "layout": "The repository tree, one line per directory, is in the reference. Detail: references/layout.md",
    "commands": [],
-   "lines": 206,
+   "lines": 197,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 206
+     "lines": 197
     },
     {
      "path": "references/guidelines.md",
      "lines": 89
+    },
+    {
+     "path": "references/layout.md",
+     "lines": 15
     },
     {
      "path": "references/review-checklist.md",
@@ -5391,7 +5399,7 @@
    ],
    "groups": {
     ".": 1,
-    "references": 3,
+    "references": 4,
     "templates": 32,
     "templates-cli": 13
    },
@@ -6060,7 +6068,7 @@
     },
     {
      "title": "Layout",
-     "lines": 17
+     "lines": 3
     },
     {
      "title": "On a foreign layout",
@@ -6111,17 +6119,21 @@
     "GitLab-managed Terraform state (`backend \"http\"`) is the fastest start: no bucket to create, locking included, one init command from the docs. Move to GCS or S3 when more than one project shares the state.",
     "`terraform validate` needs `init -backend=false`; the Makefile does this so validation never needs cloud credentials."
    ],
-   "layout": "Directory-per-environment rather than workspaces: each environment has its own state, backend prefix, credentials, variable values and pipeline job, so a wrong `workspace select` cannot plan dev values against prod state, an MR diff shows exactly which environment changes, and environments can pin different module versions during a rollout.",
+   "layout": "The repository tree and the reasons for a directory per environment (not workspaces) are in the reference. Detail: references/layout.md",
    "commands": [],
-   "lines": 212,
+   "lines": 198,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 212
+     "lines": 198
     },
     {
      "path": "references/guidelines.md",
      "lines": 212
+    },
+    {
+     "path": "references/layout.md",
+     "lines": 21
     },
     {
      "path": "references/review-checklist.md",
@@ -6318,7 +6330,7 @@
    ],
    "groups": {
     ".": 1,
-    "references": 3,
+    "references": 4,
     "templates": 46
    },
    "evals": true,
@@ -6378,7 +6390,7 @@
     },
     {
      "title": "Layout",
-     "lines": 17
+     "lines": 1
     },
     {
      "title": "On a foreign layout",
@@ -6426,17 +6438,21 @@
     "Swift Testing runs tests in parallel by default. A suite that shares state (a `URLProtocol` stub's static handler) is `@Suite(.serialized)`. An `#expect` inside a callback on another thread has no test to report to; record what the callback saw and assert in the test body.",
     "`brg-scaffold` does not rename paths: `Packages/__REPO_NAME__Kit` and `App/__REPO_NAME__App.swift` keep their placeholder names until `make setup` or `make generate` runs the `paths` step."
    ],
-   "layout": "",
+   "layout": "Repository tree: Detail: references/layout.md",
    "commands": [],
-   "lines": 216,
+   "lines": 200,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 216
+     "lines": 200
     },
     {
      "path": "references/guidelines.md",
      "lines": 166
+    },
+    {
+     "path": "references/layout.md",
+     "lines": 21
     },
     {
      "path": "references/review-checklist.md",
@@ -6593,7 +6609,7 @@
    ],
    "groups": {
     ".": 1,
-    "references": 3,
+    "references": 4,
     "templates": 36
    },
    "evals": true,
@@ -7334,7 +7350,7 @@
     },
     {
      "title": "Steps",
-     "lines": 117
+     "lines": 114
     },
     {
      "title": "Output contract",
@@ -7355,7 +7371,7 @@
    ],
    "steps": [
     "Resolve the target: `local` is `http://localhost:<port>`, `qa` the qa environment URL from CI, a raw URL as given. Compare the target host (lower case, port and path stripped) with every production host from Inputs. A match stops with \"refused: production URL\". Also list any script or variable already in the repository that defaults to a production host (bench scripts, Makefile defaults) and flag it.",
-    "Workload model, written down with its arithmetic before any script: - Peak rate from the source, converted to requests a second per route (18,000 sign-ups in 15 minutes is 20 a second; at 3 page reads and 1 submit each, 60 + 20 = 80 requests a second). The pass criterion is at this rate. Headroom (1.5x, 2x) is a separate stress stage, never the load stage's target. - Shape: how fast the real peak arrives and how lon…",
+    "Workload model, written down with its arithmetic before any script: - Peak rate from the source, converted to requests a second per route. The pass criterion is at this rate. Headroom (1.5x, 2x) is a separate stress stage, never the load stage's target. - Shape: how fast the real peak arrives and how long it lasts. An event that opens at a fixed time is a step: ramp in seconds, not minutes. Hold for the real peak's…",
     "Environment fit. Say, with numbers, what a run on this target can and cannot show: - Rate limits: the target rate divided by 80% of the per-key limit gives the keys needed (a bucket driven at exactly its rate still rejects on jitter). Not enough keys: the run is invalid until more exist; say how many. 429s are then a test fault, not a service result. - Size: when the target is smaller than production (fewer replicas…",
     "Write `tests/load/<flow>.js` from the template: - Open model: an arrival-rate executor in the unit of the flow (checkouts a second). Size `preAllocatedVUs` from Little's law (rate x p99 seconds x 2) and fail on `dropped_iterations` above 1% of planned: when the generator falls behind, the service did not see the rate you claim. - Requests exactly as the code serves them: path, query parameter names, auth header, bod…",
     "A soak for a leak adds, on top of step 4: - Hypotheses from the code: every structure that grows with input and never shrinks (maps used as caches, in-memory stores, per-client buckets, pools). Name the file and field. - Load that grows the suspect the way real traffic does. Cardinality alone is not enough: an entry's size depends on what is stored. A result cache grows many times faster on queries that return data…",
@@ -7377,11 +7393,15 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 202,
+   "lines": 199,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 202
+     "lines": 199
+    },
+    {
+     "path": "references/workload.md",
+     "lines": 9
     },
     {
      "path": "templates/k6-script.js",
@@ -7390,6 +7410,7 @@
    ],
    "groups": {
     ".": 1,
+    "references": 1,
     "templates": 1
    },
    "evals": true,
@@ -17120,8 +17141,8 @@
   },
   {
    "name": "lint-skill-size",
-   "does": "Every SKILL.md is 200 lines or fewer; detail goes in the skill's references/ and is read on demand",
-   "inCheck": false
+   "does": "Every SKILL.md is 200 lines or fewer unless bin/lint-skill-size.allow lists it with a ceiling; detail goes in references/",
+   "inCheck": true
   },
   {
    "name": "lint-triggers",
@@ -17247,6 +17268,7 @@
  "check": [
   "validate",
   "lint-skills",
+  "lint-skill-size",
   "lint-tools",
   "lint-evals",
   "lint-triggers",
@@ -17789,9 +17811,9 @@
   {
    "path": "tests/unit/lint_skill_size.sh",
    "kind": "unit",
-   "lines": 23,
-   "header": "tests/unit/lint_skill_size.sh: the size lint fails on a 201-line skill and on zero skills, and passes with counts otherwise.",
-   "asserts": 6
+   "lines": 47,
+   "header": "tests/unit/lint_skill_size.sh: the size lint fails on a 201-line skill and on zero skills, honours bin/lint-skill-size.allow ceilings, fails stale entries, and passes with counts otherwise.",
+   "asserts": 14
   },
   {
    "path": "tests/unit/lint_tools.sh",
