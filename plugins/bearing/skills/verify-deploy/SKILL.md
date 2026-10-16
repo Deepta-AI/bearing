@@ -22,8 +22,8 @@ check is already hurting users.
 
 - environment: `$1` (`dev`, `qa`, `staging`, `prod` or any section name
   in the file); if absent, ask once which environment was deployed, with
-  AskUserQuestion (as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says), options the environment
-  sections found (up to four; any other via Other) and "stop"; no answer: stop.
+  AskUserQuestion (as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says), options up to three of the
+  environment sections found (any other via Other) and "stop"; no answer: stop.
 - environments file: `docs/environments.md`; if absent, copied from
   `templates/environments.md` and the run stops for the engineer to fill
   it (step 1). Never guess a URL from `.env.example`, the README, CI

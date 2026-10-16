@@ -57,7 +57,7 @@ and writes the tests.
 3. Generate. For each `planned` row (or the story or TC in `$2`), find the
    nearest existing test, then fork `test-writer` (Agent tool) with the row;
    the test name carries the TC id; a property-testing library is added only on a
-   yes to that same question. Detail: references/generating-tests.md
+   yes to the same kind of question. Detail: references/generating-tests.md
 4. Invented-API gate, before anything runs: the stack's type check, then
    `ref_check.py` over the new tests; print both results. Detail:
    references/verify-and-run.md

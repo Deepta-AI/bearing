@@ -42,8 +42,8 @@ story per line. Detail: references/register-and-scope.md
   text, via Other) and "stop". Detail: references/register-and-scope.md
 - Target repository: the git repository the session runs in (`git rev-parse --show-toplevel`).
   When the working directory is not one, or is a folder holding several repositories, ask one
-  question with AskUserQuestion, options "enter the repository path" (via Other) and "stop";
-  never write `docs/product` into a parent folder.
+  question with AskUserQuestion, options "enter the repository path" (via Other) and "stop"
+  (no answer: stop); never write `docs/product` into a parent folder.
 - Repository decisions: `docs/adr/*.md` (or wherever the README keeps
   decisions) and the code that already handles the domain; if absent, the input
   is checked against itself only and the report says so.

@@ -8231,7 +8231,7 @@
     }
    ],
    "inputs": [
-    "A checkout of the kit: the current directory when it holds `.claude-plugin/marketplace.json` with name `bearing` and `plugins/bearing/`; if not, ask one question with AskUserQuestion (as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says), \"where is your Bearing checkout?\", options \"enter the path\" (the answer comes as free text via Other) and \"stop\" (the installed plugin copy under `~/.claude/plugins` is read-only…",
+    "A checkout of the kit: the current directory when it holds `.claude-plugin/marketplace.json` with name `bearing` and `plugins/bearing/`; if not, ask one question with AskUserQuestion (as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says), \"where is your Bearing checkout?\", options \"enter the path\" (the answer comes as free text via Other; the installed plugin copy under `~/.claude/plugins` is read-only and does not…",
     "The kit's own rules: `CONTRIBUTING.md`, `CLAUDE.md` and `docs/adr/` in the checkout, read before writing anything. Where they differ from this skill, they win.",
     "The `Makefile`: the gate targets this checkout defines. A target named below that it lacks is reported as missing, never invented.",
     "Name: `$1`; if absent, asked in the interview.",
@@ -9432,7 +9432,7 @@
     }
    ],
    "inputs": [
-    "repository: `git rev-parse --show-toplevel`; not a git repository: ask once with AskUserQuestion (as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says), options `git init` and \"no git\"; on no, write the files and list hooks as not active under Not done.",
+    "repository: `git rev-parse --show-toplevel`; not a git repository: ask once with AskUserQuestion (as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says), options `git init` and \"no git\"; on \"no git\", write the files and list hooks as not active under Not done.",
     "working tree: `git status --porcelain`. Dirty files are the engineer's work in progress: never stash, revert, format or commit them; edit around them and list them in the report. Run the gate with them present.",
     "scope: what the request names (AGENTS.md, CLAUDE.md, `make check`, hooks, CODEOWNERS, rules). `--full`, or \"adopt the whole standard\", adds the rest of the standard's files, each still subject to the survey. Nothing outside scope is added.",
     "host: evidence in the repository wins: `git remote get-url origin`, `.gitlab-ci.yml` or `.gitlab/`, `.github/`. `BEARING_GIT_HOST` in the user's config is a default for new repositories and never adds `.github/` to a GitLab repository or `.gitlab/` to a GitHub one; pass `--host` explicitly.",
@@ -9876,7 +9876,7 @@
     "Templates: `templates/PRD.md` and `templates/questions.md` in this skill; no repository copy is needed.",
     "Existing register: looks in `docs/product/questions.md` for Q ids and decisions to keep; if absent, numbering starts at `Q-001`.",
     "Input format: text formats are read as they are; a `.pdf` with Read (20 pages per call); a `.docx` or `.odt` by `scripts/doc_to_text.py` in this skill. Only a legacy `.doc`, a Google Doc or a Notion link gets one AskUserQuestion, options \"enter an export path\" (`.docx`, PDF or text, via Other) and \"stop\". Detail: references/register-and-scope.md",
-    "Target repository: the git repository the session runs in (`git rev-parse --show-toplevel`). When the working directory is not one, or is a folder holding several repositories, ask one question with AskUserQuestion, options \"enter the repository path\" (via Other) and \"stop\"; never write `docs/product` into a parent folder.",
+    "Target repository: the git repository the session runs in (`git rev-parse --show-toplevel`). When the working directory is not one, or is a folder holding several repositories, ask one question with AskUserQuestion, options \"enter the repository path\" (via Other) and \"stop\" (no answer: stop); never write `docs/product` into a parent folder.",
     "Repository decisions: `docs/adr/*.md` (or wherever the README keeps decisions) and the code that already handles the domain; if absent, the input is checked against itself only and the report says so.",
     "Existing stories: looks in `docs/product/stories.md` (or the tracker export the README names) for the story ids that carry each REQ; if absent, Affects stays on REQ ids."
    ],
@@ -11716,9 +11716,9 @@
     }
    ],
    "inputs": [
-    "Mode: `--package [path]` for a library, SDK or CLI; if absent, a service or app. A path without the flag, or a workspace with no deployable entrypoint, asks once which mode with AskUserQuestion (as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says), options service or app, and package.",
+    "Mode: `--package [path]` for a library, SDK or CLI; if absent, a service or app. A path without the flag, or a workspace with no deployable entrypoint, asks once which mode with AskUserQuestion (as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says), options service or app, and package (no answer: stop).",
     "Release branch: `develop` (or `release/*`) as the current branch; if the repository has no `develop`, `main`; else the HEAD branch from `git remote show origin`; else the current branch. Say which.",
-    "Clean tree: `git status --porcelain`; if dirty, list the files and ask once with AskUserQuestion: commit first, or continue (the report then says which files the release commit would sweep in).",
+    "Clean tree: `git status --porcelain`; if dirty, list the files and ask once with AskUserQuestion: commit first (Recommended), or continue (the report then says which files the release commit would sweep in); no answer: stop.",
     "Last tag: `git describe --tags --abbrev=0`; in a workspace `git tag -l '<name>@*'`; none means `v0.0.0` and everything counts. When the user names the last version, compare: a disagreement is reported, the tags win.",
     "Shipped but unmerged: `git tag --no-merged HEAD` and `git branch -a --no-merged HEAD` (`hotfix/*`, `release/*`). A release tag there is a version users run whose fix this branch lacks: releasing as-is regresses it. Resolve it per the written policy (merge the branch back, its test and CHANGELOG section with it, and say so), or stop and report it as the first blocker. Never describe the new version as containing a fi…",
     "Bump: `$1` overrides the derived bump, with a warning when it is lower.",
@@ -13306,7 +13306,7 @@
    "steps": [
     "Mode from `$1`: `suite` or `generate`; no argument runs suite then generate. Detect the stack and obtain the case table as in Inputs. In `generate` mode, zero rows with automation `planned` and zero gaps: report \"0 cases to generate\" and finish after the suite step.",
     "Suite. Skip what exists; never replace a working suite; add a dependency only after one AskUserQuestion (as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says), options \"add <library>\" and \"do without\", no answer meaning without. Detail: references/suite-setup.md",
-    "Generate. For each `planned` row (or the story or TC in `$2`), find the nearest existing test, then fork `test-writer` (Agent tool) with the row; the test name carries the TC id; a property-testing library is added only on a yes to that same question. Detail: references/generating-tests.md",
+    "Generate. For each `planned` row (or the story or TC in `$2`), find the nearest existing test, then fork `test-writer` (Agent tool) with the row; the test name carries the TC id; a property-testing library is added only on a yes to the same kind of question. Detail: references/generating-tests.md",
     "Invented-API gate, before anything runs: the stack's type check, then `ref_check.py` over the new tests; print both results. Detail: references/verify-and-run.md",
     "Visual baselines: list every new or changed png for a person to look at. Detail: references/verify-and-run.md",
     "Prove the tests can fail: make the smallest mutation that breaks each rule covered, run, restore; mutations always reverted, never run against a shared environment. Detail: references/verify-and-run.md",
@@ -14326,7 +14326,7 @@
     },
     {
      "title": "Steps",
-     "lines": 67
+     "lines": 69
     },
     {
      "title": "A product with several packages, or no code yet",
@@ -14351,7 +14351,7 @@
     "Existing screens: the code's routes, screens and page components, so names are reused; a green-field repository has none and every screen is marked `new`.",
     "The code behind the flow: the handlers, limits, plan or pricing tables and router the feature calls, and the ADRs; step 2 reconciles them with the spec.",
     "Event sheet: `docs/analytics/EVENT_SHEET.md`; if absent, the event column of the interaction inventory reads `no sheet` and no name is invented (`analytics-events` owns the taxonomy).",
-    "Previous version: `docs/design/flows/<feature>/flows.md` or the highest `flows-v<n>.md`; with `--feedback`, or when the request asks for changes to it, it is the base for the next version (see Re-issuing with feedback), and its review notes (`docs/design/reviews/`) and the tickets citing it are read too; otherwise ask once with AskUserQuestion, options iterate and overwrite (no answer: iterate, the previous file sta…",
+    "Previous version: `docs/design/flows/<feature>/flows.md` or the highest `flows-v<n>.md`; with `--feedback`, or when the request asks for changes to it, it is the base for the next version (see Re-issuing with feedback), and its review notes (`docs/design/reviews/`) and the tickets citing it are read too; otherwise ask once with AskUserQuestion, options \"iterate (Recommended)\" and overwrite (no answer: iterate, the p…",
     "Template: `templates/flows.md` in this skill. Checklist: `references/flow-review.md`.",
     "Gate: `scripts/flows_check.py` in this skill, Python 3 only, run from the repository root; it parses the written file's inventory, mermaid flowcharts and state tables, never the model's counts."
    ],
@@ -14385,11 +14385,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 196,
+   "lines": 198,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 196
+     "lines": 198
     },
     {
      "path": "references/flow-review.md",
@@ -14591,7 +14591,7 @@
     }
    ],
    "inputs": [
-    "environment: `$1` (`dev`, `qa`, `staging`, `prod` or any section name in the file); if absent, ask once which environment was deployed, with AskUserQuestion (as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says), options the environment sections found (up to four; any other via Other) and \"stop\"; no answer: stop.",
+    "environment: `$1` (`dev`, `qa`, `staging`, `prod` or any section name in the file); if absent, ask once which environment was deployed, with AskUserQuestion (as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says), options up to three of the environment sections found (any other via Other) and \"stop\"; no answer: stop.",
     "environments file: `docs/environments.md`; if absent, copied from `templates/environments.md` and the run stops for the engineer to fill it (step 1). Never guess a URL from `.env.example`, the README, CI variables or a naming pattern.",
     "expected version: `$2`, the commit or tag the engineer says was deployed. If absent, find how the environment is deployed (README, CI file): an environment deployed from tags may use the latest tag from `git describe --tags --abbrev=0`, said so; an environment deployed from a branch (qa from develop, say) has no tag to compare, and neither the latest tag nor this checkout's HEAD is what went out. Then ask once for t…",
     "the checker: `scripts/verify_deploy.py` in this skill, python3 standard library only.",

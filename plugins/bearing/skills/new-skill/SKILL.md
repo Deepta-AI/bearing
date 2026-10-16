@@ -22,8 +22,8 @@ skill and against a baseline without it. Neither replaces the other.
   `.claude-plugin/marketplace.json` with name `bearing` and
   `plugins/bearing/`; if not, ask one question with AskUserQuestion
   (as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says), "where is your Bearing checkout?", options "enter the path"
-  (the answer comes as free text via Other) and "stop" (the installed plugin
-  copy under `~/.claude/plugins` is read-only and does not count). No path:
+  (the answer comes as free text via Other; the installed plugin copy under
+  `~/.claude/plugins` is read-only and does not count) and "stop". No path:
   stop with "provide the path to a Bearing git checkout".
 - The kit's own rules: `CONTRIBUTING.md`, `CLAUDE.md` and `docs/adr/` in
   the checkout, read before writing anything. Where they differ from this

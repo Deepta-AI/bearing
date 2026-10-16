@@ -26,12 +26,12 @@ and calls this skill for the version and changelog.
 
 - Mode: `--package [path]` for a library, SDK or CLI; if absent, a service or app. A path without
   the flag, or a workspace with no deployable entrypoint, asks once which mode with AskUserQuestion
-  (as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says), options service or app, and package.
+  (as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says), options service or app, and package (no answer: stop).
 - Release branch: `develop` (or `release/*`) as the current branch; if
   the repository has no `develop`, `main`; else the HEAD branch from
   `git remote show origin`; else the current branch. Say which.
 - Clean tree: `git status --porcelain`; if dirty, list the files and ask once with AskUserQuestion:
-  commit first, or continue (the report then says which files the release commit would sweep in).
+  commit first (Recommended), or continue (the report then says which files the release commit would sweep in); no answer: stop.
 - Last tag: `git describe --tags --abbrev=0`; in a workspace
   `git tag -l '<name>@*'`; none means `v0.0.0` and everything counts.
   When the user names the last version, compare: a disagreement is
@@ -93,7 +93,7 @@ and calls this skill for the version and changelog.
    effect; list what it changed for users (response shape, log format,
    config keys, defaults, CLI flags). When unprefixed commits are the
    majority, ask for the bump with AskUserQuestion, options major, minor and
-   patch (the diff-based reading first); no answer: stop.
+   patch (the diff-based reading "(Recommended)"); no answer: stop.
    Service: diff the contract since the tag (`git diff <tag> -- api/ '*.proto' '*openapi*'`,
    JSON tags on response types). A removed or
    renamed field is major whatever the messages say; name every endpoint

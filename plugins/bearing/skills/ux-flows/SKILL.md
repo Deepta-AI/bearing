@@ -38,7 +38,7 @@ beat one click that needs thought.
   to it, it is the base for the next version (see Re-issuing with
   feedback), and its review notes (`docs/design/reviews/`) and the tickets
   citing it are read too; otherwise ask once with AskUserQuestion, options
-  iterate and overwrite (no answer: iterate, the previous file stays as is).
+  "iterate (Recommended)" and overwrite (no answer: iterate, the previous file stays as is).
 - Template: `templates/flows.md` in this skill. Checklist:
   `references/flow-review.md`.
 - Gate: `scripts/flows_check.py` in this skill, Python 3 only, run from
@@ -111,8 +111,10 @@ beat one click that needs thought.
     success row, `n/a` without a reason, and zero screens read. Fix and
     rerun until it exits 0. Change nothing outside `docs/` (no README
     status line, no code). Print the output contract. If gstack
-    `/diagram` is listed in this session, offer to render the mermaid;
-    invoke only on a yes. Name `/plan-design-review` (gstack) as the
+    `/diagram` is listed in this session, ask once with AskUserQuestion
+    (as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says), options "render
+    with /diagram" and "mermaid only" (no answer: mermaid only); invoke only on
+    the first. Name `/plan-design-review` (gstack) as the
     heavier interactive review and `design-directions` as next.
 
 ## A product with several packages, or no code yet

@@ -23,7 +23,7 @@ the new piece actually run?
 
 - repository: `git rev-parse --show-toplevel`; not a git repository: ask
   once with AskUserQuestion (as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says), options `git init` and
-  "no git"; on no, write the files and list hooks as not active under Not done.
+  "no git"; on "no git", write the files and list hooks as not active under Not done.
 - working tree: `git status --porcelain`. Dirty files are the engineer's
   work in progress: never stash, revert, format or commit them; edit
   around them and list them in the report. Run the gate with them present.
