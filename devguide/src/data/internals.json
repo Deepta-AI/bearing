@@ -19347,7 +19347,7 @@
     "Notes for existing repositories"
    ],
    "entries": 13,
-   "summary": "- Scoped Stop gate: a `check-changed` make target in all 13 stack templates checks only what the session changed (Go: the changed packages; Python and JavaScript: the changed files and their related tests). The Stop gate asks for `make check-changed` where the Makefile has it. The full `make check` is unchanged at `definition-of-done` and in the pre-push hook. `brg-changed` lists the changed files. - Timing: the formatter is timed, and `brg-guard stats` and `brg-doctor --timing` show the median and p90 of every gate and hook step. - Workspace trust check in `doctor` and `autopilot`: an untrusted workspace is reported, and `autopilot` stops before it would wait on a permission prompt. - Sess…"
+   "summary": "- Scoped Stop gate: a `check-changed` make target in all 13 stack templates checks only what the session changed (Go: the changed packages; Python and JavaScript: the changed files and their related tests). The Stop gate asks for `make check-changed` where the Makefile has it. The full `make check` is unchanged at `definition-of-done` and in the pre-push hook. `brg-changed` lists the changed files. A session that changed no file of the stack's kind (a README, a YAML file) passes it; a skipped gate (Go without golangci-lint) does not. - Timing: the formatter is timed, and `brg-guard stats` and `brg-doctor --timing` show the median and p90 of every gate and hook step. - Workspace trust check…"
   },
   {
    "version": "0.7.0",
