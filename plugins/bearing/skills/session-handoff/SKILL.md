@@ -7,6 +7,9 @@ allowed-tools: Read, Write, Grep, Glob, Bash(git status:*), Bash(git diff:*), Ba
 
 # session-handoff
 
+Checkpoints are written automatically on every Stop and at SessionEnd; run
+this skill for a written handoff a person will read.
+
 A handoff fails in two ways: it loses work (a commit, a stash or a branch
 that lives only on this machine), or it passes on a wrong belief (a
 "(done)" commit whose test is skipped, a gate result nobody ran, a decision

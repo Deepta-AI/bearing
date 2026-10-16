@@ -4,13 +4,13 @@
   "skills": 106,
   "commandSkills": 0,
   "stackSkills": 12,
-  "scripts": 91,
-  "scriptLines": 28887,
+  "scripts": 92,
+  "scriptLines": 28972,
   "hooks": 8,
   "agents": 8,
   "makeTargets": 30,
   "gates": 17,
-  "tests": 88,
+  "tests": 90,
   "fixtures": 21,
   "stacks": 13,
   "templates": 38,
@@ -26,7 +26,7 @@
    "dir": "plugins/bearing",
    "description": "A developer workflow for coding agents: skills for every stage from brief to runbook, review subagents, one guard behind every hook, and repository templates. The stack conventions come in bearing-backend and bearing-apps.",
    "required": true,
-   "files": 503,
+   "files": 505,
    "skills": [
     "ab-experiment",
     "accessibility",
@@ -12190,7 +12190,7 @@
     "Bash(python3 *skills/session-handoff/scripts/progress.py*)"
    ],
    "extra": {},
-   "intro": "A handoff fails in two ways: it loses work (a commit, a stash or a branch that lives only on this machine), or it passes on a wrong belief (a \"(done)\" commit whose test is skipped, a gate result nobody ran, a decision someone else has already taken upstream). The next reader trusts the note and cannot ask you, so every line must be checked against the repository, not remembered from the session.",
+   "intro": "Checkpoints are written automatically on every Stop and at SessionEnd; run this skill for a written handoff a person will read.",
    "sections": [
     {
      "title": "Who reads it decides where it goes",
@@ -12238,11 +12238,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 177,
+   "lines": 180,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 177
+     "lines": 180
     },
     {
      "path": "scripts/progress.py",
@@ -12627,7 +12627,9 @@
     "Edit",
     "Grep",
     "Glob",
+    "AskUserQuestion",
     "Bash(bash *bin/brg-tracker *)",
+    "Bash(bash *bin/brg-config*)",
     "Bash(git status:*)",
     "Bash(git branch:*)",
     "Bash(git switch:*)",
@@ -12656,7 +12658,7 @@
    "sections": [
     {
      "title": "Inputs",
-     "lines": 20
+     "lines": 23
     },
     {
      "title": "Steps",
@@ -12673,7 +12675,7 @@
    ],
    "inputs": [
     "repository: `git rev-parse --show-toplevel`; not a git repository stops with \"run `git init` (or open the repository) and rerun\".",
-    "task id: `$1`, or the id in the request; if absent, ask once.",
+    "task id: `$1`, or the id in the request; else the id in the current branch name when it matches the prefix (then report existing work, do not ask); else ask once with AskUserQuestion as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says.",
     "tracker and prefix: `bash \"${CLAUDE_PLUGIN_ROOT}/bin/brg-tracker\" config` (`tracker:` and `id prefix:` lines; `BEARING_TASK_ID_PREFIX` wins); else the CLAUDE.md `Task tracker:` line; else any id matching `[A-Z][A-Z0-9]*(-[0-9]+)+`, and say so. With `tracker: none` and no id, use `NOTASK-<n>` (one above the highest in `git branch -a`).",
     "repository conventions: CONTRIBUTING.md, RELEASING.md, README.md, a branching or release section in docs/, and the deploy configuration (deploy/, k8s/, helm values, a workflow that deploys on a tag). Their naming and base rules override the defaults below; where they contradict what the history shows, the history wins and the report says so.",
     "type: `--type`; else `hotfix` when the request is about production being wrong now, `bugfix` for other defects, else `feature`; say which.",
@@ -12702,11 +12704,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 176,
+   "lines": 179,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 176
+     "lines": 179
     }
    ],
    "groups": {
@@ -14923,6 +14925,21 @@
    "calls": [
     "brg-kit-paths"
    ]
+  },
+  {
+   "path": "plugins/bearing/bin/brg-config",
+   "name": "brg-config",
+   "lang": "bash",
+   "group": "quality",
+   "lines": 85,
+   "header": "brg-config: remembered answers. Project answers (shared, committed) live in\n<repo>/.bearing/config.json; personal answers live in bearing.env as\nBEARING_<KEY>. Skills call it; the guard does not.\n  brg-config get <key> [--user]          print the value, or nothing\n  brg-config set <key> <value> [--user]  record it (atomic write)\nKeys use [A-Za-z0-9._-] only (exit 2 otherwise). Project scope needs jq\n(exit 1 without it). User scope maps the key to BEARING_<KEY> (upper-cased,\n\".\" and \"-\" become \"_\") in ${BEARING_ENV:-${XDG_CONFIG_HOME:-$HOME/.config}/bearing/bearing.env};\nset keeps every other line, comments and blank lines included, and mode 600.\nget reads the value the way the other Bearing scripts do (quotes stripped,\na trailing \" # comment\" dropped from an unquoted value); the last line wins.",
+   "functions": [
+    "usage"
+   ],
+   "env": [
+    "BEARING_ENV"
+   ],
+   "calls": []
   },
   {
    "path": "plugins/bearing/bin/brg-doctor",
@@ -17693,6 +17710,13 @@
    "asserts": 23
   },
   {
+   "path": "tests/unit/config_helper.sh",
+   "kind": "unit",
+   "lines": 89,
+   "header": "tests/unit/config_helper.sh: brg-config answers round-trip in project and user scope, keep every other line of bearing.env, validate keys, and need jq for project scope.",
+   "asserts": 46
+  },
+  {
    "path": "tests/unit/data_model_check.sh",
    "kind": "unit",
    "lines": 104,
@@ -17908,6 +17932,13 @@
    "lines": 61,
    "header": "tests/unit/lint_skill_size.sh: the size lint fails on a 201-line skill and on zero skills, honours bin/lint-skill-size.allow ceilings, fails stale entries, and passes with counts otherwise.",
    "asserts": 20
+  },
+  {
+   "path": "tests/unit/lint_skills_refs.sh",
+   "kind": "unit",
+   "lines": 40,
+   "header": "tests/unit/lint_skills_refs.sh: lint-skills resolves a `references/x.md` or `templates/x` citation, and the plugin-root form `${CLAUDE_PLUGIN_ROOT}/references/x.md`, against the skill's own plugin, and fails a citation that does not exist (the plugin-root form is not looked up in another plugin).",
+   "asserts": 10
   },
   {
    "path": "tests/unit/lint_tools.sh",

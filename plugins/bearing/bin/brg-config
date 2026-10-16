@@ -1,0 +1,85 @@
+#!/usr/bin/env bash
+# brg-config: remembered answers. Project answers (shared, committed) live in
+# <repo>/.bearing/config.json; personal answers live in bearing.env as
+# BEARING_<KEY>. Skills call it; the guard does not.
+#   brg-config get <key> [--user]          print the value, or nothing
+#   brg-config set <key> <value> [--user]  record it (atomic write)
+# Keys use [A-Za-z0-9._-] only (exit 2 otherwise). Project scope needs jq
+# (exit 1 without it). User scope maps the key to BEARING_<KEY> (upper-cased,
+# "." and "-" become "_") in ${BEARING_ENV:-${XDG_CONFIG_HOME:-$HOME/.config}/bearing/bearing.env};
+# set keeps every other line, comments and blank lines included, and mode 600.
+# get reads the value the way the other Bearing scripts do (quotes stripped,
+# a trailing " # comment" dropped from an unquoted value); the last line wins.
+set -u
+
+usage() { echo "usage: brg-config get|set <key> [value] [--user]" >&2; exit 2; }
+
+op="${1:-}"; key="${2:-}"
+[ -n "$op" ] && [ -n "$key" ] || usage
+shift 2
+val=""; have_val=0; user=0
+for a in "$@"; do
+  case "$a" in
+    --user) user=1;;
+    *) if [ "$have_val" -eq 0 ]; then val="$a"; have_val=1; else usage; fi;;
+  esac
+done
+case "$op" in
+  get) [ "$have_val" -eq 0 ] || usage;;
+  set) [ "$have_val" -eq 1 ] || usage;;
+  *) echo "brg-config: unknown op $op" >&2; usage;;
+esac
+if printf '%s' "$key" | grep -Eq '[^A-Za-z0-9._-]'; then
+  echo "brg-config: key may hold only letters, digits, '.', '_' and '-': $key" >&2; exit 2
+fi
+case "$val" in
+  *"
+"*) echo "brg-config: a value cannot span lines" >&2; exit 2;;
+esac
+
+if [ "$user" -eq 1 ]; then
+  envf="${BEARING_ENV:-${XDG_CONFIG_HOME:-$HOME/.config}/bearing/bearing.env}"
+  dir="$(dirname "$envf")"
+  k="BEARING_$(printf '%s' "$key" | tr 'a-z.-' 'A-Z__')"
+  if [ "$op" = get ]; then
+    [ -f "$envf" ] || exit 0
+    line="$(grep -E "^${k}[[:space:]]*=" "$envf" | tail -1)"
+    [ -n "$line" ] || exit 0
+    line="${line%$'\r'}"
+    v="${line#*=}"; v="${v#"${v%%[![:space:]]*}"}"
+    case "$v" in
+      \"*) v="${v#\"}"; v="${v%%\"*}";;
+      \'*) v="${v#\'}"; v="${v%%\'*}";;
+      *) v="${v%%[[:space:]]#*}"; v="${v%"${v##*[![:space:]]}"}";;
+    esac
+    printf '%s\n' "$v"; exit 0
+  fi
+  # A value the reader would mangle is written double-quoted.
+  w="$val"
+  case "$val" in
+    ''|[[:space:]]*|*[[:space:]]|\"*|\'*|*[[:space:]]\#*) 
+      case "$val" in *\"*) echo "brg-config: this value cannot be stored (it needs quoting and holds a double quote)" >&2; exit 2;; esac
+      w="\"$val\"";;
+  esac
+  mkdir -p "$dir" || exit 1
+  tmp="$envf.tmp.$$"
+  ( umask 077
+    { [ ! -f "$envf" ] || grep -vE "^${k}[[:space:]]*=" "$envf"; printf '%s=%s\n' "$k" "$w"; } > "$tmp" ) \
+    && chmod 600 "$tmp" && mv "$tmp" "$envf" || { rm -f "$tmp"; echo "brg-config: could not write $envf" >&2; exit 1; }
+  exit 0
+fi
+
+command -v jq >/dev/null 2>&1 || { echo "brg-config: jq required" >&2; exit 1; }
+root="$(git rev-parse --show-toplevel 2>/dev/null)" || { echo "brg-config: not a git repository" >&2; exit 1; }
+f="$root/.bearing/config.json"
+if [ "$op" = get ]; then
+  [ -f "$f" ] || exit 0
+  jq -r --arg k "$key" 'if has($k) and .[$k] != null then .[$k] | tostring else empty end' "$f" || exit 1
+  exit 0
+fi
+mkdir -p "$root/.bearing" || exit 1
+[ -f "$f" ] || echo '{}' > "$f"
+tmp="$f.tmp.$$"
+jq --arg k "$key" --arg v "$val" '.[$k] = $v' "$f" > "$tmp" && mv "$tmp" "$f" \
+  || { rm -f "$tmp"; echo "brg-config: could not update $f (is it valid JSON?)" >&2; exit 1; }
+exit 0

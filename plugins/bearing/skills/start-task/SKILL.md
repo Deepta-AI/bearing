@@ -2,7 +2,7 @@
 name: start-task
 description: 'Starts work on a ticket: creates the branch from the right base with the task id, writes state and progress notes, restates the criteria. Use when asked to "start TASK-142", "pick up this ticket" or "create a branch".'
 argument-hint: "<TASK-ID> [PascalName] [--type feature|bugfix|hotfix|chore|docs]"
-allowed-tools: Read, Write, Edit, Grep, Glob, Bash(bash *bin/brg-tracker *), Bash(git status:*), Bash(git branch:*), Bash(git switch:*), Bash(git fetch:*), Bash(git remote:*), Bash(git rev-parse:*), Bash(git log:*), Bash(git tag:*), Bash(git describe:*), Bash(git show:*), Bash(git stash list:*), Bash(git worktree:*), Bash(git merge-base:*), Bash(git diff:*), Bash(git grep:*), Bash(git for-each-ref:*), Bash(git config --get:*), Bash(git check-ignore:*), Bash(make:*), Bash(mkdir -p .bearing/state), Bash(bash *bin/brg-state-path*), Bash(python3 *skills/session-handoff/scripts/progress.py*)
+allowed-tools: Read, Write, Edit, Grep, Glob, AskUserQuestion, Bash(bash *bin/brg-tracker *), Bash(bash *bin/brg-config*), Bash(git status:*), Bash(git branch:*), Bash(git switch:*), Bash(git fetch:*), Bash(git remote:*), Bash(git rev-parse:*), Bash(git log:*), Bash(git tag:*), Bash(git describe:*), Bash(git show:*), Bash(git stash list:*), Bash(git worktree:*), Bash(git merge-base:*), Bash(git diff:*), Bash(git grep:*), Bash(git for-each-ref:*), Bash(git config --get:*), Bash(git check-ignore:*), Bash(make:*), Bash(mkdir -p .bearing/state), Bash(bash *bin/brg-state-path*), Bash(python3 *skills/session-handoff/scripts/progress.py*)
 ---
 
 # start-task
@@ -20,7 +20,10 @@ own uncommitted work safe.
 
 - repository: `git rev-parse --show-toplevel`; not a git repository stops
   with "run `git init` (or open the repository) and rerun".
-- task id: `$1`, or the id in the request; if absent, ask once.
+- task id: `$1`, or the id in the request; else the id in the current
+  branch name when it matches the prefix (then report existing work, do not
+  ask); else ask once with AskUserQuestion as
+  `${CLAUDE_PLUGIN_ROOT}/references/console.md` says.
 - tracker and prefix: `bash "${CLAUDE_PLUGIN_ROOT}/bin/brg-tracker" config`
   (`tracker:` and `id prefix:` lines; `BEARING_TASK_ID_PREFIX` wins); else
   the CLAUDE.md `Task tracker:` line; else any id matching

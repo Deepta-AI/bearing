@@ -47,8 +47,8 @@ lint-skills: ## Every skill in every plugin: hyphenated name (64 max) equal to i
 	  if grep -q '^disable-model-invocation: true' "$$f"; then grep -q '^argument-hint:' "$$f" || { echo "command skill without argument-hint: $$b"; bad=$$((bad+1)); }; fi; \
 	  if grep -q 'Decisions first' "$$f"; then grep -E '^allowed-tools:.*(^|[ ,])Skill([ ,]|$$)' "$$f" >/dev/null || { echo "'Decisions first' skill lacks Skill in allowed-tools: $$b"; bad=$$((bad+1)); }; fi; \
 	  grep -qE 'Bash\(bash:\*\)|Bash\(git -C' "$$f" && { echo "blanket Bash(bash:*) or Bash(git -C) in allowed-tools: $$b"; bad=$$((bad+1)); }; \
-	  for ref in $$(grep -oE '`(references|templates)/[A-Za-z0-9_./-]+`' "$$f" | tr -d '`' | sort -u); do \
-	    case "$$ref" in */) ;; *) [ -e "$$s/$$ref" ] || [ -e "$$pr/$$ref" ] || [ -e "$(KITP)/$$ref" ] || [ -e "$$ref" ] || { echo "missing reference in $$b: $$ref"; bad=$$((bad+1)); };; esac; \
+	  for ref in $$(grep -oE '`(\$$\{CLAUDE_PLUGIN_ROOT\}/)?(references|templates)/[A-Za-z0-9_./-]+`' "$$f" | tr -d '`' | sort -u); do \
+	    case "$$ref" in */) ;; '$${CLAUDE_PLUGIN_ROOT}'/*) [ -e "$$pr/$${ref#*/}" ] || { echo "missing reference in $$b: $$ref (not in $$pr)"; bad=$$((bad+1)); };; *) [ -e "$$s/$$ref" ] || [ -e "$$pr/$$ref" ] || [ -e "$(KITP)/$$ref" ] || [ -e "$$ref" ] || { echo "missing reference in $$b: $$ref"; bad=$$((bad+1)); };; esac; \
 	  done; \
 	  for tok in $$(grep -oE '\bbearing(-backend|-apps)?:[a-z0-9]+(-[a-z0-9]+)*' "$$f" | sort -u); do \
 	    tp="$${tok%%:*}"; tn="$${tok#*:}"; \
