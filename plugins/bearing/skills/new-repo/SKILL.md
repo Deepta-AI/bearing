@@ -36,9 +36,7 @@ match, and its output is always conformed before it is reported.
   stop: "install Bearing (`bash install.sh`) and rerun".
 - Target directory: beside the siblings (where the registry's clone step
   puts repositories), else `./<slug>`; empty or absent. If not, ask once with
-  AskUserQuestion (as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says) for another path, free text via Other,
-  or point at `onboard-repo` when the user means the
-  existing repository.
+  AskUserQuestion (as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says), options "enter another path" (the answer comes as free text via Other) and "it is an existing repository", which points at `onboard-repo`.
 - Decisions: accepted ADRs in the workspace settle their keys; a
   superseded ADR settles nothing.
 

@@ -17,7 +17,7 @@ only makes the inputs below quicker to find.
   out the branch to merge".
 - task id: looks in the branch name (`[A-Z][A-Z0-9]*(-[0-9]+)+`); if
   absent, the state file `.bearing/state/<branch with / as _>.md` (`bash "${CLAUDE_PLUGIN_ROOT}/bin/brg-state-path"` prints it); if absent, ask once with
-  AskUserQuestion (as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says), free text via Other; if
+  AskUserQuestion (as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says), options "enter the id" (the answer comes as free text via Other) and "proceed without an id"; if
   none, proceed with no id and say so in the description and the report.
 - target: looks in `$1`; if absent, `develop` when `origin/develop`
   exists; else `main`; else the HEAD branch from `git remote show origin`;
@@ -34,7 +34,7 @@ only makes the inputs below quicker to find.
   `.github/PULL_REQUEST_TEMPLATE.md` in the repository, by host; if
   absent, this skill's own `templates/mr.md`.
 - clean tree: `git status --porcelain`; if dirty, list the files and ask
-  once: the engineer commits first, or you continue describing only the
+  once with AskUserQuestion (as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says), two options: the engineer commits first, or you continue describing only the
   committed diff (the description then says the tree had uncommitted
   changes and that they are not in the MR). With no one to answer, take
   the second. Never commit, stash or discard the engineer's changes

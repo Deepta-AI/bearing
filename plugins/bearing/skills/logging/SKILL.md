@@ -2,7 +2,7 @@
 name: logging
 description: 'Adds structured logging: one logger, request id bound at the edge, shared field names, redaction, sampling, HTTP request logs. Use when asked to "add logging", "improve the logs", "log the requests" or "fix the logs".'
 argument-hint: "[path or package] [--http]"
-allowed-tools: Read, Write, Edit, Grep, Glob, Bash(ls:*), Bash(make:*), Bash(go test:*), Bash(pnpm test:*), Bash(uv run pytest:*), Bash(./gradlew test:*), Bash(swift test:*), AskUserQuestion
+allowed-tools: Read, Write, Edit, Grep, Glob, Bash(ls:*), Bash(make:*), Bash(go test:*), Bash(pnpm test:*), Bash(uv run pytest:*), Bash(./gradlew test:*), Bash(swift test:*), AskUserQuestion, Bash(bash *bin/brg-config*)
 ---
 
 # logging
@@ -27,8 +27,7 @@ conventions.md.
 - stack: detected from `go.mod` (go-api), `pyproject.toml` (python-api),
   `package.json` with `react` (react-web) or `expo` (react-native),
   `build.gradle.kts` (android), `Package.swift` or `*.xcodeproj` (ios);
-  more than one match or none: ask with AskUserQuestion, one option per
-  matching stack, or free text via Other when none matched (as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says).
+  more than one match or none: `brg-config get stack`, else ask once with AskUserQuestion (as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says), one option per matching stack, or when none matched "enter the stack" (the answer comes as free text via Other) and "stop"; record it with `brg-config set stack <value>`.
 - path: `$1`; if absent, the repository root.
 - guide and templates: this skill's own `references/logging-guide.md`
   and `templates/http-logging/`; nothing is read from the repository.

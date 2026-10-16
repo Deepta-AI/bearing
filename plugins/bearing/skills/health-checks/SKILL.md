@@ -25,8 +25,8 @@ conventions.md.
 - the request, which sets the scope (Step 0).
 - services: `cmd/*`, `apps/*`, `services/*`, else the repository root when a stack
   file exists (`go.mod`, `pyproject.toml`, `package.json`, `build.gradle.kts`,
-  `Package.swift`); none: ask with AskUserQuestion for the entrypoint, free text via
-  Other (as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says), still none: stop,
+  `Package.swift`); none: ask one question with AskUserQuestion (as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says), options "enter the entrypoint" (the answer comes as free text via
+  Other) and "stop"; still none: stop,
   "no service entrypoint found".
 - dependencies: what the code really connects to (the wiring in `main`, the clients
   it constructs), cross-checked against ADRs, `docs/`, `.env.example` and the

@@ -59,7 +59,7 @@ shape from this skill's template).
    convention: <dir>, <pattern>, N existing (from <.adr-dir | CLAUDE.md
    | existing files | default>)". Two directories that both hold ADRs,
    or two numbering schemes in one directory, is a conflict: name both
-   and ask with AskUserQuestion, one option per scheme, which to follow
+   and ask one question with AskUserQuestion, one option per scheme, which to follow
    (as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says); never add a third scheme.
 2. Next number: the highest number in the ADR directory plus one, in
    its width and prefix (a template file does not count; no directory
@@ -103,7 +103,7 @@ Index: docs/architecture/decisions.md (row added | row updated | created)
 ## Gotchas
 
 - An ADR without a rejected option is a memo. Ask for the alternative
-  once; record "none considered" if that is the answer, so the reader
+  once with AskUserQuestion (as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says), options "name it" (the answer comes as free text via Other) and "none considered"; record "none considered" if that is the answer, so the reader
   knows the choice was not weighed.
 - A rejected option with an empty Would suit is padding: if no fact
   would ever make it right, nobody seriously weighed it.

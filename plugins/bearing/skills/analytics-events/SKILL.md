@@ -17,7 +17,7 @@ properties you typed.
 
 - scope: `$ARGUMENTS`; if absent, infer it from the request (a brief or
   feature named: `feature`; "check", "audit", "numbers look off":
-  `audit`), else ask with AskUserQuestion, options `feature` and `audit`
+  `audit`), else ask with AskUserQuestion, options `app`, `feature`, `event` and `audit`
   (as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says).
 - journeys and stories: the brief the request names, else
   `docs/product/**` (backlog, PRD, feature briefs), else derived from the

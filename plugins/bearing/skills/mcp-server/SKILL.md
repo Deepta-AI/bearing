@@ -45,8 +45,9 @@ the agent's registry with a tier before the model can see it.
    `references/mcp-design.md`). An unset hint makes the host assume
    the worst case. Resources for read-only data the
    model should browse (`resource://<context>/<id>`); prompts for
-   task recipes the client can offer. Zero tools: ask once with AskUserQuestion,
-   free text via Other (as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says), then stop naming what to provide.
+   task recipes the client can offer. Zero tools: ask once with AskUserQuestion
+   (as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says), options "name the tools now" (the answer comes as free
+   text via Other) and "stop", then stop naming what to provide.
 3. Write the server from `templates/server-python.md` or
    `templates/server-typescript.md`: both transports (stdio for local
    use, streamable HTTP for a service), bearer or OAuth on HTTP from
