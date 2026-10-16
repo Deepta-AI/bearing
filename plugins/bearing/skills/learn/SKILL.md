@@ -19,13 +19,16 @@ the way in and the way out. Questions follow
 ## Steps
 
 1. State: `bash "${CLAUDE_PLUGIN_ROOT}/bin/brg-learn" state`.
-   - `ask`: ask once with AskUserQuestion (Yes, learn locally / No;
-     nothing leaves this machine) and record the answer with
+   - `ask`: ask once with AskUserQuestion. Consent is the user's call,
+     so recommend no option and say so. Options: "Yes, learn locally"
+     (recurring gate blocks and notes are kept in a file on this machine
+     and shown in later steps) and "No" (nothing is kept; you can turn it
+     on later). Record the answer with
      `bash "${CLAUDE_PLUGIN_ROOT}/bin/brg-config" set learning on --user`
      (or `off`).
    - `off`: say so and stop, unless the user asked to turn it on.
 2. No argument: `bash "${CLAUDE_PLUGIN_ROOT}/bin/brg-learn" list`. Show it
-   newest and most frequent first, with the count of entries.
+   most frequent first, then newest, with the count of entries.
 3. `add <text>`: `bash "${CLAUDE_PLUGIN_ROOT}/bin/brg-learn" add "<text>" --skill <skill, if the user named one>`.
    The text goes in as the user wrote it, minus anything that names a
    file, host, person or ticket.

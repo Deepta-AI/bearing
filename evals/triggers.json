@@ -860,6 +860,14 @@
    {
     "prompt": "check whether my installed plugins and skill packs are healthy",
     "expect": "doctor"
+   },
+   {
+    "prompt": "learn how to use react hooks",
+    "expect": null
+   },
+   {
+    "prompt": "teach me kubernetes",
+    "expect": null
    }
   ]
  },

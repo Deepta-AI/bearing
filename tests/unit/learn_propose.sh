@@ -38,7 +38,7 @@ assert_contains "$(cat "$o")" "*.tsx and *.ts and *.css, also *.go"
 assert_not_contains "$(cat "$o")" "never shown"
 t_end
 for bad in "see src/app/main.go" "see C:\\\\Users\\\\x" "mail a@b.example" "host api.client.example.com" \
-  "token AbCdEfGhIjKlMnOpQrStUv" "ticket ABC-1234 broke" "server 10.0.12.7 down" "call https://x.example/y" "call ftp://host"; do
+  "token AbCdEfGhIjKlMnOpQrStUv" "ticket ABC-1234 broke" "server 10.0.12.7 down" "call https://x.example/y" "call ftp://host" "see /etc" "see ~/secret" "dir src/ broke" "see \\\\foo" "http:/x"; do
   t_begin "redaction: $bad"
   printf '{"ts":"t","kind":"manual","skill":"go","key":"k","insight":"%s","count":3}\n' "$bad" > "$f"
   rm -f "$o"
@@ -47,6 +47,11 @@ for bad in "see src/app/main.go" "see C:\\\\Users\\\\x" "mail a@b.example" "host
   e=0; [ -e "$o" ] && e=1; assert_eq 0 "$e" "no file written"
   t_end
 done
+t_begin "multi-dot extension tokens are not hostnames"
+printf '%s\n' '{"ts":"t","kind":"gate-block","skill":"react","key":"a","insight":"types fail in *.d.ts, archive *.tar.gz, also *.go","count":3}' > "$f"
+assert_exit 0 run propose --out "$o"
+assert_contains "$(cat "$o")" "*.d.ts, archive *.tar.gz"
+t_end
 t_begin "a suspect skill name fails too"
 printf '%s\n' '{"ts":"t","kind":"manual","skill":"acme/portal","key":"k","insight":"fine","count":3}' > "$f"
 assert_exit 1 run propose --out "$o"

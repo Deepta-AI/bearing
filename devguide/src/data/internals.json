@@ -5,7 +5,7 @@
   "commandSkills": 0,
   "stackSkills": 12,
   "scripts": 94,
-  "scriptLines": 29214,
+  "scriptLines": 29218,
   "hooks": 8,
   "agents": 8,
   "makeTargets": 30,
@@ -6651,7 +6651,7 @@
     },
     {
      "title": "Steps",
-     "lines": 17
+     "lines": 20
     },
     {
      "title": "Output contract",
@@ -6667,8 +6667,8 @@
     "The consent state from `brg-learn state`; nothing else is read."
    ],
    "steps": [
-    "State: `bash \"${CLAUDE_PLUGIN_ROOT}/bin/brg-learn\" state`. - `ask`: ask once with AskUserQuestion (Yes, learn locally / No; nothing leaves this machine) and record the answer with `bash \"${CLAUDE_PLUGIN_ROOT}/bin/brg-config\" set learning on --user` (or `off`). - `off`: say so and stop, unless the user asked to turn it on.",
-    "No argument: `bash \"${CLAUDE_PLUGIN_ROOT}/bin/brg-learn\" list`. Show it newest and most frequent first, with the count of entries.",
+    "State: `bash \"${CLAUDE_PLUGIN_ROOT}/bin/brg-learn\" state`. - `ask`: ask once with AskUserQuestion. Consent is the user's call, so recommend no option and say so. Options: \"Yes, learn locally\" (recurring gate blocks and notes are kept in a file on this machine and shown in later steps) and \"No\" (nothing is kept; you can turn it on later). Record the answer with `bash \"${CLAUDE_PLUGIN_ROOT}/bin/brg-config\" set learnin…",
+    "No argument: `bash \"${CLAUDE_PLUGIN_ROOT}/bin/brg-learn\" list`. Show it most frequent first, then newest, with the count of entries.",
     "`add <text>`: `bash \"${CLAUDE_PLUGIN_ROOT}/bin/brg-learn\" add \"<text>\" --skill <skill, if the user named one>`. The text goes in as the user wrote it, minus anything that names a file, host, person or ticket.",
     "`propose`: `bash \"${CLAUDE_PLUGIN_ROOT}/bin/brg-learn\" propose`. - Redaction failure: show the suspect tokens and stop. Never edit the proposal file to make it pass. - Success: Read the file and show it, then print the `gh issue create` line the script gave, for the engineer to run. Never run it yourself. - Nothing seen 3 or more times: say so; there is nothing to send."
    ],
@@ -6680,11 +6680,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 53,
+   "lines": 56,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 53
+     "lines": 56
     }
    ],
    "groups": {
@@ -15351,7 +15351,7 @@
    "name": "brg-learn",
    "lang": "bash",
    "group": "quality",
-   "lines": 103,
+   "lines": 107,
    "header": "brg-learn: opt-in, local learnings. Nothing leaves this machine; entries\ncarry no repository field and paths are reduced to their extension.\n  state                                   on, off or ask (BEARING_LEARNING, via brg-config)\n  log --kind K --skill S --key K --insight T\n                                          K is gate-block|rerun|override|manual; only when on\n  add \"<text>\" [--skill S]                a manual entry\n  top --skills \"a b\" [--n N]              \"- <insight> (<count>x)\", count then recency\n  list                                    every entry, \"<count>x  <skill>  <insight>\"\n  propose [--out FILE]                    a redacted issue body of entries seen 3+ times, and the\n                                          gh command for the engineer to run (never run here);\n                                          exit 1 if nothing qualifies or a suspect token survives\nThe log sits beside bearing.env (BEARING_ENV, else\n${XDG_CONFIG_HOME:-$HOME/.config}/bearing). log, add and top need jq and do\nnothing without it. Exit 0 always, except propose (exit 1 on failure).",
    "functions": [
     "state",
@@ -18045,9 +18045,9 @@
   {
    "path": "tests/unit/learn_propose.sh",
    "kind": "unit",
-   "lines": 62,
+   "lines": 67,
    "header": "tests/unit/learn_propose.sh: propose writes a body, prints the gh command, fails on zero entries, a missing jq and anything that looks identifying.",
-   "asserts": 22
+   "asserts": 24
   },
   {
    "path": "tests/unit/lint_evals.sh",
