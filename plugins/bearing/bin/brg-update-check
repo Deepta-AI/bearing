@@ -7,7 +7,11 @@
 # Settings: BEARING_UPDATE_CHECK=off, BEARING_UPDATE_SKIP=<ver>,
 # BEARING_UPDATE_SNOOZE_UNTIL=<epoch>, from the environment, then bearing.env
 # through the brg-config beside this script (absent: no check, not nagging).
-# Only release tags (vN.N.N) count; pre-releases such as v0.8.0-rc1 do not.
+# Only release tags (vN.N.N) count; pre-releases such as v0.8.0-rc1 do not. An
+# installed pre-release compares by its numeric prefix (0.8.0-rc1 counts as 0.8.0).
+# A failed or timed-out check is cached as `<epoch>\t-\t<reason>` and not retried
+# for 6 hours, so an offline machine does not pay the budget at every startup.
+# A remote starting with "-" is refused (it would be read as a git option).
 set -u
 remote=""; installed=""; budget=3
 while [ $# -gt 0 ]; do
@@ -31,8 +35,12 @@ setting() { # setting <ENV_NAME> <brg-config key>: environment first, then beari
 [ "$(setting BEARING_UPDATE_CHECK update-check)" = off ] && exit 0
 [ -f "$envf" ] && [ ! -f "$here/brg-config" ] && exit 0   # cannot read skip or snooze, so do not nag
 
+write_cache() { # write_cache <newest-or-dash> [reason]: atomic, by this process only
+  mkdir -p "$dir" 2>/dev/null && printf '%s\t%s\t%s\n' "$now" "$1" "${2:-}" > "$cache.tmp.$$" && mv "$cache.tmp.$$" "$cache" || rm -f "$cache.tmp.$$"
+}
 log_fail() { # log_fail <reason>: one gates.log line when this is a Bearing repo; always exit 0
   local r
+  [ "$1" = bad-remote ] || write_cache - "$1"
   if [ -z "${BEARING_NO_GATE_LOG:-}" ] && r="$(git rev-parse --show-toplevel 2>/dev/null)" && [ -d "$r/.bearing" ]; then
     mkdir -p "$r/.bearing/state" 2>/dev/null &&
       printf '%s\tupdate-check\tnot-run\t0\t%s\n' "$(date +%Y-%m-%dT%H:%M:%S 2>/dev/null)" "$1" >> "$r/.bearing/state/gates.log" 2>/dev/null
@@ -45,29 +53,40 @@ if [ -z "$remote" ] && command -v jq >/dev/null 2>&1; then
   remote="$(jq -r '.bearing.source | (.url // (if .repo then "https://github.com/" + .repo + ".git" else empty end)) // empty' "$HOME/.claude/plugins/known_marketplaces.json" 2>/dev/null)"
 fi
 [ -n "$installed" ] && [ -n "$remote" ] || exit 0
+now="$(date +%s)"
+case "$remote" in -*) log_fail bad-remote;; esac
 
 vnum() { printf '%s' "$1" | sed 's/^v//' | awk -F. '{printf "%06d%06d%06d", $1, $2, $3}'; }
-now="$(date +%s)"; newest=""
+newest=""
 if [ -f "$cache" ]; then
-  ts="$(cut -f1 "$cache" 2>/dev/null)"
+  ts="$(cut -f1 "$cache" 2>/dev/null)"; cv="$(cut -f2 "$cache" 2>/dev/null)"
   case "$ts" in ''|*[!0-9]*) ts=0;; esac
-  [ $(( now - ts )) -ge 0 ] && [ $(( now - ts )) -lt 86400 ] && newest="$(cut -f2 "$cache" 2>/dev/null)"
+  age=$(( now - ts ))
+  if [ "$cv" = "-" ]; then [ "$age" -ge 0 ] && [ "$age" -lt 21600 ] && exit 0   # a recent failure: stay quiet
+  else [ "$age" -ge 0 ] && [ "$age" -lt 86400 ] && newest="$cv"; fi
 fi
 if [ -z "$newest" ]; then
   out="$(mktemp "${TMPDIR:-/tmp}/brg-update.XXXXXX")" || exit 0
   # exec: the pid is git's own, so the kill below stops it. The child writes only
   # to $out; the cache is written by this process alone, after a clean finish.
-  ( exec env GIT_TERMINAL_PROMPT=0 git ls-remote --tags --refs "$remote" 'v*' > "$out" 2>/dev/null < /dev/null ) & pid=$!
+  # "--" and a protocol allow-list (no ext::): the remote is data, never an option or a command.
+  ( exec env GIT_TERMINAL_PROMPT=0 GIT_ALLOW_PROTOCOL=https:ssh:git:file git ls-remote --tags --refs -- "$remote" 'v*' > "$out" 2>/dev/null < /dev/null ) & pid=$!
+  trap 'kill -9 "$pid" 2>/dev/null; rm -f "$out" "$cache.tmp.$$"; exit 0' TERM INT HUP
   i=0
   while kill -0 "$pid" 2>/dev/null; do
-    if [ "$i" -ge $(( budget * 10 )) ]; then kill "$pid" 2>/dev/null; wait "$pid" 2>/dev/null; rm -f "$out"; log_fail timeout; fi
+    if [ "$i" -ge $(( budget * 10 )) ]; then
+      kill "$pid" 2>/dev/null; j=0
+      while kill -0 "$pid" 2>/dev/null && [ "$j" -lt 10 ]; do sleep 0.1; j=$((j+1)); done
+      kill -9 "$pid" 2>/dev/null; wait "$pid" 2>/dev/null; rm -f "$out"; log_fail timeout
+    fi
     sleep 0.1; i=$((i+1))
   done
   wait "$pid" || { rm -f "$out"; log_fail ls-remote-failed; }
   newest="$(sed -n 's|.*refs/tags/\(v[0-9][0-9]*\(\.[0-9][0-9]*\)*\)$|\1|p' "$out" | while read -r t; do echo "$(vnum "$t") $t"; done | sort | tail -1 | awk '{print $2}')"
   rm -f "$out"
   [ -n "$newest" ] || log_fail no-tags
-  mkdir -p "$dir" 2>/dev/null && printf '%s\t%s\n' "$now" "$newest" > "$cache.tmp.$$" && mv "$cache.tmp.$$" "$cache" || rm -f "$cache.tmp.$$"
+  trap - TERM INT HUP
+  write_cache "$newest"
 fi
 new="${newest#v}"
 [ "$(vnum "$new")" \> "$(vnum "$installed")" ] || exit 0

@@ -51,7 +51,7 @@ fresh; s=$(date +%s)
 assert_exit 0 run 0.7.0 --remote "/nonexistent/x.git" --budget 3
 assert_eq "" "$T_OUT"
 assert_eq 1 "$([ $(( $(date +%s) - s )) -le 4 ] && echo 1 || echo 0)" "within budget"
-assert_eq 0 "$([ -f "$cfg/bearing/update-check" ] && echo 1 || echo 0)" "no cache written on failure"
+assert_contains "$(cat "$cfg/bearing/update-check")" "	-	ls-remote-failed" "only a negative entry on failure"
 t_end
 
 t_begin "a remote that hangs: killed inside the budget, cache untouched, logged"
@@ -65,7 +65,7 @@ el=$(( $(date +%s) - s ))
 assert_eq 0 "$T_RC" "exit 0"
 assert_eq "" "$T_OUT"
 assert_eq 1 "$([ "$el" -le 4 ] && echo 1 || echo 0)" "returned in ${el}s"
-assert_eq 0 "$([ -e "$cfg/bearing/update-check" ] && echo 1 || echo 0)" "cache not written"
+assert_contains "$(cat "$cfg/bearing/update-check")" "	-	timeout" "only a negative entry, no tag"
 assert_eq 0 "$(ls "$cfg/bearing" 2>/dev/null | grep -c 'update-check\.')" "no cache temp file left"
 assert_contains "$(cat "$repo/.bearing/state/gates.log")" "update-check	not-run	0	timeout" "logged"
 t_end
@@ -76,6 +76,33 @@ assert_exit 0 run 0.6.0
 assert_contains "$T_OUT" "BEARING_UPDATE: 0.6.0 -> 0.7.0"
 assert_contains "$T_OUT" "First public release" "section from CHANGELOG.md"
 assert_eq 1 "$([ "$(printf '%s\n' "$T_OUT" | wc -l)" -le 9 ] && echo 1 || echo 0)" "header plus 8 lines"
+t_end
+
+t_begin "a failed check is remembered: no second ls-remote for 6 hours"
+fresh
+calls="$(tmpdir)/calls"; : > "$calls"
+printf '#!/bin/sh\n[ "$1" = ls-remote ] && { echo x >> %s; exec sleep 10; }\nexec %s "$@"\n' "$calls" "$realgit" > "$fakebin/git"
+PATH="$fakebin:$PATH" XDG_CONFIG_HOME="$cfg" bash "$U" --remote "$remote" --installed 0.7.0 --budget 1 >/dev/null 2>&1
+assert_contains "$(cat "$cfg/bearing/update-check")" "	-	timeout" "negative entry"
+s=$(date +%s%N 2>/dev/null || echo 0)
+T_OUT="$(PATH="$fakebin:$PATH" XDG_CONFIG_HOME="$cfg" bash "$U" --remote "$remote" --installed 0.7.0 --budget 3 2>&1)"
+e=$(date +%s%N 2>/dev/null || echo 0)
+assert_eq "" "$T_OUT"
+assert_eq 1 "$(wc -l < "$calls" | tr -d ' ')" "ls-remote called once only"
+case "$s" in *N|0) ;; *) assert_eq 1 "$([ $(( (e - s) / 1000000 )) -lt 500 ] && echo 1 || echo 0)" "second run under 0.5 s";; esac
+printf '%s\t-\ttimeout\n' "$(( $(date +%s) - 22000 ))" > "$cfg/bearing/update-check"
+assert_exit 0 run 0.7.0
+assert_contains "$T_OUT" "-> 0.10.0" "after 6 hours it tries again"
+t_end
+
+t_begin "a hostile remote is never run as a command or option"
+fresh; pwn="$(tmpdir)/pwned"
+assert_exit 0 run 0.7.0 --remote "--upload-pack=touch $pwn"
+assert_eq "" "$T_OUT"
+assert_eq 0 "$([ -e "$pwn" ] && echo 1 || echo 0)" "--upload-pack not run"
+assert_eq 0 "$([ -e "$cfg/bearing/update-check" ] && echo 1 || echo 0)" "refused before any lookup"
+assert_exit 0 run 0.7.0 --remote "ext::sh -c touch $pwn"
+assert_eq 0 "$([ -e "$pwn" ] && echo 1 || echo 0)" "ext:: not run"
 t_end
 
 t_begin "skipped version"

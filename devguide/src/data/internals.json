@@ -5,7 +5,7 @@
   "commandSkills": 0,
   "stackSkills": 12,
   "scripts": 93,
-  "scriptLines": 29067,
+  "scriptLines": 29086,
   "hooks": 8,
   "agents": 8,
   "makeTargets": 30,
@@ -15444,10 +15444,11 @@
    "name": "brg-update-check",
    "lang": "bash",
    "group": "quality",
-   "lines": 84,
-   "header": "brg-update-check [--remote <url>] [--installed <ver>] [--budget <s>]\nIs a newer Bearing release tag published? At most one git ls-remote a day,\ninside a time budget; prints \"BEARING_UPDATE: <old> -> <new>\" and a few\nchangelog lines, or nothing. Reads only (no fetch, no push, no telemetry);\nnever blocks a session and never prints on failure. Exit 0 always.\nSettings: BEARING_UPDATE_CHECK=off, BEARING_UPDATE_SKIP=<ver>,\nBEARING_UPDATE_SNOOZE_UNTIL=<epoch>, from the environment, then bearing.env\nthrough the brg-config beside this script (absent: no check, not nagging).\nOnly release tags (vN.N.N) count; pre-releases such as v0.8.0-rc1 do not.",
+   "lines": 103,
+   "header": "brg-update-check [--remote <url>] [--installed <ver>] [--budget <s>]\nIs a newer Bearing release tag published? At most one git ls-remote a day,\ninside a time budget; prints \"BEARING_UPDATE: <old> -> <new>\" and a few\nchangelog lines, or nothing. Reads only (no fetch, no push, no telemetry);\nnever blocks a session and never prints on failure. Exit 0 always.\nSettings: BEARING_UPDATE_CHECK=off, BEARING_UPDATE_SKIP=<ver>,\nBEARING_UPDATE_SNOOZE_UNTIL=<epoch>, from the environment, then bearing.env\nthrough the brg-config beside this script (absent: no check, not nagging).\nOnly release tags (vN.N.N) count; pre-releases such as v0.8.0-rc1 do not. An\ninstalled pre-release compares by its numeric prefix (0.8.0-rc1 counts as 0.8.0).\nA failed or timed-out check is cached as `<epoch>\\t-\\t<reason>` and not retried\nfor 6 hours, so an offline machine does not pay the budget at every startup.\nA remote starting with \"-\" is refused (it would be read as a git option).",
    "functions": [
     "setting",
+    "write_cache",
     "log_fail",
     "vnum"
    ],
@@ -18184,9 +18185,9 @@
   {
    "path": "tests/unit/update_check.sh",
    "kind": "unit",
-   "lines": 139,
+   "lines": 166,
    "header": "tests/unit/update_check.sh: brg-update-check and its place in brg-guard session. A local bare repo is the remote; HOME and XDG_CONFIG_HOME are temp dirs, so the network and the real ~/.claude are never touched.",
-   "asserts": 55
+   "asserts": 68
   },
   {
    "path": "tests/unit/ux_flows_check.sh",
