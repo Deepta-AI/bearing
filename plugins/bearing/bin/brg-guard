@@ -1627,25 +1627,26 @@ esac
     # the last passing check. Without a start mark, or in a repository whose
     # Makefile never writes the marker, there is nothing fair to hold it to.
     [ -n "$sid" ] && [ -f "$start" ] && grep -qs 'check-passed' "$root/Makefile" || { gate_log stop-gate reminder-only "no session mark or marker"; exec bash "$0" stop; }
+    cc="$state/.check-changed-passed"
+    newest="$marker"; [ -f "$cc" ] && { [ ! -f "$marker" ] || [ "$cc" -nt "$marker" ]; } && newest="$cc"
     fresh=0
     while IFS= read -r f; do
       [ -n "$f" ] || continue
-      p="$root/$f"; [ -e "$p" ] || continue
-      [ "$p" -nt "$start" ] || continue
-      [ -f "$marker" ] && ! [ "$p" -nt "$marker" ] && continue
+      [ "$root/$f" -nt "$start" ] || continue
       fresh=$((fresh+1))
     done <<EOF
-$(git -C "$root" status --porcelain 2>/dev/null | sed 's/^...//; s/.* -> //; s/^"//; s/"$//')
+$(bash "$(dirname "$0")/brg-changed" --root "$root" --since "$newest")
 EOF
     [ "$fresh" -gt 0 ] || { gate_log stop-gate passed; exit 0; }
-    msg="bearing: ${fresh} file(s) changed in this session since make check last passed."
+    target="make check"; grep -qs '^check-changed:' "$root/Makefile" && target="make check-changed"
+    msg="bearing: ${fresh} file(s) changed in this session since the last check."
     if [ "$active" -eq 1 ]; then
       echo "$msg Not checked; say so under Not done in the report."
       gate_log stop-gate reminded "$fresh file(s), second stop"
       exit 0
     fi
-    echo "$msg Run make check and fix what fails before finishing. If it cannot run here, say why under Not done in the report and stop." >&2
-    gate_log stop-gate blocked "$fresh file(s)"
+    echo "$msg Run ${target} and fix what fails before finishing. If it cannot run here, say why under Not done in the report and stop." >&2
+    gate_log stop-gate blocked "$fresh file(s), ${target}"
     exit 2;;
   check-file)
     file="${1:-}"

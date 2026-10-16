@@ -102,7 +102,7 @@ t_end
 t_begin "stop-gate holds a session to its unchecked changes, once"
 printf 'a\n' > "$repo/work.txt"
 assert_exit 2 in_repo stop-gate --id S1
-assert_contains "$T_OUT" "1 file(s) changed in this session since make check last passed"
+assert_contains "$T_OUT" "1 file(s) changed in this session since the last check"
 assert_contains "$T_OUT" "Run make check"
 assert_exit 0 in_repo stop-gate --id S1 --active
 assert_contains "$T_OUT" "Not checked; say so under Not done"
@@ -210,7 +210,7 @@ t_begin "Claude adapters: a gate's exit 2 becomes decision block"
 T_IN='{"session_id":"S1","stop_hook_active":false}'
 assert_exit 0 bash -c "cd '$repo' && bash '$HS/stop-summary.sh'"
 assert_eq "block" "$(printf '%s' "$T_OUT" | jq -r .decision)" "stop blocks once"
-assert_contains "$(printf '%s' "$T_OUT" | jq -r .reason)" "since make check last passed"
+assert_contains "$(printf '%s' "$T_OUT" | jq -r .reason)" "since the last check"
 T_IN='{"session_id":"S1","stop_hook_active":true}'
 assert_exit 0 bash -c "cd '$repo' && bash '$HS/stop-summary.sh'"
 assert_contains "$T_OUT" "Not checked"

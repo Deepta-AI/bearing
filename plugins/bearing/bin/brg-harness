@@ -156,6 +156,7 @@ NPREFIX="$(printf '%s\n' "$PREFIXES" | grep -c . || true)"
 vendor_guard() {
   sed "s/^BEARING_GUARD_VERSION=\"__VERSION__\"/BEARING_GUARD_VERSION=\"$VERSION\"/" "$KIT/bin/brg-guard" > "$TMPD/guard"
   putx ".bearing/bin/brg-guard" < "$TMPD/guard"
+  putx ".bearing/bin/brg-changed" < "$KIT/bin/brg-changed"   # the Stop gate calls it beside the guard
   putx ".bearing/hooks/read-json.sh" <<'EOF'
 #!/usr/bin/env bash
 # read-json.sh <dot.path> [<dot.path> ...]: print the first non-empty field of

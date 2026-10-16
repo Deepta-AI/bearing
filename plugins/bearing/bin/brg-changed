@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+# brg-changed: files changed in the working tree (modified, staged, untracked,
+# the new name of a rename), repository-relative, one per line. With --since
+# <marker>, only files newer than the marker; a missing marker lists all.
+# Uses -z so names with spaces, quotes or arrows survive. Exit 0 always.
+set -u
+root=""; since=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --root) root="${2:-}"; shift 2 || shift;;
+    --since) since="${2:-}"; shift 2 || shift;;
+    *) shift;;
+  esac
+done
+[ -n "$root" ] || root="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 0
+git -C "$root" status --porcelain -z --untracked-files=all 2>/dev/null |
+  tr '\0' '\n' | awk '
+    skip { skip=0; next }
+    { code=substr($0,1,2); path=substr($0,4) }
+    code ~ /^R/ || code ~ /^.R/ || code ~ /^C/ { print path; skip=1; next }
+    { print path }' | sort -u | while IFS= read -r f; do
+    [ -n "$f" ] && [ -e "$root/$f" ] || continue
+    if [ -n "$since" ] && [ -f "$since" ] && ! [ "$root/$f" -nt "$since" ]; then continue; fi
+    printf '%s\n' "$f"
+  done
+exit 0

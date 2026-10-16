@@ -157,7 +157,7 @@ const FILM: { frame: Omit<Frame, "visual">; rows: Row[] }[] = [
     },
     rows: [
       { who: "model", text: "The encoder is written and tested." },
-      { who: "hook", tag: "Stop", text: "bearing: 2 file(s) changed in this session since make check last passed. Run make check and fix what fails before finishing.", tone: "bad" },
+      { who: "hook", tag: "Stop", text: "bearing: 2 file(s) changed in this session since the last check. Run make check and fix what fails before finishing.", tone: "bad" },
     ],
   },
   {
