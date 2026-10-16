@@ -5,7 +5,7 @@
   "commandSkills": 0,
   "stackSkills": 12,
   "scripts": 91,
-  "scriptLines": 28874,
+  "scriptLines": 28887,
   "hooks": 8,
   "agents": 8,
   "makeTargets": 30,
@@ -15869,7 +15869,7 @@
    "name": "session-end.sh",
    "lang": "bash",
    "group": "hooks",
-   "lines": 27,
+   "lines": 40,
    "header": "SessionEnd: refresh docs/progress/<ID>.md from the checkpoint so a teammate\nsees where this task stands after the engineer commits and pushes. Never\ncommits. Branches without a task id are left alone. Always exits 0; a skip\nor failure is logged as `session-end not-run <reason>` when a state dir exists.",
    "functions": [
     "skip"
@@ -16977,7 +16977,7 @@
    "script": "session-end.sh",
    "timeout": 5,
    "guard": [],
-   "body": "#!/usr/bin/env bash\n# SessionEnd: refresh docs/progress/<ID>.md from the checkpoint so a teammate\n# sees where this task stands after the engineer commits and pushes. Never\n# commits. Branches without a task id are left alone. Always exits 0; a skip\n# or failure is logged as `session-end not-run <reason>` when a state dir exists.\nset -u\n# shellcheck source=lib.sh\n. \"$(dirname \"$0\")/lib.sh\"\nroot=\"$(repo_root)\" || exit 0\n[ -n \"$root\" ] || exit 0\nskip() { # skip <reason>\n  [ -d \"$root/.bearing/state\" ] || exit 0\n  printf '%s\\tsession-end\\tnot-run\\t0\\t%s\\n' \"$(date +%Y-%m-%dT%H:%M:%S)\" \\\n    \"$(printf '%s' \"$1\" | tr '\\t\\n' '  ' | cut -c1-120)\" >> \"$root/.bearing/state/gates.log\"\n  exit 0\n}\nbranch=\"$(current_branch)\"\ntask=\"$(task_id_from_branch)\"; [ -n \"$task\" ] || skip \"no task id on branch\"\nkit=\"$(dirname \"$0\")/../..\"\nbash \"$kit/bin/brg-session\" checkpoint >/dev/null 2>&1\ncpf=\"$root/.bearing/state/$(printf '%s' \"$branch\" | tr '/' '_').checkpoint.md\"\nnxt=\"$(sed -n 's/^Next (from state file): //p' \"$cpf\" 2>/dev/null)\"\nif [ -z \"$nxt\" ] || [ \"$nxt\" = none ]; then nxt=\"$(sed -n 's/^Next flow step: //p' \"$cpf\" 2>/dev/null)\"; fi\ncd \"$root\" || skip \"cannot enter repo root\"\npython3 \"$kit/skills/session-handoff/scripts/progress.py\" write --task \"$task\" --branch \"$branch\" --next \"${nxt:-unknown}\" >/dev/null 2>&1 \\\n  || skip \"progress.py write failed\"\nexit 0"
+   "body": "#!/usr/bin/env bash\n# SessionEnd: refresh docs/progress/<ID>.md from the checkpoint so a teammate\n# sees where this task stands after the engineer commits and pushes. Never\n# commits. Branches without a task id are left alone. Always exits 0; a skip\n# or failure is logged as `session-end not-run <reason>` when a state dir exists.\nset -u\n# shellcheck source=lib.sh\n. \"$(dirname \"$0\")/lib.sh\"\nroot=\"$(repo_root)\" || exit 0\n[ -n \"$root\" ] || exit 0\n[ -d \"$root/.bearing\" ] || exit 0\nskip() { # skip <reason>\n  [ -d \"$root/.bearing/state\" ] || exit 0\n  printf '%s\\tsession-end\\tnot-run\\t0\\t%s\\n' \"$(date +%Y-%m-%dT%H:%M:%S)\" \\\n    \"$(printf '%s' \"$1\" | tr '\\t\\n' '  ' | cut -c1-120)\" >> \"$root/.bearing/state/gates.log\"\n  exit 0\n}\nbranch=\"$(current_branch)\"\ntask=\"$(task_id_from_branch)\"; [ -n \"$task\" ] || skip \"no task id on branch\"\nkit=\"$(dirname \"$0\")/../..\"\nbash \"$kit/bin/brg-session\" checkpoint >/dev/null 2>&1\ncpf=\"$root/.bearing/state/$(printf '%s' \"$branch\" | tr '/' '_').checkpoint.md\"\nnxt=\"$(sed -n 's/^Next (from state file): //p' \"$cpf\" 2>/dev/null)\"\nif [ -z \"$nxt\" ] || [ \"$nxt\" = none ]; then nxt=\"$(sed -n 's/^Next flow step: //p' \"$cpf\" 2>/dev/null)\"; fi\nif [ -z \"$nxt\" ] || [ \"$nxt\" = none ] || [ \"$nxt\" = unknown ]; then skip \"no next step\"; fi\ncd \"$root\" || skip \"cannot enter repo root\"\npf=\"docs/progress/$task.md\"\nmark=\"$root/.bearing/state/$(printf '%s' \"$branch\" | tr '/' '_').progress-next\"\nif [ -f \"$pf\" ]; then\n  status=\"$(sed -n 's/^- Status: *//p' \"$pf\" | head -1)\"\n  case \"$status\" in merged|abandoned) skip \"closed task\";; esac\n  cur=\"$(awk '/^## Next/{f=1;next} /^## /{f=0} f && !/^<!--/ && NF {sub(/^- /,\"\"); print; exit}' \"$pf\")\"\n  last=\"$(cat \"$mark\" 2>/dev/null)\"\n  # keep a person-written Next: overwrite only a placeholder or our own last value\n  case \"$cur\" in ''|none|unknown) ;; *) [ \"$cur\" = \"$last\" ] || exit 0;; esac\nfi\npython3 \"$kit/skills/session-handoff/scripts/progress.py\" write --task \"$task\" --branch \"$branch\" --next \"$nxt\" >/dev/null 2>&1 \\\n  || skip \"progress.py write failed\"\nprintf '%s\\n' \"$nxt\" > \"$mark.tmp\" && mv \"$mark.tmp\" \"$mark\"\nexit 0"
   },
   {
    "event": "Stop",
@@ -18031,9 +18031,9 @@
   {
    "path": "tests/unit/session_end.sh",
    "kind": "unit",
-   "lines": 28,
-   "header": "tests/unit/session_end.sh: SessionEnd writes docs/progress/<ID>.md on a task branch and nothing on a branch without an id.",
-   "asserts": 9
+   "lines": 84,
+   "header": "tests/unit/session_end.sh: SessionEnd refreshes docs/progress/<ID>.md on a task branch, keeps person-written content, and does nothing elsewhere.",
+   "asserts": 26
   },
   {
    "path": "tests/unit/session_resume.sh",
