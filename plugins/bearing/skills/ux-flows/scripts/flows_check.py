@@ -362,9 +362,16 @@ def check_tasks(path, text, screens, limits):
         t = f'task "{r["task"]}"'
         named.update(r["story"])
         sc, it, ids = count_path(r["path"])
-        for seg in re.split(r"\s+>\s+", r["path"].strip()):
-            if not SEGMENT.match(seg.strip()):
+        segs = re.split(r"\s+>\s+", r["path"].strip())
+        for n, seg in enumerate(segs):
+            m = SEGMENT.match(seg.strip())
+            if not m:
                 problems.append(f'{path}: {t} path segment "{seg.strip()}" does not start with a screen id (S-nn)')
+            elif n < len(segs) - 1 and not [i for i in (m.group(2) or "").split(",") if i.strip()]:
+                problems.append(
+                    f'{path}: {t} path segment "{seg.strip()}" has no interaction; '
+                    "every screen but the last needs the interaction that leaves it (S-nn: tap X)"
+                )
         for s in dict.fromkeys(ids):
             if s not in screens:
                 problems.append(f"{path}: {t} path names {s}, not in the inventory")
@@ -383,12 +390,14 @@ def check_tasks(path, text, screens, limits):
         ms, mi = limits[r["kind"]]
         if r["over_raw"] and not re.match(r"^over:", r["over_raw"], re.I):
             problems.append(f"{path}: {t} Over cell must be blank or read over: <reason>")
-        if sc <= ms and it <= mi:
-            continue
-        over_n += 1
         o = r["over"]
         if o is None:
             problems.append(f"{path}: {t} over: needs a reason")
+        if sc <= ms and it <= mi:
+            continue
+        over_n += 1
+        if o is None:
+            pass
         elif o == "":
             problems.append(
                 f"{path}: {t} is over budget: {sc} screens, {it} interactions "
@@ -490,6 +499,8 @@ def main():
     limits, problems = budget(a.config)
     files = [f for f in (a.file or pick_files(a.root)) if os.path.isfile(f)]
     if not files:
+        for p_ in problems:
+            print(f"problem: {p_}")
         print(
             f"ux-flows: 0 flow files read ({a.file or a.root}), nothing checked",
             file=sys.stderr,
@@ -509,6 +520,8 @@ def main():
         for k, v in r.items():
             tot[k] = tot.get(k, 0) + v
     if tot["screens"] == 0:
+        for p_ in problems:
+            print(f"problem: {p_}")
         print(
             f"ux-flows: {len(files)} files, 0 screens in the inventory, nothing checked",
             file=sys.stderr,

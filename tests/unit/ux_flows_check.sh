@@ -237,4 +237,28 @@ assert_exit 1 run "$d"
 assert_contains "$T_OUT" '.bearing/config.json: ux.budget.primary.screens is "four", not a whole number above 0'
 t_end
 
+t_begin "a segment before the last with no interaction fails; an empty over: fails on a row within budget"
+d="$(tmpdir)/tp-zero"; fixture "$d/docs/design/flows/orders/flows.md"
+row "$d" "S-01 > S-02 (modal) > S-03" 3 0
+assert_exit 1 run "$d"
+assert_contains "$T_OUT" 'task "Confirm an order" path segment "S-01" has no interaction'
+assert_contains "$T_OUT" 'path segment "S-02 (modal)" has no interaction'
+row "$d" "S-01: tap Confirm > S-02 (modal): tap Confirm > S-03" 3 2 primary "over:"
+assert_exit 1 run "$d"
+assert_contains "$T_OUT" 'task "Confirm an order" over: needs a reason'
+assert_contains "$T_OUT" "0 over budget"
+t_end
+
+t_begin "config problems print on the 0-files and 0-screens exits"
+d="$(tmpdir)/tp-early"; mkdir -p "$d/.bearing"
+printf '{"ux.budget.primary.screens": "four"}\n' > "$d/.bearing/config.json"
+assert_exit 1 run "$d"
+assert_contains "$T_OUT" "0 flow files read"
+assert_contains "$T_OUT" 'ux.budget.primary.screens is "four"'
+mkdir -p "$d/docs/design/flows/x"; printf '# UX flows\n\n## 1. Screen inventory\n\n' > "$d/docs/design/flows/x/flows.md"
+assert_exit 1 run "$d"
+assert_contains "$T_OUT" "0 screens in the inventory"
+assert_contains "$T_OUT" 'ux.budget.primary.screens is "four"'
+t_end
+
 t_summary
