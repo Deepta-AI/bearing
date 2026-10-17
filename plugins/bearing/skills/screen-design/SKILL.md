@@ -2,7 +2,7 @@
 name: screen-design
 description: 'Designs every screen in every state (empty, error, loading), desktop and phone, as clickable React or HTML mockups before code. Use when asked to "design the screens", "hi-fi mockups" or "show every state".'
 argument-hint: "<feature> [--screens S-01,S-03] [--framework react-shadcn|react-native|flutter|compose|swiftui|web] [--round N] [--standalone]"
-allowed-tools: Read, Write, Edit, Grep, Glob, Skill, Bash(ls:*), Bash(mkdir:*), Bash(test:*), Bash(make:*), Bash(git log:*), Bash(git diff:*), Bash(git show:*), Bash(git status:*), Bash(printenv BEARING_AUTOPILOT BEARING_NONINTERACTIVE), Bash(bash *bin/brg-config get noninteractive --user), Bash(sh scripts/design-lint.sh:*), Bash(mkdir -p .scratch/impeccable-pass/*), Bash(cp -p * .scratch/impeccable-pass/*), Bash(cp -p .scratch/impeccable-pass/* *), Bash(~/.claude/skills/gstack/browse/dist/browse:*), Bash(python3 *skills/screen-design/scripts/states_check.py*), Bash(python3 *skills/screen-design/scripts/gallery_check.py*), Bash(python3 *skills/screen-design/scripts/bundle.py*), Bash(python3 *skills/design-system/scripts/system_page.py*), Bash(python3 *skills/design-critique/scripts/evidence.py*), Bash(python3 *skills/accessibility/scripts/contrast.py*), Bash(bash *bin/brg-kit-paths*)
+allowed-tools: Read, Write, Edit, Grep, Glob, Skill, Bash(ls:*), Bash(mkdir:*), Bash(test:*), Bash(make:*), Bash(git log:*), Bash(git diff:*), Bash(git show:*), Bash(git status:*), Bash(printenv BEARING_AUTOPILOT BEARING_NONINTERACTIVE), Bash(bash *bin/brg-config get noninteractive --user), Bash(sh scripts/design-lint.sh:*), Bash(mkdir -p .scratch/impeccable-pass/*), Bash(~/.claude/skills/gstack/browse/dist/browse:*), Bash(python3 *skills/screen-design/scripts/states_check.py*), Bash(python3 *skills/screen-design/scripts/gallery_check.py*), Bash(python3 *skills/screen-design/scripts/bundle.py*), Bash(python3 *skills/design-system/scripts/system_page.py*), Bash(python3 *skills/design-critique/scripts/evidence.py*), Bash(python3 *skills/accessibility/scripts/contrast.py*), Bash(bash *bin/brg-kit-paths*)
 ---
 
 # screen-design
@@ -112,8 +112,9 @@ concern (`ambiguity`, `missing-screen`, `undefined-state`, `dead-end`,
    unattended rule, brief and snapshot detail:
    `${CLAUDE_PLUGIN_ROOT}/references/impeccable.md`, section screen-design.
 2. A failing gate gets one fix in the screen, never by weakening it; still
-   failing, that file is copied back from the snapshot (`cp -p`, target
-   files only; never git checkout, restore or stash) and listed. A
+   failing, that file is copied back from the snapshot
+   (`cp -p .scratch/impeccable-pass/<file> <file>`, target files
+   only; never git checkout, restore or stash) and listed. A
    token-level change impeccable wants goes back to design-system
    (`tokens.json` is not edited by hand).
 3. Unattended, polish runs only when the binding system and the flows are on

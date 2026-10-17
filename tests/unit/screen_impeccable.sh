@@ -25,9 +25,11 @@ for g in " Skill," "Bash(test:*)" "Bash(printenv BEARING_AUTOPILOT BEARING_NONIN
          "Bash(bash *bin/brg-config get noninteractive --user)" "Bash(sh scripts/design-lint.sh:*)"; do
   assert_contains "$fm" "$g" "allowed-tools"
 done
-for g in "Bash(mkdir -p .scratch/impeccable-pass/*)" "Bash(cp -p * .scratch/impeccable-pass/*)" "Bash(cp -p .scratch/impeccable-pass/* *)"; do
-  assert_contains "$fm" "$g" "snapshot grant"
-done
+assert_contains "$fm" "Bash(mkdir -p .scratch/impeccable-pass/*)" "snapshot grant"
+assert_not_contains "$fm" "Bash(cp" "no cp grant (too wide)"
+allow="$(cat "$KIT/bin/lint-skill-tools.allow")"
+assert_contains "$allow" "screen-design|cp -p|prompts:" "snapshot copy row"
+assert_contains "$allow" "screen-design|cp -p .scratch/impeccable-pass/|prompts:" "revert copy row"
 assert_not_contains "$fm" "skills/impeccable/scripts" "unused grant"
 t_end
 
