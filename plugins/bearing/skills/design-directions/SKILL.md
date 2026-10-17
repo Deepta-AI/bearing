@@ -2,7 +2,7 @@
 name: design-directions
 description: 'Produces the visual direction over the real screens (one impeccable pick, else three variants) and records the choice. Use when asked for "design directions", "three design options" or "which look should we go with".'
 argument-hint: "<feature> [--screens S-01,S-03] [--round 2] [--unattended]"
-allowed-tools: Read, Write, Edit, Grep, Glob, Skill, Bash(printenv BEARING_AUTOPILOT BEARING_NONINTERACTIVE), Bash(rm DESIGN.md), Bash(ls:*), Bash(mkdir:*), Bash(test:*), Bash(make:*), Bash(~/.claude/skills/gstack/browse/dist/browse:*), Bash(python3 -m http.server:*), Bash(python3 *skills/design-critique/scripts/evidence.py*), Bash(python3 *skills/design-critique/scripts/pairs.py*)
+allowed-tools: Read, Write, Edit, Grep, Glob, Skill, Bash(printenv BEARING_AUTOPILOT BEARING_NONINTERACTIVE), Bash(bash *bin/brg-config*), Bash(readlink DESIGN.md), Bash(rm DESIGN.md), Bash(ln -s docs/design/DESIGN.md DESIGN.md), Bash(ls:*), Bash(mkdir:*), Bash(test:*), Bash(make:*), Bash(~/.claude/skills/gstack/browse/dist/browse:*), Bash(python3 -m http.server:*), Bash(python3 *skills/design-critique/scripts/evidence.py*), Bash(python3 *skills/design-critique/scripts/pairs.py*)
 ---
 
 # design-directions
@@ -68,11 +68,7 @@ weakest for the others. Detail: references/constraints-and-checks.md
    project numbers for 44 px, 4.5:1 and 200 to 700 ms motion. Zero screens and
    no brief: stop with "provide flows, stories, code with screens, or a brief".
    Detail: references/constraints-and-checks.md
-   Then the path (Detect, Unattended in the impeccable reference): installed
-   and attended runs its design-directions round, skipping steps 3 to 5, one
-   `1-<name>` direction through steps 6 to 10. Unattended prints
-   `impeccable direction round skipped: unattended (it needs an answer)`;
-   absent prints `impeccable not installed`; both run steps 3 to 10 as below.
+   Then the path, as the impeccable reference's design-directions section says.
 2. Audit what the directions will sit on, before designing; each finding goes
    in the output, even when it is outside the feature: colours outside the
    tokens (Grep the screens and components for fixed palette classes, hex,
@@ -97,17 +93,24 @@ weakest for the others. Detail: references/constraints-and-checks.md
    line that matches it (the three AI looks, a stat-and-gradient hero, Inter or
    Space Grotesk as display) is revised; the count goes in the output.
 6. react-shadcn build (instead of step 7): a direction is a theme the real
-   screens render with, never a page; one `src/design/variants/<n>-<name>.css`
-   per direction, scoped to `:root[data-variant="<n>-<name>"]` on the element
-   that carries the app's dark class, dark on that same element; `:root`,
-   `.dark` and the default look untouched; the switch is the design gallery,
-   else a dev-only `?variant=`; print how to view each. Step 2's colours move
-   onto variables with the old values as defaults, or are listed. Density and
-   shape through variables or `data-slot`/`data-part`, never per-direction
-   classes; a direction restyles only (no content, fields or controls); 44 px
-   (or the project's floor) with phone users; fonts self-hosted, the CSP never
-   loosened, packages not installed said so. Then step 8, and continue at
-   step 9. Detail: references/react-shadcn-build.md
+   screens render with; one the component set cannot render is not a
+   direction. One `src/design/variants/<n>-<name>.css` per direction,
+   overriding the fonts, type scale and colour roles shadcn reads, scoped to
+   `:root[data-variant="<n>-<name>"]` on the element that carries the app's
+   dark class, dark on that same element (dark under
+   `@media (prefers-color-scheme)` alone is wrong when the app stores the
+   user's choice). `:root`, `.dark` and the default look untouched; nothing
+   applies without the switch: the design gallery, else a dev-only
+   `?variant=` behind `import.meta.env.DEV`; print how to view each. Step 2's
+   colours move onto variables with the old values as defaults, or are
+   listed. Density and shape through variables or `data-slot`/`data-part`,
+   never per-direction classes or conditionals in components; a direction
+   adds no content, fields, computed values or controls; 44 px (or the
+   project's floor) with phone users. Fonts: bundled faces, Fontsource
+   packages or self-hosted files, never a third-party host when the CSP or
+   an ADR forbids it; the CSP never loosened; packages not installed said
+   so; a face with no self-hostable source dropped with the reason. Then
+   step 8, and continue at step 9. Detail: references/react-shadcn-build.md
 7. HTML targets. Build `<n>-<name>.html` per variant from
    `templates/variant.html`: tokens on `:root`, the screens as sections with
    the flows' copy word for word including the state screen, at the project's
@@ -147,9 +150,8 @@ weakest for the others. Detail: references/constraints-and-checks.md
     someone will open it now; else say to open the file. Record `approved.json`
     (`round`, `date`, `source`: `bearing`, `recommended`, `chosen`, `ratings`,
     `comments`, `remix`, `notes`). Impeccable round: one column, no chosen
-    radio; `source`: `impeccable`, `chosen` (picked on impeccable's page),
-    `challengers` (every one it beat), `inferred`, `evidence`, as the
-    reference gives. `chosen` stays null until the user picks: a
+    radio; `source`, `chosen`, `challengers`, `direction` are already written,
+    this step fills `evidence`. `chosen` stays null until the user picks: a
     recommendation goes in `recommended`, never in `chosen`, and no direction
     becomes the default.
     When feedback arrives, repeat it back in one paragraph before writing it.
@@ -157,9 +159,10 @@ weakest for the others. Detail: references/constraints-and-checks.md
     `../design-critique/references/review-checklist.md`, write `scores`,
     `chosen` (the highest), `chosen_by: "score"` and one line per direction on
     why it won or lost; the user can overrule it at the merge request.
-11. Round two on request: variants 4 to 6 keep the chosen traits (the remix
-    spec, or the chosen variant's axes) and vary the rest; steps 4 to 10 again;
-    the board keeps round one below.
+11. Round two on request (the impeccable round: as its reference says):
+    variants 4 to 6 keep the chosen traits (the remix spec, or the chosen
+    variant's axes) and vary the rest; steps 4 to 10 again; the board keeps
+    round one below.
 12. Print the output contract; name `design-critique` as next.
 
 ## Output contract
@@ -188,9 +191,6 @@ Next: design-critique docs/design/variants/<feature>
 
 - Three variants of one idea is one variant. Two palettes sharing a
   temperature, or two faces differing only in weight, go back to step 3.
-- The project's rules beat this skill's defaults: a kiosk has one size,
-  a light-only product has no dark variant, a firewalled customer gets
-  no CDN font.
 - A frozen token is not a checked token. Freezing says which colours
   exist, not that each passes where the screens use it.
 - Real content from the flows or the product, word for word. Never lorem

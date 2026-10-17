@@ -43,6 +43,25 @@ assert_contains "$body" "--unattended" "unattended rule"
 assert_contains "$body" "impeccable not installed" "detect fallback line"
 t_end
 
+t_begin "the approved.json example parses with the fields the autopilot gate reads"
+ex="$(grep -o '`{"round".*}`' "$REF" 2>/dev/null | head -1 | tr -d '`')"
+assert_contains "$ex" '"source"' "approved.json example"
+T_IN="$ex"
+assert_exit 0 python3 -c 'import json,sys
+d=json.load(sys.stdin)
+assert d["source"]=="impeccable", "source"
+assert isinstance(d["chosen"],str) and d["chosen"], "chosen"
+assert isinstance(d["challengers"],list) and d["challengers"] and all(isinstance(c,str) for c in d["challengers"]), "challengers"
+assert isinstance(d["direction"],dict) and d["direction"], "direction"
+assert isinstance(d["evidence"],dict), "evidence"
+print("ok")'
+T_IN=''
+assert_contains "$body" "readlink DESIGN.md" "symlink guard"
+assert_contains "$body" "ln -s docs/design/DESIGN.md DESIGN.md" "link restored on no pick"
+assert_contains "$body" "brg-config\" get noninteractive --user" "unattended rule"
+assert_contains "$body" ".agents/skills/impeccable/SKILL.md" "project-scope detect"
+t_end
+
 t_begin "design-directions follows the reference"
 sk="$(cat "$SK")"
 assert_contains "$sk" '${CLAUDE_PLUGIN_ROOT}/references/impeccable.md' "SKILL.md"
@@ -55,6 +74,9 @@ fm="$(sed -n '/^---$/,/^---$/p' "$SK")"
 assert_contains "$fm" " Skill," "allowed-tools"
 assert_contains "$fm" "Bash(printenv BEARING_AUTOPILOT BEARING_NONINTERACTIVE)" "allowed-tools"
 assert_contains "$fm" "Bash(rm DESIGN.md)" "allowed-tools"
+assert_contains "$fm" "Bash(readlink DESIGN.md)" "allowed-tools"
+assert_contains "$fm" "Bash(ln -s docs/design/DESIGN.md DESIGN.md)" "allowed-tools"
+assert_contains "$fm" "Bash(bash *bin/brg-config*)" "allowed-tools"
 lines="$(wc -l < "$SK" | tr -d ' ')"
 ok=no; [ "$lines" -le 200 ] && ok=yes; assert_eq yes "$ok" "SKILL.md at or under 200 lines (got $lines)"
 t_end

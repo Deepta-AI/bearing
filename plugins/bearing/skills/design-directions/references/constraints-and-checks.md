@@ -16,6 +16,9 @@ component set cannot render is not a direction.
   size or orientation, light only, a contrast ratio above WCAG AA, a
   touch-target floor, a motion limit, privacy rules on what a screen may
   show. A brand note never outranks an Accepted ADR.
+  The project's rules beat this skill's defaults: a kiosk has one size, a
+  light-only product has no dark variant, a firewalled customer gets no
+  CDN font.
 
 1. Read the inputs; print each as read or absent, then list the
    constraints found with their source (for example "fonts: self-hosted

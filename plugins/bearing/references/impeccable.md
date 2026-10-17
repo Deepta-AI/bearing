@@ -9,8 +9,9 @@ are shared; each calling skill then reads its own section at the end.
 ## Detect
 
 1. The `impeccable` skill is listed in this session: installed.
-2. Else `test -f ~/.claude/skills/impeccable/SKILL.md` or
-   `test -f ~/.agents/skills/impeccable/SKILL.md` exits 0: installed (the
+2. Else `test -f ~/.claude/skills/impeccable/SKILL.md`,
+   `test -f ~/.agents/skills/impeccable/SKILL.md` or (project scope)
+   `test -f .agents/skills/impeccable/SKILL.md` exits 0: installed (the
    session started before the install; say so once).
 3. Else: print `impeccable not installed` once, take the skill's fallback,
    and never ask whether to install it (`brg-install-packs` does that).
@@ -37,14 +38,16 @@ A run is unattended when any of these holds:
   than `0` (it prints the value of each one that is set, one per line, with
   no name; `BEARING_AUTOPILOT` set and not `0`, or
   `BEARING_NONINTERACTIVE=1`, is unattended, and an unclear value errs
-  toward unattended).
+  toward unattended);
+- `bash "${CLAUDE_PLUGIN_ROOT}/bin/brg-config" get noninteractive --user`
+  prints `1` (the `BEARING_NONINTERACTIVE=1` line in `bearing.env`).
 
 Unattended, no impeccable command that asks the user runs. Only `audit`,
 `polish` and `harden` run, each with the full brief so impeccable infers
 instead of asking. `critique` asks at its close whenever it lists 3 or more
 priority issues, so it does not run unattended; `audit` covers that review.
-`init` and `document --seed` always ask, so the direction round falls back to
-Bearing's doctrine.
+`init` and `document` (seed or scan) always ask, so the direction round falls
+back to Bearing's doctrine.
 
 ## Commands
 
@@ -55,6 +58,7 @@ commit carries 4.6.0, so recheck these six rows whenever the pin moves).
 |---|---|---|---|
 | `init` | design-directions | yes, one answer round before a new PRODUCT.md (init.md step 3) | not run |
 | `document --seed` | design-directions | yes, the world workshop's decision page (document.md seed mode, new-work.md section 2), and before overwriting an existing DESIGN.md; no second ask when new-work already ran this session | not run |
+| `document` (scan) | design-directions, on an app with an incumbent system | yes, two rounds on the qualitative language (document.md scan step 3), and before overwriting an existing DESIGN.md | not run |
 | `polish` | screen-design | only when a binding principle cannot be inferred or a claim would change (polish.md section 1, copy rule) | run, naming `DESIGN.md` and `docs/design/tokens.json` as the binding system and the flows' copy as fixed |
 | `harden` | screen-design | no | run, with the flows' copy as the only copy |
 | `audit` | design-critique | no | run |
@@ -67,8 +71,8 @@ it, and the next Bearing gate judges the result.
 
 Every fact impeccable labels inferred (a user, a tone, a constraint it did not
 find written down) goes in the calling skill's report as `inferred: <fact>`,
-and in `approved.json` `inferred` on the direction round. None: `inferred:
-none`. An inferred fact never overrides a written constraint; when the two
+and in `approved.json` `inferred` on the direction round. None:
+`inferred: none`. An inferred fact never overrides a written constraint; when the two
 disagree, the written one wins and the pair is listed.
 
 ## Copy and gates
@@ -88,43 +92,63 @@ disagree, the written one wins and the pair is listed.
 Which path (step 1, after the inputs): Detect, then Unattended.
 
 - Installed and attended: the impeccable round below.
-- Installed and unattended: print `impeccable direction round skipped:
-  unattended (it needs an answer)` and run the fallback.
+- Installed and unattended: print
+  `impeccable direction round skipped: unattended (it needs an answer)`
+  and run the fallback.
 - Not installed: `impeccable not installed`, the fallback.
 
 The impeccable round, in order:
 
-1. Root `DESIGN.md` a symlink (`test -L DESIGN.md`, the link design-system
-   adds to `docs/design/DESIGN.md` for gstack): `rm DESIGN.md` removes the link
-   only, the guide it pointed at stays; say so. Impeccable then writes the
-   root file.
+1. Root `DESIGN.md` is the link design-system adds for gstack
+   (`readlink DESIGN.md` prints `docs/design/DESIGN.md`): `rm DESIGN.md` removes the
+   link only, the guide it pointed at stays; say so. Any other link or file
+   is left alone, and impeccable's own overwrite question decides it.
 2. `PRODUCT.md` absent: `init` (its one answer round writes it).
-3. `document --seed <first screen of the happy path>` with the brief: the
-   flows path, the PRD, the constraints and audit findings from steps 1 and
-   2. Impeccable runs its direction work once: one assigned direction plus
-   challengers on its own decision page, where the user picks. Bearing asks
-   nothing about the direction itself; the pick there is the choice.
-4. After the pick, impeccable writes root `DESIGN.md` (YAML frontmatter
-   tokens plus prose) and `.impeccable/design.json`. design-system derives
-   `docs/design/tokens.json` from that file next.
-5. Record `docs/design/variants/<feature>/approved.json`:
-   `{"round": 1, "date": "<iso>", "source": "impeccable", "chosen": "<direction name>", "challengers": ["<name>", ...], "recommended": null, "inferred": ["<fact>", ...], "evidence": {"contrast": "<pairs.py counts line>", "screenshots": "<evidence.py check line>"}, "notes": ""}`.
-   `challengers` names every challenger the pick was chosen over, demoted
-   ones included. No pick (the user stopped, or impeccable failed): write
-   nothing as chosen, say why, and offer the fallback; no direction becomes
-   the default.
-6. Bearing renders the picked direction over the real screens: one
-   `1-<name>` page (step 7) or one theme (step 6) from `DESIGN.md`'s tokens,
-   the flows' copy word for word, then steps 8 and 9 (pairs.py, evidence.py)
-   and their fixes. Steps 3 to 5 (plan, distinctness, generic default) do
-   not run: impeccable's roll and its challengers did that work.
-7. The board (step 10) has one column: the direction, the user it serves,
+3. Which mode. An app with an incumbent system (`docs/design/tokens.json`,
+   a token CSS file or themed components found in skill step 2):
+   `document <first screen of the happy path>` in scan mode, which writes root `DESIGN.md`
+   with frontmatter tokens and `.impeccable/design.json` from the code
+   (impeccable offers scan, not seed, when a system exists). The direction
+   is then the fallback's three variants with colour and faces frozen by
+   that system, `approved.json` with `"source": "bearing"`, and the report
+   says `Impeccable: document (scan)`. Steps 4 to 9 below do not apply.
+4. No incumbent system: `document --seed <first screen of the happy path>`
+   with the brief: the flows path, the PRD, the constraints and audit
+   findings from skill steps 1 and 2. Impeccable runs its direction work once: one
+   assigned direction plus challengers on its own decision page, where the
+   user picks. Bearing asks nothing about the direction itself; the pick
+   there is the choice.
+5. The seed `DESIGN.md` carries only `name` and `description` in its
+   frontmatter and no `.impeccable/design.json` (document.md seed mode), so
+   the locked card's payload is the token source until code exists. Write
+   `docs/design/variants/<feature>/approved.json` now:
+   `{"round": 1, "date": "2026-10-18", "source": "impeccable", "chosen": "harbour", "challengers": ["ledger", "atlas"], "recommended": null, "direction": {"palette": {"background": "#f4f1ea", "accent": "#1f4e79"}, "faces": {"display": "Literata", "text": "system-ui"}, "radius": "6px", "spacing": "4px base", "motion": null}, "inferred": ["phone users on site"], "evidence": {"contrast": null, "screenshots": null}, "notes": ""}`
+   (example values). `chosen` is the picked direction's name; `challengers`
+   names every challenger it was chosen over, demoted ones included;
+   `direction` holds whatever the card carries (palette roles and values,
+   faces, radius, spacing, motion), a value the card leaves open is `null`
+   and named in the report.
+6. No pick: the user stopped, impeccable failed, or impeccable went on with
+   its assigned direction without an answer (its no-answer continuation).
+   Write nothing as chosen, restore the link removed in step 1
+   (`ln -s docs/design/DESIGN.md DESIGN.md`), say why, and offer the fallback; no
+   direction becomes the default.
+7. Bearing renders the picked direction over the real screens: one
+   `1-<name>` page (skill step 7) or one theme (skill step 6), from `DESIGN.md`'s
+   frontmatter tokens when present, else from `approved.json` `direction`,
+   with the flows' copy word for word; then skill steps 8 and 9 (pairs.py,
+   evidence.py) and their fixes. Steps 3 to 5 of the skill (plan,
+   distinctness, generic default) do not run: impeccable's roll and its
+   challengers did that work.
+8. The board (skill step 10) has one column: the direction, the user it serves,
    the shots and the evidence lines. It keeps rating and comment for
    feedback and drops the chosen radio: the choice was made on impeccable's
-   page, and the board never offers a second one.
-8. `--round 2` on this path reruns step 3 with the chosen direction's traits
+   page, and the board never offers a second one. Skill step 10 fills `evidence`
+   with the pairs.py counts line and the evidence.py check line.
+9. `--round 2` on this path reruns step 4 with the chosen direction's traits
    in the brief; impeccable asks before replacing `DESIGN.md`; `round`
-   becomes 2 and round one stays in the file's history.
+   becomes 2, `chosen`, `challengers` and `direction` are rewritten, and
+   round one's values move under `previous`.
 
 The fallback is today's three Bearing variants under
 `references/design-doctrine.md`, unchanged, and `approved.json` in today's
@@ -132,31 +156,36 @@ shape plus `"source": "bearing"`.
 
 ## design-system
 
-With impeccable's root `DESIGN.md` present (YAML frontmatter), that file is
-the visual source: design-system derives `docs/design/tokens.json` from its
-frontmatter colours, typography, radius and spacing (and the
+Token source, first that exists: the frontmatter tokens of root `DESIGN.md`
+(scan mode on an app with an incumbent system, or impeccable's finish step
+after screens), else `direction` in the newest
+`docs/design/variants/*/approved.json` (a seed `DESIGN.md` holds no tokens),
+else today's inputs. design-system derives `docs/design/tokens.json` from
+it (frontmatter colours, typography, radius and spacing, plus the
 `.impeccable/design.json` sidecar's ramps, motion and breakpoints where
-present), designs the dark roles as today, and records `meta.source`,
-`meta.sourcePath` and `meta.sourceHash` (the file's sha256) so a later
-change to `DESIGN.md` fails the hash check until the tokens are re-derived.
-It never writes the root `DESIGN.md`; `docs/design/DESIGN.md` becomes a
-relative link to it when absent or still Bearing's guide. Bindings, contrast
-and design-lint are unchanged. No impeccable command runs here, so the
-unattended rule changes nothing; without the file, the skill writes
-`DESIGN.md` from its own template as before.
+present; or the direction's palette, faces, radius and spacing), designs
+the dark roles as today, and records which source it used (`meta.source`:
+`design-md` or `approved-direction`), its path and its sha256. The hash
+check compares against that same source, so a later change to it fails
+until the tokens are re-derived. It never writes the root `DESIGN.md`;
+`docs/design/DESIGN.md` becomes a relative link to it when absent or still
+Bearing's guide. Bindings, contrast and design-lint are unchanged. No
+impeccable command runs here, so the unattended rule changes nothing;
+without either source, the skill writes `DESIGN.md` from its own template
+as before.
 
 ## screen-design
 
-After every screen and every flow state exists, per feature: `harden
-<screen set>` on the loading, empty and error panels, then `polish <screen
-set>`, with the flows file (copy fixed), `DESIGN.md` and
+After every screen and every flow state exists, per feature:
+`harden <screen set>` on the loading, empty and error panels, then
+`polish <screen set>`, with the flows file (copy fixed), `DESIGN.md` and
 `docs/design/tokens.json` as the binding system. Both run unattended, since
 neither asks under that brief. A state the flows lack is raised as a gap,
 never written. After the pass the skill reruns its state or gallery check,
 the bundle check, contrast, design-lint and the hash check when installed;
-an edit that breaks one is reverted and listed. The report says `Impeccable:
-harden <n> and polish <n> screen sets | not installed; inferred: <facts> |
-none`. Absent, the screens follow `design-doctrine.md` and no pass runs.
+an edit that breaks one is reverted and listed. The report says
+`Impeccable: harden <n> and polish <n> screen sets | not installed; inferred: <facts> | none`.
+Absent, the screens follow `design-doctrine.md` and no pass runs.
 
 ## design-critique
 
@@ -166,5 +195,4 @@ runs attended only. Each finding joins the review with its source kept
 measured checks stay Bearing's: contrast pairs, widths, themes and copy
 against the flows. An impeccable finding that contradicts a measurement is
 listed with both, and the measurement decides the score. The report says
-`Impeccable: audit N findings, critique N | critique not run (unattended) |
-not installed`.
+`Impeccable: audit N findings, critique N | critique not run (unattended) | not installed`.
