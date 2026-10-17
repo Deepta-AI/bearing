@@ -25,6 +25,9 @@ for g in " Skill," "Bash(test:*)" "Bash(printenv BEARING_AUTOPILOT BEARING_NONIN
          "Bash(bash *bin/brg-config get noninteractive --user)" "Bash(sh scripts/design-lint.sh:*)"; do
   assert_contains "$fm" "$g" "allowed-tools"
 done
+for g in "Bash(mkdir -p .scratch/impeccable-pass/*)" "Bash(cp -p * .scratch/impeccable-pass/*)" "Bash(cp -p .scratch/impeccable-pass/* *)"; do
+  assert_contains "$fm" "$g" "snapshot grant"
+done
 assert_not_contains "$fm" "skills/impeccable/scripts" "unused grant"
 t_end
 
@@ -32,6 +35,14 @@ t_begin "the reference section states the unattended polish rule"
 sec="$(awk '$0=="## screen-design"{on=1;next} /^## /{on=0} on' "$REF")"
 assert_contains "$sec" "harden only" "unattended rule"
 assert_contains "$sec" "polish skipped: unattended" "skip line"
+assert_contains "$sec" "cp -p .scratch/impeccable-pass/<file> <file>" "revert command"
+assert_contains "$sec" "Never \`git checkout\`" "no git revert"
+assert_contains "$sec" "polish skipped: unattended (asked)" "asked line"
+assert_contains "$sec" "meta.sourceHash" "sync detection"
+assert_contains "$sec" "one fix in the" "one fix then revert"
+assert_not_contains "$sec" "is reverted and listed; the gate" "old wording"
+assert_contains "$sk" "design-lint.sh --sync" "SKILL.md gate list"
+assert_contains "$sk" "never git checkout, restore or stash" "SKILL.md revert rule"
 assert_not_contains "$sec" "Both run unattended" "old claim"
 t_end
 

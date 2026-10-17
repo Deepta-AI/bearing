@@ -82,8 +82,9 @@ disagree, the written one wins and the pair is listed.
   words.
 - Bearing's gates run after every impeccable edit (pairs.py or contrast.py,
   the state and gallery checks, design-lint, the DESIGN.md hash check when
-  installed). An edit that breaks one is reverted and listed with the gate
-  line it broke.
+  installed). A gate that fails gets one fix in the screen; if it still
+  fails, the file is reverted and listed with the gate line it broke (the
+  snapshot rule in the screen-design section).
 - Impeccable output is never described as seen on screen unless Bearing's
   own screenshots were taken.
 
@@ -221,14 +222,24 @@ on the loading, empty and error panels, then `polish <screen set>`. The target
 is the views under `src/features/<feature>/components/` (react-shadcn) or the
 pages under `docs/design/screens/<feature>/`. Brief: the flows file (its copy
 fixed), `DESIGN.md` and `docs/design/tokens.json` as the binding system.
-A state the flows lack is raised as a gap, never written. Then the skill
-reruns its gates, so impeccable's edits must still pass them: `gallery_check.py`
+A state the flows lack is raised as a gap, never written.
+
+Snapshot, before `harden`: list the target files, then for each one
+`mkdir -p .scratch/impeccable-pass/<its directory>` and
+`cp -p <file> .scratch/impeccable-pass/<file>` (same relative path). A revert
+is `cp -p .scratch/impeccable-pass/<file> <file>` for the files of the target
+set only. Never `git checkout`, `git restore` or `git stash`, never a file
+outside the target set, never a person's uncommitted work elsewhere.
+
+Gates, after polish (or after harden when polish is skipped): `gallery_check.py`
 or `states_check.py`, `bundle.py check`, `contrast.py`, `sh scripts/design-lint.sh`
-and, when installed, `sh scripts/design-lint.sh --sync`. An edit that breaks one
-is reverted and listed with the gate line it broke; the gate is never weakened.
-A change impeccable wants at token level (a colour, a face, a radius, a scale
-step) is listed and routed back to design-system; `tokens.json` is not edited
-by hand.
+and `sh scripts/design-lint.sh --sync`. The sync check runs only when
+`docs/design/tokens.json` has `meta.sourceHash` (design-system's rule); else it
+is skipped and the report says so. A gate that fails gets one fix in the
+screen, never by weakening the gate; if it still fails, that file is reverted
+from the snapshot and listed with the gate line it broke (terminal). A change
+impeccable wants at token level (a colour, a face, a radius, a scale step) is
+listed and routed back to design-system; `tokens.json` is not edited by hand.
 
 Unattended (see Unattended above): `harden` never asks, so it runs. `polish`
 asks only when a binding principle cannot be inferred or a claim would change,
@@ -238,8 +249,9 @@ under `docs/design/`) and the brief fixes the copy (the flows file exists, and
 a copy change is listed as proposed, never applied). Otherwise unattended runs
 harden only and the report says
 `polish skipped: unattended (<the missing binding system or flows file>)`.
-A polish that reaches a question anyway is stopped, its edits are reverted
-and the same line is printed; nothing is answered on the user's behalf.
+A polish that reaches a question anyway is stopped, its target files are
+reverted from the snapshot and `polish skipped: unattended (asked)` is printed;
+nothing is answered on the user's behalf.
 
 The report says
 `Impeccable: harden <n> and polish <n> screen sets | not installed; inferred: <facts> | none`

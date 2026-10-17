@@ -11994,6 +11994,9 @@
     "Bash(printenv BEARING_AUTOPILOT BEARING_NONINTERACTIVE)",
     "Bash(bash *bin/brg-config get noninteractive --user)",
     "Bash(sh scripts/design-lint.sh:*)",
+    "Bash(mkdir -p .scratch/impeccable-pass/*)",
+    "Bash(cp -p * .scratch/impeccable-pass/*)",
+    "Bash(cp -p .scratch/impeccable-pass/* *)",
     "Bash(~/.claude/skills/gstack/browse/dist/browse:*)",
     "Bash(python3 *skills/screen-design/scripts/states_check.py*)",
     "Bash(python3 *skills/screen-design/scripts/gallery_check.py*)",
@@ -12012,7 +12015,7 @@
     },
     {
      "title": "Steps",
-     "lines": 62
+     "lines": 70
     },
     {
      "title": "Output contract",
@@ -12043,7 +12046,10 @@
     "No dependency is added; compose the existing components.",
     "Per screen a presentational view in `src/features/<feature>/components/<Name>View.tsx`: props in, markup out, built only from `src/components/ui`. Then the shell, a `*.screen.tsx` per screen, responsive layouts, the gates and screenshots. Detail: references/react-shadcn.md",
     "When the repository already has mockups for the feature, extend them in their own format. Otherwise create or update `docs/design/design.json`. Then screen plan, tokens, one page per screen, self-review, the states gate, screenshots, the feature index and the manifest. Never edit the `audit` block by hand; never run `/design-sync` (the push to a shared design system is the person's). Detail: references/html-bundle.md",
-    "After every screen and state exists, with impeccable installed: `harden` then `polish` per feature, then rerun the gates (states or gallery, bundle, contrast, design-lint, tokens-sync when installed). Detect, unattended rule, brief and gate handling: `${CLAUDE_PLUGIN_ROOT}/references/impeccable.md`, section screen-design. A gate failure after polish is fixed in the screen, never by weakening a gate; a token-level ch…",
+    "After every screen and state exists, with impeccable installed: snapshot the target files (`mkdir -p .scratch/impeccable-pass/<dir>`, then `cp -p <file> .scratch/impeccable-pass/<file>`), run `harden` then `polish` per feature, then rerun the gates (states or gallery, bundle, contrast, design-lint, `sh scripts/design-lint.sh --sync` only when tokens.json has `meta.sourceHash`, else skipped and said). Detect, unatten…",
+    "A failing gate gets one fix in the screen, never by weakening it; still failing, that file is copied back from the snapshot (`cp -p`, target files only; never git checkout, restore or stash) and listed. A token-level change impeccable wants goes back to design-system (`tokens.json` is not edited by hand).",
+    "Unattended, polish runs only when the binding system and the flows are on disk; else harden only, with `polish skipped: unattended (<why>)`. A polish that asks is stopped, its targets restored from the snapshot, and `polish skipped: unattended (asked)` printed.",
+    "Not installed: print `impeccable not installed` once, no pass, the doctrine decides.",
     "Find where the pages really come from; triage every comment before editing anything; measure colour changes; change only what the comments need; append the round to `CHANGES.md`. Detail: references/review-round.md"
    ],
    "output": "",
@@ -12063,11 +12069,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 165,
+   "lines": 173,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 165
+     "lines": 173
     },
     {
      "path": "references/html-bundle.md",
@@ -18284,9 +18290,9 @@
   {
    "path": "tests/unit/screen_impeccable.sh",
    "kind": "unit",
-   "lines": 43,
+   "lines": 54,
    "header": "tests/unit/screen_impeccable.sh: screen-design runs impeccable harden then polish before its own gates, grants every command Detect and Unattended run, states the unattended polish rule, and stays at or under 200 lines.",
-   "asserts": 13
+   "asserts": 22
   },
   {
    "path": "tests/unit/screen_states.sh",
