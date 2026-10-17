@@ -4,7 +4,7 @@
 # docs/THIRD_PARTY.md with their own install commands and are not installed
 # here, so a session is not loaded with skills no step calls.
 #
-#   brg-install-packs [--skip-official] [--skip-skills-cli] [--skip-playwright] [--skip-pinned]
+#   brg-install-packs [--skip-official] [--skip-skills-cli] [--skip-playwright] [--skip-pinned] [--skip-impeccable]
 #   Skill names are the SKILL.md names in each repository (npx skills@<pin> add <repo> -l lists them).
 #
 # Sources, every one but the first pinned in bin/pinned-packs.txt: the
@@ -16,13 +16,14 @@
 # copied to ~/.claude/skills. Prints a count of installed, present and skipped
 # entries.
 set -uo pipefail
-skip_official=0; skip_cli=0; skip_pw=0; skip_pin=0
+skip_official=0; skip_cli=0; skip_pw=0; skip_pin=0; skip_imp=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --skip-official) skip_official=1; shift;;
     --skip-skills-cli) skip_cli=1; shift;;
     --skip-playwright) skip_pw=1; shift;;
     --skip-pinned) skip_pin=1; shift;;
+    --skip-impeccable) skip_imp=1; shift;;
     -h|--help) sed -n '2,17p' "$0" | sed 's/^# \{0,1\}//'; exit 0;;
     *) echo "unknown option: $1" >&2; exit 2;;
   esac
@@ -60,6 +61,7 @@ if [ "$skip_cli" -eq 1 ]; then skip "skills CLI packs"; else
     while IFS='|' read -r _kind repo sha skill folder _lic; do
       [ -n "$repo" ] || continue
       entries=$((entries+1))
+      if [ "$skip_imp" -eq 1 ] && [ "$folder" = impeccable ]; then skip "$repo (impeccable; --skip-impeccable)"; continue; fi
       if ls -d "$HOME/.claude/skills/$folder" "$HOME/.claude/skills/"*"$folder"* >/dev/null 2>&1; then had "$repo ${skill:+($skill)}"; continue; fi
       args=(add "$repo#$sha" -a claude-code -g -y)
       [ -n "$skill" ] && args+=(--skill "$skill")

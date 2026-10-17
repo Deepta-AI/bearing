@@ -97,7 +97,7 @@ cli|petrkindlmann/qa-skills|b3bb61bd268b147476252c6ed5a0440c87b97441|ai-test-gen
 cli|conventional-changelog/conventional-changelog|f90c80e9fe02146c1018fa1d78dea738809ab102|conventional-commit-message|conventional-commit-message|ISC
 cli|trailofbits/skills|32e34f8173796e3566a51aee877dc96bc5191f64|differential-review|differential-review|CC-BY-SA-4.0
 
-# impeccable 4.6.0 (scripts/VERSION 0.1.15), read 2026-10-17. Installed by install.sh in
+# impeccable 4.6.0 (scripts/VERSION 0.1.15), read 2026-10-17 (SKILL.md metadata version and scripts/VERSION only). Installed by install.sh in
 # profile standard or full (all skills in the repository, the one impeccable skill).
 cli|pbakaus/impeccable|08d5b470495d242ca0470f4aeae1956c3a074f83||impeccable|Apache-2.0
 

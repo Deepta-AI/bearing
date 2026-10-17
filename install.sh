@@ -181,7 +181,7 @@ fi
 
 # ------------------------------------------------------- third-party packs
 if [ "$profile" = minimal ] || [ "$no_claude" -eq 1 ]; then
-  echo "== third-party packs"; skip "superpowers, gstack, GSD Core ($([ "$no_claude" -eq 1 ] && echo '--no-claude' || echo 'profile minimal'))"
+  echo "== third-party packs"; skip "superpowers, gstack, GSD Core, impeccable ($([ "$no_claude" -eq 1 ] && echo '--no-claude' || echo 'profile minimal'))"
 else
   echo "== third-party packs"
   if [ "$skip_sp" -eq 1 ]; then skip "superpowers"; elif plugin_present 'superpowers'; then had "superpowers"; else
@@ -222,11 +222,12 @@ else
 fi
 
 echo "== open-source skill packs (called by workflow steps; see docs/THIRD_PARTY.md)"
+ipk_args=""; [ "$skip_impeccable" -eq 0 ] || ipk_args="--skip-impeccable"
 if [ "$profile" != full ]; then skip "skill packs (profile $profile; --profile full or plugins/bearing/bin/brg-install-packs)"
 elif [ "$no_claude" -eq 1 ]; then skip "skill packs (--no-claude)"
 elif [ "$skip_packs" -eq 1 ]; then skip "skill packs"
-elif [ "$dry" -eq 1 ]; then echo "would run  bash $PK/bin/brg-install-packs"
-elif bash "$PK/bin/brg-install-packs"; then did "skill packs (plugins/bearing/bin/brg-install-packs)"
+elif [ "$dry" -eq 1 ]; then echo "would run  bash $PK/bin/brg-install-packs${ipk_args:+ $ipk_args}"
+elif bash "$PK/bin/brg-install-packs" ${ipk_args:+$ipk_args}; then did "skill packs (plugins/bearing/bin/brg-install-packs)"
 else fail "skill packs: rerun plugins/bearing/bin/brg-install-packs after fixing the cause"; fi
 
 # ------------------------------------------------------- user configuration

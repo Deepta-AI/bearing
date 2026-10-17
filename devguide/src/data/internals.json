@@ -5,7 +5,7 @@
   "commandSkills": 0,
   "stackSkills": 12,
   "scripts": 94,
-  "scriptLines": 29287,
+  "scriptLines": 29290,
   "hooks": 8,
   "agents": 8,
   "makeTargets": 31,
@@ -14874,7 +14874,7 @@
    "name": "install.sh",
    "lang": "bash",
    "group": "install",
-   "lines": 267,
+   "lines": 268,
    "header": "install.sh: set up the Claude Code workflow on this machine.\n\n  bash install.sh [--profile minimal|standard|full] [--dry-run] [--no-claude]\n                  [--skip-gsd] [--skip-gstack] [--skip-superpowers] [--skip-impeccable]\n                  [--skip-packs]\n                  [--remote <git url>] [--uninstall]\n\nIdempotent. Steps, by profile:\n  minimal   the Bearing marketplace from this checkout (or --remote) and its\n            three plugins: bearing (required), bearing-backend and\n            bearing-apps (the stack conventions); the user env file\n            ~/.config/bearing/bearing.env (from plugins/bearing/templates/user,\n            mode 600, never overwritten), the personal CLAUDE.md if absent,\n            then brg-doctor\n  standard  minimal plus Superpowers (official marketplace), gstack, GSD\n            Core and impeccable at the pins in plugins/bearing/bin/pinned-packs.txt; the default\n  full      standard plus plugins/bearing/bin/brg-install-packs (the\n            open-source skill packs the workflow steps call; see\n            docs/THIRD_PARTY.md)\n--dry-run prints every action and touches nothing. --no-claude skips every\nclaude CLI step and the plugin install: it only refreshes the kit checkout,\nwrites the env file and prints the brg-harness instruction for other\ncoding harnesses. --uninstall removes the three plugins and the\nmarketplace, asks before removing the env file, removes ~/.claude/CLAUDE.md only while it is\nstill the untouched template, and prints how to unhook each repository.\nPrints a count of what it installed, what was already present, what it\nskipped and what failed; exits 1 when anything failed.",
    "functions": [
     "did",
@@ -15314,8 +15314,8 @@
    "name": "brg-install-packs",
    "lang": "bash",
    "group": "install",
-   "lines": 125,
-   "header": "brg-install-packs: install the open-source skills the workflow steps call,\nat user scope, idempotently. Other packs are documented in\ndocs/THIRD_PARTY.md with their own install commands and are not installed\nhere, so a session is not loaded with skills no step calls.\n\n  brg-install-packs [--skip-official] [--skip-skills-cli] [--skip-playwright] [--skip-pinned]\n  Skill names are the SKILL.md names in each repository (npx skills@<pin> add <repo> -l lists them).\n\nSources, every one but the first pinned in bin/pinned-packs.txt: the\nofficial Claude Code marketplace (claude plugin install; it has no version\npin), the skills CLI at its pinned npm version installing each cli row at\nits commit (<repo>#<commit>), the Playwright agent CLI at its pinned npm\nversion (install --skills), and the skill and plugin rows: repositories\nfetched at a fixed commit into ~/.cache/bearing-packs, their skill folders\ncopied to ~/.claude/skills. Prints a count of installed, present and skipped\nentries.",
+   "lines": 127,
+   "header": "brg-install-packs: install the open-source skills the workflow steps call,\nat user scope, idempotently. Other packs are documented in\ndocs/THIRD_PARTY.md with their own install commands and are not installed\nhere, so a session is not loaded with skills no step calls.\n\n  brg-install-packs [--skip-official] [--skip-skills-cli] [--skip-playwright] [--skip-pinned] [--skip-impeccable]\n  Skill names are the SKILL.md names in each repository (npx skills@<pin> add <repo> -l lists them).\n\nSources, every one but the first pinned in bin/pinned-packs.txt: the\nofficial Claude Code marketplace (claude plugin install; it has no version\npin), the skills CLI at its pinned npm version installing each cli row at\nits commit (<repo>#<commit>), the Playwright agent CLI at its pinned npm\nversion (install --skills), and the skill and plugin rows: repositories\nfetched at a fixed commit into ~/.cache/bearing-packs, their skill folders\ncopied to ~/.claude/skills. Prints a count of installed, present and skipped\nentries.",
    "functions": [
     "did",
     "had",
@@ -18096,9 +18096,9 @@
   {
    "path": "tests/unit/install_dry_run.sh",
    "kind": "unit",
-   "lines": 153,
+   "lines": 181,
    "header": "tests/unit/install_dry_run.sh: install.sh never touches the machine under --dry-run. Runs with a fake HOME, no XDG_CONFIG_HOME, and stub claude, node and npx binaries in front of PATH so the standard profile gets past its prerequisite checks without a real Claude CLI. Asserts the dry-run summary, the --no-claude harness instruction, the uninstall counts, and that nothing appears under the fake HOME (no env file, no ~/.claude, no gstack clone).",
-   "asserts": 65
+   "asserts": 75
   },
   {
    "path": "tests/unit/learn_local.sh",
