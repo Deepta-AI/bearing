@@ -4,6 +4,8 @@ All notable changes to Bearing. Keep a Changelog format, semantic versions.
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-10-17
+
 ### Added
 - Scoped Stop gate: a `check-changed` make target in all 13 stack
   templates checks only what the session changed (Go: the changed
@@ -59,6 +61,15 @@ All notable changes to Bearing. Keep a Changelog format, semantic versions.
   runs in `test-run`, the throwaway cleanup `rm` in `spike`, and `git -C`
   in `harness-setup`. They are recorded as `prompts:` rows in
   `bin/lint-skill-tools.allow`.
+
+### Fixed
+- The Python, Python CLI, data-pipeline and Flutter templates' `check-changed`
+  parses under bash 3.2 (macOS `/bin/bash`): `case` patterns inside `$(...)`
+  are parenthesised.
+- The Go service template requires `golang.org/x/net` v0.60.0
+  (GO-2026-6611, GO-2026-6612, GO-2026-6617).
+- The update prompt reads its changelog lines without a pipe that can
+  close early, so no stray warning reaches the session.
 
 ### Notes for existing repositories
 - Add `check-changed` by hand: copy the `CHANGED` variable and the
