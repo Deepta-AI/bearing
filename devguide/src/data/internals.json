@@ -10,7 +10,7 @@
   "agents": 8,
   "makeTargets": 31,
   "gates": 18,
-  "tests": 96,
+  "tests": 97,
   "fixtures": 21,
   "stacks": 13,
   "templates": 38,
@@ -26,7 +26,7 @@
    "dir": "plugins/bearing",
    "description": "A developer workflow for coding agents: skills for every stage from brief to runbook, review subagents, one guard behind every hook, and repository templates. The stack conventions come in bearing-backend and bearing-apps.",
    "required": true,
-   "files": 509,
+   "files": 510,
    "skills": [
     "ab-experiment",
     "accessibility",
@@ -3564,9 +3564,9 @@
    "name": "design-directions",
    "plugin": "bearing",
    "category": "design",
-   "what": "Produces three genuinely different visual design directions over the real screens, scores them and records the choice",
+   "what": "Produces the visual direction over the real screens (one impeccable pick, else three variants) and records the choice",
    "when": "asked for \"design directions\", \"three design options\" or \"which look should we go with\"",
-   "description": "Produces three genuinely different visual design directions over the real screens, scores them and records the choice. Use when asked for \"design directions\", \"three design options\" or \"which look should we go with\".",
+   "description": "Produces the visual direction over the real screens (one impeccable pick, else three variants) and records the choice. Use when asked for \"design directions\", \"three design options\" or \"which look should we go with\".",
    "invocation": "auto",
    "kind": "step",
    "args": "<feature> [--screens S-01,S-03] [--round 2] [--unattended]",
@@ -3576,6 +3576,9 @@
     "Edit",
     "Grep",
     "Glob",
+    "Skill",
+    "Bash(printenv BEARING_AUTOPILOT BEARING_NONINTERACTIVE)",
+    "Bash(rm DESIGN.md)",
     "Bash(ls:*)",
     "Bash(mkdir:*)",
     "Bash(test:*)",
@@ -3586,11 +3589,11 @@
     "Bash(python3 *skills/design-critique/scripts/pairs.py*)"
    ],
    "extra": {},
-   "intro": "Three variants exist so the user chooses between real alternatives, not shades of one idea. The test is the swapped headline: if the headline of one page could sit in another unnoticed, that pair failed. Each page is a working artefact with real copy, visible focus and one motion moment, built inside the project's own rules. `references/design-doctrine.md` governs every choice and is read in full before the plan is written.",
+   "intro": "With impeccable installed and attended, its round picks one direction and Bearing renders and measures it. Otherwise three variants give the user real alternatives, not shades of one idea. The test is the swapped headline: if the headline of one page could sit in another unnoticed, that pair failed. Each page is a working artefact with real copy, visible focus and one motion moment, built inside the project's own rules. `references/design-doctrine.md` governs the fallback's choices and is read in full before its plan is written.",
    "sections": [
     {
      "title": "Inputs",
-     "lines": 36
+     "lines": 38
     },
     {
      "title": "Steps",
@@ -3598,7 +3601,7 @@
     },
     {
      "title": "Output contract",
-     "lines": 17
+     "lines": 19
     },
     {
      "title": "Gotchas",
@@ -3617,15 +3620,16 @@
     "Templates: `templates/variant.html`, `templates/board.html` (HTML only).",
     "Target: the ui stack in the autopilot profile, else a React app with `components.json` or no UI code yet means react-shadcn; any other stack uses the HTML variants.",
     "Reference looks the user names (Stripe dashboard, Linear): each direction states which trait it borrows and never copies a brand.",
-    "`--unattended` (autopilot): no one chooses; step 10 scores the three."
+    "`--unattended` (autopilot): no one chooses; step 10 scores the three.",
+    "Impeccable: `${CLAUDE_PLUGIN_ROOT}/references/impeccable.md` (Detect, Unattended, its `## design-directions` round); `PRODUCT.md` when present."
    ],
    "steps": [
-    "Read the inputs; print each as read or absent, then list the constraints found with their source. They replace the defaults: the device size for widths 375, 768 and 1440, one theme for two when a rule says so, stricter project numbers for 44 px, 4.5:1 and 200 to 700 ms motion. Zero screens and no brief: stop with \"provide flows, stories, code with screens, or a brief\". Detail: references/constraints-and-checks.md",
+    "Read the inputs; print each as read or absent, then list the constraints found with their source. They replace the defaults: the device size for widths 375, 768 and 1440, one theme for two when a rule says so, stricter project numbers for 44 px, 4.5:1 and 200 to 700 ms motion. Zero screens and no brief: stop with \"provide flows, stories, code with screens, or a brief\". Detail: references/constraints-and-checks.md Th…",
     "Audit what the directions will sit on, before designing; each finding goes in the output, even when it is outside the feature: colours outside the tokens (Grep the screens and components for fixed palette classes, hex, `rgb(` and `oklch(` literals and inline `style=`), text tokens against the project's contrast rule on every surface they can sit on (a token that fails is not used for that role; name it), field edges…",
     "Design plan: read `references/design-doctrine.md`. One paragraph per variant: the direction row, the user and condition it serves first and its weak spot, the faces (only faces the constraints allow), four to six colours in oklch or hex each with its reason, the layout rhythm in one sentence plus an ASCII wireframe, the signature element, the motion moment. Under a design system the colour and face lines cite the to…",
     "Distinctness gate, before any code: every pair differs on display family, palette temperature and layout rhythm (under a system: layout, hierarchy and type scale). Then the swapped-headline test per pair. A failing pair: rewrite the weaker brief from another row and test again. This is a judgement, not a measurement; the output says so.",
     "Generic-default pass: write the default answer to the same brief. A plan line that matches it (the three AI looks, a stat-and-gradient hero, Inter or Space Grotesk as display) is revised; the count goes in the output.",
-    "react-shadcn build (instead of step 7): one file per direction, `src/design/variants/<n>-<name>.css`, overriding the fonts, type scale and colour roles shadcn reads, scoped to `:root[data-variant=\"<n>-<name>\"]` (a bare `[data-variant]` ties `:root` on specificity and wins only by import order, which a refactor breaks) with dark as `.dark` or `[data-theme=\"dark\"]`, whichever the app sets, on the same element (dark un…",
+    "react-shadcn build (instead of step 7): a direction is a theme the real screens render with, never a page; one `src/design/variants/<n>-<name>.css` per direction, scoped to `:root[data-variant=\"<n>-<name>\"]` on the element that carries the app's dark class, dark on that same element; `:root`, `.dark` and the default look untouched; the switch is the design gallery, else a dev-only `?variant=`; print how to view each…",
     "HTML targets. Build `<n>-<name>.html` per variant from `templates/variant.html`: tokens on `:root`, the screens as sections with the flows' copy word for word including the state screen, at the project's sizes (the device size and orientation when fixed; else no horizontal scroll at 375, 768 and 1440 and no half-width desktop column beside dead space), dark only when the product has dark, `:focus-visible` on every c…",
     "Check each direction and fix before showing; record each fix: - Contrast, computed from the values written, in every theme the product has, against the project's ratios. HTML pages: `python3 \"${CLAUDE_PLUGIN_ROOT}/skills/design-critique/scripts/pairs.py\" --need <body ratio> <n>-<name>.html...` (its large-text threshold is 3:1; apply a stricter project rule by hand). react-shadcn: compute every text pair per directio…",
     "Screenshots when a browser runs. Responsive products: `python3 \"${CLAUDE_PLUGIN_ROOT}/skills/design-critique/scripts/evidence.py\" shoot --base <folder or dev URL> --out docs/design/variants/<feature>/shots <page>...` then `check` with the same `--out` and pages; read every PNG; fix and re-shoot until `check` exits 0. A fixed device or a single theme does not fit `check`: shoot at the device size in the product's the…",
@@ -18103,6 +18107,13 @@
    "lines": 142,
    "header": "tests/unit/hld_arch_check.sh: plugins/bearing/skills/high-level-design/scripts/arch_check.py passes a complete architecture set and fails on a section with no risks, nothing deliberately left out, an ungraded or unsourced finding, Approved with an open BLOCKER or an open conflict, an ADR missing from the index, a bad reversibility, a conflict with no Settled by, too few tenets or a tenet with no breach, a repo plan with a wrong name, path or stack, and empty input.",
    "asserts": 34
+  },
+  {
+   "path": "tests/unit/impeccable_reference.sh",
+   "kind": "unit",
+   "lines": 62,
+   "header": "tests/unit/impeccable_reference.sh: the shared impeccable reference (plugins/bearing/references/impeccable.md) carries Detect, Invoke, the unattended rule, the commands table and one filled section per calling skill, and design-directions follows it: one impeccable round recorded in approved.json as source, chosen and challengers, the fallback named, the grants it needs, and SKILL.md at or under 200 lines.",
+   "asserts": 22
   },
   {
    "path": "tests/unit/install_dry_run.sh",

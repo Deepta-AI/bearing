@@ -385,7 +385,7 @@
    "name": "design-directions",
    "plugin": "bearing",
    "category": "design",
-   "what": "Produces three genuinely different visual design directions over the real screens, scores them and records the choice",
+   "what": "Produces the visual direction over the real screens (one impeccable pick, else three variants) and records the choice",
    "when": "asked for \"design directions\", \"three design options\" or \"which look should we go with\"",
    "phrases": [
     "design directions",
