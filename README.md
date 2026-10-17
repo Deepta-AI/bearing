@@ -57,7 +57,7 @@ bash ~/bearing/install.sh
 It registers the checkout as the marketplace and installs all three
 plugins, then writes `~/.config/bearing/bearing.env` (mode 600, never
 overwritten), a personal `~/.claude/CLAUDE.md` starter if you have none,
-the companion packs for the profile (Superpowers, gstack and GSD Core by
+the companion packs for the profile (Superpowers, gstack, GSD Core and impeccable by
 default; `--profile full` adds the open-source packs the workflow names),
 then runs the doctor. The commands in these docs that start with
 `~/bearing/plugins/bearing/bin/` run from that checkout, and
@@ -132,6 +132,7 @@ fetch without one.
 | `install.sh` | you run it | the marketplace from GitHub (or your checkout) and the three plugins | the commit you install from |
 | `install.sh`, profile standard or full | you run it | gstack: `git fetch --depth 1 https://github.com/garrytan/gstack.git 2a113ae7e623f590095bcaaa0cc581c9a10a6632` into `~/.claude/skills/gstack`, then its own `./setup`, which installs gstack's dependencies from its `bun.lock` and Playwright's Chromium; an existing gstack checkout is left as it is | commit `2a113ae7e623` (`--skip-gstack`) |
 | | | GSD Core: `npx --yes @opengsd/gsd-core@1.14.0 --global --claude` | `1.14.0` (`--skip-gsd`) |
+| | | impeccable: `npx --yes skills@1.7.0 add pbakaus/impeccable#08d5b470495d242ca0470f4aeae1956c3a074f83 -a claude-code -g -y`; an existing `~/.claude/skills/impeccable` or `~/.agents/skills/impeccable` is left as it is | the skills CLI at `1.7.0`, the repository at commit `08d5b470495d` (`--skip-impeccable`) |
 | | | Superpowers: `claude plugin install superpowers@claude-plugins-official` | not pinnable: the official marketplace takes no version, so Claude Code installs its current release (`--skip-superpowers`) |
 | `plugins/bearing/bin/brg-install-packs`, profile full | `install.sh --profile full`, or you run it | the `skill` and `plugin` rows: each repository fetched at its commit, skill folders copied to `~/.claude/skills` | the full commit on each row |
 | | | the `cli` rows: `npx --yes skills@1.7.0 add <repo>#<commit> --skill <name>` for ui-craft, pm-skills, addyosmani, dash0, qa-skills, Vercel agent-skills, conventional-changelog and trailofbits `differential-review` | the skills CLI at `1.7.0`, each repository at the full commit on its row (`--skip-skills-cli`) |

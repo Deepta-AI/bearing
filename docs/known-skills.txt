@@ -186,6 +186,7 @@ handoff
 harden
 health
 heuristic
+impeccable
 implement
 implement-spec
 improve-codebase-architecture

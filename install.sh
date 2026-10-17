@@ -2,7 +2,8 @@
 # install.sh: set up the Claude Code workflow on this machine.
 #
 #   bash install.sh [--profile minimal|standard|full] [--dry-run] [--no-claude]
-#                   [--skip-gsd] [--skip-gstack] [--skip-superpowers] [--skip-packs]
+#                   [--skip-gsd] [--skip-gstack] [--skip-superpowers] [--skip-impeccable]
+#                   [--skip-packs]
 #                   [--remote <git url>] [--uninstall]
 #
 # Idempotent. Steps, by profile:
@@ -12,8 +13,8 @@
 #             ~/.config/bearing/bearing.env (from plugins/bearing/templates/user,
 #             mode 600, never overwritten), the personal CLAUDE.md if absent,
 #             then brg-doctor
-#   standard  minimal plus Superpowers (official marketplace), gstack and GSD
-#             Core at the pins in plugins/bearing/bin/pinned-packs.txt; the default
+#   standard  minimal plus Superpowers (official marketplace), gstack, GSD
+#             Core and impeccable at the pins in plugins/bearing/bin/pinned-packs.txt; the default
 #   full      standard plus plugins/bearing/bin/brg-install-packs (the
 #             open-source skill packs the workflow steps call; see
 #             docs/THIRD_PARTY.md)
@@ -28,7 +29,7 @@
 set -euo pipefail
 KIT="$(cd "$(dirname "$0")" && pwd)"
 profile=standard; dry=0; no_claude=0; uninstall=0
-skip_gsd=0; skip_gstack=0; skip_sp=0; skip_packs=0; remote=""
+skip_gsd=0; skip_gstack=0; skip_sp=0; skip_impeccable=0; skip_packs=0; remote=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --profile) profile="$2"; shift 2;;
@@ -38,9 +39,10 @@ while [ $# -gt 0 ]; do
     --skip-gsd) skip_gsd=1; shift;;
     --skip-gstack) skip_gstack=1; shift;;
     --skip-superpowers) skip_sp=1; shift;;
+    --skip-impeccable) skip_impeccable=1; shift;;
     --skip-packs) skip_packs=1; shift;;
     --remote) remote="$2"; shift 2;;
-    -h|--help) sed -n '2,27p' "$0" | sed 's/^# \{0,1\}//'; exit 0;;
+    -h|--help) sed -n '2,28p' "$0" | sed 's/^# \{0,1\}//'; exit 0;;
     *) echo "unknown option: $1" >&2; exit 2;;
   esac
 done
@@ -112,7 +114,7 @@ if [ "$uninstall" -eq 1 ]; then
       run rm -f "$HOME/.claude/CLAUDE.md" && { echo "removed    ~/.claude/CLAUDE.md (still the untouched template)"; removed=$((removed+1)); }
     else echo "kept       ~/.claude/CLAUDE.md (edited by you)"; kept=$((kept+1)); fi
   else echo "absent     ~/.claude/CLAUDE.md"; fi
-  echo "note: Superpowers, gstack, GSD Core and the skill packs are left in place; remove them with their own commands (docs/THIRD_PARTY.md)."
+  echo "note: Superpowers, gstack, GSD Core, impeccable and the skill packs are left in place; remove them with their own commands (docs/THIRD_PARTY.md)."
   echo "note: each adopted repository still points at its committed hooks; in each one run: git config --unset core.hooksPath"
   echo "install.sh --uninstall: $removed removed, $kept kept, $failed failed$mode_note"
   [ "$failed" -eq 0 ] || exit 1
@@ -206,6 +208,15 @@ else
       gsd_v="$(pin npm @opengsd/gsd-core)"
       if [ -z "$gsd_v" ]; then fail "GSD Core: no npm|@opengsd/gsd-core row in $PK/bin/pinned-packs.txt"
       elif runq npx --yes "@opengsd/gsd-core@$gsd_v" --global --claude; then did "GSD Core $gsd_v (global, Claude Code)"; else skip "GSD Core (installer failed; rerun: npx @opengsd/gsd-core@$gsd_v --global --claude)"; fi
+    fi
+  fi
+
+  if [ "$skip_impeccable" -eq 1 ]; then skip "impeccable"; else
+    if [ -e "$HOME/.claude/skills/impeccable" ] || [ -e "$HOME/.agents/skills/impeccable" ]; then had "impeccable"; else
+      imp_sha="$(pin cli pbakaus/impeccable)"; imp_skills="$(pin npm skills)"
+      if [ -z "$imp_sha" ] || [ -z "$imp_skills" ]; then fail "impeccable: no cli|pbakaus/impeccable or npm|skills row in $PK/bin/pinned-packs.txt"
+      elif runq npx --yes "skills@$imp_skills" add "pbakaus/impeccable#$imp_sha" -a claude-code -g -y; then did "impeccable (pinned ${imp_sha:0:12})"
+      else fail "impeccable: npx --yes skills@$imp_skills add pbakaus/impeccable#$imp_sha -a claude-code -g -y"; fi
     fi
   fi
 fi

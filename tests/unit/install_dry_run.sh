@@ -53,10 +53,22 @@ assert_not_contains "$T_OUT" "@latest" "no unpinned npm fetch"
 assert_contains "$T_OUT" "would copy $KIT/plugins/bearing/templates/user/bearing.env -> $ENVF (mode 600)"
 assert_contains "$T_OUT" "would copy $KIT/plugins/bearing/templates/user/CLAUDE.md -> ~/.claude/CLAUDE.md"
 assert_contains "$T_OUT" "would run  bash $KIT/plugins/bearing/bin/brg-doctor"
-assert_contains "$T_OUT" "install.sh: 9 installed, 0 already present, 1 skipped, 0 failed (dry run: nothing is changed)"
+assert_contains "$T_OUT" "install.sh: 10 installed, 0 already present, 1 skipped, 0 failed (dry run: nothing is changed)"
 assert_contains "$T_OUT" "Restart Claude Code to load new plugins."
 assert_eq "" "$(tree "$fh")" "nothing created under the fake HOME"
 _t_count; [ -e "$ENVF" ] && _t_fail "env file was created under --dry-run: $ENVF"
+t_end
+
+t_begin "--dry-run: standard installs impeccable at its pin; minimal and --skip-impeccable do not"
+isha="$(awk -F'|' '$1=="cli" && $2=="pbakaus/impeccable" {print $3}' "$pins")"
+skv="$(awk -F'|' '$1=="npm" && $2=="skills" {print $3}' "$pins")"
+_t_count; printf '%s' "$isha" | grep -Eq '^[0-9a-f]{40}$' || _t_fail "impeccable is not pinned to a full commit: '$isha'"
+assert_exit 0 under_fake --dry-run
+assert_contains "$T_OUT" "would run  npx --yes skills@$skv add pbakaus/impeccable#$isha -a claude-code -g -y"
+assert_exit 0 under_fake --dry-run --profile minimal
+assert_not_contains "$T_OUT" "pbakaus/impeccable"
+assert_exit 0 under_fake --dry-run --skip-impeccable
+assert_contains "$T_OUT" "skipped    impeccable"
 t_end
 
 t_begin "--dry-run --profile full: packs would run, still nothing changes"

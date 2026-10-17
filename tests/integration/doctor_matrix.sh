@@ -238,10 +238,11 @@ assert_exit 1 machine; runs=$((runs+1))
 assert_contains "$T_OUT" "profile: standard (bearing.env;"
 assert_contains "$T_OUT" "MISSING   superpowers not installed"
 assert_contains "$T_OUT" "MISSING   gstack not installed"
-machine_tally "$T_OUT" 2
+assert_contains "$T_OUT" "MISSING   impeccable not installed"
+machine_tally "$T_OUT" 3
 assert_exit 1 machine BEARING_PROFILE=full; runs=$((runs+1))
 assert_contains "$T_OUT" "profile: full (environment;"
-machine_tally "$T_OUT" 2
+machine_tally "$T_OUT" 3
 assert_exit 0 machine BEARING_PROFILE=minimal; runs=$((runs+1))
 assert_contains "$T_OUT" "profile: minimal (environment;" "the environment wins over the file"
 machine_tally "$T_OUT" 0

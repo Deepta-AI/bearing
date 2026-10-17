@@ -5,12 +5,12 @@
   "commandSkills": 0,
   "stackSkills": 12,
   "scripts": 94,
-  "scriptLines": 29269,
+  "scriptLines": 29287,
   "hooks": 8,
   "agents": 8,
   "makeTargets": 31,
   "gates": 18,
-  "tests": 95,
+  "tests": 96,
   "fixtures": 21,
   "stacks": 13,
   "templates": 38,
@@ -14874,8 +14874,8 @@
    "name": "install.sh",
    "lang": "bash",
    "group": "install",
-   "lines": 256,
-   "header": "install.sh: set up the Claude Code workflow on this machine.\n\n  bash install.sh [--profile minimal|standard|full] [--dry-run] [--no-claude]\n                  [--skip-gsd] [--skip-gstack] [--skip-superpowers] [--skip-packs]\n                  [--remote <git url>] [--uninstall]\n\nIdempotent. Steps, by profile:\n  minimal   the Bearing marketplace from this checkout (or --remote) and its\n            three plugins: bearing (required), bearing-backend and\n            bearing-apps (the stack conventions); the user env file\n            ~/.config/bearing/bearing.env (from plugins/bearing/templates/user,\n            mode 600, never overwritten), the personal CLAUDE.md if absent,\n            then brg-doctor\n  standard  minimal plus Superpowers (official marketplace), gstack and GSD\n            Core at the pins in plugins/bearing/bin/pinned-packs.txt; the default\n  full      standard plus plugins/bearing/bin/brg-install-packs (the\n            open-source skill packs the workflow steps call; see\n            docs/THIRD_PARTY.md)\n--dry-run prints every action and touches nothing. --no-claude skips every\nclaude CLI step and the plugin install: it only refreshes the kit checkout,\nwrites the env file and prints the brg-harness instruction for other\ncoding harnesses. --uninstall removes the three plugins and the\nmarketplace, asks before removing the env file, removes ~/.claude/CLAUDE.md only while it is\nstill the untouched template, and prints how to unhook each repository.\nPrints a count of what it installed, what was already present, what it\nskipped and what failed; exits 1 when anything failed.",
+   "lines": 267,
+   "header": "install.sh: set up the Claude Code workflow on this machine.\n\n  bash install.sh [--profile minimal|standard|full] [--dry-run] [--no-claude]\n                  [--skip-gsd] [--skip-gstack] [--skip-superpowers] [--skip-impeccable]\n                  [--skip-packs]\n                  [--remote <git url>] [--uninstall]\n\nIdempotent. Steps, by profile:\n  minimal   the Bearing marketplace from this checkout (or --remote) and its\n            three plugins: bearing (required), bearing-backend and\n            bearing-apps (the stack conventions); the user env file\n            ~/.config/bearing/bearing.env (from plugins/bearing/templates/user,\n            mode 600, never overwritten), the personal CLAUDE.md if absent,\n            then brg-doctor\n  standard  minimal plus Superpowers (official marketplace), gstack, GSD\n            Core and impeccable at the pins in plugins/bearing/bin/pinned-packs.txt; the default\n  full      standard plus plugins/bearing/bin/brg-install-packs (the\n            open-source skill packs the workflow steps call; see\n            docs/THIRD_PARTY.md)\n--dry-run prints every action and touches nothing. --no-claude skips every\nclaude CLI step and the plugin install: it only refreshes the kit checkout,\nwrites the env file and prints the brg-harness instruction for other\ncoding harnesses. --uninstall removes the three plugins and the\nmarketplace, asks before removing the env file, removes ~/.claude/CLAUDE.md only while it is\nstill the untouched template, and prints how to unhook each repository.\nPrints a count of what it installed, what was already present, what it\nskipped and what failed; exits 1 when anything failed.",
    "functions": [
     "did",
     "had",
@@ -15063,7 +15063,7 @@
    "name": "brg-doctor",
    "lang": "bash",
    "group": "install",
-   "lines": 229,
+   "lines": 236,
    "header": "brg-doctor: verify the Bearing installation on this machine and, when run\ninside a repository, in that repository. Prints one line per check and a\nsummary; exits 1 when any required check is missing. Accepts either git\nhost: CI is .gitlab-ci.yml or .github/workflows/*.yml or *.yaml and must run\nmake check; the change template is .gitlab/merge_request_templates/*.md or\npull_request_template.md in any case (GitHub's rule). The third-party packs (Superpowers, gstack)\nare required only when BEARING_PROFILE (environment, then bearing.env) is\nstandard or full; unset or minimal makes them optional, so a\n`install.sh --profile minimal` machine can pass. core.hooksPath passes as\n.githooks, or as another directory whose three hooks each call .githooks/\nwith their arguments and keep its exit status. A hook counts only when git\nwould run it: present, executable, and committed as 100755; make setup\ncounts only when every script its dry run calls exists.",
    "functions": [
     "trust_state",
@@ -17774,9 +17774,9 @@
   {
    "path": "tests/integration/doctor_matrix.sh",
    "kind": "integration",
-   "lines": 251,
+   "lines": 252,
    "header": "tests/integration/doctor_matrix.sh: plugins/bearing/bin/brg-doctor inside a scaffolded repository, with a fake HOME (no XDG_CONFIG_HOME) and a PATH of coreutils plus a stub claude that prints a version and a plugin list, so the machine section passes deterministically and the repository section is what varies. The matrix: CI on GitLab files, on GitHub files, on both, on neither (MISSING, exit 1); the vendored .bearing/bin/brg-guard with a matching stamp (ok) and a stale one (MISSING); the final \"brg-doctor: N checks, M missing\" line must equal the ok and MISSING lines counted, and the exit co…",
-   "asserts": 138
+   "asserts": 139
   },
   {
    "path": "tests/integration/harness_each.sh",
@@ -17975,6 +17975,13 @@
    "asserts": 52
   },
   {
+   "path": "tests/unit/doctor_packs.sh",
+   "kind": "unit",
+   "lines": 29,
+   "header": "tests/unit/doctor_packs.sh: doctor checks the impeccable pack. Required on the standard and full profiles (MISSING with the pinned install command), optional on minimal, and an installed copy under ~/.claude or ~/.agents reports the version from its SKILL.md metadata. Fake HOME, real brg-doctor.",
+   "asserts": 5
+  },
+  {
    "path": "tests/unit/doctor_trust.sh",
    "kind": "unit",
    "lines": 52,
@@ -18089,9 +18096,9 @@
   {
    "path": "tests/unit/install_dry_run.sh",
    "kind": "unit",
-   "lines": 141,
+   "lines": 153,
    "header": "tests/unit/install_dry_run.sh: install.sh never touches the machine under --dry-run. Runs with a fake HOME, no XDG_CONFIG_HOME, and stub claude, node and npx binaries in front of PATH so the standard profile gets past its prerequisite checks without a real Claude CLI. Asserts the dry-run summary, the --no-claude harness instruction, the uninstall counts, and that nothing appears under the fake HOME (no env file, no ~/.claude, no gstack clone).",
-   "asserts": 59
+   "asserts": 65
   },
   {
    "path": "tests/unit/learn_local.sh",

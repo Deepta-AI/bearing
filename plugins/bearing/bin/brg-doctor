@@ -61,7 +61,7 @@ pack_check() {
 
 echo "brg-doctor (kit $KIT_VERSION)"
 echo "## machine"
-echo "profile: ${profile:-unset} ($profile_src; standard or full makes superpowers and gstack required)"
+echo "profile: ${profile:-unset} ($profile_src; standard or full makes superpowers, gstack and impeccable required)"
 command -v claude >/dev/null && pass "claude $(claude --version 2>/dev/null | head -1)" || fail "claude CLI not on PATH"
 plugins="$(claude plugin list 2>/dev/null || true)"
 # bearing is required; bearing-backend and bearing-apps carry the stack
@@ -76,6 +76,13 @@ pack_check "$sp" "plugin superpowers installed" "superpowers not installed (clau
 gs=0; gsv=""; [ -f "$HOME/.claude/skills/gstack/VERSION" ] && { gs=1; gsv="$(cat "$HOME/.claude/skills/gstack/VERSION")"; }
 pack_check "$gs" "gstack $gsv" "gstack not installed (see docs/INSTALL.md)"
 if ls "$HOME/.claude/skills" 2>/dev/null | grep -qi '^gsd' || printf '%s' "$plugins" | grep -qi 'gsd'; then pass "GSD Core installed"; else optional "GSD Core not installed (npx @opengsd/gsd-core@$(awk -F'|' '$1=="npm" && $2=="@opengsd/gsd-core" {print $3; exit}' "$KIT/bin/pinned-packs.txt" 2>/dev/null) --global --claude)"; fi
+imp=0; impv=""
+for impf in "$HOME/.claude/skills/impeccable/SKILL.md" "$HOME/.agents/skills/impeccable/SKILL.md"; do
+  if [ -f "$impf" ]; then imp=1; impv="$(awk '/^metadata:/{m=1;next} m && /^[[:space:]]+version:/{print $2; exit}' "$impf" | tr -d "\"'\r")"; break; fi
+done
+imp_sha="$(awk -F'|' '$1=="cli" && $2=="pbakaus/impeccable" {print $3; exit}' "$KIT/bin/pinned-packs.txt" 2>/dev/null)"
+imp_skv="$(awk -F'|' '$1=="npm" && $2=="skills" {print $3; exit}' "$KIT/bin/pinned-packs.txt" 2>/dev/null)"
+pack_check "$imp" "impeccable ${impv:-installed}" "impeccable not installed (bash install.sh, or npx --yes skills@$imp_skv add pbakaus/impeccable#$imp_sha -a claude-code -g -y)"
 if [ -f "$envf" ]; then
   tr_val="$(grep -E '^BEARING_TRACKER=' "$envf" | tail -1 | cut -d= -f2 | tr -d '"' | awk '{print $1}')"
   pass "bearing.env present (BEARING_TRACKER=${tr_val:-unset}; none is valid)"
