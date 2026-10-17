@@ -75,7 +75,8 @@ printf '%s\tv0.7.0\n' "$(date +%s)" > "$cfg/bearing/update-check"
 assert_exit 0 run 0.6.0
 assert_contains "$T_OUT" "BEARING_UPDATE: 0.6.0 -> 0.7.0"
 assert_contains "$T_OUT" "First public release" "section from CHANGELOG.md"
-assert_eq 1 "$([ "$(printf '%s\n' "$T_OUT" | wc -l)" -le 9 ] && echo 1 || echo 0)" "header plus 8 lines"
+nl="$(printf '%s\n' "$T_OUT" | wc -l | tr -d ' ')"
+assert_eq 1 "$([ "$nl" -le 9 ] && echo 1 || echo 0)" "header plus 8 lines (got $nl: $(printf '%s' "$T_OUT" | tr '\n' '|' | cut -c1-400))"
 t_end
 
 t_begin "a failed check is remembered: no second ls-remote for 6 hours"
