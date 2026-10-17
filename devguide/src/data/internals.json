@@ -3796,7 +3796,7 @@
     },
     {
      "path": "references/lint.md",
-     "lines": 67
+     "lines": 72
     },
     {
      "path": "references/read-the-repo.md",
@@ -3828,7 +3828,7 @@
     },
     {
      "path": "templates/design-lint.sh",
-     "lines": 461
+     "lines": 489
     },
     {
      "path": "templates/design-system.html",
@@ -17976,13 +17976,6 @@
    "asserts": 7
   },
   {
-   "path": "tests/unit/design_sync.sh",
-   "kind": "unit",
-   "lines": 172,
-   "header": "tests/unit/design_sync.sh: the --hash and --sync modes of plugins/bearing/skills/design-system/templates/design-lint.sh. design-system derives docs/design/tokens.json from root DESIGN.md frontmatter tokens, else from the picked direction in approved.json, and records the source's path and sha256 in meta. --hash prints sha256:<64 hex> of a file's bytes; --sync re-hashes the recorded source and fails with both hashes and the path when it changed, fails when an approved-direction source has been overtaken by a DESIGN.md that now carries tokens, and fails on zero input with a count line. It runs…",
-   "asserts": 49
-  },
-  {
    "path": "tests/unit/design_system_page.sh",
    "kind": "unit",
    "lines": 116,
@@ -18387,6 +18380,13 @@
    "lines": 94,
    "header": "tests/unit/threat_model_check.sh: plugins/bearing/skills/threat-model/scripts/threats_check.py passes a model whose threats cite an existing file:line, a backlog story or a new story, and fails on a malformed or duplicate id, a missing file, a line past the end, an unknown story, \"handled by the framework\", an empty mitigation, a sensitive scope with zero threats, and empty input.",
    "asserts": 30
+  },
+  {
+   "path": "tests/unit/tokens_sync.sh",
+   "kind": "unit",
+   "lines": 211,
+   "header": "tests/unit/tokens_sync.sh: the --hash and --sync modes of plugins/bearing/skills/design-system/templates/design-lint.sh. design-system derives docs/design/tokens.json from root DESIGN.md frontmatter tokens, else from the picked direction in approved.json, and records the source's path and sha256 in meta. --hash prints sha256:<64 hex> of a file's bytes; --sync re-hashes the recorded source and fails with both hashes and the path when it changed, fails when an approved-direction source has been overtaken by a DESIGN.md that now carries tokens, and fails on zero input with a count line. It runs…",
+   "asserts": 65
   },
   {
    "path": "tests/unit/traceability_check.sh",

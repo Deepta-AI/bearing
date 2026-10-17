@@ -193,19 +193,22 @@ is the line
 prints (sha256 of the file's bytes, by `sha256sum`, `shasum -a 256` or
 `openssl`, whichever exists). The repository's check is
 `sh scripts/design-lint.sh --sync` under `make check` (target
-`design-sync`): it hashes the same source and fails with both hashes and
+`tokens-sync`): it hashes the same source and fails with both hashes and
 the path when it changed, fails when the source was `approved-direction`
 and root `DESIGN.md` now carries frontmatter tokens (the source has moved),
-and fails with `design-sync: 0 sources checked (<what is missing>)` on no
+and fails with `tokens-sync: 0 sources checked (<what is missing>)` on no
 tokens file, no `meta.sourceHash` or no source. Rerunning design-system
 re-derives the tokens and the hash without writing `DESIGN.md`, so the
-check cannot loop.
+check cannot loop. A rerun that falls back to a source with no hash
+removes `meta.sourcePath`, `meta.sourceHash` and the `tokens-sync` target.
 
-Links: design-system never writes the root `DESIGN.md`. When it is a file
-(not a link) and `docs/design/DESIGN.md` is absent or still Bearing's guide
-(a line starts `Tokens live in`), `ln -sf ../../DESIGN.md docs/design/DESIGN.md`
-replaces the guide with a relative link to it; any other state (a hand-written
-`docs/design/DESIGN.md`, a root link, no root file) stays as it is and is
+Links (step 8, full setup; on a narrower scope the link is offered in the
+report): design-system never writes the root `DESIGN.md`. When it is a file
+(not a link) and `docs/design/DESIGN.md` is absent or still the unfilled
+template (it holds `<!-- Template guidance` or `(v<version>)`),
+`ln -sf ../../DESIGN.md docs/design/DESIGN.md` replaces it with a relative
+link to the root. A filled guide is never replaced, moved or deleted; it,
+and any other state (a root link, no root file), stays as it is and is
 reported under Noticed. Bindings, contrast and design-lint are unchanged.
 Without either source, the skill writes `docs/design/DESIGN.md` from its own
 template as before, and links the root to it only when no root file or link

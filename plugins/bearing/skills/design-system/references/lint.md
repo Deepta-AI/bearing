@@ -44,22 +44,27 @@ change; tell the team that, with the command, in the report.
 run `make check`, see it fail, remove them. If the check has tests,
 they run under `make check` in the CI image too.
 
-## The hash check (design-sync)
+## The hash check (tokens-sync)
 
 Installed only when `docs/design/tokens.json` holds `meta.sourceHash`
 (tokens derived from root `DESIGN.md` frontmatter or a picked direction in
 `approved.json`). It is a mode of the same installed script, so no second
-file is copied: add a `design-sync` target running
+file is copied: add a `tokens-sync` target running
 `sh scripts/design-lint.sh --sync` and list it under `check` next to
-`design-lint`. Its lines:
+`design-lint`. A rerun of design-system from a source with no hash
+removes the target with `meta.sourcePath` and `meta.sourceHash`. Its lines,
+where `<source>` is `meta.sourcePath` (`DESIGN.md`, or
+`docs/design/variants/<feature>/approved.json` for a picked direction):
 
-- pass: `design-sync: 1 source checked, DESIGN.md matches tokens.json (sha256:<first 12>)`
-- drift: `design-sync: DESIGN.md is sha256:<new>, tokens.json was derived from sha256:<old>; rerun design-system to re-derive the tokens`
+- pass: `tokens-sync: 1 source checked, <source> matches tokens.json (sha256:<first 12>)`
+- drift: `tokens-sync: 1 source checked, failed`, then
+  `tokens-sync: <source> is sha256:<new>, tokens.json was derived from sha256:<old>; rerun design-system to re-derive the tokens`
 - moved source: an `approved-direction` source with root `DESIGN.md` now
-  carrying frontmatter tokens fails and names both files
-- zero input: `design-sync: 0 sources checked (<file> missing)` or
+  carrying frontmatter tokens prints the same count line, then names both
+  files
+- zero input: `tokens-sync: 0 sources checked (<file> missing)` or
   `(no meta.sourceHash in <tokens>)`
-- no hasher: `design-sync: no sha256 tool (sha256sum, shasum or openssl)`
+- no hasher: `tokens-sync: no sha256 tool (sha256sum, shasum or openssl)`
 
 Each failure exits 1. `DESIGN_TOKENS`, `DESIGN_SOURCE` and `DESIGN_ROOT`
 override the paths (the script header says how). Prove it as in item 4:

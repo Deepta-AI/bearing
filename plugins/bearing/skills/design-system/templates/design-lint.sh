@@ -61,7 +61,7 @@ MODE="check"
 USAGE="usage: sh scripts/design-lint.sh [--write-baseline | --sync | --hash <file>]"
 case "${1:-}" in
   --write-baseline) MODE="write" ;;
-  --sync) MODE="sync" ;;
+  --sync) MODE="sync"; [ $# -eq 1 ] || { echo "$USAGE" >&2; exit 2; } ;;
   --hash) MODE="hash"; [ $# -eq 2 ] || { echo "$USAGE" >&2; exit 2; } ;;
   "") ;;
   *) echo "$USAGE" >&2; exit 2 ;;
@@ -73,35 +73,63 @@ sync_hash() { # sync_hash <file>: sha256:<64 hex> of the file's bytes (a link is
   if command -v sha256sum >/dev/null 2>&1; then h=$(sha256sum < "$1")
   elif command -v shasum >/dev/null 2>&1; then h=$(shasum -a 256 < "$1")
   elif command -v openssl >/dev/null 2>&1; then h=$(openssl dgst -sha256 -r < "$1")
-  else echo "design-sync: no sha256 tool (sha256sum, shasum or openssl)" >&2; exit 1; fi
+  else echo "tokens-sync: no sha256 tool (sha256sum, shasum or openssl)" >&2; exit 1; fi
   h=$(printf '%s\n' "$h" | awk '{print tolower($1)}')
   case "$h" in
-    *[!0-9a-f]*|"") echo "design-sync: the sha256 tool printed no hash for $1" >&2; exit 1 ;;
+    *[!0-9a-f]*|"") echo "tokens-sync: the sha256 tool printed no hash for $1" >&2; exit 1 ;;
   esac
-  [ ${#h} -eq 64 ] || { echo "design-sync: the sha256 tool printed no hash for $1" >&2; exit 1; }
+  [ ${#h} -eq 64 ] || { echo "tokens-sync: the sha256 tool printed no hash for $1" >&2; exit 1; }
   printf 'sha256:%s\n' "$h"
 }
-meta_of() { # meta_of <key>: the first "key": "value" in tokens.json
-  sed -n "s/.*\"$1\"[[:space:]]*:[[:space:]]*\"\([^\"]*\)\".*/\1/p" "$TOKENS" | head -n 1
+meta_of() { # meta_of <key>: the string value of "key" in the top-level "meta" object
+  # of tokens.json. A small JSON walk (strings, escapes, depth), so a key of the
+  # same name elsewhere, or on the same line in a one-line file, is never read.
+  awk -v want="$1" '
+    { buf = buf $0 "\n" }
+    END {
+      n = length(buf); depth = 0; key = ""; inmeta = 0; expect = 0
+      for (i = 1; i <= n; i++) {
+        c = substr(buf, i, 1)
+        if (c == "\"") {
+          s = ""; i++
+          while (i <= n && (c = substr(buf, i, 1)) != "\"") {
+            if (c == "\\") { i++; c = substr(buf, i, 1) }
+            s = s c; i++
+          }
+          if (expect) {
+            if (inmeta && depth == 2 && key == want) { print s; exit }
+            expect = 0
+          } else key = s
+          continue
+        }
+        if (c == ":") { expect = 1; continue }
+        if (c == "{" || c == "[") {
+          if (expect && depth == 1 && key == "meta" && c == "{") inmeta = 1
+          depth++; expect = 0; continue
+        }
+        if (c == "}" || c == "]") { depth--; if (depth < 2) inmeta = 0; expect = 0; continue }
+        if (c == ",") { expect = 0; continue }
+      }
+    }' "$TOKENS"
 }
 if [ "$MODE" = hash ]; then
-  [ -f "$2" ] || { echo "design-sync: 0 sources checked ($2 missing)" >&2; exit 1; }
+  [ -f "$2" ] || { echo "tokens-sync: 0 sources checked ($2 missing)" >&2; exit 1; }
   sync_hash "$2"
   exit 0
 fi
 if [ "$MODE" = sync ]; then
-  [ -f "$TOKENS" ] || { echo "design-sync: 0 sources checked ($TOKENS missing)" >&2; exit 1; }
+  [ -f "$TOKENS" ] || { echo "tokens-sync: 0 sources checked ($TOKENS missing)" >&2; exit 1; }
   was=$(meta_of sourceHash)
-  [ -n "$was" ] || { echo "design-sync: 0 sources checked (no meta.sourceHash in $TOKENS)" >&2; exit 1; }
+  [ -n "$was" ] || { echo "tokens-sync: 0 sources checked (no meta.sourceHash in $TOKENS)" >&2; exit 1; }
   kind=$(meta_of source)
   SOURCE="${DESIGN_SOURCE:-$(meta_of sourcePath)}"
   SOURCE="${SOURCE:-DESIGN.md}"
-  [ -f "$SOURCE" ] || { echo "design-sync: 0 sources checked ($SOURCE missing)" >&2; exit 1; }
+  [ -f "$SOURCE" ] || { echo "tokens-sync: 0 sources checked ($SOURCE missing)" >&2; exit 1; }
   now=$(sync_hash "$SOURCE")
   tj="${TOKENS##*/}"
   if [ "$now" != "$was" ]; then
-    echo "design-sync: 1 source checked, failed"
-    echo "design-sync: $SOURCE is $now, $tj was derived from $was; rerun design-system to re-derive the tokens"
+    echo "tokens-sync: 1 source checked, failed"
+    echo "tokens-sync: $SOURCE is $now, $tj was derived from $was; rerun design-system to re-derive the tokens"
     exit 1
   fi
   # The picked direction is the source only until DESIGN.md carries tokens
@@ -112,11 +140,11 @@ if [ "$MODE" = sync ]; then
       fm && /^---[ \t\r]*$/ { exit }
       fm && /^(colors|typography|rounded|spacing):/ { found = 1; exit }
       END { exit !found }' "$ROOTMD"; then
-    echo "design-sync: 1 source checked, failed"
-    echo "design-sync: $ROOTMD now carries frontmatter tokens; $tj was derived from $SOURCE; rerun design-system to re-derive the tokens from $ROOTMD"
+    echo "tokens-sync: 1 source checked, failed"
+    echo "tokens-sync: $ROOTMD now carries frontmatter tokens; $tj was derived from $SOURCE; rerun design-system to re-derive the tokens from $ROOTMD"
     exit 1
   fi
-  echo "design-sync: 1 source checked, $SOURCE matches $tj ($(printf '%.19s' "$now"))"
+  echo "tokens-sync: 1 source checked, $SOURCE matches $tj ($(printf '%.19s' "$now"))"
   exit 0
 fi
 

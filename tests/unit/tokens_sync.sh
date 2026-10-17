@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# tests/unit/design_sync.sh: the --hash and --sync modes of
+# tests/unit/tokens_sync.sh: the --hash and --sync modes of
 # plugins/bearing/skills/design-system/templates/design-lint.sh. design-system
 # derives docs/design/tokens.json from root DESIGN.md frontmatter tokens, else
 # from the picked direction in approved.json, and records the source's path and
@@ -14,7 +14,8 @@ LINT="$KIT/plugins/bearing/skills/design-system/templates/design-lint.sh"
 
 hex_of() { # the reference hash, by whichever tool this machine has
   if command -v sha256sum >/dev/null 2>&1; then sha256sum < "$1" | awk '{print $1}'
-  else shasum -a 256 < "$1" | awk '{print $1}'; fi
+  elif command -v shasum >/dev/null 2>&1; then shasum -a 256 < "$1" | awk '{print $1}'
+  else openssl dgst -sha256 -r < "$1" | awk '{print $1}'; fi
 }
 tokens() { # tokens <dir> <source> <path> <hash>: a tokens.json with that meta
   mkdir -p "$1/docs/design"
@@ -65,7 +66,7 @@ assert_eq "sha256:$(hex_of "$d/DESIGN.md")" "$T_OUT" "hash line"
 case "$T_OUT" in sha256:????????????????????????????????????????????????????????????????) ok=1 ;; *) ok=0 ;; esac
 assert_eq 1 "$ok" "sha256:<64 hex> shape"
 assert_exit 1 run "$d" sh "$LINT" --hash missing.md
-assert_contains "$T_OUT" "design-sync: 0 sources checked (missing.md missing)"
+assert_contains "$T_OUT" "tokens-sync: 0 sources checked (missing.md missing)"
 assert_exit 2 run "$d" sh "$LINT" --hash
 t_end
 
@@ -73,7 +74,7 @@ t_begin "tokens derived from this DESIGN.md pass with the count"
 d="$(repo)"
 h="$(hex_of "$d/DESIGN.md")"
 assert_exit 0 run "$d" sh "$LINT" --sync
-assert_contains "$T_OUT" "design-sync: 1 source checked, DESIGN.md matches tokens.json (sha256:$(printf '%s' "$h" | cut -c1-12))"
+assert_contains "$T_OUT" "tokens-sync: 1 source checked, DESIGN.md matches tokens.json (sha256:$(printf '%s' "$h" | cut -c1-12))"
 t_end
 
 t_begin "DESIGN.md changed after the tokens fails with both hashes"
@@ -82,21 +83,34 @@ old="$(hex_of "$d/DESIGN.md")"
 printf 'one more line\n' >> "$d/DESIGN.md"
 new="$(hex_of "$d/DESIGN.md")"
 assert_exit 1 run "$d" sh "$LINT" --sync
-assert_contains "$T_OUT" "design-sync: DESIGN.md is sha256:$new, tokens.json was derived from sha256:$old"
+assert_contains "$T_OUT" "tokens-sync: DESIGN.md is sha256:$new, tokens.json was derived from sha256:$old"
 assert_contains "$T_OUT" "rerun design-system to re-derive the tokens"
-assert_contains "$T_OUT" "design-sync: 1 source checked"
+assert_contains "$T_OUT" "tokens-sync: 1 source checked"
 t_end
 
 t_begin "no DESIGN.md, no tokens.json or no sourceHash fails on zero input"
 d="$(repo)"; rm "$d/DESIGN.md"
 assert_exit 1 run "$d" sh "$LINT" --sync
-assert_contains "$T_OUT" "design-sync: 0 sources checked (DESIGN.md missing)"
+assert_contains "$T_OUT" "tokens-sync: 0 sources checked (DESIGN.md missing)"
 d="$(repo)"; rm "$d/docs/design/tokens.json"
 assert_exit 1 run "$d" sh "$LINT" --sync
-assert_contains "$T_OUT" "design-sync: 0 sources checked (docs/design/tokens.json missing)"
+assert_contains "$T_OUT" "tokens-sync: 0 sources checked (docs/design/tokens.json missing)"
 d="$(repo)"; printf '{"meta": {"name": "x", "version": 1, "source": "brief"}}\n' > "$d/docs/design/tokens.json"
 assert_exit 1 run "$d" sh "$LINT" --sync
-assert_contains "$T_OUT" "design-sync: 0 sources checked (no meta.sourceHash in docs/design/tokens.json)"
+assert_contains "$T_OUT" "tokens-sync: 0 sources checked (no meta.sourceHash in docs/design/tokens.json)"
+t_end
+
+t_begin "only the top-level meta object is read, and --sync takes no argument"
+d="$(repo)"
+h="$(hex_of "$d/DESIGN.md")"
+printf '{"meta": {"name": "a \\" b", "version": 1, "source": "design-md", "sourcePath": "DESIGN.md", "sourceHash": "sha256:%s"}, "font": {"source": "approved-direction", "sourcePath": "nope.json", "sourceHash": "sha256:0"}, "z": {"meta": {"sourceHash": "sha256:1"}}}\n' "$h" > "$d/docs/design/tokens.json"
+assert_exit 0 run "$d" sh "$LINT" --sync
+assert_contains "$T_OUT" "tokens-sync: 1 source checked, DESIGN.md matches tokens.json"
+printf '{"font": {"sourceHash": "sha256:%s"}, "meta": {"name": "x", "version": 1, "source": "brief"}}\n' "$h" > "$d/docs/design/tokens.json"
+assert_exit 1 run "$d" sh "$LINT" --sync
+assert_contains "$T_OUT" "tokens-sync: 0 sources checked (no meta.sourceHash in docs/design/tokens.json)"
+assert_exit 2 run "$d" sh "$LINT" --sync extra
+assert_contains "$T_OUT" "usage: sh scripts/design-lint.sh"
 t_end
 
 t_begin "a symlinked docs/design/DESIGN.md hashes the root file it points to"
@@ -105,41 +119,41 @@ ln -s ../../DESIGN.md "$d/docs/design/DESIGN.md"
 assert_exit 0 run "$d" sh "$LINT" --hash docs/design/DESIGN.md
 assert_eq "sha256:$(hex_of "$d/DESIGN.md")" "$T_OUT" "link hash equals root hash"
 assert_exit 0 run "$d" DESIGN_SOURCE=docs/design/DESIGN.md sh "$LINT" --sync
-assert_contains "$T_OUT" "design-sync: 1 source checked, docs/design/DESIGN.md matches tokens.json"
+assert_contains "$T_OUT" "tokens-sync: 1 source checked, docs/design/DESIGN.md matches tokens.json"
 t_end
 
 t_begin "tokens from the picked direction check approved.json, and fail once DESIGN.md carries tokens"
 d="$(seeded)"
 assert_exit 0 run "$d" sh "$LINT" --sync
-assert_contains "$T_OUT" "design-sync: 1 source checked, docs/design/variants/invite/approved.json matches tokens.json"
+assert_contains "$T_OUT" "tokens-sync: 1 source checked, docs/design/variants/invite/approved.json matches tokens.json"
 printf -- '---\nname: Invite\ndescription: Invite a teammate\ncolors:\n  primary: "#1f4e79"\n---\n# Invite\n' > "$d/DESIGN.md"
 assert_exit 1 run "$d" sh "$LINT" --sync
-assert_contains "$T_OUT" "design-sync: DESIGN.md now carries frontmatter tokens; tokens.json was derived from docs/design/variants/invite/approved.json"
+assert_contains "$T_OUT" "tokens-sync: DESIGN.md now carries frontmatter tokens; tokens.json was derived from docs/design/variants/invite/approved.json"
 assert_contains "$T_OUT" "rerun design-system"
 d="$(seeded)"
 printf '{"round": 2}\n' > "$d/docs/design/variants/invite/approved.json"
 assert_exit 1 run "$d" sh "$LINT" --sync
-assert_contains "$T_OUT" "design-sync: docs/design/variants/invite/approved.json is sha256:"
+assert_contains "$T_OUT" "tokens-sync: docs/design/variants/invite/approved.json is sha256:"
 t_end
 
 t_begin "runs with sh and awk only (no bash, python3 or node)"
 d="$(repo)"
 mp="$(minimal_path sh awk sed cat head sha256sum shasum openssl)"
 assert_exit 0 run "$d" PATH="$mp" sh "$LINT" --sync
-assert_contains "$T_OUT" "design-sync: 1 source checked"
+assert_contains "$T_OUT" "tokens-sync: 1 source checked"
 for tool in shasum openssl; do
   if command -v "$tool" >/dev/null 2>&1; then
     mp="$(minimal_path sh awk sed cat head "$tool")"
     assert_exit 0 run "$d" PATH="$mp" sh "$LINT" --sync
-    assert_contains "$T_OUT" "design-sync: 1 source checked" "with $tool alone"
+    assert_contains "$T_OUT" "tokens-sync: 1 source checked" "with $tool alone"
   fi
 done
 mp="$(minimal_path sh awk sed cat head)"
 assert_exit 1 run "$d" PATH="$mp" sh "$LINT" --sync
-assert_contains "$T_OUT" "design-sync: no sha256 tool (sha256sum, shasum or openssl)"
+assert_contains "$T_OUT" "tokens-sync: no sha256 tool (sha256sum, shasum or openssl)"
 if command -v busybox >/dev/null 2>&1; then
   assert_exit 0 run "$d" busybox sh "$LINT" --sync
-  assert_contains "$T_OUT" "design-sync: 1 source checked"
+  assert_contains "$T_OUT" "tokens-sync: 1 source checked"
 fi
 t_end
 
@@ -161,12 +175,37 @@ assert_contains "$fm" "Bash(test:*)" "test grant"
 assert_contains "$fm" "Bash(ln -sf ../../DESIGN.md docs/design/DESIGN.md)" "reversed link grant"
 sk="$(cat "$S/SKILL.md")"
 assert_contains "$sk" 'design-lint.sh" --hash <sourcePath>' "step 6 hash"
-assert_contains "$sk" "sh scripts/design-lint.sh --sync" "design-sync target"
+assert_contains "$sk" "also add \`tokens-sync\`" "tokens-sync target"
+assert_contains "$sk" "sh scripts/design-lint.sh --sync" "tokens-sync command"
+assert_contains "$sk" "remove \`meta.sourcePath\`, \`meta.sourceHash\` and the \`tokens-sync\` target" "fallback drops the hash"
+assert_not_contains "$sk" "design-sync" "old target name"
 assert_contains "$sk" "ln -sf ../../DESIGN.md docs/design/DESIGN.md" "link reversed"
 assert_contains "$sk" "test -e DESIGN.md" "root never clobbered"
 ref="$(cat "$KIT/plugins/bearing/references/impeccable.md")"
 assert_contains "$ref" "only when \`test -e DESIGN.md\`" "design-directions restore guarded"
 assert_contains "$ref" "Scan stopped or failed before writing" "scan branch restores the link"
+t_end
+
+t_begin "only the unfilled guide template is replaced by the link; a filled guide stays"
+S="$KIT/plugins/bearing/skills/design-system"
+sk="$(cat "$S/SKILL.md")"
+ref="$(cat "$KIT/plugins/bearing/references/impeccable.md")"
+for text in "$sk" "$ref"; do
+  assert_contains "$text" "<!-- Template guidance" "template marker"
+  assert_contains "$text" "(v<version>)" "version marker"
+  assert_contains "$text" "never replaced, moved or deleted" "filled guide kept"
+  assert_not_contains "$text" "starts \`Tokens live in\`" "old marker"
+done
+# The markers tell the template from a filled guide: the template holds both,
+# and a guide filled as the template says (comments deleted, version written)
+# holds neither, though it keeps the "Tokens live in" line.
+tpl="$S/templates/DESIGN.md"
+marks() { grep -c -e '<!-- Template guidance' -e '(v<version>)' "$1" || true; }
+assert_eq 2 "$(marks "$tpl")" "unfilled template carries both markers"
+d="$(tmpdir)"
+awk '/<!--/ { c = 1 } !c { print } /-->/ { c = 0 }' "$tpl" | sed 's/(v<version>)/(v3)/; s/<Product>/Invite/' > "$d/filled.md"
+assert_eq 0 "$(marks "$d/filled.md")" "filled guide carries neither marker"
+assert_contains "$(cat "$d/filled.md")" "Tokens live in" "filled guide keeps the old marker line"
 t_end
 
 t_summary

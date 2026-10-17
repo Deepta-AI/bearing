@@ -35,8 +35,8 @@ every state in both themes, generated from the tokens.
 
 Match the output to the request. "Set up the design system" is the full procedure below.
 "Turn DESIGN.md into tokens and hook the app up" is steps 1 to 7 and the report; "add a
-check for hardcoded styles" is the lint section alone. The contract, the page and the
-guide are offered in the report when they were not asked for, not produced.
+check for hardcoded styles" is the lint section alone. The contract, the page, the
+guide and its step 8 link are offered in the report when not asked for, not produced.
 
 The direction is someone's agreement (a client, a brand owner). Never rewrite it, move
 it or replace it with a symlink. Where it cannot be met as written (a pair that fails
@@ -112,7 +112,7 @@ name each answer in the report:
    roles named). From a token source, set `meta.source` (`design-md` |
    `approved-direction`), `meta.sourcePath` and `meta.sourceHash`, the line
    `sh "${CLAUDE_PLUGIN_ROOT}/skills/design-system/templates/design-lint.sh" --hash <sourcePath>`
-   prints. Measure:
+   prints; from any other source, remove `meta.sourcePath`, `meta.sourceHash` and the `tokens-sync` target. Measure:
    `python3 "${CLAUDE_PLUGIN_ROOT}/skills/design-system/scripts/contrast.py" --tokens docs/design/tokens.json --strict-hex`.
    Its count line is the report's contrast line, verbatim; zero pairs
    checked is a failure; a failed pair goes back to step 4. Then measure
@@ -137,9 +137,9 @@ name each answer in the report:
    `index.css` is written by hand from `tokens.json` (no generator writes shadcn's names yet); compare its roles
    with `tokens.css` after each change. From a token source, write no guide and never the
    root `DESIGN.md`: when root `DESIGN.md` is a file (`test -f DESIGN.md` passes,
-   `test -L DESIGN.md` fails) and `docs/design/DESIGN.md` is absent or still Bearing's
-   guide (a line starts `Tokens live in`), `ln -sf ../../DESIGN.md docs/design/DESIGN.md`;
-   any other state stays as it is, under Noticed. Without a token source, write the guide
+   `test -L DESIGN.md` fails) and `docs/design/DESIGN.md` is absent or the unfilled template
+   (it holds `<!-- Template guidance` or `(v<version>)`), `ln -sf ../../DESIGN.md docs/design/DESIGN.md`;
+   a filled guide is never replaced, moved or deleted: it and any other state stay, under Noticed. Without a token source, write the guide
    from `templates/DESIGN.md`, linking to the direction; `ln -s docs/design/DESIGN.md DESIGN.md`
    only when `test -e DESIGN.md` and `test -L DESIGN.md` both fail, else the root stays.
 9. The lint (next section) and `make check`.
@@ -148,8 +148,8 @@ name each answer in the report:
 
 Install `templates/design-lint.sh` as `scripts/design-lint.sh` (POSIX sh and awk: runs
 on alpine, busybox and macOS without bash, python3 or node) and add `design-lint` under
-`check` in the Makefile. With `meta.sourceHash` in the tokens, also add `design-sync`
-under `check`: `sh scripts/design-lint.sh --sync`. Detail: references/lint.md
+`check` in the Makefile. With `meta.sourceHash` in the tokens, also add `tokens-sync`
+under `check` (`sh scripts/design-lint.sh --sync`), removed without it. Detail: references/lint.md
 1. Gate only what was asked: set `DESIGN_LINT_RULES` in the Makefile (colour, spacing,
    font-size, shadow, raw, family); a rule nobody agreed to fails someone's next merge
    request, so the others are offered in the report. Set `DESIGN_SPACE_SCALE` and
@@ -178,7 +178,7 @@ direction: <source>; token source: <design-md | approved-direction> <path> | non
 dark switch: <what toggles> = <CSS selector> = <framework variant>
 contrast: <contrast.py count line, verbatim>; extra pairs: <hover, link on card, ring> <ratios>
 proposals for the direction's owner: <each change with measured before and after>
-design-sync: <count line, verbatim> | not installed (no token source)
+tokens-sync: <count line, verbatim> | not installed (no token source)
 design-lint: <count line, verbatim>; baseline <n> keys; new-literal proof: failed as expected | not run
 gate: make check: passed | failed (<target>) | no Makefile
 not run: <build, device on the browser floor, CI pipeline> (say which; never claim them)
