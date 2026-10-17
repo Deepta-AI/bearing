@@ -2,7 +2,7 @@
 name: harness-setup
 description: 'Sets up a repository for another coding agent (Cursor, Codex, Gemini CLI, Copilot, OpenCode, Windsurf, Cline, Zed, Kiro): rules, hooks, skills. Use when asked to "set up Cursor" or "use this with Codex".'
 argument-hint: "<cursor|codex|gemini|copilot|opencode|windsurf|cline|zed|kiro|all> [--no-skills]"
-allowed-tools: Read, Grep, Glob, Edit, Write, Bash(bash *bin/brg-harness *), Bash(python3 *scripts/harness_check.py *), Bash(ls:*), Bash(git remote:*), Bash(git status:*), Bash(git diff:*), Bash(git check-ignore:*), Bash(git config --get:*), Bash(git ls-files:*), Bash(chmod +x:*), Bash(make -n:*), Bash(make check:*), Bash(wc:*), Bash(diff:*)
+allowed-tools: Read, Grep, Glob, Edit, Write, AskUserQuestion, Bash(bash *bin/brg-harness *), Bash(python3 *scripts/harness_check.py *), Bash(ls:*), Bash(git remote:*), Bash(git status:*), Bash(git diff:*), Bash(git check-ignore:*), Bash(git config --get:*), Bash(git ls-files:*), Bash(chmod +x:*), Bash(make -n:*), Bash(make check:*), Bash(wc:*), Bash(diff:*)
 ---
 
 # harness-setup
@@ -19,10 +19,10 @@ agent to push. This skill closes them.
 
 ## Inputs
 
-- Harness name: from `$1`; if absent, ask one question listing the ids.
+- Harness name: from `$1`; if absent, ask with AskUserQuestion as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says (one option per id, the four likeliest, the rest via Other).
 - The repository: the current git repository.
-- The kit's git URL for skill installation: `git -C <kit> remote get-url
-  origin`; if absent, or the network is not available, use `--no-skills`
+- The kit's git URL for skill installation: `git -C <kit> remote get-url origin`;
+  if absent, or the network is not available, use `--no-skills`
   and print the install command for the user.
 - `references/harness-matrix.md`: what each harness supports and loses;
   read it before promising a feature.
@@ -141,7 +141,7 @@ not exercised: <real <harness> session, skill install if skipped>
 - Hook formats change between releases; if a harness renames its command
   key every shell command is refused with "could not read the command".
   Fix the key, never loosen the guard. Harnesses on the `unverified:` line
-  have been checked against recorded fixtures only: ask the user to try one
+  have been checked against recorded fixtures only: tell the user to try one
   blocked command (`git push --dry-run`) in the real tool.
 - A Zed setup has no hooks by design: the settings deny list and the git
   pre-push confirmation are the enforcement.

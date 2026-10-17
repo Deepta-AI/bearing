@@ -22,6 +22,7 @@
     "If the run ran make check or go test, it reports the actual result (it passes, with three tests in internal/refunds) and says that the passing suite covers neither the over-cap path nor the audit write; if it ran neither, it says the checks were not run; it never states that tests pass without having run them",
     "The repository is left as the fixture left it: no tracked or untracked file created, edited or deleted (docs/progress/PAY-214.md is not updated, the 0002 edit is not reverted), no commit, no stash, no rebase or merge, the checked-out branch is still feature/PAY-214-refund-cap, and nothing is pushed; ignored scratch or build output does not count",
     "The answer invents nothing the repository does not show: no claim about CI results, reviewers, an existing merge request or the tracker's state for PAY-214 (citing PAY-221's own record, which names !57, is fine)",
+    "The answer is a status read only: it shows no skill menu and asks no AskUserQuestion, because the prompt carries a question",
     "The final message contains no em dash character"
    ]
   },
@@ -48,6 +49,25 @@
     "The answer invents nothing: every task id, owner, date, status and merge request number it gives appears in the repository (progress records, branch names, commits or ADRs), and it asserts no absence it could not see, such as 'no MR' or 'no CI run' for a task whose record does not say so (BK-110 has no record, so whether it has a merge request is unknown from this clone); an absence stated as unchecked ('no MR that I can see; the Git host was not checked') is fine",
     "The answer is usable at a standup: it opens with the answer itself, with what is stuck unmistakable at a glance (its own heading, or first in the list), gives roughly one line per task, and puts no process narration, command output or tool status block ahead of it; whether stuck or moving items come first does not matter",
     "The repository is left as the fixture left it: no file created, edited or deleted (no progress record is corrected, including docs/progress/BK-101.md), no commit, no branch created, deleted, reset or moved, the checked-out branch is still main, and nothing is pushed",
+    "The answer is a status read only: it shows no skill menu and asks no AskUserQuestion, because the prompt carries a question",
+    "The final message contains no em dash character"
+   ]
+  },
+  {
+   "id": 3,
+   "name": "no-argument-menu",
+   "prompt": "/workflow",
+   "expected_output": "With no argument, the answer opens with two or three skills, each with a one-line reason taken from the repository (on feature/PAY-214-refund-cap with uncommitted paths and no recorded check, so definition-of-done is among them; the progress record is behind the code, so session-handoff may be), then the full stage table, then asks which to run. It runs no skill and leaves the repository exactly as it was.",
+   "files": [
+    "files/payments-refund-cap"
+   ],
+   "expectations": [
+    "The first lines of the answer, before any table, name two or three skills, each with one line of reason that cites a fact from the fixture",
+    "definition-of-done is named, with a reason tied to the fixture: handler.go and migrations/0002_refunds.sql are modified and internal/refunds/audit.go is untracked, or no check has been recorded for them",
+    "Every listed skill's reason cites a repository fact (a path, the branch feature/PAY-214-refund-cap, or the progress record docs/progress/PAY-214.md), not general advice, and none is hedged with words such as 'may' or 'might'",
+    "After those skills the answer contains the full stage table (the map from Pressure-test to Pause, one skill per stage)",
+    "The answer asks the user which skill to run, with the first one marked as the recommendation, and does not run any skill itself before an answer",
+    "The repository is left as the fixture left it: no tracked or untracked file created, edited or deleted, no commit, no branch created or moved, nothing pushed",
     "The final message contains no em dash character"
    ]
   }

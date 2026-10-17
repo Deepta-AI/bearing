@@ -2,7 +2,7 @@
 name: ci-pipeline
 description: 'Generates or refreshes the CI pipeline for the stack (GitLab CI, GitHub Actions or both), every job a make target, deploys manual. Use when asked to "add CI", "set up the pipeline", "fix the pipeline" or "add a CI job".'
 argument-hint: "[--stack <id>] [--host gitlab|github|both] [--refresh]"
-allowed-tools: Read, Write, Edit, Grep, Glob, Skill, Bash(ls:*), Bash(git status:*), Bash(git diff:*), Bash(git remote:*), Bash(python3 -c:*), Bash(make -n:*), Bash(bash *bin/brg-kit-paths*)
+allowed-tools: Read, Write, Edit, Grep, Glob, Skill, Bash(ls:*), Bash(git status:*), Bash(git diff:*), Bash(git remote:*), Bash(python3 -c:*), Bash(make -n:*), Bash(bash *bin/brg-kit-paths*), AskUserQuestion, Bash(bash *bin/brg-config*)
 ---
 
 # ci-pipeline
@@ -20,7 +20,7 @@ the plugin root, so they are present whenever this skill runs.
   (react-web), `expo` (react-native) or `fastify` (node-api),
   `pubspec.yaml` (flutter-app), `build.gradle.kts` (android),
   `Package.swift` or `*.xcodeproj` (ios), `*.tf` (infra); more than one
-  match or none: ask one question.
+  match: ask each run with AskUserQuestion (as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says), one option per matching stack, and record nothing; none matched: `brg-config get stack.<slug>` (slug is the directory path with `/` replaced by `-`, the root written as `root`), used only while detection for that directory still finds nothing, else ask once with AskUserQuestion, options "enter the stack" (the answer comes as free text via Other) and "stop", and record it with `brg-config set stack.<slug> <value>`.
 - host: `--host gitlab|github|both`; if absent, `BEARING_GIT_HOST` from the
   environment or `~/.config/bearing/bearing.env`; if absent, from
   `git remote get-url origin` (`github.com` is github, a url containing

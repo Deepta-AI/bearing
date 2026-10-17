@@ -19,6 +19,11 @@ a script path:
     start of a command by Read; ls and find at the start by Glob. A generic
     mention (`mkdir -p`) is met by a narrower grant (Bash(mkdir -p .bearing:*)).
 
+Each skill's references/*.md files are scanned in full (no frontmatter, any
+heading) against the same SKILL.md grants. A line outside a fenced block with an
+odd number of backticks is a code span wrapped across lines, which this lint
+cannot see, and is a finding.
+
 Usage: lint-skill-tools.py [skills-dir] [allow-file]
 
 Prints one line per ungranted command and a count; exits 1 on any finding,
@@ -120,21 +125,56 @@ def bash_patterns(tools):
     return out
 
 
-def section_lines(body):
+def section_lines(body, whole=False):
     cur = None
     for i, line in enumerate(body.split("\n"), 1):
         h = re.match(r"^## (.+?)\s*$", line)
         if h:
             cur = h.group(1)
-            continue
-        if cur in SECTIONS:
+            if not whole:
+                continue
+        if whole or cur in SECTIONS:
             yield i, line
 
 
-def commands_in(body):
-    """(lineno, command) for each candidate command in the scanned sections."""
+def wrapped_spans(text):
+    """Line where each code span opens that does not close on that line.
+
+    Backtick runs are matched by length (a span opened by two backticks ends at
+    the next run of two), outside ``` and ~~~ fenced blocks. A blank line ends
+    a paragraph, so an unclosed span is reported once, at its opening line."""
+    fence, opened, start, out = "", 0, 0, []
+    for i, line in enumerate(text.split("\n"), 1):
+        f = re.match(r"^\s*(```|~~~)", line)
+        if f:
+            if not fence:
+                fence = f.group(1)
+            elif fence == f.group(1):
+                fence = ""
+            continue
+        if fence:
+            continue
+        if not line.strip():
+            opened = 0
+            continue
+        for m in re.finditer(r"`+", line):
+            n = len(m.group(0))
+            if not opened:
+                opened, start = n, i
+            elif n == opened:
+                opened = 0
+        if opened and not out[-1:] == [start]:
+            out.append(start)
+    return out
+
+
+def commands_in(body, whole=False):
+    """(lineno, command) for each candidate command in the scanned sections.
+
+    A reference file has no Inputs/Steps/Commands layout, so whole=True scans
+    every line of it."""
     fence, lang = False, ""
-    for i, line in section_lines(body):
+    for i, line in section_lines(body, whole):
         f = re.match(r"^\s*```(\S*)", line)
         if f:
             fence = not fence
@@ -262,44 +302,60 @@ def main():
         for d in os.listdir(sd)
         if os.path.isfile(os.path.join(sd, d, "SKILL.md"))
     )
-    n_skills = n_cmds = n_exempt = 0
+    n_skills = n_refs = n_cmds = n_exempt = 0
     findings = []
     for name, sdir in found:
-        text = open(os.path.join(sdir, "SKILL.md"), encoding="utf-8").read()
+        skill_md = os.path.join(sdir, "SKILL.md")
+        text = open(skill_md, encoding="utf-8").read()
         fm, body = frontmatter(text)
+        offset = fm.count("\n") + 3 if fm else 0
+        files = [(skill_md, body, offset, False)]
+        refdir = os.path.join(sdir, "references")
+        if os.path.isdir(refdir):
+            for rf in sorted(os.listdir(refdir)):
+                if rf.endswith(".md"):
+                    rp = os.path.join(refdir, rf)
+                    files.append((rp, open(rp, encoding="utf-8").read(), 0, True))
+        for path, content, off, is_ref in files:
+            rel = os.path.relpath(path, ROOT)
+            n_refs += is_ref
+            for ln in wrapped_spans(content):
+                findings.append(f"{rel}:{ln + off}: code span wrapped across lines")
         tools = allowed_tools(fm)
         if tools is None:
             continue  # no allowed-tools: the normal permission flow applies
         n_skills += 1
         patterns = bash_patterns(tools)
-        offset = fm.count("\n") + 3
         seen = set()
-        for lineno, cmd in commands_in(body):
-            for raw, piped in segments(cmd):
-                seg = normalise(raw)
-                prog = program_of(seg)
-                if prog is None:
-                    continue
-                n_cmds += 1
-                if granted(seg, prog, piped, tools, patterns):
-                    continue
-                hit = next(
-                    (a for a in allow if a[0] == name and seg.startswith(a[1])), None
-                )
-                if hit:
-                    used.add(hit)
-                    n_exempt += 1
-                    continue
-                if guard_blocks(raw):
-                    n_exempt += 1
-                    continue
-                key = " ".join(seg.split()[:2])
-                if key in seen:
-                    continue
-                seen.add(key)
-                findings.append(
-                    f"{os.path.relpath(os.path.join(sdir, 'SKILL.md'), ROOT)}:{lineno + offset}: `{raw}` is not granted by allowed-tools"
-                )
+        for path, content, off, is_ref in files:
+            rel = os.path.relpath(path, ROOT)
+            for lineno, cmd in commands_in(content, whole=is_ref):
+                for raw, piped in segments(cmd):
+                    seg = normalise(raw)
+                    prog = program_of(seg)
+                    if prog is None:
+                        continue
+                    n_cmds += 1
+                    if granted(seg, prog, piped, tools, patterns):
+                        continue
+                    hit = next(
+                        (a for a in allow if a[0] == name and seg.startswith(a[1])),
+                        None,
+                    )
+                    if hit:
+                        used.add(hit)
+                        n_exempt += 1
+                        continue
+                    if guard_blocks(raw):
+                        n_exempt += 1
+                        continue
+                    key = (rel, " ".join(seg.split()[:2]))
+                    if key in seen:
+                        continue
+                    seen.add(key)
+                    findings.append(
+                        f"{rel}:{lineno + off}: `{raw}` is not granted by allowed-tools"
+                    )
     for a in allow:
         if a not in used:
             findings.append(
@@ -309,12 +365,12 @@ def main():
         print(f)
     if n_skills == 0 or n_cmds == 0:
         print(
-            f"lint-tools: {n_skills} skills, {n_cmds} commands examined, nothing checked",
+            f"lint-tools: {n_skills} skills, {n_refs} reference files, {n_cmds} commands examined, nothing checked",
             file=sys.stderr,
         )
         return 1
     print(
-        f"lint-tools: {n_skills} skills, {n_cmds} commands examined, "
+        f"lint-tools: {n_skills} skills, {n_refs} reference files, {n_cmds} commands examined, "
         f"{n_exempt} exempt (engineer-only), {len(findings)} problems"
     )
     return 1 if findings else 0

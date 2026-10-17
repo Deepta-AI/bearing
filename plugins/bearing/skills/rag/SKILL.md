@@ -69,10 +69,10 @@ ${CLAUDE_PLUGIN_ROOT}/skills/tech-decision/references/decision-protocol.md.
    version; the old chunks are hidden from retrieval, then deleted by a
    job. Metadata (title, section, page, tenant, updated_at) travels
    with every chunk. `make ingest` runs it when a Makefile exists, else
-   the native command (`uv run python -m <pkg>.ingest` or `npm run
-   ingest`); log documents, chunks, skipped, failed.
-6. Retrieval API from `templates/retriever.md`: `retrieve(query, k,
-   filters) -> [Hit]`, every `Hit` carrying `document_id`, `chunk_id`,
+   the native command (`uv run python -m <pkg>.ingest` or `npm run ingest`);
+   log documents, chunks, skipped, failed.
+6. Retrieval API from `templates/retriever.md`: `retrieve(query, k, filters) -> [Hit]`,
+   every `Hit` carrying `document_id`, `chunk_id`,
    `span`, `score`, `source_uri`. Hybrid fuses BM25 and vector ranks
    with reciprocal rank fusion (`k=60`); reranked adds a cross-encoder
    or a `claude-haiku-4-5` pointwise judge over the top 20; agentic

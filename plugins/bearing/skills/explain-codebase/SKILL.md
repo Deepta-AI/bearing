@@ -108,7 +108,7 @@ Side effects: <call path:line> <caught, retried, marked done when; unknown-outco
 Dead-end states: <state>: <nothing moves it | path:line> | none
 Claims vs code: <claim doc:line> | <code path:line> | match|drift
 Change X: <path:line> <operator> <old> -> <new in its unit> (tests: <fn> fails | <fn> stops exercising); ...
-  Not read: <config key>; Already stored: <what happens>; Ask: <boundary question> | not asked
+  Not read: <config key>; Already stored: <what happens>; Question for the user: <boundary question> | not asked
 Risks (read, not run): <path:line> <what goes wrong>; ... | none
 Unconfirmed: <only what the code cannot settle> | none
 ```

@@ -7,19 +7,15 @@ allowed-tools: Read, Grep, Glob, Skill, Agent, Bash(git diff:*), Bash(git log:*)
 
 # branch-review
 
-The engine finds; a verifier who never saw the engine's reasoning
-confirms. gstack `/review` (specialist reviewers in parallel, an
-adversarial pass, a confidence gate) is the engine whenever it is
-installed. This skill adds what this standard needs around it:
-the stack checklists applied item by item, an independent verifier on
-every Critical and High, the project's own check run against the change
-without touching the tree, and a merge verdict.
+The engine finds; a verifier who never saw the engine's reasoning confirms.
+gstack `/review` is the engine whenever it is installed. This skill adds the
+stack checklists applied item by item, an independent verifier on every
+Critical and High, the project's own check run against the change without
+touching the tree, and a merge verdict.
 
-Not this: the official `/code-review` scores findings on a GitHub PR with
-several reviewers and posts an attribution line; `gsd-code-review`
-reviews a GSD phase. Running gstack `/review` directly also picks up the
-checklists (the session start lists them) but skips the independent
-verification.
+Not this: the official `/code-review` (GitHub PR scoring, posts an attribution
+line) and `gsd-code-review` (a GSD phase). Running gstack `/review` directly
+skips the independent verification. Detail: references/engine-and-scope.md
 
 ## Inputs
 
@@ -36,31 +32,31 @@ verification.
   Not a git repository: one question for a diff file or a path. Nothing
   to review: stop with "provide a commit range, a diff file or a path".
 - Checklists: `bash "${CLAUDE_PLUGIN_ROOT}/bin/brg-checklists" --range <range>`
-  prints the universal checklist and one per stack the diff touches
-  (react, nextjs, react-native, node, go, python, data-pipeline, android, ios,
-  flutter, infra, database). For a patch file or a path, pick the
-  checklists by the stacks of the files it touches. If the plugin root
-  is unknown, the universal checklist at `references/universal-checklist.md`
-  stands in and the report says "universal checklist only".
+  prints the universal checklist and one per stack the diff touches (react,
+  nextjs, react-native, node, go, python, data-pipeline, android, ios, flutter,
+  infra, database). For a patch file or a path, pick the checklists by the
+  stacks of the files it touches. If the plugin root is unknown, the universal
+  checklist at `references/universal-checklist.md` stands in and the report
+  says "universal checklist only".
 - Engine: `--engine`; if absent, `gstack` when
   `~/.claude/skills/gstack/review/SKILL.md` exists, else `bearing` (the
   `reviewer` agent, which has Read, Grep and Glob and no shell).
-- Collected change: `.scratch/review/<slug>/`, written by step 2 before
-  any agent runs, where `<slug>` is the range, patch name or path with
-  every character outside `A-Za-z0-9._` turned into `-`. The agents have
-  no shell, so this folder is how they see the change.
-- Project check: the make target the README, Makefile or CONTRIBUTING
-  names (check, test); none named means "not run: no check
-  command in the repository".
-- Merge rules: `AGENTS.md`, `CONTRIBUTING.md` and the ADRs the change
-  touches; commit conventions from the same files, else the universal
-  items (Conventional Commits, a task id, no AI trailer).
+- Collected change: `.scratch/review/<slug>/`, written by step 2 before any
+  agent runs, where `<slug>` is the range, patch name or path with every
+  character outside `A-Za-z0-9._` turned into `-`. The agents have no shell, so
+  this folder is how they see the change.
+- Project check: the make target the README, Makefile or CONTRIBUTING names
+  (check, test); none named means "not run: no check command in the
+  repository".
+- Merge rules: `AGENTS.md`, `CONTRIBUTING.md` and the ADRs the change touches;
+  commit conventions from the same files, else the universal items
+  (Conventional Commits, a task id, no AI trailer).
 
 ## Steps
 
 1. Resolve the target as in Inputs. For a range or patch,
-   `git diff --stat <range>` or `git apply --check --stat <patch>`; zero
-   files means stop with "0 files in diff, nothing to review".
+   `git diff --stat <range>` or `git apply --check --stat <patch>`; zero files
+   means stop with "0 files in diff, nothing to review".
 2. Collect the change for the agents, with this skill's own git grants:
    `mkdir -p .scratch/review/<slug>`, then for a range
    `git diff --output=.scratch/review/<slug>/diff.patch <range>`,
@@ -69,30 +65,25 @@ verification.
    and `git log --format='%h %s' --output=.scratch/review/<slug>/log.txt <range>`.
    A patch file or path is passed as is. Resolve the checklists and
    print their counts line.
-3. Run the project check against the change in a throwaway copy, so
-   the working tree, the branches and the worktree list end exactly as
-   they began: `mkdir -p .scratch/review/<slug>/tree`, then
-   `git archive <rev> | tar -x -C .scratch/review/<slug>/tree`, where
-   `<rev>` is the head of the range, `HEAD` for a patch or a path, or
-   the base when the range includes the working tree; then, for a patch
-   or that working-tree range,
-   `git apply --directory=.scratch/review/<slug>/tree <patch or diff.patch>`;
-   then make the copy its own repository, because gates that list files
-   through git would otherwise find the enclosing repository
-   (the copy sits under its ignored `.scratch/`) and check zero files:
-   `git init -q .scratch/review/<slug>/tree` (the files stay untracked,
-   and a file list of cached plus untracked files sees them). Dependencies git does not
-   hold are linked, never installed or copied: for a Node project
-   `ln -s "$PWD/node_modules" .scratch/review/<slug>/tree/node_modules`
-   (the lockfile must be unchanged in the range; when it changed, the
-   check is "not run: dependencies changed in the range").
-   Then `make -C .scratch/review/<slug>/tree <target>`. Record the
-   command and its counts line. Keep the copy until step 6 has used it
-   (a failing input can be tried there), then
-   `rm -rf .scratch/review/<slug>/tree`. A check that needs what git
-   does not hold and cannot be linked (a database, a service) is "not
-   run" with the reason. Never test a change with git am, a new worktree, a new branch,
-   a stash, or git apply into the working tree.
+3. Run the project check against the change in a throwaway copy, so the
+   working tree, the branches and the worktree list end exactly as they began:
+   `mkdir -p .scratch/review/<slug>/tree`, then
+   `git archive <rev> | tar -x -C .scratch/review/<slug>/tree`, where `<rev>` is
+   the head of the range, `HEAD` for a patch or a path, or the base when the
+   range includes the working tree; then, for a patch or that working-tree
+   range, `git apply --directory=.scratch/review/<slug>/tree <patch or diff.patch>`;
+   then make the copy its own repository, so gates that list files through git
+   do not find the enclosing repository and check zero files:
+   `git init -q .scratch/review/<slug>/tree`. Dependencies git does not hold are
+   linked, never installed or copied: for a Node project
+   `ln -s "$PWD/node_modules" .scratch/review/<slug>/tree/node_modules` (when the
+   lockfile changed in the range, the check is "not run: dependencies changed in
+   the range"). Then `make -C .scratch/review/<slug>/tree <target>`. Record the
+   command and its counts line. Keep the copy until step 6 has used it, then
+   `rm -rf .scratch/review/<slug>/tree`. A check that needs what git does not
+   hold and cannot be linked (a database, a service) is "not run" with the
+   reason. Never test a change with git am, a new worktree, a new branch, a
+   stash, or git apply into the working tree. Detail: references/throwaway-copy-and-probes.md
 4. Run the engine.
    - gstack: invoke the `review` skill (Skill tool) with this as its
      argument: "Base: <base of the range>. The change is exactly the
@@ -105,68 +96,50 @@ verification.
      Keep its findings as reported, with its severity mapped: CRITICAL
      to Critical or High by its own wording, INFORMATIONAL with
      confidence 7 or more to Medium, the rest to Low.
-   - Bearing: fork `reviewer` (Agent tool) with the target, the
-     paths under `.scratch/review/<slug>/`, the merge rules and the
-     checklist paths.
-   Then hold the change to its own claims: the commit message, the docs
-   it edits and the ADRs it touches. A claim the code does not keep is
-   a finding.
-   Then read past the diff yourself; the engine and the agents mostly
-   read what changed, and the costliest bugs of a change sit in lines it
-   did not touch. For every table, column, function, setting and
-   external call the change adds or alters:
-   - who else reads or writes it (Grep the name across the repository,
-     including scripts, cron, reports and jobs), and whether each one
-     is still right with the change in place;
-   - whether the repository already models the concept the change
-     introduces (an existing column, helper, status or doc rule) that
-     the change bypasses or leaves stale;
-   - the invariant a reader would state in one sentence ("stock never
-     goes below zero", "a coupon is redeemed once") and the sequence of
-     normal calls, not only one call, that breaks it;
-   - the states the operation is allowed from, and what happens on each
-     failure after a side effect (commit, external call, message);
-   - defaults and absent inputs: a missing header, env var or field that
-     makes a check fail open;
-   - windows, TTLs, retries and limits compared across components and
-     documents, with the numbers computed from the code (a constant's
-     name and comment are not its value; `15 * 60 * 1000` in a field read
-     as seconds is 10 days);
-   - messages and callbacks that arrive twice, together, late or out of
-     order, where the code assumes once and in order.
-   A finding from this pass goes to step 5 like any other.
+   - Bearing: fork `reviewer` (Agent tool) with the target, the paths under
+     `.scratch/review/<slug>/`, the merge rules and the checklist paths.
+   Then hold the change to its own claims: the commit message, the docs it
+   edits and the ADRs it touches. A claim the code does not keep is a finding.
+   Then read past the diff yourself; the engine and the agents mostly read what
+   changed, and the costliest bugs sit in lines the change did not touch. For
+   every table, column, function, setting and external call the change adds or
+   alters: who else reads or writes it (Grep the name across the repository,
+   including scripts, cron, reports and jobs); whether the repository already
+   models the concept; the invariant a reader would state in one sentence and
+   the sequence of normal calls that breaks it; the states the operation is
+   allowed from and what happens on each failure after a side effect; defaults
+   and absent inputs that make a check fail open; windows, TTLs, retries and
+   limits with the numbers computed from the code (a constant's name and comment
+   are not its value); and messages that arrive
+   twice, together, late or out of order. A finding from this pass goes to
+   step 5 like any other. Detail: references/read-past-the-diff.md
 5. Independent verification. For every open Critical and High, fork one
-   `verifier` (Agent tool), all in one message so they run in
-   parallel, at most 12; beyond that, the 12 most severe are verified and
-   the rest listed as "not verified". Each verifier gets only the
-   `path:line`, the one-sentence claim, the failure scenario and the path
-   of `.scratch/review/<slug>/diff.patch` (or the path under review);
-   never the engine's reasoning, its confidence or the other findings.
-6. Reproduce what you can. For each confirmed Critical and High,
-   when the throwaway copy from step 3 runs, write a short probe under
-   `.scratch/review/<slug>/` that drives the failure through the public
-   entry point (the handler, the CLI, the endpoint function) with the
-   repository's own fixtures or seed data, and run it against the copy
-   (`python3 .scratch/review/<slug>/probe.py`, the probe putting `tree/`
-   first on its import path; or the stack's equivalent). Record the output line that shows the failure.
-   A probe that does not fail sends the finding back to Questions. Then
-   merge the verdicts. CONFIRMED stays at the verifier's severity.
-   REFUTED moves to "Dropped" with the verifier's quoted defence.
-   UNCERTAIN moves to "Questions". Medium and Low stay as the engine
-   reported them, marked unverified. For each confirmed finding, say
-   whether the project check from step 3 passes with it present; a
-   suite that passes with a blocking bug is itself a finding (name the
-   test that looks as if it covers the case and why it cannot fail:
-   a boundary value far from the threshold, one call where the bug
-   needs two, a principal who can never be refused).
-   Calibrate severity against the deployment the repository describes:
-   a race that one single-threaded writer (an ADR says so) cannot hit is
-   not blocking; the same money bug reached by two ordinary sequential
-   calls is.
-7. Check the commits in the range (for a patch file, its Subject line)
-   against the conventions. Decide the
-   verdict: any confirmed Critical or High, or a merge rule broken,
-   means not ready. Print the contract.
+   `verifier` (Agent tool), all in one message so they run in parallel, at most
+   12; beyond that, the 12 most severe are verified and the rest listed as "not
+   verified". Pass model: "opus" on the Agent call for a Critical finding; High
+   findings use the agent's default. Each verifier gets only the `path:line`,
+   the one-sentence claim, the failure scenario and the path of
+   `.scratch/review/<slug>/diff.patch` (or the path under review); never the
+   engine's reasoning, its confidence or the other findings.
+6. Reproduce what you can. For each confirmed Critical and High, when the
+   throwaway copy from step 3 runs, write a short probe under
+   `.scratch/review/<slug>/` that drives the failure through the public entry
+   point with the repository's own fixtures, and run it against the copy
+   (`python3 .scratch/review/<slug>/probe.py`, the probe putting `tree/` first
+   on its import path); record the output line that shows the failure. A probe
+   that does not fail sends the finding back to Questions. Then merge the
+   verdicts: CONFIRMED stays at the verifier's severity, REFUTED moves to
+   "Dropped" with the verifier's quoted defence, UNCERTAIN moves to "Questions";
+   Medium and Low stay as the engine reported them, marked unverified. For each
+   confirmed finding, say whether the project check from step 3 passes with it
+   present; a suite that passes with a blocking bug is itself a finding (name
+   the test that looks as if it covers the case and why it cannot fail).
+   Calibrate severity against the deployment the repository describes: a race
+   that a single-threaded writer (an ADR says so) cannot hit is not blocking; the same money bug reached by two ordinary
+   sequential calls is. Detail: references/throwaway-copy-and-probes.md
+7. Check the commits in the range (for a patch file, its Subject line) against
+   the conventions. Decide the verdict: any confirmed Critical or High, or a
+   merge rule broken, means not ready. Print the contract.
 
 ## Output contract
 

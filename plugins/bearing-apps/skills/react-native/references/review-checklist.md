@@ -74,8 +74,8 @@ the merge base; a defect on an untouched line is pre-existing.
   offered that the server will refuse (outside a window or status) with
   the 422 unmapped.
 - An infinite list whose failed next page replaces the loaded rows with a
-  full-screen error; `fetchNextPage` not guarded by `hasNextPage &&
-  !isFetchingNextPage`; a single request where the API pages by cursor.
+  full-screen error; `fetchNextPage` not guarded by `hasNextPage && !isFetchingNextPage`;
+  a single request where the API pages by cursor.
 
 ## Accessibility
 - A pressable without `accessibilityRole`; an icon button without
@@ -83,8 +83,8 @@ the merge base; a defect on an untouched line is pre-existing.
 - Colour as the only signal for state.
 
 ## Bundle and dependencies
-- A dependency added unasked; a version outside the SDK range (`npx expo
-  doctor` fails); a native module without a note that Expo Go no longer
+- A dependency added unasked; a version outside the SDK range (`npx expo doctor`
+  fails); a native module without a note that Expo Go no longer
   works.
 - A whole library imported for one function; `moment`, `lodash` root
   import, a large icon set imported wholesale.

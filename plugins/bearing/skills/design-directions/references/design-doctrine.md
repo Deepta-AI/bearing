@@ -134,8 +134,8 @@ one from another row.
 
 One orchestrated moment per page: an entrance sequence, a scroll reveal
 or a hover system, never all three. Transform and opacity only, 200 to
-700 ms, ease-out in, ease-in out, properties listed (no `transition:
-all`), within the project's limit when it sets one. Under reduced
+700 ms, ease-out in, ease-in out, properties listed (no `transition: all`),
+within the project's limit when it sets one. Under reduced
 motion the end state renders immediately.
 
 ## Copy

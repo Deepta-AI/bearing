@@ -98,8 +98,8 @@ carry by TC id.
    what happens; the oracle says how a test proves it, and designing both
    at once is how a test ends up asserting whatever the code does. For
    each row write the Oracles cell as tagged checks separated by `;`:
-   `ui:` what the user sees (`ui: role=alert "Email or password is
-   incorrect"`), `data:` persisted state read back through the API or the
+   `ui:` what the user sees (`ui: role=alert "Email or password is incorrect"`),
+   `data:` persisted state read back through the API or the
    store (`data: GET /sessions returns none`), `not:` what must not happen
    (`not: no session cookie; not: no navigation`), `effect:` an event,
    message or log line (`effect: otp_locked emitted once`), `inv:` an

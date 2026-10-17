@@ -1,0 +1,32 @@
+{
+ "skill_name": "learn",
+ "evals": [
+  {
+   "id": 1,
+   "name": "list-and-add-with-consent",
+   "prompt": "what has bearing learned on this machine so far? also note that our go repos use table tests, keep that for next time.",
+   "expected_output": "Learning is on in the user config and learnings.jsonl holds a few entries. The run reads the state first, lists the entries with counts (most frequent first), then adds the table-test note with brg-learn add under the go skill. Nothing is sent anywhere and no gh command is run.",
+   "files": [],
+   "expectations": [
+    "The run reads the consent state with brg-learn state before listing or adding",
+    "The run lists the existing entries with their counts using brg-learn list and states how many there are",
+    "The run adds the table-test note with brg-learn add, passing the text and the go skill",
+    "The final message follows the output contract: a Learning line giving on, off or ask, then the list or the word added",
+    "The run does not run gh, git push or any command that sends data off the machine"
+   ]
+  },
+  {
+   "id": 2,
+   "name": "propose-upstream-without-filing",
+   "prompt": "we have a few learnings seen 3+ times. draft what we would send upstream to the bearing maintainers.",
+   "expected_output": "The run calls brg-learn propose. When redaction passes, it shows the written proposal and prints the gh issue create command for the engineer to run, without running it. When redaction fails, it shows the suspect tokens and stops without editing the file to pass the check.",
+   "files": [],
+   "expectations": [
+    "The run calls brg-learn propose and reports how many learnings it wrote or why it failed",
+    "On success the final message shows the proposal and prints the gh issue create command with --body-file as text for the engineer, and the run never executes gh issue create",
+    "On a redaction failure the run lists the suspect tokens, stops, and does not edit the proposal or the log to make the check pass",
+    "The run states that only entries seen 3 or more times are included"
+   ]
+  }
+ ]
+}

@@ -19,7 +19,7 @@ const FILM: { frame: Omit<Frame, "visual">; rows: Row[] }[] = [
       body: (
         <>
           <p>
-            Claude Code starts and hands the hook <code>session_id</code> and <code>source</code>. The guard prints one status line, the first 20 lines of the
+            Claude Code starts and hands the hook <code>session_id</code> and <code>source</code>. The guard prints one status line, the first 8 lines of the
             branch's handoff note if <S name="session-handoff" /> left one, and the review checklists for the stacks it detects. Everything printed joins the
             model's context.
           </p>
@@ -157,7 +157,7 @@ const FILM: { frame: Omit<Frame, "visual">; rows: Row[] }[] = [
     },
     rows: [
       { who: "model", text: "The encoder is written and tested." },
-      { who: "hook", tag: "Stop", text: "bearing: 2 file(s) changed in this session since make check last passed. Run make check and fix what fails before finishing.", tone: "bad" },
+      { who: "hook", tag: "Stop", text: "bearing: 2 file(s) changed in this session since the last check. Run make check and fix what fails before finishing.", tone: "bad" },
     ],
   },
   {
@@ -211,6 +211,7 @@ export function Session() {
         { id: "table", label: "The hook table" },
         { id: "adapters", label: "Anatomy of an adapter" },
         { id: "json", label: "Talking back to Claude Code" },
+        { id: "zero-eight", label: "Hooks added in 0.8" },
         { id: "state", label: "The state directory" },
         { id: "telemetry", label: "Gate telemetry" },
       ]}
@@ -296,6 +297,39 @@ json_field() {                              # json_field tool_input.command
         </p>
       </Note>
 
+      <H2 id="zero-eight">Hooks added in 0.8</H2>
+      <ul>
+        <li>
+          <strong>PreToolUse, Skill</strong> (<code>skill-start.sh</code>): records which skill started in <code>timeline.jsonl</code>, ending the one still open.
+          It never blocks and exits 0 even when the event cannot be parsed.
+        </li>
+        <li>
+          <strong>Checkpoint</strong>: <code>stop-summary.sh</code> and <code>precompact.sh</code> run <code>brg-session checkpoint</code>, which writes{" "}
+          <code>.bearing/state/&lt;branch&gt;.checkpoint.md</code> (the last skills run and the next flow step) atomically.
+        </li>
+        <li>
+          <strong>Resume at startup</strong>: <code>brg-guard session</code> calls <code>brg-session resume</code>, which prints the last skill that ran and
+          the next flow step, and asks whether to continue. It stays quiet on trunk when there is no history. With <code>BEARING_AUTOPILOT</code> or{" "}
+          <code>BEARING_NONINTERACTIVE=1</code> set it asks nothing.
+        </li>
+        <li>
+          <strong>SessionEnd</strong> (<code>session-end.sh</code>): refreshes <code>docs/progress/&lt;ID&gt;.md</code> from the checkpoint. A Next that a
+          person wrote is never overwritten, and it never commits.
+        </li>
+        <li>
+          <strong>Stop gate</strong>: when the Makefile has a <code>check-changed</code> target, the reason asks for <code>make check-changed</code> instead of{" "}
+          <code>make check</code>.
+        </li>
+        <li>
+          <strong>Daily update check</strong> (<code>brg-update-check</code>): at startup, at most one <code>git ls-remote</code> a day within a 3 second
+          budget, then one line if a newer release tag exists. It never blocks and sends nothing else off the machine.
+        </li>
+        <li>
+          <strong>Local learning</strong> (<code>brg-learn</code>): off until you opt in once. Entries go to <code>learnings.jsonl</code> beside{" "}
+          <code>bearing.env</code>, and startup reads back the top few for the next step. Nothing leaves the machine.
+        </li>
+      </ul>
+
       <H2 id="state">The state directory</H2>
       <p>
         Everything the hooks remember lives under <code>.bearing/state/</code> in the product repository, which the template's <code>.gitignore</code>{" "}
@@ -313,8 +347,10 @@ json_field() {                              # json_field tool_input.command
           <tbody>
             <tr><td><code>.session-&lt;id&gt;</code></td><td>session (once per session; older than 7 days removed)</td><td>stop-gate</td></tr>
             <tr><td><code>.check-passed</code></td><td>the Makefile's check target, on success</td><td>stop-gate, stop, precompact, brg-autopilot</td></tr>
-            <tr><td><code>&lt;branch&gt;.md</code></td><td><S name="start-task" />, <S name="session-handoff" /></td><td>session (first 20 lines)</td></tr>
+            <tr><td><code>&lt;branch&gt;.md</code></td><td><S name="start-task" />, <S name="session-handoff" /></td><td>session (first 8 lines)</td></tr>
             <tr><td><code>&lt;branch&gt;.compact.md</code></td><td>precompact</td><td>session after compaction (first 60 lines)</td></tr>
+            <tr><td><code>&lt;branch&gt;.checkpoint.md</code></td><td>brg-session checkpoint, on Stop and PreCompact</td><td>session at startup (resume)</td></tr>
+            <tr><td><code>timeline.jsonl</code></td><td>skill-start.sh, on every Skill call</td><td>brg-session, for resume and the next flow step</td></tr>
             <tr><td><code>gates.log</code></td><td>every gate decision</td><td><code>brg-guard stats</code></td></tr>
             <tr><td><code>autopilot.json</code></td><td><S name="brg-autopilot" /></td><td>brg-autopilot, the autopilot skill</td></tr>
           </tbody>
@@ -331,11 +367,11 @@ json_field() {                              # json_field tool_input.command
         The log rotates to <code>gates.log.1</code> at 512 KB. <code>BEARING_NO_GATE_LOG=1</code> turns it off. <code>brg-guard stats</code> summarises it:
       </p>
       <Code cap="brg-guard stats, the shape of its output">{`brg-guard stats: 412 gate decisions, 2026-09-24T09:12:03 to 2026-09-25T17:40:51
-  check-file clean                   88  avg   910 ms  max   4210 ms
-  command allowed                   301  avg    21 ms  max    380 ms
-  command refused                     9  avg    18 ms  max     25 ms
-  stop-gate blocked                   3  avg    40 ms  max     61 ms
-  stop-gate passed                   11  avg    35 ms  max     52 ms
+  check-file clean                   88  median   610 ms  p90  2100 ms  max   4210 ms
+  command allowed                   301  median    19 ms  p90    42 ms  max    380 ms
+  command refused                     9  median    17 ms  p90    25 ms  max     25 ms
+  stop-gate blocked                   3  median    38 ms  p90    61 ms  max     61 ms
+  stop-gate passed                   11  median    33 ms  p90    52 ms  max     52 ms
   most refused:
        6  git push
        3  git commit --amend`}</Code>

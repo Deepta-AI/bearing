@@ -113,11 +113,10 @@ func FromContext(ctx context.Context) *slog.Logger {
 }
 ```
 
-Handler exit: `log.Info("request done", "status", rec.status,
-"duration_ms", ms, "outcome", outcome(rec.status))`. Repository:
+Handler exit: `log.Info("request done", "status", rec.status, "duration_ms", ms, "outcome", outcome(rec.status))`.
+Repository:
 `log.Debug("query", "target", "invoices", "duration_ms", ms)`. Error:
-`log.Error("create invoice failed", "error", err, "error_kind",
-errKind(err))`.
+`log.Error("create invoice failed", "error", err, "error_kind", errKind(err))`.
 
 ### Python: `structlog`
 

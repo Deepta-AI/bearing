@@ -2,7 +2,7 @@
 name: mcp-server
 description: 'Builds an MCP server in Python or TypeScript: schema-checked tools, both transports, auth, a test per tool, Claude Code registration. Use when asked to "build an MCP server" or "expose this as MCP tools".'
 argument-hint: "server <name> [python|typescript] | client <agent name> [python|typescript]"
-allowed-tools: Read, Write, Edit, Grep, Glob, Skill, Bash(ls:*), Bash(mkdir:*), Bash(uv run pytest:*), Bash(npm test:*), Bash(make:*), Bash(claude mcp list:*), Bash(npx @modelcontextprotocol/inspector@2.8.0:*)
+allowed-tools: Read, Write, Edit, Grep, Glob, Skill, Bash(ls:*), Bash(mkdir:*), Bash(uv run pytest:*), Bash(npm test:*), Bash(make:*), Bash(claude mcp list:*), Bash(npx @modelcontextprotocol/inspector@2.8.0:*), AskUserQuestion
 ---
 
 # mcp-server
@@ -45,8 +45,9 @@ the agent's registry with a tier before the model can see it.
    `references/mcp-design.md`). An unset hint makes the host assume
    the worst case. Resources for read-only data the
    model should browse (`resource://<context>/<id>`); prompts for
-   task recipes the client can offer. Zero tools: ask once, then
-   stop naming what to provide.
+   task recipes the client can offer. Zero tools: ask once with AskUserQuestion
+   (as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says), options "name the tools now" (the answer comes as free
+   text via Other) and "stop", then stop naming what to provide.
 3. Write the server from `templates/server-python.md` or
    `templates/server-typescript.md`: both transports (stdio for local
    use, streamable HTTP for a service), bearer or OAuth on HTTP from
@@ -62,8 +63,8 @@ the agent's registry with a tier before the model can see it.
    the four hints unset, fails). The test itself counts: it prints
    `mcp-tools: N exposed, N tested, N annotated` before it asserts and
    fails on zero tools listed or when the three differ (the template's
-   test does this; keep it). Run it with the granted command (`uv run
-   pytest -s tests/test_mcp_tools.py`, `npm test`, or the `make`
+   test does this; keep it). Run it with the granted command (`uv run pytest -s tests/test_mcp_tools.py`,
+   `npm test`, or the `make`
    target) and copy the line; nobody counts by hand.
 5. `make mcp-dev` (or the command itself without a Makefile): runs
    `npx @modelcontextprotocol/inspector@2.8.0` against the stdio command. Registration: `.mcp.json` from

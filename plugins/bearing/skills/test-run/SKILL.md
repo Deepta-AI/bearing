@@ -166,6 +166,6 @@ tests that did not run; say what must happen first.
   unnamed; `load-test` owns the thresholds, this skill only runs them.
 - The report is evidence for its commit only. A dirty tree is marked
   `+dirty` in the header and the summary line. To compare with the
-  committed state, run the suite on a `git worktree add` or `git archive
-  HEAD` copy under `.scratch/`; never stash, reset or check out over the
+  committed state, run the suite on a `git worktree add` or `git archive HEAD`
+  copy under `.scratch/`; never stash, reset or check out over the
   user's working tree.

@@ -163,6 +163,7 @@ CATEGORY = {
         "autopilot",
         "doctor",
         "upgrade-tools",
+        "learn",
         "new-skill",
         "harness-setup",
     ],

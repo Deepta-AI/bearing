@@ -2,7 +2,7 @@
 name: tech-debt
 description: 'Keeps the tech debt register in docs/DEBT.md, seeded from TODOs, suppressed lints and skipped tests, ranked by cost of carrying it. Use when asked about "tech debt", "what should we clean up next" or "the debt register".'
 argument-hint: "[seed|add \"<description>\"|review|pay <DEBT-nnn>] [--path <dir>]"
-allowed-tools: Read, Write, Edit, Grep, Glob, Bash(ls:*), Bash(mkdir -p:*), Bash(date:*), Bash(git ls-files:*), Bash(git log:*), Bash(git blame:*)
+allowed-tools: Read, Write, Edit, Grep, Glob, Bash(ls:*), Bash(mkdir -p:*), Bash(date:*), Bash(git ls-files:*), Bash(git log:*), Bash(git blame:*), AskUserQuestion
 ---
 
 # tech-debt
@@ -34,7 +34,9 @@ quarantines tests. Both feed rows here; neither replaces the register.
   from the item with the `est.` prefix (interest in hours per week,
   principal in hours).
 - task id for `pay`: the id in the current branch name; if absent, ask
-  once; with `BEARING_TRACKER=none` the row carries `task: none`.
+  once with AskUserQuestion (as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says), options "enter the id"
+  (via Other) and "no task" (`task: none`, also the answer when unanswered); with
+  `BEARING_TRACKER=none` the row carries `task: none`.
 
 ## Steps
 
@@ -53,8 +55,10 @@ quarantines tests. Both feed rows here; neither replaces the register.
    deadline <date>"). Owner and date from Inputs. Idempotent: a row with
    the same file and text is not added again. Print added, already
    present, and rows whose marker is gone (moved to Paid with today).
-3. `add "<description>"`: one row; ask once, in one message, for
-   interest per week, principal, trigger and owner.
+3. `add "<description>"`: one row; ask once, in one AskUserQuestion
+   call of three questions (interest per week with principal, trigger, owner),
+   each with options "enter it" (via Other) and "unknown" (estimated or filled
+   from Inputs; also the answer when unanswered).
 4. `review`: rank open rows by interest over principal; rows with an
    unknown number rank last under "needs an estimate". Rows whose
    trigger has fired (date passed, `git log -1 -- <file>` newer than the

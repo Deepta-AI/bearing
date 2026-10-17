@@ -7,10 +7,29 @@
 # the report carries the digest; a second start on an open run is refused.
 set -u
 . "$(dirname "$0")/../lib/assert.sh"
+# the trust check reads $HOME/.claude.json; a test never reads the real one
+HOME="$(tmpdir)"; export HOME
 AP="$KIT/plugins/bearing/bin/brg-autopilot"; export AP
 d="$(tmpdir)/run"
 ap() { python3 "$AP" "$@" --dir "$d"; }
 commit() { git -C "$d" add -A >/dev/null 2>&1; git -C "$d" -c user.email=t@e -c user.name=t commit -qm "$1" >/dev/null 2>&1; }
+
+t_begin "start refuses an untrusted workspace and names the allow entries it would ignore"
+ud="$(tmpdir)/untrusted"; mkdir -p "$ud/.claude"; git init -q -b main "$ud"
+printf '{"permissions":{"allow":["Bash(make:*)"]}}\n' > "$ud/.claude/settings.json"
+printf '{"projects":{"%s":{"hasTrustDialogAccepted":false}}}\n' "$(git -C "$ud" rev-parse --show-toplevel)" > "$HOME/.claude.json"
+assert_exit 1 python3 "$AP" start "a word counter" --dir "$ud"
+assert_contains "$T_OUT" "workspace not trusted; 1 allow entries"
+assert_exit 0 test ! -f "$ud/.bearing/state/autopilot.json"
+rm -f "$HOME/.claude.json"
+t_end
+
+t_begin "start proceeds in an untrusted workspace that has no allow entries"
+zd="$(tmpdir)/zero"; git init -q -b main "$zd"
+printf '{"projects":{"%s":{"hasTrustDialogAccepted":false}}}\n' "$(git -C "$zd" rev-parse --show-toplevel)" > "$HOME/.claude.json"
+assert_exit 0 python3 "$AP" start "a word counter" --dir "$zd"
+rm -f "$HOME/.claude.json"
+t_end
 
 t_begin "a run starts at the repo stage and refuses a second start"
 assert_exit 0 ap start "a word counter"

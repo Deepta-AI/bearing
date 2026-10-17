@@ -2,7 +2,7 @@
 name: test-heal
 description: 'Fixes failing or flaky tests: classifies each failure with evidence, heals locator, timing and data drift, leaves regressions red, quarantines flakes. Use when asked to "fix the flaky tests" or "heal the tests".'
 argument-hint: "[report path, default the newest in docs/testing/reports/] [--tc TC-0231 | --suite e2e]"
-allowed-tools: Read, Write, Edit, Grep, Glob, Bash(make db:*), Bash(make migrate:*), Bash(make test-repeat:*), Bash(make test-visual-update:*), Bash(make check:*), Bash(make test:*), Bash(git diff:*), Bash(git log:*), Bash(git show:*), Bash(git status:*), Bash(go test:*), Bash(go vet:*), Bash(pnpm exec:*), Bash(pytest:*), Bash(python3 -m pytest:*), Bash(uv run pytest:*), Bash(./gradlew:*), Bash(swift test:*), Bash(xcodebuild test:*), Bash(maestro test:*), Bash(curl -fsS http://localhost:*), Bash(bash *bin/brg-state-path*)
+allowed-tools: Read, Write, Edit, Grep, Glob, Bash(make db:*), Bash(make dev:*), Bash(make migrate:*), Bash(make test-repeat:*), Bash(make test-visual-update:*), Bash(make check:*), Bash(make test:*), Bash(git diff:*), Bash(git log:*), Bash(git show:*), Bash(git status:*), Bash(go test:*), Bash(go vet:*), Bash(pnpm exec:*), Bash(pytest:*), Bash(python3 -m pytest:*), Bash(uv run pytest:*), Bash(./gradlew:*), Bash(swift test:*), Bash(xcodebuild test:*), Bash(maestro test:*), Bash(curl -fsS http://localhost:*), Bash(bash *bin/brg-state-path*), Bash(curl -fsS http://localhost:3100/loki/api/v1/query_range*)
 ---
 
 # test-heal
@@ -124,13 +124,12 @@ test must expect; this classifies with evidence and heals drift only.
      test pass whatever the product does is a hidden regression.
    Repeat commands: Go `go test -count=N -run '^<Test>$' <pkg>` (add
    `-shuffle=on`, or the failing seed, for order flakes; `-count` also
-   defeats the test cache); Playwright `pnpm exec playwright test <spec>
-   -g "<TC id>" --repeat-each=N --workers=4`; pytest with pytest-repeat
+   defeats the test cache); Playwright `pnpm exec playwright test <spec> -g "<TC id>" --repeat-each=N --workers=4`;
+   pytest with pytest-repeat
    installed `pytest <file>::<test> --count=N`, otherwise the offline loop
    `for i in $(seq N); do pytest -q -p no:cacheprovider <file>::<test> >/dev/null || echo fail; done | grep -c fail`
-   (the count of failures in N; never download a plugin for this); XCUITest `xcodebuild test
-   -only-testing:<target>/<test> -test-iterations N
-   -run-tests-until-failure`. Maestro and Espresso: the repository's
+   (the count of failures in N; never download a plugin for this); XCUITest `xcodebuild test -only-testing:<target>/<test> -test-iterations N -run-tests-until-failure`.
+   Maestro and Espresso: the repository's
    `make test-repeat` when it exists, else the heal is provisional
    ("repeat proof not run") and counted apart from healed.
 

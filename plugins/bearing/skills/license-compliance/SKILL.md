@@ -35,8 +35,8 @@ own LICENSE.
   directly: an npm v2/v3 `package-lock.json` carries `license`, `dev`
   and the nested tree, and the gate reads it as is. A v1 lockfile,
   `uv.lock` or `poetry.lock` carries no licences: say so and read each
-  package's metadata or LICENSE by hand. Go: `go list -deps -f
-  '{{if not .Standard}}{{.Module}}{{end}}' ./cmd/<name>` (test imports
+  package's metadata or LICENSE by hand. Go: `go list -deps -f '{{if not .Standard}}{{.Module}}{{end}}' ./cmd/<name>`
+  (test imports
   excluded), with `GOFLAGS=-mod=vendor` when `vendor/` exists.
 - Generators, when an SBOM is wanted: `syft . -o cyclonedx-json`,
   `cyclonedx-npm` or `npx @cyclonedx/cyclonedx-npm@6.0.1`,
@@ -76,8 +76,8 @@ own LICENSE.
    - an OR expression is a choice: record which branch you rely on;
    - a transitive blocker is fixed through its parent (replace or pin the
      parent, or an override), never by editing the child alone.
-4. `licenses` (a gate): `python3 scripts/license-gate.py package-lock.json
-   docs/compliance/license-policy.yml` (or the SBOM path). It prints the
+4. `licenses` (a gate): `python3 scripts/license-gate.py package-lock.json docs/compliance/license-policy.yml`
+   (or the SBOM path). It prints the
    count, and fails on zero components, on a runtime denied or unknown,
    and on dev ones only under `dev: check`. Set `dev:` from what step 1
    proved, with the evidence in a comment. Add a CI job of its own that

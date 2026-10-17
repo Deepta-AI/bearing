@@ -1,0 +1,167 @@
+#!/usr/bin/env bash
+# tests/unit/learn_local.sh: consent states; nothing written unless on;
+# counts increment; paths reduced or dropped; top ranks by count; the guard
+# session ask and read back; gate blocks and reruns feed the log.
+set -u
+. "$(dirname "$0")/../lib/assert.sh"
+L="$KIT/plugins/bearing/bin/brg-learn"
+cfg="$(tmpdir)"; f="$cfg/bearing/learnings.jsonl"
+run() { XDG_CONFIG_HOME="$cfg" bash "$L" "$@"; }
+t_begin "unanswered is ask and writes nothing"
+assert_exit 0 run state
+assert_eq ask "$T_OUT"
+assert_exit 0 run log --kind gate-block --skill go --key vet --insight "vet fails in src/a/b.go"
+nofile=0; [ -e "$f" ] && nofile=1; assert_eq 0 "$nofile" "no file"
+nodir=0; [ -e "$cfg/bearing" ] && nodir=1; assert_eq 0 "$nodir" "config dir not created"
+t_end
+t_begin "off writes nothing"
+mkdir -p "$cfg/bearing"; echo BEARING_LEARNING=off > "$cfg/bearing/bearing.env"
+assert_exit 0 run state
+assert_eq off "$T_OUT"
+assert_exit 0 run log --kind manual --skill go --key x --insight y
+nofile=0; [ -e "$f" ] && nofile=1; assert_eq 0 "$nofile" "no file"
+t_end
+t_begin "a quoted value counts as on"
+echo 'BEARING_LEARNING="on"' > "$cfg/bearing/bearing.env"
+assert_exit 0 run state
+assert_eq on "$T_OUT"
+t_end
+t_begin "on logs, increments and reduces paths"
+echo BEARING_LEARNING=on > "$cfg/bearing/bearing.env"
+run log --kind gate-block --skill go --key vet --insight "vet fails in src/a/b.go" >/dev/null
+run log --kind gate-block --skill go --key vet --insight "vet fails in src/a/b.go" >/dev/null
+run log --kind manual --skill go --key other --insight "prefer table tests" >/dev/null
+assert_eq 2 "$(wc -l < "$f" | tr -d ' ')" "two distinct entries"
+assert_contains "$(cat "$f")" '"count":2'
+assert_contains "$(cat "$f")" '*.go'
+assert_not_contains "$(cat "$f")" 'src/a/b.go'
+assert_not_contains "$(cat "$f")" '"repo'
+assert_not_contains "$(cat "$f")" '"path"'
+t_end
+t_begin "top ranks by count"
+assert_exit 0 run top --skills "go" --n 1
+assert_eq "- vet fails in *.go (2x)" "$T_OUT"
+assert_exit 0 run top --skills "python" --n 5
+assert_eq "" "$T_OUT"
+t_end
+t_begin "path shapes are reduced or dropped, never stored"
+g="$(tmpdir)"; export XDG_CONFIG_HOME="$g"; mkdir -p "$g/bearing"; echo BEARING_LEARNING=on > "$g/bearing/bearing.env"
+lg="$g/bearing/learnings.jsonl"
+keep() { bash "$L" log --kind manual --skill go --key "$1" --insight "$2"; }
+keep a "edit /home/u/x.go now"
+keep b "open src/dir/Makefile now"
+keep c "see C:\\x\\secret.go now"
+keep d "see C:\\Users\\x\\proj now"
+keep e "read Secret_Report.go now"
+keep f "open src/my dir/file name.go now"
+out="$(cat "$lg")"
+assert_contains "$out" '"insight":"edit *.go now"'
+assert_contains "$out" '"insight":"open * now"'
+assert_contains "$out" '"insight":"see *.go now"'
+assert_contains "$out" '"insight":"see * now"'
+assert_contains "$out" '"insight":"read *.go now"'
+assert_contains "$out" '"insight":"open *.go now"'
+for w in home Makefile secret Users Secret_Report file name; do assert_not_contains "$out" "$w"; done
+assert_eq 6 "$(wc -l < "$lg" | tr -d ' ')" "six entries"
+t_end
+t_begin "an insight that still holds a separator after reduction is dropped and logged"
+repo="$(tmpdir)"; git -C "$repo" init -q -b main; mkdir -p "$repo/.bearing/state"
+( cd "$repo" && bash "$L" log --kind manual --skill go --key b --insight "see the src/ folder" )
+( cd "$repo" && bash "$L" log --kind manual --skill go --key b --insight "see C:\\Users\\John Smith\\x folder" )
+assert_eq 6 "$(wc -l < "$lg" | tr -d ' ')" "nothing stored"
+assert_not_contains "$(cat "$lg")" 'folder'
+assert_eq 2 "$(grep -c "learn	not-run" "$repo/.bearing/state/gates.log")" "two not-run lines"
+t_end
+t_begin "a corrupted line does not stop log or top"
+printf 'not json at all\n' >> "$lg"
+keep g "after the corruption"
+assert_contains "$(cat "$lg")" 'after the corruption'
+assert_not_contains "$(cat "$lg")" 'not json'
+printf '{broken\n' >> "$lg"
+assert_exit 0 bash "$L" top --skills "go" --n 9
+assert_contains "$T_OUT" "- after the corruption (1x)"
+assert_exit 0 bash "$L" list
+assert_contains "$T_OUT" "after the corruption"
+t_end
+t_begin "namespaced skills are stored bare; gate lessons are read back for any step"
+bash "$L" log --kind rerun --skill bearing:prd --key rerun --insight "prd rerun"
+bash "$L" log --kind gate-block --skill stop-gate --key mk --insight "stop gate lesson"
+bash "$L" log --kind gate-block --skill check-file --key zz --insight "check file lesson"
+assert_contains "$(cat "$lg")" '"skill":"prd"'
+assert_not_contains "$(cat "$lg")" 'bearing:prd'
+assert_exit 0 bash "$L" top --skills "prd" --n 20
+assert_contains "$T_OUT" "- prd rerun (1x)"
+assert_exit 0 bash "$L" top --skills "adr" --n 20
+assert_contains "$T_OUT" "- check file lesson (1x)" "the most recent gate lesson"
+assert_not_contains "$T_OUT" "- stop gate lesson" "one gate line only"
+assert_not_contains "$T_OUT" "prd rerun"
+t_end
+t_begin "gate blocks never crowd out the next step: one line, after its entries"
+h="$(tmpdir)"; mkdir -p "$h/bearing"; echo BEARING_LEARNING=on > "$h/bearing/bearing.env"
+hl() { XDG_CONFIG_HOME="$h" bash "$L" "$@"; }
+for i in 1 2 3 4 5; do hl log --kind gate-block --skill stop-gate --key mk --insight "stop gate lesson"; done
+for i in 1 2 3 4; do hl log --kind gate-block --skill check-file --key cf --insight "check file lesson"; done
+hl log --kind rerun --skill adr --key a1 --insight "adr one"
+hl log --kind manual --skill adr --key a2 --insight "adr two"
+hl log --kind manual --skill general --key g1 --insight "general tip"
+assert_exit 0 hl top --skills "adr" --n 5
+assert_eq 1 "$(printf '%s\n' "$T_OUT" | grep -c 'gate lesson\|file lesson')" "one gate line"
+assert_contains "$(printf '%s\n' "$T_OUT" | tail -1)" "stop gate lesson (5x)" "the gate line comes last"
+assert_contains "$T_OUT" "- adr one (1x)"
+assert_contains "$T_OUT" "- adr two (1x)"
+assert_contains "$T_OUT" "- general tip (1x)"
+assert_exit 0 hl top --skills "adr" --n 2
+assert_not_contains "$T_OUT" "lesson" "the step's own entries fill a short list"
+assert_eq 2 "$(printf '%s\n' "$T_OUT" | grep -c .)" "two lines"
+assert_exit 0 hl top --skills "prd" --n 5
+assert_eq "- general tip (1x)
+- stop gate lesson (5x)" "$T_OUT" "no step entries: general, then one gate line"
+t_end
+t_begin "add stores a manual entry and list reads it"
+bash "$L" add "run the linter first" --skill general >/dev/null
+assert_exit 0 bash "$L" list
+assert_contains "$T_OUT" "run the linter first"
+assert_exit 0 bash "$L" top --skills "go" --n 5
+assert_contains "$T_OUT" "- run the linter first (1x)"
+t_end
+unset XDG_CONFIG_HOME
+
+t_begin "guard session asks once when unanswered and reads back when on"
+r2="$(tmpdir)"; git -C "$r2" init -q -b feat/X-1; mkdir -p "$r2/.bearing"
+c2="$(tmpdir)"
+gs() { ( cd "$r2" && XDG_CONFIG_HOME="$c2" BEARING_NO_GATE_LOG=1 bash "$GUARD" session --id s1 --source "${1:-startup}" ); }
+assert_exit 0 gs startup
+assert_contains "$T_OUT" "BEARING_LEARNING: ask."
+assert_contains "$T_OUT" "Nothing leaves this machine."
+assert_exit 0 gs resume
+assert_not_contains "$T_OUT" "BEARING_LEARNING"
+mkdir -p "$c2/bearing"; echo BEARING_LEARNING=on > "$c2/bearing/bearing.env"
+for i in 1 2 3 4 5 6 7; do XDG_CONFIG_HOME="$c2" bash "$L" log --kind manual --skill general --key "k$i" --insight "tip $i"; done
+assert_exit 0 gs startup
+assert_contains "$T_OUT" "Learnings for the next step:"
+assert_eq 5 "$(printf '%s\n' "$T_OUT" | grep -c '^- tip')" "at most five"
+assert_not_contains "$T_OUT" "BEARING_LEARNING: ask"
+t_end
+
+t_begin "a rerun within ten minutes is logged"
+c3="$(tmpdir)"; mkdir -p "$c3/bearing"; echo BEARING_LEARNING=on > "$c3/bearing/bearing.env"
+ts() { ( cd "$r2" && XDG_CONFIG_HOME="$c3" bash "$KIT/plugins/bearing/bin/brg-session" timeline-start --id s9 --skill "$1" ); }
+ts prd; ts prd
+assert_contains "$(cat "$c3/bearing/learnings.jsonl")" '"kind":"rerun"'
+ts prd
+assert_contains "$(cat "$c3/bearing/learnings.jsonl")" '"count":2'
+n="$(wc -l < "$c3/bearing/learnings.jsonl" | tr -d ' ')"
+ts adr; ts adr
+assert_eq "$((n+1))" "$(wc -l < "$c3/bearing/learnings.jsonl" | tr -d ' ')" "a switch of skill is not a rerun; only the repeat adds a key"
+t_end
+
+t_begin "a blocked check-file logs a gate block and keeps its exit code"
+c4="$(tmpdir)"; mkdir -p "$c4/bearing"; echo BEARING_LEARNING=on > "$c4/bearing/bearing.env"
+r4="$(tmpdir)"; git -C "$r4" init -q -b main
+printf 'check-file:\n\t@echo "bad thing"; exit 1\n' > "$r4/Makefile"; echo x > "$r4/a.zz"
+( cd "$r4" && XDG_CONFIG_HOME="$c4" bash "$GUARD" check-file "$r4/a.zz" ) >/dev/null 2>&1; rc=$?
+assert_eq 2 "$rc" "exit 2 kept"
+assert_contains "$(cat "$c4/bearing/learnings.jsonl")" '"skill":"check-file"'
+assert_contains "$(cat "$c4/bearing/learnings.jsonl")" '*.zz'
+t_end
+t_summary

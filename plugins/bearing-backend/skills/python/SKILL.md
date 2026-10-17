@@ -34,8 +34,8 @@ pytest-asyncio and httpx, pip-audit in CI.
   finding before reporting it (see the checklist's first paragraph).
 - Scaffolding (`new-repo python-api <Name>`): `templates/` holds the
   skeleton and configs; `bin/brg-scaffold` in the bearing plugin copies them. Do not hand-copy. A
-  command-line tool (no server, no database) is `new-repo python-cli
-  <Name>` from `templates-cli/`: argparse, a console script, the same
+  command-line tool (no server, no database) is `new-repo python-cli <Name>`
+  from `templates-cli/`: argparse, a console script, the same
   gates.
 - Generating CI (`bearing:ci-pipeline`): `templates/.gitlab-ci.yml` is the source.
 

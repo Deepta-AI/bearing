@@ -1,0 +1,116 @@
+#!/usr/bin/env bash
+# brg-learn: opt-in, local learnings. Nothing leaves this machine; entries
+# carry no repository field and paths are reduced to their extension.
+#   state                                   on, off or ask (BEARING_LEARNING, via brg-config)
+#   log --kind K --skill S --key K --insight T
+#                                           K is gate-block|rerun|override|manual; only when on
+#   add "<text>" [--skill S]                a manual entry
+#   top --skills "a b" [--n N]              "- <insight> (<count>x)", count then recency;
+#                                           at most one gate-block line, last
+#   list                                    every entry, "<count>x  <skill>  <insight>"
+#   propose [--out FILE]                    a redacted issue body of entries seen 3+ times, and the
+#                                           gh command for the engineer to run (never run here);
+#                                           exit 1 if nothing qualifies or a suspect token survives
+# The log sits beside bearing.env (BEARING_ENV, else
+# ${XDG_CONFIG_HOME:-$HOME/.config}/bearing). log, add and top need jq and do
+# nothing without it. Exit 0 always, except propose (exit 1 on failure).
+set -u
+sub="${1:-}"; shift || true
+envf="${BEARING_ENV:-${XDG_CONFIG_HOME:-$HOME/.config}/bearing/bearing.env}"
+dir="$(dirname "$envf")"; f="$dir/learnings.jsonl"
+kind=""; skill="general"; key=""; insight=""; skills=""; n=5; text=""; out=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --kind) kind="${2:-}"; shift 2 || shift;; --skill) skill="${2:-}"; shift 2 || shift;;
+    --key) key="${2:-}"; shift 2 || shift;; --insight) insight="${2:-}"; shift 2 || shift;;
+    --skills) skills="${2:-}"; shift 2 || shift;; --n) n="${2:-5}"; shift 2 || shift;;
+    --out) out="${2:-}"; shift 2 || shift;;
+    *) text="$1"; shift;;
+  esac
+done
+state() { # the same reader as brg-config get learning --user
+  local v=""
+  [ -f "$(dirname "$0")/brg-config" ] && v="$(BEARING_ENV="$envf" bash "$(dirname "$0")/brg-config" get learning --user 2>/dev/null)"
+  case "$v" in on|off) echo "$v";; *) echo ask;; esac
+}
+reduce() { # file paths become *.ext (or * with no extension), absolute and drive paths too
+  local d='[A-Za-z0-9_.~-]' w='[A-Za-z0-9_-]'
+  printf '%s' "$1" | sed -E \
+    -e 's#[A-Za-z]:[\\/][A-Za-z0-9_.~\\/-]*[A-Za-z0-9_-]\.([A-Za-z][A-Za-z0-9]*)#*.\1#g' \
+    -e 's#[A-Za-z]:[\\/][A-Za-z0-9_.~\\/-]+#*#g' \
+    -e "s#/?${d}+/((${d}+ )*${d}+/)*(${w}+ )*[A-Za-z0-9_.-]*${w}\.([A-Za-z][A-Za-z0-9]*)#*.\4#g" \
+    -e "s#/?(${d}+/)+${d}+#*#g" \
+    -e "s#(^|[^A-Za-z0-9_*.-])${w}+(\.${w}+)*\.([A-Za-z][A-Za-z0-9]*)#\1*.\3#g"
+}
+has_path() { case "$1" in */*|*\\*) return 0;; esac; return 1; } # a path separator survived reduce
+not_run() { # one line in the repository gates.log, when there is one
+  local root; root="$(git rev-parse --show-toplevel 2>/dev/null)" || return 0
+  [ -d "$root/.bearing/state" ] || return 0
+  printf '%s\tlearn\tnot-run\t0\t%s\n' "$(date +%Y-%m-%dT%H:%M:%S)" "$1" >> "$root/.bearing/state/gates.log" 2>/dev/null
+  return 0
+}
+[ "$sub" = state ] && { state; exit 0; }
+if ! command -v jq >/dev/null 2>&1; then
+  [ "$sub" = propose ] || exit 0
+  not_run "propose needs jq"; echo "learn propose: needs jq, which is not installed; nothing written"; exit 1
+fi
+case "$sub" in
+  log|add)
+    [ "$(state)" = on ] || exit 0
+    [ "$sub" = add ] && { kind=manual; insight="$text"; key="$(printf '%s' "$text" | cksum | cut -d' ' -f1)"; }
+    case "$kind" in gate-block|rerun|override|manual) ;; *) exit 0;; esac
+    [ -n "$insight" ] || exit 0
+    skill="${skill##*:}"   # bearing:prd is stored as prd
+    ins="$(reduce "$insight")"; ky="$(reduce "${key:-$ins}")"; sk="$(reduce "$skill")"
+    if has_path "$ins" || has_path "$ky" || has_path "$sk"; then not_run "entry dropped, a path survived reduction"; exit 0; fi
+    mkdir -p "$dir" 2>/dev/null || exit 0; touch "$f" 2>/dev/null; ts="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+    tmp="$f.tmp.$$"
+    # Lines that are not JSON objects are skipped here and so dropped by the rewrite.
+    if jq -cR 'fromjson? | select(type=="object")' "$f" 2>/dev/null | jq -c --arg k "$kind" --arg s "$sk" --arg y "$ky" --arg i "$ins" --arg t "$ts" -s '
+      (map(select(.kind==$k and .skill==$s and .key==$y)) | length) as $hit
+      | if $hit > 0 then map(if .kind==$k and .skill==$s and .key==$y then .count += 1 | .ts = $t else . end)
+        else . + [{ts:$t, kind:$k, skill:$s, key:$y, insight:$i, count:1}] end | .[]' > "$tmp" 2>/dev/null && [ -s "$tmp" ]; then
+      mv "$tmp" "$f" 2>/dev/null || { rm -f "$tmp"; not_run "could not write the log"; }
+    else
+      rm -f "$tmp"; not_run "could not update the log"
+    fi;;
+  top)
+    [ -f "$f" ] || exit 0
+    case "$n" in ''|*[!0-9]*) n=5;; esac
+    # The next step's own entries and general ones, ranked; then at most one
+    # gate-block line (stop-gate, check-file), only in the room they leave.
+    jq -cR 'fromjson? | select(type=="object")' "$f" 2>/dev/null | jq -r -s --arg s " $skills " --argjson n "$n" '
+      map(. + {k: (.skill | sub("^.*:"; ""))})
+      | (map(select(.k as $k | $k == "general" or ($s | contains(" " + $k + " ")))) | sort_by([.count, .ts]) | reverse | .[:$n]) as $own
+      | (map(select(.k == "stop-gate" or .k == "check-file")) | sort_by([.count, .ts]) | reverse | .[:1]) as $gate
+      | ($own + (if ($own | length) < $n then $gate else [] end)) | .[] | "- \(.insight) (\(.count)x)"' 2>/dev/null;;
+  list) [ -f "$f" ] && { jq -cR 'fromjson? | select(type=="object")' "$f" 2>/dev/null | jq -r -s 'sort_by([.count, .ts]) | reverse | .[] | "\(.count)x  \(.skill)  \(.insight)"' 2>/dev/null; };;
+  propose)
+    out="${out:-.scratch/learn-proposal.md}"
+    rows=""
+    [ -f "$f" ] && rows="$(jq -cR 'fromjson? | select(type=="object") | select((.count|type)=="number" and .count >= 3)' "$f" 2>/dev/null)"
+    m="$(printf '%s' "$rows" | grep -c . || true)"
+    [ "$m" -gt 0 ] || { echo "learn propose: 0 learnings seen 3 or more times, nothing to propose"; exit 1; }
+    body="$(printf '%s\n' "$rows" | jq -r -s 'group_by(.skill) | .[] |
+      "## \(.[0].skill)\n" + (map("- \(.insight) (seen \(.count) times, \(.kind))") | join("\n")) + "\n"' 2>/dev/null)"
+    # Suspect: a path with a slash or backslash, a URL, an email, a hostname, an IPv4 address,
+    # a ticket id, or a 20+ character token. The *.ext tokens reduce() writes match none of these.
+    [ -n "$body" ] || { echo "learn propose: could not build the proposal body"; exit 1; }
+    # Only extension tokens are masked, so a wildcard host (*.example.com) stays visible to the hostname
+    # check: a single extension of 1-5 characters, or one of a closed list of multi-dot extensions. The
+    # token starts at line start, a space or "(", and ends at line end, a space or one of ),;: (or a full stop before those).
+    mx='d\.ts|d\.mts|d\.cts|tar\.gz|test\.tsx?|test\.js|spec\.tsx?|spec\.js|module\.css|config\.[jt]s|min\.js'
+    end='([),;:]|\.?[ ]|\.?$)'
+    chk="$(printf '%s\n' "$body" | sed -E -e "s/(^|[ (])\*\.($mx)$end/\1EXT\3/g" -e "s/(^|[ (])\*\.($mx)$end/\1EXT\3/g" \
+      -e "s/(^|[ (])\*\.[A-Za-z0-9]{1,5}$end/\1EXT\2/g" -e "s/(^|[ (])\*\.[A-Za-z0-9]{1,5}$end/\1EXT\2/g")"
+    sus="$(printf '%s\n' "$chk" | grep -oE '[A-Za-z][A-Za-z0-9+.-]*://[^ ]*|[^ ]*[/\\][^ ]*|[^ @]+@[^ @]+\.[A-Za-z]{2,}|[0-9]{1,3}(\.[0-9]{1,3}){3}|([A-Za-z0-9-]+\.)+[A-Za-z]{2,}|[A-Z][A-Z0-9]+-[0-9]+|[A-Za-z0-9_-]{20,}' || true)"
+    if [ -n "$sus" ]; then
+      echo "learn propose: redaction failed: $(printf '%s\n' "$sus" | wc -l | tr -d ' ') suspect token(s)"; printf '%s\n' "$sus" | sed 's/^/  /'; exit 1
+    fi
+    mkdir -p "$(dirname "$out")" 2>/dev/null || { echo "learn propose: cannot create the folder for $out"; exit 1; }
+    tmp="$out.tmp.$$"
+    { echo "Learnings from Bearing use, generated by brg-learn propose. Only entries seen 3 or more times; paths reduced to extensions."; echo; printf '%s\n' "$body"; } > "$tmp" 2>/dev/null && mv "$tmp" "$out" 2>/dev/null || { rm -f "$tmp"; echo "learn propose: cannot write $out"; exit 1; }
+    echo "learn propose: $m learnings, written to $out"
+    echo "Review it, then run: gh issue create --repo Deepta-AI/bearing --title \"Learnings from Bearing use\" --body-file $out";;
+esac
+exit 0

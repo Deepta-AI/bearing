@@ -2,7 +2,7 @@
 name: release
 description: 'Prepares a release: version from commits or from the API diff for packages, CHANGELOG section, version bump, printed tag commands. Use when asked to "cut a release", "bump the version" or "publish the package".'
 argument-hint: "[major|minor|patch|vX.Y.Z] [--package [path]]"
-allowed-tools: Read, Write, Edit, Grep, Glob, Bash(ls:*), Bash(mkdir -p docs/releases), Bash(date:*), Bash(git tag -l:*), Bash(git tag --no-merged:*), Bash(git branch -a:*), Bash(git branch --no-merged:*), Bash(git describe:*), Bash(git log:*), Bash(git diff:*), Bash(git show:*), Bash(git status:*), Bash(git remote:*), Bash(git merge-base:*), Bash(git grep:*), Bash(make:*), Bash(go test:*), Bash(pnpm test:*), Bash(uv run pytest:*), Bash(./gradlew test:*), Bash(swift test:*), Bash(npm pack --dry-run:*), Bash(pnpm pack --dry-run:*), Bash(npm view:*), Bash(gorelease:*), Bash(apidiff:*), Bash(go doc:*), Bash(go list:*), Bash(griffe check:*), Bash(pnpm changeset status:*), Bash(pnpm exec nx show projects:*), Bash(pnpm exec turbo run build --dry-run:*)
+allowed-tools: Read, Write, Edit, Grep, Glob, Bash(ls:*), Bash(mkdir -p docs/releases), Bash(date:*), Bash(git tag -l:*), Bash(git tag --no-merged:*), Bash(git branch -a:*), Bash(git branch --no-merged:*), Bash(git describe:*), Bash(git log:*), Bash(git diff:*), Bash(git show:*), Bash(git status:*), Bash(git remote:*), Bash(git merge-base:*), Bash(git grep:*), Bash(make:*), Bash(go test:*), Bash(pnpm test:*), Bash(uv run pytest:*), Bash(./gradlew test:*), Bash(swift test:*), Bash(npm pack --dry-run:*), Bash(pnpm pack --dry-run:*), Bash(npm view:*), Bash(gorelease:*), Bash(apidiff:*), Bash(go doc:*), Bash(go list:*), Bash(griffe check:*), Bash(pnpm changeset status:*), Bash(pnpm exec nx show projects:*), Bash(pnpm exec turbo run build --dry-run:*), AskUserQuestion
 ---
 
 # release
@@ -24,15 +24,14 @@ and calls this skill for the version and changelog.
 
 ## Inputs
 
-- Mode: `--package [path]` for a library, SDK or CLI; if absent, a
-  service or app. A path without the flag, or a workspace with no
-  deployable entrypoint, asks once which mode.
+- Mode: `--package [path]` for a library, SDK or CLI; if absent, a service or app. A path without
+  the flag, or a workspace with no deployable entrypoint, asks once which mode with AskUserQuestion
+  (as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says), options service or app, and package (no answer: stop).
 - Release branch: `develop` (or `release/*`) as the current branch; if
   the repository has no `develop`, `main`; else the HEAD branch from
   `git remote show origin`; else the current branch. Say which.
-- Clean tree: `git status --porcelain`; if dirty, list the files and ask
-  once: commit first, or continue (the report then says which files the
-  release commit would sweep in).
+- Clean tree: `git status --porcelain`; if dirty, list the files and ask once with AskUserQuestion:
+  commit first (Recommended), or continue (the report then says which files the release commit would sweep in); no answer: stop.
 - Last tag: `git describe --tags --abbrev=0`; in a workspace
   `git tag -l '<name>@*'`; none means `v0.0.0` and everything counts.
   When the user names the last version, compare: a disagreement is
@@ -93,9 +92,10 @@ and calls this skill for the version and changelog.
    shipped code, is read as a diff (`git show <sha>`) and classified by
    effect; list what it changed for users (response shape, log format,
    config keys, defaults, CLI flags). When unprefixed commits are the
-   majority, ask for the bump.
-   Service: diff the contract since the tag (`git diff <tag> -- api/
-   '*.proto' '*openapi*'`, JSON tags on response types). A removed or
+   majority, ask for the bump with AskUserQuestion, options major, minor and
+   patch (the diff-based reading "(Recommended)"); no answer: stop.
+   Service: diff the contract since the tag (`git diff <tag> -- api/ '*.proto' '*openapi*'`,
+   JSON tags on response types). A removed or
    renamed field is major whatever the messages say; name every endpoint
    that returns it. A service's major changes no module path (`/vN` is for
    libraries others import).
@@ -128,12 +128,12 @@ and calls this skill for the version and changelog.
      tag): if earlier releases could have shipped it, tell the engineer to
      inspect the published tarball and rotate the credential. Never
      delete or edit the engineer's local file;
-   - README install snippet (`npm i`, `pnpm add`, `go get`, `pip
-     install`, `uv add`): the name equals the manifest name (not an old or
+   - README install snippet (`npm i`, `pnpm add`, `go get`, `pip install`,
+     `uv add`): the name equals the manifest name (not an old or
      deprecated name) and a pinned version equals the new one; the usage
      shows the current API, not a removed or renamed one;
-   - workspace order: the dependency graph (`pnpm exec nx show projects
-     --affected`, `pnpm exec turbo run build --dry-run`, else the
+   - workspace order: the dependency graph (`pnpm exec nx show projects --affected`,
+     `pnpm exec turbo run build --dry-run`, else the
      `dependencies` fields), topological, every dependent of a bumped
      package at least a patch;
    - provenance: npm `--provenance` and PyPI trusted publishing need a CI

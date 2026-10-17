@@ -2,7 +2,7 @@
 name: ux-flows
 description: 'Maps UX flows: screen inventory tied to stories, every state with copy, storyboard, flow diagrams and a zero dead-end check. Use when asked to "map the user flows", "what screens do we need" or "user journey".'
 argument-hint: "<feature> [path to stories, PRD or ticket] [--feedback \"...\" to re-issue as the next version]"
-allowed-tools: Read, Write, Edit, Grep, Glob, Skill, Bash(ls:*), Bash(mkdir:*), Bash(wc:*), Bash(grep:*), Bash(python3 *skills/ux-flows/scripts/flows_check.py*)
+allowed-tools: Read, Write, Edit, Grep, Glob, Skill, Bash(ls:*), Bash(mkdir:*), Bash(wc:*), Bash(grep:*), Bash(python3 *skills/ux-flows/scripts/flows_check.py*), AskUserQuestion
 ---
 
 # ux-flows
@@ -15,12 +15,15 @@ beat one click that needs thought.
 
 ## Inputs
 
-- Feature: looks in `$1`; if absent, asks one question.
+- Feature: looks in `$1`; if absent, asks one question with AskUserQuestion
+  (as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says),
+  options "enter the feature" (via Other) and "stop".
 - Spec: looks in `$2`; if absent, `docs/product/backlog.md` (stories whose
   epic or title names the feature, with `US-` and `AC-` ids); if absent,
-  `docs/product/PRD.md`; if absent, asks once for a ticket or a pasted
-  brief, numbered `US-LOCAL-001` by this skill. Nothing after that: stop
-  with "provide stories, a PRD, a ticket or a brief".
+  `docs/product/PRD.md`; if absent, asks once with AskUserQuestion, options
+  "paste a ticket or brief" (via Other, numbered `US-LOCAL-001` by this skill)
+  and "stop". Nothing after that: stop with "provide stories, a PRD, a ticket
+  or a brief".
 - Existing screens: the code's routes, screens and page components, so
   names are reused; a green-field repository has none and every screen is
   marked `new`.
@@ -34,8 +37,8 @@ beat one click that needs thought.
   `flows-v<n>.md`; with `--feedback`, or when the request asks for changes
   to it, it is the base for the next version (see Re-issuing with
   feedback), and its review notes (`docs/design/reviews/`) and the tickets
-  citing it are read too; otherwise ask once whether to iterate or
-  overwrite.
+  citing it are read too; otherwise ask once with AskUserQuestion, options
+  "iterate (Recommended)" and overwrite (no answer: iterate, the previous file stays as is).
 - Template: `templates/flows.md` in this skill. Checklist:
   `references/flow-review.md`.
 - Gate: `scripts/flows_check.py` in this skill, Python 3 only, run from
@@ -52,49 +55,9 @@ beat one click that needs thought.
    written from the stories alone promises things the product does not
    do. For every action the flow touches, open its handler and write a
    short ledger in the package (section 0 of the template):
-   - Rejections: every error code or message the handler can return,
-     read from the code, not the story, including the lookup miss (an
-     unknown id or token) and any path that throws outside the error
-     type (a missing session or record dereferenced), which reaches the
-     user as a generic 500. Each becomes its own error cell in step 4,
-     with copy; a 500 path is also a backend note.
-   - Who is calling: what each handler needs from the session (signed
-     in, which account, which workspace or context) and what it does
-     without it. A user arriving from outside (an email link, a
-     notification) comes in every session state: signed out with no
-     account, signed out with an account, signed in as someone else,
-     signed in correctly. Trace each through the handlers: the sign-up
-     that rejects an existing address, the sign-in that opens the wrong
-     context for a user who belongs to two, the call that crashes when
-     nobody is signed in. Each is a path in the flow.
-   - Numbers and how they are counted: expiry, rate limits, quotas, seat
-     or item caps, prices, sizes. Read the counting rule too: does the
-     current user count, do pending items hold a slot, does an expired
-     one still hold it, is the window fixed or rolling and is it shared
-     (per workspace, not per user or per dialog). Then compute the
-     numbers the user will see for the scenario in the request, on the
-     date it happens ("a new Starter workspace can invite 4, not 5";
-     "12 at $8 is $96 a month"; "10 a minute, so 2 wait"). A spec value
-     that differs from the code changes every number derived from it
-     (an invite still pending under the spec's expiry has expired under
-     the code's, so it holds no seat and no longer blocks a re-invite).
-   - Numbers other documents state: a PM note, a ticket or a review
-     that quotes a count, a price or a date was usually worked out from
-     the spec. Recompute it from the code and the records; where it
-     differs, say so with both figures.
-   - Routes and endpoints: every link, page and API call the flow relies
-     on, checked against the router and the registered endpoints, and
-     one hop further: when a recovery sends the user to an existing page
-     ("go to billing to upgrade"), check that page's own control works.
-     A link that points at an unregistered route, a step with no
-     endpoint, or a field the record does not store (a name shown on a
-     screen that no model carries) is `new` or a dependency, never
-     described as existing.
-   - Guards the handler does not make: what happens when the item changed
-     between the user seeing it and acting on it (accepted, removed,
-     expired, changed by another person). If the code succeeds anyway or
-     gives a misleading reply, that is a state to design and a backend
-     note.
+   - Rejections, who is calling, numbers and how they are counted, numbers
+     other documents state, routes and endpoints, and guards the handler
+     does not make: Detail: references/reconcile-spec-with-code.md
    - Spec against code: each disagreement (a number, a permission, a
      missing path, an ADR the story contradicts) is a row with both
      sources. Until product decides, copy states what the code does, or
@@ -148,33 +111,17 @@ beat one click that needs thought.
     success row, `n/a` without a reason, and zero screens read. Fix and
     rerun until it exits 0. Change nothing outside `docs/` (no README
     status line, no code). Print the output contract. If gstack
-    `/diagram` is listed in this session, offer to render the mermaid;
-    invoke only on a yes. Name `/plan-design-review` (gstack) as the
+    `/diagram` is listed in this session, ask once with AskUserQuestion
+    (as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says), options "render
+    with /diagram" and "mermaid only" (no answer: mermaid only); invoke only on
+    the first. Name `/plan-design-review` (gstack) as the
     heavier interactive review and `design-directions` as next.
 
 ## A product with several packages, or no code yet
 
-- No handlers yet (a green-field product designed contract first): the
-  API contract is what ships. Read each operation's error codes and
-  response descriptions as its rejections, and head the ledger "from the
-  contract, no code yet"; the limits come from the data model and the
-  HLD. A conflict is then between the stories and the contract.
-- No visitor accounts (a marketing site): the session walk covers the
-  anonymous visitor and, where it exists, the staff sign-in; it does not
-  invent account states the product does not have.
-- One package per feature, one id space: screen ids continue from the
-  previous package (the admin area starts after the public site's last
-  id) and never repeat; the gate refuses an id two packages share.
-- Site-wide stories (performance, accessibility, search, the design
-  system) map to no screen. List them under "Site-wide, no screen of its
-  own" with the sections that carry them (the state copy, the interaction
-  inventory); they are not unmapped.
-- Page chrome (header, footer, language switch, consent banner) is one
-  group in the interaction inventory, "every page", not repeated per
-  screen.
-- Many rejections: one error row per rejection, labelled with its code
-  (`error: slot_unavailable`); the recovery flows may group a screen's
-  error rows by operation, each row named in the flow.
+No handlers yet, no visitor accounts or several packages change the ledger
+and the ids: screen ids continue across packages and never repeat (the gate
+refuses an id two packages share). Detail: references/several-packages-or-no-code.md
 
 ## Re-issuing with feedback
 
@@ -185,29 +132,7 @@ feedback asks and to show every consequence, not to rewrite the package.
 - Write `flows-v<n+1>.md` beside the previous file, which stays as is,
   with `## Changes from v<n>` first: each change, the feedback it answers
   and the screen ids touched.
-- Screens the feedback does not touch are carried across with their copy
-  and states unchanged, even when the previous version used another
-  layout. Where the template wants a row the old screen never had, write
-  `n/a: not in v<n>, outside this feedback` and list the gap as a note;
-  do not design it. Correcting a value that contradicts the code (step 2)
-  is the exception, recorded in Changes.
-- A removed screen keeps its inventory row with `removed in v<n+1>` in
-  Status (the gate then skips it; it leaves the flowcharts and state
-  tables), and its id is never reused. Everything it carried is moved or dropped on purpose,
-  each named in Changes: disclosures and prices, approved or legal
-  wording, its error states, its events, the stories it served.
-- Re-read every review note, sign-off and ticket that cites the previous
-  version. Each one the change touches is listed with what now needs
-  re-approval or rescoping: approved wording that has to change for the
-  new case (a sentence written for one item, now for twelve) goes back to
-  whoever approved it, and a ticket that cites a removed id is named.
-- Re-run step 2 against the change: new inputs (a list instead of one
-  item) meet the same limits many times over. Recompute the numbers for
-  the feedback's own example, and recheck numbers the previous version
-  stated. When the feedback cites a real case (a customer, a ticket, a
-  pasted list), walk that case through the new flow with its own records
-  and dates, item by item: which entries are dropped, refused, sent or
-  left waiting, and why.
+Detail: references/re-issuing-with-feedback.md
 
 ## Output contract
 

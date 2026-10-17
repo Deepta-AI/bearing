@@ -39,8 +39,8 @@ immutable facts; the truth stays in Postgres.
   Replacing, summation key for Summing) and would bloat the index in RAM.
 - A granule is 8,192 rows; a point lookup reads at least one whole granule,
   which is why millisecond lookups belong in Postgres.
-- Changing `ORDER BY` after the fact means a new table: create, `INSERT
-  SELECT`, `EXCHANGE TABLES`, drop. Get it right from the query list.
+- Changing `ORDER BY` after the fact means a new table: create, `INSERT SELECT`,
+  `EXCHANGE TABLES`, drop. Get it right from the query list.
 
 ## Partitioning and TTL
 
@@ -62,8 +62,8 @@ immutable facts; the truth stays in Postgres.
   `(tenant_id, event_id)` plus a read-side pattern; or a dedup step in the
   pipeline keyed on `event_id` over a 24-hour window. Say which in the DDL
   comment. "Merges will sort it out eventually" is not a design.
-- Read-side without `FINAL`: `SELECT key, argMax(col, version) ... GROUP BY
-  key`, or `LIMIT 1 BY key` after `ORDER BY version DESC`.
+- Read-side without `FINAL`: `SELECT key, argMax(col, version) ... GROUP BY key`,
+  or `LIMIT 1 BY key` after `ORDER BY version DESC`.
 
 ## Mutations and FINAL
 
@@ -112,8 +112,8 @@ immutable facts; the truth stays in Postgres.
 - Skip indexes: `minmax` for a column correlated with the sort order,
   `set(100)` for low-cardinality columns, `bloom_filter` or `tokenbf_v1` for
   equality/`hasToken` on strings, `ngrambf_v1` for `LIKE '%x%'`. They
-  help only when matching rows cluster within granules; verify with `EXPLAIN
-  indexes = 1` that granules are actually skipped.
+  help only when matching rows cluster within granules; verify with `EXPLAIN indexes = 1`
+  that granules are actually skipped.
 
 ## Query anti-patterns
 
@@ -125,15 +125,15 @@ immutable facts; the truth stays in Postgres.
   `Dictionary`.
 - `ORDER BY` without `LIMIT` over millions of rows; `count(DISTINCT x)` where
   `uniq(x)` (approximate, 1%) or `uniqExact` is meant.
-- `GROUP BY` on a high-cardinality key without `max_bytes_before_external_
-  group_by` set: memory limit exceeded at 3 a.m.
+- `GROUP BY` on a high-cardinality key without `max_bytes_before_external_ group_by`
+  set: memory limit exceeded at 3 a.m.
 - Check `system.query_log` for `read_rows` vs `result_rows`: over 1,000:1 in
   a hot query means the `ORDER BY` does not serve it.
 
 ## Schema migrations
 
-- No transactional DDL: every statement is idempotent (`CREATE TABLE IF NOT
-  EXISTS`, `ADD COLUMN IF NOT EXISTS`, `DROP ... IF EXISTS`) and the file is
+- No transactional DDL: every statement is idempotent (`CREATE TABLE IF NOT EXISTS`,
+  `ADD COLUMN IF NOT EXISTS`, `DROP ... IF EXISTS`) and the file is
   safe to re-run after a partial failure. `ON CLUSTER` on every DDL.
 - Cheap: `ADD COLUMN` (metadata; old parts read the default), `DROP COLUMN`,
   `MODIFY TTL`, `ADD INDEX`, `ADD PROJECTION`. Expensive (mutation):

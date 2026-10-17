@@ -2,7 +2,7 @@
 name: merge-request
 description: 'Prepares the merge request for the current branch: gate run, commit audit, diff summary, description, ticket link, push command; never pushes. Use when asked to "prepare the MR", "write the PR description".'
 argument-hint: "[target branch, default develop]"
-allowed-tools: Read, Write, Grep, Glob, Bash(bash *bin/brg-tracker *), Bash(make:*), Bash(git status:*), Bash(git diff:*), Bash(git log:*), Bash(git branch:*), Bash(git fetch:*), Bash(git remote:*), Bash(mkdir -p .scratch), Bash(tail -40), Bash(go test:*), Bash(pnpm test:*), Bash(uv run pytest:*), Bash(./gradlew test:*), Bash(swift test:*), Bash(bash *bin/brg-state-path*), Bash(python3 *skills/session-handoff/scripts/progress.py*)
+allowed-tools: Read, Write, Grep, Glob, Bash(bash *bin/brg-tracker *), Bash(make:*), Bash(git status:*), Bash(git diff:*), Bash(git log:*), Bash(git branch:*), Bash(git fetch:*), Bash(git remote:*), Bash(mkdir -p .scratch), Bash(tail -40), Bash(go test:*), Bash(pnpm test:*), Bash(uv run pytest:*), Bash(./gradlew test:*), Bash(swift test:*), Bash(bash *bin/brg-state-path*), Bash(python3 *skills/session-handoff/scripts/progress.py*), AskUserQuestion
 ---
 
 # merge-request
@@ -16,14 +16,15 @@ only makes the inputs below quicker to find.
 - branch: `git branch --show-current`; detached HEAD stops with "check
   out the branch to merge".
 - task id: looks in the branch name (`[A-Z][A-Z0-9]*(-[0-9]+)+`); if
-  absent, the state file `.bearing/state/<branch with / as _>.md` (`bash "${CLAUDE_PLUGIN_ROOT}/bin/brg-state-path"` prints it); if absent, ask once; if
+  absent, the state file `.bearing/state/<branch with / as _>.md` (`bash "${CLAUDE_PLUGIN_ROOT}/bin/brg-state-path"` prints it); if absent, ask once with
+  AskUserQuestion (as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says), options "enter the id" (the answer comes as free text via Other) and "proceed without an id"; if
   none, proceed with no id and say so in the description and the report.
 - target: looks in `$1`; if absent, `develop` when `origin/develop`
-  exists; else `main`; else the HEAD branch from `git remote show
-  origin`; else the current branch's upstream. Say which was used.
+  exists; else `main`; else the HEAD branch from `git remote show origin`;
+  else the current branch's upstream. Say which was used.
 - gate: `make check` when the Makefile has a `check` target; if absent,
-  the stack's native command (`go test ./...`, `pnpm test`, `uv run
-  pytest`, `./gradlew test`, `swift test`) and the report says the gate
+  the stack's native command (`go test ./...`, `pnpm test`, `uv run pytest`,
+  `./gradlew test`, `swift test`) and the report says the gate
   is improvised (`new-repo` or `onboard-repo` install the Makefile).
 - host: `git remote get-url origin` (`github.com` is github, a url
   containing `gitlab` is gitlab; otherwise `BEARING_GIT_HOST`, else gitlab);
@@ -33,7 +34,7 @@ only makes the inputs below quicker to find.
   `.github/PULL_REQUEST_TEMPLATE.md` in the repository, by host; if
   absent, this skill's own `templates/mr.md`.
 - clean tree: `git status --porcelain`; if dirty, list the files and ask
-  once: the engineer commits first, or you continue describing only the
+  once with AskUserQuestion (as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says), two options: the engineer commits first, or you continue describing only the
   committed diff (the description then says the tree had uncommitted
   changes and that they are not in the MR). With no one to answer, take
   the second. Never commit, stash or discard the engineer's changes
@@ -61,8 +62,8 @@ only makes the inputs below quicker to find.
 2. Target as in Inputs; `main` only for `hotfix/` unless `$1` says
    otherwise. `git fetch origin <target>`; without a remote, diff
    against the local target branch and say so.
-3. Diff: `git diff --stat <target>...HEAD` and `git log --oneline
-   <target>..HEAD`. Zero files: stop, "0 files in diff between <target>
+3. Diff: `git diff --stat <target>...HEAD` and `git log --oneline <target>..HEAD`.
+   Zero files: stop, "0 files in diff between <target>
    and HEAD". Over 400 changed lines: continue, but the Risk section
    must propose the split.
 4. Gate as in Inputs: `<command> 2>&1 | tail -40`. `make check` must end
@@ -95,20 +96,17 @@ only makes the inputs below quicker to find.
    `<remote web url>/-/merge_requests/new?merge_request[source_branch]=<branch>`;
    GitHub `<remote web url>/compare/<target>...<branch>?expand=1` (or the
    `gh pr create --fill --base <target>` line, printed, never run).
-9. Ticket: with a task id and a tracker, run `bash
-   "${CLAUDE_PLUGIN_ROOT}/bin/brg-tracker" trace <ID> --branch <branch>
-   --commits <list> [--tests ..] [--adr ..]` and report its line; exit 3
+9. Ticket: with a task id and a tracker, run `bash "${CLAUDE_PLUGIN_ROOT}/bin/brg-tracker" trace <ID> --branch <branch> --commits <list> [--tests ..] [--adr ..]`
+   and report its line; exit 3
    means `tracker: none`, reported as such. The MR url is posted by the
    engineer after opening it: print `tracker-sync trace <ID> --mr <url>`
    under the push command, and the line that records it in the progress
    file: `progress.py write --task <ID> --mr <url>` (committed with the
    next change on the branch).
-10. Progress file: `python3
-   "${CLAUDE_PLUGIN_ROOT}/skills/session-handoff/scripts/progress.py" write
-   --task <ID> --status "in review" --next "address review comments"`
+10. Progress file: `python3 "${CLAUDE_PLUGIN_ROOT}/skills/session-handoff/scripts/progress.py" write --task <ID> --status "in review" --next "address review comments"`
    (add `--ticket <url>` when known). Leave it uncommitted and print the
-   command that commits it (`git add <file> && git commit -m
-   "docs(progress): [<ID>] in review"`); the engineer decides whether it
+   command that commits it (`git add <file> && git commit -m "docs(progress): [<ID>] in review"`);
+   the engineer decides whether it
    goes in this MR (a hotfix to `main` usually should not carry it).
 
 ## Output contract

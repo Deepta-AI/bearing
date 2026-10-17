@@ -50,8 +50,7 @@ Java. Everything else holds for both.
 - Every suspend function that does I/O switches with `withContext(io)`; the
   caller does not know or care which thread it lands on.
 - Never catch `CancellationException`. `runCatching` catches it, so any
-  `runCatching` is followed by `.onFailure { if (it is CancellationException)
-  throw it }`.
+  `runCatching` is followed by `.onFailure { if (it is CancellationException) throw it }`.
 - Collect in the UI with `collectAsStateWithLifecycle()`; in an Activity or
   Fragment with `repeatOnLifecycle(STARTED)`. A bare `collect` in `onCreate` is
   a leak.
@@ -90,8 +89,8 @@ Java. Everything else holds for both.
   committed under `app/schemas/`. Multi-statement writes are `@Transaction`.
   Queries return `Flow<List<T>>` for observed data and are never called on
   the main thread (Room enforces it; keep it enforced).
-- Network: one `OkHttpClient`, one `Retrofit`, `Json { ignoreUnknownKeys =
-  true }`. Logging interceptor at `BASIC` in debug only; `HEADERS` or `BODY`
+- Network: one `OkHttpClient`, one `Retrofit`, `Json { ignoreUnknownKeys = true }`.
+  Logging interceptor at `BASIC` in debug only; `HEADERS` or `BODY`
   would log tokens. Timeouts set explicitly. Certificate pinning on money
   paths, with a rotation plan written before the pin ships.
 - Auth: tokens encrypted with a Tink AEAD (`AesGcmKeyManager`) whose keyset

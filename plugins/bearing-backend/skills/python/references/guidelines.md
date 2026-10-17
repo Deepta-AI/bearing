@@ -54,8 +54,8 @@
 - Routers per resource under `app/api/<resource>/router.py`; schemas next
   to them in `schemas.py`. `response_model` on every route, an explicit
   `status_code` on every non-200.
-- Request models are `BaseModel` with `model_config = ConfigDict(extra=
-  "forbid")`. Unknown fields are a 422, not silently dropped.
+- Request models are `BaseModel` with `model_config = ConfigDict(extra= "forbid")`.
+  Unknown fields are a 422, not silently dropped.
 - Dependencies through `Annotated[T, Depends(get_t)]`. Settings, sessions,
   services and the current user are dependencies, never imports of a global.
 - A route parses, calls one service method, returns a schema. No SQL, no
@@ -141,7 +141,7 @@
 - ruff decides style. Nothing is discussed in review that a tool decides.
 - Docstrings on every public module, class and function, one line, saying
   what it is for. Comments explain why.
-- `Annotated` types, `X | None` unions, `list[...]` builtins. No `typing.
-  Optional`, `List`, `Dict`.
+- `Annotated` types, `X | None` unions, `list[...]` builtins. No `typing. Optional`,
+  `List`, `Dict`.
 - Immutable by default: `frozen=True` dataclasses for domain values,
   `Field(default_factory=...)` for any mutable default.

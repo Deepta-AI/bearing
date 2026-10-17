@@ -2,7 +2,7 @@
 name: docs-drift
 description: 'Finds docs that no longer match the code (broken links and paths, gone make targets, unused env vars, stale pages) and fixes the stale side. Use when asked "are the docs up to date", "check the README" or "docs drift".'
 argument-hint: "[--root <dir>] [--strict] [--exclude <glob>]... [--stale-after N] [--report-only]"
-allowed-tools: Read, Edit, Grep, Glob, Skill, Bash(git log:*), Bash(git diff:*), Bash(git merge-base:*), Bash(python3 *skills/docs-drift/scripts/docs_drift.py*)
+allowed-tools: Read, Edit, Grep, Glob, Skill, Bash(git log:*), Bash(git diff:*), Bash(git merge-base:*), Bash(python3 *skills/docs-drift/scripts/docs_drift.py*), AskUserQuestion
 ---
 
 # docs-drift
@@ -125,8 +125,9 @@ Not this: `openapi-spec check` owns spec against routes;
      path the design requires was never built): the code drifted. Nothing
      is edited; it is a finding for the engineer with the doc line and
      the code line.
-   - Unclear (no history, no design says either way): ask one question
-     naming both sides, or under `--report-only` list it as undecided.
+   - Unclear (no history, no design says either way): ask one
+     question with AskUserQuestion, one option naming each side (as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says),
+     or under `--report-only` list it as undecided.
 5. Edits are the smallest change that makes the claim true again: the
    new path, the target that replaced the old one, the variable the code
    reads. A claim that is no longer true of anything is removed with the

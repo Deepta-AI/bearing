@@ -318,7 +318,7 @@ def stop_common(root, name, makefile):
     blocks = [
         h
         for h in r.hooks("Stop", "hook_blocking_error")
-        if "since make check last passed" in h
+        if "since the last check" in h
     ]
     return d, r, blocks
 

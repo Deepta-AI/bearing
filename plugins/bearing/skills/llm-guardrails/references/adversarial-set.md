@@ -1,8 +1,8 @@
 # Adversarial fixture set
 
 The minimum set every guardrails module must catch. Copy into
-`tests/guardrails/fixtures.jsonl` as `{id, check, input, expected,
-note}`; extend per product. All values are synthetic. A fixture is
+`tests/guardrails/fixtures.jsonl` as `{id, check, input, expected, note}`;
+extend per product. All values are synthetic. A fixture is
 never a real person, number or document.
 
 ## Input: prompt injection (expected `blocked`)

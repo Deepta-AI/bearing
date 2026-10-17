@@ -2,7 +2,7 @@
 name: incident
 description: 'Runs a live incident as scribe: severity, UTC timeline, roles, runbook steps for a person, comms, postmortem hand-off; never remediates. Use when "we have an outage", "declare an incident" or "the alert is firing".'
 argument-hint: "declare <alert or title> [--sev 1|2|3|4] | update \"<note>\" | comms | resolve"
-allowed-tools: Read, Write, Edit, Grep, Glob, Bash(ls:*), Bash(mkdir:*), Bash(date -u:*), Bash(git log:*), Bash(git tag -l:*)
+allowed-tools: Read, Write, Edit, Grep, Glob, Bash(ls:*), Bash(mkdir:*), Bash(date -u:*), Bash(git log:*), Bash(git tag -l:*), AskUserQuestion
 ---
 
 # incident
@@ -14,14 +14,15 @@ is done by a person.
 
 ## Inputs
 
-- Mode and title: `$ARGUMENTS`; if absent, one question: "declare,
-  update, comms or resolve, and which incident?". Nothing: stop with
+- Mode and title: `$ARGUMENTS`; if absent, ask one question with
+  AskUserQuestion (as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says), options declare, update, comms and resolve, the incident
+  title or alert as free text via Other. Nothing: stop with
   "provide the mode and the alert or title".
 - Severity reference and templates: `references/severity.md`,
   `templates/incident.md`, `templates/comms.md`, all in this skill's
   folder; never a repository copy.
 - Incident doc: looks in `docs/postmortems/*-incident.md` for update,
-  comms and resolve; if absent, asks which file, or declares first.
+  comms and resolve; if absent, asks which file with AskUserQuestion (as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says), options the files found and "declare first".
 - Runbook: looks in `docs/runbooks/<alert name>.md`; if absent, the
   nearest runbook for the service by grep; if none, the diagnosis is
   taken from the alert's own description and the doc says "no runbook";
@@ -34,8 +35,9 @@ is done by a person.
 ## Steps
 
 1. `declare <alert or title>`: read `references/severity.md` and set
-   the severity from user impact, not from the alert's label. Ask one
-   question if the impact is unknown; otherwise pick the higher of the
+   the severity from user impact, not from the alert's label. If the impact is
+   unknown, ask one question with AskUserQuestion (as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says), options sev 1 to sev 4; unanswered: sev 2, say so;
+   otherwise pick the higher of the
    two candidates and say why. Sev 1 and 2 page the on-call lead now.
 2. Open `docs/postmortems/<YYYY-MM-DD>-<kebab-title>-incident.md` from
    `templates/incident.md` (create the directory). First timeline entry:
@@ -63,13 +65,13 @@ is done by a person.
    agent writes them into the doc under Comms log.
 7. `resolve`: final timeline entry, impact numbers if known (users,
    requests, minutes) or "unknown, measure: <how>", status `resolved`,
-   the follow-up placeholder table, and the line `next: postmortem
-   "<title>" docs/postmortems/<file>` within five working days. Before
+   the follow-up placeholder table, and the line `next: postmortem "<title>" docs/postmortems/<file>`
+   within five working days. Before
    `resolved` is written, the runbook for the alert that fired is updated
    with what the responders actually did: the commands that worked, the
    signal that misled, the step that was missing. Name it in the doc as
-   `runbook: docs/runbooks/<alert>.md updated | none existed, runbook
-   <alert>`; a resolve that leaves the runbook as it was is not done.
+   `runbook: docs/runbooks/<alert>.md updated | none existed, runbook <alert>`;
+   a resolve that leaves the runbook as it was is not done.
 8. Print the contract after every mode.
 
 ## Output contract

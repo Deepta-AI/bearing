@@ -66,12 +66,12 @@ that tell you it is slow in production.
    40 MiB before your data; RSS runs above tracemalloc's count).
 4. Profile under the same condition, per stack:
    - Go: `go test -bench . -cpuprofile cpu.out -memprofile mem.out` or
-     the `/debug/pprof/{profile,heap,block,mutex}` endpoint; `go tool
-     pprof -top -nodecount=15 <bin> cpu.out`. Add `-benchmem`;
+     the `/debug/pprof/{profile,heap,block,mutex}` endpoint; `go tool pprof -top -nodecount=15 <bin> cpu.out`.
+     Add `-benchmem`;
      allocations per op are often the real cost (GC share in the
      profile is allocation, attributed elsewhere).
-   - Python CPU: `uv run py-spy record -o .scratch/perf/flame.svg --
-     python <entry>`, or `python3 -m cProfile -s cumtime <entry>` for
+   - Python CPU: `uv run py-spy record -o .scratch/perf/flame.svg -- python <entry>`,
+     or `python3 -m cProfile -s cumtime <entry>` for
      call counts when py-spy is not installed.
    - Python memory: `tracemalloc` from the standard library. Start it,
      run one iteration, `gc.collect()`, take a snapshot; repeat; print
@@ -82,13 +82,12 @@ that tell you it is slow in production.
      process peak in KiB on Linux.
    - Node: `node --cpu-prof --cpu-prof-dir=.scratch/perf <entry>`,
      `node --heap-prof` for memory, `npx clinic@13.0.0 flame -- node <entry>`.
-   - Browser: `npx lighthouse@13.5.0 <url> --output=json
-     --output-path=.scratch/perf/lh.json`; the Performance panel trace
+   - Browser: `npx lighthouse@13.5.0 <url> --output=json --output-path=.scratch/perf/lh.json`;
+     the Performance panel trace
      is recorded by the engineer and its JSON dropped in `.scratch/perf/`.
    - Android: `./gradlew :macrobenchmark:connectedCheck` for startup
      and frame timing; the Studio profiler trace is exported by hand.
-   - iOS: `xcrun xctrace record --template 'Time Profiler' --launch
-     <app> --output .scratch/perf/trace.trace`.
+   - iOS: `xcrun xctrace record --template 'Time Profiler' --launch <app> --output .scratch/perf/trace.trace`.
    Read it: the widest frames by self time, then the path from the root
    carrying the most total time. List the top five with their share,
    and give the share of anything a note or runbook blamed.

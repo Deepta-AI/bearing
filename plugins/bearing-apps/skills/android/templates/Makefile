@@ -27,7 +27,7 @@ define require_gradle
 command -v java >/dev/null || $(call skip,$(1),java)
 endef
 
-.PHONY: help setup bootstrap dev check check-file fix test test-ui lint ktlint detekt build bundle doctor clean
+.PHONY: help setup bootstrap dev check check-file check-changed fix test test-ui lint ktlint detekt build bundle doctor clean
 
 help: ## List targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-12s %s\n", $$1, $$2}'
@@ -121,6 +121,16 @@ check-file: ## Lint one edited file, FILE=path (the Bearing edit hook runs this)
 	  *) echo "check-file: no per-file check for $(FILE)"; exit 0;; \
 	esac; \
 	echo "check-file: 1 file checked"
+
+CHANGED = git status --porcelain -z --untracked-files=all | tr '\0' '\n' | awk 'skip{skip=0;next} {c=substr($$0,1,2);p=substr($$0,4)} c~/^R|^.R|^C/{print p;skip=1;next} {print p}' | sort -u | while IFS= read -r f; do [ -e "$$f" ] || continue; for m in $(STATE)/.check-passed $(STATE)/.check-changed-passed; do [ -f "$$m" ] && ! [ "$$f" -nt "$$m" ] && continue 2; done; printf '%s\n' "$$f"; done
+
+check-changed: ## This stack cannot scope tests cheaply, so the Stop gate runs lint and the full unit tests; make check stays the full gate
+	@mkdir -p $(STATE); f=$$($(CHANGED) | grep -c . || true); \
+	[ "$$f" -gt 0 ] || { touch $(STATE)/.check-changed-passed; echo "check-changed: 0 files, nothing to check"; exit 0; }; \
+	echo "check-changed: android cannot scope, ran all tests"; \
+	rm -f $(SKIPPED); $(MAKE) --no-print-directory lint test || exit 1; \
+	if [ -s $(SKIPPED) ]; then sed 's/^/  skipped: /' $(SKIPPED); echo "check-changed: $$f files, a gate was skipped, marker not written"; exit 0; fi; \
+	touch $(STATE)/.check-changed-passed; echo "check-changed: $$f files, all packages checked"
 
 fix: ## Apply every automatic fix (ktlintFormat)
 	@$(call require_gradle,fix); $(GRADLEW) $(GRADLE_FLAGS) ktlintFormat

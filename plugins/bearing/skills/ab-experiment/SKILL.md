@@ -2,7 +2,7 @@
 name: ab-experiment
 description: 'Designs and analyses an A/B test: hypothesis, primary and guardrail metrics, sample size and duration, stopping rule, decision. Use when asked to "A/B test this", "how long should it run", "is it significant".'
 argument-hint: "design <name> [--flag <flag_name>] [--metric <event>] | analyse <name> [results.csv]"
-allowed-tools: Read, Write, Edit, Grep, Glob, Bash(ls:*), Bash(mkdir -p:*), Bash(date:*), Bash(python3 -c:*)
+allowed-tools: Read, Write, Edit, Grep, Glob, AskUserQuestion, Bash(ls:*), Bash(mkdir -p:*), Bash(date:*), Bash(python3 -c:*)
 ---
 
 # ab-experiment
@@ -23,19 +23,19 @@ uses both, and names them as skills, never as commands.
 
 ## Inputs
 
-- mode and name: `$ARGUMENTS`; if absent, ask one question.
+- mode and name: `$ARGUMENTS`; if absent, ask one question with AskUserQuestion as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says.
 - flag: `--flag`; if absent, the row in `docs/operations/flags.md`
   whose name contains the experiment name; if absent, the doc says
   `flag: tbd` and the report says it must be added (the `feature-flags`
   skill). An existing flag with a different purpose is not this flag.
 - primary metric: `--metric`; if absent, an event from
-  `docs/analytics/EVENT_SHEET.md`; if absent, ask once: "which event
-  counts as success for one exposed user?".
+  `docs/analytics/EVENT_SHEET.md`; if absent, ask once with AskUserQuestion
+  ("which event counts as success for one exposed user?", candidate events as options).
 - baseline rate and eligible units: from the repository's own data
   (funnel exports, reach or unique-visitor reports) for the segment the
   test targets, before any number in a README or a ticket; numbers the
-  user pastes win over both. If none exist, `assumed: p=0.10,
-  5000/week` and every derived number carries the `assumed:` prefix.
+  user pastes win over both. If none exist, `assumed: p=0.10, 5000/week`
+  and every derived number carries the `assumed:` prefix.
 - data retention: ADRs or docs on how long raw events are kept
   (grep `retention`, `days`, `delete` under `docs/`).
 - calendar and operations: sales, launches, code or config freezes,
@@ -49,8 +49,8 @@ uses both, and names them as skills, never as commands.
   add" and the report names the `analytics-events` skill.
 - results for `analyse`: `$2`, a CSV of counts per variant (and per
   segment when present), plus any note on how it was produced (a README
-  beside it, the query); if absent, ask once for the two counts per
-  variant.
+  beside it, the query); if absent, ask once with AskUserQuestion
+  (paste now / skip; the two counts per variant come as free text via Other).
 - experiment docs: `docs/experiments/`; created with `mkdir -p`.
 - templates in this skill: `templates/EXPERIMENT.md`, `templates/analysis.md`.
 
@@ -90,8 +90,8 @@ uses both, and names them as skills, never as commands.
    returning user every week, but each unit enters the test once, so
    the sum of weekly visitors overstates how fast units accrue. Use a
    distinct-unit count over a multi-week window when the repository has
-   one (reach, unique devices), else say the weeks from `ceil(2n /
-   weekly)` are a floor and how to measure distinct units. Add the
+   one (reach, unique devices), else say the weeks from `ceil(2n / weekly)`
+   are a floor and how to measure distinct units. Add the
    outcome window to the run length. Whole weeks, never under one.
    When the test does not fit, print the smallest effect detectable in
    the time available (`d = 2.8 * sqrt(2 p (1 - p) / n)`) rather than
@@ -112,8 +112,8 @@ uses both, and names them as skills, never as commands.
    everyone is signed in; where many are anonymous, the device id (or
    user id falling back to device id, bucketed on one key that does not
    change at sign-in). Name the share that is anonymous and the
-   cross-device leak you accept. Variant = `hash(unit_id + ":" + name)
-   mod 100` against the split, sticky for the run.
+   cross-device leak you accept. Variant = `hash(unit_id + ":" + name) mod 100`
+   against the split, sticky for the run.
 9. Exposure, the step most designs get wrong:
    - fires where the unit first reaches the changed surface, in the
      targeted segment only, not in middleware on every request;

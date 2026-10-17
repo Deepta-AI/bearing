@@ -2,7 +2,7 @@
 name: llm-guardrails
 description: 'Secures an LLM feature or agent: prompt injection and jailbreak defence, PII checks, a tool-call permission gate, output checks, adversarial tests. Use when asked for "guardrails" or about "prompt injection".'
 argument-hint: "[feature name] [python|typescript] [--audit]"
-allowed-tools: Read, Write, Edit, Grep, Glob, Skill, Bash(ls:*), Bash(mkdir:*), Bash(uv run pytest:*), Bash(npm test:*), Bash(make:*)
+allowed-tools: Read, Write, Edit, Grep, Glob, Skill, AskUserQuestion, Bash(ls:*), Bash(mkdir:*), Bash(uv run pytest:*), Bash(npm test:*), Bash(make:*)
 ---
 
 # llm-guardrails
@@ -42,8 +42,8 @@ prompt") is a request, not a guardrail.
    `claude-api` skill before writing any classifier call. Find every
    model call (`messages.create`, `messages.parse`, `tool_runner`,
    `toolRunner`, `messages.stream`, or the repo's own client wrapper)
-   and every tool registry; count the call sites. Zero call sites: ask
-   once where the model will be called, then build ahead of it and say
+   and every tool registry; count the call sites. Zero call sites: ask once with AskUserQuestion
+   as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says where the model will be called, then build ahead of it and say
    so in the report. Read the repo's own risk documents (security
    review, policy, README volume) before designing: every number and
    rule the guardrails enforce comes from them where they state one.

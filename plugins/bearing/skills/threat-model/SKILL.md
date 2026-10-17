@@ -24,8 +24,8 @@ input is not a clean bill; it is a failure of the model.
 - Entry points: looks in `api/openapi.yaml`; if absent, routes grepped
   from the code (the patterns `openapi-spec` lists), consumers, cron
   jobs, upload handlers and admin screens.
-- Stories: looks in `docs/product/backlog.md`; if absent, `Serves:
-  unnumbered` and every planned mitigation is a `new story:` title.
+- Stories: looks in `docs/product/backlog.md`; if absent, `Serves: unnumbered`
+  and every planned mitigation is a `new story:` title.
 - Assets: derived from the sensitive classes the grep finds and the PRD;
   if zero, asks one question for what the feature protects. Zero assets
   and zero entry points after that stops the skill: "name the assets or
@@ -77,8 +77,8 @@ critic on changed sections, downstream list). Threat ids are stable across revis
    categories (spoofing, tampering, repudiation, information disclosure,
    denial of service, elevation of privilege). Each threat gets an id
    `T-nn`, likelihood and impact (L, M, H), a mitigation that is either
-   existing code (`file:line`), a story id (`US-nn-nnn`), or `new story:
-   <title>`, and a status: mitigated, planned, unmitigated. Skipping a
+   existing code (`file:line`), a story id (`US-nn-nnn`), or `new story: <title>`,
+   and a status: mitigated, planned, unmitigated. Skipping a
    category is written as "considered, none" with the reason.
 6. Residual risks: every planned or unmitigated threat, with an owner and
    a revisit date. An owner is a rotation or role, not a person's name.

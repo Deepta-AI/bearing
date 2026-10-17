@@ -3,7 +3,7 @@ name: critic
 description: Read-only critic that argues against a PRD, HLD or LLD. Use as the mandatory review of high-level-design (graded mode), the optional last step of prd and low-level-design, or whenever a document is about to be accepted on the strength of its own confidence. Returns the three weakest claims, the cheapest experiment that would falsify each, and what the document does not say; in graded mode, findings graded BLOCKER to NIT.
 tools: Read, Grep, Glob
 disallowedTools: Bash, Write, Edit, MultiEdit, NotebookEdit
-model: opus
+model: sonnet
 maxTurns: 20
 memory: project
 ---

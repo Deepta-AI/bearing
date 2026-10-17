@@ -79,8 +79,8 @@ the bypass, with CI running the same checks as the real enforcement.
    Windows checkout with `core.autocrlf=true` rewrites them to CRLF and
    bash then fails on `$'\r'`, so add `.githooks/* text eol=lf` to
    `.gitattributes` (check with `git check-attr eol -- .githooks/pre-commit`).
-   Stage them with `git add --chmod=+x .githooks/commit-msg
-   .githooks/pre-commit .githooks/pre-push` so the executable bit is
+   Stage them with `git add --chmod=+x .githooks/commit-msg .githooks/pre-commit .githooks/pre-push`
+   so the executable bit is
    recorded in the index; a clone on a `core.fileMode=false` system
    otherwise checks out hooks git silently skips. Staging is not
    committing; say that the engineer commits.
@@ -94,8 +94,8 @@ the bypass, with CI running the same checks as the real enforcement.
    value pointing at live hooks is left and reported (chain them, or
    `--force` with the engineer's yes). It prints the hook count (3).
 7. Prove every hook on inputs that must fail and inputs that must pass,
-   in a throwaway clone outside the repository (`d=$(mktemp -d); git
-   clone -q . "$d/c"`, then `cp -R` the uncommitted `.githooks/`,
+   in a throwaway clone outside the repository (`d=$(mktemp -d); git clone -q . "$d/c"`,
+   then `cp -R` the uncommitted `.githooks/`,
    `.gitattributes` and Makefile into it and install there) so the
    user's repository gets no commits and no debris. Show the output.
    - commit-msg: `bad message` fails; a valid subject on a ticket branch
@@ -104,8 +104,8 @@ the bypass, with CI running the same checks as the real enforcement.
      repository's rules allow (every listed type, a long unwrapped body
      line if nothing limits it, a subject longer than 72 characters if
      nothing limits it) passes.
-   - pre-commit: nothing staged fails with `0 staged files, nothing
-     checked`; each forbidden file kind fails (`.env`, key files, a file
+   - pre-commit: nothing staged fails with `0 staged files, nothing checked`;
+     each forbidden file kind fails (`.env`, key files, a file
      over the size limit); an existing tracked sample under the limit
      passes; a Go file staged unformatted and then fixed only in the
      working tree still fails (the hook reads the staged blob); every
@@ -131,8 +131,8 @@ the bypass, with CI running the same checks as the real enforcement.
 
 1. Reproduce every rejection at once, without committing: `git status`
    and `git diff --cached --stat` for what is staged, then run
-   `.githooks/pre-commit` and `.githooks/commit-msg <file with the
-   intended message>`. A hook stops at its first failure, so fix and rerun
+   `.githooks/pre-commit` and `.githooks/commit-msg <file with the intended message>`.
+   A hook stops at its first failure, so fix and rerun
    until both pass; list each cause.
 2. Judge each rejection against the repository's rules. Usually the hook
    is right and the fix is to the staged files or the message; say so
@@ -141,8 +141,8 @@ the bypass, with CI running the same checks as the real enforcement.
    document in a separate change. Never `git commit --no-verify`, never edit a hook
    or `core.hooksPath` to get a commit through.
 3. Fix only what the user staged:
-   - a file that must not be committed (`.env`, a key): `git restore
-     --staged <file>`; never delete or read it. Say how it got staged
+   - a file that must not be committed (`.env`, a key): `git restore --staged <file>`;
+     never delete or read it. Say how it got staged
      when the user's command shows it (`git add -A`, `git commit -a`), so
      they stop repeating it. If `.gitignore` does not
      cover it, add the line as a separate uncommitted change.

@@ -9,8 +9,8 @@
   it lists into the importer's graph, slows the dev server and defeats
   route splitting.
 - `src/app/` is wiring: providers, router, layout, global client stores.
-- `src/components/ui/` is shadcn output. Add with `pnpm dlx shadcn@4.21.0
-  add <name>`, never hand-edit, never review. `src/components/` holds shared
+- `src/components/ui/` is shadcn output. Add with `pnpm dlx shadcn@4.21.0 add <name>`,
+  never hand-edit, never review. `src/components/` holds shared
   components built on top of them.
 - `src/lib/` holds the api client, the query client, env parsing and `cn`.
   No `utils.ts` dumping ground beyond `cn`.
@@ -39,14 +39,13 @@
 
 ## Data fetching
 
-- One fetch function per endpoint in `api.ts`, built on `apiFetch(path,
-  schema, init)` from `src/lib/api.ts`. It validates the body with Zod and
+- One fetch function per endpoint in `api.ts`, built on `apiFetch(path, schema, init)`
+  from `src/lib/api.ts`. It validates the body with Zod and
   throws `ApiError` with status and code; components never see raw
   `Response`.
 - Query keys from a factory per feature:
-  `const invoiceKeys = { all: ['invoices'] as const, list: (f: Filters) =>
-  [...invoiceKeys.all, 'list', f] as const, detail: (id: string) =>
-  [...invoiceKeys.all, 'detail', id] as const }`. Every argument the fetch
+  `const invoiceKeys = { all: ['invoices'] as const, list: (f: Filters) => [...invoiceKeys.all, 'list', f] as const, detail: (id: string) => [...invoiceKeys.all, 'detail', id] as const }`.
+  Every argument the fetch
   uses is in the key.
 - Define `queryOptions` once per query in `hooks.ts` and reuse them in
   `useQuery`, `useSuspenseQuery`, route loaders and prefetches.
@@ -85,8 +84,8 @@
 
 - One Zod schema per form; `z.infer` gives the values type. Parse on submit,
   show field errors from the parsed issues.
-- Inputs are controlled or uncontrolled for their whole life. `value={x ??
-  ''}` when the value can be undefined, so React never switches modes.
+- Inputs are controlled or uncontrolled for their whole life. `value={x ?? ''}`
+  when the value can be undefined, so React never switches modes.
 - Server-side validation errors map onto fields once, in the submit handler.
 
 ## Components

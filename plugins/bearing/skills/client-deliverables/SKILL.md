@@ -2,7 +2,7 @@
 name: client-deliverables
 description: 'Builds the client documentation pack: numbered folders, each document as Markdown, CSV and versioned Word, and a delivery checklist. Use when asked to "build the client pack" or "export the docs to Word".'
 argument-hint: "[--customer <name>] [--summary <what changed>] [--import-checklist <filled.xlsx>] [--hold <file:line>]"
-allowed-tools: Read, Write, Edit, Grep, Glob, Bash(ls:*), Bash(unzip -p:*), Bash(git status:*), Bash(git log:*), Bash(git check-ignore:*), Bash(git config user.name), Bash(uv run --quiet --with python-docx==1.2.0 --with openpyxl==3.1.5 python3 *skills/client-deliverables/scripts/pack.py*), Bash(uv run --quiet --with python-docx==1.2.0 python3 *skills/client-deliverables/scripts/md2docx.py*)
+allowed-tools: Read, Write, Edit, Grep, Glob, AskUserQuestion, Bash(ls:*), Bash(unzip -p:*), Bash(git status:*), Bash(git log:*), Bash(git check-ignore:*), Bash(git config user.name), Bash(uv run --quiet --with python-docx==1.2.0 --with openpyxl==3.1.5 python3 *skills/client-deliverables/scripts/pack.py*), Bash(uv run --quiet --with python-docx==1.2.0 python3 *skills/client-deliverables/scripts/md2docx.py*)
 ---
 
 # client-deliverables
@@ -52,7 +52,7 @@ puts the folder on the project's Drive.
 ## Steps
 
 1. `git status`: uncommitted changes to `docs/` mean the pack would ship
-   a draft. Say which files and ask whether to continue; the pack is
+   a draft. Say which files and ask whether to continue with AskUserQuestion as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says; the pack is
    built only from what the engineer agrees to ship.
 2. Read the manifest and list which artifacts have a source and which do
    not; an artifact without a source is left out and named in the
@@ -66,11 +66,11 @@ puts the folder on the project's Drive.
    customer's name, an internal tool or a person named as decider. The team's sources are never edited; the
    engineer decides per line, and `--hold <file:line>` leaves a line out
    of the client copies (Markdown, Word and CSV) with the source
-   untouched. With nobody to ask: hold back what is internal (a line
+   untouched. With nobody to answer: hold back what is internal (a line
    marked internal or not for the customer, a price, rate, margin or
    buffer), ship the open markers (TBD, assumption, Draft) as written,
    since the client should see what is still open, and say plainly for
-   each line which it was. Ask once for `--summary` when the change deserves words
+   each line which it was. Ask once with AskUserQuestion for `--summary` when the change deserves words
    ("Priced for 3 environments"); otherwise the history row names the ids
    and sections added, changed and retired ("added REQ-003").
 4. Build: `uv run --quiet --with python-docx==1.2.0 --with openpyxl==3.1.5 python3 "${CLAUDE_PLUGIN_ROOT}/skills/client-deliverables/scripts/pack.py"`

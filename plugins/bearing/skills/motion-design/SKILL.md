@@ -134,8 +134,8 @@ These are where a smooth-looking animation ships a wrong screen.
 - Format every frame with the product's formatter (currency, grouping,
   percent digits), and end on exactly its output for the real value, not
   on the last interpolated float. Use tabular numerals so the width holds.
-- Read token durations with their unit. `getComputedStyle(root)
-  .getPropertyValue('--duration-base')` returns text such as `240ms`,
+- Read token durations with their unit. `getComputedStyle(root) .getPropertyValue('--duration-base')`
+  returns text such as `240ms`,
   ` 0.24s` or `0s`; `parseFloat` alone reads `0.24s` as 0.24 ms. Parse
   `s` and `ms`, and when the duration is 0 (reduced motion zeroes the
   tokens) write the end state synchronously: progress `elapsed / 0` is

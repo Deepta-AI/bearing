@@ -7,6 +7,9 @@ allowed-tools: Read, Write, Grep, Glob, Bash(git status:*), Bash(git diff:*), Ba
 
 # session-handoff
 
+Checkpoints are written automatically on every Stop and at SessionEnd; run
+this skill for a written handoff a person will read.
+
 A handoff fails in two ways: it loses work (a commit, a stash or a branch
 that lives only on this machine), or it passes on a wrong belief (a
 "(done)" commit whose test is skipped, a gate result nobody ran, a decision
@@ -17,9 +20,9 @@ not remembered from the session.
 ## Who reads it decides where it goes
 
 - **You, after /clear or tomorrow, on this machine**: the local state file
-  `.bearing/state/<branch with / as _>.md` (`bash
-  "${CLAUDE_PLUGIN_ROOT}/bin/brg-state-path"` prints it). It is git-ignored;
-  the SessionStart hook prints its first twenty lines back, so the top
+  `.bearing/state/<branch with / as _>.md` (`bash "${CLAUDE_PLUGIN_ROOT}/bin/brg-state-path"`
+  prints it). It is git-ignored;
+  the SessionStart hook prints its first eight lines back, so the top
   carries the most useful facts.
 - **Someone else, or another machine** ("someone is picking this up", "I'm
   out", "hand over"): the ignored file never leaves this machine, so the
@@ -39,8 +42,8 @@ stopped and what to do first.
 
 ## Inputs
 
-- The repository and branch (`git rev-parse --show-toplevel`, `git branch
-  --show-current`); outside a git repository, write the local file anyway
+- The repository and branch (`git rev-parse --show-toplevel`, `git branch --show-current`);
+  outside a git repository, write the local file anyway
   and say so in it.
 - Task id: from the branch name (`[A-Z][A-Z0-9]*(-[0-9]+)+`); else the
   existing state file's title; else the branch name with `/` as `_`.
@@ -60,20 +63,19 @@ stopped and what to do first.
    invisible to a teammate and lost with the laptop:
    - `git status --porcelain=v2 --branch`: modified, staged, untracked
      (say which files are untracked; they are not in any commit).
-   - Ahead and behind upstream: `git rev-list --left-right --count
-     @{u}...HEAD`. Ahead: those commits must be pushed. No upstream: the
+   - Ahead and behind upstream: `git rev-list --left-right --count @{u}...HEAD`.
+     Ahead: those commits must be pushed. No upstream: the
      whole branch is local.
    - **Behind upstream: read what came in** (`git log -p HEAD..@{u}`).
      Someone else may have changed a document you are about to describe
      (an ADR accepted, a ticket edited, a test changed). Report the
      upstream version and the conflict with your working tree; do not
      describe the local copy as current.
-   - `git stash list` and `git stash show --stat --include-untracked
-     stash@{n}` for each: what it holds and which criterion it serves.
-   - Local branches with no upstream or with unpushed commits: `git
-     for-each-ref --format='%(refname:short) %(upstream:short)
-     %(upstream:track)' refs/heads` and `git log --oneline --branches
-     --not --remotes`. A side branch with a helper or a spike is easy to
+   - `git stash list` and `git stash show --stat --include-untracked stash@{n}`
+     for each: what it holds and which criterion it serves.
+   - Local branches with no upstream or with unpushed commits: `git for-each-ref --format='%(refname:short) %(upstream:short) %(upstream:track)' refs/heads`
+     and `git log --oneline --branches --not --remotes`.
+     A side branch with a helper or a spike is easy to
      forget.
    For each item say what it is and what the user should do before
    leaving (commit, push, turn the stash into a branch). Print the
@@ -141,11 +143,8 @@ stopped and what to do first.
    today's and arithmetic on dates the user gave (say it is derived). A
    recommendation is labelled as yours and Proposed.
 
-7. **Update the progress file**: `python3
-   "${CLAUDE_PLUGIN_ROOT}/skills/session-handoff/scripts/progress.py" write
-   --task <ID> --status <in progress | blocked | in review> --next <first
-   Next action> --add-done <item> (once per new commit) --blocker <item>
-   (once each, or none)`. On its first write also pass `--title` (the
+7. **Update the progress file**: `python3 "${CLAUDE_PLUGIN_ROOT}/skills/session-handoff/scripts/progress.py" write --task <ID> --status <in progress | blocked | in review> --next <first Next action> --add-done <item> (once per new commit) --blocker <item> (once each, or none)`.
+   On its first write also pass `--title` (the
    ticket title), `--criteria` (the ticket path and a one-line tally) and
    `--started` (author date of the first commit since the base); Owner
    defaults to the author of the latest commit. `blocked` only when nothing

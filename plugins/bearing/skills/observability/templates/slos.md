@@ -21,7 +21,7 @@ collector. Dashboard: `monitoring/dashboards/__SERVICE__-red.json`.
      instrumentation.
      Good: observable from outside with a number in it (a time, a count);
      when the code and the event sheet do not name the journeys, ask the
-     engineer rather than guess.
+     engineer with AskUserQuestion rather than guess.
      Example: "A paid order is confirmed within 2 s and the receipt email leaves within a minute." -->
 
 ## Questions on-call will ask

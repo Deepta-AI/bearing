@@ -42,7 +42,7 @@ define in_pw_image
     bash -c "corepack enable && pnpm install --frozen-lockfile --silent && $(2); s=\$$?; chown -R $$(id -u):$$(id -g) e2e test-results playwright-report dist .next 2>/dev/null; exit \$$s"; }
 endef
 
-.PHONY: smoke help setup dev design-registry design-registry-check build start check check-file fix test test-e2e test-e2e-matrix test-visual test-visual-update setup-browsers bundle-budget lighthouse lint typecheck format format-check vuln doctor clean
+.PHONY: smoke help setup dev design-registry design-registry-check build start check check-file check-changed fix test test-e2e test-e2e-matrix test-visual test-visual-update setup-browsers bundle-budget lighthouse lint typecheck format format-check vuln doctor clean
 
 help: ## List targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-14s %s\n", $$1, $$2}'
@@ -182,6 +182,22 @@ check-file: ## Lint one edited file, FILE=path (the Bearing edit hook runs this)
 	  *) echo "check-file: no per-file check for $(FILE)"; exit 0;; \
 	esac; \
 	echo "check-file: 1 file checked"
+
+CHANGED = git status --porcelain -z --untracked-files=all | tr '\0' '\n' | awk 'skip{skip=0;next} {c=substr($$0,1,2);p=substr($$0,4)} c~/^R|^.R|^C/{print p;skip=1;next} {print p}' | sort -u | while IFS= read -r f; do [ -e "$$f" ] || continue; for m in $(STATE)/.check-passed $(STATE)/.check-changed-passed; do [ -f "$$m" ] && ! [ "$$f" -nt "$$m" ] && continue 2; done; printf '%s\n' "$$f"; done
+
+check-changed: ## prettier, eslint and the vitest tests related to the changed files only (the Bearing Stop gate runs this; make check stays the full gate)
+	@mkdir -p $(STATE); files=$$($(CHANGED) | grep -E '\.(ts|tsx|js|jsx|mjs|cjs|css|json)$$' || true); \
+	f=$$(printf '%s' "$$files" | grep -c . || true); \
+	[ "$$f" -gt 0 ] || { touch $(STATE)/.check-changed-passed; echo "check-changed: 0 files, nothing to check"; exit 0; }; \
+	$(PNPM) exec prettier --check $$files || exit 1; \
+	src=$$(printf '%s\n' "$$files" | grep -E '\.(ts|tsx|js|jsx|mjs|cjs)$$' || true); \
+	[ -z "$$src" ] || $(PNPM) exec eslint --max-warnings 0 --no-warn-ignored $$src || exit 1; \
+	if printf '%s\n' "$$files" | grep -qE '(^|/)(package\.json|pnpm-lock\.yaml|tsconfig[^/]*\.json|vitest\.config\.[a-z]+)$$'; then \
+	  $(MAKE) --no-print-directory test || exit 1; p=all; \
+	elif [ -z "$$src" ]; then p=0; \
+	else out=$$($(PNPM) exec vitest related --run --passWithNoTests $$src 2>&1); rc=$$?; printf '%s\n' "$$out" | tail -40; [ $$rc -eq 0 ] || exit 1; \
+	  p=$$(printf '%s\n' "$$out" | sed -n 's/.*Test Files *\([0-9][0-9]*\) passed.*/\1/p' | tail -1); p=$${p:-0}; fi; \
+	touch $(STATE)/.check-changed-passed; echo "check-changed: $$f files, $$p packages checked"
 
 fix: format ## Apply every automatic fix
 	@[ -x $(BIN)/eslint ] && $(PNPM) exec eslint . --fix || true

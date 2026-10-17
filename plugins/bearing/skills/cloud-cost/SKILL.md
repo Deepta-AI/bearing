@@ -2,7 +2,7 @@
 name: cloud-cost
 description: 'Reviews the cloud bill read-only: spend by service and environment, top ten lines, cost per request, proposed cuts. Use when asked about the "cloud bill", "cost review", "FinOps" or "why is the bill so high".'
 argument-hint: "[--csv <billing export>] [--month YYYY-MM] [--provider aws|gcp|azure|other]"
-allowed-tools: Read, Write, Edit, Grep, Glob, Bash(ls:*), Bash(mkdir -p:*), Bash(date:*), Bash(python3 -c:*), Bash(aws ce get-cost-and-usage:*), Bash(gcloud billing:*), Bash(az consumption usage list:*), Bash(kubectl top:*), Bash(kubectl get:*)
+allowed-tools: Read, Write, Edit, Grep, Glob, AskUserQuestion, Bash(ls:*), Bash(mkdir -p:*), Bash(date:*), Bash(python3 -c:*), Bash(aws ce get-cost-and-usage:*), Bash(gcloud billing:*), Bash(az consumption usage list:*), Bash(kubectl top:*), Bash(kubectl get:*)
 ---
 
 # cloud-cost
@@ -20,13 +20,12 @@ changes infrastructure; this skill never does.
 - billing lines: `--csv`, any export whose header has a cost column
   (`cost|amount`), a service column (`service|product|sku`) and a
   grouping column (`project|account|tag|label|environment`); if absent,
-  the provider CLI for the month: `aws ce get-cost-and-usage
-  --time-period Start=<m-01>,End=<next-01> --granularity MONTHLY --metrics
-  UnblendedCost --group-by Type=DIMENSION,Key=SERVICE` (again with
+  the provider CLI for the month: `aws ce get-cost-and-usage --time-period Start=<m-01>,End=<next-01> --granularity MONTHLY --metrics UnblendedCost --group-by Type=DIMENSION,Key=SERVICE`
+  (again with
   `Type=TAG,Key=env`), `gcloud billing accounts list` then the BigQuery
-  export (the CLI has no line items; the CSV is the route), `az
-  consumption usage list --start-date <m-01> --end-date <last>`; none
-  usable: ask once for the top ten lines pasted from the console; nothing:
+  export (the CLI has no line items; the CSV is the route), `az consumption usage list --start-date <m-01> --end-date <last>`;
+  none
+  usable: ask once with AskUserQuestion as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says (paste now / skip; the pasted top ten lines from the console come as free text via Other); nothing:
   stop with "no billing source: pass --csv or paste the top ten".
 - month: `--month`; default the previous full month
   (`date -d "-1 month" +%Y-%m`).
@@ -35,8 +34,8 @@ changes infrastructure; this skill never does.
   `k8s/`, `helm/` labels; still unmatched: `unattributed`, counted.
 - denominators: requests from `docs/observability/slos.md` or a pasted
   metric; tenants and jobs from the user; absent: `denominator unknown`.
-- utilisation for over-provisioning: `kubectl top pods` and `kubectl get
-  deploy -o yaml` requests when a cluster is reachable; absent: the cut
+- utilisation for over-provisioning: `kubectl top pods` and `kubectl get deploy -o yaml`
+  requests when a cluster is reachable; absent: the cut
   is listed as "check utilisation" with the command.
 - deployment doc: `docs/architecture/deployment.md` section "Cost
   (placeholder)"; present: filled; absent: the table lives in the review.

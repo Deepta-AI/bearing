@@ -2,7 +2,7 @@
 name: test-automation
 description: 'Sets up or extends the automated test suite (Playwright, Maestro, Espresso, pytest, Go httptest), one test per planned test case by TC id. Use when asked to "automate the test cases", "set up Playwright" or "e2e tests".'
 argument-hint: "[suite|generate] [TC id or story id to limit]"
-allowed-tools: Read, Write, Edit, Grep, Glob, Agent, Skill, Bash(ls:*), Bash(make:*), Bash(pnpm exec playwright:*), Bash(pnpm install:*), Bash(pnpm exec tsc --noEmit:*), Bash(maestro test:*), Bash(uv run pytest:*), Bash(uv run --offline:*), Bash(python -m pytest:*), Bash(python3 -m pytest:*), Bash(uv run ruff check:*), Bash(go test:*), Bash(go vet:*), Bash(./gradlew connectedDebugAndroidTest:*), Bash(./gradlew compileDebugAndroidTestKotlin:*), Bash(xcodebuild test:*), Bash(xcodebuild build-for-testing:*), Bash(git diff:*), Bash(python3 *skills/test-automation/scripts/ref_check.py*), Bash(bash *bin/brg-kit-paths*)
+allowed-tools: Read, Write, Edit, Grep, Glob, Agent, Skill, Bash(ls:*), Bash(make:*), Bash(pnpm exec playwright:*), Bash(pnpm install:*), Bash(pnpm exec tsc --noEmit:*), Bash(maestro test:*), Bash(uv run pytest:*), Bash(uv run --offline:*), Bash(python -m pytest:*), Bash(python3 -m pytest:*), Bash(uv run ruff check:*), Bash(go test:*), Bash(go vet:*), Bash(./gradlew connectedDebugAndroidTest:*), Bash(./gradlew compileDebugAndroidTestKotlin:*), Bash(xcodebuild test:*), Bash(xcodebuild build-for-testing:*), Bash(git diff:*), Bash(python3 *skills/test-automation/scripts/ref_check.py*), Bash(bash *bin/brg-kit-paths*), AskUserQuestion
 ---
 
 # test-automation
@@ -51,201 +51,25 @@ and writes the tests.
    generate. Detect the stack and obtain the case table as in Inputs.
    In `generate` mode, zero rows with automation `planned` and zero gaps:
    report "0 cases to generate" and finish after the suite step.
-2. Suite. Skip what exists; never replace a working suite. Extending a
-   suite that already runs in CI changes test files and the case table
-   only: the Makefile, the CI file and the build stay as they are unless
-   the request asks, and any change there is named in the report with
-   its reason. A new gate nobody asked for is scope, not quality.
-   CI "on every MR": read the whole pipeline file before adding a job.
-   GitLab `workflow: rules` decide whether a pipeline exists at all; a
-   job in a file whose workflow admits only the default branch or tags
-   never runs on an MR however its own rules read. Admit
-   `$CI_PIPELINE_SOURCE == "merge_request_event"` in the workflow (and
-   keep a deploy job's own branch rule), put the test stage before
-   build and deploy, and install what the job needs (the dev extra, not
-   the runtime install the build job does).
-   - Web: Playwright in `e2e/`, page objects in `e2e/pages/` from
-     `templates/page-object.ts`, fixtures in `e2e/fixtures/`, builders from
-     `templates/test-data-builder.md`. When no `playwright.config.ts`
-     exists, copy the one from the `bearing-apps:react` or `bearing-apps:nextjs`
-     templates (`bash "${CLAUDE_PLUGIN_ROOT}/bin/brg-kit-paths" --skill react`
-     prints the directory, or names the plugin to install) (baseURL from
-     `BASE_URL`, 2 retries in CI, html reporter) with its projects:
-     chromium, firefox, webkit, mobile-chrome and mobile-safari, and a
-     `visual` project for `e2e/visual/`. Targets: `make test-e2e` runs
-     chromium on every change (CI job `e2e`); `make test-e2e-matrix` runs
-     every spec on all five projects (CI job `e2e-matrix` after merge to
-     develop and main, manual in an MR); `make test-visual` compares
-     `e2e/visual/` with the committed baselines (CI job `visual`). A spec
-     that cannot run on a phone carries `@desktop` in its title.
-   - React Native: Maestro flows in `.maestro/`, one screen file per screen
-     as in `templates/screen-object.md`. Target `make test-e2e`; job `e2e`
-     in stage `test` on a runner with a simulator. Device matrix: the
-     oldest supported and the newest OS on each platform (`DEVICES` in the
-     Makefile), run by `make test-e2e-matrix` after merge.
-   - Android: Espresso and Compose test rules under `app/src/androidTest/`.
-     Target `make test-ui`; job `ui-test` in stage `test`. Device matrix:
-     Gradle managed devices at `minSdk` and the target SDK in one group,
-     `./gradlew <group>GroupDebugAndroidTest` behind `make test-ui-matrix`.
-   - iOS: an XCUITest target in `project.yml`, tests under `UITests/`.
-     Target `make test-ui`; job `ui-test` in stage `test`, macOS runner.
-     Device matrix: `xcodebuild test` with one `-destination` per
-     simulator (the oldest supported iOS on a small phone, the newest on a
-     large one) behind `make test-ui-matrix`.
-   - Python API: pytest under `tests/`, driving the app in process with
-     the client its framework already gives (`httpx.AsyncClient` over an
-     ASGI app, the framework's test client, or a small WSGI caller from the
-     standard library for a bare WSGI app); repository tests under
-     `tests/integration/`. Targets `make test` and `make test-integration`;
-     jobs `unit` and `integration` in stage `test`.
-   - Go API: `httptest` per route; repository tests against Postgres with
-     `testcontainers-go` only when the service has a Postgres store. An
-     in-memory store, SQLite or no database: no container, and the report
-     says why there is no integration job. Targets `make test` (and
-     `make test-integration` when there is one); jobs to match in stage
-     `test`.
-   API suites validate every response body against `api/openapi.yaml`
-   when it exists, inside the route test, so a field the spec lacks or a
-   wrong type fails the test that caused it: Python `openapi-core`
-   (`validate_response`), Go `kin-openapi` (`openapi3filter.ValidateResponse`),
-   Node `ajv` over the operation's response schema. One helper per suite
-   (`assertMatchesSpec(res, "getInvoice")`), called after every request.
-   No spec: no validator, and the report says "responses not validated
-   against a spec".
-   Dependencies: every library named in this step (a test client, a
-   container module, a validator, a runner plugin) is used only when the
-   repository already has it. Adding one to `go.mod`, `pyproject.toml` or
-   `package.json` is a decision for the engineer: ask once, naming the
-   library and what it would test; without a yes, write the suite with the
-   standard library and what is already there, and list the dependency
-   under what was not done.
-   Test data follows `templates/test-data-builder.md`: reference data comes
-   from migrations and is only read; each test builds its own rows with a
-   builder, unique by the run id; the demo seed is never loaded in a test
-   run. Tests that cross a real HTTP boundary get a fixture that deletes
-   what it created, and the suite a `make test-data-sweep` target that
-   removes run-id rows older than a day on qa. Every builder gets one test
-   that its default passes the API's own validator.
-   A test that calls a real server puts the response's `x-request-id` (or
-   the trace id from `traceparent`) in its failure message, so the
-   server's log line and trace can be found for that exact request.
-   Every suite gets tags by type and priority (`@e2e @P1`, pytest markers,
-   Go build tags, Maestro tags), parallel workers, an HTML or JUnit report
-   kept as a CI artifact. A suite this run creates gets a Makefile
-   target that fails on zero tests collected and on any failure (no
-   leading `-`, no `|| true`); no Makefile: create one with that target.
+2. Suite. Skip what exists; never replace a working suite; add a dependency only
+   after one AskUserQuestion (as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says), options "add <library>" and
+   "do without", no answer meaning without. Detail: references/suite-setup.md
 3. Generate. For each `planned` row (or the story or TC in `$2`), find the
-   nearest existing test by feature folder, then fork `test-writer`
-   (Agent tool) with the row, the nearest test's path and the naming
-   rule; it writes the test in an isolated worktree and returns the
-   failing or passing output. The name carries the id: `test("TC-0012
-   rejects an expired token")`, `func TestTC0012_RejectsExpiredToken`,
-   `async def test_tc_0012_rejects_expired_token`,
-   `fun tc0012RejectsExpiredToken`, `func testTC0012RejectsExpiredToken`,
-   and `# TC-0012` on line one of a Maestro flow. Where the name cannot
-   hold the hyphenated id (Go, pytest, Kotlin, Swift), the literal
-   `TC-0012` also goes in a comment on the line above the test: the
-   traceability gate links a test to a row by `TC-nnnn` as written, and
-   `TestTC0012_` or `test_tc_0012_` alone is not linked.
-   A planned row whose test already exists (a test already carries its
-   id) gets no second test: run it; when it passes and asserts the row's
-   expected result, flip the row to `automated` and report that the table
-   was stale; when it asserts something else, report the difference and
-   leave the row. Units: the table and the API may count differently
-   (rupees and paise, seconds and milliseconds, percent and basis points).
-   Take the table's unit from its header or notes and the API's from the
-   field name, type or handler; the test sends and asserts in the API's
-   unit, converted, with the row's own value in a comment beside it
-   (`25000, // 250.00 rupees`). A test that sends the unconverted number
-   tests nothing the row describes. Steps become actions,
-   each oracle in the row becomes its own assertion (`ui:` a visible or
-   accessible-name assertion, `data:` a read through the API or the store
-   after the action, `not:` a negative assertion, `effect:` a spy, a mock
-   or an event capture, `inv:` a check after every action in the test, `ui: matches baseline
-   <name>.png` a `toHaveScreenshot("<name>.png")` in `e2e/visual/` shaped
-   like `templates/visual.spec.ts`: API mocked, clock frozen, anything that
-   changes on its own masked),
-   and the row's test data is used verbatim through a builder. Locators: role and accessible name first,
-   test ids second, never CSS paths. A row whose steps cannot be automated
-   stays `manual-only` with the reason in its title; never a fake test.
-   Batch rows by feature folder so one fork writes several tests. When the
-   fork cannot start (no git repository for its worktree, no Agent tool),
-   write the tests in place under the same rules and say so in the
-   report.
-   Property rows: a `unit` row whose oracle is `inv:`, or whose code is
-   an encode and decode pair, a parser, a normalizer, a validator, a
-   comparator or money arithmetic, is a property candidate. When the
-   `property-based-testing` skill is installed, load it through the
-   Skill tool before forking and use it to pick, per candidate, the
-   strongest property the code supports from its catalog, the generator
-   with constraints in the strategy rather than in `assume()`, the
-   `@example` edge cases from the row's test data, and the library the
-   repository already uses. Pass those to `test-writer` in the fork
-   prompt, since the fork has no Skill tool; the test still carries the
-   TC id and the row's oracles. It contributes the property and the
-   generator; this skill still owns the row, the name, the gates and the
-   status. No property-testing library in the repository: adding one is a dependency
-   the engineer approves, asked once with the property it would test;
-   without a yes, or when the skill is not installed, the row gets
-   example tests from its test data and the report says "property: not
-   run (<reason>)". A property that only proves "no crash" is not worth
-   the dependency; write the example tests.
-4. Invented-API gate, before anything runs. A test that calls an id, a
-   label, a route or a function the code does not have fails for the
-   wrong reason, and a heal later makes it pass against nothing.
-   - The stack's type check over the new test files: `pnpm exec tsc
-     --noEmit`, `uv run ruff check <files>` (undefined names fail), `go vet
-     ./...`, `./gradlew compileDebugAndroidTestKotlin`, `xcodebuild
-     build-for-testing`. Every error in a new test is fixed against the
-     real code, never by adding what the test expected.
-   - `python3 "${CLAUDE_PLUGIN_ROOT}/skills/test-automation/scripts/ref_check.py" --src <source dirs> <new test files>`:
-     every test id, accessible name, label, text and route (with its
-     method) the new tests use must exist in the source, including routes
-     reached through the suite's own request helper. It fails on zero
-     references: a batch of pure unit tests has nothing for it to check,
-     and the report says "test-refs: 0 references, not a pass; the type
-     check was the only gate". A test that calls an unknown route on
-     purpose (a 404 or 405 check) carries `ref_check: absent` in a comment
-     on that line. A missing reference is fixed against the code or, when
-     the code lacks what the criterion needs, reported as a finding with
-     the TC id; never by adding the id to the product.
-   Print both results.
-5. Visual baselines: when step 3 wrote a visual test, run `make
-   test-visual-update` (it runs inside the Playwright image, so fonts match
-   CI) and list every new or changed png for a person to look at. A
-   baseline nobody has looked at proves only that the page renders the
-   same as it did, so the report says "baselines to review: N" until the
-   engineer commits them, on their own.
-6. Prove the tests can fail. A test never seen red may assert nothing.
-   For each rule the new tests claim to cover, make the smallest
-   mutation that breaks it, run the suite, then restore the line
-   (`git diff` shows it clean): a threshold moved one step each way
-   (`< 5` to `< 4` and to `< 6`, `>` to `>=`), an auth comparison made
-   always true, a `commit()` or `save` removed, a validation branch
-   deleted, a publish call dropped, a unit conversion undone. A mutation
-   no test kills is a missing assertion: add it (a test at the boundary
-   and one step on each side, a read back through a fresh connection or
-   a new app instance, a spy on the effect), then re-run the mutation.
-   Report "mutations: N tried, K killed" and each survivor with why.
-   Mutations are made in the working tree and always reverted; never
-   leave one behind, and never run them against a shared environment.
-7. Run the narrowest selection that covers the new tests. Flip each passing
-   row to `automated`. A failing test stays `planned` and is listed with
-   the runner's message and its file:line; nothing is edited to make it
-   pass. A row the team wrote, in a suite that already runs in CI, fails
-   as it is: the row is the spec and the decision is theirs. When this
-   run creates the suite's CI job, a job that is red on the day it
-   appears blocks every MR for a reason nobody chose: a test that fails
-   on a defect this run found carries the stack's strict expected-failure
-   marker with the finding as its reason (pytest
-   `@pytest.mark.xfail(strict=True, reason="...")`, Playwright
-   `test.fail()`), so the job is green now and turns red the day the
-   defect is fixed; the row stays `planned` and the finding is reported.
-   A route the docs promise and the code does not serve is a finding, not
-   a derived row: rows derived from gaps come from what the code serves. A failing property test is listed with its shrunk
-   counterexample and the class the property skill's failure reference
-   gives it (wrong property, ambiguous spec, code bug). `test-heal`
-   classifies and heals it, and `test-run` produces the full report.
+   nearest existing test, then fork `test-writer` (Agent tool) with the row;
+   the test name carries the TC id; a property-testing library is added only on a
+   yes to the same kind of question. Detail: references/generating-tests.md
+4. Invented-API gate, before anything runs: the stack's type check, then
+   `ref_check.py` over the new tests; print both results. Detail:
+   references/verify-and-run.md
+5. Visual baselines: list every new or changed png for a person to look at.
+   Detail: references/verify-and-run.md
+6. Prove the tests can fail: make the smallest mutation that breaks each
+   rule covered, run, restore; mutations always reverted, never run against a
+   shared environment. Detail: references/verify-and-run.md
+7. Run the narrowest selection that covers the new tests; flip passing rows
+   to `automated`, leave failing ones `planned`; nothing is edited to make a test pass.
+   Detail:
+   references/verify-and-run.md
 8. Print the counts and the file list. Say plainly that the CI pipeline
    was not run (only the local command, named), and list every file
    changed outside the tests and the case table with the reason.
@@ -282,37 +106,7 @@ Files: ...
   stage until the feature is built or the case is deferred by a recorded
   decision. A copy label the source builds in a template literal is not
   invented: ref_check matches it.
-What a generalist misses when the suite looks green:
-
-- Durability: a read on the same database connection sees its own
-  uncommitted write, so a test that writes and reads through one
-  connection passes with the `commit()` deleted. Read back through a
-  second connection or a fresh app on the same file.
-- Side effect after commit: when the handler commits and then calls a
-  webhook, a queue or a publisher, make that call fail in a test and
-  assert what the client is told against what is stored. A 500 over a
-  committed change invites a retry that applies it twice: a finding.
-- Invariants over sums (refunds never exceed the total, stock never
-  below zero) are check-then-act. A sequential test cannot catch the
-  race; start N requests together behind a barrier (goroutines and a
-  `sync.WaitGroup`, a thread pool), run with `-race` where the stack has
-  it, and assert the invariant after. Code that reads, checks and writes
-  under separate locks or transactions is a finding even when the
-  sequential test passes.
-- Validation probes beyond the row: zero, negative, the maximum, the
-  empty string, a trailing newline (Python `re` `$` matches before a
-  final `\n`; `fullmatch` or `\Z` does not), `true` where an int is
-  expected (`bool` is an `int` in Python), a duplicate. A probe that
-  exposes a defect is a strict expected failure plus a finding.
-- Time: build instants in the zone the row states and let the clock
-  seam convert (15:00 IST is 09:30 UTC); inject the clock, never sleep
-  or read the wall clock. Test a window at its edge and one unit past.
-- Isolation: no test opens the configured production path, database
-  or URL. Point config at a temporary file and replace the outbound
-  call with a double that records what was sent, or a local server.
-- Defaults are findings: a secret with a guessable default
-  (`changeme`) means an unset variable leaves the endpoint open; say
-  that consequence, not only the default.
+What a generalist misses when the suite looks green. Detail: references/generalist-misses.md
 
 - A generated test that asserts what the code does instead of the row's
   expected result is a tautology. The row wins. When the code disagrees,

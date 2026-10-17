@@ -41,6 +41,12 @@ json_ok() { python3 -c 'import json,sys; json.load(open(sys.argv[1]))' "$1" 2>/d
 assert_json() { _t_count; if json_ok "$1"; then :; else _t_fail "invalid JSON: $1"; fi; }
 assert_vendored_guard() {
   assert_file "$repo/.bearing/bin/brg-guard" 755
+  assert_file "$repo/.bearing/bin/brg-changed" 755
+  assert_file "$repo/.bearing/bin/brg-session" 755
+  assert_file "$repo/.bearing/bin/brg-update-check" 755
+  assert_file "$repo/.bearing/bin/brg-config" 755
+  assert_file "$repo/.bearing/bin/brg-learn" 755
+  assert_file "$repo/.bearing/bin/flow-steps.tsv" 644
   assert_contains "$(sed -n 2p "$repo/.bearing/bin/brg-guard")" "BEARING_GUARD_VERSION=\"$VERSION\"" "version stamp"
   assert_file "$repo/.bearing/hooks/read-json.sh" 755
 }
@@ -68,7 +74,7 @@ assert_contains "$(printf '%s' "$T_OUT" | jq -r .additional_context)" "bearing s
 gates_repo cursor
 T_IN='{"conversation_id":"C1","loop_count":0,"status":"completed"}'
 assert_exit 0 bash -c "cd '$repo' && bash .bearing/hooks/cursor-stop.sh"
-assert_contains "$(printf '%s' "$T_OUT" | jq -r .followup_message)" "since make check last passed" "cursor stop continues once"
+assert_contains "$(printf '%s' "$T_OUT" | jq -r .followup_message)" "since the last check" "cursor stop continues once"
 T_IN='{"conversation_id":"C1","loop_count":1,"status":"completed"}'
 assert_exit 0 bash -c "cd '$repo' && bash .bearing/hooks/cursor-stop.sh"
 assert_eq '{}' "$T_OUT" "cursor stop never loops"

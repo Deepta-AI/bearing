@@ -90,7 +90,7 @@ export function Autopilot() {
           <h4>
             <code>.bearing/state/&lt;branch&gt;.md</code>
           </h4>
-          <p>Local and ignored. For the next session on this machine: what to do next, what is half done. The session hook prints its first 20 lines.</p>
+          <p>Local and ignored. For the next session on this machine: what to do next, what is half done. The session hook prints its first 8 lines.</p>
         </div>
         <div className="card">
           <h4>

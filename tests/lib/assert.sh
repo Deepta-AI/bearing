@@ -106,3 +106,9 @@ t_summary() {
   [ "$T_FAIL" -eq 0 ] && [ "$T_RUN" -gt 0 ] || exit 1
   exit 0
 }
+
+# mk: run make with SHELL set to the bash running the tests. The Makefiles pin
+# SHELL := /bin/bash, which does not exist in the bash:3.2 image; a command-line
+# variable overrides it.
+BASH_PATH="$(command -v bash)"
+mk() { make SHELL="$BASH_PATH" "$@"; }

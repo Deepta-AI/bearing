@@ -59,8 +59,8 @@
 
 ## Navigation: expo-router
 
-- Routes are typed (`experiments.typedRoutes`). `router.push({ pathname:
-  "/invoice/[id]", params: { id } })`, never a template string.
+- Routes are typed (`experiments.typedRoutes`). `router.push({ pathname: "/invoice/[id]", params: { id } })`,
+  never a template string.
 - Groups `(tabs)`, `(auth)` express layout, not ownership. Auth gating lives
   in one layout with `Redirect`, not in every screen.
 - `Link` for anything the user taps to navigate; `router` only from event
@@ -106,8 +106,8 @@
   sides can share one file.
 - `className` for layout and tokens; `style` only for animated or measured
   values. Never both for the same property.
-- Dark mode through the `dark:` variant with `userInterfaceStyle:
-  "automatic"`; test both.
+- Dark mode through the `dark:` variant with `userInterfaceStyle: "automatic"`;
+  test both.
 - Fonts are loaded in the root layout with `useFonts` and the splash screen
   is held until they resolve.
 

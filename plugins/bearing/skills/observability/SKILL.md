@@ -2,7 +2,7 @@
 name: observability
 description: 'Wires OpenTelemetry traces and metrics, trace ids in logs, a local Grafana stack, RED dashboards, SLOs and burn-rate alerts. Use when asked to "add observability", "set up tracing", "add dashboards" or "define SLOs".'
 argument-hint: "[service name] [--local-only]"
-allowed-tools: Read, Write, Edit, Grep, Glob, Skill, Bash(ls:*), Bash(make -n:*), Bash(docker compose config:*), Bash(python3 -c:*), Bash(promtool check:*), Bash(docker compose -f * config), Bash(make observability-up), Bash(make observability-down), Bash(make dev), Bash(curl -s:*), Bash(npm view:*), Bash(pip index versions:*), Bash(go list -m:*), Bash(bash *bin/brg-runbook-check*)
+allowed-tools: Read, Write, Edit, Grep, Glob, Skill, Bash(ls:*), Bash(make -n:*), Bash(docker compose config:*), Bash(python3 -c:*), Bash(promtool check:*), Bash(docker compose -f * config), Bash(make observability-up), Bash(make observability-down), Bash(make dev), Bash(curl -s:*), Bash(npm view:*), Bash(pip index versions:*), Bash(go list -m:*), Bash(bash *bin/brg-runbook-check*), AskUserQuestion
 ---
 
 # observability
@@ -23,8 +23,10 @@ are in `references/telemetry-conventions.md`.
   repository root as one service when a stack file is found (`go.mod`,
   `pyproject.toml`, `package.json` with `react` or `expo`,
   `build.gradle.kts`, `Package.swift`); ambiguous or none: ask one
-  question naming the entrypoint; still none: stop, "no service
-  entrypoint found; name the file that starts the process".
+  question with AskUserQuestion (as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says), options
+  "enter the entrypoint" (the file comes as free text via Other) and
+  "stop"; no entrypoint or stop: stop, "no service entrypoint found; name
+  the file that starts the process".
 - service name: `$1`; if absent, the module name (`go.mod`,
   `package.json`, `pyproject.toml`); if absent, the directory name.
 - templates: this skill's own `templates/` (collector, compose,
@@ -62,8 +64,10 @@ ${CLAUDE_PLUGIN_ROOT}/skills/tech-decision/references/decision-protocol.md.
    `templates/slos.md`: what working means (one or two sentences per
    user journey, what the user sees when it works) and the two to four
    questions on-call will ask, each mapped to the signal and panel
-   that answers it. Ask the engineer for the journeys when the code and
-   the event sheet do not name them. Every span, counter and alert
+   that answers it. When the code and the event sheet do not name the
+   journeys, ask the engineer once with AskUserQuestion, options "enter the
+   journeys" (free text via Other) and "proceed without" (infer the
+   journeys from the code and mark them assumed). Every span, counter and alert
    added below answers one of these questions; one that answers none
    is not added, and a question no signal answers is listed as a gap.
 2. Wire the SDK per stack, in the wiring module only (`main.go`,
@@ -106,15 +110,14 @@ ${CLAUDE_PLUGIN_ROOT}/skills/tech-decision/references/decision-protocol.md.
 4. Local stack: copy `templates/docker-compose.observability.yml` and
    `templates/otel-collector.yaml` to `observability/`. Add
    `observability-up` and `observability-down` to the Makefile
-   (`docker compose -f observability/docker-compose.observability.yml
-   up -d` and `down -v`), or print them when there is no Makefile.
+   (`docker compose -f observability/docker-compose.observability.yml up -d`
+   and `down -v`), or print them when there is no Makefile.
    Grafana at `http://localhost:3000`, anonymous admin, datasources
-   provisioned. Verify with `docker compose -f ... config` and `make -n
-   observability-up`.
+   provisioned. Verify with `docker compose -f ... config` and `make -n observability-up`.
 5. Dashboard: copy `templates/dashboard-red.json` to
    `monitoring/dashboards/<service>-red.json`, set the `service`
-   variable default. One file per service. `python3 -c "import json;
-   json.load(open(...))"` on each.
+   variable default. One file per service. `python3 -c "import json; json.load(open(...))"`
+   on each.
 6. Alerts: copy `templates/alerts.yaml` to
    `monitoring/alerts/<service>.yaml`, substitute `__SERVICE__` and
    `__RUNBOOK_BASE__`. Every rule keeps its `runbook_url`. For each rule
@@ -124,8 +127,8 @@ ${CLAUDE_PLUGIN_ROOT}/skills/tech-decision/references/decision-protocol.md.
    `bash "${CLAUDE_PLUGIN_ROOT}/bin/brg-runbook-check" monitoring/alerts`
    (every alert has a `runbook_url` that resolves to a file under
    `docs/runbooks/`; zero alerts fails). Fix what it reports and rerun
-   until it exits 0; the report is not done before that. `promtool check
-   rules` when installed. Fire each new
+   until it exits 0; the report is not done before that. `promtool check rules`
+   when installed. Fire each new
    alert once before it counts: lower its threshold for one evaluation
    in the local stack or staging, confirm the notification reaches the
    intended channel and its runbook link opens, restore the threshold,

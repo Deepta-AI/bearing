@@ -8,8 +8,8 @@ paths:
 
 # Infra rules (loaded when Terraform or Kubernetes files are touched)
 
-- The agent never runs `terraform apply`, `terraform destroy` or `kubectl
-  apply`. Plan, post the plan, stop. A person applies from the pipeline.
+- The agent never runs `terraform apply`, `terraform destroy` or `kubectl apply`.
+  Plan, post the plan, stop. A person applies from the pipeline.
 - State is remote and locked; no local state, no `-refresh=false`.
   Address changes are `moved`, `import` and `removed` blocks; `state rm`
   or `state mv` only as a fallback with a task id.

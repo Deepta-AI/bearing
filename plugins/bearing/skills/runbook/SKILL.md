@@ -54,8 +54,8 @@ An alert without a runbook is noise with a pager attached.
    diagnosis command itself: the line reads `Last verified: not run`.
    It carries a date only when the caller supplied the output of the
    diagnosis commands from a real run (pasted in the request or in a
-   file it names); then it reads `Last verified: <date of that run>
-   (diagnosis steps <n> of <m> run)` and each step's output is quoted
+   file it names); then it reads `Last verified: <date of that run> (diagnosis steps <n> of <m> run)`
+   and each step's output is quoted
    under it as the evidence. Writing today's date for a runbook nobody
    ran is a false claim. Print the path with the count of placeholders
    left.

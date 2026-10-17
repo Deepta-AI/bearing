@@ -51,22 +51,19 @@ result mean something else, then about writing the script.
    script or variable already in the repository that defaults to a
    production host (bench scripts, Makefile defaults) and flag it.
 2. Workload model, written down with its arithmetic before any script:
-   - Peak rate from the source, converted to requests a second per route
-     (18,000 sign-ups in 15 minutes is 20 a second; at 3 page reads and 1
-     submit each, 60 + 20 = 80 requests a second). The pass criterion is
-     at this rate. Headroom (1.5x, 2x) is a separate stress stage, never
-     the load stage's target.
+   - Peak rate from the source, converted to requests a second per route.
+     The pass criterion is at this rate. Headroom (1.5x, 2x) is a separate
+     stress stage, never the load stage's target.
    - Shape: how fast the real peak arrives and how long it lasts. An event
-     that opens at a fixed time is a step: ramp in seconds, not minutes,
-     because a slow ramp warms caches, pools and autoscalers the real
-     event will not have warmed. Hold for the real peak's duration, plus a
-     short cool-down.
+     that opens at a fixed time is a step: ramp in seconds, not minutes.
+     Hold for the real peak's duration, plus a short cool-down.
    - Mix: the ratio between routes from the flow, and the data mix. Values
      that key a cache (query strings, IDs, pages) need the cardinality and
      repeat ratio of real traffic; a short fixed list turns a search test
      into a cache test. Read the cache code to see what the key is.
    - Soak rate: the normal busy-hour rate from the source, not a number
      chosen only to stay under a limit.
+   Detail: references/workload.md
 3. Environment fit. Say, with numbers, what a run on this target can and
    cannot show:
    - Rate limits: the target rate divided by 80% of the per-key limit

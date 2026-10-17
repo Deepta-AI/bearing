@@ -36,8 +36,8 @@ Lua script: refill by elapsed * rate, cap at burst, take 1 if available, return 
 Sliding window counter: rl:<limit>:<subject>:<window start> counters, weighted sum of current and previous
 ```
 
-Configuration lives in code as a table: `name, algorithm, rate, burst,
-key kind, scope`; overrides per tenant in a `tenant_limits` table read
+Configuration lives in code as a table: `name, algorithm, rate, burst, key kind, scope`;
+overrides per tenant in a `tenant_limits` table read
 through the tenant context, never by editing code.
 
 ## Headers

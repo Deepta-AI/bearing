@@ -2,7 +2,7 @@
 name: analytics-events
 description: 'Designs the analytics event sheet, wires the analytics SDK behind one typed module and audits code against the sheet. Use when asked to "track this feature", "add an event", "set up analytics" or "audit tracking".'
 argument-hint: "app | feature <name> | event <object_verb> | audit [--platform web|rn|android|ios|backend]"
-allowed-tools: Read, Write, Edit, Grep, Glob, Skill, Bash(git diff:*), Bash(git status:*), Bash(git log:*), Bash(make:*), Bash(go test:*), Bash(node --test:*), Bash(node --no-warnings --test:*), Bash(npm test:*), Bash(pnpm test:*), Bash(uv run pytest:*), Bash(./gradlew test:*), Bash(swift test:*)
+allowed-tools: Read, Write, Edit, Grep, Glob, Skill, Bash(git diff:*), Bash(git status:*), Bash(git log:*), Bash(make:*), Bash(go test:*), Bash(node --test:*), Bash(node --no-warnings --test:*), Bash(npm test:*), Bash(pnpm test:*), Bash(uv run pytest:*), Bash(./gradlew test:*), Bash(swift test:*), AskUserQuestion
 ---
 
 # analytics-events
@@ -17,7 +17,8 @@ properties you typed.
 
 - scope: `$ARGUMENTS`; if absent, infer it from the request (a brief or
   feature named: `feature`; "check", "audit", "numbers look off":
-  `audit`), else ask one question.
+  `audit`), else ask with AskUserQuestion, options `app`, `feature`, `event` and `audit`
+  (as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says).
 - journeys and stories: the brief the request names, else
   `docs/product/**` (backlog, PRD, feature briefs), else derived from the
   code: routes, screens and forms grouped by navigation; the sheet's
@@ -124,8 +125,8 @@ Proposed and listed in the report; never Accepted.
      that clears on any response (fetch does not throw on 4xx) or sends
      more than the collector contract accepts. Platform differences in
      counts often live here, not in the event calls.
-   - Count: `N in sheet, M distinct names emitted by production code
-     (runtime names expanded), K in both`, and list the names on each
+   - Count: `N in sheet, M distinct names emitted by production code (runtime names expanded), K in both`,
+     and list the names on each
      side so the counts can be checked. A sweep that found zero
      emissions in a codebase with an analytics module is a broken
      search, not a clean result.

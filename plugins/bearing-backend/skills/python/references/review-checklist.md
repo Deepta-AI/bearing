@@ -67,8 +67,8 @@ are code that is internally consistent and contradicts a document.
   silence rather than to narrow.
 
 ## Webhooks and other inbound events
-- The signature is verified over the raw body bytes (`await
-  request.body()`), before any parsing or logging, with
+- The signature is verified over the raw body bytes (`await request.body()`),
+  before any parsing or logging, with
   `hmac.compare_digest`. Re-serialised JSON never matches the sender's
   bytes; a test that signs `json.dumps` output proves nothing.
 - A missing secret fails closed: settings refuse to start, never an

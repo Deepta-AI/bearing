@@ -32,8 +32,8 @@ says "all covered". This skill reports; it does not repair.
   operations: `docs/adr/`, `docs/design/`, `docs/runbooks/`,
   `docs/analytics/EVENT_SHEET.md`. Each is read or missing; missing is
   never a stop.
-- Tracker and prefix: `bash "${CLAUDE_PLUGIN_ROOT}/bin/brg-tracker"
-  config` (`tracker:` and `id prefix:` lines); if the script is absent,
+- Tracker and prefix: `bash "${CLAUDE_PLUGIN_ROOT}/bin/brg-tracker" config`
+  (`tracker:` and `id prefix:` lines); if the script is absent,
   CLAUDE.md; otherwise the gate infers a prefix from commit subjects.
 - Gate: `scripts/trace_check.py` in this skill, Python 3, run from the
   repository root. It runs `git log` itself, from the merge base with

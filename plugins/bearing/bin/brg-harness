@@ -156,6 +156,12 @@ NPREFIX="$(printf '%s\n' "$PREFIXES" | grep -c . || true)"
 vendor_guard() {
   sed "s/^BEARING_GUARD_VERSION=\"__VERSION__\"/BEARING_GUARD_VERSION=\"$VERSION\"/" "$KIT/bin/brg-guard" > "$TMPD/guard"
   putx ".bearing/bin/brg-guard" < "$TMPD/guard"
+  putx ".bearing/bin/brg-changed" < "$KIT/bin/brg-changed"   # the Stop gate calls it beside the guard
+  put ".bearing/bin/flow-steps.tsv" 644 < "$KIT/bin/flow-steps.tsv"   # brg-session next-step reads it beside itself
+  putx ".bearing/bin/brg-session" < "$KIT/bin/brg-session"   # guard session subcommands call it beside the guard
+  putx ".bearing/bin/brg-update-check" < "$KIT/bin/brg-update-check"   # guard session calls it beside the guard; a no-op without a marketplace entry
+  putx ".bearing/bin/brg-config" < "$KIT/bin/brg-config"   # it reads skip and snooze through this
+  putx ".bearing/bin/brg-learn" < "$KIT/bin/brg-learn"   # guard session and the gates call it beside the guard; a no-op unless learning is on
   putx ".bearing/hooks/read-json.sh" <<'EOF'
 #!/usr/bin/env bash
 # read-json.sh <dot.path> [<dot.path> ...]: print the first non-empty field of

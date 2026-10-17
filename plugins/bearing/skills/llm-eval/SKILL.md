@@ -64,8 +64,8 @@ gate that fails when the number drops.
    checkable claims, structured output for the verdict. Pairwise for
    style questions. Test each grader with an oracle (the expected
    answer scores full) and a null (empty output scores zero).
-4. Harness: `evals/<name>/run.py` (or `.ts`) behind `make eval
-   EVAL=<name>` when a Makefile exists, else run directly. It runs every
+4. Harness: `evals/<name>/run.py` (or `.ts`) behind `make eval EVAL=<name>`
+   when a Makefile exists, else run directly. It runs every
    case through the real entry point (the gateway when present), records
    per case: output, grade,
    `model` from the response, `usage`, latency, judge usage; writes

@@ -2,7 +2,7 @@
 name: new-repo
 description: 'Creates a new repository for one stack with Makefile, CI, git hooks, CLAUDE.md, AGENTS.md, rules, MR templates and docs in place. Use when asked to "create a repo", "scaffold a service" or "start a new project".'
 argument-hint: "<stack> <PascalName> [--dir path] [--module <path>] [--tracker <PREFIX>] [--lead @user] [--group @group]"
-allowed-tools: Read, Grep, Glob, Edit, Write, Skill, Bash(bash *bin/brg-scaffold *), Bash(ls:*), Bash(make:*), Bash(cp:*), Bash(mkdir:*), Bash(git status:*), Bash(git log:*), Bash(git branch:*), Bash(git init:*), Bash(git config:*), Bash(git check-ignore:*), Bash(go:*), Bash(gofmt:*), Bash(python3:*), Bash(uv:*), Bash(pytest:*), Bash(ruff:*)
+allowed-tools: Read, Grep, Glob, Edit, Write, Skill, Bash(bash *bin/brg-scaffold *), Bash(ls:*), Bash(make:*), Bash(cp:*), Bash(mkdir:*), Bash(git status:*), Bash(git log:*), Bash(git branch:*), Bash(git init:*), Bash(git config:*), Bash(git check-ignore:*), Bash(go:*), Bash(gofmt:*), Bash(python3:*), Bash(uv:*), Bash(pytest:*), Bash(ruff:*), AskUserQuestion
 ---
 
 # new-repo
@@ -35,9 +35,8 @@ match, and its output is always conformed before it is reported.
   `${CLAUDE_PLUGIN_ROOT}/templates/repo/`. If the plugin root is unset,
   stop: "install Bearing (`bash install.sh`) and rerun".
 - Target directory: beside the siblings (where the registry's clone step
-  puts repositories), else `./<slug>`; empty or absent. If not, ask once
-  for another path, or point at `onboard-repo` when the user means the
-  existing repository.
+  puts repositories), else `./<slug>`; empty or absent. If not, ask once with
+  AskUserQuestion (as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says), options "enter another path" (the answer comes as free text via Other) and "it is an existing repository", which points at `onboard-repo`.
 - Decisions: accepted ADRs in the workspace settle their keys; a
   superseded ADR settles nothing.
 

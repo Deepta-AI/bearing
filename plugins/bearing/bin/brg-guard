@@ -1521,8 +1521,9 @@ case "$sub" in
   format)
     file="${1:-}"; [ -n "$file" ] && [ -f "$file" ] || exit 0
     root="$(git rev-parse --show-toplevel 2>/dev/null || dirname "$file")"; cd "$root" || exit 0
+    fmt_outcome=skipped
     note() { echo "bearing format: $*"; }
-    run() { if "$@" >/dev/null 2>&1; then note "$1 formatted ${file##*/}"; else note "$1 failed on ${file##*/} (left as written)"; fi; }
+    run() { if "$@" >/dev/null 2>&1; then fmt_outcome=formatted; note "$1 formatted ${file##*/}"; else fmt_outcome=failed; note "$1 failed on ${file##*/} (left as written)"; fi; }
     case "$file" in
   *.go)
     if command -v gofmt >/dev/null; then run gofmt -w "$file"; else note "gofmt not installed"; fi;;
@@ -1543,6 +1544,7 @@ case "$sub" in
   *.sh)
     if command -v shfmt >/dev/null; then run shfmt -w -i 2 "$file"; else note "shfmt not installed"; fi;;
 esac
+    gate_log format "$fmt_outcome" "${file##*.}"
     exit 0;;
   task-id)
     prompt="${1:-}"
@@ -1574,8 +1576,39 @@ esac
     task="$(printf '%s' "$branch" | grep -oE '[A-Z][A-Z0-9]*(-[0-9]+)+' | head -1)"
     changed="$(git -C "$root" status --porcelain 2>/dev/null | wc -l | tr -d ' ')"
     echo "bearing session: branch=${branch:-detached} task=${task:-none} changed_files=${changed}"
+    # Nobody to ask in a non-interactive session: brg-autopilot's claude -p
+    # child (BEARING_AUTOPILOT), or BEARING_NONINTERACTIVE=1 in the
+    # environment or bearing.env. Then no AskUserQuestion line is printed.
+    headless=0
+    if [ -n "${BEARING_AUTOPILOT:-}" ] && [ "${BEARING_AUTOPILOT}" != 0 ]; then headless=1
+    elif [ -n "${BEARING_NONINTERACTIVE+x}" ]; then [ "$BEARING_NONINTERACTIVE" = 1 ] && headless=1
+    elif [ -f "$(dirname "$0")/brg-config" ] && [ "$(bash "$(dirname "$0")/brg-config" get noninteractive --user 2>/dev/null)" = 1 ]; then headless=1; fi
+    [ "$headless" -eq 0 ] || export BEARING_NONINTERACTIVE=1
+    # A newer release, once a day, on a fresh start only; 3 s at most inside the hook's 10 s.
+    if [ "$source" = "startup" ] && [ -f "$(dirname "$0")/brg-update-check" ]; then
+      up="$(bash "$(dirname "$0")/brg-update-check" --budget 3 2>/dev/null)"
+      if [ -n "$up" ]; then
+        upold="$(printf '%s\n' "$up" | sed -n '1s/^BEARING_UPDATE: \([^ ]*\) -> .*/\1/p')"; upnew="$(printf '%s\n' "$up" | sed -n '1s/.* -> \(.*\)$/\1/p')"
+        printf '%s\n' "$up"
+        [ "$headless" -eq 1 ] || echo "Bearing $upnew is available (you have $upold). Ask the user with AskUserQuestion: Upgrade now (run the upgrade-tools skill) / Remind me tomorrow (brg-config set update-snooze-until $(( $(date +%s) + 86400 )) --user) / Skip this version (brg-config set update-skip $upnew --user)."
+      fi
+    fi
+    # Opt-in local learnings: ask once, or read back the top few for the next step.
+    if [ "$source" = "startup" ] && [ -f "$(dirname "$0")/brg-learn" ]; then
+      lstate="$(bash "$(dirname "$0")/brg-learn" state 2>/dev/null)"
+      if [ "$lstate" = ask ]; then
+        [ "$headless" -eq 1 ] || echo "BEARING_LEARNING: ask. Ask the user once with AskUserQuestion: Yes, learn locally (brg-config set learning on --user) / No (brg-config set learning off --user). Nothing leaves this machine."
+      elif [ "$lstate" = on ]; then
+        nx="$(bash "$(dirname "$0")/brg-session" next-step --branch "$branch" 2>/dev/null)"
+        tops="$(bash "$(dirname "$0")/brg-learn" top --skills "$nx" --n 5 2>/dev/null)"
+        [ -z "$tops" ] || { echo "Learnings for the next step:"; printf '%s\n' "$tops"; }
+      fi
+    fi
     sf="$root/.bearing/state/$(printf '%s' "$branch" | tr '/' '_').md"
-    [ -f "$sf" ] && { echo "Handoff state from the previous session (${sf#"$root"/}):"; head -20 "$sf"; }
+    [ -f "$sf" ] && { echo "Handoff state from the previous session (${sf#"$root"/}):"; head -8 "$sf"; }
+    if [ "$source" != "compact" ]; then
+      bash "$(dirname "$0")/brg-session" resume --source "${source:-startup}" 2>/dev/null || gate_log resume not-run "brg-session resume failed"
+    fi
     [ -f "$root/CLAUDE.md" ] && ! head -1 "$root/CLAUDE.md" | grep -q '^@AGENTS.md' && echo "note: CLAUDE.md does not start with @AGENTS.md; run onboard-repo to fix the import."
     # The stack checklists, so any review in this session (gstack /review
     # included) applies them; absent where the guard is vendored alone.
@@ -1625,25 +1658,28 @@ esac
     # the last passing check. Without a start mark, or in a repository whose
     # Makefile never writes the marker, there is nothing fair to hold it to.
     [ -n "$sid" ] && [ -f "$start" ] && grep -qs 'check-passed' "$root/Makefile" || { gate_log stop-gate reminder-only "no session mark or marker"; exec bash "$0" stop; }
+    [ -f "$(dirname "$0")/brg-changed" ] || { gate_log stop-gate not-run "missing brg-changed"; exit 0; }
+    cc="$state/.check-changed-passed"
+    newest="$marker"; [ -f "$cc" ] && { [ ! -f "$marker" ] || [ "$cc" -nt "$marker" ]; } && newest="$cc"
     fresh=0
     while IFS= read -r f; do
       [ -n "$f" ] || continue
-      p="$root/$f"; [ -e "$p" ] || continue
-      [ "$p" -nt "$start" ] || continue
-      [ -f "$marker" ] && ! [ "$p" -nt "$marker" ] && continue
+      [ "$root/$f" -nt "$start" ] || continue
       fresh=$((fresh+1))
     done <<EOF
-$(git -C "$root" status --porcelain 2>/dev/null | sed 's/^...//; s/.* -> //; s/^"//; s/"$//')
+$(bash "$(dirname "$0")/brg-changed" --root "$root" --since "$newest")
 EOF
     [ "$fresh" -gt 0 ] || { gate_log stop-gate passed; exit 0; }
-    msg="bearing: ${fresh} file(s) changed in this session since make check last passed."
+    target="make check"; grep -qs '^check-changed:' "$root/Makefile" && target="make check-changed"
+    msg="bearing: ${fresh} file(s) changed in this session since the last check."
     if [ "$active" -eq 1 ]; then
       echo "$msg Not checked; say so under Not done in the report."
       gate_log stop-gate reminded "$fresh file(s), second stop"
       exit 0
     fi
-    echo "$msg Run make check and fix what fails before finishing. If it cannot run here, say why under Not done in the report and stop." >&2
-    gate_log stop-gate blocked "$fresh file(s)"
+    echo "$msg Run ${target} and fix what fails before finishing. If it cannot run here, say why under Not done in the report and stop." >&2
+    gate_log stop-gate blocked "$fresh file(s), ${target}"
+    bash "$(dirname "$0")/brg-learn" log --kind gate-block --skill stop-gate --key "$target" --insight "stop gate blocked; ${target} needed" >/dev/null 2>&1
     exit 2;;
   check-file)
     file="${1:-}"
@@ -1725,6 +1761,7 @@ EOF
       [ "$n" -le 40 ] || echo "... $((n-40)) more line(s)"
     } >&2
     gate_log check-file problems "$tool"
+    bash "$(dirname "$0")/brg-learn" log --kind gate-block --skill check-file --key "${file##*.}" --insight "check-file problems on *.${file##*.} via $tool" >/dev/null 2>&1
     exit 2;;
   precompact)
     transcript="${1:-}"; [ "$transcript" != "$SENTINEL" ] || transcript=""
@@ -1771,8 +1808,11 @@ EOF
     n="$(cat "$log.1" "$log" 2>/dev/null | wc -l | tr -d ' ')"
     [ "$n" -gt 0 ] || { echo "brg-guard stats: 0 gate decisions logged in ${log#"$root"/}, nothing to report" >&2; exit 1; }
     cat "$log.1" "$log" 2>/dev/null | awk -F'\t' 'NR==1{f=$1} {l=$1} END{printf "brg-guard stats: %d gate decisions, %s to %s\n", NR, f, l}'
-    cat "$log.1" "$log" 2>/dev/null | awk -F'\t' '{k=$2" "$3; c[k]++; s[k]+=$4; if ($4>m[k]) m[k]=$4}
-      END{for (k in c) printf "  %-28s %6d  avg %5d ms  max %6d ms\n", k, c[k], s[k]/c[k], m[k]}' | sort
+    cat "$log.1" "$log" 2>/dev/null | awk -F'\t' '{print $2" "$3"\t"$4}' | sort -t"$(printf '\t')" -k1,1 -k2,2n |
+      awk -F'\t' '
+        function flush() { if (n) { m=v[int((n+1)/2)]; p=v[int(n*0.9+0.999)]; if (p=="") p=v[n];
+          printf "  %-28s %6d  median %5d ms  p90 %5d ms  max %6d ms\n", k, n, m, p, v[n] } }
+        $1!=k { flush(); k=$1; n=0 } { v[++n]=$2+0 } END { flush() }'
     r="$(cat "$log.1" "$log" 2>/dev/null | awk -F'\t' '$3=="refused"{c[$5]++} END{for (k in c) printf "%6d  %s\n", c[k], k}' | sort -rn | head -5)"
     [ -z "$r" ] || { echo "  most refused:"; printf '%s\n' "$r" | sed 's/^/  /'; }
     exit 0;;

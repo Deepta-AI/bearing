@@ -41,8 +41,8 @@ than lowering the `go` line or letting a toolchain download.
   failure to name. Say which checks you ran and which you did not.
 - Scaffolding (`new-repo go-api <Name>`): `templates/` holds the skeleton
   and configs; `bin/brg-scaffold` in the bearing plugin copies them. Do not hand-copy. A
-  command-line tool (no server, no database) is `new-repo go-cli
-  <Name>` from `templates-cli/`: the standard library, one binary, the same
+  command-line tool (no server, no database) is `new-repo go-cli <Name>`
+  from `templates-cli/`: the standard library, one binary, the same
   gates.
 - Generating CI (`bearing:ci-pipeline`): `templates/.gitlab-ci.yml` is the source.
 - Pack skills (samber/cc-skills-golang), when installed, are deeper than
@@ -71,17 +71,8 @@ than lowering the `go` line or letting a toolchain download.
 
 ## Layout
 
-```
-cmd/api/main.go           wiring only: config, logger, db, server, signals
-internal/config/          env parsing with defaults and validation
-internal/httpapi/         handlers, middleware, routes (one file per resource)
-internal/<domain>/        services: business rules, no SQL, no HTTP types
-internal/store/           sqlc output plus hand-written repositories
-db/migrations/            goose migrations, NNNN_name.sql with Up and Down
-db/queries/               sqlc query files
-tools/go.mod              developer tools pinned with the tool directive
-Makefile                  the only entry point: help setup dev check fix test doctor
-```
+The repository tree, one line per directory, is in the reference.
+Detail: references/layout.md
 
 ## On a foreign layout
 
@@ -96,8 +87,8 @@ rule was relaxed and why in the review or the report.
 
 1. Thread `context.Context` from the handler down. `context.TODO()` and
    `context.Background()` appear only in `main` and tests.
-2. Wrap every error with what you were doing: `fmt.Errorf("load invoice
-   %s: %w", id, err)`. Map to a status once, in the handler layer.
+2. Wrap every error with what you were doing: `fmt.Errorf("load invoice %s: %w", id, err)`.
+   Map to a status once, in the handler layer.
 3. Handlers parse and validate, call a service, write a response. No SQL, no
    business rules in a handler.
 4. Repositories return domain types, never `pgx.Rows`. `SELECT *` is a
@@ -128,8 +119,8 @@ fake store, and fails in production. Check them on every change and review.
   a column that exists under that name, and the documented direction for
   every value, not only the default.
 - **State changes are conditional writes.** "Only a pending order can be
-  cancelled" is `UPDATE orders SET state = 'cancelled' WHERE id = $1 AND
-  tenant_id = $2 AND state = 'pending'`, then check rows affected (or
+  cancelled" is `UPDATE orders SET state = 'cancelled' WHERE id = $1 AND tenant_id = $2 AND state = 'pending'`,
+  then check rows affected (or
   `RETURNING`). A read
   in the service followed by an unconditional write loses a concurrent race.
   On zero rows, tell "not yours or missing" (404) from "exists but not in
@@ -192,15 +183,15 @@ make sqlc     # sqlc generate
 
 - `go test ./...` with `-race` needs cgo on some platforms; the Makefile
   falls back with a printed note, never silently.
-- goose migrations run in a transaction by default; `CREATE INDEX
-  CONCURRENTLY` needs `-- +goose NO TRANSACTION` at the top of the file.
+- goose migrations run in a transaction by default; `CREATE INDEX CONCURRENTLY`
+  needs `-- +goose NO TRANSACTION` at the top of the file.
 - sqlc output is generated: never edit it, never review it, regenerate it.
 - Tools are pinned with the `tool` directive (Go 1.24 and newer) in
   `tools/go.mod`, a module of its own so golangci-lint's dependencies never
-  enter the service's `go.mod` or its govulncheck scan. `go install
-  ...@latest` in a Makefile or CI job is a finding: two pipelines a day
-  apart lint with different rules. Bump with `go -C tools get -tool
-  <package>@<version>` and commit `tools/go.sum`.
+  enter the service's `go.mod` or its govulncheck scan. `go install ...@latest`
+  in a Makefile or CI job is a finding: two pipelines a day
+  apart lint with different rules. Bump with `go -C tools get -tool <package>@<version>`
+  and commit `tools/go.sum`.
 - A handler that returns after writing an error without `return` writes
   twice. `golangci-lint` catches some of these; the reviewer catches the
   rest.

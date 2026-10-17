@@ -23,7 +23,7 @@ define skip
 { mkdir -p $(STATE); echo "$(1): SKIPPED ($(2) not installed)"; echo "$(1) $(2)" >> $(SKIPPED); exit 0; }
 endef
 
-.PHONY: help setup gen dev check check-file fix format format-check analyze test test-integration build-android build-ios release-android release-ios vuln doctor clean
+.PHONY: help setup gen dev check check-file check-changed fix format format-check analyze test test-integration build-android build-ios release-android release-ios vuln doctor clean
 
 help: ## List targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-16s %s\n", $$1, $$2}'
@@ -117,6 +117,19 @@ check-file: ## Lint one edited file, FILE=path (the Bearing edit hook runs this)
 	  *) echo "check-file: no per-file check for $(FILE)"; exit 0;; \
 	esac; \
 	echo "check-file: 1 file checked"
+
+CHANGED = git status --porcelain -z --untracked-files=all | tr '\0' '\n' | awk 'skip{skip=0;next} {c=substr($$0,1,2);p=substr($$0,4)} c~/^R|^.R|^C/{print p;skip=1;next} {print p}' | sort -u | while IFS= read -r f; do [ -e "$$f" ] || continue; for m in $(STATE)/.check-passed $(STATE)/.check-changed-passed; do [ -f "$$m" ] && ! [ "$$f" -nt "$$m" ] && continue 2; done; printf '%s\n' "$$f"; done
+
+check-changed: ## dart format check, analyze and the tests for the changed Dart files only (the Bearing Stop gate runs this; make check stays the full gate)
+	@mkdir -p $(STATE); files=$$($(CHANGED) | grep -E '\.dart$$|pubspec\.(yaml|lock)$$' || true); \
+	f=$$(printf '%s' "$$files" | grep -c . || true); \
+	[ "$$f" -gt 0 ] || { touch $(STATE)/.check-changed-passed; echo "check-changed: 0 files, nothing to check"; exit 0; }; \
+	dart=$$(printf '%s\n' "$$files" | grep '\.dart$$' || true); \
+	[ -z "$$dart" ] || { dart format --output=none --set-exit-if-changed $$dart && $(FLUTTER) analyze $$dart; } || exit 1; \
+	if printf '%s\n' "$$files" | grep -qE '(^|/)pubspec\.(yaml|lock)$$'; then $(MAKE) --no-print-directory test || exit 1; p=all; \
+	else tests=$$(for x in $$dart; do case "$$x" in (test/*_test.dart) echo "$$x";; (lib/*) t="test/$${x#lib/}"; t="$${t%.dart}_test.dart"; [ -f "$$t" ] && echo "$$t";; esac; done | sort -u); \
+	  p=$$(printf '%s' "$$tests" | grep -c . || true); [ -z "$$tests" ] || $(FLUTTER) test $$tests || exit 1; fi; \
+	touch $(STATE)/.check-changed-passed; echo "check-changed: $$f files, $$p packages checked"
 
 fix: format ## Apply every automatic fix
 	@$(DART) fix --apply || true

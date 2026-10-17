@@ -23,8 +23,8 @@ never pasted into the conversation.
 2. Rotate per the row above; redeploy every reader.
 3. Scrub: the engineer runs the history rewrite, never the agent.
    Print for them: `git filter-repo --path <file> --invert-paths`
-   (drop a file from all history) or `git filter-repo --replace-text
-   <file listing the old values>` (blank the value in place), then the
+   (drop a file from all history) or `git filter-repo --replace-text <file listing the old values>`
+   (blank the value in place), then the
    force-push, then a notice that every clone must be re-cloned. This
    stops the next reader; it does not unpublish anything.
 4. Audit: how long, where, what it could reach, whether it was used

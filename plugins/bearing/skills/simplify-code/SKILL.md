@@ -27,8 +27,8 @@ feature change and is only proposed here.
   lists. Absent: the branch scope when the branch is ahead of its base,
   else one question: "which path or change should I simplify?".
 - Check and test commands: `make check` and `make test` when the
-  Makefile has them; else the stack's runner (`go test ./...`, `pnpm exec
-  vitest run`, `uv run pytest`, `./gradlew test`, `swift test`); none
+  Makefile has them; else the stack's runner (`go test ./...`, `pnpm exec vitest run`,
+  `uv run pytest`, `./gradlew test`, `swift test`); none
   found: stop, since nothing would witness the cuts.
 - Justification sources: tests, `README*`, `docs/` (ADRs, API docs),
   `CHANGELOG*`, the ticket or PRD the branch names, and every file that

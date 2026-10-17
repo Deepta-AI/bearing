@@ -86,26 +86,11 @@ ${CLAUDE_PLUGIN_ROOT}/skills/tech-decision/references/decision-protocol.md.
 4. Why these stores: per store, what it holds and why, with a Considered
    | Why not table naming the requirement each rejected store fails.
 5. Per store, following the reference for that store:
-   - Postgres: per table, in foreign-key order, the purpose, `Serves
-     US-...`, expected volume with its order of magnitude (10^n) and what
-     drives it, hot or not. A column table (Column, Type, Null, Key,
-     Default, Description, Why): Why quotes the acceptance criterion or
-     names the rule the column exists for; a column with no Why is cut.
-     Ids, `timestamptz` audit columns, `NOT NULL` by default, FK with
-     explicit `ON DELETE` and an index on the referencing column,
-     `tenant_id` first in composite keys. Each index named
-     `idx_<table>_<cols>` (unique: `uq_`) with the query it serves and the
-     predicate it must repeat; partial, covering and BRIN where the
-     reference says. Each CHECK named `chk_<table>_<rule>` with the bad row
-     it refuses.
-   - MongoDB: each collection with a `$jsonSchema` validator sketch
-     (`required`, `bsonType`, `maxItems`, `maxLength`,
-     `additionalProperties: false`, `schemaVersion`), the embed or
-     reference decision with its bound, and an index per query shape.
-   - ClickHouse: engine and why, `ORDER BY` with the rationale (equality
-     filters first, lowest cardinality first, three to five columns),
-     partition key, TTL, the version column for `ReplacingMergeTree`,
-     and the materialised views with their `TO` targets.
+   - Postgres, MongoDB and ClickHouse each follow the reference for that
+     store. Postgres: per table, in foreign-key order, the purpose, `Serves US-...`,
+     expected volume and hot or not; a column table whose Why
+     quotes the acceptance criterion or names the rule the column exists
+     for, and a column with no Why is cut. Detail: references/per-store-tables.md
 6. Enumerations: one row per enum with its values and why the set is
    closed. Retention: one row per table with a lifetime, its rule and the
    mechanism that enforces it (batched hard delete, TTL, partition drop).
@@ -159,55 +144,7 @@ ${CLAUDE_PLUGIN_ROOT}/skills/tech-decision/references/decision-protocol.md.
 
 A strong generalist gets the tables right and misses these. Walk each one
 against the model before writing; each that applies is a row, a
-constraint or an open concern, never silence.
-
-- **Every writer, every column.** List each path that writes a table
-  (front desk, online, reschedule, admin, jobs). For every `NOT NULL`
-  column, name where each path gets the value; a new path with no source
-  (a fee a receptionist used to type) is a gap in the model, not in the
-  code. A rule enforced by application cleanup must hold on every path,
-  or move into the database (constraint, trigger, one shared function).
-- **Tenant-safe references.** A single-column FK lets a row point at
-  another tenant's parent. Add `UNIQUE (tenant_id, id)` to the parent (a
-  new migration on an existing table) and reference `(tenant_id, x_id)`,
-  or say why not.
-- **Requirements the existing tables do not carry.** A story that needs a
-  column on an existing table (a default per doctor, a currency per
-  clinic) adds it by a new migration; never by editing an applied one.
-  Check each ADR's wording against the real scope: an ADR written for one
-  country ("paise") does not settle currency for clinics in three.
-- **Predicates are immutable.** Index, constraint and generated-column
-  expressions cannot call `now()`. Anything that expires (a hold, a code,
-  a lease) needs a sweeper, a check inside the writing transaction, or a
-  trigger; state which, and the longest time an expired row can still
-  block.
-- **Derived rows follow their parent.** For each row created from another
-  (a reminder from an appointment), say what cancel, reschedule and
-  delete do to it, and reset the exact column the worker's index reads.
-- **Lifetimes compose.** A parent purged at N years must take its
-  children (`ON DELETE CASCADE` or deleted first in the same batch), and a
-  child with its own longer rule blocks the parent. A person's erasure
-  request against a table another table must keep (clinical, financial)
-  means `RESTRICT` plus erasing the non-required fields, never `CASCADE`
-  into records the law says to keep.
-- **Size from the rule, then decide.** Steady-state rows = yearly rate x
-  retention (plus growth). Use the number: batched delete below about
-  10^7 rows, time partitions or BRIN above, and say what partitioning
-  costs (PostgreSQL 16 cannot put an exclusion constraint on a
-  partitioned table).
-- **Time is local where people are.** A "day" is bounded in the tenant's
-  zone (`tenants.timezone`), converted at query time; store `timestamptz`.
-- **Ambiguous numbers are read aloud.** "Retried up to 3 times" is 3 or 4
-  attempts; state the reading, make the limit match it and ask.
-- **Hot-table changes.** On a table over about 10^6 rows: `NOT VALID` then
-  `VALIDATE` for CHECK and FK, `CREATE INDEX CONCURRENTLY` outside a
-  transaction (goose: `-- +goose NO TRANSACTION`), and note that an
-  exclusion constraint can be neither built concurrently nor added `NOT
-  VALID`, so changing one is a maintenance window.
-- **Uniqueness has a lifecycle.** Case-insensitive uniqueness is
-  `lower(col)` or `citext`; scope it (per tenant or global) from the
-  story, and say what happens to a closed or soft-deleted row (partial
-  index on open rows, or reopen).
+constraint or an open concern, never silence. Detail: references/design-checks.md
 
 ## Output contract
 
@@ -257,7 +194,7 @@ Revision: v<n> -> v<n+1>, sections changed C, ADRs superseded S, downstream D | 
   ADR, a glossary, a sibling LLD or a migration file is outside the
   request: name what else goes stale under the downstream list instead
   of editing it.
-- The Author line is the person who ran the skill (`git config
-  user.name`) or "draft, unreviewed"; never a name guessed from the
+- The Author line is the person who ran the skill (`git config user.name`)
+  or "draft, unreviewed"; never a name guessed from the
   repository or the prompt.
 - No em dashes, including inside `COMMENT ON` strings and CSV cells.

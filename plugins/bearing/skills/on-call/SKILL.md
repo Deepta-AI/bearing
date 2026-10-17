@@ -2,7 +2,7 @@
 name: on-call
 description: 'Sets up on-call: rotation, escalation, alert routing by severity, error budget policy, handover notes, a runbook for every paging alert. Use when asked about "on-call", "who gets paged", "escalation" or "error budget".'
 argument-hint: "[setup|check|handover|review] [--service <name>]"
-allowed-tools: Read, Write, Edit, Grep, Glob, Bash(ls:*), Bash(mkdir -p:*), Bash(date:*), Bash(promtool check:*), Bash(amtool check-config:*), Bash(git log:*), Bash(bash *bin/brg-runbook-check*)
+allowed-tools: Read, Write, Edit, Grep, Glob, Bash(ls:*), Bash(mkdir -p:*), Bash(date:*), Bash(promtool check:*), Bash(amtool check-config:*), Bash(git log:*), Bash(bash *bin/brg-runbook-check*), AskUserQuestion
 ---
 
 # on-call
@@ -41,7 +41,9 @@ where rules live), the config is the fact and the prose is a finding.
   Sev 4 ticket, marked proposed.
 - People: the team table (README, CODEOWNERS teams, `.bearing/company.json`)
   with location, time zone, leave and departure dates. Unknown: ask once
-  for names, zones and dates; otherwise `<rotation>` placeholders, counted.
+  with AskUserQuestion (as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says), options "enter names, zones and
+  dates" (free text via Other) and "use placeholders"; no answer or
+  placeholders: `<rotation>` placeholders, counted.
 - Paging tool: from config (`opsgenie_configs`, `pagerduty_configs`,
   `.env.example` keys), then the user, then prose. None: tool-neutral.
 - ADRs and policies that constrain a freeze or a release (`docs/adr/`).
@@ -132,9 +134,10 @@ where rules live), the config is the fact and the prose is a finding.
      installed; otherwise say not run. Every YAML edited still parses.
 3. `handover`: write `docs/operations/handover/<date>.md` from
    `templates/handover.md`: open incidents, silences with expiry, alerts
-   that fired more than three times, changes this week (`git log
-   --since='7 days ago' --format=%s`), risks next week, budget left. Ask
-   once for what files cannot show; never invent a row.
+   that fired more than three times, changes this week (`git log --since='7 days ago' --format=%s`),
+   risks next week, budget left. Ask
+   once with AskUserQuestion, options "enter it" (free text via Other) and
+   "nothing more", for what files cannot show; never invent a row.
 4. `review`: write `docs/operations/reviews/<date>.md` from
    `templates/weekly-review.md`: pages by alert and hour, out-of-hours
    count, actionable against not, MTTA and MTTR, alerts to tune or delete,

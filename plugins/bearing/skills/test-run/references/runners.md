@@ -39,8 +39,8 @@ command used in the report:
    other part that swallows its exit code (SKILL.md step 1). No pytest
    anywhere: the suite is "not run (runner missing)".
 
-`--cov` and `--cov-report` are added only when `python3 -c "import
-pytest_cov"` succeeds; without it pytest stops on "unrecognized
+`--cov` and `--cov-report` are added only when `python3 -c "import pytest_cov"`
+succeeds; without it pytest stops on "unrecognized
 arguments" before any test runs, which is not a test failure. The report
 then says `coverage n/a (pytest-cov not installed)`. When the config's `addopts`
 carries `--cov` options and `pytest_cov` does not import, override it
@@ -89,12 +89,12 @@ duration is the evidence. Maestro flows carry their own step timeouts.
   `status`, `retry`, `duration`, `error.message`, and the spec's
   `file` and `line`. A test with more than one result whose last one
   passed is a flaky candidate.
-- JUnit XML (pytest, gradle, swift test, maestro): `<testsuite tests
-  failures errors skipped time>` and `<testcase classname name file line
-  time>` with a `<failure message>` or `<error message>` child (both
+- JUnit XML (pytest, gradle, swift test, maestro): `<testsuite tests failures errors skipped time>`
+  and `<testcase classname name file line time>`
+  with a `<failure message>` or `<error message>` child (both
   count as failed) or `<skipped>`. Gradle: one file per class, sum them.
-- xcodebuild stdout: `Test Case '-[Target.Class testName]' passed (N
-  seconds)` and `failed`; the failing assertion is the preceding
+- xcodebuild stdout: `Test Case '-[Target.Class testName]' passed (N seconds)`
+  and `failed`; the failing assertion is the preceding
   `file.swift:NN: error:` line. The xcresult bundle is the evidence path.
 - k6 summary JSON: `metrics.<name>.thresholds.<expr>.ok`; the suite
   passes only when every threshold is `ok`. Thresholds are the tests.

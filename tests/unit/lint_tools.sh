@@ -53,6 +53,16 @@ assert_exit 1 python3 "$LINT" "$d/e" "$d/allow3"
 assert_contains "$T_OUT" "needs skill|prefix|reason"
 t_end
 
+t_begin "a brg-config or brg-learn command in a skill's own text needs its grant"
+skill "$d/h" sk-six "Read, AskUserQuestion" '1. Record it with `bash "${CLAUDE_PLUGIN_ROOT}/bin/brg-config" set a.b c`, then `bash "${CLAUDE_PLUGIN_ROOT}/bin/brg-learn" log --kind override --skill x --key y --insight z`.'
+assert_exit 1 python3 "$LINT" "$d/h" "$empty"
+assert_contains "$T_OUT" "brg-config"
+assert_contains "$T_OUT" "brg-learn"
+assert_contains "$T_OUT" "2 problems"
+skill "$d/h" sk-six "Read, AskUserQuestion, Bash(bash *bin/brg-config*), Bash(bash *bin/brg-learn*)" '1. Record it with `bash "${CLAUDE_PLUGIN_ROOT}/bin/brg-config" set a.b c`, then `bash "${CLAUDE_PLUGIN_ROOT}/bin/brg-learn" log --kind override --skill x --key y --insight z`.'
+assert_exit 0 python3 "$LINT" "$d/h" "$empty"
+t_end
+
 t_begin "zero commands, zero skills and a missing directory fail"
 skill "$d/f" sk-five "Read" '1. Read the file.'
 assert_exit 1 python3 "$LINT" "$d/f" "$empty"
@@ -62,6 +72,44 @@ assert_exit 1 python3 "$LINT" "$d/g" "$empty"
 assert_contains "$T_OUT" "0 skills"
 assert_exit 1 python3 "$LINT" "$d/missing" "$empty"
 assert_contains "$T_OUT" "no skills directory"
+t_end
+
+t_begin "a reference file is linted against the SKILL.md grants and named in findings"
+skill "$d/r" sk-ref "Read, Bash(git diff:*)" '1. Run `git diff --stat`.'
+mkdir -p "$d/r/sk-ref/references"
+printf '# Detail\n\nRun `git diff --stat` and `make check` here.\n' > "$d/r/sk-ref/references/x.md"
+assert_exit 1 python3 "$LINT" "$d/r" "$empty"
+assert_contains "$T_OUT" "sk-ref/references/x.md:3: \`make check\` is not granted"
+assert_not_contains "$T_OUT" "git diff --stat\` is not granted"
+assert_contains "$T_OUT" "1 reference files"
+t_end
+
+t_begin "a code span wrapped across lines is a finding in SKILL.md and in a reference"
+skill "$d/w" sk-wrap "Read, Bash(git diff:*)" '1. Run `git diff
+   --stat` now.'
+mkdir -p "$d/w/sk-wrap/references"
+printf '# Detail\n\n```bash\ngit diff --stat\n```\n\nSee `git diff\n--stat` too.\n' > "$d/w/sk-wrap/references/y.md"
+assert_exit 1 python3 "$LINT" "$d/w" "$empty"
+assert_contains "$T_OUT" "sk-wrap/SKILL.md:11: code span wrapped across lines"
+assert_contains "$T_OUT" "sk-wrap/references/y.md:7: code span wrapped across lines"
+assert_contains "$T_OUT" "2 problems"
+t_end
+
+t_begin "a clean skill with a clean reference passes and counts the reference"
+skill "$d/k" sk-clean "Read, Bash(git diff:*)" '1. Run `git diff --stat`.'
+mkdir -p "$d/k/sk-clean/references"
+printf '# Detail\n\nRun `git diff --stat`; the file `src/a.go` is prose.\n' > "$d/k/sk-clean/references/z.md"
+assert_exit 0 python3 "$LINT" "$d/k" "$empty"
+assert_contains "$T_OUT" "1 skills, 1 reference files, 2 commands examined"
+t_end
+
+t_begin "double-backtick spans, tilde fences and in-fence backticks"
+skill "$d/m" sk-dbl "Read, Bash(git diff:*)" '1. Run `git diff --stat`.'
+mkdir -p "$d/m/sk-dbl/references"
+printf '# Detail\n\nOne line: ``a`b`` is fine.\n\n~~~\nan odd ` backtick in a tilde fence\n~~~\n\n```\nand ` here\n```\n\nWrapped ``x\ny`` span.\n' > "$d/m/sk-dbl/references/d.md"
+assert_exit 1 python3 "$LINT" "$d/m" "$empty"
+assert_contains "$T_OUT" "sk-dbl/references/d.md:13: code span wrapped across lines"
+assert_contains "$T_OUT" "1 problems"
 t_end
 
 t_begin "the kit's own skills pass"

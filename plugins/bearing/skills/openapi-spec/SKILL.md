@@ -87,8 +87,8 @@ ${CLAUDE_PLUGIN_ROOT}/skills/tech-decision/references/decision-protocol.md.
 6. Conformance: the grep in step 3 reads the code; this sends real
    requests. Paste `templates/api-conformance.mk` into the Makefile when
    it has no `api-conformance` target, and add a CI job `api-conformance`
-   in stage `test` that starts the service (the stack's `docker compose
-   up -d --wait` plus `make migrate`) and runs the target with
+   in stage `test` that starts the service (the stack's `docker compose up -d --wait`
+   plus `make migrate`) and runs the target with
    `API_BASE_URL` set to it. When a local server answers its health
    route at `API_BASE_URL`, run `make api-conformance` and list each failure with its
    operation and the check that failed (server error, undocumented status,
@@ -106,8 +106,8 @@ ${CLAUDE_PLUGIN_ROOT}/skills/tech-decision/references/decision-protocol.md.
    every code the API returns), tag descriptions, and an operation-level
    `x-error-codes` map where a status has codes of its own. Run
    `uv run --quiet --with pyyaml==6.0.3 python "${CLAUDE_PLUGIN_ROOT}/skills/openapi-spec/scripts/api_doc.py" --spec api/openapi.yaml --style "${CLAUDE_PLUGIN_ROOT}/skills/openapi-spec/references/api-style.md" --out docs/api/API.md`
-   (`command -v uv` fails: the same with `python3` in place of the `uv
-   run` prefix). It writes the header (style, base path, versioning,
+   (`command -v uv` fails: the same with `python3` in place of the `uv run`
+   prefix). It writes the header (style, base path, versioning,
    authentication, the error code table), the numbered conventions each
    with its reason, and one section per tag with Serves, the table
    Method, Path, Does, Auth, Success, Errors and the idempotency notes. It

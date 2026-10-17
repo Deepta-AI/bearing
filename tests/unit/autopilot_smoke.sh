@@ -8,6 +8,8 @@
 # with the verdict, at most three rounds.
 set -u
 . "$(dirname "$0")/../lib/assert.sh"
+# the trust check reads $HOME/.claude.json; a test never reads the real one
+HOME="$(tmpdir)"; export HOME
 AP="$KIT/plugins/bearing/bin/brg-autopilot"; export AP
 commit() { git -C "$d" add -A >/dev/null 2>&1; git -C "$d" -c user.email=t@e -c user.name=t commit -qm "$1" >/dev/null 2>&1; }
 
@@ -19,6 +21,7 @@ cat > "$fake" <<'SH'
 n=$(cat .fake-calls 2>/dev/null || echo 0); n=$((n+1)); echo "$n" > .fake-calls
 printf '%s\n' "$@" > ".fake-argv-$n"
 printf '%s\n' "${BRG_AUTOPILOT_HEADLESS:-unset}" > ".fake-env-$n"
+printf '%s\n' "${BEARING_AUTOPILOT:-unset}" > ".fake-ap-$n"
 printf '{"type":"system","subtype":"init","session_id":"sess-abc","tools":[]}\n'
 case "${FAKE_MODE:-once}" in
   always) python3 "$AP" smoke-request --id T-9 --dir "$PWD" ;;
@@ -50,6 +53,7 @@ assert_contains "$T_OUT" "smoke: 3 requests checked, 0 failed"
 assert_eq "2" "$(cat "$d/.fake-calls")" "claude calls"
 assert_eq "1" "$(cat "$d/smoke.count")" "make smoke runs"
 assert_eq "1" "$(cat "$d/.fake-env-1")" "BRG_AUTOPILOT_HEADLESS in the child"
+assert_eq "1" "$(cat "$d/.fake-ap-1")" "BEARING_AUTOPILOT in the child, so its session asks nothing"
 argv2="$(cat "$d/.fake-argv-2")"
 assert_contains "$argv2" "--resume"
 assert_contains "$argv2" "sess-abc"

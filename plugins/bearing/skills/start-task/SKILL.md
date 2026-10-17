@@ -2,7 +2,7 @@
 name: start-task
 description: 'Starts work on a ticket: creates the branch from the right base with the task id, writes state and progress notes, restates the criteria. Use when asked to "start TASK-142", "pick up this ticket" or "create a branch".'
 argument-hint: "<TASK-ID> [PascalName] [--type feature|bugfix|hotfix|chore|docs]"
-allowed-tools: Read, Write, Edit, Grep, Glob, Bash(bash *bin/brg-tracker *), Bash(git status:*), Bash(git branch:*), Bash(git switch:*), Bash(git fetch:*), Bash(git remote:*), Bash(git rev-parse:*), Bash(git log:*), Bash(git tag:*), Bash(git describe:*), Bash(git show:*), Bash(git stash list:*), Bash(git worktree:*), Bash(git merge-base:*), Bash(git diff:*), Bash(git grep:*), Bash(git for-each-ref:*), Bash(git config --get:*), Bash(git check-ignore:*), Bash(make:*), Bash(mkdir -p .bearing/state), Bash(bash *bin/brg-state-path*), Bash(python3 *skills/session-handoff/scripts/progress.py*)
+allowed-tools: Read, Write, Edit, Grep, Glob, AskUserQuestion, Bash(bash *bin/brg-tracker *), Bash(bash *bin/brg-config*), Bash(git status:*), Bash(git branch:*), Bash(git switch:*), Bash(git fetch:*), Bash(git remote:*), Bash(git rev-parse:*), Bash(git log:*), Bash(git tag:*), Bash(git describe:*), Bash(git show:*), Bash(git stash list:*), Bash(git worktree:*), Bash(git merge-base:*), Bash(git diff:*), Bash(git grep:*), Bash(git for-each-ref:*), Bash(git config --get:*), Bash(git check-ignore:*), Bash(make:*), Bash(mkdir -p .bearing/state), Bash(bash *bin/brg-state-path*), Bash(python3 *skills/session-handoff/scripts/progress.py*)
 ---
 
 # start-task
@@ -20,7 +20,10 @@ own uncommitted work safe.
 
 - repository: `git rev-parse --show-toplevel`; not a git repository stops
   with "run `git init` (or open the repository) and rerun".
-- task id: `$1`, or the id in the request; if absent, ask once.
+- task id: `$1`, or the id in the request; else the id in the current
+  branch name when it matches the prefix (then report existing work, do not
+  ask); else ask once with AskUserQuestion as
+  `${CLAUDE_PLUGIN_ROOT}/references/console.md` says.
 - tracker and prefix: `bash "${CLAUDE_PLUGIN_ROOT}/bin/brg-tracker" config`
   (`tracker:` and `id prefix:` lines; `BEARING_TASK_ID_PREFIX` wins); else
   the CLAUDE.md `Task tracker:` line; else any id matching
@@ -43,9 +46,9 @@ own uncommitted work safe.
 
 1. **Validate the id** against the prefix or the generic shape.
 2. **Look for existing work on the ticket.** Branch names lie by
-   omission: search commit messages too. `git branch -a --list`, `git
-   worktree list` and `git log --all -i --grep=<ID> --format='%h %D %an
-   %s'`, all case-insensitive (`abc-12` and `ABC-12` are one ticket; a
+   omission: search commit messages too. `git branch -a --list`, `git worktree list`
+   and `git log --all -i --grep=<ID> --format='%h %D %an %s'`,
+   all case-insensitive (`abc-12` and `ABC-12` are one ticket; a
    branch named after the feature whose commits carry the id is work on
    it). If any exists, do not create a second silently: report the
    ref, author, last commit and what it was cut from, and either reuse it
@@ -67,9 +70,8 @@ own uncommitted work safe.
      the deploy config pin at the tip of the release branch, and read its
      history (`git log -p --oneline origin/main -- deploy/`): a release that
      was rolled back leaves a newer tag behind while the pin moved back.
-     Only with no pin, fall back to `git describe --tags --abbrev=0
-     origin/main` and say it is a guess. Then `git log --oneline
-     <tag>..origin/main`.
+     Only with no pin, fall back to `git describe --tags --abbrev=0 origin/main`
+     and say it is a guess. Then `git log --oneline <tag>..origin/main`.
      Empty: branch from `origin/main`. Not empty: main carries unreleased
      work; branch from the tag, list the commits a hotfix from main would
      have shipped, and say that merging the hotfix into main and releasing
@@ -80,9 +82,9 @@ own uncommitted work safe.
      if the next patch after the production tag already exists (a
      rolled-back release, say), the hotfix cannot reuse that number, so
      name the next free one and flag that it will not contain the skipped
-     release's changes. The fix may already exist: `git diff <tag>
-     origin/develop -- <files of the defect>` and `git log <tag>..origin/develop
-     -- <those files>`. If develop already fixed it, the hotfix is a
+     release's changes. The fix may already exist: `git diff <tag> origin/develop -- <files of the defect>`
+     and `git log <tag>..origin/develop -- <those files>`.
+     If develop already fixed it, the hotfix is a
      cherry-pick (with -x, run by the engineer) of that commit (say whether it touches
      only those files), and "merge back to develop" becomes a no-op to
      confirm, not a second fix. If develop has the same defect, the fix
@@ -93,14 +95,13 @@ own uncommitted work safe.
 4. **Create the branch without touching the engineer's work.** Name:
    `<type>/<ID>-<PascalName>` unless the repository's convention differs.
    Always `--no-track`: a branch created from `origin/develop` otherwise
-   tracks develop, and with `push.default=upstream` (check `git config
-   --get push.default`) a bare push lands on develop. The upstream is set
+   tracks develop, and with `push.default=upstream` (check `git config --get push.default`)
+   a bare push lands on develop. The upstream is set
    on the first push to `origin/<branch>`, which the engineer runs.
-   - Clean tree (`git status --porcelain` empty): `git switch --no-track -c
-     <branch> <base>`.
+   - Clean tree (`git status --porcelain` empty): `git switch --no-track -c <branch> <base>`.
    - Dirty tree: never stash, commit, discard or carry the changes over, and
-     do not stop to ask. `git worktree add --no-track -b <branch> <path>
-     <base>` with `<path>` beside the repository (`../<repo>-<ID>`); if it
+     do not stop to ask. `git worktree add --no-track -b <branch> <path> <base>`
+     with `<path>` beside the repository (`../<repo>-<ID>`); if it
      must sit inside, add it to `.git/info/exclude` so the engineer's
      checkout does not show it. Their files stay exactly where they were.
      Report the path.
@@ -129,16 +130,14 @@ own uncommitted work safe.
    question for the ticket owner, quoting both sides; do not silently adopt
    either, and do not edit the ADR. Your own extra checks go under a
    separate "suggested" heading.
-7. **Notes**, all in the new branch's tree. Local session state: `bash
-   "${CLAUDE_PLUGIN_ROOT}/bin/brg-state-path" <branch>`, run there, prints
+7. **Notes**, all in the new branch's tree. Local session state: `bash "${CLAUDE_PLUGIN_ROOT}/bin/brg-state-path" <branch>`,
+   run there, prints
    the path under `.bearing/state/`; `mkdir -p .bearing/state`
    and write the id, base (ref and commit), criteria, questions and next
    step. Keep it out of git through `.git/info/exclude`, not a `.gitignore`
    edit, so the branch starts with no unrelated diff. The shared progress
-   file: `python3
-   "${CLAUDE_PLUGIN_ROOT}/skills/session-handoff/scripts/progress.py" write
-   --task <ID> --title <PascalName> --status started --criteria <N | unknown>
-   --next <first action>`, written in the new branch's tree; it is committed
+   file: `python3 "${CLAUDE_PLUGIN_ROOT}/skills/session-handoff/scripts/progress.py" write --task <ID> --title <PascalName> --status started --criteria <N | unknown> --next <first action>`,
+   written in the new branch's tree; it is committed
    with the first commit on the branch, not here. If the script is absent,
    skip it and say so.
 8. **Stop there.** No implementation, no commit, no push, no tag. The next

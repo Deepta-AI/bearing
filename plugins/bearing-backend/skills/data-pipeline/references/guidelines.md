@@ -110,8 +110,8 @@
   gets its own DAG or a later task behind `dbt source freshness`, and its
   models are excluded from the early run (tags are inherited from
   `dbt_project.yml`).
-- Backfill: pause the DAG, then `airflow backfill create --dag-id <id>
-  --from-date --to-date --max-active-runs 1`, oldest first, watched to
+- Backfill: pause the DAG, then `airflow backfill create --dag-id <id> --from-date --to-date --max-active-runs 1`,
+  oldest first, watched to
   completion, then unpause.
 
 ## Lineage and docs
@@ -141,8 +141,8 @@
   the window comes from the run. `tests/test_dbt_layout.py` enforces the
   layers, prefixes, `select *` and mart tests, so a rule holds without a
   reviewer.
-- Warehouse tests are `@pytest.mark.warehouse` and run through `make
-  dbt-test` in CI against Postgres, never in `make test`.
+- Warehouse tests are `@pytest.mark.warehouse` and run through `make dbt-test`
+  in CI against Postgres, never in `make test`.
 - A bug in a model ships with a dbt test that would have caught it; a bug
   in a DAG ships with a pytest.
 

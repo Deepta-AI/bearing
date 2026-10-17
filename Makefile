@@ -4,12 +4,12 @@
 SHELL := /bin/bash
 KITP := plugins/bearing
 .DEFAULT_GOAL := help
-.PHONY: help hooks gate ci-bash32 site devguide wiki check check-file validate lint-skills lint-tools lint-evals lint-triggers lint-neutral lint-docs lint-json lint-shell lint-portable lint-prose lint-version lint-budget lint-templates lint-plugin-size test install doctor docs harness-eval trigger-eval
+.PHONY: help hooks gate ci-bash32 site devguide wiki check check-file validate lint-skills lint-tools lint-skill-size lint-questions lint-evals lint-triggers lint-neutral lint-docs lint-json lint-shell lint-portable lint-prose lint-version lint-budget lint-templates lint-plugin-size test install doctor docs harness-eval trigger-eval
 
 help: ## List targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-14s %s\n", $$1, $$2}'
 
-check: validate lint-skills lint-tools lint-evals lint-triggers lint-json lint-shell lint-portable lint-prose lint-docs lint-neutral lint-version lint-budget lint-templates lint-plugin-size test ## The gate for this repository
+check: validate lint-skills lint-skill-size lint-questions lint-tools lint-evals lint-triggers lint-json lint-shell lint-portable lint-prose lint-docs lint-neutral lint-version lint-budget lint-templates lint-plugin-size test ## The gate for this repository
 	@echo "check: passed"
 
 validate: ## claude plugin validate --strict: the marketplace, then each plugin, its skills and (bearing) its agents
@@ -47,8 +47,8 @@ lint-skills: ## Every skill in every plugin: hyphenated name (64 max) equal to i
 	  if grep -q '^disable-model-invocation: true' "$$f"; then grep -q '^argument-hint:' "$$f" || { echo "command skill without argument-hint: $$b"; bad=$$((bad+1)); }; fi; \
 	  if grep -q 'Decisions first' "$$f"; then grep -E '^allowed-tools:.*(^|[ ,])Skill([ ,]|$$)' "$$f" >/dev/null || { echo "'Decisions first' skill lacks Skill in allowed-tools: $$b"; bad=$$((bad+1)); }; fi; \
 	  grep -qE 'Bash\(bash:\*\)|Bash\(git -C' "$$f" && { echo "blanket Bash(bash:*) or Bash(git -C) in allowed-tools: $$b"; bad=$$((bad+1)); }; \
-	  for ref in $$(grep -oE '`(references|templates)/[A-Za-z0-9_./-]+`' "$$f" | tr -d '`' | sort -u); do \
-	    case "$$ref" in */) ;; *) [ -e "$$s/$$ref" ] || [ -e "$$pr/$$ref" ] || [ -e "$(KITP)/$$ref" ] || [ -e "$$ref" ] || { echo "missing reference in $$b: $$ref"; bad=$$((bad+1)); };; esac; \
+	  for ref in $$(grep -oE '`(\$$\{CLAUDE_PLUGIN_ROOT\}/)?(references|templates)/[A-Za-z0-9_./-]+`' "$$f" | tr -d '`' | sort -u); do \
+	    case "$$ref" in */) ;; '$${CLAUDE_PLUGIN_ROOT}'/*) [ -e "$$pr/$${ref#*/}" ] || { echo "missing reference in $$b: $$ref (not in $$pr)"; bad=$$((bad+1)); };; *) [ -e "$$s/$$ref" ] || [ -e "$$pr/$$ref" ] || [ -e "$(KITP)/$$ref" ] || [ -e "$$ref" ] || { echo "missing reference in $$b: $$ref"; bad=$$((bad+1)); };; esac; \
 	  done; \
 	  for tok in $$(grep -oE '\bbearing(-backend|-apps)?:[a-z0-9]+(-[a-z0-9]+)*' "$$f" | sort -u); do \
 	    tp="$${tok%%:*}"; tn="$${tok#*:}"; \
@@ -65,6 +65,34 @@ lint-skills: ## Every skill in every plugin: hyphenated name (64 max) equal to i
 lint-tools: ## Every command a skill body runs is granted by its allowed-tools (bin/lint-skill-tools.allow lists print-only lines)
 	@python3 bin/lint-skill-tools.py
 
+lint-skill-size: ## Every SKILL.md is 200 lines or fewer unless bin/lint-skill-size.allow lists it with a ceiling; detail goes in references/
+	@n=0; bad=0; big=""; bl=0; na=0; al=""; af=bin/lint-skill-size.allow; \
+	for f in plugins/*/skills/*/SKILL.md; do [ -f "$$f" ] || continue; n=$$((n+1)); l=$$(wc -l < "$$f" | tr -d ' '); \
+	  [ "$$l" -le "$$bl" ] || { bl=$$l; big=$$f; }; \
+	  ceil=""; [ -f "$$af" ] && ceil=$$(awk -F'|' -v f="$$f" '$$1==f{print $$2; exit}' "$$af"); case "$$ceil" in *[!0-9]*) ceil="";; esac; \
+	  if [ -n "$$ceil" ]; then na=$$((na+1)); al="$${al:+$$al, }$$f"; \
+	    [ "$$l" -gt 200 ] || { echo "stale allow entry (file is $$l lines, at or under 200): $$f"; bad=$$((bad+1)); }; \
+	    [ "$$l" -le "$$ceil" ] || { echo "over its ceiling of $$ceil lines: $$f $$l"; bad=$$((bad+1)); }; \
+	  else [ "$$l" -le 200 ] || { echo "over 200 lines: $$f $$l"; bad=$$((bad+1)); }; fi; done; \
+	if [ -f "$$af" ]; then while IFS='|' read -r p c r || [ -n "$$p" ]; do case "$$p" in ''|'#'*) continue;; esac; \
+	  ok=1; case "$$c" in ''|*[!0-9]*) ok=0;; esac; \
+	  if [ "$$ok" -eq 0 ] || [ -z "$$r" ]; then echo "malformed allow entry (needs path|ceiling|reason): $$p|$$c|$$r"; bad=$$((bad+1)); continue; fi; \
+	  [ -f "$$p" ] || { echo "stale allow entry (file does not exist): $$p"; bad=$$((bad+1)); }; done < "$$af"; fi; \
+	[ "$$n" -gt 0 ] || { echo "lint-skill-size: 0 skills, nothing checked" >&2; exit 1; }; \
+	[ "$$bad" -eq 0 ] || { echo "lint-skill-size: $$bad problems in $$n skills"; exit 1; }; \
+	echo "lint-skill-size: $$n skills, $$na allowed over 200 ($${al:-none}), largest $$big $$bl"
+
+lint-questions: ## A skill that asks the user does it with AskUserQuestion and follows references/console.md
+	@n=0; r=0; q=0; bad=0; pat='(^|[^A-Za-z])ask (the user|once|one|with AskUserQuestion)|(^|[^A-Za-z])ask:'; \
+	for f in plugins/*/skills/*/SKILL.md; do [ -f "$$f" ] || continue; n=$$((n+1)); d=$${f%/SKILL.md}; hit=0; \
+	  tr -s '\n ' '  ' < "$$f" | grep -qiE "$$pat" && hit=1; \
+	  for g in "$$d"/references/*.md; do [ -f "$$g" ] || continue; r=$$((r+1)); tr -s '\n ' '  ' < "$$g" | grep -qiE "$$pat" && hit=1; done; \
+	  [ "$$hit" -eq 1 ] || continue; q=$$((q+1)); \
+	  if ! sed -n '/^---$$/,/^---$$/p' "$$f" | grep -q 'AskUserQuestion' || ! grep -q 'references/console.md' "$$f"; then echo "asks in prose: $$f"; bad=$$((bad+1)); fi; done; \
+	[ "$$n" -gt 0 ] || { echo "lint-questions: 0 skills, nothing checked" >&2; exit 1; }; \
+	[ "$$bad" -eq 0 ] || { echo "lint-questions: $$bad of $$q skills ask in prose ($$n skills, $$r reference files scanned)"; exit 1; }; \
+	echo "lint-questions: $$n skills, $$r reference files, $$q ask the user, 0 in prose"
+
 lint-triggers: ## Every skill has trigger cases in evals/triggers.json (3 should, 2 near misses), none copying the description's quoted phrases
 	@python3 bin/lint-triggers.py
 
@@ -79,11 +107,11 @@ lint-neutral: ## No company name scars, no private tracker names or task-id lite
 	[ -z "$$rs" ] || { echo "private tracker name or task-id literal (the rest adapter is the public one):"; echo "$$rs"; exit 1; }; \
 	echo "lint-neutral: $$total files, 0 scars, 0 private tracker names or literals"
 
-lint-docs: ## Generated docs (SKILLS.md, WORKFLOW.md, the handbook and developer guide data) match their sources
+lint-docs: ## Generated docs (SKILLS.md, WORKFLOW.md, the handbook, developer guide data and flow-steps.tsv) match their sources
 	@tmp=$$(mktemp -d); n=0; stale=0; \
-	for f in docs/SKILLS.md docs/WORKFLOW.md site/src/data/handbook.json devguide/src/data/internals.json; do cp "$$f" "$$tmp/$$(basename $$f)"; done; \
-	python3 bin/gen-skills-table.py >/dev/null && python3 bin/gen-guide.py >/dev/null && python3 bin/gen-devguide.py >/dev/null || { rm -rf "$$tmp"; exit 1; }; \
-	for f in docs/SKILLS.md docs/WORKFLOW.md site/src/data/handbook.json devguide/src/data/internals.json; do n=$$((n+1)); cmp -s "$$f" "$$tmp/$$(basename $$f)" || { echo "stale generated doc regenerated: $$f (commit it)"; stale=$$((stale+1)); }; done; \
+	for f in docs/SKILLS.md docs/WORKFLOW.md site/src/data/handbook.json devguide/src/data/internals.json plugins/bearing/bin/flow-steps.tsv; do cp "$$f" "$$tmp/$$(basename $$f)"; done; \
+	python3 bin/gen-skills-table.py >/dev/null && python3 bin/gen-guide.py >/dev/null && python3 bin/gen-devguide.py >/dev/null && python3 bin/gen-flow-steps.py >/dev/null || { rm -rf "$$tmp"; exit 1; }; \
+	for f in docs/SKILLS.md docs/WORKFLOW.md site/src/data/handbook.json devguide/src/data/internals.json plugins/bearing/bin/flow-steps.tsv; do n=$$((n+1)); cmp -s "$$f" "$$tmp/$$(basename $$f)" || { echo "stale generated doc regenerated: $$f (commit it)"; stale=$$((stale+1)); }; done; \
 	rm -rf "$$tmp"; [ "$$n" -gt 0 ] || exit 1; \
 	[ "$$stale" -eq 0 ] || { echo "lint-docs: $$stale of $$n generated docs were stale"; exit 1; }; \
 	echo "lint-docs: $$n generated docs up to date"
@@ -181,6 +209,7 @@ docs: ## Regenerate docs/SKILLS.md, docs/WORKFLOW.md, the repo skills maps, the 
 	@python3 bin/gen-skills-table.py
 	@python3 bin/gen-guide.py
 	@python3 bin/gen-devguide.py
+	@python3 bin/gen-flow-steps.py
 
 wiki: ## Export the docs and flows as wiki pages into WIKI_DIR (a clone of the project's .wiki.git); REPO_URL is the repository's web URL for file links
 	@[ -n "$(WIKI_DIR)" ] || { echo "wiki: set WIKI_DIR to a clone of the wiki repository (git clone <repo>.wiki.git)" >&2; exit 1; }

@@ -57,8 +57,8 @@ writes every second or over 1M rows; a small table is anything else.
   keeps the visibility map current.
 - `CREATE INDEX CONCURRENTLY` on any table over 1M rows. It cannot run in a
   transaction (goose: `-- +goose NO TRANSACTION`), scans twice, and a failure
-  leaves an `INVALID` index: find with `SELECT indexrelid::regclass FROM
-  pg_index WHERE NOT indisvalid`, drop, retry.
+  leaves an `INVALID` index: find with `SELECT indexrelid::regclass FROM pg_index WHERE NOT indisvalid`,
+  drop, retry.
 - Unused: `idx_scan = 0` in `pg_stat_user_indexes` after 30 days of
   production is a drop candidate. Every index is an extra write.
 - Bloat: measure with `pgstattuple`; over 30% on a hot index run
@@ -69,16 +69,16 @@ writes every second or over 1M rows; a small table is anything else.
 
 - Expand/contract, step by step in `migration-patterns.md`. No migration may
   break the version of the code currently running.
-- First lines of every Up: `SET lock_timeout = '2s'; SET statement_timeout =
-  '60s';`. On failure the deploy retries the migration, it does not raise
+- First lines of every Up: `SET lock_timeout = '2s'; SET statement_timeout = '60s';`.
+  On failure the deploy retries the migration, it does not raise
   the timeout. Never `lock_timeout = 0` in a migration.
 - Adding a column: nullable or with a constant default (metadata-only since
   PG11); backfill in batches from a job, not the migration; then
-  `ADD CONSTRAINT ... CHECK (col IS NOT NULL) NOT VALID`, `VALIDATE
-  CONSTRAINT` (no exclusive lock), then `SET NOT NULL` (skips the scan when
+  `ADD CONSTRAINT ... CHECK (col IS NOT NULL) NOT VALID`, `VALIDATE CONSTRAINT`
+  (no exclusive lock), then `SET NOT NULL` (skips the scan when
   a valid check exists), then drop the check.
-- Batched backfill: `UPDATE t SET x = ... WHERE id > $last AND id <= $last +
-  5000 AND x IS NULL` in a loop, commit per batch, 50 to 200 ms pause, log
+- Batched backfill: `UPDATE t SET x = ... WHERE id > $last AND id <= $last + 5000 AND x IS NULL`
+  in a loop, commit per batch, 50 to 200 ms pause, log
   the cursor, resumable from the last id. Watch `pg_stat_progress_vacuum`
   afterwards; a 50M-row backfill bloats the table until vacuum catches up.
 - Type change on a hot table: never in place. Add the new column, dual-write
@@ -109,8 +109,8 @@ writes every second or over 1M rows; a small table is anything else.
 
 - Name the columns. `SELECT *` breaks when a column is added (wider rows,
   changed struct scans) and hides what a query needs.
-- Keyset pagination: `WHERE (created_at, id) < ($1, $2) ORDER BY created_at
-  DESC, id DESC LIMIT 50` on an index over `(created_at, id)`. `OFFSET`
+- Keyset pagination: `WHERE (created_at, id) < ($1, $2) ORDER BY created_at DESC, id DESC LIMIT 50`
+  on an index over `(created_at, id)`. `OFFSET`
   past 10,000 rows scans and discards every row before it.
 - N+1: one query per row of a parent result is a finding at any size. Use
   `WHERE id = ANY($1)` with an array, a join, or a lateral subquery.
@@ -126,11 +126,11 @@ writes every second or over 1M rows; a small table is anything else.
   measurement.
 - Set `statement_timeout` per role (`5s` for the API role, more for jobs) so
   one bad plan cannot hold a connection forever.
-- Locking: `SELECT ... FOR UPDATE SKIP LOCKED` for queues; `FOR NO KEY
-  UPDATE` when only the row's non-key data changes so FK inserts on child
+- Locking: `SELECT ... FOR UPDATE SKIP LOCKED` for queues; `FOR NO KEY UPDATE`
+  when only the row's non-key data changes so FK inserts on child
   tables are not blocked.
-- Upsert: `INSERT ... ON CONFLICT (key) DO UPDATE SET ... WHERE t.x IS
-  DISTINCT FROM EXCLUDED.x` so unchanged rows are not rewritten.
+- Upsert: `INSERT ... ON CONFLICT (key) DO UPDATE SET ... WHERE t.x IS DISTINCT FROM EXCLUDED.x`
+  so unchanged rows are not rewritten.
 
 ## Transactions and isolation
 
@@ -173,8 +173,8 @@ writes every second or over 1M rows; a small table is anything else.
 
 ## Row-level security
 
-- For tenant isolation: `ALTER TABLE t ENABLE ROW LEVEL SECURITY; ALTER TABLE
-  t FORCE ROW LEVEL SECURITY;` with a policy on
+- For tenant isolation: `ALTER TABLE t ENABLE ROW LEVEL SECURITY; ALTER TABLE t FORCE ROW LEVEL SECURITY;`
+  with a policy on
   `tenant_id = (SELECT current_setting('app.tenant_id', true)::uuid)`; the
   scalar subquery is evaluated once per statement, not once per row, and
   `tenant_id` leads an index so the policy is an index condition. The service
@@ -190,8 +190,8 @@ writes every second or over 1M rows; a small table is anything else.
 
 - Migrations run as the owner role; the API role is a separate login with
   `SELECT, INSERT, UPDATE, DELETE` granted on named tables and `USAGE` on
-  their sequences, no DDL, no `ALL PRIVILEGES`. `REVOKE ALL ON SCHEMA
-  public FROM PUBLIC` in the first migration. A reporting role gets
+  their sequences, no DDL, no `ALL PRIVILEGES`. `REVOKE ALL ON SCHEMA public FROM PUBLIC`
+  in the first migration. A reporting role gets
   `SELECT` only.
 
 ## Backups and PITR
@@ -206,8 +206,8 @@ writes every second or over 1M rows; a small table is anything else.
 
 ## Sync to ClickHouse via CDC
 
-- `wal_level = logical`, a publication per set of tables, `REPLICA IDENTITY
-  DEFAULT` (primary key) or `FULL` for tables whose deletes must carry the
+- `wal_level = logical`, a publication per set of tables, `REPLICA IDENTITY DEFAULT`
+  (primary key) or `FULL` for tables whose deletes must carry the
   old row. Consumer: ClickPipes/PeerDB, or Debezium into Kafka into a
   ClickHouse Kafka engine table.
 - A stalled consumer keeps WAL forever. Set `max_slot_wal_keep_size = '20GB'`

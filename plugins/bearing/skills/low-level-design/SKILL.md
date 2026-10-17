@@ -2,7 +2,7 @@
 name: low-level-design
 description: 'Writes a Low Level Design (LLD) refining one HLD component into modules, types, error paths, indexed queries, tests and MR-sized work. Use when asked for an "LLD", "low level design" or "detailed design".'
 argument-hint: "<component> [--hld docs/design/<title>-hld.md]"
-allowed-tools: Read, Write, Grep, Glob, Skill, Agent
+allowed-tools: Read, Write, Grep, Glob, Skill, Agent, AskUserQuestion
 ---
 
 # low-level-design
@@ -33,8 +33,7 @@ refines one component of an agreed HLD and never reopens them.
   response types are written inline; `openapi-spec` produces the contract.
 - Config: looks in `.env.example`; if absent, every variable is listed as
   missing from it.
-- Ids: from the HLD and `docs/product/backlog.md`; if absent, `Serves:
-  unnumbered`.
+- Ids: from the HLD and `docs/product/backlog.md`; if absent, `Serves: unnumbered`.
 - Template: looks in `docs/templates/LLD.md`; if absent, this skill's
   `templates/LLD.md`.
 - Delivering entity: looks in `.bearing/company.json`; if absent, the title
@@ -77,8 +76,8 @@ critic on changed sections, downstream list). A revision that moves the componen
    migrations in order as `db-migration` names. For every job, queue or
    scheduled work: how many workers can run it at once (the HLD, the
    deployment's replica count, or the worker config) and how two of them
-   are kept from taking the same item (a claim with `FOR UPDATE SKIP
-   LOCKED`, a lease with an expiry, a unique key); "a single worker" is a
+   are kept from taking the same item (a claim with `FOR UPDATE SKIP LOCKED`,
+   a lease with an expiry, a unique key); "a single worker" is a
    design only when the deployment pins it to one and the document says
    what happens when a second one starts anyway. Rules come from
    `docs/design/data-model.md` when it exists.
@@ -99,7 +98,8 @@ critic on changed sections, downstream list). A revision that moves the componen
     an earlier one; move or merge items until that holds.
 11. Write `docs/design/<kebab-component>-lld.md` and print the output
     contract.
-12. Critic: ask the user whether to run it. On yes, fork `critic`
+12. Critic: ask with AskUserQuestion, options run and skip (as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says),
+    whether to run it. On run, fork `critic`
     (Agent tool) with the document path, append its weakest claims and
     verdict under "Assumptions", and put its verdict line in the
     contract.
