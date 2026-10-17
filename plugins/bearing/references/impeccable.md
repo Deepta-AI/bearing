@@ -112,6 +112,9 @@ The impeccable round, in order:
    is then the fallback's three variants with colour and faces frozen by
    that system, `approved.json` with `"source": "bearing"`, and the report
    says `Impeccable: document (scan)`. Steps 4 to 9 below do not apply.
+   Scan stopped or failed before writing `DESIGN.md`: restore the link
+   removed in step 1 as step 6 says, say why, and continue with the three
+   variants frozen to the system in the code.
 4. No incumbent system: `document --seed <first screen of the happy path>`
    with the brief: the flows path, the PRD, the constraints and audit
    findings from skill steps 1 and 2. Impeccable runs its direction work once: one
@@ -131,8 +134,10 @@ The impeccable round, in order:
 6. No pick: the user stopped, impeccable failed, or impeccable went on with
    its assigned direction without an answer (its no-answer continuation).
    Write nothing as chosen, restore the link removed in step 1
-   (`ln -s docs/design/DESIGN.md DESIGN.md`), say why, and offer the fallback; no
-   direction becomes the default.
+   (`ln -s docs/design/DESIGN.md DESIGN.md`, only when `test -e DESIGN.md`
+   fails), say why, and offer the fallback; no direction becomes the
+   default. A `DESIGN.md` impeccable wrote before stopping stays as it is,
+   is never replaced by the link, and the report names it.
 7. Bearing renders the picked direction over the real screens: one
    `1-<name>` page (skill step 7) or one theme (skill step 6), from `DESIGN.md`'s
    frontmatter tokens when present, else from `approved.json` `direction`,
@@ -157,22 +162,54 @@ shape plus `"source": "bearing"`.
 ## design-system
 
 Token source, first that exists: the frontmatter tokens of root `DESIGN.md`
-(scan mode on an app with an incumbent system, or impeccable's finish step
-after screens), else `direction` in the newest
-`docs/design/variants/*/approved.json` (a seed `DESIGN.md` holds no tokens),
-else today's inputs. design-system derives `docs/design/tokens.json` from
-it (frontmatter colours, typography, radius and spacing, plus the
-`.impeccable/design.json` sidecar's ramps, motion and breakpoints where
-present; or the direction's palette, faces, radius and spacing), designs
-the dark roles as today, and records which source it used (`meta.source`:
-`design-md` or `approved-direction`), its path and its sha256. The hash
-check compares against that same source, so a later change to it fails
-until the tokens are re-derived. It never writes the root `DESIGN.md`;
-`docs/design/DESIGN.md` becomes a relative link to it when absent or still
-Bearing's guide. Bindings, contrast and design-lint are unchanged. No
-impeccable command runs here, so the unattended rule changes nothing;
-without either source, the skill writes `DESIGN.md` from its own template
-as before.
+(any of `colors`, `typography`, `rounded`, `spacing` in its YAML
+frontmatter: scan mode on an app with an incumbent system, or impeccable's
+finish step after screens), else `direction` in the newest
+`docs/design/variants/*/approved.json` that holds one (a seed `DESIGN.md`
+holds only `name` and `description`; Bearing's fallback `approved.json` has
+no `direction`), else today's inputs. Every value is a file fact, so this
+path needs no Detect and asks nothing; no impeccable command runs here, so
+the unattended rule changes nothing.
+
+Mapping onto `templates/tokens.schema.json`:
+
+- From `DESIGN.md` frontmatter: `colors` become oklch primitives and the
+  light roles (the primary or brand entry is the accent; neutral entries
+  set the neutral hue and scale); `typography` roles become
+  `font.families` and `font.sizes`; `rounded` becomes `radius`; `spacing`
+  becomes `space.scale`. The `.impeccable/design.json` sidecar adds
+  `colorMeta` ramps, motion and breakpoints where present.
+- From `approved.json` `direction`: `palette` roles and values, `faces`,
+  `radius`, `spacing` and `motion` the same way. A `null` value is a
+  placeholder: design-system fills it and lists it as a proposal for the
+  direction's owner.
+- Dark roles are designed by steps 3 and 4 as today, never copied from a
+  light value. A value that fails contrast follows step 2's rule.
+
+`meta.source` is `design-md` or `approved-direction`, `meta.sourcePath` is
+the file (`DESIGN.md`, or the `approved.json` path), and `meta.sourceHash`
+is the line
+`sh "${CLAUDE_PLUGIN_ROOT}/skills/design-system/templates/design-lint.sh" --hash <sourcePath>`
+prints (sha256 of the file's bytes, by `sha256sum`, `shasum -a 256` or
+`openssl`, whichever exists). The repository's check is
+`sh scripts/design-lint.sh --sync` under `make check` (target
+`design-sync`): it hashes the same source and fails with both hashes and
+the path when it changed, fails when the source was `approved-direction`
+and root `DESIGN.md` now carries frontmatter tokens (the source has moved),
+and fails with `design-sync: 0 sources checked (<what is missing>)` on no
+tokens file, no `meta.sourceHash` or no source. Rerunning design-system
+re-derives the tokens and the hash without writing `DESIGN.md`, so the
+check cannot loop.
+
+Links: design-system never writes the root `DESIGN.md`. When it is a file
+(not a link) and `docs/design/DESIGN.md` is absent or still Bearing's guide
+(a line starts `Tokens live in`), `ln -sf ../../DESIGN.md docs/design/DESIGN.md`
+replaces the guide with a relative link to it; any other state (a hand-written
+`docs/design/DESIGN.md`, a root link, no root file) stays as it is and is
+reported under Noticed. Bindings, contrast and design-lint are unchanged.
+Without either source, the skill writes `docs/design/DESIGN.md` from its own
+template as before, and links the root to it only when no root file or link
+exists.
 
 ## screen-design
 

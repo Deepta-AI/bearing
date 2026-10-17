@@ -243,7 +243,8 @@ goes in an `@supports` block after them (Colour and the browser floor).
 
 `@theme inline` makes `bg-bg`, `text-accent`, `p-3`, `rounded-control`
 and `shadow-1` real utilities that follow the cascade, so `data-theme`
-switching needs no rebuild. Tailwind's default palette and spacing are
+switching needs no rebuild; `@theme` without `inline` snapshots values at
+build time and breaks runtime theme switching. Tailwind's default palette and spacing are
 disabled with `--color-*: initial; --spacing: initial;` at the top of
 the block so an off-scale class does not compile. Elevation utilities
 are named `shadow-1..3` only; `shadow-sm`, `shadow-md` do not exist.

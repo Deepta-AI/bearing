@@ -2,7 +2,7 @@
 name: design-system
 description: 'Turns a design direction into a design system: oklch tokens, per-stack themes, a component contract, an every-state page and a lint. Use when asked to "set up the design system", "make design tokens" or "lint colours".'
 argument-hint: "[DESIGN.md | variant dir | CSS file | brief text] [--stack web|react-native|android|ios] [--lint-only]"
-allowed-tools: Read, Write, Edit, Grep, Glob, AskUserQuestion, Bash(ls:*), Bash(make:*), Bash(python3:*), Bash(python3 *skills/design-system/scripts/contrast.py*), Bash(python3 *skills/design-system/scripts/system_page.py*), Bash(sh scripts/design-lint.sh:*), Bash(bash scripts/design-lint.sh:*), Bash(git diff:*)
+allowed-tools: Read, Write, Edit, Grep, Glob, AskUserQuestion, Bash(ls:*), Bash(make:*), Bash(python3:*), Bash(python3 *skills/design-system/scripts/contrast.py*), Bash(python3 *skills/design-system/scripts/system_page.py*), Bash(sh scripts/design-lint.sh:*), Bash(bash scripts/design-lint.sh:*), Bash(sh *skills/design-system/templates/design-lint.sh --hash *), Bash(test:*), Bash(ln -sf ../../DESIGN.md docs/design/DESIGN.md), Bash(ln -s docs/design/DESIGN.md DESIGN.md), Bash(git diff:*)
 ---
 
 # design-system
@@ -15,9 +15,10 @@ every state in both themes, generated from the tokens.
 
 ## Inputs
 
-- Direction: `$ARGUMENTS`, else root `DESIGN.md` or `docs/design/DESIGN.md`, else
-  `docs/design/variants/*/approved.json`, else the app's current styles, else a
-  one-question brief (step 1).
+- Direction: `$ARGUMENTS`, else the token source (root `DESIGN.md` frontmatter tokens,
+  else `direction` in the newest `docs/design/variants/*/approved.json`), else root
+  `DESIGN.md` or `docs/design/DESIGN.md`, else `approved.json`, else the app's current
+  styles, else a one-question brief (step 1).
 - Stack: `--stack`, else the autopilot profile, else detected (`components.json` with
   react: react-shadcn; `expo`: react-native; `build.gradle.kts`: android;
   `Package.swift` or `*.xcodeproj`: ios).
@@ -25,7 +26,8 @@ every state in both themes, generated from the tokens.
   (per-stack forms, sRGB conversion, the browser floor), `templates/components.md`,
   `templates/DESIGN.md`, `templates/design-lint.sh`, `scripts/contrast.py` (loads
   themes's `theme-lint.py`; absent, the contrast line says not run),
-  `scripts/system_page.py`.
+  `scripts/system_page.py`; `${CLAUDE_PLUGIN_ROOT}/references/impeccable.md` (its
+  design-system section maps a token source to tokens).
 - An existing `docs/design/tokens.json` is updated in place, never rewritten without
   naming the changed roles.
 
@@ -68,9 +70,11 @@ name each answer in the report:
 
 ## Steps
 
-1. Resolve the direction: `$ARGUMENTS`, else root `DESIGN.md` or
-   `docs/design/DESIGN.md`, else `docs/design/variants/*/approved.json`, else the app's
-   current styles read as the de facto system, else ask once with AskUserQuestion as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says (the brief as free text via Other) for a brief (product,
+1. Resolve the direction in the Inputs order. Token source: root `DESIGN.md` with
+   `colors`, `typography`, `rounded` or `spacing` in its YAML frontmatter (`design-md`),
+   else the newest `approved.json` holding `direction` by `ls -t docs/design/variants/*/approved.json`
+   (`approved-direction`), mapped as the impeccable reference's design-system section
+   says. With no direction at all (the app's styles count as one), ask once with AskUserQuestion as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says (the brief as free text via Other) for a brief (product,
    audience, one memorable thing, brand colour or face). Read it in full; list what it
    fixes (hue, faces, density, shape, devices) and what it leaves free. `--lint-only`:
    go to the lint section. Detail: references/roles-and-type.md
@@ -105,7 +109,10 @@ name each answer in the report:
    validate with `uvx --with jsonschema==4.25.1 python -c "import json,jsonschema; jsonschema.validate(json.load(open('docs/design/tokens.json')), json.load(open('<schema>')))"`
    (stdlib Python has no validator; without uv, say "schema: not validated");
    update an existing file in place with `meta.version` bumped and the changed
-   roles named). Measure:
+   roles named). From a token source, set `meta.source` (`design-md` |
+   `approved-direction`), `meta.sourcePath` and `meta.sourceHash`, the line
+   `sh "${CLAUDE_PLUGIN_ROOT}/skills/design-system/templates/design-lint.sh" --hash <sourcePath>`
+   prints. Measure:
    `python3 "${CLAUDE_PLUGIN_ROOT}/skills/design-system/scripts/contrast.py" --tokens docs/design/tokens.json --strict-hex`.
    Its count line is the report's contrast line, verbatim; zero pairs
    checked is a failure; a failed pair goes back to step 4. Then measure
@@ -128,16 +135,21 @@ name each answer in the report:
    that loads its faces from Google); `check` must exit 0; open the page
    in both themes. On react-shadcn the binding in `globals.css` or
    `index.css` is written by hand from `tokens.json` (no generator writes shadcn's names yet); compare its roles
-   with `tokens.css` after each change. Write `docs/design/DESIGN.md` from `templates/DESIGN.md` as the
-   system's guide, linking to the direction; when the repo has no root
-   `DESIGN.md`, add a relative symlink to the guide so gstack finds it.
+   with `tokens.css` after each change. From a token source, write no guide and never the
+   root `DESIGN.md`: when root `DESIGN.md` is a file (`test -f DESIGN.md` passes,
+   `test -L DESIGN.md` fails) and `docs/design/DESIGN.md` is absent or still Bearing's
+   guide (a line starts `Tokens live in`), `ln -sf ../../DESIGN.md docs/design/DESIGN.md`;
+   any other state stays as it is, under Noticed. Without a token source, write the guide
+   from `templates/DESIGN.md`, linking to the direction; `ln -s docs/design/DESIGN.md DESIGN.md`
+   only when `test -e DESIGN.md` and `test -L DESIGN.md` both fail, else the root stays.
 9. The lint (next section) and `make check`.
 
 ## The lint
 
 Install `templates/design-lint.sh` as `scripts/design-lint.sh` (POSIX sh and awk: runs
 on alpine, busybox and macOS without bash, python3 or node) and add `design-lint` under
-`check` in the Makefile. Detail: references/lint.md
+`check` in the Makefile. With `meta.sourceHash` in the tokens, also add `design-sync`
+under `check`: `sh scripts/design-lint.sh --sync`. Detail: references/lint.md
 1. Gate only what was asked: set `DESIGN_LINT_RULES` in the Makefile (colour, spacing,
    font-size, shadow, raw, family); a rule nobody agreed to fails someone's next merge
    request, so the others are offered in the report. Set `DESIGN_SPACE_SCALE` and
@@ -149,10 +161,8 @@ on alpine, busybox and macOS without bash, python3 or node) and add `design-lint
 3. Existing debt: fix a literal only when a token holds the same value in both
    themes; a literal with no matching token stays as debt (a near match is a visual
    change, and needs saying). Record the rest with
-   `sh scripts/design-lint.sh --write-baseline`. The baseline is keyed by file and literal with a count, so a
-   new literal anywhere, including a second copy on an old line, fails, and paying a
-   debt does not make room for another. A total allowance (`ALLOW_COLOR=7`) is not a
-   ratchet. Paying a debt also fails until the baseline is lowered in the same
+   `sh scripts/design-lint.sh --write-baseline` (keyed by file and literal with a
+   count, never a total allowance). Paying a debt also fails until the baseline is lowered in the same
    change; tell the team that, with the command, in the report.
 4. Prove it: add a new colour and an off-scale value in a scratch file, run `make check`,
    see it fail, remove them. If the check has tests, they run under `make check`
@@ -164,10 +174,11 @@ Changed, Verified, Not done, Noticed. Lead with anything that was broken before 
 mode never switching, variables in a form the config cannot read). Then:
 
 ```
-direction: <source>; stack: <binding form, e.g. Tailwind 3 HSL channels>; floor: <browsers, source>
+direction: <source>; token source: <design-md | approved-direction> <path> | none; stack: <binding form, e.g. Tailwind 3 HSL channels>; floor: <browsers, source>
 dark switch: <what toggles> = <CSS selector> = <framework variant>
 contrast: <contrast.py count line, verbatim>; extra pairs: <hover, link on card, ring> <ratios>
 proposals for the direction's owner: <each change with measured before and after>
+design-sync: <count line, verbatim> | not installed (no token source)
 design-lint: <count line, verbatim>; baseline <n> keys; new-literal proof: failed as expected | not run
 gate: make check: passed | failed (<target>) | no Makefile
 not run: <build, device on the browser floor, CI pipeline> (say which; never claim them)
@@ -175,26 +186,15 @@ not run: <build, device on the browser floor, CI pipeline> (say which; never cla
 
 ## Gotchas
 
-- `hsl(var(--x))` in a Tailwind 3 config and a hex in `--x` compile without error and
-  render nothing. Grep the config before writing a value.
 - Opacity modifiers (`bg-primary/90`) are new colours: a 90 percent primary over white
   is lighter than the token and can drop a passing label below 4.5:1. Measure the
   composite, or give hover its own token.
-- `@theme` without `inline` snapshots values at build time and breaks runtime theme
-  switching; `inline` keeps the cascade.
 - Tailwind's default palette stays reachable unless `--color-*: initial` (v4) or
   `theme.colors` replaced (v3); that is a scope decision, so it is proposed, not done,
   when the request did not ask.
-- React Native has no oklch and no CSS cascade: the provider supplies `roles[mode]` for
-  `StyleSheet` code as well as the class.
-- Material 3 dynamic colour replaces the derived palette with the wallpaper's; leave it
-  off unless the direction asks.
-- A SwiftUI `Font.custom` without `relativeTo:` disables Dynamic Type.
-- The lint is pattern-based: a colour built in a variable named `brand`, or a value
-  split across lines, is missed. Review the diff too.
+- `@theme` without `inline`, React Native (no oklch, no cascade), Material 3 dynamic
+  colour, SwiftUI `relativeTo:`: see `references/stack-bindings.md`.
 - The design-system page is generated; change the tokens or the contract and build
   again, never hand-edit it.
 - A hover or active specimen is drawn with an `is-*` class because a static page cannot
   hold the pointer; a component that styles only `:hover` still needs the class rule.
-- Other inputs: gstack `design-consultation` writes a direction as DESIGN.md prose and
-  GSD `gsd-ui-phase` writes a UI-SPEC per phase; either is read as the direction.

@@ -170,7 +170,7 @@ weakest for the others. Detail: references/constraints-and-checks.md
 ```
 ## Design variants: <feature> (round <n>)
 Folder: docs/design/variants/<feature>/ (and src/design/variants/ on react-shadcn)
-Path: impeccable (one round; picked <name> over <challengers>) | fallback: three variants (impeccable not installed | unattended: Bearing's doctrine)
+Path: impeccable (one round; picked <name> over <challengers>) | impeccable scan: three variants, colour and faces frozen | fallback: three variants (impeccable not installed | unattended: Bearing's doctrine)
 Impeccable: <commands run>; inferred: <facts> | none
 Screens rendered: N (from flows | stories | code | brief)
 Constraints: <each, with its source> | none found

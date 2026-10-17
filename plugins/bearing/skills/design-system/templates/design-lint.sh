@@ -18,6 +18,9 @@
 #   sh scripts/design-lint.sh --write-baseline   record today's findings; on an
 #                                                existing baseline it only lowers
 #                                                counts and refuses to add keys
+#   sh scripts/design-lint.sh --sync             the hash check: tokens.json was derived
+#                                                from its source as the source is now
+#   sh scripts/design-lint.sh --hash <file>      print sha256:<64 hex> of the file
 #
 # Environment:
 #   DESIGN_LINT_ROOTS     source roots (default: src web/src app App Packages lib components)
@@ -26,7 +29,12 @@
 #   DESIGN_LINT_BASELINE  baseline file (default scripts/design-lint.baseline)
 #   DESIGN_SPACE_SCALE    spacing scale in px, e.g. "4 8 12 16 24 32 48"
 #   DESIGN_FONT_SCALE     font-size scale in px, e.g. "13 15 20 28"
-#   DESIGN_TOKENS         tokens.json to read the scales from (default docs/design/tokens.json)
+#   DESIGN_TOKENS         tokens.json to read the scales from (default docs/design/tokens.json);
+#                         --sync reads meta.source, meta.sourcePath and meta.sourceHash from it
+#   DESIGN_SOURCE         --sync: the source to hash instead of meta.sourcePath (default DESIGN.md
+#                         when the tokens name no path)
+#   DESIGN_ROOT           --sync: the root DESIGN.md whose frontmatter tokens overtake an
+#                         approved-direction source (default DESIGN.md)
 #   DESIGN_TOKENS_CSS     CSS file whose --space-* and --font-size-*/--text-* values are the scales
 #   DESIGN_LINT_LIMIT     findings printed per category (default 40)
 #   DESIGN_LINT_LIBRARY   regex of the component library folder, exempt from the raw-element
@@ -50,11 +58,67 @@ LIBRARY="${DESIGN_LINT_LIBRARY:-(^|/)components/ui/}"
 RULES="${DESIGN_LINT_RULES:-colour spacing font-size shadow raw family}"
 GENERATED='(^|/)(tokens\.css|tokens\.json|globals\.css|index\.css|theme\.ts|Theme\.kt|Color\.kt|Type\.kt|Shape\.kt|Theme\.swift)$|/values[^/]*/(colors|themes|dimens)\.xml$|docs/design/|node_modules/|dist/|build/|\.expo/|coverage/|generated|__snapshots__|\.test\.|\.spec\.|\.stories\.|/e2e/|playwright|(^|/)(vendor|vendored|third[_-]party)/|\.min\.(css|js)$'
 MODE="check"
+USAGE="usage: sh scripts/design-lint.sh [--write-baseline | --sync | --hash <file>]"
 case "${1:-}" in
   --write-baseline) MODE="write" ;;
+  --sync) MODE="sync" ;;
+  --hash) MODE="hash"; [ $# -eq 2 ] || { echo "$USAGE" >&2; exit 2; } ;;
   "") ;;
-  *) echo "usage: sh scripts/design-lint.sh [--write-baseline]" >&2; exit 2 ;;
+  *) echo "$USAGE" >&2; exit 2 ;;
 esac
+
+# --hash and --sync: the token source's sha256, and whether tokens.json was
+# derived from the source as it is now (meta.source, sourcePath, sourceHash).
+sync_hash() { # sync_hash <file>: sha256:<64 hex> of the file's bytes (a link is followed)
+  if command -v sha256sum >/dev/null 2>&1; then h=$(sha256sum < "$1")
+  elif command -v shasum >/dev/null 2>&1; then h=$(shasum -a 256 < "$1")
+  elif command -v openssl >/dev/null 2>&1; then h=$(openssl dgst -sha256 -r < "$1")
+  else echo "design-sync: no sha256 tool (sha256sum, shasum or openssl)" >&2; exit 1; fi
+  h=$(printf '%s\n' "$h" | awk '{print tolower($1)}')
+  case "$h" in
+    *[!0-9a-f]*|"") echo "design-sync: the sha256 tool printed no hash for $1" >&2; exit 1 ;;
+  esac
+  [ ${#h} -eq 64 ] || { echo "design-sync: the sha256 tool printed no hash for $1" >&2; exit 1; }
+  printf 'sha256:%s\n' "$h"
+}
+meta_of() { # meta_of <key>: the first "key": "value" in tokens.json
+  sed -n "s/.*\"$1\"[[:space:]]*:[[:space:]]*\"\([^\"]*\)\".*/\1/p" "$TOKENS" | head -n 1
+}
+if [ "$MODE" = hash ]; then
+  [ -f "$2" ] || { echo "design-sync: 0 sources checked ($2 missing)" >&2; exit 1; }
+  sync_hash "$2"
+  exit 0
+fi
+if [ "$MODE" = sync ]; then
+  [ -f "$TOKENS" ] || { echo "design-sync: 0 sources checked ($TOKENS missing)" >&2; exit 1; }
+  was=$(meta_of sourceHash)
+  [ -n "$was" ] || { echo "design-sync: 0 sources checked (no meta.sourceHash in $TOKENS)" >&2; exit 1; }
+  kind=$(meta_of source)
+  SOURCE="${DESIGN_SOURCE:-$(meta_of sourcePath)}"
+  SOURCE="${SOURCE:-DESIGN.md}"
+  [ -f "$SOURCE" ] || { echo "design-sync: 0 sources checked ($SOURCE missing)" >&2; exit 1; }
+  now=$(sync_hash "$SOURCE")
+  tj="${TOKENS##*/}"
+  if [ "$now" != "$was" ]; then
+    echo "design-sync: 1 source checked, failed"
+    echo "design-sync: $SOURCE is $now, $tj was derived from $was; rerun design-system to re-derive the tokens"
+    exit 1
+  fi
+  # The picked direction is the source only until DESIGN.md carries tokens
+  # (impeccable's scan or finish step); then DESIGN.md is.
+  ROOTMD="${DESIGN_ROOT:-DESIGN.md}"
+  if [ "$kind" = approved-direction ] && [ -f "$ROOTMD" ] && awk '
+      NR == 1 { if ($0 ~ /^---[ \t\r]*$/) { fm = 1; next } else exit }
+      fm && /^---[ \t\r]*$/ { exit }
+      fm && /^(colors|typography|rounded|spacing):/ { found = 1; exit }
+      END { exit !found }' "$ROOTMD"; then
+    echo "design-sync: 1 source checked, failed"
+    echo "design-sync: $ROOTMD now carries frontmatter tokens; $tj was derived from $SOURCE; rerun design-system to re-derive the tokens from $ROOTMD"
+    exit 1
+  fi
+  echo "design-sync: 1 source checked, $SOURCE matches $tj ($(printf '%.19s' "$now"))"
+  exit 0
+fi
 
 TMP=$(mktemp -d "${TMPDIR:-/tmp}/design-lint.XXXXXX")
 trap 'rm -rf "$TMP"' EXIT INT TERM

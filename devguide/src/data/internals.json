@@ -10,7 +10,7 @@
   "agents": 8,
   "makeTargets": 31,
   "gates": 18,
-  "tests": 97,
+  "tests": 98,
   "fixtures": 21,
   "stacks": 13,
   "templates": 38,
@@ -3723,6 +3723,10 @@
     "Bash(python3 *skills/design-system/scripts/system_page.py*)",
     "Bash(sh scripts/design-lint.sh:*)",
     "Bash(bash scripts/design-lint.sh:*)",
+    "Bash(sh *skills/design-system/templates/design-lint.sh --hash *)",
+    "Bash(test:*)",
+    "Bash(ln -sf ../../DESIGN.md docs/design/DESIGN.md)",
+    "Bash(ln -s docs/design/DESIGN.md DESIGN.md)",
     "Bash(git diff:*)"
    ],
    "extra": {},
@@ -3730,7 +3734,7 @@
    "sections": [
     {
      "title": "Inputs",
-     "lines": 13
+     "lines": 15
     },
     {
      "title": "Scope first",
@@ -3742,51 +3746,45 @@
     },
     {
      "title": "Steps",
-     "lines": 64
+     "lines": 73
     },
     {
      "title": "The lint",
-     "lines": 22
+     "lines": 21
     },
     {
      "title": "Output contract",
-     "lines": 12
+     "lines": 13
     },
     {
      "title": "Gotchas",
-     "lines": 23
+     "lines": 12
     }
    ],
    "inputs": [
-    "Direction: `$ARGUMENTS`, else root `DESIGN.md` or `docs/design/DESIGN.md`, else `docs/design/variants/*/approved.json`, else the app's current styles, else a one-question brief (step 1).",
+    "Direction: `$ARGUMENTS`, else the token source (root `DESIGN.md` frontmatter tokens, else `direction` in the newest `docs/design/variants/*/approved.json`), else root `DESIGN.md` or `docs/design/DESIGN.md`, else `approved.json`, else the app's current styles, else a one-question brief (step 1).",
     "Stack: `--stack`, else the autopilot profile, else detected (`components.json` with react: react-shadcn; `expo`: react-native; `build.gradle.kts`: android; `Package.swift` or `*.xcodeproj`: ios).",
-    "This skill's files: `templates/tokens.schema.json`, `references/stack-bindings.md` (per-stack forms, sRGB conversion, the browser floor), `templates/components.md`, `templates/DESIGN.md`, `templates/design-lint.sh`, `scripts/contrast.py` (loads themes's `theme-lint.py`; absent, the contrast line says not run), `scripts/system_page.py`.",
+    "This skill's files: `templates/tokens.schema.json`, `references/stack-bindings.md` (per-stack forms, sRGB conversion, the browser floor), `templates/components.md`, `templates/DESIGN.md`, `templates/design-lint.sh`, `scripts/contrast.py` (loads themes's `theme-lint.py`; absent, the contrast line says not run), `scripts/system_page.py`; `${CLAUDE_PLUGIN_ROOT}/references/impeccable.md` (its design-system section maps…",
     "An existing `docs/design/tokens.json` is updated in place, never rewritten without naming the changed roles."
    ],
    "steps": [
-    "Resolve the direction: `$ARGUMENTS`, else root `DESIGN.md` or `docs/design/DESIGN.md`, else `docs/design/variants/*/approved.json`, else the app's current styles read as the de facto system, else ask once with AskUserQuestion as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says (the brief as free text via Other) for a brief (product, audience, one memorable thing, brand colour or face). Read it in full; list what i…",
+    "Resolve the direction in the Inputs order. Token source: root `DESIGN.md` with `colors`, `typography`, `rounded` or `spacing` in its YAML frontmatter (`design-md`), else the newest `approved.json` holding `direction` by `ls -t docs/design/variants/*/approved.json` (`approved-direction`), mapped as the impeccable reference's design-system section says. With no direction at all (the app's styles count as one), ask onc…",
     "**Measure the direction before designing.** Compute the contrast of every pair it implies (brand fill behind its label, brand as link text on page and card, brand as focus ring on the page) with `scripts/contrast.py` or the WCAG formula. A failing pair keeps its hue and moves in lightness until it passes (or swaps the label to a dark one); the report gives the direction's ratio, the shipped ratio and the alternative…",
     "Colour primitives in oklch: accent hue from the direction; neutrals at the hue the direction asks for (warm, cool, or the accent's) with chroma 0.004 to 0.016; success, warning, danger, info at their own hues; each scale 0 to 1000, hue held, lightness varied. Compute every sRGB value with the snippet in `references/stack-bindings.md`; a value that clips gets less chroma. Refuse the default looks (cream and terracott…",
     "Roles for light, then dark designed on its own: surfaces lift with lightness, accent one step lighter, chroma down 10 to 20 percent, text near white not pure white. Never invert. Text pairs 4.5:1, focus rings, borders that carry meaning and icons 3:1, in both modes. Include the pairs the components render that the role table misses: grep the class strings for each `text-*` on each `bg-*` actually used together, and…",
     "Type and shape. A face the direction names is the face, with its fallbacks and how it loads (self-hosted files, a link, or \"still to do\" in the report); a different face is at most a proposal. When the direction leaves the face free, choose one for this product rather than a default (Inter, Roboto, Arial, system-ui). Touch targets: when the direction or the devices mean touch, interactive controls reach 44 px (iOS)…",
-    "Write `docs/design/tokens.json` (schema `templates/tokens.schema.json`, validate with `uvx --with jsonschema==4.25.1 python -c \"import json,jsonschema; jsonschema.validate(json.load(open('docs/design/tokens.json')), json.load(open('<schema>')))\"` (stdlib Python has no validator; without uv, say \"schema: not validated\"); update an existing file in place with `meta.version` bumped and the changed roles named). Measure…",
+    "Write `docs/design/tokens.json` (schema `templates/tokens.schema.json`, validate with `uvx --with jsonschema==4.25.1 python -c \"import json,jsonschema; jsonschema.validate(json.load(open('docs/design/tokens.json')), json.load(open('<schema>')))\"` (stdlib Python has no validator; without uv, say \"schema: not validated\"); update an existing file in place with `meta.version` bumped and the changed roles named). From a…",
     "Bind each stack per `references/stack-bindings.md`, in the form the repo consumes (Read the repo, 1 to 3). On react-shadcn: one file of the variables shadcn reads (`src/styles/tokens.css` or `src/index.css` itself), replacing the defaults shadcn init wrote, never a parallel `--color-*` set the components do not read. Each generated file starts with a generated-from header. Then remove what the direction rules out fr…",
     "Full setup only: `docs/design/components.md` from `templates/components.md` (each entry names its `src/components/ui` component and allowed variants; a missing need becomes a variant there; `- States:` stays one comma list on one line). Then `system_page.py tokens-css`, `build` and `check` (paths in the script's help; `build --fonts-css <file>` links the product's own `@font-face` stylesheet, and `--google-fonts` is…",
     "The lint (next section) and `make check`."
    ],
    "output": "Changed, Verified, Not done, Noticed. Lead with anything that was broken before (dark mode never switching, variables in a form the config cannot read). Then:",
    "gotchas": [
-    "`hsl(var(--x))` in a Tailwind 3 config and a hex in `--x` compile without error and render nothing. Grep the config before writing a value.",
     "Opacity modifiers (`bg-primary/90`) are new colours: a 90 percent primary over white is lighter than the token and can drop a passing label below 4.5:1. Measure the composite, or give hover its own token.",
-    "`@theme` without `inline` snapshots values at build time and breaks runtime theme switching; `inline` keeps the cascade.",
     "Tailwind's default palette stays reachable unless `--color-*: initial` (v4) or `theme.colors` replaced (v3); that is a scope decision, so it is proposed, not done, when the request did not ask.",
-    "React Native has no oklch and no CSS cascade: the provider supplies `roles[mode]` for `StyleSheet` code as well as the class.",
-    "Material 3 dynamic colour replaces the derived palette with the wallpaper's; leave it off unless the direction asks.",
-    "A SwiftUI `Font.custom` without `relativeTo:` disables Dynamic Type.",
-    "The lint is pattern-based: a colour built in a variable named `brand`, or a value split across lines, is missed. Review the diff too.",
+    "`@theme` without `inline`, React Native (no oklch, no cascade), Material 3 dynamic colour, SwiftUI `relativeTo:`: see `references/stack-bindings.md`.",
     "The design-system page is generated; change the tokens or the contract and build again, never hand-edit it.",
-    "A hover or active specimen is drawn with an `is-*` class because a static page cannot hold the pointer; a component that styles only `:hover` still needs the class rule.",
-    "Other inputs: gstack `design-consultation` writes a direction as DESIGN.md prose and GSD `gsd-ui-phase` writes a UI-SPEC per phase; either is read as the direction."
+    "A hover or active specimen is drawn with an `is-*` class because a static page cannot hold the pointer; a component that styles only `:hover` still needs the class rule."
    ],
    "layout": "",
    "commands": [],
@@ -3798,7 +3796,7 @@
     },
     {
      "path": "references/lint.md",
-     "lines": 41
+     "lines": 67
     },
     {
      "path": "references/read-the-repo.md",
@@ -3806,11 +3804,11 @@
     },
     {
      "path": "references/roles-and-type.md",
-     "lines": 51
+     "lines": 57
     },
     {
      "path": "references/stack-bindings.md",
-     "lines": 352
+     "lines": 353
     },
     {
      "path": "scripts/contrast.py",
@@ -3830,7 +3828,7 @@
     },
     {
      "path": "templates/design-lint.sh",
-     "lines": 397
+     "lines": 461
     },
     {
      "path": "templates/design-system.html",
@@ -3838,7 +3836,7 @@
     },
     {
      "path": "templates/tokens.schema.json",
-     "lines": 216
+     "lines": 220
     }
    ],
    "groups": {
@@ -17976,6 +17974,13 @@
    "lines": 26,
    "header": "tests/unit/design_snapshot.sh: plugins/bearing/skills/design-critique/scripts/snapshot.mjs, the bridge that renders a framework gallery page and writes static HTML and CSS of its computed colours for pairs.py. Rendering needs a browser and the app's Playwright, so this proves the refusals that need neither: zero pages, a missing --base or --out, and a repository without playwright-core.",
    "asserts": 7
+  },
+  {
+   "path": "tests/unit/design_sync.sh",
+   "kind": "unit",
+   "lines": 172,
+   "header": "tests/unit/design_sync.sh: the --hash and --sync modes of plugins/bearing/skills/design-system/templates/design-lint.sh. design-system derives docs/design/tokens.json from root DESIGN.md frontmatter tokens, else from the picked direction in approved.json, and records the source's path and sha256 in meta. --hash prints sha256:<64 hex> of a file's bytes; --sync re-hashes the recorded source and fails with both hashes and the path when it changed, fails when an approved-direction source has been overtaken by a DESIGN.md that now carries tokens, and fails on zero input with a count line. It runs…",
+   "asserts": 49
   },
   {
    "path": "tests/unit/design_system_page.sh",
