@@ -96,7 +96,8 @@ case "$su" in ''|*[!0-9]*) ;; *) [ "$now" -lt "$su" ] && exit 0;; esac
 echo "BEARING_UPDATE: $installed -> $new"
 cl="$here/../../../CHANGELOG.md"
 if [ -f "$cl" ] && grep -qF "## [$new]" "$cl"; then
-  awk -v h="## [$new]" 'index($0, h) == 1 {p=1; next} p && /^## /{exit} p' "$cl" | grep . | head -8
+  # awk stops itself after 8 lines: a "| head" closes the pipe early and gawk then warns on stderr
+  awk -v h="## [$new]" 'index($0, h) == 1 {p=1; next} p && /^## /{exit} p && NF {print; if (++n == 8) exit}' "$cl"
 else
   echo "See CHANGELOG.md at $remote"
 fi
