@@ -18,7 +18,7 @@
   "ghJobs": 6,
   "ghWorkflows": 2,
   "evals": 107,
-  "skillFiles": 1052
+  "skillFiles": 1053
  },
  "plugins": [
   {
@@ -26,7 +26,7 @@
    "dir": "plugins/bearing",
    "description": "A developer workflow for coding agents: skills for every stage from brief to runbook, review subagents, one guard behind every hook, and repository templates. The stack conventions come in bearing-backend and bearing-apps.",
    "required": true,
-   "files": 508,
+   "files": 509,
    "skills": [
     "ab-experiment",
     "accessibility",
@@ -14316,6 +14316,7 @@
     "Bash(wc:*)",
     "Bash(grep:*)",
     "Bash(python3 *skills/ux-flows/scripts/flows_check.py*)",
+    "Bash(bash *bin/brg-config*)",
     "AskUserQuestion"
    ],
    "extra": {},
@@ -14327,7 +14328,7 @@
     },
     {
      "title": "Steps",
-     "lines": 69
+     "lines": 75
     },
     {
      "title": "A product with several packages, or no code yet",
@@ -14339,11 +14340,11 @@
     },
     {
      "title": "Output contract",
-     "lines": 18
+     "lines": 19
     },
     {
      "title": "Gotchas",
-     "lines": 39
+     "lines": 21
     }
    ],
    "inputs": [
@@ -14364,9 +14365,10 @@
     "Journey storyboard: the goal, then one row per step with what the user does, sees, feels, and what the design does about the feeling. Close with the five-second read and the five-minute read.",
     "Navigation map as a mermaid `flowchart` whose node ids are screen ids. Flow diagrams as `flowchart` or `sequenceDiagram`: the happy path, each alternate path, and one error-recovery path per error cell in step 4.",
     "Decision points and dead-end check: list every branch with its condition and the screen ids on each side. For every screen record the way forward and the way back. A screen missing either is a dead end: add the exit. A screen that legitimately ends the journey says `terminal: <reason>` in its inventory Exits cell (or `%% terminal: S-nn <reason>` in a flowchart). The gate counts the dead ends from the mermaid; the co…",
+    "Task paths: write `## Task paths`, one row per task, per `references/task-paths.md` (syntax, budgets, the config keys, the six patterns that inflate paths). A task over budget is redesigned with those patterns first; `over: <reason>` only for a reason listed there.",
     "Interaction inventory: every control on every screen with label, type, target size (44 px touch, 24 px pointer), keyboard path, and the analytics event: the sheet's name, or `no sheet`, or `needs event: <proposed>`.",
     "Open questions: each with an owner (a role, never a person the run invented), a date, and what ships if it is deferred (\"engineer ships 48-hour links and copy that reads the date from the invite\").",
-    "Self-review against `references/flow-review.md`. Fix what can be fixed; list what stays open with the check id. F2 (dead ends) and F4 (state coverage) take their result from the gate, not from reading.",
+    "Self-review against `references/flow-review.md`. Fix what can be fixed; list what stays open with the check id. F2 (dead ends), F4 (state coverage) and F14 (task cost) take their result from the gate, not from reading.",
     "Write `docs/design/flows/<feature>/flows.md` from `templates/flows.md` (with `--feedback`, see below). Run the gate: `python3 \"${CLAUDE_PLUGIN_ROOT}/skills/ux-flows/scripts/flows_check.py\" --file <the file written>`. It fails on a screen with no outgoing edge that is not terminal, an inventory screen in no flowchart, a flowchart screen not in the inventory, a dialog with no cancel, back or close in Exits, a screen w…"
    ],
    "output": "A count the script did not print is not written.",
@@ -14376,9 +14378,8 @@
     "Fewest steps means fewest thoughts. Merging two decisions into one puzzling choice saves a click and costs the user more.",
     "Dialogs and confirmations are screens. A dialog with no cancel is a dead end; a destructive action with no undo window is an open question.",
     "Removing a confirmation removes its safety. Replace it in proportion: the parsed count on the button (\"Send 12 invites\"), or an undo or quick revoke after the send.",
-    "Many items in one input (pasted addresses, uploaded rows): say which separators are accepted; normalise the way the server does (trim, case) and remove duplicates within the list on that normalised form; show the count and any unreadable entries before sending; report the result per item from the server's reply, since a check made before sending goes stale; let the user retry only the failures without retyping. Per-…",
-    "Costs and counts before sending: show the unit price, the total for what will actually be sent, and when the charge happens. \"Actually sent\" means after duplicates, unreadable entries and everything the screen already knows will be refused: existing members and pending invites are on the page, so check against them before sending. Label that figure as what the page knows now (another admin or an accept can change it…",
-    "Work that outlives the screen: a paced or queued send (rate limit, long batch) meets a user who closes the dialog, navigates or loses the tab. Say what happens to the items still waiting: kept and resumed, or listed as not sent with a way to send them, never dropped silently and never shown as sent. A shared window (per workspace) can already be partly used by someone else, so pace from the server's refusals, not fr…",
+    "Batches, totals and queued sends: references/several-packages-or-no-code.md",
+    "A budget never removes a destructive action's confirmation; write `over: destructive action confirmation`.",
     "Time in copy: a date read from the record beats a duration; a stated duration is the code's value.",
     "Keep screen ids stable across versions so variants and reviews can cite them; add ids, never renumber.",
     "Never invent event names. The `needs event:` marker is the handoff to `analytics-events`.",
@@ -14386,15 +14387,15 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 198,
+   "lines": 187,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 198
+     "lines": 187
     },
     {
      "path": "references/flow-review.md",
-     "lines": 102
+     "lines": 111
     },
     {
      "path": "references/re-issuing-with-feedback.md",
@@ -14406,7 +14407,11 @@
     },
     {
      "path": "references/several-packages-or-no-code.md",
-     "lines": 25
+     "lines": 49
+    },
+    {
+     "path": "references/task-paths.md",
+     "lines": 64
     },
     {
      "path": "scripts/flows_check.py",
@@ -14414,12 +14419,12 @@
     },
     {
      "path": "templates/flows.md",
-     "lines": 284
+     "lines": 301
     }
    ],
    "groups": {
     ".": 1,
-    "references": 4,
+    "references": 5,
     "scripts": 1,
     "templates": 1
    },

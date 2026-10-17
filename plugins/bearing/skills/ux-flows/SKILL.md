@@ -2,7 +2,7 @@
 name: ux-flows
 description: 'Maps UX flows: screen inventory tied to stories, every state with copy, storyboard, flow diagrams and a zero dead-end check. Use when asked to "map the user flows", "what screens do we need" or "user journey".'
 argument-hint: "<feature> [path to stories, PRD or ticket] [--feedback \"...\" to re-issue as the next version]"
-allowed-tools: Read, Write, Edit, Grep, Glob, Skill, Bash(ls:*), Bash(mkdir:*), Bash(wc:*), Bash(grep:*), Bash(python3 *skills/ux-flows/scripts/flows_check.py*), AskUserQuestion
+allowed-tools: Read, Write, Edit, Grep, Glob, Skill, Bash(ls:*), Bash(mkdir:*), Bash(wc:*), Bash(grep:*), Bash(python3 *skills/ux-flows/scripts/flows_check.py*), Bash(bash *bin/brg-config*), AskUserQuestion
 ---
 
 # ux-flows
@@ -91,24 +91,30 @@ beat one click that needs thought.
    `terminal: <reason>` in its inventory Exits cell (or
    `%% terminal: S-nn <reason>` in a flowchart). The gate counts the dead
    ends from the mermaid; the count must be zero.
-8. Interaction inventory: every control on every screen with label, type,
+8. Task paths: write `## Task paths`, one row per task, per
+   `references/task-paths.md` (syntax, budgets, the config keys, the six
+   patterns that inflate paths). A task over budget is redesigned with
+   those patterns first; `over: <reason>` only for a reason listed there.
+9. Interaction inventory: every control on every screen with label, type,
    target size (44 px touch, 24 px pointer), keyboard path, and the
    analytics event: the sheet's name, or `no sheet`, or
    `needs event: <proposed>`.
-9. Open questions: each with an owner (a role, never a person the run
+10. Open questions: each with an owner (a role, never a person the run
    invented), a date, and what ships if it is deferred ("engineer ships
    48-hour links and copy that reads the date from the invite").
-10. Self-review against `references/flow-review.md`. Fix what can be
-    fixed; list what stays open with the check id. F2 (dead ends) and F4
-    (state coverage) take their result from the gate, not from reading.
-11. Write `docs/design/flows/<feature>/flows.md` from `templates/flows.md`
+11. Self-review against `references/flow-review.md`. Fix what can be
+    fixed; list what stays open with the check id. F2 (dead ends), F4
+    (state coverage) and F14 (task cost) take their result from the gate,
+    not from reading.
+12. Write `docs/design/flows/<feature>/flows.md` from `templates/flows.md`
     (with `--feedback`, see below). Run the gate:
     `python3 "${CLAUDE_PLUGIN_ROOT}/skills/ux-flows/scripts/flows_check.py" --file <the file written>`.
     It fails on a screen with no outgoing edge that is not terminal, an
     inventory screen in no flowchart, a flowchart screen not in the
     inventory, a dialog with no cancel, back or close in Exits, a screen
     with no state table, a missing or blank loading, empty, error or
-    success row, `n/a` without a reason, and zero screens read. Fix and
+    success row, `n/a` without a reason, zero screens read, zero task
+    paths, a task over budget with no reason, and a story with no task path. Fix and
     rerun until it exits 0. Change nothing outside `docs/` (no README
     status line, no code). Print the output contract. If gstack
     `/diagram` is listed in this session, ask once with AskUserQuestion
@@ -145,10 +151,11 @@ Screens: N (dialogs: M, reused from code: R, new: W)
 States: N cells filled (n/a: K, copy proposed: P)
 Flows: N (happy 1, alternate A, error recovery R)
 <flows_check.py "Dead ends:" line, verbatim> (above 0: the run is not done)
+<flows_check.py "task paths:" line, verbatim>
 <flows_check.py "ux-flows:" counts line, verbatim>
 Controls: N (events from sheet: E, needs event: U | no sheet)
 Open questions: N (owners assigned: N)
-Review: N checks, N pass, N fixed, N open (F2 and F4 from flows_check.py)
+Review: N checks, N pass, N fixed, N open (F2, F4 and F14 from flows_check.py)
 Render: offered (/diagram) | mermaid only
 Next: design-directions <feature>
 ```
@@ -168,27 +175,9 @@ A count the script did not print is not written.
 - Removing a confirmation removes its safety. Replace it in proportion:
   the parsed count on the button ("Send 12 invites"), or an undo or quick
   revoke after the send.
-- Many items in one input (pasted addresses, uploaded rows): say which
-  separators are accepted; normalise the way the server does (trim, case)
-  and remove duplicates within the list on that normalised form; show the
-  count and any unreadable entries before sending; report the result per
-  item from the server's reply, since a check made before sending goes
-  stale; let the user retry only the failures without retyping. Per-call
-  limits and caps apply per item: say what happens to the ones over.
-- Costs and counts before sending: show the unit price, the total for
-  what will actually be sent, and when the charge happens. "Actually
-  sent" means after duplicates, unreadable entries and everything the
-  screen already knows will be refused: existing members and pending
-  invites are on the page, so check against them before sending. Label
-  that figure as what the page knows now (another admin or an accept
-  can change it) and let the per-item server replies set the result.
-- Work that outlives the screen: a paced or queued send (rate limit,
-  long batch) meets a user who closes the dialog, navigates or loses the
-  tab. Say what happens to the items still waiting: kept and resumed,
-  or listed as not sent with a way to send them, never dropped silently
-  and never shown as sent. A shared window (per workspace) can already
-  be partly used by someone else, so pace from the server's refusals,
-  not from a client-side count that assumes the first N go through.
+- Batches, totals and queued sends: references/several-packages-or-no-code.md
+- A budget never removes a destructive action's confirmation; write
+  `over: destructive action confirmation`.
 - Time in copy: a date read from the record beats a duration; a stated
   duration is the code's value.
 - Keep screen ids stable across versions so variants and reviews can cite
