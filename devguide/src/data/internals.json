@@ -17802,7 +17802,7 @@
   {
    "path": "tests/lib/assert.sh",
    "kind": "lib",
-   "lines": 108,
+   "lines": 114,
    "header": "tests/lib/assert.sh: sourced by every test file. bash 3.2 safe (macOS). t_begin <case> open a named case (counted; a case that runs no t_end assertion is a failure, so an empty test cannot pass) t_run <cmd...> run with $T_IN on stdin; sets T_RC and T_OUT (stdout+stderr) assert_exit <rc> <cmd...> t_run and check the exit code assert_eq <expected> <actual> [what] assert_contains <haystack> <needle> [what] assert_not_contains <haystack> <needle> [what] assert_file <path> [mode] the file exists (and has that octal mode) tmpdir print a fresh directory, removed at exit minimal_path <tool>... print…",
    "asserts": 11
   },
