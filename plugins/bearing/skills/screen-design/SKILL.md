@@ -2,7 +2,7 @@
 name: screen-design
 description: 'Designs every screen in every state (empty, error, loading), desktop and phone, as clickable React or HTML mockups before code. Use when asked to "design the screens", "hi-fi mockups" or "show every state".'
 argument-hint: "<feature> [--screens S-01,S-03] [--framework react-shadcn|react-native|flutter|compose|swiftui|web] [--round N] [--standalone]"
-allowed-tools: Read, Write, Edit, Grep, Glob, Bash(ls:*), Bash(mkdir:*), Bash(test:*), Bash(make:*), Bash(git log:*), Bash(git diff:*), Bash(git show:*), Bash(git status:*), Bash(~/.claude/skills/gstack/browse/dist/browse:*), Bash(python3 *skills/screen-design/scripts/states_check.py*), Bash(python3 *skills/screen-design/scripts/gallery_check.py*), Bash(python3 *skills/screen-design/scripts/bundle.py*), Bash(python3 *skills/design-system/scripts/system_page.py*), Bash(python3 *skills/design-critique/scripts/evidence.py*), Bash(python3 *skills/accessibility/scripts/contrast.py*), Bash(bash *bin/brg-kit-paths*)
+allowed-tools: Read, Write, Edit, Grep, Glob, Skill, Bash(ls:*), Bash(mkdir:*), Bash(test:*), Bash(make:*), Bash(git log:*), Bash(git diff:*), Bash(git show:*), Bash(git status:*), Bash(printenv BEARING_AUTOPILOT BEARING_NONINTERACTIVE), Bash(bash *bin/brg-config get noninteractive --user), Bash(sh scripts/design-lint.sh:*), Bash(~/.claude/skills/gstack/browse/dist/browse:*), Bash(python3 *skills/screen-design/scripts/states_check.py*), Bash(python3 *skills/screen-design/scripts/gallery_check.py*), Bash(python3 *skills/screen-design/scripts/bundle.py*), Bash(python3 *skills/design-system/scripts/system_page.py*), Bash(python3 *skills/design-critique/scripts/evidence.py*), Bash(python3 *skills/accessibility/scripts/contrast.py*), Bash(bash *bin/brg-kit-paths*)
 ---
 
 # screen-design
@@ -18,7 +18,8 @@ older than the PRD, a state the API can produce that nobody drew, a
 requirement the API cannot support, a client comment that breaks an ADR
 or the contrast floor. The doctrine in
 `../design-directions/references/design-doctrine.md` governs visual
-choices; read it before the first screen is planned.
+choices when impeccable is not installed (the fallback); read it before the
+first screen is planned.
 
 Two paths. On React with shadcn/ui (the react-web template) the design is
 code: each screen is a view composed from `src/components/ui` and the
@@ -100,6 +101,20 @@ concern (`ambiguity`, `missing-screen`, `undefined-state`, `dead-end`,
    `audit` block by hand; never run `/design-sync` (the push to a shared
    design system is the person's). Detail: references/html-bundle.md
 
+### Impeccable pass
+
+1. After every screen and state exists, with impeccable installed: `harden`
+   then `polish` per feature, then rerun the gates (states or gallery,
+   bundle, contrast, design-lint, tokens-sync when installed). Detect,
+   unattended rule, brief and gate handling:
+   `${CLAUDE_PLUGIN_ROOT}/references/impeccable.md`, section screen-design.
+   A gate failure after polish is fixed in the screen, never by weakening
+   a gate; a token-level change impeccable wants goes back to design-system
+   (`tokens.json` is not edited by hand). Unattended, polish runs only when
+   the binding system and the flows are on disk; else harden only, with
+   `polish skipped: unattended (<why>)`. Not installed:
+   print `impeccable not installed` once, no pass, the doctrine decides.
+
 ### A review round (client or team comments)
 
 1. Find where the pages really come from; triage every comment before
@@ -116,6 +131,7 @@ Reconciled: <n> states added beyond the flows (<names>); gaps raised: <one line 
 Screens: <gate counts line, verbatim>
 Bundle: <bundle.py check counts line, verbatim> | not used (<reason>)
 Contrast: <contrast.py counts line, verbatim> | no colour changed
+Impeccable: harden <n> and polish <n> screen sets | not installed; inferred: <facts> | none
 Round: <per comment: verdict and reason> | first round
 Ran: <each command with its result>
 Not run: <build, typecheck, dev server, screenshots, each with its reason> | none

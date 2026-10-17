@@ -59,7 +59,7 @@ commit carries 4.6.0, so recheck these six rows whenever the pin moves).
 | `init` | design-directions | yes, one answer round before a new PRODUCT.md (init.md step 3) | not run |
 | `document --seed` | design-directions | yes, the world workshop's decision page (document.md seed mode, new-work.md section 2), and before overwriting an existing DESIGN.md; no second ask when new-work already ran this session | not run |
 | `document` (scan) | design-directions, on an app with an incumbent system | yes, two rounds on the qualitative language (document.md scan step 3), and before overwriting an existing DESIGN.md | not run |
-| `polish` | screen-design | only when a binding principle cannot be inferred or a claim would change (polish.md section 1, copy rule) | run, naming `DESIGN.md` and `docs/design/tokens.json` as the binding system and the flows' copy as fixed |
+| `polish` | screen-design | only when a binding principle cannot be inferred or a claim would change (polish.md section 1, copy rule) | run when `DESIGN.md`, `docs/design/tokens.json` and the flows file are on disk (binding system named, copy fixed); else not run (screen-design section) |
 | `harden` | screen-design | no | run, with the flows' copy as the only copy |
 | `audit` | design-critique | no | run |
 | `critique` | design-critique | yes, at its close when it lists 3 or more priority issues (critique.md Ask the User) | not run; audit only |
@@ -216,16 +216,35 @@ exists.
 
 ## screen-design
 
-After every screen and every flow state exists, per feature:
-`harden <screen set>` on the loading, empty and error panels, then
-`polish <screen set>`, with the flows file (copy fixed), `DESIGN.md` and
-`docs/design/tokens.json` as the binding system. Both run unattended, since
-neither asks under that brief. A state the flows lack is raised as a gap,
-never written. After the pass the skill reruns its state or gallery check,
-the bundle check, contrast, design-lint and the hash check when installed;
-an edit that breaks one is reverted and listed. The report says
-`Impeccable: harden <n> and polish <n> screen sets | not installed; inferred: <facts> | none`.
-Absent, the screens follow `design-doctrine.md` and no pass runs.
+After every screen and every flow state exists, per feature: `harden <screen set>`
+on the loading, empty and error panels, then `polish <screen set>`. The target
+is the views under `src/features/<feature>/components/` (react-shadcn) or the
+pages under `docs/design/screens/<feature>/`. Brief: the flows file (its copy
+fixed), `DESIGN.md` and `docs/design/tokens.json` as the binding system.
+A state the flows lack is raised as a gap, never written. Then the skill
+reruns its gates, so impeccable's edits must still pass them: `gallery_check.py`
+or `states_check.py`, `bundle.py check`, `contrast.py`, `sh scripts/design-lint.sh`
+and, when installed, `sh scripts/design-lint.sh --sync`. An edit that breaks one
+is reverted and listed with the gate line it broke; the gate is never weakened.
+A change impeccable wants at token level (a colour, a face, a radius, a scale
+step) is listed and routed back to design-system; `tokens.json` is not edited
+by hand.
+
+Unattended (see Unattended above): `harden` never asks, so it runs. `polish`
+asks only when a binding principle cannot be inferred or a claim would change,
+so it runs unattended only when both can be answered from files: the binding
+system is on disk (`docs/design/tokens.json` and a `DESIGN.md`, at the root or
+under `docs/design/`) and the brief fixes the copy (the flows file exists, and
+a copy change is listed as proposed, never applied). Otherwise unattended runs
+harden only and the report says
+`polish skipped: unattended (<the missing binding system or flows file>)`.
+A polish that reaches a question anyway is stopped, its edits are reverted
+and the same line is printed; nothing is answered on the user's behalf.
+
+The report says
+`Impeccable: harden <n> and polish <n> screen sets | not installed; inferred: <facts> | none`
+(`polish 0` with the skip line when skipped). Absent, the screens follow
+`design-doctrine.md` and no pass runs.
 
 ## design-critique
 
