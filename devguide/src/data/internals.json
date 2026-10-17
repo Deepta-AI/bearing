@@ -5,7 +5,7 @@
   "commandSkills": 0,
   "stackSkills": 12,
   "scripts": 94,
-  "scriptLines": 29290,
+  "scriptLines": 29488,
   "hooks": 8,
   "agents": 8,
   "makeTargets": 31,
@@ -14410,7 +14410,7 @@
     },
     {
      "path": "scripts/flows_check.py",
-     "lines": 334
+     "lines": 532
     },
     {
      "path": "templates/flows.md",
@@ -17046,8 +17046,8 @@
    "lang": "python",
    "group": "skill",
    "skill": "ux-flows",
-   "lines": 334,
-   "header": "flows_check: a UX flow package has no dead end, no unflowed screen and no\nmissing state, computed from the mermaid and the tables in the file.\n\n  - File: --file, else per feature under docs/design/flows/<feature>/ the\n    highest flows-v<n>.md, or flows.md when there is no versioned file.\n  - Screens: the ids (S-nn, \"(modal)\" allowed) in the first column of the\n    table under the \"Screen inventory\" (or \"Screens\") heading. A row whose\n    Exits cell says `terminal` is a screen allowed no way forward. A row\n    whose Status cell says `removed` or `retired` (a screen dropped in a\n    later version, its id kept) is counted as removed and not checked.\n  - Edges: every ```mermaid block that starts with `flowchart` or `graph`.\n    A node is a screen when its id is S-nn or Snn, or its label starts\n    with S-nn. Edges are -->, ---, -.->, ==>, with |labels| or -- text -->,\n    chained (A --> B --> C) and grouped (A & B --> C); --- links both\n    ways. An edge through a decision node counts as a way forward.\n    `%% terminal: S-nn <reason>` in a block also marks a terminal screen.\n  - Ids across packages: every package read in one run shares the id\n    space (the design gallery merges them); an id in two packages is a\n    problem.\n  - Dead end: an inventory screen with no outgoing edge that is not\n    terminal. Unflowed: an inventory screen in no flowchart. Unknown: a\n    screen in a flowchart that is not in the inventory.\n  - Dialogs: an inventory row whose Id cell says \"(modal)\", whose Kind or\n    Type column says dialog or modal, or whose Screen cell names a dialog,\n    modal or confirmation and not a page or screen (\"Newsletter\n    confirmation page\" is a page). Unless terminal, its Exits cell must\n    name a way back (cancel, back, close, dismiss, keep, Escape).\n  - States: under \"### S-nn\" headings, a table whose first column is the\n    state (a cell naming several, \"Loading, Empty\", fills each; a label\n    with a qualifier, \"error: slot_unavailable\" or \"error (409)\", is that\n    state, and a screen may have one such row per rejection). loading,\n    empty, error and success are required on every\n    screen; a row that reads `n/a` needs a reason (`n/a: <reason>`); a\n    required row missing, blank, or n/a without a reason is a problem, and\n    so is an inventory screen with no state table.\n\nUsage: flows_check.py [--file F ...] [--root docs/design/flows]\nPrints one \"problem:\" line per failure, the Dead ends line and the counts;\nexits 1 on any problem, or when zero files or zero screens were read.",
+   "lines": 532,
+   "header": "flows_check: a UX flow package has no dead end, no unflowed screen and no\nmissing state, computed from the mermaid and the tables in the file.\n\n  - File: --file, else per feature under docs/design/flows/<feature>/ the\n    highest flows-v<n>.md, or flows.md when there is no versioned file.\n  - Screens: the ids (S-nn, \"(modal)\" allowed) in the first column of the\n    table under the \"Screen inventory\" (or \"Screens\") heading. A row whose\n    Exits cell says `terminal` is a screen allowed no way forward. A row\n    whose Status cell says `removed` or `retired` (a screen dropped in a\n    later version, its id kept) is counted as removed and not checked.\n  - Edges: every ```mermaid block that starts with `flowchart` or `graph`.\n    A node is a screen when its id is S-nn or Snn, or its label starts\n    with S-nn. Edges are -->, ---, -.->, ==>, with |labels| or -- text -->,\n    chained (A --> B --> C) and grouped (A & B --> C); --- links both\n    ways. An edge through a decision node counts as a way forward.\n    `%% terminal: S-nn <reason>` in a block also marks a terminal screen.\n  - Ids across packages: every package read in one run shares the id\n    space (the design gallery merges them); an id in two packages is a\n    problem.\n  - Dead end: an inventory screen with no outgoing edge that is not\n    terminal. Unflowed: an inventory screen in no flowchart. Unknown: a\n    screen in a flowchart that is not in the inventory.\n  - Dialogs: an inventory row whose Id cell says \"(modal)\", whose Kind or\n    Type column says dialog or modal, or whose Screen cell names a dialog,\n    modal or confirmation and not a page or screen (\"Newsletter\n    confirmation page\" is a page). Unless terminal, its Exits cell must\n    name a way back (cancel, back, close, dismiss, keep, Escape).\n  - States: under \"### S-nn\" headings, a table whose first column is the\n    state (a cell naming several, \"Loading, Empty\", fills each; a label\n    with a qualifier, \"error: slot_unavailable\" or \"error (409)\", is that\n    state, and a screen may have one such row per rejection). loading,\n    empty, error and success are required on every\n    screen; a row that reads `n/a` needs a reason (`n/a: <reason>`); a\n    required row missing, blank, or n/a without a reason is a problem, and\n    so is an inventory screen with no state table.\n  - Task paths: the table under \"## Task paths\" (| Task | Story | Kind |\n    Entry | Path | Screens | Interactions | Over |), one row per user task.\n    A path is segments split on \" > \": `S-nn[ (modal)][: item, item]`, each\n    comma item one interaction (a typed field is one item, never one per\n    keystroke; the content typed is not counted). The script recounts\n    screens (distinct) and interactions from the path and holds them to\n    the budget, never trusting the written counts: primary at most 3\n    screens and 6 interactions, secondary at most 5 and 10, overridable in\n    .bearing/config.json (ux.budget.primary.screens, .interactions, and\n    the same for secondary). A row over budget fails unless its Over cell\n    reads `over: <reason>`. Also failing: written counts that disagree, a\n    kind other than primary or secondary, a path through a screen not in\n    the inventory, an entry that is not the path's first screen, a story\n    the inventory serves that no task path names, and zero task paths.\n\nUsage: flows_check.py [--file F ...] [--root docs/design/flows]\n                      [--config .bearing/config.json]\nPrints one \"problem:\" line per failure, the Dead ends line, the task paths\nline and the counts; exits 1 on any problem, or when zero files or zero\nscreens were read.",
    "functions": [
     "read",
     "pick_files",
@@ -17060,6 +17060,12 @@
     "screen_of",
     "filled",
     "states",
+    "whole",
+    "budget",
+    "count_path",
+    "task_paths",
+    "served",
+    "check_tasks",
     "check",
     "main"
    ],
@@ -17865,7 +17871,7 @@
   {
    "path": "tests/unit/autopilot_stages.sh",
    "kind": "unit",
-   "lines": 510,
+   "lines": 512,
    "header": "tests/unit/autopilot_stages.sh: the stages brg-autopilot gained after the first real run skipped every skill no gate checked. The decide gate needs a product profile (ui, data, api, deploy). architecture needs a C4 file with a diagram and an architecture.json whose SVGs pass diagram_check. design adds, by profile, the data model, the API contract and a deployment architecture with its diagram, after arch_check and (profile data) model_check pass. ux runs the flows, contrast, screen-state and design-bundle checkers for a UI. test_cases runs cases_check. build needs make build too when the Make…",
    "asserts": 155
   },
@@ -18383,9 +18389,9 @@
   {
    "path": "tests/unit/ux_flows_check.sh",
    "kind": "unit",
-   "lines": 147,
-   "header": "tests/unit/ux_flows_check.sh: plugins/bearing/skills/ux-flows/scripts/flows_check.py passes a package whose screens all have a way forward (or are marked terminal), all appear in a flowchart and all have the four required states; fails on a dead end, an unflowed screen, a flowchart screen not in the inventory, a missing state, n/a without a reason, a screen with no state table, a dialog with no way back, and on empty input. It reads the highest flows-v<n>.md and skips screens marked removed.",
-   "asserts": 31
+   "lines": 240,
+   "header": "tests/unit/ux_flows_check.sh: plugins/bearing/skills/ux-flows/scripts/flows_check.py passes a package whose screens all have a way forward (or are marked terminal), all appear in a flowchart and all have the four required states; fails on a dead end, an unflowed screen, a flowchart screen not in the inventory, a missing state, n/a without a reason, a screen with no state table, a dialog with no way back, and on empty input. Task paths: recounted and held to the budget (config overridable), see the cases below. It reads the highest flows-v<n>.md and skips screens marked removed.",
+   "asserts": 58
   },
   {
    "path": "tests/unit/vapt_findings.sh",

@@ -232,6 +232,8 @@ flows() {
     printf '| Id | Screen | Purpose | Serves | Entry from | Exits to | Status |\n| --- | --- | --- | --- | --- | --- | --- |\n'
     printf '| S-01 | Orders | list | US-01-001 | nav | S-02 | new |\n'
     printf '| S-02 | Done | receipt | US-01-001 | S-01 | terminal: the flow ends here | new |\n\n'
+    printf '## Task paths\n\n| Task | Story | Kind | Entry | Path | Screens | Interactions | Over |\n| --- | --- | --- | --- | --- | --- | --- | --- |\n'
+    printf '| Finish an order | US-01-001 | primary | S-01 | S-01: tap Done > S-02 | 2 | 1 | |\n\n'
     printf '## 2. Interaction states\n\n'; states S-01; states S-02
     printf '## 4. Navigation map\n\n```mermaid\nflowchart LR\n  S01[S-01 Orders] --> S02[S-02 Done]\n```\n'
   } > "$1"
