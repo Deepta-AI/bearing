@@ -130,7 +130,7 @@ check-changed: ## ruff format check, ruff check and pytest on the tests for the 
 	sql=$$(printf '%s\n' "$$files" | grep '^dbt/models/.*\.sql$$' || true); \
 	[ -z "$$sql" ] || $(UV) run sqlfluff lint $$sql || exit 1; \
 	if printf '%s\n' "$$files" | grep -qE 'pyproject\.toml$$|uv\.lock$$|conftest\.py$$'; then tests=""; \
-	else tests=$$(for x in $$py; do case "$$x" in tests/*test_*.py) echo "$$x";; *) b=$$(basename "$$x" .py); git ls-files -co --exclude-standard "tests/test_$$b.py" "tests/**/test_$$b.py";; esac; done | sort -u); \
+	else tests=$$(for x in $$py; do case "$$x" in (tests/*test_*.py) echo "$$x";; (*) b=$$(basename "$$x" .py); git ls-files -co --exclude-standard "tests/test_$$b.py" "tests/**/test_$$b.py";; esac; done | sort -u); \
 	  [ -n "$$tests" ] || { touch $(STATE)/.check-changed-passed; echo "check-changed: $$f files, 0 packages checked (no tests map to them; make check runs all)"; exit 0; }; fi; \
 	p=$$(printf '%s' "$$tests" | grep -c . || true); [ -n "$$tests" ] || p=all; \
 	set -o pipefail; $(UV) run pytest -m "not warehouse" $$tests 2>&1 | tail -60; rc=$$?; [ $$rc -eq 0 ] || [ $$rc -eq 5 ] || exit 1; [ $$rc -ne 5 ] || p=0; \

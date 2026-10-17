@@ -127,7 +127,7 @@ check-changed: ## dart format check, analyze and the tests for the changed Dart 
 	dart=$$(printf '%s\n' "$$files" | grep '\.dart$$' || true); \
 	[ -z "$$dart" ] || { dart format --output=none --set-exit-if-changed $$dart && $(FLUTTER) analyze $$dart; } || exit 1; \
 	if printf '%s\n' "$$files" | grep -qE '(^|/)pubspec\.(yaml|lock)$$'; then $(MAKE) --no-print-directory test || exit 1; p=all; \
-	else tests=$$(for x in $$dart; do case "$$x" in test/*_test.dart) echo "$$x";; lib/*) t="test/$${x#lib/}"; t="$${t%.dart}_test.dart"; [ -f "$$t" ] && echo "$$t";; esac; done | sort -u); \
+	else tests=$$(for x in $$dart; do case "$$x" in (test/*_test.dart) echo "$$x";; (lib/*) t="test/$${x#lib/}"; t="$${t%.dart}_test.dart"; [ -f "$$t" ] && echo "$$t";; esac; done | sort -u); \
 	  p=$$(printf '%s' "$$tests" | grep -c . || true); [ -z "$$tests" ] || $(FLUTTER) test $$tests || exit 1; fi; \
 	touch $(STATE)/.check-changed-passed; echo "check-changed: $$f files, $$p packages checked"
 
