@@ -120,7 +120,11 @@ the table; this only runs what exists and reports.
      decision for the user: name both values and the source behind each;
      do not call either one the bug.
 8. Every run writes the evidence file `.scratch/test-run/<branch with / as _>-<scope>.json`
-   (keys in `references/runners.md`). Scope full also writes
+   (keys in `references/runners.md`), its `selection` null when no
+   `--suite`, `--tag`, `--tc` or `--except` narrowed it (`--suite all`
+   and `all,matrix` do not). Any other selection writes `<branch>-filtered.json`
+   instead, so it never replaces the full or changed evidence; only
+   `--except unit` alone still writes `-full.json`. Scope full also writes
    `docs/testing/reports/<date>-<branch>.md` from `templates/report.md`
    (slashes in the branch become `-`) and the same data as `.json`; scope
    changed writes only under `.scratch/test-run/`, so it never dirties the
@@ -153,7 +157,7 @@ Not proven: <each skipped, not-run or placeholder test and what it leaves unveri
 Beyond the tests: <each defect found by reading or computing, "not covered by any test">
 Commands: <every command run, in full with its files and flags, so the user can repeat it>
 Report: docs/testing/reports/<date>-<branch>.md (+ .json) | none (scope changed)
-Evidence: .scratch/test-run/<branch>-<scope>.json
+Evidence: .scratch/test-run/<branch>-<scope|filtered>.json
 test-run: scope <changed|full>, <S> of <P> suites run, <T> tests, <F> failed, <N> not run
 ```
 

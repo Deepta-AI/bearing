@@ -1,7 +1,7 @@
 ---
 name: definition-of-done
 description: 'Checks a branch or ticket against the Definition of Done, with evidence per item: gate, tests, docs, scope, commits, smoke run. Use when asked "am I done", "is this story complete" or "ready to merge?"'
-argument-hint: "[base branch, default: the state file's Base line, else develop, else main]"
+argument-hint: "[base branch, default: the state file's Base line, else develop, else main] [--unattended]"
 allowed-tools: Read, Grep, Glob, Write, Skill, AskUserQuestion, Bash(make:*), Bash(docker compose:*), Bash(curl:*), Bash(playwright-cli:*), Bash(pnpm exec playwright:*), Bash(git status:*), Bash(git am:*), Bash(git checkout:*), Bash(git switch:*), Bash(git branch:*), Bash(git worktree:*), Bash(git diff:*), Bash(git log:*), Bash(git remote:*), Bash(git rev-parse:*), Bash(git show:*), Bash(go vet:*), Bash(go test:*), Bash(go run:*), Bash(go build:*), Bash(pnpm test:*), Bash(uv run pytest:*), Bash(pytest:*), Bash(python3 -m pytest:*), Bash(./gradlew test:*), Bash(swift test:*), Bash(maestro test:*), Bash(xcodebuild test:*), Bash(./gradlew connectedDebugAndroidTest:*), Bash(printenv BEARING_AUTOPILOT BEARING_NONINTERACTIVE), Bash(bash *bin/brg-config get noninteractive --user), Bash(tail -40), Bash(bash *skills/definition-of-done/scripts/red_proof.sh *), Bash(bash *bin/brg-state-path*), Bash(bash *bin/brg-changed*), Bash(python3 *bin/brg-autopilot decision test_run.*), Bash(python3 *skills/prose-lint/scripts/prose_check.py*)
 ---
 
@@ -152,9 +152,9 @@ The list below is the standard's; it needs no file in the repository.
        runnable: `n/a: nothing to run` naming what was looked for.
    14. suites: every suite beyond unit, in full, on HEAD. Reuse
        `.scratch/test-run/<branch with / as _>-full.json` when `dirty` is
-       false, `except` is empty or only `unit`, and its `sha` is HEAD or
-       `git diff --name-only <sha> HEAD` lists only `docs/testing/reports/`
-       files. Else run `test-run --except unit` with the Skill tool
+       false, `selection` is null or `{"except": ["unit"]}` (never a run
+       with `--suite`, `--tag` or `--tc`), and its `sha` is HEAD or
+       `git diff --name-only <sha> HEAD` lists only `docs/testing/reports/` files. Else run `test-run --except unit` with the Skill tool
        (refused: follow `${CLAUDE_PLUGIN_ROOT}/skills/test-run/SKILL.md`);
        `${CLAUDE_PLUGIN_ROOT}/skills/test-run/references/runners.md` says
        how the database starts and stops and gives the evidence schema.

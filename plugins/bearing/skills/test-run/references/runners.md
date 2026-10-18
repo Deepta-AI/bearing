@@ -56,10 +56,11 @@ Skip the `none` lines. Read the exit code and the counts line together:
 | exit 0, counts line, layers listed | normal | run the listed layers; a toolchain change lists all four |
 | exit 0, counts line, `layers: none` | documentation only, N files | write the evidence with `layers: []` and `files: N`, print "0 layers touched by N changed files: nothing to test", exit non-zero |
 | exit 1, `0 files changed against <base>` or `against the working tree` | nothing changed | print it, exit non-zero, no suite runs |
-| exit 1, any other line (`base ... does not resolve`, `has no merge base`) | an error | quote the line, exit non-zero, no suite runs; never fall back to the whole tree |
+| exit 1, any other line (`base ... does not resolve`, `has no merge base`, `not a git repository`) | an error | quote the line, exit non-zero, no suite runs; never fall back to the whole tree |
 | exit 0, no `brg-changed:` counts line | an older copy that ignores `--layers` and prints plain file names | say "brg-changed lacks --layers" in the report, select as before over every suite present |
 
-Deleted files count as changed. The flag is detected from the counts line,
+Every exit 1 line goes to stderr; read both streams. Deleted files count
+as changed. The flag is detected from the counts line,
 never from the exit code alone: an old copy exits 0 on any flag.
 
 ### Inside a layer
@@ -78,20 +79,24 @@ is newer than every changed file, the unit suite is not rerun. The report
 says `unit: covered by make check-changed at <time>`, status `covered`,
 with the counts that target printed when it printed them, else
 `unit: covered, counts n/a`. Reuse needs both: the marker is newer than
-every changed file now, and no file changed after it. The autopilot gate
-checks the same mtimes again, so a stale claim fails there.
+every changed file now, and no file changed after it. The autopilot
+test_run gate checks the mtimes again: the marker (`.check-changed-passed`
+for `covered by make check-changed`, else `.check-passed`) must be newer
+than every uncommitted file and every file the branch changed since its
+merge base, so a commit made after the check passed fails there.
 
 ### The evidence file
 
-Every run writes `.scratch/test-run/<branch>-<scope>.json`, overwriting the
-last, with the branch from `git branch --show-current` and `/` turned into
+Every unfiltered run writes `.scratch/test-run/<branch>-<scope>.json`,
+overwriting the last; a filtered run writes `<branch>-filtered.json`
+(see `selection` below), with the branch from `git branch --show-current` and `/` turned into
 `_` (empty output is a detached HEAD: stop, "detached HEAD: no branch name
 for the evidence file"). It is a superset of the report JSON, so
 `test-heal` can read it:
 
 ```json
 {"scope": "changed", "sha": "<HEAD>", "dirty": false, "base": "origin/develop",
- "files": 3, "layers": ["unit", "ui", "visual"], "except": [],
+ "files": 3, "layers": ["unit", "ui", "visual"], "except": [], "selection": null,
  "suites": [{"name": "e2e", "status": "run", "reason": "", "passed": 4, "failed": 0, "skipped": 0}],
  "tests": 9, "failed": 0, "not_run": ["integration"],
  "failures": [{"suite": "e2e", "test": "TC-0012 rejects an expired token", "tc": "TC-0012",
@@ -110,7 +115,16 @@ status `run`. A `covered` suite carries `name`, `status`, `reason`,
 the target printed them, each `null` when it printed none. In `failures`,
 `line` is an integer, `null` when the runner gives none. Scope full has
 `files` `null` (no diff is taken), `layers` and `base` empty and `except`
-as given. Counts line: `S` is the suites with status `run` or `covered`,
+as given. `selection` is `null` when no `--suite`, `--tag`, `--tc` or
+`--except` narrowed the run (`--suite all` and `--suite all,matrix` count
+as unfiltered); otherwise an object holding only the flags given, each a
+list, as `{"tc": ["TC-0231"]}` or `{"suite": ["visual"], "tag": ["@P1"]}`.
+Only a `null` selection, or exactly `{"except": ["unit"]}` (definition of
+done item 14), writes `-full.json` or `-changed.json`; any other writes
+`-filtered.json`, which no gate reads. Every reader of full evidence
+(definition of done item 14, the autopilot test_run and dod gates)
+refuses any other selection, so a single test or suite never stands in
+for the full run. Counts line: `S` is the suites with status `run` or `covered`,
 `P` the suites selected and present, `N` the suites not run.
 
 When unit is the only suite, `--except unit` selects none and writes no
@@ -118,7 +132,8 @@ evidence, so definition of done item 14 writes the full file itself:
 
 ```json
 {"scope": "full", "sha": "<HEAD>", "dirty": false, "files": null,
- "layers": [], "base": "", "except": ["unit"], "suites": [], "tests": 0,
+ "layers": [], "base": "", "except": ["unit"], "selection": {"except": ["unit"]},
+ "suites": [], "tests": 0,
  "failed": 0, "not_run": [], "failures": [], "n_a": "no suite beyond unit"}
 ```
 

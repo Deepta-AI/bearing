@@ -5,7 +5,7 @@
   "commandSkills": 0,
   "stackSkills": 12,
   "scripts": 94,
-  "scriptLines": 30419,
+  "scriptLines": 30476,
   "hooks": 8,
   "agents": 8,
   "makeTargets": 31,
@@ -1379,7 +1379,7 @@
     },
     {
      "title": "Steps",
-     "lines": 40
+     "lines": 41
     },
     {
      "title": "Output contract",
@@ -1410,7 +1410,7 @@
     "Before the build, in lean scope: the design note, then test-cases. In full scope: architecture, design, repos, ux, then contract (the data model and API from the screens' data needs). Detail: references/design-stages.md",
     "Build is test first, story by story, in the order of the backlog. Read the traps in references/reviewer-checks.md first. Detail: references/build-and-after.md",
     "After the build: test-automation, the LLM stages when the profile says llm, then `test-run --changed` (the test_run stage), and design-critique until the bar holds. Detail: references/build-and-after.md",
-    "Review is `branch-review`; fix every Critical and High it confirms, record each fix as `<n> <sha>` in `.scratch/review/<slug>/fixed.txt`, then `make check` again; `definition-of-done` includes the smoke run and the full test run. Read references/reviewer-checks.md again before dod. Detail: references/review-smoke-and-mr.md",
+    "Review is `branch-review --unattended`; fix every Critical and High it confirms, record each fix as `<n> <sha>` in `.scratch/review/<slug>/fixed.txt`, then `make check` again; `definition-of-done --unattended` includes the smoke run and the full test run. Read references/reviewer-checks.md again before dod. Detail: references/review-smoke-and-mr.md",
     "The mr stage: `merge-request` prepares the description; `report` writes `docs/autopilot/<run>.md`; commit it, and let that commit be the last write (`git status` clean after it); paste its decisions table into the description with the exact push command under it, and print the same command in the last message. Do not run it. Detail: references/review-smoke-and-mr.md",
     "Blocked or finished, the last message is the report: stages done, the decisions to review, what is not done and why, and the push command when the MR is ready."
    ],
@@ -1425,11 +1425,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 126,
+   "lines": 127,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 126
+     "lines": 127
     },
     {
      "path": "references/auto-mode-and-profile.md",
@@ -1449,7 +1449,7 @@
     },
     {
      "path": "references/review-smoke-and-mr.md",
-     "lines": 37
+     "lines": 39
     },
     {
      "path": "references/reviewer-checks.md",
@@ -3107,7 +3107,7 @@
    "description": "Checks a branch or ticket against the Definition of Done, with evidence per item: gate, tests, docs, scope, commits, smoke run. Use when asked \"am I done\", \"is this story complete\" or \"ready to merge?\"",
    "invocation": "auto",
    "kind": "step",
-   "args": "[base branch, default: the state file's Base line, else develop, else main]",
+   "args": "[base branch, default: the state file's Base line, else develop, else main] [--unattended]",
    "tools": [
     "Read",
     "Grep",
@@ -13729,7 +13729,7 @@
     },
     {
      "title": "Steps",
-     "lines": 105
+     "lines": 109
     },
     {
      "title": "Output contract",
@@ -13758,7 +13758,7 @@
     "Compute the summary counts, the per-suite table, the failures with the assertion message and file:line, the slowest ten, the flaky candidates (passed after a retry in this run, or a different result from the last report on the same commit), and coverage from the runner's summary file when present.",
     "Quarantine: when `docs/testing/quarantine.md` exists, every row with an empty Released cell and a Deadline before today goes at the top of the report as \"overdue quarantine: <test> (TC, task, deadline)\" and into the summary as a count; the run fails on any overdue row, so a quarantine cannot outlive its deadline silently.",
     "Read what the runner cannot tell you. The counts say what ran; a senior engineer also says what the green and the skipped parts prove. - Every skipped or quarantined test on the code in question: run it with the skip disabled (pytest: `-p no:skipping` with the test's node id ignores skip marks; Go, vitest, others: a `git worktree` copy under `.scratch/` with the skip line removed). Report \"still fails (<message>)\" o…",
-    "Every run writes the evidence file `.scratch/test-run/<branch with / as _>-<scope>.json` (keys in `references/runners.md`). Scope full also writes `docs/testing/reports/<date>-<branch>.md` from `templates/report.md` (slashes in the branch become `-`) and the same data as `.json`; scope changed writes only under `.scratch/test-run/`, so it never dirties the tree. Print the summary line and end the message with the co…",
+    "Every run writes the evidence file `.scratch/test-run/<branch with / as _>-<scope>.json` (keys in `references/runners.md`), its `selection` null when no `--suite`, `--tag`, `--tc` or `--except` narrowed it (`--suite all` and `all,matrix` do not). Any other selection writes `<branch>-filtered.json` instead, so it never replaces the full or changed evidence; only `--except unit` alone still writes `-full.json`. Scope…",
     "Sort the failures into hints: \"element not found\", \"timeout waiting\", \"strict mode violation\", a 4xx from a fixture or a unique constraint are heal candidates for `test-heal`; a screenshot mismatch is a visual candidate, and a failure on one browser or phone of the matrix only is reported with that project's name; an assertion on an expected value the product no longer produces is a likely regression. This is a hint…"
    ],
    "output": "The final message is the deliverable; the report file is the archive. Everything the user needs to act (each failure's full test name, file:line and got/want values, the base for `--changed`, the commands) is in the message itself, not only in the report or the working log. Readiness: never call a branch good or ready while a test fails, a selected suite did not run, or part of the change is covered only by tests that did not run; say what must happen first.",
@@ -13774,15 +13774,15 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 190,
+   "lines": 194,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 190
+     "lines": 194
     },
     {
      "path": "references/runners.md",
-     "lines": 231
+     "lines": 246
     },
     {
      "path": "templates/report.md",
@@ -14979,7 +14979,7 @@
    "name": "brg-autopilot",
    "lang": "python",
    "group": "workflow",
-   "lines": 1814,
+   "lines": 1864,
    "header": "brg-autopilot: the state, the gates and the report of an unattended run from\none requirement statement to a prepared merge request.\n\nThe autopilot skill drives the stages; this script is the part that cannot\nbe talked around: which stage is next, whether its gate holds (checked on\ndisk, never taken from the model's word), how many attempts are left, the\ndigest of every decision taken on the user's behalf, and the report. Nothing\nhere pushes, merges or deploys; the run stops at a prepared merge request.\n\n  brg-autopilot start \"<statement>\" [--dir D]   begin a run (refuses when one is open)\n  brg-autopilot next [--dir D]                  the next stage, its skill and its gate\n  brg-autopilot done <stage> [--dir D]          check the gate; mark done or say what is missing\n  brg-autopilot fail <stage> \"<why>\" [--dir D]  count a failed attempt (3 and the stage is blocked)\n  brg-autopilot decision <key> <choice> <alternatives> <why> [--adr PATH] [--dir D]\n                                                one row of the decision digest\n  brg-autopilot report [--dir D]                write docs/autopilot/<run>.md (the MR carries it)\n  brg-autopilot status [--dir D]                the stages, attempts and decisions so far\n  brg-autopilot profile --ui|--data|--api|--deploy yes|no [--llm yes|no] [--scope lean|full] --why W [--dir D]\n                                                what the product has; decides which stages apply\n                                                and how much document each one needs\n  brg-autopilot stages                          the stage names, in order\n  brg-autopilot launch \"<statement>\" [--dir D] [--print]\n                                                run it headless: claude -p with autopilot,\n                                                then any smoke it asked for, outside the sandbox\n  brg-autopilot smoke-request [--id ID] [--dir D]\n                                                headless dod: ask the launcher to run the smoke\n  brg-autopilot repos-request [--dir D]         headless repos: ask the launcher to scaffold the\n                                                repo plan's missing repositories beside this one\n\nState lives in <dir>/.bearing/state/autopilot.json. Every command prints what it\nchecked and exits 1 when a gate fails or there is nothing to act on.",
    "functions": [
     "sh",
@@ -15032,11 +15032,13 @@
     "g_branch",
     "g_build",
     "evidence",
+    "filtered",
     "not_run_split",
     "not_run_undecided",
     "left_to_ci",
     "same_run",
     "undecided_msg",
+    "committed_since",
     "g_test_run",
     "newest_verdict",
     "is_ancestor",
@@ -15087,8 +15089,8 @@
    "name": "brg-changed",
    "lang": "bash",
    "group": "quality",
-   "lines": 118,
-   "header": "brg-changed: files changed in the working tree (modified, staged, untracked,\nthe new name of a rename), repository-relative, one per line. With --since\n<marker>, only files newer than the marker; a missing marker lists all.\nUses -z so names with spaces, quotes or arrows survive.\nDefault mode exits 0 always (the hooks rely on it).\n--layers [--base <ref>]: files changed against the merge base of <ref> and\nHEAD plus the working tree (no --base: the working tree only), deleted files\nincluded, as one \"<layer>\\t<file>\" line per layer a file maps to (unit api ui\nvisual none), then \"brg-changed: <N> files, layers: ...\" . Exit 1 on zero\nfiles (\"brg-changed: 0 files changed against <base>|the working tree\"), on a\nbase that does not resolve, or on a base with no merge base (shallow clone).\nCallers detect --layers support from that counts line: an older copy of this\nscript ignores the flag and prints plain file names.",
+   "lines": 125,
+   "header": "brg-changed: files changed in the working tree (modified, staged, untracked,\nthe new name of a rename), repository-relative, one per line. With --since\n<marker>, only files newer than the marker; a missing marker lists all.\nUses -z so names with spaces, quotes or arrows survive.\nDefault mode exits 0 always (the hooks rely on it).\n--layers [--base <ref>]: files changed against the merge base of <ref> and\nHEAD plus the working tree (no --base: the working tree only), deleted files\nincluded, as one \"<layer>\\t<file>\" line per layer a file maps to (unit api ui\nvisual none), then \"brg-changed: <N> files, layers: ...\" . Exit 1 on zero\nfiles (\"brg-changed: 0 files changed against <base>|the working tree\"), on a\nbase that does not resolve, or on a base with no merge base (shallow clone).\nOutside a repository --layers exits 1 (\"brg-changed: not a git repository\").\nEvery error line goes to stderr. Callers detect --layers support from the\ncounts line: an older copy of this script ignores the flag and prints plain\nfile names.",
    "functions": [
     "classify"
    ],
@@ -17953,9 +17955,9 @@
   {
    "path": "tests/unit/autopilot_stages.sh",
    "kind": "unit",
-   "lines": 919,
+   "lines": 985,
    "header": "tests/unit/autopilot_stages.sh: the stages brg-autopilot gained after the first real run skipped every skill no gate checked. The decide gate needs a product profile (ui, data, api, deploy). architecture needs a C4 file with a diagram and an architecture.json whose SVGs pass diagram_check. design adds, by profile, a deployment architecture with its diagram after arch_check passes. ux runs the flows, contrast, screen-state and design-bundle checkers for a UI. contract, after the screens, needs the data model, API contract and threat model, checked against the screens' data needs. test_cases ru…",
-   "asserts": 322
+   "asserts": 349
   },
   {
    "path": "tests/unit/autopilot_state.sh",
@@ -17967,9 +17969,9 @@
   {
    "path": "tests/unit/changed_files.sh",
    "kind": "unit",
-   "lines": 165,
+   "lines": 182,
    "header": "tests/unit/changed_files.sh: brg-changed lists changed files rename-safe and space-safe; stop-gate prefers make check-changed and falls back to make check.",
-   "asserts": 55
+   "asserts": 62
   },
   {
    "path": "tests/unit/check_changed_targets.sh",
@@ -19484,7 +19486,7 @@
     "Notes for existing repositories",
     "Noted"
    ],
-   "entries": 32,
+   "entries": 33,
    "summary": "- impeccable is pinned (`plugins/bearing/bin/pinned-packs.txt`) and installed in the standard profile; `doctor` reports it, and `install` takes `--skip-impeccable` (held on the full profile too). - design-directions: one impeccable direction round when impeccable is installed and the run is attended, recorded in `approved.json` as the locked `direction`. Without impeccable it prints `impeccable not installed` once and runs the three-variant path as before. - design-system derives `tokens.json` from the `DESIGN.md` frontmatter when it has tokens, else from the approved direction, and records which (`source: design-md | approved-direction`) with the hash of that source. The hash check is the…"
   },
   {
@@ -20447,12 +20449,12 @@
    {
     "name": "review",
     "skill": "branch-review",
-    "gate": "the newest .scratch/review/*/verdict.txt reviews more than 0 files at a commit on this branch, and a 'not ready to merge' verdict has every blocking finding fixed in a later commit listed in fixed.txt"
+    "gate": "the newest .scratch/review/*/verdict.txt reviews more than 0 files at a commit this branch made (an ancestor of HEAD past its merge base with the default branch), and a 'not ready to merge' verdict has every blocking finding fixed in a later commit listed in fixed.txt"
    },
    {
     "name": "dod",
     "skill": "definition-of-done",
-    "gate": "make check passed after the last change, every change committed on the branch, when the repository ships something runnable a .scratch/smoke-*.md newer than the last commit with 'smoke: N requests checked, 0 failed' (N > 0), and a .scratch/test-run/<branch>-full.json with 0 failed whose sha differs from HEAD only by docs/testing/reports/ (every suite beyond unit left to CI by decisions passes; a unit-only repository needs the item 14 n/a)"
+    "gate": "make check passed after the last change, every change committed on the branch, when the repository ships something runnable a .scratch/smoke-*.md newer than the last commit with 'smoke: N requests checked, 0 failed' (N > 0), and a .scratch/test-run/<branch>-full.json of an unfiltered run (selection null or except unit) with more than 0 tests, 0 failed, whose sha differs from HEAD only by docs/testing/reports/ (every suite beyond unit left to CI by decisions passes; a unit-only repository needs the item 14 n/a)"
    },
    {
     "name": "mr",

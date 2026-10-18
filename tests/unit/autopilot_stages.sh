@@ -665,7 +665,8 @@ assert_contains "$T_OUT" "the profile says data=no, but migrations/0001_init.sql
 t_end
 
 # ev <scope> [json overrides]: test-run's evidence for HEAD on the current
-# branch (runners.md schema): one e2e suite run, 4 tests, 0 failed, clean.
+# branch (runners.md schema): one e2e suite run, 4 tests, 0 failed, clean,
+# unfiltered (selection null). An override of "__absent__" drops the key.
 ev() {
   mkdir -p "$d/.scratch/test-run"
   python3 - "$d/.scratch/test-run/$(git -C "$d" branch --show-current | tr / _)-$1.json" "$1" \
@@ -676,8 +677,9 @@ changed = scope == "changed"
 e = {"scope": scope, "sha": sha, "dirty": False, "base": "main" if changed else "",
      "files": 3 if changed else None, "layers": ["ui"] if changed else [], "except": [],
      "suites": [{"name": "e2e", "status": "run", "reason": "", "passed": 4, "failed": 0, "skipped": 0}],
-     "tests": 4, "failed": 0, "not_run": [], "failures": []}
+     "tests": 4, "failed": 0, "not_run": [], "failures": [], "selection": None}
 e.update(json.loads(over or "{}"))
+e = {k: v for k, v in e.items() if v != "__absent__"}
 json.dump(e, open(path, "w"))
 PY
 }
@@ -765,6 +767,29 @@ assert_exit 0 ap "done" test_run
 assert_contains "$T_OUT" "4 tests in 1 suites (full), 0 failed"
 t_end
 
+t_begin "a covered unit suite fails when a change was committed after make check"
+at test_run; git -C "$d" switch -qc feat/x
+( cd "$d" && make -s check ); sleep 1; echo y > "$d/y.go"; commit y
+ev changed '{"suites": [{"name": "unit", "status": "covered", "reason": "covered by make check", "marker": ".bearing/state/.check-passed", "passed": null, "failed": null, "skipped": null}], "tests": 0, "layers": ["unit"]}'
+assert_exit 1 ap "done" test_run
+assert_contains "$T_OUT" "unit covered by make check, but make check has not passed since: y.go"
+( cd "$d" && make -s check )
+assert_exit 0 ap "done" test_run
+t_end
+
+t_begin "test_run refuses a filtered run and evidence with no selection"
+at test_run; git -C "$d" switch -qc feat/x
+ev changed '{"selection": {"tc": ["TC-0231"]}}'
+assert_exit 1 ap "done" test_run
+assert_contains "$T_OUT" "feat_x-changed.json: a filtered run (tc TC-0231)"
+rm "$(EVF changed)"; ev full '{"selection": {"suite": ["visual"]}}'
+assert_exit 1 ap "done" test_run
+assert_contains "$T_OUT" "feat_x-full.json: a filtered run (suite visual)"
+ev full '{"selection": "__absent__"}'
+assert_exit 1 ap "done" test_run
+assert_contains "$T_OUT" "feat_x-full.json: no \"selection\" key"
+t_end
+
 # verdict <slug> <verdict> <blocking> [touch -t stamp]: branch-review's
 # verdict.txt for HEAD, 3 files; a range with spaces and ... as it may hold.
 verdict() {
@@ -777,16 +802,18 @@ verdict() {
   [ -z "${4:-}" ] || touch -t "$4" "$d/.scratch/review/$1/verdict.txt"
 }
 VF() { printf '%s' "$d/.scratch/review/$1/verdict.txt"; }
+# revat: a fresh run at review on feat/x with one commit of its own.
+revat() { at review; git -C "$d" switch -qc feat/x; echo w > "$d/w.txt"; commit work; }
 
 t_begin "review needs branch-review's verdict, not just a folder"
-at review; git -C "$d" switch -qc feat/x
+revat
 mkdir -p "$d/.scratch/review/empty"
 assert_exit 1 ap "done" review
 assert_contains "$T_OUT" "no .scratch/review/*/verdict.txt (branch-review)"
 t_end
 
 t_begin "review ties each blocking finding to a fix committed after the reviewed commit"
-at review; git -C "$d" switch -qc feat/x
+revat
 verdict r1 "not ready to merge" "1 3"; reviewed="$(git -C "$d" rev-parse HEAD)"
 assert_exit 1 ap "done" review; assert_contains "$T_OUT" "finding 1"
 printf '1 %s\n' "$reviewed" > "$d/.scratch/review/r1/fixed.txt"
@@ -801,33 +828,33 @@ t_end
 
 # Review Focus 4: a merge rule broken with no finding has nothing to tie a fix to
 t_begin "not ready to merge with no blocking finding fails"
-at review; git -C "$d" switch -qc feat/x
+revat
 verdict r2 "not ready to merge" "none"
 assert_exit 1 ap "done" review
 assert_contains "$T_OUT" "not ready to merge with no blocking finding to fix"
 t_end
 
 t_begin "a 0-file review never passes"
-at review; git -C "$d" switch -qc feat/x
+revat
 verdict r3 "ready to merge" "none"; replace_in "$(VF r3)" ", 3 files" ", 0 files"
 assert_exit 1 ap "done" review
 assert_contains "$T_OUT" "0 files"
 t_end
 
 t_begin "ready after its items passes and counts them"
-at review; git -C "$d" switch -qc feat/x
+revat
 verdict r4 "ready after 2 4" "none"
 assert_exit 0 ap "done" review
 assert_contains "$T_OUT" "review of 3 files: ready after 2 items (2 4); 2 confirmed, 0 fixed"
 t_end
 
 t_begin "review reads the newest verdict by mtime, a tie broken by name"
-at review; git -C "$d" switch -qc feat/x
+revat
 verdict r9 "not ready to merge" "1" 202001010000
 verdict r1 "ready to merge" "none" 202101010000
 assert_exit 0 ap "done" review
 assert_contains "$T_OUT" "review of 3 files: ready to merge"
-at review; git -C "$d" switch -qc feat/x
+revat
 verdict r1 "ready to merge" "none" 202101010000
 verdict r9 "not ready to merge" "1" 202101010000
 assert_exit 1 ap "done" review
@@ -835,7 +862,7 @@ assert_contains "$T_OUT" "r9/verdict.txt"; assert_contains "$T_OUT" "finding 1"
 t_end
 
 t_begin "review fails a malformed verdict, a missing findings line and a commit not on the branch"
-at review; git -C "$d" switch -qc feat/x
+revat
 mkdir -p "$d/.scratch/review/r5"; printf 'review: main...feat/x\n' > "$(VF r5)"
 assert_exit 1 ap "done" review
 assert_contains "$T_OUT" ".scratch/review/r5/verdict.txt: no first line"
@@ -845,6 +872,25 @@ assert_contains "$T_OUT" "no findings: line"
 verdict r5 "ready to merge" "none"; replace_in "$(VF r5)" "$(git -C "$d" rev-parse HEAD)" "1111111111111111111111111111111111111111"
 assert_exit 1 ap "done" review
 assert_contains "$T_OUT" "1111111 is not an ancestor of HEAD"
+t_end
+
+t_begin "review refuses a leftover verdict whose commit is on the base branch"
+at review; git -C "$d" switch -qc feat/old; echo o > "$d/o.txt"; commit old
+verdict old "ready to merge" "none"; touch -t 202001010000 "$(VF old)"
+git -C "$d" switch -q main
+git -C "$d" -c user.email=t@e -c user.name=t merge -q --no-ff -m merge feat/old >/dev/null 2>&1
+git -C "$d" switch -qc feat/x; echo w > "$d/w.txt"; commit work
+assert_exit 1 ap "done" review
+assert_contains "$T_OUT" "is on main, not on this branch; review this branch"
+verdict new "ready to merge" "none"
+assert_exit 0 ap "done" review
+t_end
+
+t_begin "review refuses a verdict at the branch point when the branch has no commit of its own"
+at review; git -C "$d" switch -qc feat/x
+verdict r0 "ready to merge" "none"
+assert_exit 1 ap "done" review
+assert_contains "$T_OUT" "is on main, not on this branch"
 t_end
 
 # dodat: a fresh run at dod on feat/x with one committed change and make check passed.
@@ -896,6 +942,26 @@ assert_exit 1 ap "done" dod; assert_contains "$T_OUT" "not run with no decision:
 ap decision test_run.e2e "left to CI job test-e2e" "run locally" "no browser in the sandbox" >/dev/null
 assert_exit 0 ap "done" dod
 assert_contains "$T_OUT" "full run: 0 suites, 0 tests, 0 failed; left to CI: e2e"
+t_end
+
+t_begin "dod accepts only an unfiltered full run, or one that left out unit alone"
+dodat
+ev full '{"except": ["unit"], "selection": {"tc": ["TC-0231"]}}'
+assert_exit 1 ap "done" dod
+assert_contains "$T_OUT" "feat_x-full.json: a filtered run (tc TC-0231) is not the full run"
+ev full '{"selection": {"suite": ["visual"], "tag": ["@P1"]}}'
+assert_exit 1 ap "done" dod; assert_contains "$T_OUT" "a filtered run (suite visual; tag @P1)"
+ev full '{"selection": "__absent__"}'
+assert_exit 1 ap "done" dod; assert_contains "$T_OUT" "no \"selection\" key"
+ev full '{"except": ["unit"], "selection": {"except": ["unit"]}}'
+assert_exit 0 ap "done" dod; assert_contains "$T_OUT" "full run: 1 suites, 4 tests, 0 failed"
+t_end
+
+t_begin "dod fails a full run that ran 0 tests"
+dodat
+ev full '{"except": ["unit"], "suites": [{"name": "e2e", "status": "run", "reason": "", "passed": 0, "failed": 0, "skipped": 0}], "tests": 0}'
+assert_exit 1 ap "done" dod
+assert_contains "$T_OUT" "feat_x-full.json: 0 tests ran in 1 suite(s)"
 t_end
 
 t_begin "the test_run and dod stage text names the docs-only and left-to-CI passes"

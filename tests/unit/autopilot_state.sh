@@ -19,7 +19,7 @@ fullrun() {
   local f
   f="$d/.scratch/test-run/$(git -C "$d" branch --show-current | tr / _)-full.json"
   mkdir -p "$d/.scratch/test-run"
-  printf '{"scope": "full", "sha": "%s", "dirty": false, "base": "", "files": null, "layers": [], "except": ["unit"], "suites": [{"name": "e2e", "status": "run", "reason": "", "passed": 2, "failed": 0, "skipped": 0}], "tests": 2, "failed": 0, "not_run": [], "failures": []}\n' \
+  printf '{"scope": "full", "sha": "%s", "dirty": false, "base": "", "files": null, "layers": [], "except": ["unit"], "suites": [{"name": "e2e", "status": "run", "reason": "", "passed": 2, "failed": 0, "skipped": 0}], "tests": 2, "failed": 0, "not_run": [], "failures": [], "selection": {"except": ["unit"]}}\n' \
     "$(git -C "$d" rev-parse HEAD)" > "$f"
   touch -t 200101010000 "$f"
 }

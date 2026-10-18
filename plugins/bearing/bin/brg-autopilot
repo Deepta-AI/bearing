@@ -120,13 +120,14 @@ STAGES = [
      "profile ui: a review scoring overall 8.0 with no category below 7 and every screenshot present; "
      "otherwise nothing"),
     ("review", "branch-review",
-     "the newest .scratch/review/*/verdict.txt reviews more than 0 files at a commit on this branch, and "
+     "the newest .scratch/review/*/verdict.txt reviews more than 0 files at a commit this branch made (an "
+     "ancestor of HEAD past its merge base with the default branch), and "
      "a 'not ready to merge' verdict has every blocking finding fixed in a later commit listed in fixed.txt"),
     ("dod", "definition-of-done",
      "make check passed after the last change, every change committed on the branch, when the "
      "repository ships something runnable a .scratch/smoke-*.md newer than the last commit with "
-     "'smoke: N requests checked, 0 failed' (N > 0), and a .scratch/test-run/<branch>-full.json with "
-     "0 failed whose sha differs from HEAD only by docs/testing/reports/ (every suite beyond unit left to "
+     "'smoke: N requests checked, 0 failed' (N > 0), and a .scratch/test-run/<branch>-full.json of an "
+     "unfiltered run (selection null or except unit) with more than 0 tests, 0 failed, whose sha differs from HEAD only by docs/testing/reports/ (every suite beyond unit left to "
      "CI by decisions passes; a unit-only repository needs the item 14 n/a)"),
     ("mr", "merge-request, then brg-autopilot report",
      "a merge request description in .scratch/, docs/autopilot/<run>.md committed, nothing pushed"),
@@ -864,7 +865,7 @@ def g_build(d, st):
 # test-run's evidence (skills/test-run/references/runners.md): one file per
 # scope, named from the branch, overwritten by each run; a run that stops
 # before any suite writes none, so a reader compares sha and scope itself.
-EVIDENCE_KEYS = ("scope", "sha", "dirty", "suites", "tests", "failed", "not_run")
+EVIDENCE_KEYS = ("scope", "sha", "dirty", "suites", "tests", "failed", "not_run", "selection")
 UNIT_ONLY = "no suite beyond unit"
 
 
@@ -900,6 +901,18 @@ def evidence(d, scope):
         return None, f"{rel}: scope is {ev['scope']!r}, not {scope!r}"
     ev["_rel"] = rel
     return ev, rel
+
+
+def filtered(ev, allow_except_unit=False):
+    """Why the run was filtered (its --suite, --tag, --tc or --except values),
+    or "" for an unfiltered run: selection null, or {"except": ["unit"]} when
+    the reader is definition-of-done item 14's full run."""
+    sel = ev.get("selection")
+    if sel is None or (allow_except_unit and sel == {"except": ["unit"]}):
+        return ""
+    if not isinstance(sel, dict) or not sel:
+        return repr(sel)
+    return "; ".join(f"{k} {' '.join(map(str, v)) if isinstance(v, list) else v}" for k, v in sel.items())
 
 
 def not_run_split(st, ev):
@@ -938,6 +951,23 @@ def undecided_msg(names):
             f"brg-autopilot decision test_run.<suite> \"left to CI job <job>\" ...)")
 
 
+def committed_since(d, target="check"):
+    """Files the branch changed (merge base with the default branch to HEAD)
+    whose mtime is after the last passing make <target>: a commit made after
+    the check passed. Every file when the marker is missing."""
+    base = base_ref(d)
+    mb = git(d, "merge-base", base, "HEAD") if base else ""
+    if not mb:
+        return []
+    files = [f for f in git(d, "diff", "--name-only", mb, "HEAD").splitlines()
+             if f and os.path.exists(os.path.join(d, f)) and not not_work(d, f)]
+    marker = os.path.join(d, ".bearing", "state", f".{target}-passed")
+    if not os.path.isfile(marker):
+        return files
+    m = os.path.getmtime(marker)
+    return [f for f in files if os.path.getmtime(os.path.join(d, f)) > m]
+
+
 def g_test_run(d, st):
     """test-run --changed on HEAD: at least one suite ran or was covered by a
     make check that still holds, nothing failed, and every suite not run is
@@ -952,6 +982,9 @@ def g_test_run(d, st):
     if ev is None:
         return False, why
     rel = ev["_rel"]
+    sel = filtered(ev, allow_except_unit=ev["scope"] == "full")
+    if sel:
+        return False, f"{rel}: a filtered run ({sel}) is not the run this stage needs; run test-run --changed"
     suites = ev["suites"]
     ran = [s for s in suites if s.get("status") in ("run", "covered")]
     covered = [s for s in ran if s.get("status") == "covered"]
@@ -969,11 +1002,13 @@ def g_test_run(d, st):
         return False, other
     if ev["tests"] == 0 and not covered and not docs_only:
         return False, f"{rel}: 0 tests ran in {len(ran)} suite(s)"
-    if covered:
-        stale = changed_since_check(d)
+    for s in covered:
+        target = "check-changed" if "check-changed" in str(s.get("reason") or "") else "check"
+        stale = changed_since_check(d, target)
+        stale += [f for f in committed_since(d, target) if f not in stale]
         if stale:
-            return False, (f"{', '.join(s.get('name', '?') for s in covered)} covered by make check, but make "
-                           f"check has not passed since: {', '.join(stale[:5])}")
+            return False, (f"{s.get('name', '?')} covered by make {target}, but make "
+                           f"{target} has not passed since: {', '.join(stale[:5])}")
     open_ = not_run_undecided(st, ev)
     if open_:
         return False, f"{rel}: {undecided_msg(open_)}"
@@ -1032,7 +1067,9 @@ def is_ancestor(d, a, b):
 
 def g_review(d, st):
     """The verdict branch-review wrote: a review of more than 0 files, at a
-    commit on this branch; "not ready to merge" passes only when every blocking
+    commit this branch made (an ancestor of HEAD that is not an ancestor of
+    the merge base with any default branch, so a leftover verdict from a
+    merged branch fails); "not ready to merge" passes only when every blocking
     finding has a fix, a commit after the reviewed one, in fixed.txt."""
     v, why = newest_verdict(d)
     if v is None:
@@ -1047,6 +1084,13 @@ def g_review(d, st):
     reviewed = v["sha"]
     if not is_ancestor(d, reviewed, "HEAD"):
         return False, f"{rel}: the reviewed commit {reviewed[:7]} is not an ancestor of HEAD; review this branch"
+    for trunk in TRUNKS:
+        if not git(d, "rev-parse", "-q", "--verify", trunk):
+            continue
+        mb = git(d, "merge-base", trunk, "HEAD")
+        if mb and is_ancestor(d, reviewed, mb):
+            return False, (f"{rel}: the reviewed commit {reviewed[:7]} is on {trunk}, not on this branch; "
+                           f"review this branch")
     fixed = 0
     if v["verdict"] == "not ready to merge":
         if not v["blocking"]:
@@ -1090,6 +1134,10 @@ def full_run(d, st):
             return False, f"no full test-run evidence ({why[len('no file '):]}; definition-of-done item 14)"
         return False, why
     rel = ev["_rel"]
+    sel = filtered(ev, allow_except_unit=True)
+    if sel:
+        return False, (f"{rel}: a filtered run ({sel}) is not the full run; run test-run --except unit "
+                       f"(definition-of-done item 14)")
     exc = ev.get("except")
     if exc not in ([], ["unit"]):
         named = ", ".join(map(str, exc)) if isinstance(exc, list) else repr(exc)
@@ -1116,6 +1164,8 @@ def full_run(d, st):
         return False, f"{rel}: {undecided_msg(open_)}"
     if suites and not ran and not left_to_ci(st, ev):
         return False, f"{rel}: 0 suites ran"
+    if ran and ev["tests"] == 0 and not any(s.get("status") == "covered" for s in ran):
+        return False, f"{rel}: 0 tests ran in {len(ran)} suite(s)"
     if unit_only:
         return True, "full run: 0 suites beyond unit (n/a: make check ran unit)"
     ci = left_to_ci(st, ev)

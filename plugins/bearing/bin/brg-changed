@@ -10,8 +10,10 @@
 # visual none), then "brg-changed: <N> files, layers: ..." . Exit 1 on zero
 # files ("brg-changed: 0 files changed against <base>|the working tree"), on a
 # base that does not resolve, or on a base with no merge base (shallow clone).
-# Callers detect --layers support from that counts line: an older copy of this
-# script ignores the flag and prints plain file names.
+# Outside a repository --layers exits 1 ("brg-changed: not a git repository").
+# Every error line goes to stderr. Callers detect --layers support from the
+# counts line: an older copy of this script ignores the flag and prints plain
+# file names.
 set -u
 root=""; since=""; layers=0; base=""
 while [ $# -gt 0 ]; do
@@ -23,7 +25,12 @@ while [ $# -gt 0 ]; do
     *) shift;;
   esac
 done
-[ -n "$root" ] || root="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 0
+if [ -z "$root" ]; then
+  root="$(git rev-parse --show-toplevel 2>/dev/null)" || {
+    [ "$layers" = 0 ] || { echo "brg-changed: not a git repository" >&2; exit 1; }
+    exit 0
+  }
+fi
 
 # Prints the layers a repository-relative path maps to, first match wins.
 classify() {
@@ -46,11 +53,11 @@ if [ "$layers" = 1 ]; then
   if [ -n "$base" ]; then
     against="$base"
     if ! git -C "$root" rev-parse --verify --quiet "$base^{commit}" >/dev/null 2>&1; then
-      echo "brg-changed: base $base does not resolve"; exit 1
+      echo "brg-changed: base $base does not resolve" >&2; exit 1
     fi
     mb="$(git -C "$root" merge-base "$base" HEAD 2>/dev/null)" || mb=""
     if [ -z "$mb" ]; then
-      echo "brg-changed: base $base has no merge base with HEAD (shallow clone? fetch more history)"; exit 1
+      echo "brg-changed: base $base has no merge base with HEAD (shallow clone? fetch more history)" >&2; exit 1
     fi
   fi
   list="$(
@@ -91,7 +98,7 @@ if [ "$layers" = 1 ]; then
   done
   IFS="$OLDIFS"; set +f
   if [ "$n" -eq 0 ]; then
-    echo "brg-changed: 0 files changed against $against"; exit 1
+    echo "brg-changed: 0 files changed against $against" >&2; exit 1
   fi
   printf '%s' "$out"
   ord=""

@@ -52,11 +52,15 @@ All notable changes to Bearing. Keep a Changelog format, semantic versions.
   the whole release range, and optional `load-test` and
   `resilience-testing` drills.
 - `brg-changed --layers [--base <ref>]` maps a diff to test layers and
-  prints `brg-changed: <N> files, layers: ...`; it exits 1 on zero files.
+  prints `brg-changed: <N> files, layers: ...`; it exits 1 on zero files
+  and outside a repository, with its error line on stderr.
 - test-run has two scopes: `--changed` runs the layers the diff touches,
   and a full run (`--except <suites>`) runs every suite present. Every run
   writes `.scratch/test-run/<branch>-<scope>.json` (the branch with `/` as
-  `_`); a full run also writes `docs/testing/reports/<date>-<branch>.md`
+  `_`), whose `selection` is null when no `--suite`, `--tag`, `--tc` or
+  `--except` narrowed it; a filtered run writes `<branch>-filtered.json`
+  instead (`--except unit` alone still writes `-full.json`), so one test
+  never replaces the full run; a full run also writes `docs/testing/reports/<date>-<branch>.md`
   and `.json`. A suite runs its Makefile target (`test`,
   `test-integration`, `test-e2e`, `test-ui`, `test-visual`,
   `test-e2e-matrix`) when one exists.
@@ -97,7 +101,9 @@ All notable changes to Bearing. Keep a Changelog format, semantic versions.
   (0 layers, files above 0). A suite not run passes only when a
   `test_run.<suite>` decision whose choice starts "left to CI" records it.
 - The autopilot review gate reads the newest `verdict.txt`: 0 files never
-  passes, the reviewed sha must be on the branch, and a "not ready to
+  passes, the reviewed sha must be an ancestor of HEAD made on this branch
+  (past its merge base with the default branch, so a verdict left from a
+  merged branch fails), and a "not ready to
   merge" verdict needs each blocking finding listed as `<n> <sha>` in
   `.scratch/review/<slug>/fixed.txt`, a commit after the reviewed one. A
   review folder with no `verdict.txt` no longer passes.
@@ -107,7 +113,10 @@ All notable changes to Bearing. Keep a Changelog format, semantic versions.
   CI: attended, the user is asked; unattended, only when a CI job runs the
   suite, recorded with
   `brg-autopilot decision test_run.<suite> "left to CI job <job>" ...`.
-  The autopilot dod gate needs `.scratch/test-run/<branch>-full.json`.
+  The autopilot dod gate needs `.scratch/test-run/<branch>-full.json` from
+  an unfiltered run (`selection` null or `{"except": ["unit"]}`) with more
+  than 0 tests. Autopilot calls `branch-review --unattended` and
+  `definition-of-done --unattended`.
 
 ### Notes for existing repositories
 - Add a `## Task paths` table to every `docs/design/flows/*/flows.md`
@@ -132,6 +141,8 @@ All notable changes to Bearing. Keep a Changelog format, semantic versions.
 - Commit the full run's report under `docs/testing/reports/` before the
   merge request; the dod gate accepts a full run followed only by that
   report.
+- Evidence written by test-run before `selection` existed has no
+  `selection` key and fails the test_run and dod gates; run test-run again.
 
 ### Noted
 - impeccable `critique` asks a question at its close, so an unattended run

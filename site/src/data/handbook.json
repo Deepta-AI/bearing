@@ -338,7 +338,7 @@
     "ready to merge?"
    ],
    "invocation": "auto",
-   "args": "[base branch, default: the state file's Base line, else develop, else main]"
+   "args": "[base branch, default: the state file's Base line, else develop, else main] [--unattended]"
   },
   {
    "name": "dependency-audit",

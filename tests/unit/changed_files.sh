@@ -132,6 +132,23 @@ assert_contains "$T_OUT" "no merge base"
 assert_contains "$T_OUT" "basetip"
 t_end
 
+t_begin "layers: outside a repository fails with one stderr line"
+nr="$(tmpdir)"
+assert_exit 1 sh -c 'cd "$1" && bash "$2" --layers' _ "$nr" "$CHANGED"
+assert_contains "$T_OUT" "brg-changed: not a git repository"
+so="$(cd "$nr" && bash "$CHANGED" --layers 2>/dev/null)"
+assert_eq "" "$so"
+t_end
+
+t_begin "layers: every error line goes to stderr, not stdout"
+mkr; put src/a.go; commit_all a
+so="$(L --base nosuch 2>/dev/null)"; assert_eq "" "$so"
+se="$(L --base nosuch 2>&1 >/dev/null)"; assert_contains "$se" "base nosuch does not resolve"
+mkr
+so="$(L --base main 2>/dev/null)"; assert_eq "" "$so"
+se="$(L --base main 2>&1 >/dev/null)"; assert_contains "$se" "0 files changed against main"
+t_end
+
 t_begin "default mode is unchanged by the new flags"
 mkr; put src/a.go
 assert_exit 0 bash "$CHANGED" --root "$R"

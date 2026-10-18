@@ -69,10 +69,11 @@ what is on disk, never from what the model says it did.
 8. After the build: test-automation, the LLM stages when the profile says
    llm, then `test-run --changed` (the test_run stage), and design-critique
    until the bar holds. Detail: references/build-and-after.md
-9. Review is `branch-review`; fix every Critical and High it confirms,
-   record each fix as `<n> <sha>` in `.scratch/review/<slug>/fixed.txt`, then
-   `make check` again; `definition-of-done` includes the smoke run and the full test run. Read references/reviewer-checks.md again before
-   dod. Detail: references/review-smoke-and-mr.md
+9. Review is `branch-review --unattended`; fix every Critical and High it
+   confirms, record each fix as `<n> <sha>` in `.scratch/review/<slug>/fixed.txt`,
+   then `make check` again; `definition-of-done --unattended` includes the
+   smoke run and the full test run. Read references/reviewer-checks.md again
+   before dod. Detail: references/review-smoke-and-mr.md
 10. The mr stage: `merge-request` prepares the description; `report` writes
    `docs/autopilot/<run>.md`; commit it, and let that commit be the last
    write (`git status` clean after it); paste its decisions table into the
