@@ -200,7 +200,7 @@ Expected: passes.
 
 - [ ] **Step 3: Edit the skill**
 
-Inputs: "the fourteen items". Step 3 gains item 14 exactly as spec C1 points 1 to 4 (reuse, run with `make db`/`make migrate` when needed, result rules, CI acceptance with AskUserQuestion and the `CI-accepted:` state line). `allowed-tools` gains `Bash(maestro test:*)`, `Bash(xcodebuild test:*)`, `Bash(./gradlew connectedDebugAndroidTest:*)`, `Bash(bash *bin/brg-changed*)`. Stay at or under 200 lines (174 now).
+Inputs: "the fourteen items". Step 3 gains item 14 exactly as spec C1 points 1 to 4 (reuse, run with `make db`/`make migrate` when needed, result rules, CI acceptance with AskUserQuestion and the `CI-accepted:` state line; the CI hand-off is the user's decision of 2026-10-18). `allowed-tools` gains `Bash(maestro test:*)`, `Bash(xcodebuild test:*)`, `Bash(./gradlew connectedDebugAndroidTest:*)`, `Bash(bash *bin/brg-changed*)`. Stay at or under 200 lines (174 now).
 
 - [ ] **Step 4: Verify**
 

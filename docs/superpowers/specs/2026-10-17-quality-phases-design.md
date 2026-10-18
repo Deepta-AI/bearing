@@ -7,7 +7,9 @@ flight; section F says how the two merge.
 
 The user skipped the brainstorming questions. Every choice below that is
 not quoted from the user is marked **author's call**. Facts about the
-repository are cited by path.
+repository are cited by path. Decided by the user on 2026-10-18: item 14
+of definition of done may leave a suite that cannot run locally to a named
+CI job, after one AskUserQuestion, recorded in the state file.
 
 ## Intent
 
@@ -316,8 +318,9 @@ call). The list line in Inputs says "fourteen items".
    `n/a: no suite beyond unit (make check ran them)` when unit is the only
    suite; otherwise `fail`, naming each failed test (file:line) or each
    suite not run with its reason.
-4. A suite that cannot run on this machine (no device, no simulator on
-   Linux, no Docker) may be left to CI only when a CI job in
+4. The user's decision (2026-10-18): a suite that cannot run on this
+   machine (no device, no simulator on Linux, no Docker) may be left to CI
+   only when a CI job in
    `.gitlab-ci.yml` or `.github/workflows/` runs it. Ask once with
    AskUserQuestion: "Leave <suite> to CI job <job>" (recommended) or "I
    will start what it needs and rerun". The accepted answer is recorded in
@@ -362,7 +365,8 @@ before `design_review`. Skill: `test-run --changed`. Gate `g_test_run`:
 
 Headless runs cannot start browsers or Docker in every sandbox; the skill
 records `decision test_run.<suite> "left to CI job <job>"` for a suite it
-cannot start, which the digest lists for the engineer (author's call).
+cannot start, which the digest lists for the engineer (the user's decision
+of 2026-10-18; the recording mechanism is the author's call).
 
 **D2. `g_review` reads the verdict.** The newest
 `.scratch/review/*/verdict.txt` by mtime; none: `no .scratch/review/*/verdict.txt (branch-review)`.
@@ -481,7 +485,7 @@ then rebase this branch.
 8. Inherited flow unchanged.
 9. Definition of done item 14 is appended, skips unit, reuses a run on the
    same HEAD, and lets a suite go to CI only with an existing CI job and an
-   explicit answer.
+   explicit answer (the CI hand-off is the user's decision of 2026-10-18).
 10. Review writes `verdict.txt`; autopilot does not re-review after fixes
     but needs a fixing commit per blocking finding.
 11. Autopilot gets a `test_run` stage after `test_automation`; the stage
