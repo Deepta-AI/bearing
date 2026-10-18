@@ -15,7 +15,7 @@ budget. Sizes are in tokens of the embedding model, not characters.
 | Tables, CSV | rows, with the header repeated | 20 to 50 rows | 0 | one chunk per logical group; the caption chunk holds title, caption and header, never the rows |
 | PDF with layout | page, then blocks | 400 to 600 | 50 | store page number; OCR quality decides everything |
 | Chat and tickets | thread, then message groups | 300 to 500 | 0 | keep the question with its answer |
-| Slides | one slide | whole slide | 0 | caption images with `claude-sonnet-5` |
+| Slides | one slide | whole slide | 0 | caption images with `claude-sonnet-5-5` |
 | Images and diagrams | one image | caption | 0 | chunk text is the caption plus any extracted labels |
 
 ## Rules

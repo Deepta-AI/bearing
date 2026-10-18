@@ -11,10 +11,10 @@ golden set.
 | `hybrid` | corpus with codes, names, jargon, or mixed languages | rank fusion hides a strong lexical hit behind weak vector hits when weights are untuned | naive plus a `tsvector` column and one more query; negligible |
 | `reranked` | top 20 usually contain the answer but the top 5 do not | reranker latency (50 to 300 ms per query) on a tight SLO; reranker trained on a different domain | hybrid plus a cross-encoder call or a `claude-haiku-4-5` judge over 20 candidates |
 | `hierarchical` | long documents where a chunk needs its surrounding section; legal, manuals, contracts | parent chunks blow the context budget; the same parent returned five times | storage roughly doubles (child and parent); retrieval cost as hybrid |
-| `graph` | multi-hop questions over entities and relations ("who approved the vendor that supplied X") | entity extraction errors compound; the graph goes stale when documents change | extraction pass with `claude-sonnet-5` over every document at ingest; a relations table in Postgres |
-| `agentic` | questions that need planning, several lookups, or a tool (search, SQL, calendar) | loops that never converge; cost per question 5 to 20 times naive; harder to evaluate | `claude-opus-5` for planning, cheaper model for sub-queries; cap the iterations |
+| `graph` | multi-hop questions over entities and relations ("who approved the vendor that supplied X") | entity extraction errors compound; the graph goes stale when documents change | extraction pass with `claude-sonnet-5-5` over every document at ingest; a relations table in Postgres |
+| `agentic` | questions that need planning, several lookups, or a tool (search, SQL, calendar) | loops that never converge; cost per question 5 to 20 times naive; harder to evaluate | `claude-opus-5-5` for planning, cheaper model for sub-queries; cap the iterations |
 | `sql` | questions answerable from a relational schema ("how many orders in March") | hallucinated columns; unbounded scans; writes | one model call per question plus one query; schema summary is cached |
-| `multimodal` | images, diagrams, tables with meaning outside the text | captions lose numbers; table cells split across chunks | a captioning pass with `claude-sonnet-5` at ingest; chunks carry the image reference |
+| `multimodal` | images, diagrams, tables with meaning outside the text | captions lose numbers; table cells split across chunks | a captioning pass with `claude-sonnet-5-5` at ingest; chunks carry the image reference |
 
 ## Decision order
 
@@ -38,8 +38,8 @@ golden set.
 - Cache TTL is 5 minutes by default. A corpus queried every hour pays a
   cache write per query and gains nothing; the type still holds when
   the corpus is small, it just costs full price.
-- Use `claude-opus-5` with `thinking: {type: "adaptive"}` (omit the
-  parameter; it is on by default). Sonnet 5 when the questions are
+- Use `claude-opus-5-5` with `thinking: {type: "adaptive"}` (omit the
+  parameter; it is on by default). Sonnet 5.5 when the questions are
   lookups rather than synthesis. Both have a 1M context window.
 
 ## SQL notes

@@ -26,7 +26,7 @@ cheaper type rejected goes in the ADR with the named failure.
 ### planner-executor
 - Fails by executing a stale plan after a step changed the world.
   Re-plan when a step returns something the plan did not expect.
-- Cost: 1 plan call (Opus 5 or Fable 5.1) plus N step calls (Sonnet 5).
+- Cost: 1 plan call (Opus 5.5 or Fable 5.1) plus N step calls (Sonnet 5.5).
 - Build: plan as structured output (`output_config.format`), steps as
   tool-user runs with the step as the task.
 
@@ -42,8 +42,8 @@ cheaper type rejected goes in the ADR with the named failure.
 - Fails by specialists disagreeing and the coordinator averaging, or
   by unbounded delegation depth. Cap depth at 2; the coordinator
   merges by a rule, not by a vibe.
-- Cost: 3 to 10 times a tool-user. Coordinator on Opus 5 or Fable 5.1,
-  specialists on Sonnet 5 where the eval allows.
+- Cost: 3 to 10 times a tool-user. Coordinator on Opus 5.5 or Fable 5.1,
+  specialists on Sonnet 5.5 where the eval allows.
 - Build: specialists are tool-user agents exposed to the coordinator as
   tools with their own tier (the highest tier of their tools).
 

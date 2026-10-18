@@ -40,8 +40,8 @@ PEFT unless stated; Axolotl runs the same recipes from a YAML file.
 
 ## Distillation from Claude (cost)
 
-- Teacher: `claude-opus-5` for the response quality the product needs;
-  `claude-sonnet-5` when the task is narrow (classification, extraction)
+- Teacher: `claude-opus-5-5` for the response quality the product needs;
+  `claude-sonnet-5-5` when the task is narrow (classification, extraction)
   and the eval shows no gap between the two.
 - Prompts: real traffic with PII removed, deduplicated, stratified by
   the tags the eval uses. Generate teacher responses through the

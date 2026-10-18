@@ -58,9 +58,9 @@ gate that fails when the number drops.
 3. Graders from `templates/graders.md`, in `evals/<name>/graders.py`
    (or `.ts`). Deterministic first (exact, normalised match, F1, JSON
    schema, end-state check). LLM judge only where the output is prose:
-   judge model stronger than the model under test (`claude-opus-5`
-   judging Sonnet 5 or Haiku 4.5; `claude-fable-5-1` or a pairwise judge
-   with randomised order when Opus 5 is under test), rubric as
+   judge model stronger than the model under test (`claude-opus-5-5`
+   judging Sonnet 5.5 or Haiku 4.5; `claude-fable-5-1` or a pairwise judge
+   with randomised order when Opus 5.5 is under test), rubric as
    checkable claims, structured output for the verdict. Pairwise for
    style questions. Test each grader with an oracle (the expected
    answer scores full) and a null (empty output scores zero).

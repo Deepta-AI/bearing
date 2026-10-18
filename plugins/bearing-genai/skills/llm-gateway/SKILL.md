@@ -59,8 +59,8 @@ bearing plugin).
    `openai_compatible` for a served open model (`llm-fine-tuning`).
 4. Routing in `llm/routing.yaml` from `templates/routing.yaml`: tiers
    `fast` (`claude-haiku-4-5`: classification, routing, short
-   extraction), `balanced` (`claude-sonnet-5`: bulk generation, RAG
-   answers, judges of short outputs) and `deep` (`claude-opus-5`, the
+   extraction), `balanced` (`claude-sonnet-5-5`: bulk generation, RAG
+   answers, judges of short outputs) and `deep` (`claude-opus-5-5`, the
    default: reasoning, planning, anything a user reads). Each route
    names a feature, a tier, `effort`, `max_tokens`, `timeout_s`,
    `cacheable`, `fallback`, `enabled`, `canary`. The schema is
@@ -149,9 +149,10 @@ access: <llm_access_check.py llm-access line, verbatim>
 - Prompt cache is a prefix match. A timestamp or request id in the
   system prompt makes every call a cache write at 1.25x.
 - Idempotency keys are per tenant; one key from two tenants is two requests.
-- Thinking is on by default on Opus 5 and Fable 5.1; `budget_tokens`
-  and sampling parameters return 400. Control depth with
-  `output_config.effort`, per route.
+- Opus 5.5 and Sonnet 5.5 reject `budget_tokens` and sampling parameters;
+  Sonnet 5.5 also rejects `thinking: disabled` (use `between_tools`).
+  Control depth with `output_config.effort` per route; Haiku 4.5 takes
+  none.
 - Streaming is required above about 16K `max_tokens`; the route decides it.
 - A demo that works on the developer's machine and fails on the day is
   almost always a key: the laptop had `ANTHROPIC_API_KEY` from another

@@ -4,13 +4,13 @@
   "skills": 107,
   "commandSkills": 0,
   "stackSkills": 12,
-  "scripts": 94,
-  "scriptLines": 30489,
+  "scripts": 95,
+  "scriptLines": 30568,
   "hooks": 8,
   "agents": 8,
-  "makeTargets": 31,
-  "gates": 18,
-  "tests": 103,
+  "makeTargets": 32,
+  "gates": 19,
+  "tests": 104,
   "fixtures": 25,
   "stacks": 13,
   "templates": 38,
@@ -4989,7 +4989,7 @@
     },
     {
      "path": "references/decision-tree.md",
-     "lines": 117
+     "lines": 122
     },
     {
      "path": "templates/solution.md",
@@ -6922,7 +6922,7 @@
    ],
    "steps": [
     "Type from `$1`, name from `$2`, stack from `$3` or from `pyproject.toml` versus `package.json`. Read `references/agent-types.md`; refuse a type not in it. Load the `claude-api` skill for the current model ids and SDK shapes; do not write a model call from memory. Read the stories the agent serves, or the Inputs answers, and write, in one paragraph each: the goal, the stop condition, the user who is present (or not),…",
-    "Model: `claude-opus-5` by default; `claude-fable-5-1` for long-horizon or hard-reasoning work; `claude-sonnet-5` for a `router` or a high-volume `background` agent; `claude-haiku-4-5` for the classify step of a router. Thinking adaptive, `effort` per type from the reference. Say in the ADR why a smaller model was or was not enough.",
+    "Model: `claude-opus-5-5` by default; `claude-fable-5-1` for long-horizon or hard-reasoning work; `claude-sonnet-5-5` for a `router` or a high-volume `background` agent; `claude-haiku-4-5` for the classify step of a router. Thinking adaptive, `effort` per type from the reference. Say in the ADR why a smaller model was or was not enough.",
     "Tool registry from `templates/tool-registry.md`: for every tool a name, a description written for a model reader, a strict input schema (`additionalProperties: false`, every field required or defaulted), a permission tier (`read`, `write`, `irreversible`), a timeout, an idempotency flag, and a handler. Write the registry test from the same template's Test section; it counts the tools sent, the registry entries and t…",
     "Loop from `templates/agent-python.md` or `templates/agent-typescript.md`: the SDK tool runner by default, a manual loop only for the `workflow` type. Bounds: `max_turns`, `max_cost_usd` computed from `usage` per call, a per-call timeout, a wall-clock limit. Handle every stop reason: `end_turn`, `tool_use`, `max_tokens` (retry once with a larger budget), `pause_turn` (resume), `refusal` (log and stop). Kill switch: a…",
     "Memory: conversation window in turns; summarise beyond it with server-side compaction or a summariser call; long-term store only when a story names it, with an ADR for the store.",
@@ -7034,7 +7034,7 @@
    "steps": [
     "Name from `$1`; task class from `--task` or inferred from the solution doc (`docs/design/<name>-hld.md` or the PRD). Read the success criteria there. Zero criteria: ask the Inputs question, propose a metric from the class below, and continue. Map each to a metric: - classification: accuracy, macro F1, per-class recall - extraction: field-level F1 against a labelled record - generation: rubric score (0 to 3 per crite…",
     "Golden set in `evals/<name>/cases.jsonl` from `templates/cases.jsonl`. Minimum size: 50 for classification and extraction, 30 for generation with a rubric, 20 trajectories for agents. Source from real inputs with PII removed, then owner-written cases, then synthetic (marked `source: synthetic`). Every case has `expected` or `rubric` filled by a person, `labelled_by` and `labelled_at`. Count cases with labels; it mus…",
-    "Graders from `templates/graders.md`, in `evals/<name>/graders.py` (or `.ts`). Deterministic first (exact, normalised match, F1, JSON schema, end-state check). LLM judge only where the output is prose: judge model stronger than the model under test (`claude-opus-5` judging Sonnet 5 or Haiku 4.5; `claude-fable-5-1` or a pairwise judge with randomised order when Opus 5 is under test), rubric as checkable claims, struct…",
+    "Graders from `templates/graders.md`, in `evals/<name>/graders.py` (or `.ts`). Deterministic first (exact, normalised match, F1, JSON schema, end-state check). LLM judge only where the output is prose: judge model stronger than the model under test (`claude-opus-5-5` judging Sonnet 5.5 or Haiku 4.5; `claude-fable-5-1` or a pairwise judge with randomised order when Opus 5.5 is under test), rubric as checkable claims,…",
     "Harness: `evals/<name>/run.py` (or `.ts`) behind `make eval EVAL=<name>` when a Makefile exists, else run directly. It runs every case through the real entry point (the gateway when present), records per case: output, grade, `model` from the response, `usage`, latency, judge usage; writes `evals/<name>/results/<version>.jsonl` and a summary with score, cost per run, p95 latency, truncated count. `version` is the git…",
     "Baseline: the last file in `results/` with `accepted: true` in its summary. A run prints the delta against it. Accepting a new baseline is a deliberate edit by a person, recorded in the summary.",
     "Regression gate: CI job `eval-<name>` (in the pipeline when one exists, else printed for the user; `bearing:ci-pipeline` adds it) runs the harness on a stated subset when the full set costs over 5 USD and fails when score drops below baseline by more than the delta in `evals/<name>/gate.yaml` (default 0.02 absolute). It needs the API key as a CI variable; say so under Not done if it is missing.",
@@ -7134,7 +7134,7 @@
    ],
    "steps": [
     "Name from `$1`, goal from `$2` or asked. Read `docs/genai/evals.md` for `<name>`. No eval, or no accepted baseline: the Inputs fallback (ask, else the minimal path). Training without a number to beat is not allowed, so the minimal run happens before step 2.",
-    "The decision, written as an ADR (`bearing:adr Train <name> with <recipe>`, or a file in `docs/adr/`) with the evidence table: score with the current prompt, with the prompt tuned (`prompt-registry`), with RAG (`rag`), with `claude-opus-5` at higher effort, and the cost per 1K requests of each. Training is justified when the best of those misses the target, or hits it at a cost per request the product cannot carry. S…",
+    "The decision, written as an ADR (`bearing:adr Train <name> with <recipe>`, or a file in `docs/adr/`) with the evidence table: score with the current prompt, with the prompt tuned (`prompt-registry`), with RAG (`rag`), with `claude-opus-5-5` at higher effort, and the cost per 1K requests of each. Training is justified when the best of those misses the target, or hits it at a cost per request the product cannot carry.…",
     "Data. Collection sources (logs with consent, owner-written, the teacher model for distillation), the labelling guide (`docs/genai/labelling-<name>.md`: one page, three worked examples, the edge cases), PII removal with a named function and a test, exact and near-duplicate removal (hash, then MinHash at 0.85), and a split of 80/10/10 into train, validation and test with no document shared across splits. Format is cha…",
     "Run plan in `docs/genai/training-<name>.md`: base model (current open families: Qwen3, Llama 4, Gemma 3; pick the size the serving budget allows and name the exact checkpoint), toolchain (Hugging Face TRL with PEFT by default: plain Python, testable, one file per recipe; Axolotl when the team already runs it and wants YAML-driven multi-GPU jobs), hyperparameters with the defaults from the recipe, compute estimate (t…",
     "Hardware and smoke run. Run `python3 \"${CLAUDE_PLUGIN_ROOT}/skills/llm-fine-tuning/scripts/gpu_check.py\" --params-b <p> --method <lora|qlora|full>` and copy its `gpu-check:` line; when it does not fit, pick QLoRA, a smaller base, or name the cloud GPU in the plan. Then `uv run train_sft.py --smoke` (20 steps on 64 examples; the tiny base on CPU when there is no GPU). It must finish, save an adapter and report an eva…",
@@ -7247,7 +7247,7 @@
     },
     {
      "title": "Gotchas",
-     "lines": 18
+     "lines": 19
     }
    ],
    "inputs": [
@@ -7260,7 +7260,7 @@
     "Stack from `--stack` or the repo (`pyproject.toml` or `package.json`). Both present: one gateway per service, same interface.",
     "Audit call sites with the call-site gate: `python3 \"${CLAUDE_PLUGIN_ROOT}/skills/llm-gateway/scripts/llm_callsites_check.py\" .` It counts every Anthropic client, call, SDK import and endpoint and the other providers (`openai`, `google.genai`, `mistralai`, `cohere`, `ollama`) from the code, and prints an `outside:` line per call site outside `llm/`. Here its exit code is the inventory, not the gate: before the gatewa…",
     "Write `llm/gateway.py` from `templates/gateway-python.md` or `src/llm/gateway.ts` from `templates/gateway-typescript.md`. The interface: `complete(req: LLMRequest) -> LLMResponse`, `stream(req)`, and `parse(req, schema)`. `LLMRequest` carries `feature`, `tenant_id`, `tier`, `system`, `messages`, `tools`, `max_tokens`, `idempotency_key`. Providers implement `Provider.complete`; Anthropic is the first, others sit behi…",
-    "Routing in `llm/routing.yaml` from `templates/routing.yaml`: tiers `fast` (`claude-haiku-4-5`: classification, routing, short extraction), `balanced` (`claude-sonnet-5`: bulk generation, RAG answers, judges of short outputs) and `deep` (`claude-opus-5`, the default: reasoning, planning, anything a user reads). Each route names a feature, a tier, `effort`, `max_tokens`, `timeout_s`, `cacheable`, `fallback`, `enabled`…",
+    "Routing in `llm/routing.yaml` from `templates/routing.yaml`: tiers `fast` (`claude-haiku-4-5`: classification, routing, short extraction), `balanced` (`claude-sonnet-5-5`: bulk generation, RAG answers, judges of short outputs) and `deep` (`claude-opus-5-5`, the default: reasoning, planning, anything a user reads). Each route names a feature, a tier, `effort`, `max_tokens`, `timeout_s`, `cacheable`, `fallback`, `enab…",
     "Resilience. Retries: the SDK's `max_retries` (default 2, backoff on 408, 409, 429, 5xx) plus one gateway retry on 529 with jitter; never retry a 400. Idempotency: a client-supplied key stores the completed response for 24 hours so a retried request through the gateway is not billed twice. Timeouts per route (Python seconds, TypeScript milliseconds). Rate limit per tenant with a token bucket keyed by `tenant_id` and…",
     "Caching. Response cache: only routes with `cacheable: true` (deterministic task, no tools, no time-dependent content) keyed by a hash of model, system, messages and schema; current Claude models reject sampling parameters, so cacheability is a route property, not `temperature: 0`. Prompt caching: `cache_control` on the system block and the tool list for prompts over the model's minimum cacheable prefix; assert `cach…",
     "Accounting and observability. Every call writes one record: tenant, feature, model from the response, tier, input, output, cache read and cache write tokens, cost in USD from the price table in `routing.yaml`, latency, status, `stop_reason`, `request_id`. To ClickHouse `llm_calls` when the repo has it, else a structured log line. One span per call with the GenAI attributes (`gen_ai.operation.name`, `gen_ai.provider.…",
@@ -7275,7 +7275,7 @@
     "Take `model` and cost from the response, not the config. A provider fallback or a canary route that did not take is invisible otherwise.",
     "Prompt cache is a prefix match. A timestamp or request id in the system prompt makes every call a cache write at 1.25x.",
     "Idempotency keys are per tenant; one key from two tenants is two requests.",
-    "Thinking is on by default on Opus 5 and Fable 5.1; `budget_tokens` and sampling parameters return 400. Control depth with `output_config.effort`, per route.",
+    "Opus 5.5 and Sonnet 5.5 reject `budget_tokens` and sampling parameters; Sonnet 5.5 also rejects `thinking: disabled` (use `between_tools`). Control depth with `output_config.effort` per route; Haiku 4.5 takes none.",
     "Streaming is required above about 16K `max_tokens`; the route decides it.",
     "A demo that works on the developer's machine and fails on the day is almost always a key: the laptop had `ANTHROPIC_API_KEY` from another project. Run the access check in the environment that will serve.",
     "Never log bodies in production by default. `LOG_LLM_BODIES` is a debugging toggle with a redactor in front, not a feature.",
@@ -7283,11 +7283,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 162,
+   "lines": 163,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 162
+     "lines": 163
     },
     {
      "path": "scripts/llm_access_check.py",
@@ -7299,15 +7299,15 @@
     },
     {
      "path": "templates/gateway-python.md",
-     "lines": 195
+     "lines": 199
     },
     {
      "path": "templates/gateway-typescript.md",
-     "lines": 143
+     "lines": 145
     },
     {
      "path": "templates/routing.yaml",
-     "lines": 109
+     "lines": 110
     }
    ],
    "groups": {
@@ -10172,7 +10172,7 @@
     "Delimit every user-supplied variable and say in the prompt that text inside the delimiters is data. That is the first injection defence.",
     "Changing the model without a new version is a version. The score belongs to the pair (prompt text, model), not to the text alone, and not to code that edits the output afterwards: a post-call correction is scored and reported separately, as a change to what the function returns, with its own test.",
     "A stable prompt goes first in `system` with `cache_control`; the variables go after the cache breakpoint or in the user turn.",
-    "Fable 5.1 and Opus 5 do best with fewer prescriptive lines. A prompt written for an older model often reads as too many rules; cut before adding.",
+    "Fable 5.1 and Opus 5.5 do best with fewer prescriptive lines. A prompt written for an older model often reads as too many rules; cut before adding.",
     "No em dashes in prompts either; they leak into the model's output.",
     "The wording review belongs to `claude-api`'s `prompt-audit`; the registry, versions, render tests and scores belong here. An audit finding becomes a new version with a new score, never an edit in place, and a finding that lowers the score is reverted."
    ],
@@ -10715,7 +10715,7 @@
     "Embedding ADR (`bearing:adr`, or a file in `docs/adr/` in that shape). Anthropic has no embedding endpoint; the options are Voyage AI (Anthropic's recommended partner, hosted, per-token cost) or an open model served locally (bge-m3, multilingual-e5-large, no per-call cost, needs a GPU or patience). Record model id, dimensions, max input tokens, whether queries and documents use different prefixes, and the cost per m…",
     "Schema from `templates/schema.sql`: `documents` with `version` and `content_hash`, `chunks` with span offsets, a `vector(<dims>)` column, a generated `tsvector` for hybrid, and an HNSW index with `m` and `ef_construction` stated. Apply with `bearing:db-migration <name>_rag`, else the repo's migration tool, else hand the SQL file to the user. Qdrant only when an ADR shows pgvector cannot hold the load (over about 10M…",
     "Ingestion from `templates/ingest.md`: parse, split, embed in batches, upsert keyed by `(source_uri, content_hash)`. A re-run over an unchanged corpus writes zero rows. A changed document gets a new version; the old chunks are hidden from retrieval, then deleted by a job. Metadata (title, section, page, tenant, updated_at) travels with every chunk. `make ingest` runs it when a Makefile exists, else the native command…",
-    "Retrieval API from `templates/retriever.md`: `retrieve(query, k, filters) -> [Hit]`, every `Hit` carrying `document_id`, `chunk_id`, `span`, `score`, `source_uri`. Hybrid fuses BM25 and vector ranks with reciprocal rank fusion (`k=60`); reranked adds a cross-encoder or a `claude-haiku-4-5` pointwise judge over the top 20; agentic plans sub-queries with `claude-opus-5` and loops at most 3 times; sql validates every g…",
+    "Retrieval API from `templates/retriever.md`: `retrieve(query, k, filters) -> [Hit]`, every `Hit` carrying `document_id`, `chunk_id`, `span`, `score`, `source_uri`. Hybrid fuses BM25 and vector ranks with reciprocal rank fusion (`k=60`); reranked adds a cross-encoder or a `claude-haiku-4-5` pointwise judge over the top 20; agentic plans sub-queries with `claude-opus-5-5` and loops at most 3 times; sql validates every…",
     "Generation: the answer prompt cites `[doc:chunk]` per claim and answers \"not in the documents\" when the hits are empty or below the score floor. Set the floor from the golden set: print the top score of every answerable and every unanswerable question and pick the value that separates them. When no value does, say so, leave the floor off, and let a deterministic check reject an answer that cites no hit or a chunk it…",
     "Golden set: at least 30 questions from real users or the corpus owner, each with the chunk ids that answer it, in `evals/<name>/retrieval.jsonl` from `templates/eval-set.jsonl`; fewer than 30 is a `seed` set and the report says so. Compute recall@5, recall@10 and MRR per `references/retrieval-eval.md` with `make eval-retrieval`, else the eval script directly. Answer faithfulness and relevance are `llm-eval <name>`'s…",
     "Report in the AGENTS.md shape."
@@ -15896,6 +15896,20 @@
    ]
   },
   {
+   "path": "bin/lint-model-ids.py",
+   "name": "lint-model-ids.py",
+   "lang": "python",
+   "group": "quality",
+   "lines": 79,
+   "header": "lint-model-ids: every Claude model id named under plugins/ is listed in\nbin/model-ids.txt (default|<id>|<tier> or option|<id>|<why>). An id is a whole\ntoken: claude-(opus|sonnet|haiku|fable|mythos)-N(-N)*, so a dated snapshot is\none id. Reads files from git ls-files -co --exclude-standard when the root is\na git work tree, else walks plugins/. Skips binary files. Prints the count of\nfiles scanned and ids found; exit 1 on an unknown id, exit 2 when nothing was\nchecked (no files, or no ids listed).\nUsage: lint-model-ids.py [repository root]",
+   "functions": [
+    "nothing",
+    "files_of"
+   ],
+   "env": [],
+   "calls": []
+  },
+  {
    "path": "bin/lint-plugin-size.py",
    "name": "lint-plugin-size.py",
    "lang": "python",
@@ -17596,6 +17610,11 @@
    "inCheck": true
   },
   {
+   "name": "lint-model-ids",
+   "does": "Every Claude model id under plugins/ is listed in bin/model-ids.txt (the claude-api skill's ids); prints files scanned and ids found, fails on zero files",
+   "inCheck": true
+  },
+  {
    "name": "lint-plugin-size",
    "does": "Each plugin folder holds under 512 files and no non-image, non-font file of 256 KiB or more (the plugin directory's limits); prints the count per plugin",
    "inCheck": true
@@ -17674,6 +17693,7 @@
   "lint-budget",
   "lint-templates",
   "lint-plugin-size",
+  "lint-model-ids",
   "test"
  ],
  "ciHeader": "Bearing pipeline.\n\n  kit:check        everything `make check` runs except validate: `claude\n                   plugin validate` needs the Claude CLI, which the shared\n                   runners do not have. Run `make validate` locally before\n                   tagging a release.\n  kit:scaffold:*   each stack template scaffolded with\n                   plugins/bearing/bin/brg-scaffold, then `make setup &&\n                   make check` inside the result, in that stack's own\n                   image. This is the full gate the\n                   tests skip (tests/integration/scaffold_each_stack.sh\n                   proves the templates; this proves the toolchains).\n  kit:bash32       plugins/bearing/bin/brg-guard, the CLI --help paths and\n                   the unit tests under bash 3.2, the macOS default, in\n                   the bash:3.2 image.\n  kit:macos        BSD sed, BSD stat and the stock bash on a real Mac. It\n                   cannot run on the shared Linux runners: it needs a\n                   runner tagged macos, so it is gated on BEARING_MACOS_RUNNER\n                   (set it to \"true\" once one is registered). Until then\n                   the GitHub workflow's macos-latest job covers the same\n                   ground.\n  site:build       the handbook site builds (merge requests that touch it)\n  pages            the handbook site on GitLab Pages, where the host serves\n                   Pages (a self-managed GitLab may not).\n  handbook:vercel  the same site on Vercel, public and indexable.\n                   Runs on main only when VERCEL_TOKEN, VERCEL_ORG_ID and\n                   VERCEL_PROJECT_ID are set as masked CI/CD variables.\n  devguide:build   the developer guide (devguide/, how Bearing works\n                   inside) builds (merge requests that touch it)\n  devguide:vercel  the developer guide on its own Vercel project, public\n                   like the handbook. Runs on main\n                   only when VERCEL_TOKEN, VERCEL_ORG_ID and\n                   VERCEL_DEVGUIDE_PROJECT_ID are set. DEVGUIDE_REPO_URL\n                   (optional) is the repository's web URL; when set, the\n                   guide links every source file it names.\n\nA daily pipeline schedule on main (Build > Pipeline schedules) runs\nkit:check, kit:bash32 and every kit:scaffold job, and nothing that\ndeploys. The scaffold resolves each stack's dependencies fresh, so a bad\nupstream release (SQLAlchemy 2.1.0 on 24 Sep 2026, an sdist uv could not\nparse) fails here the next morning instead of in the next new repository.",
@@ -18297,6 +18317,13 @@
    "lines": 128,
    "header": "tests/unit/load_env.sh: the KEY=value parser that reads ~/.config/bearing/bearing.env. One copy of it lives in each script that needs it (brg-tracker, brg-jira, brg-gitlab, brg-github, brg-scaffold, brg-adopt, and load_kv in brg-rest), so the test first proves the copies are identical, then exercises the parser extracted from brg-tracker directly (quoted values, an inline # comment, a # kept inside quotes, CRLF lines, no trailing newline, environment precedence, an absent file, a value holding =), then the same cases end to end through brg-tracker config and the doctor's own BEARING_TRACKER r…",
    "asserts": 41
+  },
+  {
+   "path": "tests/unit/model_ids.sh",
+   "kind": "unit",
+   "lines": 42,
+   "header": "tests/unit/model_ids.sh: lint-model-ids holds every Claude id under plugins/ to bin/model-ids.txt (the claude-api skill's current and still-active ids).",
+   "asserts": 15
   },
   {
    "path": "tests/unit/motion_check.sh",

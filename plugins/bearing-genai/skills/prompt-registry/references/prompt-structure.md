@@ -80,14 +80,14 @@ input:
 
 ```
 name: <prompt name>          version: N          status: draft|active|retired
-model: claude-opus-5         effort: medium      max_tokens: 4096
+model: claude-opus-5-5         effort: medium      max_tokens: 4096
 owner: <team or person>      eval_set: evals/<name>/cases.jsonl
 variables:
   - {name: invoice_text, type: string, required: true, max_chars: 20000}
   - {name: locale, type: string, required: false, enum: [en-IN, en-GB]}
 ```
 
-Model choice: `claude-opus-5` by default; `claude-sonnet-5` for volume
+Model choice: `claude-opus-5-5` by default; `claude-sonnet-5-5` for volume
 transforms and extraction; `claude-haiku-4-5` for classification and
 routing when the eval set passes on it; `claude-fable-5-1` for the
 hardest reasoning, where the prompt should be shorter and less

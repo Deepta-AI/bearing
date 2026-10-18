@@ -4,12 +4,12 @@
 SHELL := /bin/bash
 KITP := plugins/bearing
 .DEFAULT_GOAL := help
-.PHONY: help hooks gate ci-bash32 site devguide wiki check check-file validate lint-skills lint-tools lint-skill-size lint-questions lint-evals lint-triggers lint-neutral lint-docs lint-json lint-shell lint-portable lint-prose lint-version lint-budget lint-templates lint-plugin-size test install doctor docs harness-eval trigger-eval
+.PHONY: help hooks gate ci-bash32 site devguide wiki check check-file validate lint-skills lint-tools lint-skill-size lint-questions lint-evals lint-triggers lint-neutral lint-docs lint-json lint-shell lint-portable lint-prose lint-version lint-budget lint-templates lint-plugin-size lint-model-ids test install doctor docs harness-eval trigger-eval
 
 help: ## List targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-14s %s\n", $$1, $$2}'
 
-check: validate lint-skills lint-skill-size lint-questions lint-tools lint-evals lint-triggers lint-json lint-shell lint-portable lint-prose lint-docs lint-neutral lint-version lint-budget lint-templates lint-plugin-size test ## The gate for this repository
+check: validate lint-skills lint-skill-size lint-questions lint-tools lint-evals lint-triggers lint-json lint-shell lint-portable lint-prose lint-docs lint-neutral lint-version lint-budget lint-templates lint-plugin-size lint-model-ids test ## The gate for this repository
 	@echo "check: passed"
 
 validate: ## claude plugin validate --strict: the marketplace, then each plugin, its skills and (bearing) its agents
@@ -165,6 +165,9 @@ lint-budget: ## What every session loads stays small: AGENTS.md, CLAUDE.md and t
 
 lint-version: ## VERSION matches every plugin.json, the marketplace metadata and every marketplace entry (the four plugins move in lockstep)
 	@python3 bin/lint-version.py
+
+lint-model-ids: ## Every Claude model id under plugins/ is listed in bin/model-ids.txt (the claude-api skill's ids); prints files scanned and ids found, fails on zero files
+	@python3 bin/lint-model-ids.py
 
 lint-plugin-size: ## Each plugin folder holds under 512 files and no non-image, non-font file of 256 KiB or more (the plugin directory's limits); prints the count per plugin
 	@python3 bin/lint-plugin-size.py

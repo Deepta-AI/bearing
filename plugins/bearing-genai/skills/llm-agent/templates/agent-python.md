@@ -71,7 +71,7 @@ def run(task: str, request_id: str, bounds: Bounds = Bounds()) -> str:
 
     client = anthropic.Anthropic(timeout=bounds.call_timeout_s)
     runner = client.beta.messages.tool_runner(
-        model=p.model,                                        # claude-opus-5 by default
+        model=p.model,                                        # claude-opus-5-5 by default
         max_tokens=p.max_tokens,
         output_config={"effort": p.effort},
         system=[{"type": "text", "text": prompts.render(p, {}), "cache_control": {"type": "ephemeral"}}],

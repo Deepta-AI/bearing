@@ -39,8 +39,8 @@ and the cheaper type is named as rejected in the ADR.
    write a model call from memory. Read the stories the agent serves, or
    the Inputs answers, and write, in one paragraph each: the goal, the stop condition, the
    user who is present (or not), and the actions that cannot be undone.
-2. Model: `claude-opus-5` by default; `claude-fable-5-1` for
-   long-horizon or hard-reasoning work; `claude-sonnet-5` for a
+2. Model: `claude-opus-5-5` by default; `claude-fable-5-1` for
+   long-horizon or hard-reasoning work; `claude-sonnet-5-5` for a
    `router` or a high-volume `background` agent; `claude-haiku-4-5`
    for the classify step of a router. Thinking adaptive, `effort` per
    type from the reference. Say in the ADR why a smaller model was or

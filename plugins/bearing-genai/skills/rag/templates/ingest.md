@@ -16,7 +16,7 @@ discover -> parse -> chunk -> hash -> diff -> embed -> upsert -> sweep -> report
 2. **parse**: by kind. PDF through a layout-aware parser with page
    numbers; HTML to text with headings kept; markdown as is; code with
    tree-sitter; tables to rows with headers; images to a caption from
-   `claude-sonnet-5` plus alt text. Parse failures are counted and
+   `claude-sonnet-5-5` plus alt text. Parse failures are counted and
    logged with the uri, never swallowed.
 3. **chunk**: per `references/chunking.md`. Each chunk carries `ord`,
    `span_start`, `span_end`, `text`, `embed_text`, `metadata`.

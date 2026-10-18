@@ -45,12 +45,12 @@ there, and keep this skill's decision, data, eval and serving steps.
 2. The decision, written as an ADR (`bearing:adr Train <name> with <recipe>`,
    or a file in `docs/adr/`) with the evidence table: score with the current prompt, with the
    prompt tuned (`prompt-registry`), with RAG (`rag`), with
-   `claude-opus-5` at higher effort, and the cost per 1K requests of
+   `claude-opus-5-5` at higher effort, and the cost per 1K requests of
    each. Training is justified when the best of those misses the
    target, or hits it at a cost per request the product cannot carry.
    Say which. Recipe by goal from `references/recipes.md`: style and
    format, LoRA SFT; judgement between candidates, DPO; cost at volume,
-   distil from `claude-opus-5` into a small open model; domain
+   distil from `claude-opus-5-5` into a small open model; domain
    vocabulary, continued pretraining (its own ADR, rarely justified).
 3. Data. Collection sources (logs with consent, owner-written, the
    teacher model for distillation), the labelling guide

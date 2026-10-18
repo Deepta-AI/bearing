@@ -157,5 +157,5 @@ print the count; fail on zero prompts.
 ```
 ## v3 (2026-09-22, <owner>)  active  eval: 0.94 on evals/invoice_extract/cases.jsonl (v2: 0.91)
 Changed: examples section; added the missing-GST edge case (targets cases 17, 23, 41).
-Model: claude-sonnet-5 (unchanged).
+Model: claude-sonnet-5-5 (unchanged).
 ```

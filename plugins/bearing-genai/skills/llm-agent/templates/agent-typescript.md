@@ -64,7 +64,7 @@ export async function run(task: string, requestId: string, bounds = DEFAULT_BOUN
 
   const client = new Anthropic({ timeout: bounds.callTimeoutMs });     // milliseconds in this SDK
   const runner = client.beta.messages.toolRunner({
-    model: p.model,                                                    // claude-opus-5 by default
+    model: p.model,                                                    // claude-opus-5-5 by default
     max_tokens: p.max_tokens,
     output_config: { effort: p.effort },
     system: [{ type: "text", text: render(p, {}), cache_control: { type: "ephemeral" } }],

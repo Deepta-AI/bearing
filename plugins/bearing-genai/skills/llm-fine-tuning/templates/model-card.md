@@ -18,7 +18,7 @@ Owner: <person>. Task: <PREFIX>-<n>. ADR: docs/adr/NNNN-<title>.md
      Good: the number to beat is a measured baseline (marked "minimal" if it
      came from the ten-case run); training without one is not allowed.
      Example: "Classifies inbound support emails into 14 queues, replacing
-     the claude-sonnet-5 prompt path; target accuracy 0.93, baseline 0.91
+     the claude-sonnet-5-5 prompt path; target accuracy 0.93, baseline 0.91
      at a cost the volume cannot carry." -->
 
 ## Base model and recipe
@@ -37,7 +37,7 @@ Owner: <person>. Task: <PREFIX>-<n>. ADR: docs/adr/NNNN-<title>.md
 | Base checkpoint | <family, size, exact id> |
 | Licence of the base | <licence and any use restriction> |
 | Recipe | LoRA SFT | DPO | distillation | continued pretraining |
-| Teacher (distillation) | <claude-opus-5 | claude-sonnet-5 | none> |
+| Teacher (distillation) | <claude-opus-5-5 | claude-sonnet-5-5 | none> |
 | Toolchain | TRL + PEFT <version> | Axolotl <version> |
 | Run directory | runs/<name>/<date>/ |
 | Hyperparameters | r, alpha, lr, epochs, batch, max length |
@@ -123,7 +123,7 @@ sentence each.
      Good: the canary starts at 5 percent; rollback is a route change, not
      a deploy; a distilled model keeps the teacher route as its fallback.
      Example: "Route in llm/routing.yaml: email-triage-small, canary 5
-     percent; fallback email-triage (claude-sonnet-5)." -->
+     percent; fallback email-triage (claude-sonnet-5-5)." -->
 
 - Route in `llm/routing.yaml`: <name>, canary <p> percent.
 - Fallback: <route>. Rollback: change the route, no deploy.

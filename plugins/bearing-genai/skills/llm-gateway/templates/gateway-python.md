@@ -141,8 +141,12 @@ class AnthropicProvider:
 ```
 
 Notes that hold on current models: thinking is adaptive by default on
-Opus 5 and Fable 5.1; do not send `thinking` or `temperature`. Haiku 4.5
-takes no `effort`; the route sets it to null. Opus 5 and Fable 5.1 can
+Opus 5.5, Sonnet 5.5 and Fable 5.1; do not send `thinking`, `temperature`
+or `budget_tokens` (400). Sonnet 5.5 rejects `thinking: {type: "disabled"}`;
+`{type: "between_tools"}` turns it off at effort `high` or below. Opus
+5.5 cannot disable thinking at all. None of them takes an assistant
+prefill. Haiku 4.5 takes no `effort`, so its route sets it to null; it
+keeps `budget_tokens` for thinking. Opus 5.5 and Fable 5.1 can
 return `stop_reason: "refusal"`; the gateway raises `Refused` after
 accounting so the call is still counted. Server-side fallbacks
 (`betas=["server-side-fallback-2026-07-01"], fallbacks="default"` on

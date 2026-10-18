@@ -1,0 +1,12 @@
+# Claude model ids the plugins may name. Source: claude-api skill
+# (SKILL.md Current Models, shared/models.md), as_of 2026-10-18.
+# Re-read the skill when this changes; never add an id from memory.
+# default|<id>|<tier>   the id a gateway, template or skill uses by default
+# option|<id>|<why>     an id a skill may name without it being a default
+default|claude-opus-5-5|deep
+default|claude-sonnet-5-5|balanced
+default|claude-haiku-4-5|fast
+option|claude-fable-5-1|hardest reasoning, named on request
+option|claude-haiku-4-5-20251001|dated snapshot of claude-haiku-4-5, allowed alias
+option|claude-opus-5|previous Opus, still active
+option|claude-sonnet-5|previous Sonnet, still active

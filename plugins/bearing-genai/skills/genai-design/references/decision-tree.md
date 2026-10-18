@@ -8,13 +8,13 @@ success metric, not a feeling.
 
 | Class | What the model does | Usual approach | Usual model |
 | --- | --- | --- | --- |
-| classify | picks one of N labels | prompt only, structured output | Haiku 4.5, Sonnet 5 when nuance matters |
-| extract | fills a schema from text or images | structured output | Sonnet 5; Haiku 4.5 for flat schemas |
-| transform | rewrites, translates, summarises, formats | prompt only | Sonnet 5; Opus 5 for long or careful edits |
-| generate | writes new content from a brief | prompt only, then retrieval when facts matter | Opus 5; Sonnet 5 for volume |
-| retrieve and answer | answers from a corpus with citations | prompt plus retrieval | Sonnet 5; Opus 5 for multi-document synthesis |
-| converse | multi-turn with state | prompt only or plus retrieval, memory rules | Sonnet 5; Opus 5 for high-stakes support |
-| act with tools | reads and changes systems | single agent with tools; workflow when regulated | Opus 5; Fable 5.1 for long-horizon work |
+| classify | picks one of N labels | prompt only, structured output | Haiku 4.5, Sonnet 5.5 when nuance matters |
+| extract | fills a schema from text or images | structured output | Sonnet 5.5; Haiku 4.5 for flat schemas |
+| transform | rewrites, translates, summarises, formats | prompt only | Sonnet 5.5; Opus 5.5 for long or careful edits |
+| generate | writes new content from a brief | prompt only, then retrieval when facts matter | Opus 5.5; Sonnet 5.5 for volume |
+| retrieve and answer | answers from a corpus with citations | prompt plus retrieval | Sonnet 5.5; Opus 5.5 for multi-document synthesis |
+| converse | multi-turn with state | prompt only or plus retrieval, memory rules | Sonnet 5.5; Opus 5.5 for high-stakes support |
+| act with tools | reads and changes systems | single agent with tools; workflow when regulated | Opus 5.5; Fable 5.1 for long-horizon work |
 
 ## The ladder
 
@@ -63,23 +63,28 @@ success metric, not a feeling.
 | Tier | Id | Input | Output | Use for |
 | --- | --- | --- | --- | --- |
 | hardest reasoning | `claude-fable-5-1` | $10 | $50 | long-horizon agents, hard synthesis, work a wrong answer makes expensive |
-| strong general | `claude-opus-5` | $5 | $25 | the default for generate, converse, act with tools |
-| volume | `claude-sonnet-5` | $2 | $10 | extract, transform, retrieve and answer at scale |
+| strong general | `claude-opus-5-5` | $4 | $20 | the default for generate, converse, act with tools |
+| volume | `claude-sonnet-5-5` | $2 | $10 | extract, transform, retrieve and answer at scale |
 | cheap classification | `claude-haiku-4-5` | $1 | $5 | routing, labels, first-pass filters, judges for simple rubrics |
 
 Rules that go with the table:
 
-- Thinking is adaptive on Fable 5.1, Opus 5 and Sonnet 5; depth is set
-  with `output_config.effort` (`low` to `max`). Haiku 4.5 still uses
-  `thinking: {type: "enabled", budget_tokens: N}`.
+- Thinking is adaptive on Fable 5.1, Opus 5.5 and Sonnet 5.5; depth is set
+  with `output_config.effort` (`low` to `max`; Opus 5.5 defaults to
+  `medium`, Sonnet 5.5 to `high`). None of the three accepts
+  `budget_tokens`, sampling parameters or prefill; Opus 5.5 cannot
+  disable thinking, and Sonnet 5.5 turns it off with `between_tools`.
+  Haiku 4.5 still uses `thinking: {type: "enabled", budget_tokens: N}`
+  and takes no `effort`.
 - Fable 5.1 turns can run for minutes on hard tasks. Stream, and plan
   the timeout and the progress UX before choosing it.
 - Fable 5.1 rejects forced `tool_choice` (`any`, `tool`) and
   `temperature`; design tool use with `auto` and an instruction.
 - A smaller model is right when the golden set passes on it. Run the
-  set on Haiku 4.5 or Sonnet 5 first; move up only on a measured miss.
-- The cheapest strong lever is effort, not a model swap: Opus 5 at
-  `low` often beats a smaller model at `high` and keeps one cache.
+  set on Haiku 4.5 or Sonnet 5.5 first; move up only on a measured miss.
+- The cheapest strong lever is effort, not a model swap: Opus 5.5 at
+  `low` often matches prior-generation quality at `high` and keeps one
+  cache; measure it before building a cascade.
 
 ## Token budget and cost
 
@@ -101,7 +106,7 @@ p95 = time_to_first_token + tokens_out / output_rate + tool_time * calls
 ```
 
 Assume, until the gateway measures it: 1 to 2 s to first token; 50 to
-80 output tokens per second on Sonnet 5 and Haiku 4.5; 30 to 50 on Opus
+80 output tokens per second on Sonnet 5.5 and Haiku 4.5; 30 to 50 on Opus
 5; slower on Fable 5.1 with deep thinking. Write "assumption:" in front
 of every number that came from this section.
 

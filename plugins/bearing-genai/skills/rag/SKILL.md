@@ -77,7 +77,7 @@ bearing plugin).
    `span`, `score`, `source_uri`. Hybrid fuses BM25 and vector ranks
    with reciprocal rank fusion (`k=60`); reranked adds a cross-encoder
    or a `claude-haiku-4-5` pointwise judge over the top 20; agentic
-   plans sub-queries with `claude-opus-5` and loops at most 3 times;
+   plans sub-queries with `claude-opus-5-5` and loops at most 3 times;
    sql validates every generated statement (read-only role, allow-listed
    tables, `EXPLAIN` before run). Metrics: `rag_retrieval_duration_seconds`
    and `rag_empty_results_total` through the meter `bearing:observability`

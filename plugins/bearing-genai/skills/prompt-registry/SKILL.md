@@ -145,7 +145,7 @@ wording: <N> prompts audited by claude-api prompt-audit, <F> findings (<H> high)
   returns, with its own test.
 - A stable prompt goes first in `system` with `cache_control`; the
   variables go after the cache breakpoint or in the user turn.
-- Fable 5.1 and Opus 5 do best with fewer prescriptive lines. A prompt
+- Fable 5.1 and Opus 5.5 do best with fewer prescriptive lines. A prompt
   written for an older model often reads as too many rules; cut before
   adding.
 - No em dashes in prompts either; they leak into the model's output.

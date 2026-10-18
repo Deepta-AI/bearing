@@ -112,8 +112,8 @@ And the `bearing` plugin is full: 508 of 512 files.
   `evals/triggers.json` (3 should, 2 near misses); `evals/.pending` only
   shrinks.
 - Defaults: `claude-opus-5-5` (deep, the default tier),
-  `claude-sonnet-5-5` (balanced), `claude-haiku-5-5` (fast; the user's
-  decision of 2026-10-18); routing is provider-neutral (Anthropic, OpenAI,
+  `claude-sonnet-5-5` (balanced), `claude-haiku-4-5` (fast; `claude-haiku-5-5`
+  does not exist, controller correction 2026-10-18); routing is provider-neutral (Anthropic, OpenAI,
   Google, OpenRouter, a served open model through vLLM or any
   OpenAI-compatible endpoint).
 - The four plugins move in version lockstep (`lint-version`).
@@ -195,9 +195,11 @@ every Claude id our own text may name, one row
 ```
 default|claude-opus-5-5|deep
 default|claude-sonnet-5-5|balanced
-default|claude-haiku-5-5|fast
+default|claude-haiku-4-5|fast
 option|claude-fable-5-1|the highest tier, for a route the eval shows needs it
-option|claude-haiku-4-5-20251001|the previous fast snapshot, a legacy id kept allowed for existing repositories and as a routing candidate
+option|claude-haiku-4-5-20251001|dated snapshot of claude-haiku-4-5, allowed alias
+option|claude-opus-5|previous Opus, still active in the claude-api skill
+option|claude-sonnet-5|previous Sonnet, still active in the claude-api skill
 ```
 
 `bin/lint-model-ids.py` (target `lint-model-ids`, in `make check`) scans
@@ -403,12 +405,13 @@ rows (model routing, dataset generation) with `from` set to
 
 Both decided by the user on 2026-10-18.
 
-1. Fast default model: "The fast default is `claude-haiku-5-5`, not
-   `claude-haiku-4-5-20251001`." The gateway template, `bin/model-ids.txt`
-   and the routing tables use `claude-haiku-5-5`. The old snapshot
-   `claude-haiku-4-5-20251001` stays in `bin/model-ids.txt` as an `option`
-   row (legacy id), so existing repositories and routing candidates still
-   lint clean; it is not a default anywhere.
+1. Fast default model: `claude-haiku-4-5` (controller correction,
+   2026-10-18). The earlier ruling named `claude-haiku-5-5`; that model does
+   not exist, and the `claude-api` skill lists only `claude-haiku-4-5`
+   (dated snapshot `claude-haiku-4-5-20251001`, $1 / $5 per MTok, thinking
+   by `budget_tokens`, no `effort`). The gateway template, `bin/model-ids.txt`
+   and the routing tables use `claude-haiku-4-5`; the snapshot is an `option`
+   row (allowed alias). `claude-haiku-5-5` is unknown to `lint-model-ids`.
 2. Default install: "`bearing-genai` installs by default from `install.sh`,
    like the stack plugins." It is not on-request only.
 

@@ -2,18 +2,19 @@
 # A feature not listed here fails its call with UnknownFeature.
 # Prices are USD per million tokens; the gateway derives cost from the
 # usage in each response, never from the request.
+# Prices: claude-api skill shared/models.md, as_of 2026-10-18. Re-read them there; never from memory.
 
 version: 1
 
 models:
-  claude-opus-5:
+  claude-opus-5-5:
     provider: anthropic
-    input_per_m: 5.00
-    output_per_m: 25.00
+    input_per_m: 4.00
+    output_per_m: 20.00
     cache_write_multiplier: 1.25
-    cache_read_multiplier: 0.10
+    cache_read_multiplier: 0.05
     context_window: 1000000
-  claude-sonnet-5:
+  claude-sonnet-5-5:
     provider: anthropic
     input_per_m: 2.00
     output_per_m: 10.00
@@ -25,13 +26,13 @@ models:
     input_per_m: 1.00
     output_per_m: 5.00
     cache_write_multiplier: 1.25
-    cache_read_multiplier: 0.10
+    cache_read_multiplier: 0.10   # unverified: the claude-api skill states no Haiku 4.5 cache read price; check before trusting cost
     context_window: 200000
   # OpenRouter: one key (OPENROUTER_API_KEY) with a spend limit, many vendors.
   # Model ids are vendor/model; prices are OpenRouter's, per million tokens.
   # or-sonnet:
   #   provider: openrouter
-  #   id: anthropic/claude-sonnet-5
+  #   id: anthropic/claude-sonnet-5-5
   #   input_per_m: 2.00
   #   output_per_m: 10.00
   # A trained open model served by vLLM (llm-fine-tuning) joins here.
@@ -44,17 +45,17 @@ models:
 tiers:
   fast:
     model: claude-haiku-4-5        # classification, routing, short extraction
-    effort: null                   # Haiku 4.5 has no effort parameter
+    effort: null                   # Haiku 4.5 rejects effort; thinking, if wanted, is budget_tokens
     max_tokens: 1024
     timeout_s: 20
   balanced:
-    model: claude-sonnet-5         # bulk generation, RAG answers, short-output judges
-    effort: medium
+    model: claude-sonnet-5-5         # bulk generation, RAG answers, short-output judges
+    effort: medium                 # Sonnet 5.5 default is high; thinking-off is between_tools, never disabled
     max_tokens: 4096
     timeout_s: 60
   deep:
-    model: claude-opus-5           # the default: reasoning, planning, anything a user reads
-    effort: high
+    model: claude-opus-5-5           # the default: reasoning, planning, anything a user reads
+    effort: high                   # Opus 5.5 default is medium; thinking cannot be disabled
     max_tokens: 16000
     timeout_s: 300
 

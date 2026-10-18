@@ -2,7 +2,7 @@
 name: <prompt name>
 version: 1
 status: draft
-model: claude-opus-5
+model: claude-opus-5-5
 effort: medium
 max_tokens: 4096
 owner: <team or person>

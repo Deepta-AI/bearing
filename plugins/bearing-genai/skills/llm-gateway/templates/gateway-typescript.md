@@ -128,8 +128,10 @@ export class AnthropicProvider implements Provider {
 ```
 
 Same model notes as the Python template: no `thinking` or
-`temperature` on Opus 5, Sonnet 5 and Fable 5.1; `effort` inside
-`output_config`; Haiku 4.5 without `effort`; `stop_reason` read before
+`temperature` or `budget_tokens` on Opus 5.5, Sonnet 5.5 and Fable 5.1;
+`effort` inside `output_config`; Sonnet 5.5 turns thinking off with
+`between_tools`, never `disabled`; no assistant prefill; Haiku 4.5 without
+`effort` (it keeps `budget_tokens`); `stop_reason` read before
 `content`; `_request_id` logged on failures.
 
 ## Accounting, logging, tests
