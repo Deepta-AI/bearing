@@ -85,15 +85,25 @@ passwd_home() {
 # (exit 124), so a FIFO an agent plants where a file should be cannot hang a
 # hook. It runs as one process, the one the timer kills: an external command
 # is exec'd, and cleanenv execs env when bounded_exec is set.
+# The timer says whether it fired by its own exit status (3), so the answer
+# does not depend on which of the two processes the scheduler ends first:
+# once it fires it ignores TERM, and before that TERM ends it (and its sleep)
+# with status 0.
 bounded() {
   local s="$1" p w rc; shift
   ( bounded_exec=1
     case "$(type -t "$1")" in (function) "$@" ;; (*) exec "$@" ;; esac ) &
   p=$!
-  ( sleep "$s"; kill "$p" 2>/dev/null ) < /dev/null > /dev/null 2>&1 &
+  ( sleep "$s" & sp=$!
+    trap 'kill "$sp" 2>/dev/null; exit 0' TERM
+    wait "$sp"
+    trap '' TERM
+    kill "$p" 2>/dev/null && exit 3
+    exit 0 ) < /dev/null > /dev/null 2>&1 &
   w=$!
   wait "$p"; rc=$?
-  if kill -0 "$w" 2>/dev/null; then kill "$w" 2>/dev/null; else rc=124; fi
+  kill "$w" 2>/dev/null; wait "$w"
+  if [ $? -eq 3 ]; then rc=124; fi
   return "$rc"
 }
 
@@ -266,6 +276,15 @@ check_conditions() {
   else cond fast-forward 1 "origin/$b has commits HEAD does not (a push is never forced)"; fi
 }
 
+# in_state_dir <real root>: exit 0 when the working directory is
+# <real root>/.bearing/state. It asks the kernel (/bin/pwd -P is getcwd on
+# Linux and macOS), never the shell: bash's builtin pwd -P resolves the path
+# string it remembers, so an agent that swaps a link for a real directory
+# right after the cd would pass it while the process sits in the link's
+# target. Once this holds, the directory stays the one checked, whatever is
+# renamed later.
+in_state_dir() { [ "$(/bin/pwd -P)" = "$1/.bearing/state" ]; }
+
 # state_write put|rm <name>: the one way brg-push changes a file in
 # .bearing/state, safe outside the sandbox against links the agent plants.
 # It enters the state directory one name at a time (put makes a missing one
@@ -279,18 +298,19 @@ check_conditions() {
 # removes <name> of any type; a missing state directory is nothing to do.
 # There is no append: opening an existing name could follow a link, so a log
 # is written whole with put. Exit 0 done, 1 refused or failed. The body is a
-# subshell, so the cd stays in it.
+# subshell, so the cd stays in it. Each cd is `cd -P -- ./<name>`, so CDPATH
+# plays no part, and where it is is judged by in_state_dir.
 state_write() (
   op="$1"; name="$2"
   case "$op" in (put|rm) ;; (*) exit 1 ;; esac
   case "$name" in (''|.|..|*/*) exit 1 ;; esac
-  real="$(cd "$root" 2>/dev/null && pwd -P)" && cd "$real" || exit 1
+  real="$(cd -P -- "$root" 2>/dev/null && /bin/pwd -P)" && cd -P -- "$real" || exit 1
   for c in .bearing state; do
-    if [ "$op" = put ]; then mkdir "$c" 2>/dev/null; fi
-    if [ "$op" = rm ] && [ ! -e "$c" ] && [ ! -L "$c" ]; then exit 0; fi
-    cd "$c" 2>/dev/null || exit 1
+    if [ "$op" = put ]; then mkdir "./$c" 2>/dev/null; fi
+    if [ "$op" = rm ] && [ ! -e "./$c" ] && [ ! -L "./$c" ]; then exit 0; fi
+    cd -P -- "./$c" 2>/dev/null || exit 1
   done
-  [ "$(pwd -P)" = "$real/.bearing/state" ] || exit 1
+  in_state_dir "$real" || exit 1
   if [ "$op" = rm ]; then rm -r -f "./$name"; exit $?; fi
   t="$(mktemp -u "./$name.XXXXXX")" || exit 1
   set -C

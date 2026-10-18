@@ -208,6 +208,62 @@ assert_exit 1 sfn rm .push-optin
 assert_eq "" "$(ls -A "$elsewhere")" "nothing written into the linked directory"
 t_end
 
+t_begin "state_write judges where it is with getcwd, not the shell's idea of the path"
+# The process sits in the victim (entered through a link), then the link is
+# replaced by a real directory: the path string now resolves to the real state
+# directory, the working directory is still the victim.
+setup; victim="$(tmpdir)"; real="$(cd "$repo" && /bin/pwd -P)"
+mv "$repo/.bearing/state" "$repo/.bearing/state.real"; ln -s "$victim" "$repo/.bearing/state"
+assert_exit 1 bash -c '. "$1"; cd "$2/.bearing/state" && rm "$2/.bearing/state" && mkdir "$2/.bearing/state" && in_state_dir "$3"' _ "$fns" "$repo" "$real"
+assert_exit 0 bash -c '. "$1"; cd "$2/.bearing/state" && in_state_dir "$3"' _ "$fns" "$repo" "$real"
+t_end
+
+t_begin "state_write never writes or deletes in a directory raced in for the state directory"
+# A racer swaps .bearing/state (a link to the victim) and .bearing/D (a real
+# directory) as fast as it can: renameat2 RENAME_EXCHANGE where libc has it,
+# else three plain renames. No put or rm may touch the victim.
+setup; victim="$(tmpdir)"; printf 'keep\n' > "$victim/push.log"
+mv "$repo/.bearing/state" "$repo/.bearing/D"; ln -s "$victim" "$repo/.bearing/state"
+python3 - "$repo/.bearing" 30 > /dev/null 2>&1 <<'PY' &
+import os, sys, time
+d = sys.argv[1]; end = time.time() + float(sys.argv[2])
+a, b, t = d + "/state", d + "/D", d + "/T"
+try:
+    import ctypes
+    swap = ctypes.CDLL(None, use_errno=True).renameat2
+except Exception:
+    swap = None
+while time.time() < end:
+    if swap is not None:
+        swap(-100, a.encode(), -100, b.encode(), 2)
+    else:
+        try:
+            os.rename(a, t); os.rename(b, a); os.rename(t, b)
+        except OSError:
+            pass
+PY
+racer=$!
+refused=0; done_=0; i=0
+while [ "$i" -lt 200 ]; do
+  if ( cd "$repo" && root="$repo" bash -c '. "$1"; printf "x\n" | state_write put push.log' _ "$fns" ); then done_=$((done_+1)); else refused=$((refused+1)); fi
+  ( cd "$repo" && root="$repo" bash -c '. "$1"; state_write rm push.log' _ "$fns" )
+  i=$((i+1))
+done
+kill "$racer" 2>/dev/null; wait "$racer" 2>/dev/null
+assert_eq "push.log" "$(ls -A "$victim")" "nothing new in the victim"
+assert_eq keep "$(cat "$victim/push.log")" "the victim's file neither replaced nor deleted"
+# Both states were seen, so the racer ran: some calls found the real directory, some the link.
+assert_eq 1 "$([ "$refused" -gt 0 ] && [ "$done_" -gt 0 ] && echo 1)" "puts refused $refused, done $done_ of 200"
+t_end
+
+t_begin "state_write ignores CDPATH"
+setup; evil="$(tmpdir)"; mkdir -p "$evil/.bearing/state" "$evil/state"
+cdp() { ( cd "$repo" && CDPATH="$evil" root="$repo" bash -c '. "$1"; printf "x\n" | state_write put push-result' _ "$fns" ); }
+assert_exit 0 cdp
+assert_eq x "$(cat "$repo/.bearing/state/push-result" 2>/dev/null)" "written in the repository"
+assert_eq "" "$(find "$evil" -type f)" "nothing written under CDPATH"
+t_end
+
 t_begin "optin-record with no .git leaves no stale on"
 setup; mv "$repo/.git" "$repo/.git.away"
 ( cd "$repo" && bash "$P" optin-record )
@@ -236,7 +292,7 @@ assert_eq absent "$(cat "$repo/.bearing/state/.push-optin" 2>/dev/null | grep -x
 t_end
 
 t_begin "bounded stops a command that runs past its time"
-assert_exit 124 bash -c '. "$1"; bounded 1 sleep 20' _ "$fns"
+for i in 1 2 3; do assert_exit 124 bash -c '. "$1"; bounded 1 sleep 20' _ "$fns"; done
 assert_exit 3 bash -c '. "$1"; bounded 5 sh -c "exit 3"' _ "$fns"
 t_end
 
