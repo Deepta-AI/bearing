@@ -46,6 +46,23 @@
     "No ADR and no docs/decisions.md row was written for a technology the repository or the request already settles (for example the database or migration tool already in use); any choice the run made without an answer from the user is reported as a decision awaiting the user, not recorded as Accepted",
     "No file written or edited contains an em dash character"
    ]
+  },
+  {
+   "id": 3,
+   "name": "operations-from-data-needs",
+   "prompt": "The purchase order screens are designed (docs/design/screens/po/data-needs.md). Write the API contract from the backlog and those screens.",
+   "expected_output": "api/openapi.yaml whose operations come from the screens' actions: each action id appears in an operation's x-data-needs, each outcome (201, 422 quantity_out_of_range, 409 not_a_draft, 403 forbidden_self_approval, 404 and so on) is a documented response, the needs check is run with its data needs: line printed verbatim, and the stories are still cited through x-story-ids.",
+   "files": [
+    "files/po-screens"
+   ],
+   "expectations": [
+    "Every action in docs/design/screens/po/data-needs.md (A-01 to A-06) is named in the x-data-needs of exactly the operation that serves it, and no operation claims an action that the file does not have",
+    "Every outcome listed for an action is a documented response of its operation, including 422 quantity_out_of_range on the create, 409 not_a_draft on submit, 403 forbidden_self_approval on approve and 404 not_found on open, using the spec's one error schema as application/problem+json",
+    "The final message prints the needs check's line verbatim, in the form `data needs: N actions, N mapped, N new operations; N outcomes, N without a response, N problems`, and the check was actually run as `api_doc.py needs`, with 0 problems",
+    "Operations still carry x-story-ids citing the backlog stories (US-03-001 to US-03-006), and the acceptance criteria that shape the contract (idempotent create, 50 per page with a status filter, no existence leak across companies) are honoured",
+    "The unanswered cancel question in the backlog and the vague 'approval should be fast' criterion are raised as questions, not decided silently",
+    "No Go code was changed and no git commit was made; a linter that was not run is reported as not run"
+   ]
   }
  ]
 }

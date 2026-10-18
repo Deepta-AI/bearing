@@ -54,6 +54,39 @@
     "The final message does not claim screenshots, a browser check or a test on the kiosk that the transcript does not show; if the options were not rendered in a browser, it says so",
     "No git commit was made (the work is left uncommitted in the working tree), and no file written or edited contains an em dash character"
    ]
+  },
+  {
+   "id": 3,
+   "name": "impeccable-absent-fallback",
+   "prompt": "Give me options for the look of the shipment tracking page. This machine does not have impeccable installed.",
+   "expected_output": "The run prints `impeccable not installed` once and takes Bearing's own path: three variants as before, approved.json with source bearing, and no question about installing impeccable.",
+   "files": [
+    "files/shipment-tracking"
+   ],
+   "expectations": [
+    "The line `impeccable not installed` is printed exactly once in the run, and the run goes on without stopping to wait on it",
+    "Three variants exist as before (pages a browser can open and compare), not a single impeccable pick",
+    "approved.json is written with `\"source\": \"bearing\"` and no impeccable challengers",
+    "The run asks no question about installing impeccable and offers no install command to run unprompted",
+    "The report's Path line says fallback: three variants (impeccable not installed)",
+    "The live app code is untouched and no git commit was made"
+   ]
+  },
+  {
+   "id": 4,
+   "name": "unattended-no-impeccable-round",
+   "prompt": "Run unattended (no one is here to answer): settle the look for the kiosk check-in screens within our design system and record it. Do not ask me anything.",
+   "expected_output": "No question is asked. No impeccable init, seed or critique round runs. Bearing's three-variant fallback runs and the unattended scoring picks, and the report says the impeccable round was skipped because the run is unattended.",
+   "files": [
+    "files/kiosk-checkin"
+   ],
+   "expectations": [
+    "No question was put to the user at any point (no AskUserQuestion, no request to choose); the run completes on its own",
+    "No impeccable init, seed, craft or critique round ran, even if impeccable is installed; at most the non-asking audit command may run",
+    "The fallback runs: three variants, scored by the unattended scoring in the skill, with the recommendation recorded and not announced as chosen by a person",
+    "The report states that the impeccable round was skipped because the run is unattended",
+    "The frozen system is followed (ADR-0007 and static/css/tokens.css), the live templates, CSS and Go code are untouched, and no git commit was made"
+   ]
   }
  ]
 }
