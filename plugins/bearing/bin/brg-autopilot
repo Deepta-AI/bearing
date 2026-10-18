@@ -78,7 +78,7 @@ STAGES = [
      "scope full: every repo-plan entry other than this repository is a git repository beside it whose "
      "make check records a pass and has passed; lean: nothing"),
     ("ux", "profile ui, scope full: ux-flows, design-directions --unattended, design-system, motion-design, "
-     "then screen-design with each feature's data-needs.md; lean: the existing screens and design system "
+     "then screen-design --unattended with each feature's data-needs.md; lean: the existing screens and design system "
      "are the precedent",
      "profile ui: flows passing flows_check and tokens passing contrast; on react-shadcn (the default) "
      "a chosen direction (an impeccable pick over at least one challenger, or the highest of 3 scored "
@@ -112,7 +112,7 @@ STAGES = [
      "every case in docs/testing/test-cases.md not manual-only or retired is named by its TC id in a "
      "test file, and make check passed after the last change; profile llm: guardrails/policy.yaml and "
      "docs/genai/evals.md"),
-    ("design_review", "profile ui: design-critique on the design gallery of the running app",
+    ("design_review", "profile ui: design-critique --unattended on the design gallery of the running app",
      "profile ui: a review scoring overall 8.0 with no category below 7 and every screenshot present; "
      "otherwise nothing"),
     ("review", "branch-review",
@@ -349,6 +349,30 @@ def checker(d, script, *args):
     return r.returncode == 0, (lines[-1].strip() if lines else f"{script}: no output")
 
 
+# openapi-spec writes YAML; api_doc.py reads it with PyYAML, which a plain
+# python3 rarely has. Run it as openapi-spec does, through uv with the pinned
+# PyYAML (pinned-packs.txt); --no-project keeps uv from syncing the product's
+# own pyproject.toml.
+YAML_PYTHON = "uv run --quiet --no-project --with pyyaml==6.0.3 python".split()
+
+
+def api_needs(d, spec, needs):
+    """api_doc.py needs over the screens' data needs; (passed, the first
+    problem and the counts line). Without uv it falls back to python3, and a
+    YAML spec there fails naming the missing dependency."""
+    interp = YAML_PYTHON if shutil.which("uv") else ["python3"]
+    r = sh([*interp, os.path.join(KIT, "skills", "openapi-spec/scripts/api_doc.py"), "needs",
+            "--spec", spec, "--needs", *needs], d)
+    out = r.stdout + r.stderr
+    if r.returncode != 0 and "PyYAML is not installed" in out:
+        return False, (f"{os.path.relpath(spec, d)} is YAML and neither uv nor PyYAML is installed "
+                       "(install uv, or PyYAML 6.0.3 for python3)")
+    lines = [l_.strip() for l_ in out.splitlines() if l_.strip()]
+    last = lines[-1] if lines else "api_doc.py needs: no output"
+    first = next((l_ for l_ in lines if l_.startswith("problem:")), "")
+    return r.returncode == 0, (f"{first}; {last}" if first and r.returncode != 0 else last)
+
+
 def rels(d, pattern):
     return sorted(os.path.relpath(p, d) for p in glob.glob(os.path.join(d, pattern), recursive=True))
 
@@ -461,9 +485,7 @@ def g_contract(d, st):
                 return False, f"data needs check failed for {n}: {last}"
     needs_line = ""
     if wants(st, "api") and needs:
-        ok, needs_line = checker(d, "openapi-spec/scripts/api_doc.py", "needs",
-                                 "--spec", os.path.join(d, "api/openapi.yaml"),
-                                 "--needs", *[os.path.join(d, n) for n in needs])
+        ok, needs_line = api_needs(d, os.path.join(d, "api/openapi.yaml"), [os.path.join(d, n) for n in needs])
         if not ok:
             return False, f"needs check failed: {needs_line}"
     parts = [label for key, label in (("data", "data model"), ("api", "API contract")) if wants(st, key)]

@@ -55,6 +55,20 @@ All notable changes to Bearing. Keep a Changelog format, semantic versions.
   note. The newest flows file is
   chosen by version number.
 - design-critique weights: twelve categories, typography 10%, task cost 5%.
+- Data-needs ids are unique across the product, not per file: a new
+  feature numbers its F- and A- ids after the highest in the other
+  features' files. `api_doc.py needs` and `model_check.py --needs` fail on
+  an id in two features' files, naming both and saying to renumber.
+- `states_check.py --needs` fails on a screen that shows server data (a
+  `server` field or a server condition) with no server action: the read
+  that loads it is listed as an action, marked `exists` when the API has it.
+- The autopilot contract gate runs `api_doc.py needs` through uv with the
+  pinned PyYAML (`--with pyyaml==6.0.3`) when uv is installed, so a YAML
+  `api/openapi.yaml` is read; with neither uv nor PyYAML it fails naming
+  the dependency.
+- autopilot passes `--unattended` to screen-design and design-critique, and
+  design-critique also reads `brg-config get noninteractive --user`, so an
+  unattended review never runs impeccable `critique`.
 
 ### Notes for existing repositories
 - Add a `## Task paths` table to every `docs/design/flows/*/flows.md`
@@ -62,7 +76,9 @@ All notable changes to Bearing. Keep a Changelog format, semantic versions.
   `ux-flows` skill's `references/task-paths.md` has the format), then run
   `flows_check.py`. Without it the flows check fails.
 - A `data-needs.md` written by hand uses ids F-nn for fields and A-nn for
-  actions; `states_check.py --needs` rejects other shapes.
+  actions; `states_check.py --needs` rejects other shapes. Renumber any id
+  that repeats another feature's, and add the read action to each screen
+  that shows server data.
 
 ### Noted
 - impeccable `critique` asks a question at its close, so an unattended run

@@ -33,6 +33,8 @@ screen-design/scripts/states_check.py) and a second line is printed:
 A field with Status new and Source server is stored when a data-dictionary
 Why cites its id (F-02), else unmapped (a problem); derived: fields count in
 K; exists and client: fields count in none of M, K, U. Zero fields exits 1.
+F- ids are unique across all the files: an id in two files is a problem
+naming both, and counts in none of M, K, U.
 Prints one line per problem, then:
   data-model: N tables, N columns, N indexes, N checks, N enums, N personal-data columns, N problems
 Exits 1 on any problem, on a missing file, and on zero tables.
@@ -382,16 +384,34 @@ def check_needs(paths, rows, problems):
     spec.loader.exec_module(sc)
     whys = " \n".join(r["Why"] for r in rows)
     n = stored = derived = unmapped = 0
+    parsed, files_of = [], {}
     for path in paths:
         if not os.path.isfile(path):
             problems.append(f"data needs: {path} not found, nothing checked")
             continue
-        for entry in sc.parse_needs(open(path, encoding="utf-8").read()).values():
+        parsed.append(sc.parse_needs(open(path, encoding="utf-8").read()))
+        for entry in parsed[-1].values():
+            for r in entry["fields"]:
+                fid = r.get("id", "").strip() if "none" not in r else ""
+                if fid and path not in files_of.setdefault(fid, []):
+                    files_of[fid].append(path)
+    # F- ids are unique across the product: a dictionary Why citing F-02
+    # cannot say which feature's F-02 it stores
+    dup = {fid for fid, fs in files_of.items() if len(fs) > 1}
+    for fid in sorted(dup):
+        problems.append(
+            f"{fid} is in two data-needs files ({', '.join(files_of[fid])}): field ids are unique "
+            f"across the product; renumber the later feature's fields after the highest F- id in use"
+        )
+    for needs in parsed:
+        for entry in needs.values():
             for r in entry["fields"]:
                 if "none" in r:
                     continue
                 n += 1
                 fid = r.get("id", "").strip()
+                if fid in dup:
+                    continue
                 src = r.get("source", "").strip().lower()
                 status = r.get("status", "").strip().lower()
                 if status == "exists" or src.startswith("client"):

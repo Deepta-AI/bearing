@@ -169,7 +169,7 @@ assert_contains "$T_OUT" "model_check failed"
 assert_contains "$T_OUT" "data needs: 2 fields, 0 stored, 0 derived, 1 unmapped"
 replace_in "$d/docs/design/data-dictionary.csv" "US-01-003 AC1: the invoice page is addressed by id." "US-01-003 AC1: the invoice page is addressed by id; F-02 invite expiry."
 assert_exit 0 ap "done" contract
-assert_contains "$T_OUT" "data model, API contract, threat models 1; data needs: 2 actions, 2 mapped, 1 new operations; 3 outcomes, 0 without a response, 0 problems"
+assert_contains "$T_OUT" "data model, API contract, threat models 1; data needs: 3 actions, 3 mapped, 1 new operations; 4 outcomes, 0 without a response, 0 problems"
 t_end
 
 t_begin "contract runs the screens' data needs against the flows"
@@ -188,10 +188,10 @@ cp "$KIT/tests/fixtures/data-needs/flows.md" "$d/docs/design/flows/invites/flows
 replace_in "$d/api/openapi.yaml" '"x-data-needs": ["A-02"],' '"x-data-needs": [],'
 assert_exit 1 ap "done" contract
 assert_contains "$T_OUT" "needs check failed"
-assert_contains "$T_OUT" "1 mapped"
+assert_contains "$T_OUT" "2 mapped"
 cp "$KIT/tests/fixtures/data-needs/openapi.json" "$d/api/openapi.yaml"
 assert_exit 0 ap "done" contract
-assert_contains "$T_OUT" "API contract, threat models 1; data needs: 2 actions, 2 mapped"
+assert_contains "$T_OUT" "API contract, threat models 1; data needs: 3 actions, 3 mapped"
 assert_contains "$T_OUT" "; profile: data=no"
 t_end
 
@@ -208,7 +208,7 @@ replace_in "$d/docs/design/flows/invites/flows.md" "| S-02 | Invite | US-01-001 
 cp "$d/docs/design/flows/invites/flows.md" "$d/docs/design/flows/invites/flows-v2.md"
 printf '# notes\n\n| S-09 | Draft | US-01-001 | terminal |\n' > "$d/docs/design/flows/invites/flows-notes.md"
 assert_exit 0 ap "done" contract
-assert_contains "$T_OUT" "data needs: 2 actions, 2 mapped"
+assert_contains "$T_OUT" "data needs: 3 actions, 3 mapped"
 at contract; profile yes no yes no
 mkdir -p "$d/docs/design/screens/invites" "$d/docs/design/flows/invites" "$d/docs/design/flows/billing" "$d/api"; threats "$d"
 cp "$KIT/tests/fixtures/data-needs/data-needs.md" "$d/docs/design/screens/invites/data-needs.md"
@@ -218,6 +218,32 @@ cp "$KIT/tests/fixtures/data-needs/openapi.json" "$d/api/openapi.yaml"
 assert_exit 1 ap "done" contract
 assert_contains "$T_OUT" "features with screens but no data needs: billing (docs/design/screens/billing/data-needs.md, screen-design)"
 assert_not_contains "$T_OUT" "invites (docs"
+t_end
+
+t_begin "contract reads a YAML spec through uv with the pinned PyYAML, and names the missing dependency without either"
+at contract; profile yes no yes no
+mkdir -p "$d/docs/design/screens/invites" "$d/docs/design/flows/invites" "$d/api"; threats "$d"
+cp "$KIT/tests/fixtures/data-needs/data-needs.md" "$d/docs/design/screens/invites/data-needs.md"
+cp "$KIT/tests/fixtures/data-needs/flows.md" "$d/docs/design/flows/invites/flows.md"
+cp "$KIT/tests/fixtures/data-needs/openapi.yaml" "$d/api/openapi.yaml"
+assert_not_contains "$(head -1 "$d/api/openapi.yaml")" "{" "the spec is YAML, not JSON"
+if command -v uv >/dev/null 2>&1; then
+  assert_exit 0 ap "done" contract
+  assert_contains "$T_OUT" "API contract, threat models 1; data needs: 3 actions, 3 mapped"
+  python3 - "$d/.bearing/state/autopilot.json" <<'PY'
+import json, sys
+st = json.load(open(sys.argv[1])); st["stages"]["contract"]["status"] = "pending"; json.dump(st, open(sys.argv[1], "w"))
+PY
+else
+  echo "skip: uv is not on PATH, so the YAML pass through uv is not exercised here"
+fi
+# no uv on PATH and a python3 whose `import yaml` fails: the gate names the dependency
+nouv="$(tmpdir)"; blk="$(tmpdir)"
+ln -s "$(command -v python3)" "$nouv/python3"; ln -s "$(command -v git)" "$nouv/git"
+printf 'raise ImportError("PyYAML blocked by the test")\n' > "$blk/yaml.py"
+assert_exit 1 env PATH="$nouv" PYTHONPATH="$blk" "$nouv/python3" "$AP" "done" contract --dir "$d"
+assert_contains "$T_OUT" "needs check failed"
+assert_contains "$T_OUT" "api/openapi.yaml is YAML and neither uv nor PyYAML is installed"
 t_end
 
 t_begin "ui with data and no API still owes the data needs, checked against the flows and the model"
@@ -236,7 +262,7 @@ assert_contains "$T_OUT" "data needs check failed for docs/design/screens/invite
 cp "$KIT/tests/fixtures/data-needs/flows.md" "$d/docs/design/flows/invites/flows.md"
 assert_exit 0 ap "done" contract
 assert_contains "$T_OUT" "data model, threat models 1; profile: api=no"
-assert_not_contains "$T_OUT" "data needs: 2 actions"
+assert_not_contains "$T_OUT" "data needs: 3 actions"
 t_end
 
 t_begin "a product that calls a model owes the GenAI solution, then guardrails and evals"

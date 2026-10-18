@@ -197,6 +197,12 @@ runtime classes. Render the pages to static snapshots first with
 Playwright), then run pairs.py over the snapshots. Hover states are not in
 a snapshot; the report says so.
 
+## Raw colours
+
+A raw colour in a page does not follow the theme. It is invisible in light
+and breaks dark (a white panel under near-white text). `pairs.py` shows it
+in the context it breaks, which is why every raw colour is checked in dark.
+
 ## Report shape
 
 ```

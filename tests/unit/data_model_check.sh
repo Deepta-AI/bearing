@@ -98,6 +98,21 @@ assert_exit 1 python3 "$MC" --dir "$d" --needs "$d/z.md"
 assert_contains "$T_OUT" "data needs: 0 fields"
 t_end
 
+t_begin "--needs: field ids are unique across features; a collision names both files and says to renumber"
+d="$(tmpdir)"; fixture "$d"
+NF="$KIT/tests/fixtures/data-needs/data-needs.md"
+replace_in "$d/data-dictionary.csv" "US-01-003 AC3: the list filters by status;" "F-02 and US-01-003 AC3: the list filters by status;"
+printf '# Data needs: billing\n\n## S-01 Billing\n\n### Fields\n\n| Id | Field | Type | Source | Status |\n| --- | --- | --- | --- | --- |\n| F-10 | invoice.total | integer | server | exists |\n' > "$d/billing.md"
+assert_exit 0 python3 "$MC" --dir "$d" --needs "$NF" "$d/billing.md"
+assert_contains "$T_OUT" "data needs: 3 fields, 1 stored, 0 derived, 0 unmapped"
+# billing's own F-02, a new server field: the Why citing members' F-02 must not mark it stored
+printf '# Data needs: billing\n\n## S-01 Billing\n\n### Fields\n\n| Id | Field | Type | Source | Status |\n| --- | --- | --- | --- | --- |\n| F-02 | invoice.paid_at | datetime | server | new |\n' > "$d/billing.md"
+assert_exit 1 python3 "$MC" --dir "$d" --needs "$NF" "$d/billing.md"
+assert_contains "$T_OUT" "F-02 is in two data-needs files ($NF, $d/billing.md)"
+assert_contains "$T_OUT" "renumber"
+assert_contains "$T_OUT" "data needs: 3 fields, 0 stored, 0 derived, 0 unmapped"
+t_end
+
 t_begin "empty input and missing files fail with the count"
 d="$(tmpdir)"; fixture "$d"
 printf 'BEGIN;\nCOMMIT;\n' > "$d/schema.sql"

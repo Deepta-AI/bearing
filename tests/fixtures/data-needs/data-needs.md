@@ -13,6 +13,7 @@
 | Id | Action | Server | Outcomes | Status |
 | --- | --- | --- | --- | --- |
 | A-01 | Send invite | create an invite | 201 created; 409 already_member | new |
+| A-03 | Load members | list the members | 200 members | exists |
 
 ### States
 

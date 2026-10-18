@@ -5,13 +5,13 @@
   "commandSkills": 0,
   "stackSkills": 12,
   "scripts": 94,
-  "scriptLines": 29965,
+  "scriptLines": 30031,
   "hooks": 8,
   "agents": 8,
   "makeTargets": 31,
   "gates": 18,
-  "tests": 102,
-  "fixtures": 24,
+  "tests": 103,
+  "fixtures": 25,
   "stacks": 13,
   "templates": 38,
   "ciJobs": 16,
@@ -2499,7 +2499,7 @@
     },
     {
      "title": "Steps",
-     "lines": 92
+     "lines": 93
     },
     {
      "title": "Design checks",
@@ -2554,11 +2554,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 197,
+   "lines": 198,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 197
+     "lines": 198
     },
     {
      "path": "references/design-checks.md",
@@ -2574,7 +2574,7 @@
     },
     {
      "path": "scripts/model_check.py",
-     "lines": 541
+     "lines": 561
     },
     {
      "path": "templates/data-dictionary.csv",
@@ -3451,7 +3451,7 @@
    "description": "Scores a UI design (design gallery, running app or HTML prototype) at three widths, both themes, twelve categories, with an AI-slop check. Use when asked to \"critique this design\", \"review the prototype\" or \"score this\".",
    "invocation": "auto",
    "kind": "step",
-   "args": "<folder, html file or URL> [--rounds N, default 3] [--report-only]",
+   "args": "<folder, html file or URL> [--rounds N, default 3] [--report-only] [--unattended]",
    "tools": [
     "Read",
     "Write",
@@ -3463,6 +3463,7 @@
     "Bash(mkdir:*)",
     "Bash(test:*)",
     "Bash(printenv BEARING_AUTOPILOT BEARING_NONINTERACTIVE)",
+    "Bash(bash *bin/brg-config get noninteractive --user)",
     "Bash(make:*)",
     "Bash(git status:*)",
     "Bash(git diff:*)",
@@ -3482,7 +3483,7 @@
     },
     {
      "title": "Steps",
-     "lines": 99
+     "lines": 101
     },
     {
      "title": "Output contract",
@@ -3490,7 +3491,7 @@
     },
     {
      "title": "Gotchas",
-     "lines": 28
+     "lines": 27
     }
    ],
    "inputs": [
@@ -3507,7 +3508,7 @@
     "First impression per page, before the checklist: the first three things the eye lands on, compared with the page's job from the flows. A mismatch is a hierarchy finding with the element named.",
     "Contract diff, the findings a generalist misses most: - States: list every state and every line of copy in flows.md; each state with no page, and each page that shows a state the flows put elsewhere (an error baked into the default screen), is a finding. - Design system: each rule in DESIGN.md checked against each page (face, sizes, weights, raw colours, spacing scale, table overflow). - Content: the sample data mus…",
     "Walk `references/review-checklist.md`: twelve categories, 0 to 10, one evidence line per point deducted, `n/a: reason` leaves the mean. Score with its weights; letter A 9+, B 8, C 6 to 7, D 4 to 5, F below 4. Task cost is counted: 10, minus 2 per task over budget without a reason (the `task paths:` line of `python3 \"${CLAUDE_PLUGIN_ROOT}/skills/ux-flows/scripts/flows_check.py\"`), minus 1 per instance of the six patt…",
-    "Impeccable, per `${CLAUDE_PLUGIN_ROOT}/references/impeccable.md` (sections Detect, Unattended, design-critique): `audit <target>` whenever installed; `critique <target>` attended only, never when `printenv BEARING_AUTOPILOT BEARING_NONINTERACTIVE` prints a value other than `0`. Keep each finding with `source: impeccable audit` or `impeccable critique`. Contrast, widths, themes and copy against the flows stay Bearing…",
+    "Impeccable, per `${CLAUDE_PLUGIN_ROOT}/references/impeccable.md` (sections Detect, Unattended, design-critique): `audit <target>` whenever installed; `critique <target>` attended only: never with `--unattended`, nor when `printenv BEARING_AUTOPILOT BEARING_NONINTERACTIVE` prints a value other than `0`, nor when `bash \"${CLAUDE_PLUGIN_ROOT}/bin/brg-config\" get noninteractive --user` prints `1`. Keep each finding with…",
     "Verdict and report. Say plainly whether the design is ready for what the request names (the client on Friday, handoff), then the fixes that must come first, ordered by what the audience will see: broken or unreadable first, contract breaches next, polish last. Each fix: where, change X to Y because Z, and the measured result (a colour with its recomputed ratio on every surface it sits on, in the theme it serves). Wr…",
     "Fix mode, up to `--rounds` (default 3). Unattended, apply without asking every high finding whose fix keeps the approved look: labels, focus rings, zoom, copy from the flows, missing states as new pages named like the existing ones, touch targets, token values that stay in the same hue. Propose, do not apply, anything that changes what the client approved (accent hue, face, layout, density) or adds a network depende…",
     "Kill the server if one was started (a stale `http.server` confuses the next run). Final message: what changed per file, what was found and left (with why), the decisions for the owner, how the result was looked at (engine, widths, themes and dark path, or source only), and `git status --short --ignored`. Never commit."
@@ -3516,7 +3517,7 @@
    "gotchas": [
     "A token sits on more than one surface. `--text-muted` on the page and on the panel are two ratios; a replacement that passes on white can fail on the grey surface. `pairs.py`'s fix line already takes every surface in that theme; a colour typed by hand is recomputed with it first.",
     "A token change reaches every page that links the file, including screens outside the review. Name them in the fix.",
-    "A raw colour in a page does not follow the theme. It is invisible in light and breaks dark (a white panel under near-white text). `pairs.py` shows it in the context it breaks; check dark on every raw colour.",
+    "A raw colour in a page does not follow the theme: check dark on every raw colour (why: the checklist, section Raw colours).",
     "Two dark paths: `[data-theme=\"dark\"]` and the `prefers-color-scheme` block. A token added to one only is a parity gap; the page is broken for users on the other path. A form control with no `color` inherits the browser's scheme, not the token: dark text on a dark field.",
     "A face named in CSS is not a face loaded. With no `@font-face` or font link the screen, and every screenshot of it, shows the fallback; the look the client approved may never have rendered. Report it; loading from a CDN is the owner's decision on pages opened from disk.",
     "WCAG thresholds: 4.5:1 body, 3:1 at 24 px or 18.66 px bold, 3:1 for a field's edge against its surround and for a focus ring against what is next to it. An amber ring passes on white and fails on a pale panel.",
@@ -3535,7 +3536,7 @@
     },
     {
      "path": "references/review-checklist.md",
-     "lines": 207
+     "lines": 213
     },
     {
      "path": "scripts/evidence.py",
@@ -9536,7 +9537,7 @@
     },
     {
      "title": "Steps",
-     "lines": 88
+     "lines": 89
     },
     {
      "title": "Output contract",
@@ -9566,7 +9567,7 @@
     "Lint: `command -v npx` then `npx @redocly/cli@2.54.3 lint api/openapi.yaml`; print SKIPPED when unavailable. Breaking changes: the tag from `--against` or `git tag --sort=-v:refname | head -1`; write the old spec with `git show <tag>:api/openapi.yaml` to `.scratch/`, then `oasdiff breaking <old> api/openapi.yaml`; SKIPPED when unavailable or when no tag has a spec.",
     "Conformance: the grep in step 3 reads the code; this sends real requests. Paste `templates/api-conformance.mk` into the Makefile when it has no `api-conformance` target, and add a CI job `api-conformance` in stage `test` that starts the service (the stack's `docker compose up -d --wait` plus `make migrate`) and runs the target with `API_BASE_URL` set to it. When a local server answers its health route at `API_BASE_U…",
     "Docs: grep for `redoc`, `swagger`, `scalar`, `/docs` to find how the repo serves the spec. Write `docs/api/README.md`: where the spec lives, the docs route, how to lint, the style rules. No route found: write \"unconfirmed: no docs route\" and name the one to add. Then generate the readable design, in both modes, after the spec is final: in `new` mode fill the spec's `info.x-api-style`, `info.x-versioning` and `info.x…",
-    "Data needs, when `docs/design/screens/*/data-needs.md` exists: `uv run --quiet --with pyyaml==6.0.3 python \"${CLAUDE_PLUGIN_ROOT}/skills/openapi-spec/scripts/api_doc.py\" needs --spec api/openapi.yaml --needs docs/design/screens/*/data-needs.md` (`command -v uv` fails: the same with `python3`). It fails on an action no operation maps, an outcome with no response, an id no file has, an action id in two files, zero act…",
+    "Data needs, when `docs/design/screens/*/data-needs.md` exists: `uv run --quiet --with pyyaml==6.0.3 python \"${CLAUDE_PLUGIN_ROOT}/skills/openapi-spec/scripts/api_doc.py\" needs --spec api/openapi.yaml --needs docs/design/screens/*/data-needs.md` (`command -v uv` fails: the same with `python3`). It fails on an action no operation maps, an outcome with no response, an id no file has, an action id in two features' files…",
     "Print the output contract."
    ],
    "output": "",
@@ -9583,11 +9584,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 174,
+   "lines": 175,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 174
+     "lines": 175
     },
     {
      "path": "references/api-style.md",
@@ -9595,7 +9596,7 @@
     },
     {
      "path": "scripts/api_doc.py",
-     "lines": 538
+     "lines": 546
     },
     {
      "path": "templates/api-conformance.mk",
@@ -11980,7 +11981,7 @@
    "description": "Designs every screen in every state (empty, error, loading), desktop and phone, as clickable React or HTML mockups before code. Use when asked to \"design the screens\", \"hi-fi mockups\" or \"show every state\".",
    "invocation": "auto",
    "kind": "step",
-   "args": "<feature> [--screens S-01,S-03] [--framework react-shadcn|react-native|flutter|compose|swiftui|web] [--round N] [--standalone]",
+   "args": "<feature> [--screens S-01,S-03] [--framework react-shadcn|react-native|flutter|compose|swiftui|web] [--round N] [--standalone] [--unattended]",
    "tools": [
     "Read",
     "Write",
@@ -12018,7 +12019,7 @@
     },
     {
      "title": "Steps",
-     "lines": 79
+     "lines": 81
     },
     {
      "title": "Output contract",
@@ -12053,7 +12054,7 @@
     "A failing gate gets one fix in the screen, never by weakening it; still failing, that file is copied back from the snapshot (`cp -p .scratch/impeccable-pass/<file> <file>`, target files only; never git checkout, restore or stash) and listed. A token-level change impeccable wants goes back to design-system (`tokens.json` is not edited by hand).",
     "Unattended, polish runs only when the binding system and the flows are on disk; else harden only, with `polish skipped: unattended (<why>)`. A polish that asks is stopped, its targets restored from the snapshot, and `polish skipped: unattended (asked)` printed.",
     "Not installed: print `impeccable not installed` once, no pass, the doctrine decides.",
-    "With the flows file on disk, after the screens and the impeccable pass: write `docs/design/screens/<feature>/data-needs.md` from `templates/data-needs.md`, then run the `--needs` check of `scripts/states_check.py` (command in the reference) and fix until it exits 0. Without flows, skip it and say so. Detail: references/targets-and-gates.md",
+    "With the flows file on disk, after the screens and the impeccable pass: write `docs/design/screens/<feature>/data-needs.md` from `templates/data-needs.md` (ids continue after the highest F- and A- in the other features' files; each screen with server data lists its read as an action), then run the `--needs` check of `scripts/states_check.py` (command in the reference) and fix until it exits 0. Without flows, skip it…",
     "Find where the pages really come from; triage every comment before editing anything; measure colour changes; change only what the comments need; append the round to `CHANGES.md`. Detail: references/review-round.md"
    ],
    "output": "",
@@ -12073,11 +12074,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 183,
+   "lines": 185,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 183
+     "lines": 185
     },
     {
      "path": "references/html-bundle.md",
@@ -12101,7 +12102,7 @@
     },
     {
      "path": "references/targets-and-gates.md",
-     "lines": 74
+     "lines": 90
     },
     {
      "path": "scripts/bundle.py",
@@ -12113,7 +12114,7 @@
     },
     {
      "path": "scripts/states_check.py",
-     "lines": 363
+     "lines": 379
     },
     {
      "path": "templates/CHANGES.md",
@@ -12125,7 +12126,7 @@
     },
     {
      "path": "templates/data-needs.md",
-     "lines": 57
+     "lines": 62
     },
     {
      "path": "templates/design.schema.json",
@@ -14958,7 +14959,7 @@
    "name": "brg-autopilot",
    "lang": "python",
    "group": "workflow",
-   "lines": 1503,
+   "lines": 1525,
    "header": "brg-autopilot: the state, the gates and the report of an unattended run from\none requirement statement to a prepared merge request.\n\nThe autopilot skill drives the stages; this script is the part that cannot\nbe talked around: which stage is next, whether its gate holds (checked on\ndisk, never taken from the model's word), how many attempts are left, the\ndigest of every decision taken on the user's behalf, and the report. Nothing\nhere pushes, merges or deploys; the run stops at a prepared merge request.\n\n  brg-autopilot start \"<statement>\" [--dir D]   begin a run (refuses when one is open)\n  brg-autopilot next [--dir D]                  the next stage, its skill and its gate\n  brg-autopilot done <stage> [--dir D]          check the gate; mark done or say what is missing\n  brg-autopilot fail <stage> \"<why>\" [--dir D]  count a failed attempt (3 and the stage is blocked)\n  brg-autopilot decision <key> <choice> <alternatives> <why> [--adr PATH] [--dir D]\n                                                one row of the decision digest\n  brg-autopilot report [--dir D]                write docs/autopilot/<run>.md (the MR carries it)\n  brg-autopilot status [--dir D]                the stages, attempts and decisions so far\n  brg-autopilot profile --ui|--data|--api|--deploy yes|no [--llm yes|no] [--scope lean|full] --why W [--dir D]\n                                                what the product has; decides which stages apply\n                                                and how much document each one needs\n  brg-autopilot stages                          the stage names, in order\n  brg-autopilot launch \"<statement>\" [--dir D] [--print]\n                                                run it headless: claude -p with autopilot,\n                                                then any smoke it asked for, outside the sandbox\n  brg-autopilot smoke-request [--id ID] [--dir D]\n                                                headless dod: ask the launcher to run the smoke\n  brg-autopilot repos-request [--dir D]         headless repos: ask the launcher to scaffold the\n                                                repo plan's missing repositories beside this one\n\nState lives in <dir>/.bearing/state/autopilot.json. Every command prints what it\nchecked and exits 1 when a gate fails or there is nothing to act on.",
    "functions": [
     "sh",
@@ -14985,6 +14986,7 @@
     "scope_why",
     "diagrams",
     "checker",
+    "api_needs",
     "rels",
     "g_architecture",
     "g_design",
@@ -16336,8 +16338,8 @@
    "lang": "python",
    "group": "skill",
    "skill": "data-model",
-   "lines": 541,
-   "header": "model_check: schema.sql, data-dictionary.csv and data-model.md say the same thing.\n\ndata-model writes three views of one Postgres design. They drift the\nmoment one is edited by hand, and a dictionary that lists a column the\nschema dropped is worse than no dictionary. This gate reads all three and\nchecks, with the standard library only:\n\n  schema.sql\n    - opens a transaction (BEGIN;) and closes it (COMMIT;);\n    - every CREATE TYPE comes before the first CREATE TABLE;\n    - every REFERENCES target is created earlier in the file (FK order);\n    - every CREATE TABLE is preceded by a \"-- Serves ...\" comment;\n    - every table has COMMENT ON TABLE and every column COMMENT ON COLUMN;\n    - every CHECK constraint is named (CONSTRAINT <name> CHECK ...);\n  data-dictionary.csv\n    - the header is exactly the eleven columns below;\n    - every (table, column) in the SQL is a row, and every row is in the SQL;\n    - Nullable agrees with NOT NULL / PRIMARY KEY, Type agrees with the SQL;\n    - Description and Why are non-empty; Personal Data is Yes or No;\n    - a row with an FK key names its References as table.column that exists;\n  data-model.md\n    - every table has a heading that names it in backticks;\n    - every index and every named CHECK constraint is mentioned;\n    - the headline counts (Tables, Columns, Indexes, Personal-data columns)\n      match the SQL and the dictionary.\n\nUsage: model_check.py [--dir docs/design] [--schema F] [--dictionary F] [--model F]\n                      [--needs data-needs.md [...]]\nWith --needs, the screens' data-needs files are read too (parse_needs from\nscreen-design/scripts/states_check.py) and a second line is printed:\n  data needs: N fields, M stored, K derived, U unmapped\nA field with Status new and Source server is stored when a data-dictionary\nWhy cites its id (F-02), else unmapped (a problem); derived: fields count in\nK; exists and client: fields count in none of M, K, U. Zero fields exits 1.\nPrints one line per problem, then:\n  data-model: N tables, N columns, N indexes, N checks, N enums, N personal-data columns, N problems\nExits 1 on any problem, on a missing file, and on zero tables.",
+   "lines": 561,
+   "header": "model_check: schema.sql, data-dictionary.csv and data-model.md say the same thing.\n\ndata-model writes three views of one Postgres design. They drift the\nmoment one is edited by hand, and a dictionary that lists a column the\nschema dropped is worse than no dictionary. This gate reads all three and\nchecks, with the standard library only:\n\n  schema.sql\n    - opens a transaction (BEGIN;) and closes it (COMMIT;);\n    - every CREATE TYPE comes before the first CREATE TABLE;\n    - every REFERENCES target is created earlier in the file (FK order);\n    - every CREATE TABLE is preceded by a \"-- Serves ...\" comment;\n    - every table has COMMENT ON TABLE and every column COMMENT ON COLUMN;\n    - every CHECK constraint is named (CONSTRAINT <name> CHECK ...);\n  data-dictionary.csv\n    - the header is exactly the eleven columns below;\n    - every (table, column) in the SQL is a row, and every row is in the SQL;\n    - Nullable agrees with NOT NULL / PRIMARY KEY, Type agrees with the SQL;\n    - Description and Why are non-empty; Personal Data is Yes or No;\n    - a row with an FK key names its References as table.column that exists;\n  data-model.md\n    - every table has a heading that names it in backticks;\n    - every index and every named CHECK constraint is mentioned;\n    - the headline counts (Tables, Columns, Indexes, Personal-data columns)\n      match the SQL and the dictionary.\n\nUsage: model_check.py [--dir docs/design] [--schema F] [--dictionary F] [--model F]\n                      [--needs data-needs.md [...]]\nWith --needs, the screens' data-needs files are read too (parse_needs from\nscreen-design/scripts/states_check.py) and a second line is printed:\n  data needs: N fields, M stored, K derived, U unmapped\nA field with Status new and Source server is stored when a data-dictionary\nWhy cites its id (F-02), else unmapped (a problem); derived: fields count in\nK; exists and client: fields count in none of M, K, U. Zero fields exits 1.\nF- ids are unique across all the files: an id in two files is a problem\nnaming both, and counts in none of M, K, U.\nPrints one line per problem, then:\n  data-model: N tables, N columns, N indexes, N checks, N enums, N personal-data columns, N problems\nExits 1 on any problem, on a missing file, and on zero tables.",
    "functions": [
     "unquote",
     "statements",
@@ -16739,8 +16741,8 @@
    "lang": "python",
    "group": "skill",
    "skill": "openapi-spec",
-   "lines": 538,
-   "header": "api_doc: write docs/api/API.md, the human-readable API design, from api/openapi.yaml.\n\nThe spec is the contract; this is the page a reviewer, a client developer or\na tester reads first. It is generated so the two cannot disagree:\n\n  header       title and version; Style, Base path and Versioning; an\n               Authentication paragraph; the error code table (code, HTTP\n               status, meaning) from x-error-codes on the error envelope.\n  Conventions  numbered, each with its reason: \"N. <rule>. Why: <reason>.\"\n               lines from the style reference (--style), then the spec's\n               own x-conventions ([{rule, why}]).\n  per-status   an operation may narrow the codes behind a status with\n  codes        x-error-codes: {\"409\": [invoice_closed]}; a shared response\n               may carry x-error-codes: [code, ...]; otherwise every code\n               the envelope declares for that status is listed.\n  resources    one section per tag: its description as the purpose,\n               \"Serves US-...\" from the operations' x-story-ids, and a\n               table Method | Path | Does | Auth | Success | Errors, then\n               the idempotency note for each write.\n\nReads YAML with PyYAML (run it as `uv run --quiet --with pyyaml==6.0.3 python\napi_doc.py ...`); a spec written as JSON also loads without PyYAML.\n\nNeeds mode: api_doc.py needs --spec api/openapi.yaml --needs F [F ...] checks\nthe spec against the screens' data-needs.md files (see needs_main). It\nprints one \"problem:\" line each and one counts line:\n  data needs: N actions, M mapped, K new operations; O outcomes, U without a response, P problems\nN counts server actions (not \"none:\"); K counts operations whose\nx-data-needs holds an action with Status new. Actions present but all\nclient-only print \"data needs: N actions, 0 server, 0 mapped, 0 new operations\".\nExits 1 on a problem, zero actions, zero operations or a missing file.\n\nUsage: api_doc.py --spec api/openapi.yaml [--style api-style.md] [--out docs/api/API.md]\nPrints the findings (an operation with no x-story-ids, a create POST with no\nIdempotency-Key, a PATCH not documented idempotent, an error status with no\ndeclared code) and one counts line:\n  api-doc: N operations in N resources, N paths, N error codes, N conventions, N stories, N findings -> <out>\nExits 1 on zero operations, zero conventions from a given --style, or an\nunreadable spec; the document is not written then. Findings do not fail the\nrun; the skill reports them.",
+   "lines": 546,
+   "header": "api_doc: write docs/api/API.md, the human-readable API design, from api/openapi.yaml.\n\nThe spec is the contract; this is the page a reviewer, a client developer or\na tester reads first. It is generated so the two cannot disagree:\n\n  header       title and version; Style, Base path and Versioning; an\n               Authentication paragraph; the error code table (code, HTTP\n               status, meaning) from x-error-codes on the error envelope.\n  Conventions  numbered, each with its reason: \"N. <rule>. Why: <reason>.\"\n               lines from the style reference (--style), then the spec's\n               own x-conventions ([{rule, why}]).\n  per-status   an operation may narrow the codes behind a status with\n  codes        x-error-codes: {\"409\": [invoice_closed]}; a shared response\n               may carry x-error-codes: [code, ...]; otherwise every code\n               the envelope declares for that status is listed.\n  resources    one section per tag: its description as the purpose,\n               \"Serves US-...\" from the operations' x-story-ids, and a\n               table Method | Path | Does | Auth | Success | Errors, then\n               the idempotency note for each write.\n\nReads YAML with PyYAML (run it as `uv run --quiet --with pyyaml==6.0.3 python\napi_doc.py ...`); a spec written as JSON also loads without PyYAML.\n\nNeeds mode: api_doc.py needs --spec api/openapi.yaml --needs F [F ...] checks\nthe spec against the screens' data-needs.md files (see needs_main). It\nprints one \"problem:\" line each and one counts line:\n  data needs: N actions, M mapped, K new operations; O outcomes, U without a response, P problems\nN counts server actions (not \"none:\"); K counts operations whose\nx-data-needs holds an action with Status new. Actions present but all\nclient-only print \"data needs: N actions, 0 server, 0 mapped, 0 new operations\".\nA- ids are unique across all the --needs files: an id in two files is a\nproblem naming both. Exits 1 on a problem, zero actions, zero operations or a\nmissing file.\n\nUsage: api_doc.py --spec api/openapi.yaml [--style api-style.md] [--out docs/api/API.md]\nPrints the findings (an operation with no x-story-ids, a create POST with no\nIdempotency-Key, a PATCH not documented idempotent, an error status with no\ndeclared code) and one counts line:\n  api-doc: N operations in N resources, N paths, N error codes, N conventions, N stories, N findings -> <out>\nExits 1 on zero operations, zero conventions from a given --style, or an\nunreadable spec; the document is not written then. Findings do not fail the\nrun; the skill reports them.",
    "functions": [
     "load",
     "resolve",
@@ -16864,8 +16866,8 @@
    "lang": "python",
    "group": "skill",
    "skill": "screen-design",
-   "lines": 363,
-   "header": "states_check: every screen prototype renders every state its inventory lists.\n\nThe inventory is section 2 (\"Interaction states\") of the flows file: one\n\"### S-nn <name>\" heading per screen and a table of states under it; a row\nwhose second cell starts with \"n/a\" is out of scope. With no flows file,\neach screen must render the five baseline states (loading, empty, error,\nsuccess, partial) unless the page carries <!-- n/a: <state> because ... -->.\n\nA screen's prototype is <screens dir>/<id>-<name>.html (S-01-orders.html).\nIts states are the values of data-state=\"...\" on its panels; each panel also\nneeds a control that reaches it (data-state-target=\"...\", a repo's own\ndata-target=\"...\", or an href=\"#state=...\" link), and the file must hold no\nunfilled {{PLACEHOLDER}}. State names compare case-blind with spaces and\nunderscores read as hyphens, so the flows' \"no slots\" is the page's\n\"no-slots\": a repository's existing mockups are checked as they are, never\nrewritten to suit this gate.\n\nUsage: states_check.py --screens <dir> [--flows <flows.md>] [--only S-01,S-03]\nPrints one line per problem and the counts; exits 1 on any problem, or when\nzero screens were checked.\n\nNeeds mode: states_check.py --needs <data-needs.md> --flows <flows.md> checks\nthe feature's data-needs.md against the flows inventory (see needs_main);\nparse_needs and outcomes are importable for the contract checks.",
+   "lines": 379,
+   "header": "states_check: every screen prototype renders every state its inventory lists.\n\nThe inventory is section 2 (\"Interaction states\") of the flows file: one\n\"### S-nn <name>\" heading per screen and a table of states under it; a row\nwhose second cell starts with \"n/a\" is out of scope. With no flows file,\neach screen must render the five baseline states (loading, empty, error,\nsuccess, partial) unless the page carries <!-- n/a: <state> because ... -->.\n\nA screen's prototype is <screens dir>/<id>-<name>.html (S-01-orders.html).\nIts states are the values of data-state=\"...\" on its panels; each panel also\nneeds a control that reaches it (data-state-target=\"...\", a repo's own\ndata-target=\"...\", or an href=\"#state=...\" link), and the file must hold no\nunfilled {{PLACEHOLDER}}. State names compare case-blind with spaces and\nunderscores read as hyphens, so the flows' \"no slots\" is the page's\n\"no-slots\": a repository's existing mockups are checked as they are, never\nrewritten to suit this gate.\n\nUsage: states_check.py --screens <dir> [--flows <flows.md>] [--only S-01,S-03]\nPrints one line per problem and the counts; exits 1 on any problem, or when\nzero screens were checked.\n\nNeeds mode: states_check.py --needs <data-needs.md> --flows <flows.md> checks\nthe feature's data-needs.md against the flows inventory (see needs_main);\nA screen with a server field or a server condition must list at least one\naction whose Server is not none: (the read that loads it).\nparse_needs and outcomes are importable for the contract checks.",
    "functions": [
     "norm",
     "row_counts",
@@ -17883,9 +17885,9 @@
   {
    "path": "tests/unit/api_data_needs.sh",
    "kind": "unit",
-   "lines": 71,
+   "lines": 93,
    "header": "tests/unit/api_data_needs.sh: api_doc.py needs checks an OpenAPI spec against the screens' data-needs.md files: every server action maps to an operation through x-data-needs, every outcome has a response, every named id exists, an action id lives in one file, and zero input fails with the counts.",
-   "asserts": 19
+   "asserts": 22
   },
   {
    "path": "tests/unit/api_doc_generate.sh",
@@ -17918,9 +17920,9 @@
   {
    "path": "tests/unit/autopilot_stages.sh",
    "kind": "unit",
-   "lines": 639,
+   "lines": 665,
    "header": "tests/unit/autopilot_stages.sh: the stages brg-autopilot gained after the first real run skipped every skill no gate checked. The decide gate needs a product profile (ui, data, api, deploy). architecture needs a C4 file with a diagram and an architecture.json whose SVGs pass diagram_check. design adds, by profile, a deployment architecture with its diagram after arch_check passes. ux runs the flows, contrast, screen-state and design-bundle checkers for a UI. contract, after the screens, needs the data model, API contract and threat model, checked against the screens' data needs. test_cases ru…",
-   "asserts": 213
+   "asserts": 220
   },
   {
    "path": "tests/unit/autopilot_state.sh",
@@ -17958,11 +17960,18 @@
    "asserts": 46
   },
   {
+   "path": "tests/unit/critique_unattended.sh",
+   "kind": "unit",
+   "lines": 35,
+   "header": "tests/unit/critique_unattended.sh: an unattended run never asks. design-critique checks all three unattended signals of references/impeccable.md (--unattended, printenv, brg-config get noninteractive --user) and grants each command; screen-design and design-critique take --unattended; autopilot's ux and design_review stage text passes it to both, as it does to design-directions.",
+   "asserts": 10
+  },
+  {
    "path": "tests/unit/data_model_check.sh",
    "kind": "unit",
-   "lines": 122,
+   "lines": 137,
    "header": "tests/unit/data_model_check.sh: plugins/bearing/skills/data-model/scripts/model_check.py (schema.sql, data-dictionary.csv and data-model.md agree: every table and column in both, a Why per column, COMMENT ON everywhere, named CHECKs, FK order, enums first, headline counts) and scripts/apply_check.sh (SKIPPED without docker, fails on a missing file). The shipped templates are the passing fixture, so they cannot drift apart either.",
-   "asserts": 44
+   "asserts": 50
   },
   {
    "path": "tests/unit/deliverables_pack.sh",
@@ -18317,9 +18326,9 @@
   {
    "path": "tests/unit/screen_data_needs.sh",
    "kind": "unit",
-   "lines": 117,
+   "lines": 131,
    "header": "tests/unit/screen_data_needs.sh: states_check.py --needs checks a feature's data-needs.md against the flows inventory: every screen has an entry, every server action names its outcomes with a status and a code, every empty, loading and error state has a server condition, ids are unique, and zero input fails. parse_needs and outcomes are importable without side effects.",
-   "asserts": 32
+   "asserts": 37
   },
   {
    "path": "tests/unit/screen_gallery.sh",
@@ -19442,7 +19451,7 @@
     "Notes for existing repositories",
     "Noted"
    ],
-   "entries": 17,
+   "entries": 21,
    "summary": "- impeccable is pinned (`plugins/bearing/bin/pinned-packs.txt`) and installed in the standard profile; `doctor` reports it, and `install` takes `--skip-impeccable` (held on the full profile too). - design-directions: one impeccable direction round when impeccable is installed and the run is attended, recorded in `approved.json` as the locked `direction`. Without impeccable it prints `impeccable not installed` once and runs the three-variant path as before. - design-system derives `tokens.json` from the `DESIGN.md` frontmatter when it has tokens, else from the approved direction, and records which (`source: design-md | approved-direction`) with the hash of that source. The hash check is the…"
   },
   {
@@ -20364,7 +20373,7 @@
    },
    {
     "name": "ux",
-    "skill": "profile ui, scope full: ux-flows, design-directions --unattended, design-system, motion-design, then screen-design with each feature's data-needs.md; lean: the existing screens and design system are the precedent",
+    "skill": "profile ui, scope full: ux-flows, design-directions --unattended, design-system, motion-design, then screen-design --unattended with each feature's data-needs.md; lean: the existing screens and design system are the precedent",
     "gate": "profile ui: flows passing flows_check and tokens passing contrast; on react-shadcn (the default) a chosen direction (an impeccable pick over at least one challenger, or the highest of 3 scored variants), docs/design/motion.md, every screen in the design gallery passing gallery_check, and design-lint; on another stack HTML screens passing states_check"
    },
    {
@@ -20394,7 +20403,7 @@
    },
    {
     "name": "design_review",
-    "skill": "profile ui: design-critique on the design gallery of the running app",
+    "skill": "profile ui: design-critique --unattended on the design gallery of the running app",
     "gate": "profile ui: a review scoring overall 8.0 with no category below 7 and every screenshot present; otherwise nothing"
    },
    {

@@ -1,7 +1,7 @@
 ---
 name: screen-design
 description: 'Designs every screen in every state (empty, error, loading), desktop and phone, as clickable React or HTML mockups before code. Use when asked to "design the screens", "hi-fi mockups" or "show every state".'
-argument-hint: "<feature> [--screens S-01,S-03] [--framework react-shadcn|react-native|flutter|compose|swiftui|web] [--round N] [--standalone]"
+argument-hint: "<feature> [--screens S-01,S-03] [--framework react-shadcn|react-native|flutter|compose|swiftui|web] [--round N] [--standalone] [--unattended]"
 allowed-tools: Read, Write, Edit, Grep, Glob, Skill, Bash(ls:*), Bash(mkdir:*), Bash(test:*), Bash(make:*), Bash(git log:*), Bash(git diff:*), Bash(git show:*), Bash(git status:*), Bash(printenv BEARING_AUTOPILOT BEARING_NONINTERACTIVE), Bash(bash *bin/brg-config get noninteractive --user), Bash(sh scripts/design-lint.sh:*), Bash(mkdir -p .scratch/impeccable-pass/*), Bash(~/.claude/skills/gstack/browse/dist/browse:*), Bash(python3 *skills/screen-design/scripts/states_check.py*), Bash(python3 *skills/screen-design/scripts/gallery_check.py*), Bash(python3 *skills/screen-design/scripts/bundle.py*), Bash(python3 *skills/design-system/scripts/system_page.py*), Bash(python3 *skills/design-critique/scripts/evidence.py*), Bash(python3 *skills/accessibility/scripts/contrast.py*), Bash(bash *bin/brg-kit-paths*)
 ---
 
@@ -128,7 +128,9 @@ concern (`ambiguity`, `missing-screen`, `undefined-state`, `dead-end`,
 
 1. With the flows file on disk, after the screens and the impeccable pass:
    write `docs/design/screens/<feature>/data-needs.md` from
-   `templates/data-needs.md`, then run the `--needs` check of
+   `templates/data-needs.md` (ids continue after the highest F- and A- in
+   the other features' files; each screen with server data lists its
+   read as an action), then run the `--needs` check of
    `scripts/states_check.py` (command in the reference) and fix until it
    exits 0. Without flows, skip it and say so. Detail: references/targets-and-gates.md
 

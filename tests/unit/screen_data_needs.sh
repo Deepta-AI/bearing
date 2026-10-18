@@ -14,7 +14,7 @@ fx() { d="$(tmpdir)"; cp "$FX/flows.md" "$FX/data-needs.md" "$d/"; printf '%s' "
 
 t_begin "a complete needs file passes with its counts"
 assert_exit 0 python3 "$CHK" --needs "$FX/data-needs.md" --flows "$FX/flows.md"
-assert_contains "$T_OUT" "data-needs: 2 screens, 2 fields, 2 actions (1 exists, 1 new), 3 outcomes, 5 states, 0 problems"
+assert_contains "$T_OUT" "data-needs: 2 screens, 2 fields, 3 actions (2 exists, 1 new), 4 outcomes, 5 states, 0 problems"
 t_end
 
 t_begin "a screen with no entry, an action with no outcome and an uncovered error state fail"
@@ -34,7 +34,8 @@ t_end
 
 t_begin "a client-only action needs no outcome; none: needs a reason"
 d="$(fx)"
-replace_in "$d/data-needs.md" "| A-02 | Revoke | revoke the invite | 204 revoked | exists |" "| A-02 | Pick a date | none: opens the picker locally | | |"
+replace_in "$d/data-needs.md" "| A-02 | Revoke | revoke the invite | 204 revoked | exists |" "| A-02 | Revoke | revoke the invite | 204 revoked | exists |
+| A-04 | Pick a date | none: opens the picker locally | | |"
 assert_exit 0 python3 "$CHK" --needs "$d/data-needs.md" --flows "$d/flows.md"
 assert_contains "$T_OUT" "0 problems"
 replace_in "$d/data-needs.md" "| F-01 | member.email | string | server | exists |" "| none: | | | | |"
@@ -67,16 +68,29 @@ assert_exit 1 python3 "$CHK" --needs "$d/data-needs.md" --flows "$d/empty-flows.
 assert_contains "$T_OUT" "0 screens in the inventory"
 t_end
 
-t_begin "no actions at all fails with 0 actions; all client-only actions pass"
-d="$(fx)"
-replace_in "$d/data-needs.md" "| A-01 | Send invite | create an invite | 201 created; 409 already_member | new |" "| A-01 | Open picker | none: opens the picker locally | | |"
-replace_in "$d/data-needs.md" "| A-02 | Revoke | revoke the invite | 204 revoked | exists |" "| A-02 | Pick a date | none: opens the picker locally | | |"
+t_begin "no actions at all fails with 0 actions; all client-only actions pass on screens with no server data"
+d="$(tmpdir)"
+printf '## 1. Screen inventory\n\n| Id | Screen |\n| --- | --- |\n| S-01 | Settings |\n\n## 2. Interaction states\n\n### S-01 Settings\n\n| State | Sees | Copy |\n| --- | --- | --- |\n| success | the switches | "Saved on this device" |\n' > "$d/flows.md"
+printf '# Data needs: settings\n\n## S-01 Settings\n\n### Fields\n\n| Id | Field | Type | Source | Status |\n| --- | --- | --- | --- | --- |\n| F-01 | theme | string | client: local storage | |\n\n### Actions\n\n| Id | Action | Server | Outcomes | Status |\n| --- | --- | --- | --- | --- |\n| A-01 | Toggle theme | none: stored on the device | | |\n| A-02 | Reset | none: clears local storage | | |\n\n### States\n\n| State | Server condition |\n| --- | --- |\n| none: no state depends on the server | |\n' > "$d/data-needs.md"
 assert_exit 0 python3 "$CHK" --needs "$d/data-needs.md" --flows "$d/flows.md"
 assert_contains "$T_OUT" "2 actions (0 exists, 0 new), 0 outcomes"
-replace_in "$d/data-needs.md" "| A-01 | Open picker | none: opens the picker locally | | |" "| none: nothing to do | | | | |"
-replace_in "$d/data-needs.md" "| A-02 | Pick a date | none: opens the picker locally | | |" "| none: nothing to do | | | | |"
+replace_in "$d/data-needs.md" "| A-01 | Toggle theme | none: stored on the device | | |" "| none: nothing to do | | | | |"
+replace_in "$d/data-needs.md" "| A-02 | Reset | none: clears local storage | | |" "| none: nothing to do | | | | |"
 assert_exit 1 python3 "$CHK" --needs "$d/data-needs.md" --flows "$d/flows.md"
 assert_contains "$T_OUT" "0 actions in"
+t_end
+
+t_begin "a screen with a server field or a server condition needs a server action (its read)"
+d="$(fx)"
+replace_in "$d/data-needs.md" "| A-02 | Revoke | revoke the invite | 204 revoked | exists |" "| A-02 | Pick a date | none: opens the picker locally | | |"
+assert_exit 1 python3 "$CHK" --needs "$d/data-needs.md" --flows "$d/flows.md"
+assert_contains "$T_OUT" "problem: S-02 shows server data (a server field or a server condition) but has no server action"
+assert_not_contains "$T_OUT" "problem: S-01 shows server data"
+d="$(fx)"
+replace_in "$d/data-needs.md" "| F-02 | invite.expires_at | datetime | server | new |" "| F-02 | invite.expires_at | datetime | client: the form | |"
+replace_in "$d/data-needs.md" "| A-02 | Revoke | revoke the invite | 204 revoked | exists |" "| A-02 | Pick a date | none: opens the picker locally | | |"
+assert_exit 1 python3 "$CHK" --needs "$d/data-needs.md" --flows "$d/flows.md"
+assert_contains "$T_OUT" "problem: S-02 shows server data" "a server condition alone needs the action"
 t_end
 
 t_begin "bad ids fail naming the screen; --needs without --flows is a usage error"
@@ -111,7 +125,7 @@ n = m.parse_needs(open(sys.argv[1]).read())
 print(sorted(n), len(n["S-01"]["actions"]), m.outcomes("201 created; 409 already_member"))
 PY
 )"
-assert_contains "$out" "['S-01', 'S-02'] 1 [('201', 'created'), ('409', 'already_member')]"
+assert_contains "$out" "['S-01', 'S-02'] 2 [('201', 'created'), ('409', 'already_member')]"
 t_end
 
 t_summary

@@ -379,7 +379,7 @@
     "score this"
    ],
    "invocation": "auto",
-   "args": "<folder, html file or URL> [--rounds N, default 3] [--report-only]"
+   "args": "<folder, html file or URL> [--rounds N, default 3] [--report-only] [--unattended]"
   },
   {
    "name": "design-directions",
@@ -1155,7 +1155,7 @@
     "show every state"
    ],
    "invocation": "auto",
-   "args": "<feature> [--screens S-01,S-03] [--framework react-shadcn|react-native|flutter|compose|swiftui|web] [--round N] [--standalone]"
+   "args": "<feature> [--screens S-01,S-03] [--framework react-shadcn|react-native|flutter|compose|swiftui|web] [--round N] [--standalone] [--unattended]"
   },
   {
    "name": "secrets",

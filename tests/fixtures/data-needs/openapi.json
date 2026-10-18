@@ -2,6 +2,14 @@
   "openapi": "3.1.0",
   "info": { "title": "Members", "version": "1.0.0" },
   "paths": {
+    "/members": {
+      "get": {
+        "operationId": "listMembers",
+        "x-story-ids": ["US-01-001"],
+        "x-data-needs": ["A-03"],
+        "responses": { "200": { "description": "members" } }
+      }
+    },
     "/invites": {
       "post": {
         "operationId": "createInvite",

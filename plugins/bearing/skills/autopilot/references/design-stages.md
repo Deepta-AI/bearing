@@ -18,7 +18,7 @@ the brief; an attended run with impeccable installed records its one
 pick over its challengers instead, and the gate accepts either),
 design-system from the chosen direction (the shadcn
 variables, one UI face and a mono), motion-design (docs/design/motion.md)
-and screen-design (on react-shadcn every screen a *.screen.tsx in
+and screen-design --unattended (on react-shadcn every screen a *.screen.tsx in
 the design gallery, composed from src/components/ui, every state from
 fixtures, responsive at 375, 768 and 1440), which also writes each
 feature's docs/design/screens/<feature>/data-needs.md: what every

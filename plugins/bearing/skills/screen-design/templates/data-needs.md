@@ -4,7 +4,10 @@
      written by screen-design after the screens and read by data-model and
      openapi-spec. One "## S-nn <name>" section per screen in the flows
      inventory, each with Fields, Actions and States tables. Checked by
-     `states_check.py --needs`. Delete each comment when you fill its section. -->
+     `states_check.py --needs`. Ids are unique across the product: start
+     after the highest F- and A- ids in the other features' files under
+     docs/design/screens/ (A-01 and F-01 only for the first feature).
+     Delete each comment when you fill its section. -->
 
 ## S-01 <screen name>
 
@@ -31,9 +34,11 @@
 ### Actions
 
 <!-- What: each thing the user does that the server must answer: id (A-nn,
-     unique across the whole file), the action, what happens on the server,
-     and every outcome as `<status> <code>` separated by semicolons.
-     Good: the outcomes include each error code the flows' error rows name;
+     unique across every feature's file), the action, what happens on the
+     server, and every outcome as `<status> <code>` separated by semicolons.
+     Good: a screen that shows server data lists the read that loads it
+     (A-03 | Load members | list the members | 200 members | exists);
+     the outcomes include each error code the flows' error rows name;
      a client-only action writes `none: <reason>` in Server and leaves
      Outcomes blank; Status is `exists` or `new`.
      Example: A-01 | Send invite | create an invite | 201 created; 409

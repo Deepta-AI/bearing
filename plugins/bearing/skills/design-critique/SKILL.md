@@ -1,8 +1,8 @@
 ---
 name: design-critique
 description: 'Scores a UI design (design gallery, running app or HTML prototype) at three widths, both themes, twelve categories, with an AI-slop check. Use when asked to "critique this design", "review the prototype" or "score this".'
-argument-hint: "<folder, html file or URL> [--rounds N, default 3] [--report-only]"
-allowed-tools: Read, Write, Edit, Grep, Glob, Skill, Bash(ls:*), Bash(mkdir:*), Bash(test:*), Bash(printenv BEARING_AUTOPILOT BEARING_NONINTERACTIVE), Bash(make:*), Bash(git status:*), Bash(git diff:*), Bash(~/.claude/skills/gstack/browse/dist/browse:*), Bash(python3 -m http.server:*), Bash(kill:*), Bash(python3 *skills/design-critique/scripts/*), Bash(node *skills/design-critique/scripts/*), Bash(python3 *skills/ux-flows/scripts/flows_check.py*)
+argument-hint: "<folder, html file or URL> [--rounds N, default 3] [--report-only] [--unattended]"
+allowed-tools: Read, Write, Edit, Grep, Glob, Skill, Bash(ls:*), Bash(mkdir:*), Bash(test:*), Bash(printenv BEARING_AUTOPILOT BEARING_NONINTERACTIVE), Bash(bash *bin/brg-config get noninteractive --user), Bash(make:*), Bash(git status:*), Bash(git diff:*), Bash(~/.claude/skills/gstack/browse/dist/browse:*), Bash(python3 -m http.server:*), Bash(kill:*), Bash(python3 *skills/design-critique/scripts/*), Bash(node *skills/design-critique/scripts/*), Bash(python3 *skills/ux-flows/scripts/flows_check.py*)
 ---
 
 # design-critique
@@ -18,8 +18,7 @@ The default stack's designs live in the app: the design gallery at
 `/__design` of a running dev server (`make dev`) shows every screen in
 every state with the real components; review it by URL, one page per
 screen and state (`<id>?state=<name>&chrome=0`). HTML prototypes and
-static exports on disk are reviewed the same way. Driving a deployed app's
-flows is gstack `/design-review`'s job.
+static exports on disk the same way; a deployed app: gstack `/design-review`.
 
 ## Inputs
 
@@ -106,9 +105,11 @@ flows is gstack `/design-review`'s job.
    each deduction names the task or screen id. No flows: `n/a`.
 7. Impeccable, per `${CLAUDE_PLUGIN_ROOT}/references/impeccable.md` (sections
    Detect, Unattended, design-critique): `audit <target>` whenever installed;
-   `critique <target>` attended only, never when
+   `critique <target>` attended only: never with `--unattended`, nor when
    `printenv BEARING_AUTOPILOT BEARING_NONINTERACTIVE` prints a value other
-   than `0`. Keep each finding with `source: impeccable audit` or
+   than `0`, nor when
+   `bash "${CLAUDE_PLUGIN_ROOT}/bin/brg-config" get noninteractive --user`
+   prints `1`. Keep each finding with `source: impeccable audit` or
    `impeccable critique`. Contrast, widths, themes and copy against the flows
    stay Bearing-measured; a contradicting finding is listed with both, and
    the measurement scores. Not installed: say so once, no step.
@@ -176,9 +177,8 @@ Report: docs/design/reviews/<feature>-review.md
   that theme; a colour typed by hand is recomputed with it first.
 - A token change reaches every page that links the file, including screens
   outside the review. Name them in the fix.
-- A raw colour in a page does not follow the theme. It is invisible in
-  light and breaks dark (a white panel under near-white text). `pairs.py`
-  shows it in the context it breaks; check dark on every raw colour.
+- A raw colour in a page does not follow the theme: check dark on every
+  raw colour (why: the checklist, section Raw colours).
 - Two dark paths: `[data-theme="dark"]` and the `prefers-color-scheme`
   block. A token added to one only is a parity gap; the page is broken for
   users on the other path. A form control with no `color` inherits the

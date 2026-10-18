@@ -29,7 +29,9 @@ prints one "problem:" line each and one counts line:
 N counts server actions (not "none:"); K counts operations whose
 x-data-needs holds an action with Status new. Actions present but all
 client-only print "data needs: N actions, 0 server, 0 mapped, 0 new operations".
-Exits 1 on a problem, zero actions, zero operations or a missing file.
+A- ids are unique across all the --needs files: an id in two files is a
+problem naming both. Exits 1 on a problem, zero actions, zero operations or a
+missing file.
 
 Usage: api_doc.py --spec api/openapi.yaml [--style api-style.md] [--out docs/api/API.md]
 Prints the findings (an operation with no x-story-ids, a create POST with no
@@ -230,10 +232,16 @@ def needs_main(argv):
                 if not aid:
                     continue
                 actions.setdefault(aid, r)
-                where.setdefault(aid, []).append(path)
+                if path not in where.setdefault(aid, []):
+                    where[aid].append(path)
+    # A- ids are unique across the product: x-data-needs in one OpenAPI
+    # document is one namespace (a repeat inside one file is states_check's)
     for aid, files in where.items():
         if len(files) > 1:
-            problems.append(f"{aid} is in two files: {', '.join(files)}")
+            problems.append(
+                f"{aid} is in two data-needs files ({', '.join(files)}): action ids are unique "
+                f"across the product; renumber the later feature's actions after the highest A- id in use"
+            )
 
     ops = {}  # "METHOD /path" -> x-data-needs ids
     statuses = {}  # "METHOD /path" -> response statuses

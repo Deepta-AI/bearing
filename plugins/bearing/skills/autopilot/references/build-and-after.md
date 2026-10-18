@@ -28,7 +28,7 @@ llm in the profile, llm-guardrails writes `guardrails/policy.yaml` and
 wires it at the call sites, and llm-eval writes `docs/genai/evals.md`
 (an eval that needs a provider key the run lacks is written and marked
 not run, never reported as passed); for a
-UI, design-critique scores the design gallery of the running app
+UI, design-critique --unattended scores the design gallery of the running app
 (`make dev`) across every screen and state, fixes the top findings
 and re-scores until the bar holds: overall 8.0, no category below 7,
 every screenshot present. The design_review gate reads the report;

@@ -22,6 +22,8 @@ zero screens were checked.
 
 Needs mode: states_check.py --needs <data-needs.md> --flows <flows.md> checks
 the feature's data-needs.md against the flows inventory (see needs_main);
+A screen with a server field or a server condition must list at least one
+action whose Server is not none: (the read that loads it).
 parse_needs and outcomes are importable for the contract checks.
 """
 
@@ -262,6 +264,20 @@ def needs_main(needs_path, flows_path):
         for s in states.get(sid, []):
             if re.match(r"^(error|empty|loading)(-|$)", s) and not have.get(s):
                 problems.append(f"{sid} state {s} has no server condition")
+        # a screen that shows server data owes the read that loads it: the
+        # contract is derived from the actions, so an unlisted read has no API
+        shows = any(
+            "none" not in r and r.get("source", "").strip().lower() == "server" for r in entry["fields"]
+        ) or any(have.values())
+        asks = any(
+            "none" not in r and not re.match(r"^none:", r.get("server", "").strip(), re.I)
+            for r in entry["actions"]
+        )
+        if shows and not asks:
+            problems.append(
+                f"{sid} shows server data (a server field or a server condition) but has no server "
+                f"action: list the read that loads it, marked exists when the API already has it"
+            )
     for aid, where in seen.items():
         if len(where) > 1:
             problems.append(f"{aid} is used twice ({', '.join(where)})")

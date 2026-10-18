@@ -129,7 +129,8 @@ ${CLAUDE_PLUGIN_ROOT}/skills/tech-decision/references/decision-protocol.md.
     the dictionary or the reverse, on an empty Why, on a table or column
     with no `COMMENT ON`, on an unnamed CHECK, on FK order, and on
     headline counts that disagree; with `--needs`, also on a new server
-    field no Why cites and on zero fields. Fix and rerun until it prints 0
+    field no Why cites, a field id in two features' files (renumber the
+    later one) and zero fields. Fix and rerun until it prints 0
     problems. Then prove it applies:
     `bash "${CLAUDE_PLUGIN_ROOT}/skills/data-model/scripts/apply_check.sh" docs/design/schema.sql`
     (a throwaway `postgres:16` container, no port, no shared database;

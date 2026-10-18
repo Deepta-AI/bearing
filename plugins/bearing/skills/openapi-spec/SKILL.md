@@ -124,7 +124,8 @@ ${CLAUDE_PLUGIN_ROOT}/skills/tech-decision/references/decision-protocol.md.
    `uv run --quiet --with pyyaml==6.0.3 python "${CLAUDE_PLUGIN_ROOT}/skills/openapi-spec/scripts/api_doc.py" needs --spec api/openapi.yaml --needs docs/design/screens/*/data-needs.md`
    (`command -v uv` fails: the same with `python3`). It fails on an
    action no operation maps, an outcome with no response, an id no file
-   has, an action id in two files, zero actions or zero operations. Fix
+   has, an action id in two features' files (renumber the later one),
+   zero actions or zero operations. Fix
    the spec and rerun until 0 problems.
 9. Print the output contract.
 
