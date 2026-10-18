@@ -113,6 +113,18 @@ the target printed them, each `null` when it printed none. In `failures`,
 as given. Counts line: `S` is the suites with status `run` or `covered`,
 `P` the suites selected and present, `N` the suites not run.
 
+When unit is the only suite, `--except unit` selects none and writes no
+evidence, so definition of done item 14 writes the full file itself:
+
+```json
+{"scope": "full", "sha": "<HEAD>", "dirty": false, "files": null,
+ "layers": [], "base": "", "except": ["unit"], "suites": [], "tests": 0,
+ "failed": 0, "not_run": [], "failures": [], "n_a": "no suite beyond unit"}
+```
+
+`n_a` appears only there; the autopilot dod gate accepts empty `suites`
+only with that exact value.
+
 A run that stops before any suite (zero files changed, a `brg-changed`
 error, a detached HEAD, 0 suites selected or a suite not found) writes
 no evidence and leaves the last file in place. A reader (a gate,
@@ -125,11 +137,12 @@ Definition of done item 14 runs `--except unit`, which includes the
 integration suite. When the inventory has that suite and the Makefile has
 `db` and `migrate` targets, run `make db` then `make migrate` before it,
 and note in the report that this run started the database. After the run,
-stop only what this run started (`make db-down` or `docker compose down`
-when the Makefile or compose file has it) and show the port is free; a
-database that was already up stays up. No `db` target: the suite runs
-with the `DATABASE_URL` the environment gives it, and a suite that cannot
-connect is "not run (no database)", never a pass.
+stop only what this run started: `docker compose down` when the
+repository has a compose file and nothing in it was up before the run
+(never the db-reset target, which drops the data), then show the port is
+free. A database that was already up stays up. No `db` target: the suite
+runs with the `DATABASE_URL` the environment gives it, and a suite that
+cannot connect is "not run (no database)", never a pass.
 
 ## Python: choosing the command offline
 

@@ -3142,12 +3142,13 @@
     "Bash(maestro test:*)",
     "Bash(xcodebuild test:*)",
     "Bash(./gradlew connectedDebugAndroidTest:*)",
-    "Bash(printenv BEARING_AUTOPILOT BEARING_NONINTERACTIVE BRG_AUTOPILOT_HEADLESS)",
+    "Bash(printenv BEARING_AUTOPILOT BEARING_NONINTERACTIVE)",
+    "Bash(bash *bin/brg-config get noninteractive --user)",
     "Bash(tail -40)",
     "Bash(bash *skills/definition-of-done/scripts/red_proof.sh *)",
     "Bash(bash *bin/brg-state-path*)",
     "Bash(bash *bin/brg-changed*)",
-    "Bash(bash *bin/brg-autopilot*)",
+    "Bash(python3 *bin/brg-autopilot decision test_run.*)",
     "Bash(python3 *skills/prose-lint/scripts/prose_check.py*)"
    ],
    "extra": {},
@@ -3159,7 +3160,7 @@
     },
     {
      "title": "Steps",
-     "lines": 135
+     "lines": 136
     },
     {
      "title": "Output contract",
@@ -3194,11 +3195,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 197,
+   "lines": 198,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 197
+     "lines": 198
     },
     {
      "path": "scripts/red_proof.sh",
@@ -13689,9 +13690,8 @@
     "Bash(make test-visual:*)",
     "Bash(make test-e2e-matrix:*)",
     "Bash(make synthetic:*)",
-    "Bash(make db:*)",
-    "Bash(make db-down:*)",
-    "Bash(make migrate:*)",
+    "Bash(make db)",
+    "Bash(make migrate)",
     "Bash(docker compose down:*)",
     "Bash(git status:*)",
     "Bash(git diff:*)",
@@ -13780,7 +13780,7 @@
     },
     {
      "path": "references/runners.md",
-     "lines": 218
+     "lines": 231
     },
     {
      "path": "templates/report.md",
