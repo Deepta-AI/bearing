@@ -1422,7 +1422,7 @@
     "Build is test first, story by story, in the order of the backlog. Read the traps in references/reviewer-checks.md first. Detail: references/build-and-after.md",
     "After the build: test-automation, the LLM stages when the profile says llm, then `test-run --changed` (the test_run stage), and design-critique until the bar holds. Detail: references/build-and-after.md",
     "Review is `branch-review --unattended`; fix every Critical and High it confirms, record each fix as `<n> <sha>` in `.scratch/review/<slug>/fixed.txt`, then `make check` again; `definition-of-done --unattended` includes the smoke run and the full test run. Read references/reviewer-checks.md again before dod. Detail: references/review-smoke-and-mr.md",
-    "The mr stage: when the repo plan has more than one entry, first write the `## Repos` section from it in merge order and list each sibling's `start-task ... --repos` line in the report (`${CLAUDE_PLUGIN_ROOT}/references/task-set.md`); the report commit carries it. Then `merge-request` prepares the description; `report` writes `docs/autopilot/<run>.md`; commit it, and let that commit be the last write (`git status` cl…",
+    "The mr stage: when the repo plan has more than one entry, first write the `## Repos` section from it in merge order and list each sibling's `start-task <ID> <Name> --type <type> --repos <list>` line in the report (`${CLAUDE_PLUGIN_ROOT}/references/task-set.md`); the report commit carries it. Then `merge-request` prepares the description; `report` writes `docs/autopilot/<run>.md`; commit it, and let that commit be th…",
     "Blocked or finished, the last message is the report: stages done, the decisions to review, what is not done and why, and the push line when the MR is ready (requested, or the command for the engineer)."
    ],
    "output": "",
@@ -1460,7 +1460,7 @@
     },
     {
      "path": "references/review-smoke-and-mr.md",
-     "lines": 52
+     "lines": 53
     },
     {
      "path": "references/reviewer-checks.md",
@@ -8062,7 +8062,7 @@
     },
     {
      "title": "Steps",
-     "lines": 64
+     "lines": 66
     },
     {
      "title": "Output contract",
@@ -8108,11 +8108,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 155,
+   "lines": 157,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 155
+     "lines": 157
     },
     {
      "path": "templates/mr.md",
@@ -18950,9 +18950,9 @@
   {
    "path": "tests/unit/task_set_skills.sh",
    "kind": "unit",
-   "lines": 31,
-   "header": "tests/unit/task_set_skills.sh: the five skills cite the task-set reference, and each stays at 200 lines or fewer. Counts the skills; fails on zero.",
-   "asserts": 10
+   "lines": 94,
+   "header": "tests/unit/task_set_skills.sh: the five skills cite the task-set reference, and each stays at 200 lines or fewer. Counts the skills; fails on zero. Behaviour: three repositories on one bugfix branch, progress.py write --repo and set print the rows in merge order, and the sibling line the skills print reproduces the same branch name and type in every member.",
+   "asserts": 27
   },
   {
    "path": "tests/unit/test_cases_refs.sh",

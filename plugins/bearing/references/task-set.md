@@ -14,10 +14,12 @@ file run the commands; this file holds only the rules.
 
 ## Start
 
-Run `start-task` in each repository with the same id, the same name and
-the same `--repos` list. The first run settles the merge order and prints
-the line to run in each sibling, with the list in that order; a sibling
-run with that line finds the same id and writes the same section. A name
+Run `start-task` in each repository with the same id, the same name, the
+same type and the same `--repos` list. The first run settles the merge
+order and prints the line to run in each sibling,
+`start-task <ID> <Name> --type <type> --repos <list>`, with the list in
+that order and this branch's type; a sibling run with that line creates
+the same branch name and writes the same section. A name
 in the list resolves through `docs/architecture/repo-plan.json`: the
 entry's `path` when it has one, else `../<name>` beside this repository.
 This repository's own name (its directory name, or the plan entry whose
@@ -27,8 +29,11 @@ path is `.`) is always `.`. A name the plan does not hold is taken as
 ## Branch names
 
 The same `<type>/<ID>-<PascalName>` in every member, with one type for the
-whole set. The hooks and the guard read the id from the branch name, so a
-member on a different name drops out of the set.
+whole set; the printed sibling line passes `--type` so a bugfix or hotfix
+set does not start its siblings as `feature/`. The hooks and the guard
+read the id from the branch name, and `progress.py set` looks for this
+branch name in every member, so a member on a different name drops out
+of the set.
 
 ## State and progress
 
@@ -39,17 +44,21 @@ the merge order and `<path>` is relative to that member (`.` for itself,
 `../ShopApi` for a sibling). Names and order are identical in every
 member; only the paths differ. At most 8 repositories: the progress file
 has to stay short. `progress.py set` reads the section and prints one
-row per repository (`ready`, `merged` or `not ready: <reason>`, the row
-for `.` marked `(this repository)`) and a `set:` summary line.
+row per repository (`ready`, `merged`, `not ready: <reason>` or
+`missing`, the row for `.` marked `(this repository)`) and a `set:`
+summary line. `missing` means the path holds no git repository: the
+sibling is not cloned there yet, or the path is wrong. Any `missing` row
+makes `set` exit 1; the other rows are still printed.
 
 ## Merge order
 
 Providers before consumers. With a repo plan, order by the `git_path`
 group: Infrastructure, then Server, then Client, then anything else, ties
 in plan order. Without a plan, the order given to `--repos`. The engineer
-confirms it once with AskUserQuestion, only when the order given differs
-from that default (when the first run kept the default, a sibling run
-with the printed line asks nothing); unattended, the default stands and
+confirms it once with AskUserQuestion, attended, whenever more than one
+repository is listed (one question, that order recommended); a sibling
+run with the printed line asks the same one question with the settled
+order first. Unattended, the given order stands, nothing is asked, and
 the report says so. Each MR must merge alone, in that order, and leave
 its default branch working: expand first, contract later. A change
 that cannot merge alone (a breaking API change both sides need at once)
@@ -68,8 +77,11 @@ The definition of done's task set item reads the `progress.py set` rows:
 `pass` when every repository before this one in the merge order is
 `ready` or `merged` (the first in the order always passes), `fail`
 naming each one that is not, with its reason; a repository after this
-one does not count, even when its path is missing. Without a `## Repos`
-section the item is `n/a: not a task set`.
+one does not count, even when its path is `missing`. When the `## Repos`
+section has no row whose path is `.`, the item is
+`fail: no row for this repository` (the section was copied from a
+sibling unedited). Without a `## Repos` section the item is
+`n/a: not a task set`.
 
 ## Finish
 

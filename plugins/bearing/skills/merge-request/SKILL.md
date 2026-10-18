@@ -92,7 +92,9 @@ the standard only makes the inputs below quicker to find.
    file: run `python3 "${CLAUDE_PLUGIN_ROOT}/skills/session-handoff/scripts/progress.py" set --task <ID>`
    and add the Task set block (each repository, its branch, its order,
    `merge after <Name> | first`) per `${CLAUDE_PLUGIN_ROOT}/references/task-set.md`;
-   only then does the report carry its `Set:` line.
+   only then does the report carry its `Set:` line. `set` exits 1 while a
+   sibling is not cloned yet (its row says `missing`); that is expected,
+   and the Task set block is still written from the rows it printed.
 7. Prose: no em dashes, no self-praise, no sentence that only says the
    work matches the request.
 8. Write to `.scratch/mr-<ID or branch>.md` and print it. Then

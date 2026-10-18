@@ -78,7 +78,7 @@ what is on disk, never from what the model says it did.
    before dod. Detail: references/review-smoke-and-mr.md
 10. The mr stage: when the repo plan has more than one entry, first write
    the `## Repos` section from it in merge order and list each sibling's
-   `start-task ... --repos` line in the report
+   `start-task <ID> <Name> --type <type> --repos <list>` line in the report
    (`${CLAUDE_PLUGIN_ROOT}/references/task-set.md`); the report commit
    carries it. Then `merge-request` prepares the description; `report` writes
    `docs/autopilot/<run>.md`; commit it, and let that commit be the last

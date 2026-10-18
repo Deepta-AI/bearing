@@ -36,8 +36,9 @@ one entry, first write the `## Repos` section from it in the merge order
 order stands; nothing is asked):
 `python3 "${CLAUDE_PLUGIN_ROOT}/skills/session-handoff/scripts/progress.py" write --task <ID> --repo "<n>. <Name> (<path>)"`,
 one `--repo` per entry, this repository as `.`; the report lists, for
-each sibling, the `start-task <ID> <Name> --repos <list>` line to run
-there, and the report commit carries the progress file. Then
+each sibling, the `start-task <ID> <Name> --type <type> --repos <list>`
+line to run there (this branch's type, so every member gets the same
+branch name), and the report commit carries the progress file. Then
 `merge-request` prepares the description; `report` writes
 `docs/autopilot/<run>.md`; commit it, and let that commit be the last
 write (`git status` clean after it: a progress file touched later is

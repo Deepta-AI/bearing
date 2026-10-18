@@ -149,9 +149,9 @@ own uncommitted work safe.
    never in the engineer's own checkout; it is the project answer, committed
    with the first change, and every later task here follows the site flow.
    With `--repos`: resolve each name to its path as the reference says;
-   when the order given differs from the reference's merge order, ask
+   whenever more than one repository is listed, confirm the merge order
    once with AskUserQuestion (the reference's order recommended, or the
-   order given; unattended, take the reference's and ask nothing). Then, in the new branch's tree,
+   order given; unattended, the order given stands and nothing is asked). Then, in the new branch's tree,
    `python3 "${CLAUDE_PLUGIN_ROOT}/skills/session-handoff/scripts/progress.py" write --task <ID> --repo "<n>. <Name> (<path>)"`,
    one `--repo` per repository in merge order, this one as `.`.
 8. **Stop there.** No implementation, no commit, no push, no tag. The next
@@ -172,7 +172,7 @@ Criteria (as given): 1..N
 Conflicts with the repository: <ADR/rule vs criterion, as questions> | none
 Questions: <each, with the working assumption>
 Hotfix: <release question>; version <next free tag>; <cherry-pick sha | new fix>; develop <has it | needs it>
-Set: <n> repos, merge order <A, B, C>; run in each sibling: start-task <ID> <Name> --repos <list>
+Set: <n> repos, merge order <A, B, C>; run in each sibling: start-task <ID> <Name> --type <type> --repos <list>
 Next: <skill or action>; push with `git push -u origin <branch>` when ready
 ```
 
