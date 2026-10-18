@@ -68,6 +68,39 @@ All notable changes to Bearing. Keep a Changelog format, semantic versions.
   range, the head sha, the file count, the verdict, the findings and the
   blocking finding numbers). An unattended run uses the bearing reviewer,
   never gstack `/review`, which can ask a question.
+- Opt-in push of the task branch. `BEARING_AUTO_PUSH` in the personal
+  `bearing.env` lists full push URLs (ssh, scp-style or https); it is empty
+  by default, and then Bearing never pushes. `brg-push check` names each of
+  its eight conditions, `brg-push request` records the request after the
+  gate, and `brg-push status` prints the last result. The Stop hook pushes
+  the current task branch from a fresh clone to the listed URL whose host
+  and path match origin's: never main, master, develop, a release branch
+  or a tag, never forced, never merged, and never from the working tree.
+  CI checks the pushed branch.
+- The `site` flow for landing pages and marketing sites: a page brief from
+  brainstorming instead of a PRD and backlog, the Next.js stack
+  (`next-app`, the `nextjs` skill), optional design direction and design
+  system steps, then screens, the build, a scoped test run, the checks
+  and the review.
+  `start-task --flow site` records `"flow": "site"` in
+  `.bearing/config.json` in the new task branch, so later sessions in the
+  repository follow the site flow (a fix branch still follows bugfix).
+- Task sets: one task across repositories. `start-task --repos <list>`
+  gives every member the same branch, settles the merge order and prints
+  the line to start each sibling (with `--type`); each progress file gets
+  a `## Repos` section; `progress.py set --task <ID>` reports every
+  member's state and the merge order; the rules are in
+  `references/task-set.md`. One session per repository.
+- definition-of-done has a task-set item: `n/a` without `## Repos`, else
+  judged from `progress.py set`.
+- `brg-session next-step` (and so `resume`) skips a branch step whose
+  condition already holds: `new-repo` once the repository has a commit,
+  `design-system` once `docs/design/tokens.json` exists.
+  `flow-steps.tsv` gains a fourth column, `step` or `branch`.
+- Eval cases for the opt-in push request with and without the opt-in, a
+  two-repository task set and a bugfix sibling's type, the site flow
+  recorded at start, and the workflow skill's next step in a site
+  repository.
 
 ### Changed
 - `flows_check.py` requires `## Task paths`: a flows file without it now
@@ -144,10 +177,52 @@ All notable changes to Bearing. Keep a Changelog format, semantic versions.
     existing `core.fsmonitor=false` and `core.hooksPath=/dev/null`; the
     hooks' `git status` runs with `--ignore-submodules=dirty`, so no git
     starts inside a submodule.
+- The repository template's pre-push hook refuses every agent push: a
+  branch, a tag (even when no branch is pushed) and a deletion. The opt-in
+  push never passes through it, since it pushes from a fresh clone that
+  runs no repository hook.
+- `brg-config` refuses to set `BEARING_AUTO_PUSH` in either spelling, and
+  an exported `BEARING_AUTO_PUSH` is never read.
+- The settings template denies `Edit(~/.config/bearing/**)`,
+  `Edit(~/.gitconfig)`, `Edit(~/.config/git/**)` and
+  `Bash(bash *bin/brg-push run*)`, and the sandbox denies writes to those
+  directories; a brg-guard row refuses `brg-push run` from Bash, and that
+  row is the control.
+- AGENTS.md rule 2 names the one exception to "never push": the opt-in
+  task branch push. merge-request and autopilot descriptions say "pushes
+  only where opted in"; merge-request requests the push after the check;
+  autopilot runs `make check` again after its report commit, then requests
+  the push, and its `mr` gate accepts a push recorded by `brg-push`. Every
+  other "never pushes" claim in the docs and the developer guide names
+  the exception.
+- The workflow skill reads the recorded flow (`brg-config get flow`)
+  before it picks one, on the question path as well as the menu.
+- The precompact snapshot and brg-session's checkpoint and timeline go
+  through `brg-guard state-write`, which refuses a linked `.bearing` or
+  state directory, never writes through a link or a hard link, never
+  blocks on a FIFO and replaces the file by rename; the timeline still
+  rotates at 512 KB. brg-session reads its timeline only as a regular
+  file.
+
+### Security
+- The opt-in push runs outside the sandbox, so it runs nothing the
+  repository defines: the clone is made under
+  `<passwd home>/.config/bearing/tmp` (mode 700, hidden from the
+  sandbox) with no checkout, no repository hooks and no system config,
+  under a cleared environment and a generated global config holding only
+  the engineer's `credential.*` keys; the clone's own config is re-read
+  and refused if it holds a key git clone does not write. A source with
+  alternates, a promisor remote, a partial clone or an `includeIf`
+  section is refused, and so is a git older than the patched releases
+  (2.45.1, or 2.39.4, 2.40.2, 2.41.1, 2.42.2, 2.43.4, 2.44.1 on those
+  lines). The push runs `--no-follow-tags`, never forced, to the URL the
+  engineer listed, and the branch and commit are checked again in the
+  clone before it. Every write `brg-push` makes in `.bearing/state` never
+  follows a link.
 
 ### Notes for existing repositories
-- The edit hook no longer runs `make check-file` after each edit; that
-  per-file feedback moves to the session. Run
+- The edit hook no longer runs `make check-file` or any linter after each
+  edit; that per-file feedback moves to the session. Run
   `make check-file FILE=<path>` after an edit (the repository template's
   CLAUDE.md now says so; an onboarded repository's own CLAUDE.md keeps the
   old line until you change it). The Stop gate still holds the session to
@@ -183,6 +258,22 @@ All notable changes to Bearing. Keep a Changelog format, semantic versions.
   report.
 - Evidence written by test-run before `selection` existed has no
   `selection` key and fails the test_run and dod gates; run test-run again.
+- Opt-in push (off by default; nothing changes until you opt in): add
+  `BEARING_AUTO_PUSH="<push URL> [<push URL> ...]"` (full ssh, scp-style
+  or https URLs, space-separated, no `export`) to `~/.config/bearing/bearing.env` under your
+  passwd home, never to a repository or the environment. The Stop hook
+  then pushes the task branch from a clean clone after the gate. It needs
+  git at or above the patched releases (2.45.1, or 2.39.4, 2.40.2,
+  2.41.1, 2.42.2, 2.43.4, 2.44.1 on those lines). A repository whose
+  config has an `includeIf` section, or a partial clone, cannot auto push
+  (`brg-push check` names the reason). The repository's pre-push hook,
+  once updated from the template, refuses every agent push, so an agent
+  can no longer push through it by any other route.
+- Site repositories: run `start-task --flow site` on the first task to
+  record the site flow; later tasks and `brg-session` follow it.
+- Task sets: start each member with the same id, name, type and
+  `start-task --repos <list>` line the first run prints, one session per
+  repository.
 
 ### Noted
 - impeccable `critique` asks a question at its close, so an unattended run
