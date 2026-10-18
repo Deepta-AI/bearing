@@ -5,7 +5,8 @@ Read when you wonder how this skill relates to gstack /review, /code-review or g
 The engine finds; a verifier who never saw the engine's reasoning
 confirms. gstack `/review` (specialist reviewers in parallel, an
 adversarial pass, a confidence gate) is the engine whenever it is
-installed. This skill adds what this standard needs around it:
+installed and the run is attended; it can ask, so an unattended run uses
+the `reviewer` agent. This skill adds what this standard needs around it:
 the stack checklists applied item by item, an independent verifier on
 every Critical and High, the project's own check run against the change
 without touching the tree, and a merge verdict.

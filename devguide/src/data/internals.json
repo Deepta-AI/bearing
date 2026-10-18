@@ -1740,7 +1740,7 @@
    "description": "Code review of a branch, MR, patch or path with stack checklists, every Critical and High finding independently verified, and merge verdict. Use when asked to \"review this\", \"review the MR\" or \"look over my changes\".",
    "invocation": "auto",
    "kind": "step",
-   "args": "[commit range, patch file or path; default origin/develop...HEAD] [--engine gstack|bearing]",
+   "args": "[commit range, patch file or path; default origin/develop...HEAD] [--engine gstack|bearing] [--unattended]",
    "tools": [
     "Read",
     "Grep",
@@ -1766,38 +1766,40 @@
     "Bash(mkdir -p .scratch/review/*)",
     "Bash(python3 .scratch/review/*)",
     "Bash(bash *bin/brg-checklists *)",
+    "Bash(printenv BEARING_AUTOPILOT BEARING_NONINTERACTIVE)",
+    "Bash(bash *bin/brg-config get noninteractive --user)",
     "Write"
    ],
    "extra": {},
-   "intro": "The engine finds; a verifier who never saw the engine's reasoning confirms. gstack `/review` is the engine whenever it is installed. This skill adds the stack checklists applied item by item, an independent verifier on every Critical and High, the project's own check run against the change without touching the tree, and a merge verdict.",
+   "intro": "The engine finds; a verifier who never saw the engine's reasoning confirms. gstack `/review` is the engine when installed and attended. This skill adds the stack checklists applied item by item, an independent verifier on every Critical and High, the project's own check run against the change without touching the tree, and a merge verdict.",
    "sections": [
     {
      "title": "Inputs",
-     "lines": 31
+     "lines": 33
     },
     {
      "title": "Steps",
-     "lines": 82
+     "lines": 85
     },
     {
      "title": "Output contract",
-     "lines": 34
+     "lines": 31
     },
     {
      "title": "Gotchas",
-     "lines": 22
+     "lines": 21
     }
    ],
    "inputs": [
     "Target, the first argument or what the request names: - a commit range: reviewed as given; - a patch or diff file (`mr-51.patch`): the change is that file on top of `HEAD`; - a path (\"look over app/webhooks\"): the files as they stand and what they call, with no diff; the checklists apply to the whole path; - nothing: `origin/develop...HEAD`, else `origin/main...HEAD`, else (no remote) `HEAD~1` plus the working tree…",
     "Checklists: `bash \"${CLAUDE_PLUGIN_ROOT}/bin/brg-checklists\" --range <range>` prints the universal checklist and one per stack the diff touches (react, nextjs, react-native, node, go, python, data-pipeline, android, ios, flutter, infra, database). For a patch file or a path, pick the checklists by the stacks of the files it touches. If the plugin root is unknown, the universal checklist at `references/universal-chec…",
-    "Engine: `--engine`; if absent, `gstack` when `~/.claude/skills/gstack/review/SKILL.md` exists, else `bearing` (the `reviewer` agent, which has Read, Grep and Glob and no shell).",
+    "Engine: `--engine`; if absent, `gstack` when `~/.claude/skills/gstack/review/SKILL.md` exists, else `bearing` (the `reviewer` agent: Read, Grep and Glob, no shell). Unattended (`--unattended`; `printenv BEARING_AUTOPILOT BEARING_NONINTERACTIVE` prints other than `0`; `bash \"${CLAUDE_PLUGIN_ROOT}/bin/brg-config\" get noninteractive --user` prints `1`): always `bearing`, as gstack `/review` can ask.",
     "Collected change: `.scratch/review/<slug>/`, written by step 2 before any agent runs, where `<slug>` is the range, patch name or path with every character outside `A-Za-z0-9._` turned into `-`. The agents have no shell, so this folder is how they see the change.",
     "Project check: the make target the README, Makefile or CONTRIBUTING names (check, test); none named means \"not run: no check command in the repository\".",
     "Merge rules: `AGENTS.md`, `CONTRIBUTING.md` and the ADRs the change touches; commit conventions from the same files, else the universal items (Conventional Commits, a task id, no AI trailer)."
    ],
    "steps": [
-    "Resolve the target as in Inputs. For a range or patch, `git diff --stat <range>` or `git apply --check --stat <patch>`; zero files means stop with \"0 files in diff, nothing to review\" and a 0-file verdict.txt.",
+    "Resolve the target as in Inputs. For a range or patch, `git diff --stat <range>` or `git apply --check --stat <patch>`; zero files, or a path with none, means stop with \"0 files in diff, nothing to review\" and write step 7's verdict.txt: 0 files, `not ready to merge`, all-zero findings, `blocking: none`.",
     "Collect the change for the agents, with this skill's own git grants: `mkdir -p .scratch/review/<slug>`, then for a range `git diff --output=.scratch/review/<slug>/diff.patch <range>`, `git diff --stat --output=.scratch/review/<slug>/stat.txt <range>`, `git diff --name-only --output=.scratch/review/<slug>/files.txt <range>` and `git log --format='%h %s' --output=.scratch/review/<slug>/log.txt <range>`. A patch file o…",
     "Run the project check against the change in a throwaway copy, so the working tree, the branches and the worktree list end exactly as they began: `mkdir -p .scratch/review/<slug>/tree`, then `git archive <rev> | tar -x -C .scratch/review/<slug>/tree`, where `<rev>` is the head of the range, `HEAD` for a patch or a path, or the base when the range includes the working tree; then, for a patch or that working-tree range…",
     "Run the engine. - gstack: invoke the `review` skill (Skill tool) with this as its argument: \"Base: <base of the range>. The change is exactly the committed range <range> (git diff <range>); ignore the working tree, which may hold someone else's edits, and do not look for a remote branch: the base is given. In addition to your checklist, apply every item of these files and report each as a finding or 'checked, none f…",
@@ -1805,7 +1807,7 @@
     "Reproduce what you can. For each confirmed Critical and High, when the throwaway copy from step 3 runs, write a short probe under `.scratch/review/<slug>/` that drives the failure through the public entry point with the repository's own fixtures, and run it against the copy (`python3 .scratch/review/<slug>/probe.py`, the probe putting `tree/` first on its import path); record the output line that shows the failure.…",
     "Check the commits in the range (for a patch file, its Subject line) against the conventions. Verdict: any confirmed Critical or High, or a broken merge rule, means not ready. Print the contract. Write `.scratch/review/<slug>/verdict.txt`: ``` review: <range> @ <head sha>, <N> files Verdict: ready to merge | ready after <items> | not ready to merge findings: <C> critical, <H> high, <M> medium, <L> low; verified <V>:…"
    ],
-   "output": "For a path review, \"merge\" in the verdict reads as the step the user named (\"switch on\", \"release\").",
+   "output": "For a path review, \"merge\" reads as the step the user named (\"switch on\", \"release\"). verdict.txt (autopilot's review gate parses it), rewritten each run, is step 7's four lines: `<range>` may hold spaces and `...`; `<head sha>` is the 40-hex sha of `git rev-parse HEAD`, never the word HEAD; 0 files is never a pass; `<items>` and `blocking:` are finding numbers, space separated.",
    "gotchas": [
     "`reviewer` and `verifier` have no shell (plugin agents cannot carry a hook, so Read, Grep and Glob is the only read-only guarantee). Anything they need from git is collected in step 2; an agent sent a range without the folder reviews nothing.",
     "The verifier sees one finding, not the conversation. Passing it the engine's reasoning turns verification back into agreement.",
@@ -1818,15 +1820,15 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 199,
+   "lines": 200,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 199
+     "lines": 200
     },
     {
      "path": "references/engine-and-scope.md",
-     "lines": 17
+     "lines": 18
     },
     {
      "path": "references/read-past-the-diff.md",

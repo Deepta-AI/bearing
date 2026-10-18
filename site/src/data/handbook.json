@@ -185,7 +185,7 @@
     "look over my changes"
    ],
    "invocation": "auto",
-   "args": "[commit range, patch file or path; default origin/develop...HEAD] [--engine gstack|bearing]"
+   "args": "[commit range, patch file or path; default origin/develop...HEAD] [--engine gstack|bearing] [--unattended]"
   },
   {
    "name": "ci-pipeline",

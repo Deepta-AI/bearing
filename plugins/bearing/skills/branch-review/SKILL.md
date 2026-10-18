@@ -1,14 +1,14 @@
 ---
 name: branch-review
 description: 'Code review of a branch, MR, patch or path with stack checklists, every Critical and High finding independently verified, and merge verdict. Use when asked to "review this", "review the MR" or "look over my changes".'
-argument-hint: "[commit range, patch file or path; default origin/develop...HEAD] [--engine gstack|bearing]"
-allowed-tools: Read, Grep, Glob, Skill, Agent, Bash(git diff:*), Bash(git log:*), Bash(git show:*), Bash(git status:*), Bash(git rev-parse:*), Bash(git remote:*), Bash(git worktree list:*), Bash(git archive *), Bash(git apply --check *), Bash(git apply --directory=.scratch/review/*), Bash(tar -x -C .scratch/review/*), Bash(git init -q .scratch/review/*), Bash(ln -s * .scratch/review/*), Bash(make -C .scratch/review/*), Bash(rm -rf .scratch/review/*), Bash(ls:*), Bash(mkdir -p .scratch/review/*), Bash(python3 .scratch/review/*), Bash(bash *bin/brg-checklists *), Write
+argument-hint: "[commit range, patch file or path; default origin/develop...HEAD] [--engine gstack|bearing] [--unattended]"
+allowed-tools: Read, Grep, Glob, Skill, Agent, Bash(git diff:*), Bash(git log:*), Bash(git show:*), Bash(git status:*), Bash(git rev-parse:*), Bash(git remote:*), Bash(git worktree list:*), Bash(git archive *), Bash(git apply --check *), Bash(git apply --directory=.scratch/review/*), Bash(tar -x -C .scratch/review/*), Bash(git init -q .scratch/review/*), Bash(ln -s * .scratch/review/*), Bash(make -C .scratch/review/*), Bash(rm -rf .scratch/review/*), Bash(ls:*), Bash(mkdir -p .scratch/review/*), Bash(python3 .scratch/review/*), Bash(bash *bin/brg-checklists *), Bash(printenv BEARING_AUTOPILOT BEARING_NONINTERACTIVE), Bash(bash *bin/brg-config get noninteractive --user), Write
 ---
 
 # branch-review
 
 The engine finds; a verifier who never saw the engine's reasoning confirms.
-gstack `/review` is the engine whenever it is installed. This skill adds the
+gstack `/review` is the engine when installed and attended. This skill adds the
 stack checklists applied item by item, an independent verifier on every
 Critical and High, the project's own check run against the change without
 touching the tree, and a merge verdict.
@@ -40,7 +40,9 @@ skips the independent verification. Detail: references/engine-and-scope.md
   says "universal checklist only".
 - Engine: `--engine`; if absent, `gstack` when
   `~/.claude/skills/gstack/review/SKILL.md` exists, else `bearing` (the
-  `reviewer` agent, which has Read, Grep and Glob and no shell).
+  `reviewer` agent: Read, Grep and Glob, no shell). Unattended (`--unattended`;
+  `printenv BEARING_AUTOPILOT BEARING_NONINTERACTIVE` prints other than `0`;
+  `bash "${CLAUDE_PLUGIN_ROOT}/bin/brg-config" get noninteractive --user` prints `1`): always `bearing`, as gstack `/review` can ask.
 - Collected change: `.scratch/review/<slug>/`, written by step 2 before any
   agent runs, where `<slug>` is the range, patch name or path with every
   character outside `A-Za-z0-9._` turned into `-`. The agents have no shell, so
@@ -54,8 +56,9 @@ skips the independent verification. Detail: references/engine-and-scope.md
 ## Steps
 
 1. Resolve the target as in Inputs. For a range or patch,
-   `git diff --stat <range>` or `git apply --check --stat <patch>`; zero files
-   means stop with "0 files in diff, nothing to review" and a 0-file verdict.txt.
+   `git diff --stat <range>` or `git apply --check --stat <patch>`; zero files, or a path
+   with none, means stop with "0 files in diff, nothing to review" and write step 7's
+   verdict.txt: 0 files, `not ready to merge`, all-zero findings, `blocking: none`.
 2. Collect the change for the agents, with this skill's own git grants:
    `mkdir -p .scratch/review/<slug>`, then for a range
    `git diff --output=.scratch/review/<slug>/diff.patch <range>`,
@@ -99,9 +102,11 @@ skips the independent verification. Detail: references/engine-and-scope.md
      `.scratch/review/<slug>/`, the merge rules and the checklist paths.
    Then hold the change to its own claims: the commit message, the docs it
    edits and the ADRs it touches. A claim the code does not keep is a finding.
-   Then read past the diff yourself: every table, column, function, setting
-   and external call the change touches, as references/read-past-the-diff.md
-   lists; a finding from it goes to step 5.
+   Then read past the diff yourself (references/read-past-the-diff.md) on every
+   table, column, function, setting and external call the change touches:
+   grep each name across scripts, cron and jobs, normal-call sequences that break an invariant,
+   failure after a side effect, fail-open defaults, window and limit numbers computed from the code,
+   duplicate or out-of-order messages. A finding from it goes to step 5.
 5. Independent verification. For every open Critical and High, fork one
    `verifier` (Agent tool), all in one message so they run in parallel, at most
    12; beyond that, the 12 most severe are verified and the rest listed as "not
@@ -140,7 +145,7 @@ skips the independent verification. Detail: references/engine-and-scope.md
 
 ```
 ## Review: <target> (<N> files) by <gstack /review | reviewer>
-Verdict: not ready to merge (<n> blocking: 1, 3) | ready after <items> | ready to merge
+Verdict: not ready to merge (<n> blocking: 1 3) | ready after <items> | ready to merge
 Checks: <command> with the change applied: <counts line> | not run (<reason>)
 brg-checklists: <its counts line>
 Verified: C confirmed, R refuted, U uncertain of V Critical and High (K not verified)
@@ -164,21 +169,17 @@ Verified: C confirmed, R refuted, U uncertain of V Critical and High (K not veri
 - .scratch/review/<slug>/ (notes and verdict.txt) | nothing
 ```
 
-For a path review, "merge" in the verdict reads as the step the user
-named ("switch on", "release").
-
-verdict.txt (autopilot's review gate parses it) is step 7's four lines,
-rewritten each run. `<range>` may hold spaces and `...`; `<head sha>` is the
-full `git rev-parse` of its head (`HEAD` for a patch, path or working tree);
-`<N> files` always, and 0 files is never a pass (`not ready to merge`);
-`<items>` and `blocking:` are finding numbers, space separated.
+For a path review, "merge" reads as the step the user named ("switch on",
+"release"). verdict.txt (autopilot's review gate parses it), rewritten each run,
+is step 7's four lines: `<range>` may hold spaces and `...`; `<head sha>` is the
+40-hex sha of `git rev-parse HEAD`, never the word HEAD; 0 files is never a
+pass; `<items>` and `blocking:` are finding numbers, space separated.
 
 ## Gotchas
 
-- `reviewer` and `verifier` have no shell (plugin agents cannot
-  carry a hook, so Read, Grep and Glob is the only read-only guarantee).
-  Anything they need from git is collected in step 2; an agent sent a
-  range without the folder reviews nothing.
+- `reviewer` and `verifier` have no shell (plugin agents cannot carry a hook, so Read,
+  Grep and Glob is the only read-only guarantee). Anything they need from git is
+  collected in step 2; an agent sent a range without the folder reviews nothing.
 - The verifier sees one finding, not the conversation. Passing it the
   engine's reasoning turns verification back into agreement.
 - "Verified" means an independent agent quoted the lines that make the
