@@ -29,8 +29,8 @@ skips the independent verification. Detail: references/engine-and-scope.md
     remote) `HEAD~1` plus the working tree (`git diff HEAD~1`). A
     repository with one commit has no `HEAD~1`: review that commit as a
     path review of the files it holds and say so.
-  Not a git repository: one question for a diff file or a path. Nothing
-  to review: stop with "provide a commit range, a diff file or a path".
+  Not a git repository: one question for a diff file or a path, none when
+  unattended. Nothing to review: stop with "provide a commit range, a diff file or a path".
 - Checklists: `bash "${CLAUDE_PLUGIN_ROOT}/bin/brg-checklists" --range <range>`
   prints the universal checklist and one per stack the diff touches (react,
   nextjs, react-native, node, go, python, data-pipeline, android, ios, flutter,
@@ -46,8 +46,7 @@ skips the independent verification. Detail: references/engine-and-scope.md
   character outside `A-Za-z0-9._` turned into `-`. The agents have no shell, so
   this folder is how they see the change.
 - Project check: the make target the README, Makefile or CONTRIBUTING names
-  (check, test); none named means "not run: no check command in the
-  repository".
+  (check, test); none named means "not run: no check command in the repository".
 - Merge rules: `AGENTS.md`, `CONTRIBUTING.md` and the ADRs the change touches;
   commit conventions from the same files, else the universal items
   (Conventional Commits, a task id, no AI trailer).
@@ -56,7 +55,7 @@ skips the independent verification. Detail: references/engine-and-scope.md
 
 1. Resolve the target as in Inputs. For a range or patch,
    `git diff --stat <range>` or `git apply --check --stat <patch>`; zero files
-   means stop with "0 files in diff, nothing to review".
+   means stop with "0 files in diff, nothing to review" and a 0-file verdict.txt.
 2. Collect the change for the agents, with this skill's own git grants:
    `mkdir -p .scratch/review/<slug>`, then for a range
    `git diff --output=.scratch/review/<slug>/diff.patch <range>`,
@@ -100,19 +99,9 @@ skips the independent verification. Detail: references/engine-and-scope.md
      `.scratch/review/<slug>/`, the merge rules and the checklist paths.
    Then hold the change to its own claims: the commit message, the docs it
    edits and the ADRs it touches. A claim the code does not keep is a finding.
-   Then read past the diff yourself; the engine and the agents mostly read what
-   changed, and the costliest bugs sit in lines the change did not touch. For
-   every table, column, function, setting and external call the change adds or
-   alters: who else reads or writes it (Grep the name across the repository,
-   including scripts, cron, reports and jobs); whether the repository already
-   models the concept; the invariant a reader would state in one sentence and
-   the sequence of normal calls that breaks it; the states the operation is
-   allowed from and what happens on each failure after a side effect; defaults
-   and absent inputs that make a check fail open; windows, TTLs, retries and
-   limits with the numbers computed from the code (a constant's name and comment
-   are not its value); and messages that arrive
-   twice, together, late or out of order. A finding from this pass goes to
-   step 5 like any other. Detail: references/read-past-the-diff.md
+   Then read past the diff yourself: every table, column, function, setting
+   and external call the change touches, as references/read-past-the-diff.md
+   lists; a finding from it goes to step 5.
 5. Independent verification. For every open Critical and High, fork one
    `verifier` (Agent tool), all in one message so they run in parallel, at most
    12; beyond that, the 12 most severe are verified and the rest listed as "not
@@ -138,8 +127,14 @@ skips the independent verification. Detail: references/engine-and-scope.md
    that a single-threaded writer (an ADR says so) cannot hit is not blocking; the same money bug reached by two ordinary
    sequential calls is. Detail: references/throwaway-copy-and-probes.md
 7. Check the commits in the range (for a patch file, its Subject line) against
-   the conventions. Decide the verdict: any confirmed Critical or High, or a
-   merge rule broken, means not ready. Print the contract.
+   the conventions. Verdict: any confirmed Critical or High, or a broken merge
+   rule, means not ready. Print the contract. Write `.scratch/review/<slug>/verdict.txt`:
+   ```
+   review: <range> @ <head sha>, <N> files
+   Verdict: ready to merge | ready after <items> | not ready to merge
+   findings: <C> critical, <H> high, <M> medium, <L> low; verified <V>: <c> confirmed, <r> refuted, <u> uncertain
+   blocking: <finding numbers, space separated, or none>
+   ```
 
 ## Output contract
 
@@ -166,11 +161,17 @@ Verified: C confirmed, R refuted, U uncertain of V Critical and High (K not veri
 ## Commits
 - ok | offenders listed
 ## Left behind
-- .scratch/review/<slug>/ (notes only) | nothing
+- .scratch/review/<slug>/ (notes and verdict.txt) | nothing
 ```
 
 For a path review, "merge" in the verdict reads as the step the user
 named ("switch on", "release").
+
+verdict.txt (autopilot's review gate parses it) is step 7's four lines,
+rewritten each run. `<range>` may hold spaces and `...`; `<head sha>` is the
+full `git rev-parse` of its head (`HEAD` for a patch, path or working tree);
+`<N> files` always, and 0 files is never a pass (`not ready to merge`);
+`<items>` and `blocking:` are finding numbers, space separated.
 
 ## Gotchas
 
@@ -183,15 +184,14 @@ named ("switch on", "release").
 - "Verified" means an independent agent quoted the lines that make the
   failure real. Re-reading a finding in the same context is not
   verification and is never labelled so.
-- A review is read only. gstack `/review` offers to fix; this skill tells
-  it not to, and never edits a tracked file, commits, or creates a
-  branch or worktree. Write is for notes and probes under
+- A review is read only. gstack `/review` offers to fix; this skill tells it
+  not to, and never edits a tracked file, commits, or creates a branch or
+  worktree. Write is for notes, probes and verdict.txt under
   `.scratch/review/` only. Fixes appear in the report; applying them is a
   separate request.
 - Bearing's guard blocks `git worktree remove` and `git branch -D`, so a
-  worktree or branch made to test a change outlives the run. The
-  throwaway copy in step 3 is plain files under `.scratch/` and goes
-  with one `rm -rf`.
+  worktree or branch made to test a change outlives the run. The throwaway
+  copy in step 3 is plain files under `.scratch/` and goes with one `rm -rf`.
 - Style that a formatter or linter decides is never a finding.
 - Generated files (`*.gen.ts`, `*.pb.go`, sqlc output, lockfiles) are not
   reviewed; list them under Not reviewed.
