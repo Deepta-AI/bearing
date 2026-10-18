@@ -1,24 +1,24 @@
 {
  "version": "0.8.0",
  "counts": {
-  "skills": 107,
+  "skills": 108,
   "commandSkills": 0,
   "stackSkills": 12,
-  "scripts": 96,
-  "scriptLines": 30770,
+  "scripts": 97,
+  "scriptLines": 31058,
   "hooks": 8,
   "agents": 8,
   "makeTargets": 32,
   "gates": 19,
-  "tests": 105,
+  "tests": 106,
   "fixtures": 25,
   "stacks": 13,
   "templates": 38,
   "ciJobs": 16,
   "ghJobs": 6,
   "ghWorkflows": 2,
-  "evals": 107,
-  "skillFiles": 1056
+  "evals": 108,
+  "skillFiles": 1059
  },
  "plugins": [
   {
@@ -148,7 +148,7 @@
    "dir": "plugins/bearing-genai",
    "description": "Bearing skills for GenAI and ML products: solution design, RAG, agents, MCP servers, model gateway and routing, guardrails, prompt registry, evals, fine-tuning, datasets, speech, computer vision and tabular ML. Needs the bearing plugin.",
    "required": false,
-   "files": 62,
+   "files": 65,
    "skills": [
     "computer-vision",
     "genai-design",
@@ -158,6 +158,7 @@
     "llm-gateway",
     "llm-guardrails",
     "mcp-server",
+    "model-routing",
     "prompt-registry",
     "rag",
     "speech",
@@ -7070,7 +7071,7 @@
     },
     {
      "path": "scripts/eval_stats.py",
-     "lines": 197
+     "lines": 214
     },
     {
      "path": "templates/cases.jsonl",
@@ -7253,7 +7254,7 @@
     },
     {
      "title": "Steps",
-     "lines": 98
+     "lines": 100
     },
     {
      "title": "Output contract",
@@ -7297,11 +7298,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 164,
+   "lines": 166,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 164
+     "lines": 166
     },
     {
      "path": "scripts/llm_access_check.py",
@@ -7313,15 +7314,15 @@
     },
     {
      "path": "templates/gateway-python.md",
-     "lines": 217
+     "lines": 249
     },
     {
      "path": "templates/gateway-typescript.md",
-     "lines": 159
+     "lines": 178
     },
     {
      "path": "templates/routing.yaml",
-     "lines": 110
+     "lines": 126
     }
    ],
    "groups": {
@@ -7996,6 +7997,109 @@
    "groups": {
     ".": 1,
     "templates": 1
+   },
+   "evals": true,
+   "hasSections": [
+    "Inputs",
+    "Steps",
+    "Output contract",
+    "Gotchas"
+   ]
+  },
+  {
+   "name": "model-routing",
+   "plugin": "bearing-genai",
+   "category": "genai",
+   "what": "Picks the cheapest model or cascade per LLM feature that still passes its eval, from measured scores and costs, any provider",
+   "when": "asked \"which model should this feature use\" or \"cut our LLM bill\"",
+   "description": "Picks the cheapest model or cascade per LLM feature that still passes its eval, from measured scores and costs, any provider. Use when asked \"which model should this feature use\" or \"cut our LLM bill\".",
+   "invocation": "auto",
+   "kind": "step",
+   "args": "<feature|all> [--threshold <x>] [--candidates <id,...>] [--unattended]",
+   "tools": [
+    "Read",
+    "Write",
+    "Edit",
+    "Grep",
+    "Glob",
+    "Skill",
+    "AskUserQuestion",
+    "Bash(ls:*)",
+    "Bash(make eval:*)",
+    "Bash(uv run python evals/*)",
+    "Bash(npx tsx@4.23.15 evals/*)",
+    "Bash(python3 *skills/model-routing/scripts/route_frontier.py*)",
+    "Bash(python3 *skills/llm-gateway/scripts/llm_callsites_check.py*)",
+    "Bash(printenv BEARING_AUTOPILOT BEARING_NONINTERACTIVE)"
+   ],
+   "extra": {},
+   "intro": "The model a feature runs on is a cost decision with a quality floor. This skill measures every candidate on the feature's own eval, simulates a cascade where the gateway can tell a bad small answer from a good one, and writes the cheapest route whose score still clears the bar.",
+   "sections": [
+    {
+     "title": "Inputs",
+     "lines": 20
+    },
+    {
+     "title": "Steps",
+     "lines": 54
+    },
+    {
+     "title": "Output contract",
+     "lines": 13
+    },
+    {
+     "title": "Gotchas",
+     "lines": 14
+    }
+   ],
+   "inputs": [
+    "Features and volume: `llm/routing.yaml` routes, and calls per day from the gateway's `llm_calls` record (last 30 days) when the user can read it; else the solution doc; else the call-site inventory in step 1.",
+    "Candidates: the three defaults (`claude-haiku-4-5`, `claude-sonnet-5-5`, `claude-opus-5-5`) plus `--candidates`, any provider, each a key of the `models:` table with a price row (source and date in a comment).",
+    "Golden set and harness: `evals/<feature>/` from `bearing-genai:llm-eval`, whose harness takes `--model <key>` and writes one results file per run.",
+    "Threshold: `--threshold`, else the acceptance threshold in `docs/genai/<feature>-solution.md`, else asked in step 4.",
+    "Strategies, cascade arithmetic, budget rule: `references/strategies.md`.",
+    "Unattended: `--unattended`, or `printenv BEARING_AUTOPILOT BEARING_NONINTERACTIVE` prints a value other than `0`. The skill then asks nothing: a missing threshold takes the recommended default (the current route's lower bound) and says so; a candidate with no price row is left out; no golden set, or a set below 10 labelled cases, stops the skill with one line, `model-routing: unattended, missing:` then the list (pri…"
+   ],
+   "steps": [
+    "Features from `$1` (`all`: every route in `llm/routing.yaml`). No routing file: run the call-site gate, `python3 \"${CLAUDE_PLUGIN_ROOT}/skills/llm-gateway/scripts/llm_callsites_check.py\" .`, copy its counts line and stop with \"put the calls behind `bearing-genai:llm-gateway` first\": a route needs a gateway to live in. Volume per feature as Inputs says, and which source it came from.",
+    "Candidates: the defaults plus `--candidates`. A candidate with no `models:` row or no price: ask with AskUserQuestion (as the bearing plugin's `references/console.md` says), options \"paste the price and its source (Recommended)\" (input and output per million tokens, the page and the date) and \"leave this candidate out\". Never fill a price from memory; Claude prices come from the `claude-api` skill.",
+    "Measure: the `llm-eval` harness once per candidate, with the override key: `make eval EVAL=<feature> MODEL=<key>` when the Makefile has it, else `uv run python evals/<feature>/run.py --model <key>` or `npx tsx@4.23.15 evals/<feature>/run.ts --model <key>`. Reuse a results file already recorded for the same eval version and model. No golden set: run `bearing-genai:llm-eval` first. A set at `llm-eval`'s minimum size i…",
+    "Decide: `python3 \"${CLAUDE_PLUGIN_ROOT}/skills/model-routing/scripts/route_frontier.py\" --threshold <x> evals/<feature>/results/<run>.jsonl ...` (one file per candidate). It prints one `option` line per candidate and per cheaper-first cascade, then the `route-frontier:` line; copy them verbatim. Exit 2 names what to fix: a file holding two models means a fallback ran during that eval, so refuse the candidate and re-…",
+    "Write the route in `llm/routing.yaml` `routes.<feature>`: `strategy: static` with the model, or `strategy: cascade` with `cascade: {first: <key>, then: <key>}` and `escalate_on: [invalid, refusal, max_tokens]`; the evidence as a comment (the `route-frontier:` line, date, eval version); `budget_usd_month` by the rule in `references/strategies.md`, with an alert at 80 percent through `bearing:observability`. A gateway…",
+    "Report `docs/genai/routing.md`: one row per feature with the chosen route, lower bound and threshold, cost per 1,000, monthly estimate at current volume next to the current route's, `full` or `minimal`, and the re-run date (when a model id or a price changes, or 90 days).",
+    "Print the contract."
+   ],
+   "output": "`minimal` adds \"provisional\" to the chosen line. Exit 1 prints `chosen: none meets threshold <X>; route unchanged`.",
+   "gotchas": [
+    "A fallback during an eval run invalidates the candidate: its file scores two models. Re-run it; never drop the foreign rows and score the rest.",
+    "Price rows carry source and date. A price changes; the route's evidence comment and the re-run date make the next run due.",
+    "Haiku 4.5 takes no `effort` (the `claude-api` skill's thinking table); its tier sets `effort: null` and thinking, if wanted, is `budget_tokens`. Check the skill before a template sets either.",
+    "A cascade's p95 is the escalated path's: both calls in series.",
+    "Never route on a `minimal` set without saying provisional.",
+    "`valid` is only what the gateway can check at call time. A cascade simulated on a semantic grader shows a saving production never sees.",
+    "Two means that differ are not a result; the frontier uses the interval's lower bound for that reason."
+   ],
+   "layout": "",
+   "commands": [],
+   "lines": 126,
+   "files": [
+    {
+     "path": "SKILL.md",
+     "lines": 126
+    },
+    {
+     "path": "references/strategies.md",
+     "lines": 87
+    },
+    {
+     "path": "scripts/route_frontier.py",
+     "lines": 264
+    }
+   ],
+   "groups": {
+    ".": 1,
+    "references": 1,
+    "scripts": 1
    },
    "evals": true,
    "hasSections": [
@@ -15798,7 +15902,7 @@
    "name": "gen-guide.py",
    "lang": "python",
    "group": "generators",
-   "lines": 1386,
+   "lines": 1393,
    "header": "Generate the documents that derive from the skills in this repository:\n\n  site/src/data/handbook.json   everything the handbook site renders\n  docs/WORKFLOW.md              the stage tables between the markers\n\nEvery table comes from one source: the skill frontmatter (name,\ndescription, invocation), CATEGORY and STAGES below, plus one reviewed\nfile: docs/flows.json (the four task flows). Fails when zero skills are\nfound, when a skill has no category, when a row names more than one skill,\nor when a row or a flow names a skill that is neither a Bearing skill nor\nlisted in docs/known-skills.txt.\n\n    gen-guide.py                        write every document\n    gen-guide.py --write-known-skills   rewrite docs/known-skills.txt from\n                                        the skills installed on this\n                                        machine, then continue\n    gen-guide.py --check-names          the default; kept as a flag so a\n                                        caller can name the intent",
    "functions": [
     "scan_installed",
@@ -16739,8 +16843,8 @@
    "lang": "python",
    "group": "skill",
    "skill": "llm-eval",
-   "lines": 197,
-   "header": "eval_stats: intervals, paired comparison and judge calibration for llm-eval.\n\nReads results rows (JSON Lines), one per case, as every llm-eval harness\nwrites them:\n  {\"case_id\": str, \"score\": float 0..1, \"model\": str, \"usage\": {...},\n   \"cost_usd\": float|null, \"latency_ms\": int, \"truncated\": bool,\n   \"valid\": bool|null, \"label\": str|null}\nA truncated row (max_tokens hit) is excluded from every number and counted.\n\nUsage:\n  eval_stats.py summary <results.jsonl> [--resamples 2000] [--seed 7]\n    eval-stats: N cases (T truncated, excluded), mean M, 95% CI [L, U]\n  eval_stats.py compare <base.jsonl> <new.jsonl> [--resamples 2000] [--seed 7]\n    eval-compare: S shared cases (base B, new W), delta +D, 95% CI [+L, +U]: better|worse|no difference\n    Pairs rows by case_id where neither side is truncated; better when L > 0,\n    worse when U < 0 (exit 1).\n  eval_stats.py agree <people.jsonl> <judge.jsonl> [--min-items 30] [--min-kappa 0.6]\n    eval-agree: S shared items, agreement A, kappa K: calibrated|uncalibrated\n    Pairs `label` by case_id; calibrated needs S >= --min-items and\n    kappa >= --min-kappa, else exit 1.\nEvery subcommand exits 2 with \"nothing checked\" when it has zero cases or\nzero shared ids, and exits 2 on a malformed row or a duplicate case_id.",
+   "lines": 214,
+   "header": "eval_stats: intervals, paired comparison and judge calibration for llm-eval.\n\nReads results rows (JSON Lines), one per case, as every llm-eval harness\nwrites them:\n  {\"case_id\": str, \"score\": float 0..1, \"model\": str, \"usage\": {...},\n   \"cost_usd\": float|null, \"latency_ms\": int, \"truncated\": bool,\n   \"valid\": bool|null, \"label\": str|null}\nA truncated row (max_tokens hit) is excluded from every number and counted.\n\nUsage:\n  eval_stats.py summary <results.jsonl> [--resamples 2000] [--seed 7]\n    eval-stats: N cases (T truncated, excluded), mean M, 95% CI [L, U]\n  eval_stats.py compare <base.jsonl> <new.jsonl> [--resamples 2000] [--seed 7]\n    eval-compare: S shared cases (base B, new W), delta +D, 95% CI [+L, +U]: better|worse|no difference\n    Pairs rows by case_id where neither side is truncated; better when L > 0,\n    worse when U < 0 (exit 1). First prints \"eval-compare: warning: <file>\n    holds models a, b: ...\" for a run whose rows name more than one model.\n  eval_stats.py agree <people.jsonl> <judge.jsonl> [--min-items 30] [--min-kappa 0.6]\n    eval-agree: S shared items, agreement A, kappa K: calibrated|uncalibrated\n    Pairs `label` by case_id; calibrated needs S >= --min-items and\n    kappa >= --min-kappa, else exit 1.\nEvery subcommand exits 2 with \"nothing checked\" when it has zero cases or\nzero shared ids, and exits 2 on a malformed row or a duplicate case_id.",
    "functions": [
     "die",
     "load",
@@ -16748,6 +16852,7 @@
     "f3",
     "s3",
     "summary",
+    "models_in",
     "compare",
     "labels",
     "agree",
@@ -16799,6 +16904,30 @@
    "header": "llm_callsites_check: count every model provider call site in the\nrepository and prove each one sits inside the gateway module, so the\n\"call sites\" lines in llm-gateway's report are computed, not claimed.\n\nA call site is a line in a .py, .ts, .tsx, .js, .jsx, .mjs or .cjs file\nthat constructs a provider client, calls it, imports its SDK or names its\nendpoint:\n  - Anthropic: `import anthropic`, `from anthropic`, `@anthropic-ai/sdk`,\n    `Anthropic(`, `AsyncAnthropic(`, `.messages.create(`,\n    `.messages.stream(`, `.messages.parse(`, `tool_runner(`,\n    `toolRunner(`, `api.anthropic.com`;\n  - other providers: `openai` (import or `OpenAI(`), `chat.completions.create(`,\n    `google.genai`, `@google/genai`, `generate_content(`, `generateContent(`,\n    `mistralai`, `cohere`, `ollama`.\nOne line counts once, however many patterns it matches.\n\nInside the gateway module means a path with a directory named by --module\n(default `llm`, so `llm/`, `app/llm/`, `src/llm/` and `tests/llm/` all\ncount). Skipped: node_modules, .venv, venv, .git, dist, build, and the\nrecordings directory.\n\nUsage: llm_callsites_check.py [--module NAME] [root]\nPrints one \"outside:\" line per call site outside the module, then\n  llm-callsites: F files scanned, N call sites, G inside <module>/, O outside, C files call the gateway\nand exits 1 on any call site outside the module, or when zero files or\nzero call sites were read (a gateway has at least its own provider call).",
    "functions": [
     "gateway_import",
+    "main"
+   ],
+   "env": [],
+   "calls": []
+  },
+  {
+   "path": "plugins/bearing-genai/skills/model-routing/scripts/route_frontier.py",
+   "name": "route_frontier.py",
+   "lang": "python",
+   "group": "skill",
+   "skill": "model-routing",
+   "lines": 264,
+   "header": "route_frontier: the cheapest model or cascade that still passes the eval.\n\nReads one llm-eval results file per candidate model (JSON Lines, one row per\ncase, the schema llm-eval step 4 writes):\n  {\"case_id\": str, \"score\": float 0..1, \"model\": str, \"cost_usd\": float,\n   \"latency_ms\": number, \"truncated\": bool, \"valid\": bool|null, ...}\n\nUsage:\n  route_frontier.py --threshold <x> <results.jsonl>... [--resamples 2000]\n                    [--seed 7] [--max-truncated 0.05]\n\nPer candidate: mean score over the rows that are not truncated, the lower\nbound of a percentile bootstrap 95% interval (the same block as llm-eval's\neval_stats.py), cost per 1,000 requests (mean cost_usd over every row x\n1000) and p95 latency by nearest rank over every row.\n\nCascade, for each pair with the cheaper model first whose rows all carry\n`valid` (a truncated row counts as not valid), over the case ids both files\nshare: a valid case keeps the small model's score, cost and latency; any\nother case takes the large model's score and pays both costs and both\nlatencies. `valid` is only what the gateway can check at run time, so the\nsaving simulated here is the one production sees.\n\nAn option is eligible when its lower bound is at or above the threshold\nand its truncated share is at most --max-truncated. The cheapest eligible\noption wins, then the lowest p95.\n\nOutput, one line per option, then the decision:\n  option <name>: n N, mean M, lower L, $C per 1k, p95 P ms, truncated T[, escalated E%][, ineligible (...)]\n  route-frontier: K options (J cascades), N rows, chose <name> (lower L >= X, $C per 1k)\nExit 0 on a choice; 1 with \"none meets threshold X\"; 2 when nothing was\nchecked (no files, zero rows, zero scored rows) or a file cannot be trusted\n(more than one model, a row without a price, a malformed row).",
+   "functions": [
+    "die",
+    "is_num",
+    "load",
+    "bootstrap",
+    "f3",
+    "money",
+    "num",
+    "p95",
+    "option",
+    "cascade",
     "main"
    ],
    "env": [],
@@ -18162,9 +18291,9 @@
   {
    "path": "tests/unit/eval_stats.sh",
    "kind": "unit",
-   "lines": 137,
+   "lines": 145,
    "header": "tests/unit/eval_stats.sh: llm-eval's eval_stats.py. summary gives a mean and a seeded percentile bootstrap interval over the rows that are not truncated; compare pairs two runs by case_id and calls the change better, worse or no difference from the interval of the paired deltas; agree measures a judge against person labels with Cohen's kappa. Every subcommand prints its count and exits 2 when it checked nothing.",
-   "asserts": 48
+   "asserts": 53
   },
   {
    "path": "tests/unit/feature_flags_check.sh",
@@ -18424,6 +18553,13 @@
    "lines": 102,
    "header": "tests/unit/prose_lint_check.sh: plugins/bearing/skills/prose-lint/scripts/prose_check.py passes clean prose and reports file:line and the class for an em dash, filler, praise, an attribution trailer and a hedged claim; leaves a table-cell dash; honours .prose-lint-ignore; reads a git diff file list (skipping deleted paths); and fails on empty input. The em dash and the robot emoji are written as bytes so this file carries neither.",
    "asserts": 38
+  },
+  {
+   "path": "tests/unit/route_frontier.sh",
+   "kind": "unit",
+   "lines": 180,
+   "header": "tests/unit/route_frontier.sh: model-routing's route_frontier.py. Per candidate results file it prints the mean, the bootstrap lower bound, cost per 1,000 requests and p95 latency; for each cheaper-first pair whose small model's rows carry `valid` it simulates a cascade; it chooses the cheapest option whose lower bound meets the threshold. Exit 1 when none does, exit 2 when it checked nothing or a file cannot be trusted.",
+   "asserts": 62
   },
   {
    "path": "tests/unit/runbook_check.sh",
@@ -19654,6 +19790,7 @@
   "low-level-design",
   "mcp-server",
   "merge-request",
+  "model-routing",
   "motion-design",
   "new-repo",
   "new-skill",

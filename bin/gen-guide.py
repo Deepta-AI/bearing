@@ -136,6 +136,7 @@ CATEGORY = {
         "llm-agent",
         "rag",
         "llm-eval",
+        "model-routing",
         "llm-fine-tuning",
         "mcp-server",
         "llm-guardrails",
@@ -484,6 +485,12 @@ STAGES = [
                 "llm-eval",
                 "bearing",
                 "golden set, graders, CI regression gate",
+            ),
+            (
+                "Cheapest model that passes",
+                "model-routing",
+                "bearing-genai",
+                "frontier of score and cost per candidate, cascade, budget and alert",
             ),
             (
                 "Prompting is not enough",

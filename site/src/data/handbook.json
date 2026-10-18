@@ -823,6 +823,19 @@
    "args": "[target branch, default develop]"
   },
   {
+   "name": "model-routing",
+   "plugin": "bearing-genai",
+   "category": "genai",
+   "what": "Picks the cheapest model or cascade per LLM feature that still passes its eval, from measured scores and costs, any provider",
+   "when": "asked \"which model should this feature use\" or \"cut our LLM bill\"",
+   "phrases": [
+    "which model should this feature use",
+    "cut our LLM bill"
+   ],
+   "invocation": "auto",
+   "args": "<feature|all> [--threshold <x>] [--candidates <id,...>] [--unattended]"
+  },
+  {
    "name": "motion-design",
    "plugin": "bearing",
    "category": "design",
@@ -1770,6 +1783,12 @@
      "skill": "llm-eval",
      "from": "bearing",
      "output": "golden set, graders, CI regression gate"
+    },
+    {
+     "stage": "Cheapest model that passes",
+     "skill": "model-routing",
+     "from": "bearing-genai",
+     "output": "frontier of score and cost per candidate, cascade, budget and alert"
     },
     {
      "stage": "Prompting is not enough",

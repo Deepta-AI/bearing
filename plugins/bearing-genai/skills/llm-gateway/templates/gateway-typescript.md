@@ -23,6 +23,7 @@ export const LLMRequest = z.object({
   maxTokens: z.number().int().positive().optional(),
   idempotencyKey: z.string().optional(),
   modelOverride: z.string().optional(),   // a key of routing.yaml `models:`; eval harnesses only
+  check: z.function().args(z.string()).returns(z.boolean()).optional(), // format check for escalate_on: invalid
 });
 export type LLMRequest = z.infer<typeof LLMRequest>;
 
@@ -37,6 +38,7 @@ export interface LLMResponse {
   requestId: string | null;
   fromCache?: boolean;
   fallbackReason?: string;
+  escalated?: boolean;           // a cascade route called its `then` model
 }
 
 export interface Provider {
@@ -49,15 +51,17 @@ Errors extend `LLMError`: `FeatureDisabled`, `UnknownFeature`,
 `ModelOverrideRefused`. The HTTP layer maps them to 503, 500, 429, 503,
 422, 500. `modelOverride` follows the Python template: a key of the
 `models:` table, honoured only with `LLM_ALLOW_MODEL_OVERRIDE=1`, else
-`ModelOverrideRefused` before any network call; accounting records
+`ModelOverrideRefused` before any network call; an overridden route is
+static with no fallback, so an unavailable provider fails the eval call
+instead of letting another model answer; accounting records
 `override: true`.
 
 ## Pipeline
 
-Same order as the Python template: model override check, kill switch,
-route, idempotency lookup, rate limit, response cache, provider with
-retries, fallback, accounting, span, cache write, refusal raised after
-accounting.
+Same order as the Python template: route, model override check, kill
+switch, idempotency lookup, rate limit, response cache, provider with
+retries, fallback, cascade escalation, accounting, span, refusal raised
+after accounting, cache write.
 
 ```typescript
 async complete(input: LLMRequest): Promise<LLMResponse> {
@@ -68,6 +72,7 @@ async complete(input: LLMRequest): Promise<LLMResponse> {
       throw new ModelOverrideRefused(req.modelOverride);
     }
     route = this.routing.withModel(route, req.modelOverride); // model, provider, prices
+    route = { ...route, fallback: null, strategy: "static" };  // one model per eval run
   }
   if (!route.enabled || process.env[`LLM_KILL_${req.feature.toUpperCase()}`] === "1") {
     throw new FeatureDisabled(req.feature);
@@ -91,7 +96,17 @@ async complete(input: LLMRequest): Promise<LLMResponse> {
       result = await this.call(fb.model, req, fb);
       fallbackReason = e.reason;
     }
-    const resp = await this.accounting.record(req, route, result, Math.round(performance.now() - t0), fallbackReason);
+    let escalated = false;
+    const why = route.strategy === "cascade" ? this.escalateReason(route, req, result) : null;
+    if (why) {                                              // escalate_on: invalid, refusal, max_tokens
+      await this.accounting.record(req, route, result, Math.round(performance.now() - t0), fallbackReason);
+      this.metrics.escalation.add(1, { feature: req.feature });
+      const then = this.routing.cascadeThen(route);         // `cascade.then`, a models: key
+      result = await this.call(then.model, req, then);      // once; never escalates again
+      escalated = true;
+      fallbackReason = undefined;                           // the reason belonged to the first call
+    }
+    const resp = { ...(await this.accounting.record(req, route, result, Math.round(performance.now() - t0), fallbackReason)), escalated };
     span.setAttributes(this.spanAttrs(req, route, resp));
     span.end();
     if (resp.stopReason === "refusal") throw new Refused(resp);
@@ -151,9 +166,13 @@ Same model notes as the Python template: no `thinking` or
 Cost formula, ClickHouse `llm_calls` record, metric names, redaction
 rules and the `LOG_LLM_BODIES` toggle are the same as the Python
 template. `FakeProvider` replays `tests/llm/recordings/<feature>/<sha256>.json`;
-`RECORD_LLM=1` records on a laptop only. The vitest suite covers the
-same twelve cases, `model_override refused without flag` and
-`model_override unknown key refused` among them. `npm run llm:audit`
+`RECORD_LLM=1` records on a laptop only. The cascade follows the Python
+template: the fallback runs first, `escalateReason` checks `escalate_on`
+once, both calls are recorded, `llm_escalation_total{feature}` counts the
+escalation. The vitest suite covers the same sixteen cases,
+`model_override refused without flag`, `model_override unknown key
+refused`, `model_override skips fallback`, `cascade escalates once`,
+`escalation counted` and `no escalation when valid` among them. `npm run llm:audit`
 greps for `@anthropic-ai/sdk` and `messages.create(` outside `src/llm/`
 and fails on any hit; the count
 found is printed.

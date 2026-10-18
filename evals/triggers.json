@@ -1070,6 +1070,24 @@
   ]
  },
  {
+  "skill": "model-routing",
+  "should": [
+   "the triage feature runs on the big model and costs us 4k a month, can a cheaper one do it",
+   "compare haiku sonnet and a gpt model on our extraction eval and set the route",
+   "would a small model answering first and handing the hard cases to sonnet be cheaper for the invoice parser without losing accuracy?"
+  ],
+  "near": [
+   {
+    "prompt": "put all our model calls behind one module with retries",
+    "expect": "llm-gateway"
+   },
+   {
+    "prompt": "build a golden set for the summariser",
+    "expect": "llm-eval"
+   }
+  ]
+ },
+ {
   "skill": "motion-design",
   "should": [
    "booking confirmation needs a subtle entrance transition, web only",

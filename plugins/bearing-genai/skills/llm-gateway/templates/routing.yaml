@@ -61,6 +61,8 @@ tiers:
 
 defaults:
   tier: deep
+  strategy: static                 # static | cascade (model-routing writes cascade from evals)
+  budget_usd_month: null           # model-routing sets it; alert at 80 percent of it
   cacheable: false
   enabled: true
   canary: 0
@@ -95,6 +97,20 @@ routes:
     stream: true
     fallback: { tier: balanced }
     prompt_cache: true
+
+  # Written by model-routing. The small model answers; when its answer fails
+  # a check the gateway can run, the large one answers once, both are billed,
+  # and llm_escalation_total{feature} counts it. `first` and `then` are keys
+  # of `models:`. The fallback runs first, before the cascade judges.
+  # evidence: <the route-frontier line, verbatim>, <date>, eval <version>;
+  # re-run when a model id or a price changes, or by <date + 90 days>
+  invoice_extract:
+    strategy: cascade
+    cascade: { first: claude-haiku-4-5, then: claude-sonnet-5-5 }
+    escalate_on: [invalid, refusal, max_tokens]   # invalid: schema parse or a format check
+    max_tokens: 2048
+    budget_usd_month: 400          # alert at 80 percent (bearing:observability)
+    fallback: null
 
   eval_judge:
     tier: deep                     # judge stronger than the model under test

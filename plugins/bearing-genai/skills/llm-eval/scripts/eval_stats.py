@@ -14,7 +14,8 @@ Usage:
   eval_stats.py compare <base.jsonl> <new.jsonl> [--resamples 2000] [--seed 7]
     eval-compare: S shared cases (base B, new W), delta +D, 95% CI [+L, +U]: better|worse|no difference
     Pairs rows by case_id where neither side is truncated; better when L > 0,
-    worse when U < 0 (exit 1).
+    worse when U < 0 (exit 1). First prints "eval-compare: warning: <file>
+    holds models a, b: ..." for a run whose rows name more than one model.
   eval_stats.py agree <people.jsonl> <judge.jsonl> [--min-items 30] [--min-kappa 0.6]
     eval-agree: S shared items, agreement A, kappa K: calibrated|uncalibrated
     Pairs `label` by case_id; calibrated needs S >= --min-items and
@@ -109,8 +110,24 @@ def summary(a):
     return 0
 
 
+def models_in(rows):
+    out = []
+    for r in rows.values():
+        m = r.get("model")
+        if isinstance(m, str) and m and m not in out:
+            out.append(m)
+    return out
+
+
 def compare(a):
     base, new = load(a.base), load(a.new)
+    for path, rows in ((a.base, base), (a.new, new)):
+        ms = models_in(rows)
+        if len(ms) > 1:
+            print(
+                f"eval-compare: warning: {path} holds models {', '.join(ms)}: "
+                "a fallback ran during that run, so it measures a mix of models"
+            )
     ids = [
         c
         for c in base

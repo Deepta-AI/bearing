@@ -62,6 +62,14 @@ assert_exit 0 python3 "$ES" compare "$d/a.jsonl" "$d/a-trunc.jsonl"
 assert_contains "$T_OUT" "eval-compare: 3 shared cases"
 t_end
 
+t_begin "compare: a run holding more than one model is warned about; the verdict stands"
+{ row a 1; row b 1; printf '{"case_id":"c","score":0,"model":"m2","truncated":false}\n'; row d 1; } > "$d/two-models.jsonl"
+assert_exit 0 python3 "$ES" compare "$d/a.jsonl" "$d/two-models.jsonl"
+assert_contains "$T_OUT" "eval-compare: warning: $d/two-models.jsonl holds models m, m2"
+assert_contains "$T_OUT" "eval-compare: 4 shared cases"
+assert_exit 0 python3 "$ES" compare "$d/a.jsonl" "$d/a.jsonl"; assert_not_contains "$T_OUT" "warning"
+t_end
+
 t_begin "agree: perfect agreement on 30 items is kappa 1.00, calibrated"
 assert_exit 0 python3 "$ES" agree "$d/people.jsonl" "$d/people.jsonl"; assert_contains "$T_OUT" "kappa 1.00: calibrated"
 assert_contains "$T_OUT" "eval-agree: 30 shared items, agreement 1.000"

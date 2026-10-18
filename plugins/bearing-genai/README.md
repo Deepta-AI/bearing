@@ -5,7 +5,7 @@ a model, retrieve over documents, run agents, or train and serve ML models.
 
 ## What it contains
 
-`skills/`: 12 skills (the GenAI flow's later tasks add more):
+`skills/`: 13 skills (the GenAI flow's later tasks add more):
 
 - `genai-design`: the solution design for a product that calls a model
 - `rag`: retrieval over documents
@@ -13,6 +13,7 @@ a model, retrieve over documents, run agents, or train and serve ML models.
 - `llm-eval`: evaluation sets, graders and judges
 - `llm-fine-tuning`: when and how to tune a model
 - `llm-gateway`: one place every model call goes through
+- `model-routing`: the cheapest model or cascade that still passes the eval
 - `llm-guardrails`: input and output checks
 - `prompt-registry`: versioned prompts
 - `speech`: speech to text and text to speech

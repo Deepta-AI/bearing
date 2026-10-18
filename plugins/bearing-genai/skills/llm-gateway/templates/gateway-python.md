@@ -9,8 +9,8 @@ outside `llm/` imports `anthropic`.
 ## Types
 
 ```python
-from dataclasses import dataclass, field
-from typing import Any, Literal, Protocol
+from dataclasses import dataclass, field, replace
+from typing import Any, Callable, Literal, Protocol
 from uuid import UUID
 
 @dataclass(frozen=True)
@@ -25,6 +25,7 @@ class LLMRequest:
     max_tokens: int | None = None
     idempotency_key: str | None = None
     model_override: str | None = None   # a key of routing.yaml `models:`; eval harnesses only
+    check: Callable[[str], bool] | None = None   # format check for escalate_on: invalid
 
 @dataclass(frozen=True)
 class Usage:
@@ -45,6 +46,7 @@ class LLMResponse:
     request_id: str | None
     from_cache: bool = False
     fallback_reason: str | None = None
+    escalated: bool = False         # a cascade route called its `then` model
 
 class Provider(Protocol):
     def complete(self, model: str, req: LLMRequest, route: "Route") -> "ProviderResult": ...
@@ -62,13 +64,16 @@ on another model. It names a key of the `models:` table in
 come with it. It is honoured only when the process has
 `LLM_ALLOW_MODEL_OVERRIDE=1`; without it, or with a key the table does
 not have, the gateway raises `ModelOverrideRefused` before any network
-call. Production never sets the variable.
+call. An overridden route is static with no fallback: a
+`ProviderUnavailable` during an eval run raises instead of letting another
+model answer, which would mix two models in one results file. Production
+never sets the variable.
 
 ## Pipeline in `Gateway.complete`
 
 ```
-model override check -> kill switch -> route -> idempotency lookup -> rate limit -> response cache
--> provider (retries) -> refusal or fallback -> accounting -> span -> cache write
+route -> model override check -> kill switch -> idempotency lookup -> rate limit -> response cache
+-> provider (retries) -> fallback -> cascade escalation -> accounting -> span -> refusal -> cache write
 ```
 
 ```python
@@ -79,6 +84,7 @@ class Gateway:
             if os.environ.get("LLM_ALLOW_MODEL_OVERRIDE") != "1" or req.model_override not in self.routing.models:
                 raise ModelOverrideRefused(req.model_override)
             route = self.routing.with_model(route, req.model_override)   # model, provider, prices
+            route = replace(route, fallback=None, strategy="static")      # one model per eval run
         if not route.enabled or os.environ.get(f"LLM_KILL_{req.feature.upper()}") == "1":
             raise FeatureDisabled(req.feature)
         if req.idempotency_key and (hit := self.idem.get(req.tenant_id, req.idempotency_key)):
@@ -98,6 +104,12 @@ class Gateway:
                 fb = self.routing.resolve_fallback(route)
                 result = self._call(fb.model, req, fb)
                 result.fallback_reason = e.reason
+            if route.strategy == "cascade" and (why := self._escalate(route, req, result)):
+                self.accounting.record(req, route, result, int((time.monotonic() - t0) * 1000))
+                self.metrics.escalation.add(1, {"feature": req.feature})   # `why` goes on the span
+                then = self.routing.cascade_then(route)            # `cascade.then`, a models: key
+                result = self._call(then.model, req, then)          # once; never escalates again
+                result.escalated = True
             resp = self.accounting.record(req, route, result, int((time.monotonic() - t0) * 1000))
             span.set_attributes(self._span_attrs(req, route, resp))
         if resp.stop_reason == "refusal":
@@ -111,6 +123,17 @@ class Gateway:
 
 `_call` retries once on 529 with jitter after the SDK's own retries;
 never on 400.
+
+A route with `strategy: cascade` calls `cascade.first` (its `route.model`);
+the fallback, when that model is unavailable, runs first and its answer is
+what the cascade judges. `_escalate` returns the first `escalate_on` reason
+that holds, else None: `refusal` (`stop_reason == "refusal"`), `max_tokens`
+(`stop_reason == "max_tokens"`), `invalid` (the text does not parse against
+`output_schema`, or `req.check` returns False). Those are the checks the
+gateway can run, the same `valid` that `llm-eval` records and
+`model-routing` simulates. On a reason the gateway records the first call
+(both calls are billed), counts `llm_escalation_total{feature}` once
+and calls `cascade.then` once; that answer stands whatever it is.
 
 ## Anthropic provider
 
@@ -183,7 +206,10 @@ inserts through the existing events pipeline) or, without ClickHouse,
 one structured log line `llm_call` with the same fields. Metrics from
 the same record: `llm_calls_total{feature,model,status}`,
 `llm_cost_usd_total{feature,tenant}`, `llm_fallback_total{feature,reason}`,
-`llm_request_duration_seconds{feature,model}`. A call made with
+`llm_request_duration_seconds{feature,model}`,
+`llm_escalation_total{feature}`; a route's alert on
+`budget_usd_month` fires at 80 percent of `llm_cost_usd_total` for the
+feature. A call made with
 `model_override` is recorded with `override: true` and the overriding
 key, so eval traffic never mixes with production cost.
 
@@ -209,7 +235,13 @@ Tests in `tests/llm/`: `test_route_picks_tier`, `test_retry_529_then_ok`,
 `test_fallback_counted`, `test_cost_from_usage`,
 `test_no_bodies_in_logs_by_default`, `test_refusal_raises_after_accounting`,
 `test_model_override_refused_without_flag`,
-`test_model_override_unknown_key_refused`.
+`test_model_override_unknown_key_refused`,
+`test_model_override_skips_fallback` (the provider raises
+`ProviderUnavailable`; the call raises and no fallback model is called),
+`test_cascade_escalates_once` (an invalid `first` answer calls `then`
+once, an invalid `then` answer is returned, not escalated again),
+`test_escalation_counted` (one `llm_escalation_total`, two accounting
+records, one per call) and `test_no_escalation_when_valid`.
 A laptop-only test `test_prompt_cache_hit` makes two identical calls and
 asserts `cache_read_input_tokens > 0` on the second.
 

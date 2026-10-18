@@ -1,0 +1,40 @@
+{
+ "skill_name": "model-routing",
+ "evals": [
+  {
+   "id": 1,
+   "name": "triage-cascade-from-recorded-runs",
+   "prompt": "Triage costs us too much on Sonnet. We ran the triage eval on haiku, sonnet and opus last week, results are in evals/triage/results. Pick the cheapest setup that still meets the bar in the triage solution doc and set the route.",
+   "expected_output": "route_frontier.py run on the three recorded files at threshold 0.85 from docs/genai/triage-solution.md; the frontier prints six options (three static, three cascades) and chooses cascade claude-haiku-4-5->claude-sonnet-5-5 (lower 0.883, $1.58 per 1k, 20.0% escalated) over static Sonnet ($2.18 per 1k); llm/routing.yaml routes.triage becomes strategy cascade with first and then as models: keys, escalate_on [invalid, refusal, max_tokens], a budget_usd_month and the frontier line as evidence; docs/genai/routing.md holds the row with a monthly estimate at 20,000 calls a day and a re-run date; prices come from the routing.yaml price table, not memory.",
+   "files": [
+    "files/ticket-router"
+   ],
+   "expectations": [
+    "The transcript runs route_frontier.py on evals/triage/results/haiku.jsonl, sonnet.jsonl and opus.jsonl with --threshold 0.85, and copies its option lines and its route-frontier line verbatim",
+    "The threshold 0.85 is taken from docs/genai/triage-solution.md, not asked for or invented",
+    "It chooses cascade claude-haiku-4-5->claude-sonnet-5-5 from the frontier line (lower 0.883 at or above 0.85, $1.58 per 1k, escalated 20.0%) rather than static claude-sonnet-5-5 at $2.18 per 1k",
+    "llm/routing.yaml routes.triage gains strategy: cascade, cascade with first claude-haiku-4-5 and then claude-sonnet-5-5 (both keys of models:), escalate_on [invalid, refusal, max_tokens] and a budget_usd_month, with the frontier line and a date as a comment",
+    "A monthly estimate is given from the 20,000 calls a day in the README and the frontier's cost per 1k, with the current static Sonnet cost beside it",
+    "docs/genai/routing.md has a row for triage with the chosen route, the score, the cost per 1,000 and a re-run date (when a model id or price changes, or 90 days)",
+    "It does not quote a price from memory: every price or cost it states comes from llm/routing.yaml or from route_frontier.py output",
+    "No file written or edited contains an em dash character"
+   ]
+  },
+  {
+   "id": 2,
+   "name": "fallback-contaminated-candidate",
+   "prompt": "compare haiku and sonnet for triage using the runs in evals/triage/results and switch the route to whichever is cheaper but still passes",
+   "expected_output": "route_frontier.py refuses the Sonnet file with exit 2 because it holds rows from claude-haiku-4-5 (the route's fallback answered six cases during the run); the skill does not choose a route from it, leaves llm/routing.yaml unchanged, says the Sonnet eval must be re-run with the override (which now runs with no fallback), and gives the command to re-run it.",
+   "files": [
+    "files/ticket-router-fallback"
+   ],
+   "expectations": [
+    "The transcript runs route_frontier.py on the two files and reports that evals/triage/results/sonnet.jsonl holds models claude-sonnet-5-5 and claude-haiku-4-5, that is a fallback ran during the eval",
+    "It refuses the Sonnet candidate and asks for a re-run of the Sonnet eval, naming the command (make eval EVAL=triage MODEL=claude-sonnet-5-5 or the harness with --model)",
+    "llm/routing.yaml routes.triage is not changed to a new model or strategy on the strength of these files",
+    "It does not drop the haiku rows from the Sonnet file and score the rest as if it were a clean Sonnet run",
+    "No file written or edited contains an em dash character"
+   ]
+  }
+ ]
+}

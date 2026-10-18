@@ -64,9 +64,11 @@ bearing plugin).
    answers, judges of short outputs) and `deep` (`claude-opus-5-5`, the
    default: reasoning, planning, anything a user reads). Each route
    names a feature, a tier, `effort`, `max_tokens`, `timeout_s`,
-   `cacheable`, `fallback`, `enabled`, `canary`. The schema is
-   validated at startup; an unknown feature fails the call, not the
-   boot.
+   `cacheable`, `fallback`, `enabled`, `canary`, and `strategy`
+   (`static`, or `cascade` with `escalate_on` and `budget_usd_month`,
+   which `bearing-genai:model-routing` writes from measured evals). The
+   schema is validated at startup; an unknown feature fails the call,
+   not the boot.
 5. Resilience. Retries: the SDK's `max_retries` (default 2, backoff on
    408, 409, 429, 5xx) plus one gateway retry on 529 with jitter;
    never retry a 400. Idempotency: a client-supplied key stores the
