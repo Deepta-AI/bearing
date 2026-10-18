@@ -88,7 +88,7 @@ an install each plugin sits in its own cache folder, and a missing stack
 plugin must be named, not tripped over. A skill that mentions a skill of
 another plugin uses that plugin's prefix (`bearing:tech-decision` from a
 stack skill, `bearing-backend:go` from a workflow skill); `make
-lint-skills` resolves all three prefixes. `make lint-plugin-size` keeps
+lint-skills` resolves all four prefixes. `make lint-plugin-size` keeps
 each plugin under 512 files and every non-image file under 256 KiB, the
 plugin directory's limits.
 

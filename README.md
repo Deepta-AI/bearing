@@ -40,9 +40,10 @@ Bearing is one marketplace with four plugins:
 /plugin install bearing-genai@bearing     # optional
 ```
 
-Install the stack plugins your repositories use. Without one, its stack
-skills are absent, and scaffolding, adopting or reviewing that stack stops
-with the line that installs it (`/plugin install bearing-backend@bearing`)
+Install the stack plugins your repositories use. `bearing-genai` holds the
+GenAI and ML skills, and the full install below installs it by default.
+Without a stack plugin, its stack skills are absent, and scaffolding,
+adopting or reviewing that stack stops with the line that installs it (`/plugin install bearing-backend@bearing`)
 instead of failing on a missing path. The plugins write no configuration
 file, install no companion packs and leave no checkout on disk, so the
 tracker stays `none` until you create `~/.config/bearing/bearing.env`
@@ -56,9 +57,9 @@ git clone https://github.com/Deepta-AI/bearing ~/bearing
 bash ~/bearing/install.sh
 ```
 
-It registers the checkout as the marketplace and installs all three
-plugins, then writes `~/.config/bearing/bearing.env` (mode 600, never
-overwritten), a personal `~/.claude/CLAUDE.md` starter if you have none,
+It registers the checkout as the marketplace and installs all four
+plugins (`bearing-genai` included by default), then writes
+`~/.config/bearing/bearing.env` (mode 600, never overwritten), a personal `~/.claude/CLAUDE.md` starter if you have none,
 the companion packs for the profile (Superpowers, gstack, GSD Core and impeccable by
 default; `--profile full` adds the open-source packs the workflow names),
 then runs the doctor. The commands in these docs that start with

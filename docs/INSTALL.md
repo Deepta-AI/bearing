@@ -34,7 +34,8 @@ skills, the subagents, the hooks, the scripts and the repository
 templates. `bearing-backend` and `bearing-apps` carry the stack skills
 and their scaffold templates; `bearing-genai` carries the GenAI and ML skills
 (RAG, agents, MCP, gateway and routing, evals, datasets, speech, vision, tabular
-ML). Install the ones your repositories use.
+ML); `install.sh` installs it by default. Install the ones your
+repositories use.
 Without a stack plugin, its skills are absent, and `new-repo`,
 `onboard-repo`, `ci-pipeline` and the review checklists stop on that
 stack with the line to install it (`/plugin install bearing-backend@bearing`).

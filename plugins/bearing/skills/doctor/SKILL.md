@@ -106,6 +106,8 @@ exists. The job is whether it works.
   `claude plugin install bearing@bearing`. A stack plugin `optional` while
   the repository uses its stack:
   `claude plugin install bearing-backend@bearing` (or `bearing-apps@bearing`).
+  `bearing-genai` `optional` while the repository builds on an LLM or a
+  model: `claude plugin install bearing-genai@bearing`.
 - superpowers: `claude plugin install superpowers@claude-plugins-official`.
   gstack: `bash <Bearing>/install.sh --skip-gsd --skip-superpowers` (pinned
   in `${CLAUDE_PLUGIN_ROOT}/bin/pinned-packs.txt`). GSD:
