@@ -16,7 +16,7 @@ Breaking one gets the change rejected, whatever else it does.
 2. Never push, open a merge or pull request, merge, tag or deploy. Prepare the
    command and hand it to the engineer. Where the engineer opted this
    repository in (BEARING_AUTO_PUSH), `merge-request` may request a push of
-   the feature branch; the Stop hook makes it after the gate.
+   the task branch; the Stop hook makes it after the gate.
 3. Never commit a secret, key, certificate or `.env` file, and never read one
    into context.
 4. Never touch a production system, database or bucket, not even to read.

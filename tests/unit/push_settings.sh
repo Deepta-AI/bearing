@@ -19,11 +19,13 @@ readme="$(jq -r '._readme[]' "$S")"
 assert_contains "$readme" "BEARING_AUTO_PUSH"
 assert_contains "$readme" "first line"
 assert_contains "$readme" "brg-push run"
+assert_contains "$readme" "<host>/<path>"
+assert_contains "$readme" "./bin/brg-push run"
 t_end
 
 t_begin "the hooks description names the opt-in feature branch push"
 desc="$(jq -r '.description' "$KIT/plugins/bearing/hooks/hooks.json")"
-assert_contains "$desc" "except a feature branch push the Stop hook makes where the engineer opted the repository in"
+assert_contains "$desc" "except a task branch push the Stop hook makes where the engineer opted the repository in"
 t_end
 
 t_summary

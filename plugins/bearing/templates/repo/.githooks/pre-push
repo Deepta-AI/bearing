@@ -9,7 +9,7 @@ HOOK_NAME=pre-push
 # shellcheck source=lib.sh
 . "$(dirname "$0")/lib.sh"
 
-remote="${1:-origin}"
+remote="${1:-origin}"; url="${2:-}"
 zero='0000000000000000000000000000000000000000'
 tmp="$(mktemp "${TMPDIR:-/tmp}/pre-push.XXXXXX")"
 trap 'rm -f "$tmp"' EXIT
@@ -24,15 +24,19 @@ done
 
 # Agent contract (brg-push run, Stop hook): an agent push is one whose
 # environment carries a variable below (CLAUDECODE is set by Claude Code and
-# inherited by brg-push run), and it is accepted only when auto_push_allowed
-# finds this repository in BEARING_AUTO_PUSH in the engineer's bearing.env.
-# Then it may carry fast-forward updates of feature branches and nothing else.
+# inherited by brg-push run). It is accepted only when auto_push_allowed finds
+# the URL git is pushing to ($2, through remote origin, no differing pushurl)
+# as a <host>/<path> entry of BEARING_AUTO_PUSH in the engineer's bearing.env
+# under the passwd home. Then it may carry fast-forward updates of task
+# branches and nothing else: never a tag or other non-branch ref, so brg-push
+# run pushes with --no-follow-tags.
 agent=""
 for v in CLAUDECODE CLAUDE_CODE_ENTRYPOINT CODEX_SANDBOX CODEX_SANDBOX_NETWORK_DISABLED GEMINI_CLI CURSOR_AGENT; do
   [ -n "${!v:-}" ] && { agent="$v"; break; }
 done
 auto=0
-if [ -n "$agent" ] && auto_push_allowed; then auto=1; fi
+if [ -n "$agent" ] && auto_push_allowed "$remote" "$url"; then auto=1; fi
+why=""; [ -z "$AUTO_WHY" ] || why=" (auto push: $AUTO_WHY)"
 
 # git feeds one line per ref on stdin:
 #   <local ref> <local sha> <remote ref> <remote sha>
@@ -42,7 +46,9 @@ while read -r local_ref local_sha remote_ref remote_sha; do
   refs=$((refs+1))
   case "$remote_ref" in
     refs/heads/*) rbranch="${remote_ref#refs/heads/}" ;;
-    *) [ "$auto" -eq 1 ] && hook_fail "an agent push carries only branches: $remote_ref"
+    *) if [ "$auto" -eq 1 ] || { [ -n "$agent" ] && [ "$PUSH_CONFIRM" != off ]; }; then
+         hook_fail "an agent push carries only branches: $remote_ref"
+       fi
        hook_note "$remote_ref: not a branch, branch rules not applied"; continue ;;
   esac
   if [ "$auto" -eq 1 ]; then
@@ -80,12 +86,12 @@ done
 
 # Confirmation (lib.sh PUSH_CONFIRM). The engineer pushes; a coding agent
 # does not, except under the engineer's BEARING_AUTO_PUSH opt-in, a
-# fast-forward of a feature branch (auto=1, judged above).
+# fast-forward of a task branch (auto=1, judged above).
 case "$PUSH_CONFIRM" in
   off) ;;
-  agents) [ -z "$agent" ] || [ "$auto" -eq 1 ] || hook_fail "a coding agent is pushing ($agent is set); the engineer runs git push" ;;
+  agents) [ -z "$agent" ] || [ "$auto" -eq 1 ] || hook_fail "a coding agent is pushing ($agent is set); the engineer runs git push$why" ;;
   *)
-    [ -z "$agent" ] || [ "$auto" -eq 1 ] || hook_fail "a coding agent is pushing ($agent is set); the engineer runs git push"
+    [ -z "$agent" ] || [ "$auto" -eq 1 ] || hook_fail "a coding agent is pushing ($agent is set); the engineer runs git push$why"
     # A pipeline that pushes opts in with both a CI marker and the kit flag.
     if [ "$auto" -eq 1 ]; then
       :  # no terminal to type on: the opt-in stands in for the confirmation
