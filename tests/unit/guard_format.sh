@@ -16,7 +16,7 @@ for tool in gofmt prettier ruff ktlint swiftformat terraform shfmt; do
   printf '#!/bin/sh\necho "%s $*" >> "%s"\n/usr/bin/env >> "%s.env"\n' "$tool" "$log" "$log" > "$stubs/$tool"
   chmod 755 "$stubs/$tool"
 done
-base="$(minimal_path bash git sed grep head tail tr wc cat dirname basename mktemp cmp mv rm mkdir ls awk cut sort uniq env printf jq)"
+base="$(minimal_path bash git sed grep head tail tr wc cat dirname basename mktemp cmp mv rm mkdir ls awk cut sort uniq env printf jq python3)"
 gb="$(tmpdir)"; cp "$GUARD" "$gb/brg-guard"
 dirs_line="$(grep -n '^  printf .%s.n. /opt/homebrew/bin' "$GUARD" | cut -d: -f2-)"
 replace_in "$gb/brg-guard" "$dirs_line" "  printf '%s\\n' '$stubs'"
@@ -85,8 +85,22 @@ cfg_case() { # cfg_case <file> <content> <ran|skipped>
 }
 assert_contains "$(pr)" "prettier" "no config: prettier runs"
 cfg_case .prettierrc.json '{"semi": false, "singleQuote": true}' ran
-cfg_case .prettierrc 'semi: false' ran
 cfg_case .prettierrc.json '{"overrides": [{"files": "*.json", "options": {"parser": "json5"}}]}' ran
+cfg_case .prettierrc.json '{"$schema": "http://json.schemastore.org/prettierrc", "printWidth": 100, "trailingComma": "all", "overrides": [{"files": ["*.md"], "excludeFiles": "x.md", "options": {"proseWrap": "always"}}]}' ran
+# Only JSON parsed as data, every key a plain formatting option: an escaped
+# key decodes to plugins, so a text match is not enough.
+cfg_case .prettierrc.json '{"\u0070lugins": ["./evil.js"]}' skipped
+cfg_case .prettierrc.json '{"semi": false, "overrides": [{"files": "*.ts", "options": {"\u0070lugins": ["./evil.js"]}}]}' skipped
+cfg_case .prettierrc.json '{"semi": false, "pluginSearchDirs": ["."]}' skipped
+cfg_case .prettierrc.json '{"parser": "babel", "x": 1}' skipped
+cfg_case .prettierrc.json '{"semi": false' skipped
+cfg_case package.json '{"name": "x", "prettier": {"\u0070lugins": ["./evil.js"]}}' skipped
+cfg_case .prettierrc 'semi: false' skipped
+cfg_case .prettierrc '{"semi": false}' skipped
+cfg_case .prettierrc.yaml 'semi: false' skipped
+cfg_case .prettierrc.yml 'semi: false' skipped
+cfg_case .prettierrc.toml 'semi = false' skipped
+cfg_case .prettierrc.json5 '{semi: false}' skipped
 cfg_case package.json '{"name": "x", "devDependencies": {"prettier": "^3.0.0"}}' ran
 cfg_case package.json '{"name": "x", "prettier": {"semi": false}}' ran
 cfg_case prettier.config.js 'module.exports = {}' skipped
@@ -101,7 +115,7 @@ mkdir -p "$repo/web/src"; : > "$repo/web/src/app.ts"
 printf 'module.exports = {}\n' > "$repo/web/prettier.config.cjs"
 : > "$log"; T_IN=''; assert_exit 0 fmt_with "$base" "$repo/web/src/app.ts"
 assert_eq "" "$(cat "$log")" "a JS config in a parent directory: not run"
-assert_contains "$T_OUT" "prettier not run: the repository's prettier config can load code"
+assert_contains "$T_OUT" "prettier not run: the repository's prettier config is not .prettierrc.json"
 printf '{"semi": false}\n' > "$repo/web/src/.prettierrc.json"
 : > "$log"; fmt_with "$base" "$repo/web/src/app.ts" >/dev/null 2>&1
 assert_contains "$(cat "$log")" "prettier" "the nearest config decides"

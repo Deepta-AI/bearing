@@ -19,7 +19,16 @@ Each branch only ever writes its own file, so two branches never conflict.
       only when the list is not empty). Appending:
       --add-done --add-decision (an item already present is not repeated).
       A file that would reach 40 lines folds the oldest Done items into one
-      "N earlier items" line.
+      "N earlier items" line. --dry-run prints the file it would write and
+      writes nothing. The SessionEnd hook runs write outside the sandbox, so
+      docs and docs/progress are opened without following a link and the
+      file is read only when it is a regular file with one link (a link, a
+      FIFO or a hard link is refused, exit 1); the new text goes to a fresh
+      temporary name that is then renamed over it, so nothing is ever
+      written through a link.
+  show --task ID [--root DIR]
+      Prints docs/progress/<ID>.md, opened the same way as write; exit 3
+      when there is none, 1 when it is not a regular file.
   index [--root DIR] [--status S] [--open] [--refs]
       A table of every docs/progress/*.md (task, status, owner, updated,
       next) and a final "progress: N tasks (...)" line counting each status.
@@ -127,6 +136,85 @@ def repo_root(given):
     return out.strip() if out else os.getcwd()
 
 
+class NotRegular(Exception):
+    """docs, docs/progress or the progress file is a link or not a regular file."""
+
+
+DIRFLAGS = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW
+MAX_READ = 1048576
+
+
+def progress_dir(root, create):
+    """A descriptor of <root>/docs/progress, each part opened without following
+    a link from the one before; None when absent and create is false."""
+    d = os.open(root, os.O_RDONLY | os.O_DIRECTORY)
+    try:
+        for part in ("docs", "progress"):
+            if create:
+                try:
+                    os.mkdir(part, 0o755, dir_fd=d)
+                except FileExistsError:
+                    pass
+            try:
+                n = os.open(part, DIRFLAGS, dir_fd=d)
+            except FileNotFoundError:
+                return None
+            except OSError as e:
+                raise NotRegular(f"{part} is a link or not a directory") from e
+            os.close(d)
+            d = n
+        n, d = d, None
+        return n
+    finally:
+        if d is not None:
+            os.close(d)
+
+
+def read_progress(dfd, name):
+    """The text of <name> in dfd, or None when absent. A link, a FIFO, a
+    directory or a file with a second hard link raises NotRegular; the open
+    never blocks and never follows a link."""
+    try:
+        fd = os.open(name, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=dfd)
+    except FileNotFoundError:
+        return None
+    except OSError as e:
+        raise NotRegular("not a regular file") from e
+    try:
+        st = os.fstat(fd)
+        if st.st_mode & 0o170000 != 0o100000 or st.st_nlink != 1:
+            raise NotRegular("not a regular file")
+        chunks, left = [], MAX_READ
+        while left > 0:
+            b = os.read(fd, min(65536, left))
+            if not b:
+                break
+            chunks.append(b)
+            left -= len(b)
+        return b"".join(chunks).decode("utf-8")
+    finally:
+        os.close(fd)
+
+
+def put_progress(dfd, name, text):
+    """Write text to a fresh name (O_EXCL, never a link), then rename it over
+    <name>: a rename replaces whatever sits at the name, never writes through it."""
+    read_progress(dfd, name)  # refuses a link, a FIFO or a hard link at the name
+    tmp = ".%s.%s.tmp" % (name[:64], os.urandom(8).hex())
+    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o644, dir_fd=dfd)
+    try:
+        view = memoryview(text.encode("utf-8"))
+        while view:
+            view = view[os.write(fd, view):]
+    finally:
+        os.close(fd)
+    try:
+        os.rename(tmp, name, src_dir_fd=dfd, dst_dir_fd=dfd)
+    except OSError:
+        os.unlink(tmp, dir_fd=dfd)
+        raise
+
+
 def one_line(v):
     return re.sub(r"\s+", " ", v).strip()
 
@@ -201,8 +289,19 @@ def cmd_write(a):
             f"task id '{a.task}' has characters a file name cannot hold; use the branch name with / as _"
         )
     root = repo_root(a.root)
-    path = os.path.join(root, DIR, a.task + ".md")
-    created = not os.path.exists(path)
+    rel = os.path.join(DIR, a.task + ".md")
+    name = a.task + ".md"
+    dfd = None
+    try:
+        dfd = progress_dir(root, False)
+        old = read_progress(dfd, name) if dfd is not None else None
+    except NotRegular as e:
+        print(f"progress: {rel}: {e}; not written", file=sys.stderr)
+        return 1
+    finally:
+        if dfd is not None:
+            os.close(dfd)
+    created = old is None
     if created:
         branch = (git(root, "branch", "--show-current") or "").strip() or "none"
         # The author of the latest commit, from the repository, before the
@@ -227,7 +326,7 @@ def cmd_write(a):
             "decisions": [],
         }
     else:
-        rec = parse(open(path, encoding="utf-8").read())
+        rec = parse(old)
     changed = []
     for k, _ in SCALARS:
         v = getattr(a, k, None)
@@ -259,15 +358,45 @@ def cmd_write(a):
     rec["task"] = a.task
     rec["updated"] = today()
     text = fit(rec)
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, "w", encoding="utf-8") as f:
-        f.write(text)
-    rel = os.path.relpath(path, root)
+    if a.dry_run:
+        sys.stdout.write(text)
+        return 0
+    dfd = None
+    try:
+        dfd = progress_dir(root, True)
+        put_progress(dfd, name, text)
+    except NotRegular as e:
+        print(f"progress: {rel}: {e}; not written", file=sys.stderr)
+        return 1
+    finally:
+        if dfd is not None:
+            os.close(dfd)
     print(
         f"progress: {'created' if created else 'updated'} {rel} "
         f"({text.count(chr(10))} lines, status {rec.get('status')}; "
         f"fields: {', '.join(changed) if changed else 'none'})"
     )
+    return 0
+
+
+def cmd_show(a):
+    if not TASK_RE.match(a.task):
+        die(f"task id '{a.task}' has characters a file name cannot hold")
+    rel = os.path.join(DIR, a.task + ".md")
+    dfd = None
+    try:
+        dfd = progress_dir(repo_root(a.root), False)
+        text = read_progress(dfd, a.task + ".md") if dfd is not None else None
+    except NotRegular as e:
+        print(f"progress: {rel}: {e}", file=sys.stderr)
+        return 1
+    finally:
+        if dfd is not None:
+            os.close(dfd)
+    if text is None:
+        print(f"progress: no {rel}", file=sys.stderr)
+        return 3
+    sys.stdout.write(text)
     return 0
 
 
@@ -287,12 +416,19 @@ def gate(p, branch):
     names = set()
     if base:
         names.update((git(p, "diff", "--name-only", base + "..." + branch) or "").split("\n"))
-    names.update(
-        line[3:].split(" -> ")[-1]
-        for line in (git(p, "status", "--porcelain", "--ignore-submodules=dirty", "--untracked-files=all") or "").split("\n")
-        if len(line) > 3
-    )
-    names = sorted(n for n in names if n and not n.startswith(".bearing/"))
+    # -z: a name is never quoted; a rename or copy record is followed by the
+    # old name, which is skipped. State files are newer than the marker by
+    # construction; any other .bearing/ file counts.
+    recs = (git(p, "status", "--porcelain", "-z", "--ignore-submodules=dirty", "--untracked-files=all") or "").split("\0")
+    skip = False
+    for rec in recs:
+        if skip:
+            skip = False
+            continue
+        if len(rec) > 3:
+            names.add(rec[3:])
+            skip = rec[0] in "RC"
+    names = sorted(n for n in names if n and not n.startswith(".bearing/state/"))
     mt = os.path.getmtime(marker)
     stale = 0
     for n in names:
@@ -536,6 +672,10 @@ def main():
     w.add_argument("--repo", action="append")
     w.add_argument("--add-done", action="append")
     w.add_argument("--add-decision", action="append")
+    w.add_argument("--dry-run", action="store_true")
+    sh = sub.add_parser("show")
+    sh.add_argument("--task", required=True)
+    sh.add_argument("--root")
     i = sub.add_parser("index")
     i.add_argument("--root")
     i.add_argument("--status")
@@ -550,6 +690,8 @@ def main():
     if a.cmd == "write":
         a.updated = None  # always today
         return cmd_write(a)
+    if a.cmd == "show":
+        return cmd_show(a)
     if a.cmd == "index":
         return cmd_index(a)
     if a.cmd == "set":

@@ -150,17 +150,23 @@ All notable changes to Bearing. Keep a Changelog format, semantic versions.
   an unfiltered run (`selection` null or `{"except": ["unit"]}`) with more
   than 0 tests. Autopilot calls `branch-review --unattended` and
   `definition-of-done --unattended`.
-- Hooks run outside the sandbox while the working tree is the agent's to
-  write, so no hook runs anything the repository defines:
+- Hooks run outside the sandbox while the working tree, `.git/config` and
+  the agent's environment are the agent's to write, so no hook runs a
+  program the repository names (a Makefile target, a working-tree binary,
+  a prettier plugin, or a git hook, filter, fsmonitor, pager, external
+  diff, credential helper, askPass or ssh command from its git config),
+  and no hook writes through a link the agent planted:
   - The PostToolUse edit hook runs only an allow-listed formatter (gofmt,
     prettier, ruff format, ktlint, swiftformat, terraform fmt, shfmt) taken
     from fixed system directories (`/opt/homebrew/bin`, `/usr/local/bin`,
     `/usr/local/go/bin`, `/usr/bin`, `/bin`, `~/.local/bin`, `~/go/bin`),
     never `node_modules/.bin`, the inherited PATH or `uv run`, in a cleared
-    environment. Prettier runs only when the config that applies is data
-    that loads no code (no JS or TS config, plugins, parser module or shared
-    config by name); otherwise it says it did not run. A linked file is not
-    formatted.
+    environment. Prettier runs only when the config that applies is
+    `.prettierrc.json` or a `package.json` `prettier` object, parsed as
+    JSON with `python3 -I`, every key a plain formatting option (overrides
+    of those, a built-in parser name); any other form (`.prettierrc`, YAML,
+    TOML, JSON5, JS, TS, `package.yaml`) or key, an escaped one included,
+    means it says it did not run. A linked file is not formatted.
   - `brg-guard check-file` no longer runs `make check-file`, eslint, go vet
     or any linter. It prints one line saying the hook ran no check and
     naming `make check-file FILE=<path>` to run in the session, and never
@@ -174,9 +180,25 @@ All notable changes to Bearing. Keep a Changelog format, semantic versions.
   - Every git a hook starts runs with no filter driver (each one any config
     defines gets an empty clean, smudge and process), no external diff, no
     pager (`GIT_PAGER=cat`) and `log.showSignature=false`, beside the
-    existing `core.fsmonitor=false` and `core.hooksPath=/dev/null`; the
-    hooks' `git status` runs with `--ignore-submodules=dirty`, so no git
-    starts inside a submodule.
+    existing `core.fsmonitor=false` and `core.hooksPath=/dev/null`.
+  - No hook runs a git command that reads file contents (`git status`,
+    `diff`, `add`), so a filter driver that appears after the hooks list
+    them (a loop toggling it in an included file) never runs:
+    `brg-changed` counts changes from the index's stat data, HEAD's tree
+    and the untracked list (`git ls-files`, `git ls-tree`) by mtime and
+    size. The session line, the Stop gate and reminder, the precompact
+    snapshot and brg-session's checkpoint all use it; `brg-changed --short`
+    prints git's short status codes.
+  - `brg-update-check` (SessionStart) runs `git ls-remote` from `/` under
+    `env -i` with no system config and an empty global config, and reads
+    its output from a pipe, never a file under TMPDIR.
+  - The SessionEnd hook writes `docs/progress/<ID>.md` through
+    `progress.py write`, which opens `docs` and `docs/progress` without
+    following a link, reads the file only as a regular file with one link
+    (a link, a FIFO or a hard link is refused) and replaces it by rename;
+    its mark goes through `brg-guard state-write`. Its rehearsal is
+    `progress.py write --dry-run`, so it copies no file anywhere.
+    `progress.py show` prints a progress file read the same way.
 - The repository template's pre-push hook refuses every agent push: a
   branch, a tag (even when no branch is pushed) and a deletion. The opt-in
   push never passes through it, since it pushes from a fresh clone that
@@ -187,7 +209,13 @@ All notable changes to Bearing. Keep a Changelog format, semantic versions.
   `Edit(~/.gitconfig)`, `Edit(~/.config/git/**)` and
   `Bash(bash *bin/brg-push run*)`, and the sandbox denies writes to those
   directories; a brg-guard row refuses `brg-push run` from Bash, and that
-  row is the control.
+  row is the control. It also denies Edit and Write on `./.git/**`,
+  `**/.git/**`, `~/.local/bin/**`, `~/go/bin/**` and `~/.config/git/**`:
+  the sandbox covers Bash only, autopilot's child has Edit and Write, and
+  the hooks read `.git/config` and take a formatter from those two bin
+  directories. A deny outranks any allow, `--allowedTools` included.
+- `progress.py set` reads `git status -z`, so a name with a space counts,
+  and counts every `.bearing/` file outside `.bearing/state/`.
 - AGENTS.md rule 2 names the one exception to "never push": the opt-in
   task branch push. merge-request and autopilot descriptions say "pushes
   only where opted in"; merge-request requests the push after the check;
@@ -219,6 +247,17 @@ All notable changes to Bearing. Keep a Changelog format, semantic versions.
   engineer listed, and the branch and commit are checked again in the
   clone before it. Every write `brg-push` makes in `.bearing/state` never
   follows a link.
+- The SessionEnd hook no longer writes through a link: an agent could link
+  the mark's temporary name or `docs/progress/<ID>.md` to a file in the
+  home directory (a shell startup file) and have the hook write its next
+  step there, and the hook copied a linked progress file into TMPDIR. See
+  Changed.
+- `brg-update-check` no longer reads the repository's git config: a
+  `credential.helper`, `core.askPass` or `core.sshCommand` (through a url
+  rewrite) there ran outside the sandbox at session start.
+- The edit hook's prettier check parses the config: an escaped
+  `"\u0070lugins"` key passed the old text match and loaded a repository
+  plugin.
 
 ### Notes for existing repositories
 - The edit hook no longer runs `make check-file` or any linter after each
@@ -231,9 +270,23 @@ All notable changes to Bearing. Keep a Changelog format, semantic versions.
   a project's `node_modules` or virtualenv) is now reported as not
   installed by the edit hook; `make format` or `make fix` formats in the
   session.
-- In a repository with filter drivers (Git LFS among them), a hook's change
-  count may include a file whose timestamp changed but whose content did
-  not, since the hooks no longer run the clean filter to compare it.
+- A hook's change count now comes from timestamps and sizes, not content:
+  a file whose timestamp changed but whose content did not counts as
+  changed, until the next `git status` or commit refreshes the index.
+- Prettier runs from the edit hook only under `.prettierrc.json` or a
+  `package.json` `prettier` object of plain formatting options; a
+  repository with `.prettierrc`, a YAML, TOML, JSON5 or JS config formats
+  in the session (`make format`), or moves its options to
+  `.prettierrc.json`.
+- Before opting in to the push, copy the template's new settings into each
+  onboarded repository's `.claude/settings.json`: the denies
+  `Edit(~/.config/bearing/**)`, `Edit(~/.gitconfig)`,
+  `Edit(~/.config/git/**)`, `Write(~/.config/git/**)`, Edit and Write on
+  `./.git/**`, `**/.git/**`, `~/.local/bin/**` and `~/go/bin/**`, and
+  `Bash(bash *bin/brg-push run*)`, and `~/.config/git` in the sandbox's
+  `filesystem.denyWrite`. Without them the agent's Edit tool can write
+  `BEARING_AUTO_PUSH` into bearing.env and opt the repository in from the
+  next session.
 - Add a `## Task paths` table to every `docs/design/flows/*/flows.md`
   (columns Task, Story, Kind, Entry, Path, Screens, Interactions, Over; the
   `ux-flows` skill's `references/task-paths.md` has the format), then run
@@ -280,7 +333,7 @@ All notable changes to Bearing. Keep a Changelog format, semantic versions.
   (`BEARING_NONINTERACTIVE`, `BEARING_AUTOPILOT`, `--unattended`) runs only
   `audit`; design-directions skips the impeccable round when unattended and
   takes its own fallback.
-- Plugin size: `bearing` is at 511 files; the cap is under 512.
+- Plugin size: `bearing` is at 456 files; the cap is under 512.
 
 ## [0.8.0] - 2026-10-17
 

@@ -1641,6 +1641,15 @@ EOF_GUARD
   STRIPPED="$hd_out"
 }
 
+# --- changed files, for the hooks. git status (and diff, add) re-reads a
+# file whose stat changed, which runs any filter driver .gitattributes names,
+# and a driver can appear in an included config between git_lockdown's
+# enumeration and the git that reads it. So no hook runs them: brg-changed
+# (beside this script) reads the index, HEAD's tree and the untracked list
+# and compares mtimes and sizes. Without it, nothing is counted.
+changed_short() { [ -f "$(dirname "$0")/brg-changed" ] && bash "$(dirname "$0")/brg-changed" --root "$root" --short; }
+changed_since() { [ -f "$(dirname "$0")/brg-changed" ] && bash "$(dirname "$0")/brg-changed" --root "$root" --since "$1"; }
+
 # --- the edit hook's formatters. A hook runs outside the sandbox, so a
 # formatter is taken only from the allow-list in the format subcommand (gofmt,
 # prettier, ruff format, ktlint, swiftformat, terraform fmt, shfmt), only from
@@ -1663,43 +1672,112 @@ EOF
   return 1
 }
 # prettier_config_ok <file>: 0 when the prettier config that applies to the
-# file (the nearest directory up to the repository root holding one) is data
-# that loads no code; 1 for a JS or TS config, plugins, a parser given as a
-# module path, a shared config named by a string, or anything unreadable.
-# Prettier reads its config and loads what it names; ruff, shfmt, ktlint,
-# swiftformat, gofmt and terraform fmt read only data.
+# file (the nearest directory, up to the repository root, holding one) is
+# JSON data of plain formatting options; 1 otherwise. Prettier reads its
+# config and loads what it names (plugins, a parser module, a shared config,
+# a JS or TS config), and a text match is not enough: JSON and YAML keys may
+# be escaped ("\u0070lugins" is plugins). So PRETTIER_PY parses the config
+# with python3 -I and accepts only .prettierrc.json and a package.json
+# "prettier" object whose every key is on the allow-list below (overrides
+# only as files, excludeFiles and options of those keys; parser only a
+# built-in name). Any other config file in that directory (.prettierrc,
+# YAML, TOML, JSON5, JS, TS, package.yaml), a link, a FIFO, invalid JSON or
+# any other key means prettier is not run. Files are opened O_NOFOLLOW and
+# O_NONBLOCK and read only when regular. ruff, shfmt, ktlint, swiftformat,
+# gofmt and terraform fmt read only data.
+PRETTIER_PY='import json, os, sys
+start, root = sys.argv[1], sys.argv[2]
+PLAIN = {"printWidth", "tabWidth", "useTabs", "semi", "singleQuote", "quoteProps", "jsxSingleQuote",
+         "trailingComma", "bracketSpacing", "bracketSameLine", "objectWrap", "arrowParens", "proseWrap",
+         "endOfLine", "htmlWhitespaceSensitivity", "embeddedLanguageFormatting", "singleAttributePerLine",
+         "vueIndentScriptAndStyle", "experimentalTernaries", "insertPragma", "requirePragma"}
+PARSERS = {"babel", "babel-flow", "babel-ts", "flow", "typescript", "espree", "meriyah", "acorn", "css",
+           "less", "scss", "json", "json5", "jsonc", "json-stringify", "graphql", "markdown", "mdx", "vue",
+           "yaml", "glimmer", "html", "angular", "lwc", "mjml"}
+NAMES = {"package.json", "package.yaml", ".prettierrc", ".prettierrc.json", ".prettierrc.yaml",
+         ".prettierrc.yml", ".prettierrc.json5", ".prettierrc.toml", ".prettierrc.js", ".prettierrc.cjs",
+         ".prettierrc.mjs", ".prettierrc.ts", ".prettierrc.cts", ".prettierrc.mts", "prettier.config.js",
+         "prettier.config.cjs", "prettier.config.mjs", "prettier.config.ts", "prettier.config.cts",
+         "prettier.config.mts"}
+def scalar(v):
+    return isinstance(v, (bool, int, str)) and not isinstance(v, float)
+def options_ok(o):
+    if not isinstance(o, dict):
+        return False
+    for k, v in o.items():
+        if k == "parser":
+            if v not in PARSERS:
+                return False
+        elif k not in PLAIN or not scalar(v):
+            return False
+    return True
+def globs_ok(v):
+    return isinstance(v, str) or (isinstance(v, list) and all(isinstance(x, str) for x in v))
+def config_ok(c):
+    if not isinstance(c, dict):
+        return False
+    for k, v in c.items():
+        if k == "$schema":
+            if not isinstance(v, str):
+                return False
+        elif k == "overrides":
+            if not isinstance(v, list):
+                return False
+            for o in v:
+                if not isinstance(o, dict) or not set(o) <= {"files", "excludeFiles", "options"}:
+                    return False
+                if "files" not in o or not globs_ok(o["files"]):
+                    return False
+                if "excludeFiles" in o and not globs_ok(o["excludeFiles"]):
+                    return False
+                if "options" in o and not options_ok(o["options"]):
+                    return False
+        elif not options_ok({k: v}):
+            return False
+    return True
+def load(path):
+    fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+    try:
+        st = os.fstat(fd)
+        if st.st_mode & 0o170000 != 0o100000 or st.st_size > 1048576:
+            raise ValueError("not a regular file")
+        return json.loads(os.read(fd, 1048577).decode("utf-8"))
+    finally:
+        os.close(fd)
+d = os.path.realpath(start)
+root = os.path.realpath(root)
+while True:
+    found = False
+    for n in sorted(os.listdir(d)) if os.path.isdir(d) else []:
+        if n not in NAMES:
+            continue
+        p = os.path.join(d, n)
+        try:
+            if n == "package.json":
+                c = load(p)
+                if not isinstance(c, dict):
+                    sys.exit(1)
+                if "prettier" not in c:
+                    continue
+                c = c["prettier"]
+            elif n == ".prettierrc.json":
+                c = load(p)
+            else:
+                sys.exit(1)
+        except (OSError, ValueError):
+            sys.exit(1)
+        if not config_ok(c):
+            sys.exit(1)
+        found = True
+    if found or d == root or d == os.path.dirname(d):
+        sys.exit(0)
+    d = os.path.dirname(d)
+'
 prettier_config_ok() {
-  local d f cfg found
+  local d
   case "$1" in (*/*) d="${1%/*}" ;; (*) d=. ;; esac
-  d="$(cd -P "$d" 2>/dev/null && pwd -P)" || return 1
-  while :; do
-    found=0
-    for f in "$d"/.prettierrc* "$d"/prettier.config.* "$d/package.json" "$d/package.yaml"; do
-      [ -e "$f" ] || [ -L "$f" ] || continue
-      case "${f##*/}" in
-        (*.js|*.cjs|*.mjs|*.ts|*.cts|*.mts) return 1 ;;
-        (package.json|package.yaml|.prettierrc|.prettierrc.json|.prettierrc.json5|.prettierrc.yaml|.prettierrc.yml|.prettierrc.toml) ;;
-        (*) continue ;;
-      esac
-      [ -f "$f" ] && [ ! -L "$f" ] || return 1
-      case "${f##*/}" in
-        (package.json)
-          command -v jq >/dev/null 2>&1 || return 1
-          jq -e 'has("prettier")' "$f" >/dev/null 2>&1 || continue
-          jq -e '.prettier | type == "object"' "$f" >/dev/null 2>&1 || return 1
-          cfg="$(jq -c '.prettier' "$f")" ;;
-        (package.yaml) grep -q '^prettier:' "$f" || continue; return 1 ;;
-        (*) cfg="$(head -c 65536 "$f")" ;;
-      esac
-      found=1
-      case "$cfg" in (*plugins*) return 1 ;; esac
-      case "$cfg" in (*[:=\{]*) ;; (*) return 1 ;; esac
-      printf '%s' "$cfg" | grep -Eq "parser[\"']?[[:space:]]*[:=][[:space:]]*[\"']?[^\"' ,}]*[./]" && return 1
-    done
-    [ "$found" -eq 0 ] || return 0
-    [ "$d" != "$root" ] && [ "$d" != / ] && [ -n "$d" ] || return 0
-    d="${d%/*}"; [ -n "$d" ] || d=/
-  done
+  command -v python3 >/dev/null 2>&1 || return 1
+  python3 -I -S -c "$PRETTIER_PY" "$d" "$root" < /dev/null > /dev/null 2>&1
 }
 
 guard_command() {
@@ -1754,7 +1832,7 @@ case "$sub" in
   *.go) run gofmt -w "$file";;
   *.ts|*.tsx|*.js|*.jsx|*.json|*.css|*.md|*.yml|*.yaml)
     if prettier_config_ok "$file"; then run prettier --log-level silent --write "$file"
-    else fmt_outcome=not-run; note "prettier not run: the repository's prettier config can load code (a JS or TS config, plugins, a parser module or a shared config); format ${file##*/} in the session"; fi;;
+    else fmt_outcome=not-run; note "prettier not run: the repository's prettier config is not .prettierrc.json or a package.json prettier object of plain formatting options, so it could load code; format ${file##*/} in the session"; fi;;
   *.py) run ruff format --quiet "$file";;
   *.kt|*.kts) run ktlint -F "$file";;
   *.swift) run swiftformat --quiet "$file";;
@@ -1805,7 +1883,7 @@ esac
     fi
     branch="$(git branch --show-current 2>/dev/null)"
     task="$(printf '%s' "$branch" | grep -oE '[A-Z][A-Z0-9]*(-[0-9]+)+' | head -1)"
-    changed="$(git -C "$root" status --porcelain --ignore-submodules=dirty 2>/dev/null | wc -l | tr -d ' ')"
+    changed="$(changed_short | wc -l | tr -d ' ')"
     echo "bearing session: branch=${branch:-detached} task=${task:-none} changed_files=${changed}"
     # Nobody to ask in a non-interactive session: brg-autopilot's claude -p
     # child (BEARING_AUTOPILOT), or BEARING_NONINTERACTIVE=1 in the
@@ -1962,7 +2040,7 @@ EOF
       echo "Branch: ${branch:-detached}   Task: ${task:-none}"
       echo
       echo "## Uncommitted changes"
-      st="$(git -C "$root" status --short --ignore-submodules=dirty 2>/dev/null | head -30)"
+      st="$(changed_short | head -30)"
       printf '%s\n' "${st:-none}"
       if [ -n "$base" ]; then
         echo
@@ -1972,7 +2050,7 @@ EOF
       fi
       echo
       echo "## make check"
-      newest="$(git -C "$root" status --porcelain --ignore-submodules=dirty 2>/dev/null | sed 's/^...//; s/.* -> //' | while IFS= read -r f; do [ -e "$root/$f" ] && { [ -f "$marker" ] && ! [ "$root/$f" -nt "$marker" ] || echo x; }; done | wc -l | tr -d ' ')"
+      newest="$(changed_since "$marker" | wc -l | tr -d ' ')"
       if [ "$newest" -eq 0 ]; then echo "passed after the last change (or nothing changed)"; else echo "not passed since ${newest} file(s) last changed"; fi
       if [ -n "$transcript" ] && [ -f "$transcript" ] && command -v jq >/dev/null 2>&1; then
         asks="$(tail -n 4000 "$transcript" | jq -c 'select(.type == "user" and ((.isMeta // false) | not) and ((.isCompactSummary // false) | not) and (.message.content | type) == "string") | .message.content | select(startswith("<") | not) | .[0:800]' 2>/dev/null | tail -3)"
@@ -2011,11 +2089,11 @@ EOF
     exit 0;;
   stop)
     root="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 0
-    changed="$(git -C "$root" status --porcelain --ignore-submodules=dirty 2>/dev/null | wc -l | tr -d ' ')"
+    changed="$(changed_short | wc -l | tr -d ' ')"
     [ "$changed" -gt 0 ] || exit 0
     marker="$root/.bearing/state/.check-passed"
     if [ -f "$marker" ]; then
-      newer="$(git -C "$root" status --porcelain --ignore-submodules=dirty | sed 's/^...//' | while read -r f; do [ "$root/$f" -nt "$marker" ] && echo x; done | wc -l | tr -d ' ')"
+      newer="$(changed_since "$marker" | wc -l | tr -d ' ')"
       [ "$newer" -gt 0 ] || exit 0
     fi
     echo "bearing: ${changed} changed file(s) and make check has not passed since. Run make check (or definition-of-done) before calling this done."

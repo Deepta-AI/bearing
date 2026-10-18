@@ -91,7 +91,9 @@ case "$sub" in
     done
     ab=""
     [ "$base" = none ] || ab="$(git -C "$root" rev-list --left-right --count "$base...HEAD" 2>/dev/null | awk '{print $2"/"$1}')"
-    unc="$(git -C "$root" status --porcelain --ignore-submodules=dirty 2>/dev/null | wc -l | tr -d ' ')"
+    # brg-changed, never git status: the hooks run this outside the sandbox,
+    # and status re-reads changed files through any filter driver.
+    unc=0; [ -f "$(dirname "$0")/brg-changed" ] && unc="$(bash "$(dirname "$0")/brg-changed" --root "$root" --short | wc -l | tr -d ' ')"
     recent="$(bash "$0" timeline-recent --branch "$branch" --n 3 2>/dev/null | tr '\n' ',' | sed 's/,$//; s/,/, /g')"
     if [ "$has_next" = 1 ]; then nxt="$nextarg"; else nxt="$(bash "$0" next-step --branch "$branch" 2>/dev/null)"; fi
     bf="$(printf '%s' "$branch" | tr '/' '_')"

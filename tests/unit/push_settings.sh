@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # tests/unit/push_settings.sh: the settings template denies edits to
-# ~/.config/bearing, ~/.gitconfig and ~/.config/git and the brg-push run
+# ~/.config/bearing, ~/.gitconfig and ~/.config/git, Edit and Write to .git,
+# ~/.local/bin, ~/go/bin and ~/.config/git, and the brg-push run
 # verb, keeps the push deny, and AGENTS.md rule 2 and the hooks description
 # name the opt-in push.
 set -u
@@ -14,6 +15,13 @@ assert_contains "$deny" "Edit(~/.gitconfig)"
 assert_contains "$deny" "Edit(~/.config/git/**)"
 assert_contains "$deny" "Bash(bash *bin/brg-push run*)"
 assert_contains "$deny" "Bash(git push:*)"
+# The sandbox covers Bash only; Edit and Write (autopilot's child has both,
+# unscoped) are denied what a hook later reads or runs outside the sandbox.
+for p in "./.git/**" "**/.git/**" "~/.local/bin/**" "~/go/bin/**" "~/.config/git/**"; do
+  for tool in Edit Write; do
+    assert_eq 1 "$(printf '%s\n' "$deny" | grep -cxF "$tool($p)")" "$tool($p) denied"
+  done
+done
 assert_contains "$(cat "$KIT/plugins/bearing/templates/repo/AGENTS.md")" "BEARING_AUTO_PUSH"
 dw="$(jq -r '.sandbox.filesystem.denyWrite[]' "$S")"
 assert_contains "$dw" "~/.gitconfig"

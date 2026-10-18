@@ -164,6 +164,25 @@ assert_exit 0 python3 "$P" set --root "$web" --task ABC-31
 assert_contains "$T_OUT" "1. Clean ../Clean: not ready: 0 files on the branch"
 t_end
 
+t_begin "set counts a new file named with a space and a tracked .bearing file"
+api2="$parent/Api2"
+git -C "$parent" init -q -b develop Api2
+git -C "$api2" config user.name t; git -C "$api2" config user.email t@example.com
+git -C "$api2" commit -q --allow-empty -m init; git -C "$api2" switch -q -c feature/ABC-31-Set
+printf 'x\n' > "$api2/a.go"; git -C "$api2" add a.go; git -C "$api2" commit -q -m "feat: a [ABC-31]"
+mkdir -p "$api2/.bearing/state"; sleep 1; touch "$api2/.bearing/state/.check-passed"
+python3 "$P" write --root "$web" --task ABC-31 --repo "1. Api2 (../Api2)" --repo "2. ShopWeb (.)" >/dev/null
+assert_exit 0 python3 "$P" set --root "$web" --task ABC-31
+assert_contains "$T_OUT" "1. Api2 ../Api2: ready" "ready before"
+sleep 1; printf 'n\n' > "$api2/new file.go"
+assert_exit 0 python3 "$P" set --root "$web" --task ABC-31
+assert_contains "$T_OUT" "1. Api2 ../Api2: not ready: 1 of 2 file(s) newer than the last make check" "a new file named with a space counts"
+rm -f "$api2/new file.go"
+printf '{"flow":"x"}\n' > "$api2/.bearing/config.json"; git -C "$api2" add .bearing/config.json; git -C "$api2" commit -q -m "chore: config [ABC-31]"
+assert_exit 0 python3 "$P" set --root "$web" --task ABC-31
+assert_contains "$T_OUT" "1. Api2 ../Api2: not ready: 1 of 2 file(s) newer than the last make check" "a tracked .bearing file counts"
+t_end
+
 t_begin "set fails on zero repositories and on a missing path"
 assert_exit 1 python3 "$P" set --root "$d" --task ABC-99
 assert_contains "$T_OUT" "no docs/progress/ABC-99.md"

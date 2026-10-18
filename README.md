@@ -85,18 +85,19 @@ event JSON with `jq` and calls one subcommand of
 | `SessionStart` (startup, resume, compact) | `session-start.sh` | `brg-guard session`: prints the branch, the task id, the count of changed files, the handoff state from `.bearing/state/`, the review checklists for the repository's stacks and, after a compaction, the snapshot `PreCompact` wrote | no |
 | `UserPromptSubmit` | `inject-task-id.sh` | `brg-guard task-id`: prints `Task: <ID>` when the branch carries a ticket id the prompt lacks | no |
 | `PreToolUse` (Bash) | `block-publish.sh` | `brg-guard command`: refuses the commands listed below, and any command it cannot read (fail closed, which is every command when `jq` is missing) | yes, exit 2 |
-| `PostToolUse` (Edit, Write, MultiEdit) | `format-file.sh` | `brg-guard format`: formats the edited file with an allow-listed formatter (gofmt, prettier, ruff format, ktlint, swiftformat, terraform fmt, shfmt) taken only from fixed system directories, never `node_modules/.bin`, the inherited PATH or `uv run`, in a cleared environment; prettier only under a config that loads no code. Then `brg-guard check-file` prints one line saying the per-file check was not run: hooks run outside the sandbox and run no repository command, so `make check-file FILE=<file>` runs in the session | no |
+| `PostToolUse` (Edit, Write, MultiEdit) | `format-file.sh` | `brg-guard format`: formats the edited file with an allow-listed formatter (gofmt, prettier, ruff format, ktlint, swiftformat, terraform fmt, shfmt) taken only from fixed system directories, never `node_modules/.bin`, the inherited PATH or `uv run`, in a cleared environment; prettier only under a `.prettierrc.json` or `package.json` `prettier` object of plain formatting options, parsed as JSON. Then `brg-guard check-file` prints one line saying the per-file check was not run: hooks run outside the sandbox and run no repository command, so `make check-file FILE=<file>` runs in the session | no |
 | `PreCompact` | `precompact.sh` | `brg-guard precompact`: writes `.bearing/state/<branch>.compact.md` (branch, changes, check state, the last requests) | no |
 | `Stop` | `stop-summary.sh` | `brg-guard stop-gate`: when files changed in this session since `make check` last passed, sends Claude back once with the reason; the second stop only reminds, so it cannot loop. On a stop that passes, when merge-request or autopilot requested it and the engineer opted the repository in, `brg-push run` pushes the task branch from a fresh clone, in the background | once |
 
 The hooks write only under the repository's `.bearing/state/` (the
 handoff and compaction snapshots, and `gates.log` with what each gate
-decided), and they make no network call of their own, with two
-exceptions. Under the opt-in (`BEARING_AUTO_PUSH`), the Stop hook clones
-the task branch into a protected directory under `~/.config/bearing` and
-pushes it over the network to the listed URL. And the format hook in a
-Python repository without `ruff` on PATH runs `uv run ruff`, which lets
-uv install the project's own locked dependencies.
+decided) and, at session end, the task's `docs/progress/<ID>.md`, never
+through a link. They run no git command that reads file contents, and
+their network calls are two: at startup, once a day, `brg-update-check`
+runs `git ls-remote` for the marketplace from `/` with no repository or
+user git config; and under the opt-in (`BEARING_AUTO_PUSH`), the Stop hook
+clones the task branch into a protected directory under
+`~/.config/bearing` and pushes it to the listed URL.
 
 **What `brg-guard` blocks.** `bash plugins/bearing/bin/brg-guard --verbs`
 prints the table: 136 rules over 55 programs, matched after wrappers such

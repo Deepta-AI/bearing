@@ -5,12 +5,12 @@
   "commandSkills": 0,
   "stackSkills": 12,
   "scripts": 99,
-  "scriptLines": 33230,
+  "scriptLines": 33618,
   "hooks": 8,
   "agents": 8,
   "makeTargets": 32,
   "gates": 19,
-  "tests": 115,
+  "tests": 116,
   "fixtures": 25,
   "stacks": 13,
   "templates": 38,
@@ -12634,7 +12634,7 @@
     },
     {
      "path": "scripts/progress.py",
-     "lines": 564
+     "lines": 706
     },
     {
      "path": "templates/progress.md",
@@ -15350,8 +15350,8 @@
    "name": "brg-changed",
    "lang": "bash",
    "group": "quality",
-   "lines": 139,
-   "header": "brg-changed: files changed in the working tree (modified, staged, untracked,\nthe new name of a rename), repository-relative, one per line. With --since\n<marker>, only files newer than the marker; a missing marker lists all.\nUses -z so names with spaces, quotes or arrows survive. With --skip-notes\n(the Stop gate), an untracked (??) or work-tree-only ( M) record is left out\nwhen its path is under .scratch/ or is docs/progress/<ID>.md of the current\ntask branch, as brg-push's gate does: merge-request writes that file after\nmake check by design, and neither is ever pushed. A staged change, another\ntask's progress file and any other path still count.\nDefault mode exits 0 always (the hooks rely on it).\n--layers [--base <ref>]: files changed against the merge base of <ref> and\nHEAD plus the working tree (no --base: the working tree only), deleted files\nincluded, as one \"<layer>\\t<file>\" line per layer a file maps to (unit api ui\nvisual none), then \"brg-changed: <N> files, layers: ...\" . Exit 1 on zero\nfiles (\"brg-changed: 0 files changed against <base>|the working tree\"), on a\nbase that does not resolve, or on a base with no merge base (shallow clone).\nOutside a repository --layers exits 1 (\"brg-changed: not a git repository\").\nEvery error line goes to stderr. Callers detect --layers support from the\ncounts line: an older copy of this script ignores the flag and prints plain\nfile names.",
+   "lines": 254,
+   "header": "brg-changed: files changed in the working tree (modified, staged, untracked,\nthe new name of a rename), repository-relative, one per line. With --since\n<marker>, only files newer than the marker; a missing marker lists all.\nWith --short, every change instead, one \"XY path\" line each in git's short\nstatus codes (X the index against HEAD, Y the work tree against the index:\n\" M\", \"M \", \"A \", \"D \", \" D\", \"??\"), deleted files included.\nWith --skip-notes (the Stop gate), an untracked (??) or work-tree-only\n( M) change is left out when its path is under .scratch/ or is\ndocs/progress/<ID>.md of the current task branch, as brg-push's gate does:\nmerge-request writes that file after make check by design, and neither is\never pushed. A staged change, another task's progress file and any other\npath still count. The default and --short modes exit 0 always (the hooks\nrely on it).\n\nThe hooks call this outside the sandbox, so those two modes run no git\ncommand that reads a file's contents (status, diff and add re-read a file\nwhose stat changed, which runs any filter driver .gitattributes names): they\nread the index (git ls-files --stage --debug, which prints the stat data the\nindex holds), HEAD's tree (git ls-tree) and the untracked list\n(git ls-files --others --exclude-standard), then compare each tracked\nfile's mtime and size with the index's by lstat. None of these refreshes\nthe index or runs a filter; core.fsmonitor is off. A file whose content is\nunchanged but whose mtime moved counts as modified (over-reports, never\nruns anything). Submodules are not looked into.\n\n--layers [--base <ref>] (test-run and the autopilot test_run gate, never a\nhook): files changed against the merge base of <ref> and\nHEAD plus the working tree (no --base: the working tree only), deleted files\nincluded, as one \"<layer>\\t<file>\" line per layer a file maps to (unit api ui\nvisual none), then \"brg-changed: <N> files, layers: ...\" . Exit 1 on zero\nfiles (\"brg-changed: 0 files changed against <base>|the working tree\"), on a\nbase that does not resolve, or on a base with no merge base (shallow clone).\nOutside a repository --layers exits 1 (\"brg-changed: not a git repository\").\nEvery error line goes to stderr. Callers detect --layers support from the\ncounts line: an older copy of this script ignores the flag and prints plain\nfile names.",
    "functions": [
     "classify"
    ],
@@ -15508,7 +15508,7 @@
    "name": "brg-guard",
    "lang": "bash",
    "group": "guard",
-   "lines": 2029,
+   "lines": 2107,
    "header": "brg-guard: the harness-neutral guard logic behind every hook adapter.\n\n  brg-guard command \"<shell command>\"   exit 2 and a message when the command\n                                        publishes, rewrites history, deploys\n                                        or destroys; exit 2 when the command\n                                        cannot be read (fail closed)\n  brg-guard format <file>               format one file with an allow-listed\n                                        formatter from fixed directories, in\n                                        a cleared environment\n  brg-guard task-id [\"<prompt>\"]        print \"Task: <ID> ...\" when the branch\n                                        carries a ticket id the prompt lacks\n  brg-guard session                     print branch, task, changes, handoff state\n  brg-guard stop                        print a reminder when changes are unchecked\n  brg-guard stop-gate --id <session> [--active]\n                                        exit 2 (reason on stderr) when files\n                                        changed in this session since make\n                                        check last passed; --active (the\n                                        harness already continued once) only\n                                        reminds, so it never loops\n  brg-guard check-file <file>           print that no hook runs the per-file\n                                        check (make check-file runs in the\n                                        session); exit 0\n  brg-guard precompact [<transcript>]   write .bearing/state/<branch>.compact.md\n  brg-guard session [--id <session>] [--source startup|resume|compact]\n  brg-guard stats                       what the gates decided here, how often\n                                        and at what cost (.bearing/state/gates.log)\n  brg-guard log <gate> <outcome> [label] [ms]\n                                        append one gates.log line, never\n                                        through a link or into a FIFO\n  brg-guard state-write put|add <name> [cap]\n                                        write stdin to .bearing/state/<name>\n                                        (put: replace; add: append, rotating\n                                        to <name>.1 over cap bytes), never\n                                        through a link or into a FIFO\n  brg-guard readonly \"<shell command>\"  exit 2 unless every program in the\n                                        command is a read-only tool (git\n                                        diff|log|show|status|blame|ls-files,\n                                        ls, cat, grep, rg, find without -exec,\n                                        sed without -i, jq and similar);\n                                        used by the read-only subagents\n  brg-guard --verbs                     the blocked verb table (tool, pattern,\n                                        label; tab-separated) for generators\n  brg-guard --version                   the version stamp\n\nClaude Code hooks, Cursor hooks and any other harness adapter call these\nsubcommands and translate their own event JSON into arguments. One logic,\none behaviour on every harness. Runs on bash 3.2 (macOS) and needs no tool\nbeyond git for the session subcommands.",
    "functions": [
     "git_lockdown",
@@ -15567,6 +15567,8 @@
     "hd_prog",
     "hd_scan_line",
     "strip_data_heredocs",
+    "changed_short",
+    "changed_since",
     "fmt_dirs",
     "fmt_bin",
     "prettier_config_ok",
@@ -15922,7 +15924,7 @@
    "name": "brg-session",
    "lang": "bash",
    "group": "quality",
-   "lines": 160,
+   "lines": 162,
    "header": "brg-session: session memory for Bearing, all local and model-free.\n  timeline-start --id <sid> --skill <name>   record a skill start (ends the open one)\n  timeline-close --id <sid>                   end the open skill of this session\n  timeline-recent [--branch <b>] [--n <k>]    last k ended skills on the branch\n  not-run --skill <reason>                    log `timeline not-run <reason>` to gates.log\n  checkpoint                                  write .bearing/state/<branch>.checkpoint.md\n  next-step                                   the next flow step after the timeline\n  resume [--source startup|resume|compact]    the block SessionStart prints\nRuns on bash 3.2; needs git; uses jq when present. Exit 0 always.",
    "functions": [
     "glog",
@@ -15939,6 +15941,7 @@
    ],
    "calls": [
     "brg-autopilot",
+    "brg-changed",
     "brg-config",
     "brg-guard",
     "brg-learn"
@@ -16006,12 +16009,15 @@
    "name": "brg-update-check",
    "lang": "bash",
    "group": "quality",
-   "lines": 103,
-   "header": "brg-update-check [--remote <url>] [--installed <ver>] [--budget <s>]\nIs a newer Bearing release tag published? At most one git ls-remote a day,\ninside a time budget; prints \"BEARING_UPDATE: <old> -> <new>\" and a few\nchangelog lines, or nothing. Reads only (no fetch, no push, no telemetry);\nnever blocks a session and never prints on failure. Exit 0 always.\nSettings: BEARING_UPDATE_CHECK=off, BEARING_UPDATE_SKIP=<ver>,\nBEARING_UPDATE_SNOOZE_UNTIL=<epoch>, from the environment, then bearing.env\nthrough the brg-config beside this script (absent: no check, not nagging).\nOnly release tags (vN.N.N) count; pre-releases such as v0.8.0-rc1 do not. An\ninstalled pre-release compares by its numeric prefix (0.8.0-rc1 counts as 0.8.0).\nA failed or timed-out check is cached as `<epoch>\\t-\\t<reason>` and not retried\nfor 6 hours, so an offline machine does not pay the budget at every startup.\nA remote starting with \"-\" is refused (it would be read as a git option).",
+   "lines": 137,
+   "header": "brg-update-check [--remote <url>] [--installed <ver>] [--budget <s>]\nIs a newer Bearing release tag published? At most one git ls-remote a day,\ninside a time budget; prints \"BEARING_UPDATE: <old> -> <new>\" and a few\nchangelog lines, or nothing. Reads only (no fetch, no push, no telemetry);\nnever blocks a session and never prints on failure. Exit 0 always.\nSettings: BEARING_UPDATE_CHECK=off, BEARING_UPDATE_SKIP=<ver>,\nBEARING_UPDATE_SNOOZE_UNTIL=<epoch>, from the environment, then bearing.env\nthrough the brg-config beside this script (absent: no check, not nagging).\nOnly release tags (vN.N.N) count; pre-releases such as v0.8.0-rc1 do not. An\ninstalled pre-release compares by its numeric prefix (0.8.0-rc1 counts as 0.8.0).\nA failed or timed-out check is cached as `<epoch>\\t-\\t<reason>` and not retried\nfor 6 hours, so an offline machine does not pay the budget at every startup.\nA remote starting with \"-\" is refused (it would be read as a git option).\nThe SessionStart hook runs this outside the sandbox, from the repository,\nwhose .git/config the agent may have written: the ls-remote runs from /\n(outside any repository) under env -i, with PATH /usr/bin:/bin, HOME the\npasswd home, no system config (GIT_CONFIG_NOSYSTEM=1) and an empty global\nconfig (GIT_CONFIG_GLOBAL=/dev/null), so no credential.helper, askPass,\nsshCommand, url rewrite or include of the repository, the engineer's\nconfig or the caller's environment runs. Its output goes through a pipe,\nnever a file under TMPDIR.",
    "functions": [
     "setting",
     "write_cache",
     "log_fail",
+    "passwd_home",
+    "ls_remote",
+    "watchdog",
     "vnum"
    ],
    "env": [
@@ -16025,7 +16031,7 @@
    "calls": [
     "brg-config",
     "brg-guard",
-    "brg-update"
+    "brg-push"
    ]
   },
   {
@@ -16499,15 +16505,15 @@
    "name": "session-end.sh",
    "lang": "bash",
    "group": "hooks",
-   "lines": 61,
+   "lines": 78,
    "header": "SessionEnd: refresh docs/progress/<ID>.md from the checkpoint so a teammate\nsees where this task stands after the engineer commits and pushes. Never\ncommits. Branches without a task id are left alone. Always exits 0; a skip\nor failure is logged as `session-end not-run <reason>` when a state dir exists.",
    "functions": [
-    "skip"
+    "skip",
+    "safe_cat"
    ],
    "env": [],
    "calls": [
     "brg-guard",
-    "brg-progress",
     "brg-session"
    ]
   },
@@ -17386,18 +17392,22 @@
    "lang": "python",
    "group": "skill",
    "skill": "session-handoff",
-   "lines": 564,
-   "header": "progress: the committed, per-task progress record in docs/progress/.\n\nThe session state in .bearing/state/ is local to one machine and ignored by\ngit. This file is the shared summary: one file per task, committed on the\ntask branch, so a second engineer or a fresh clone sees what is in flight.\nEach branch only ever writes its own file, so two branches never conflict.\n\n  write --task ID [--field value ...]\n      Upsert fields in docs/progress/<ID>.md, creating it from\n      skills/session-handoff/templates/progress.md (guidance comments removed).\n      Only the named fields change; Updated is set to today (UTC) on every\n      write; Started, Owner (the latest commit's author), Branch and Status\n      get defaults on create.\n      Scalars: --title --branch --status --owner --criteria --next --mr\n      --ticket. Lists (repeat the flag; the given items replace the list,\n      \"none\" clears it): --done --blocker --decision --repo (\"<n>. <Name>\n      (<path>)\", at most 8; the file gets a \"## Repos\" section after Links\n      only when the list is not empty). Appending:\n      --add-done --add-decision (an item already present is not repeated).\n      A file that would reach 40 lines folds the oldest Done items into one\n      \"N earlier items\" line.\n  index [--root DIR] [--status S] [--open] [--refs]\n      A table of every docs/progress/*.md (task, status, owner, updated,\n      next) and a final \"progress: N tasks (...)\" line counting each status.\n      --open leaves out merged and abandoned. --refs also reads the file\n      from every local and remote-tracking branch (git ls-tree), so tasks\n      still on unmerged branches show; the newest Updated wins per task.\n      Exits 1 when there are zero progress files.\n  check [--root DIR]\n      Exits 1 when a file lacks a required field (Next may be \"none\" once\n      merged or abandoned), has an unknown status or\n      a malformed date, is 40 lines or more, or is named for another task;\n      prints each problem and the counts. Zero files is a failure too.\n\n  set [--root DIR] --task ID\n      For a task that spans repositories: reads the Repos list of this\n      repository's docs/progress/<ID>.md and prints one row per repository,\n      \"<n>. <Name> <path>: ready | merged | not ready: <reason>\", then\n      \"set: N repos, R ready, M merged, K not ready; merge order A, B, C\".\n      Not ready reasons, in this order: uncommitted changes, branch missing,\n      then the gate: make check has never passed (marker missing), files\n      newer than the last make check, 0 files on the branch. The row whose\n      path is \".\" ends with \"(this repository)\". Exits 1 on no progress file,\n      zero repositories or a missing path.\n\npython3 stdlib only. Exit codes: 0 ok, 1 findings or empty input, 2 usage.",
+   "lines": 706,
+   "header": "progress: the committed, per-task progress record in docs/progress/.\n\nThe session state in .bearing/state/ is local to one machine and ignored by\ngit. This file is the shared summary: one file per task, committed on the\ntask branch, so a second engineer or a fresh clone sees what is in flight.\nEach branch only ever writes its own file, so two branches never conflict.\n\n  write --task ID [--field value ...]\n      Upsert fields in docs/progress/<ID>.md, creating it from\n      skills/session-handoff/templates/progress.md (guidance comments removed).\n      Only the named fields change; Updated is set to today (UTC) on every\n      write; Started, Owner (the latest commit's author), Branch and Status\n      get defaults on create.\n      Scalars: --title --branch --status --owner --criteria --next --mr\n      --ticket. Lists (repeat the flag; the given items replace the list,\n      \"none\" clears it): --done --blocker --decision --repo (\"<n>. <Name>\n      (<path>)\", at most 8; the file gets a \"## Repos\" section after Links\n      only when the list is not empty). Appending:\n      --add-done --add-decision (an item already present is not repeated).\n      A file that would reach 40 lines folds the oldest Done items into one\n      \"N earlier items\" line. --dry-run prints the file it would write and\n      writes nothing. The SessionEnd hook runs write outside the sandbox, so\n      docs and docs/progress are opened without following a link and the\n      file is read only when it is a regular file with one link (a link, a\n      FIFO or a hard link is refused, exit 1); the new text goes to a fresh\n      temporary name that is then renamed over it, so nothing is ever\n      written through a link.\n  show --task ID [--root DIR]\n      Prints docs/progress/<ID>.md, opened the same way as write; exit 3\n      when there is none, 1 when it is not a regular file.\n  index [--root DIR] [--status S] [--open] [--refs]\n      A table of every docs/progress/*.md (task, status, owner, updated,\n      next) and a final \"progress: N tasks (...)\" line counting each status.\n      --open leaves out merged and abandoned. --refs also reads the file\n      from every local and remote-tracking branch (git ls-tree), so tasks\n      still on unmerged branches show; the newest Updated wins per task.\n      Exits 1 when there are zero progress files.\n  check [--root DIR]\n      Exits 1 when a file lacks a required field (Next may be \"none\" once\n      merged or abandoned), has an unknown status or\n      a malformed date, is 40 lines or more, or is named for another task;\n      prints each problem and the counts. Zero files is a failure too.\n\n  set [--root DIR] --task ID\n      For a task that spans repositories: reads the Repos list of this\n      repository's docs/progress/<ID>.md and prints one row per repository,\n      \"<n>. <Name> <path>: ready | merged | not ready: <reason>\", then\n      \"set: N repos, R ready, M merged, K not ready; merge order A, B, C\".\n      Not ready reasons, in this order: uncommitted changes, branch missing,\n      then the gate: make check has never passed (marker missing), files\n      newer than the last make check, 0 files on the branch. The row whose\n      path is \".\" ends with \"(this repository)\". Exits 1 on no progress file,\n      zero repositories or a missing path.\n\npython3 stdlib only. Exit codes: 0 ok, 1 findings or empty input, 2 usage.",
    "functions": [
     "die",
     "today",
     "git",
     "repo_root",
+    "progress_dir",
+    "read_progress",
+    "put_progress",
     "one_line",
     "parse",
     "render",
     "fit",
     "cmd_write",
+    "cmd_show",
     "base_ref",
     "gate",
     "cmd_set",
@@ -17708,9 +17718,10 @@
    "timeout": 5,
    "guard": [
     "log",
-    "skip"
+    "skip",
+    "state-write"
    ],
-   "body": "#!/usr/bin/env bash\n# SessionEnd: refresh docs/progress/<ID>.md from the checkpoint so a teammate\n# sees where this task stands after the engineer commits and pushes. Never\n# commits. Branches without a task id are left alone. Always exits 0; a skip\n# or failure is logged as `session-end not-run <reason>` when a state dir exists.\nset -u\n# shellcheck source=lib.sh\n. \"$(dirname \"$0\")/lib.sh\"\nroot=\"$(repo_root)\" || exit 0\n[ -n \"$root\" ] || exit 0\n[ -d \"$root/.bearing\" ] || exit 0\nguard=\"$(cd \"$(dirname \"$0\")/../../bin\" && pwd)/brg-guard\"\nskip() { # skip <reason>: a gates.log line through brg-guard log (never through a link or into a FIFO)\n  [ -d \"$root/.bearing/state\" ] || exit 0\n  ( cd \"$root\" && bash \"$guard\" log session-end not-run \"$1\" ) >/dev/null 2>&1\n  exit 0\n}\nbranch=\"$(current_branch)\"\ntask=\"$(task_id_from_branch)\"; [ -n \"$task\" ] || skip \"no task id on branch\"\nkit=\"$(dirname \"$0\")/../..\"\nbash \"$kit/bin/brg-session\" checkpoint >/dev/null 2>&1\ncpf=\"$root/.bearing/state/$(printf '%s' \"$branch\" | tr '/' '_').checkpoint.md\"\n# read only a regular file, never a link or a FIFO planted at the name\n{ [ -f \"$cpf\" ] && [ ! -L \"$cpf\" ]; } || skip \"no checkpoint\"\nnxt=\"$(sed -n 's/^Next (from state file): //p' \"$cpf\" 2>/dev/null)\"\nif [ -z \"$nxt\" ] || [ \"$nxt\" = none ]; then nxt=\"$(sed -n 's/^Next flow step: //p' \"$cpf\" 2>/dev/null)\"; fi\nif [ -z \"$nxt\" ] || [ \"$nxt\" = none ] || [ \"$nxt\" = unknown ]; then skip \"no next step\"; fi\ncd \"$root\" || skip \"cannot enter repo root\"\npf=\"docs/progress/$task.md\"\nmark=\"$root/.bearing/state/$(printf '%s' \"$branch\" | tr '/' '_').progress-next\"\nif [ -f \"$pf\" ]; then\n  status=\"$(sed -n 's/^- Status: *//p' \"$pf\" | head -1)\"\n  case \"$status\" in merged|abandoned) skip \"closed task\";; esac\n  cur=\"$(awk '/^## Next/{f=1;next} /^## /{f=0} f && !/^<!--/ && NF {sub(/^- /,\"\"); print; exit}' \"$pf\")\"\n  last=\"$(cat \"$mark\" 2>/dev/null)\"\n  # keep a person-written Next: overwrite only a placeholder or our own last value\n  case \"$cur\" in ''|none|unknown) ;; *) [ \"$cur\" = \"$last\" ] || exit 0;; esac\nfi\n# progress.py re-renders from the template, so a line a person added outside\n# its fields would be lost. Rehearse the write on a copy first; if any\n# non-empty line (other than the Next items, Branch and Updated, which the\n# write replaces) is missing from the result, leave the file alone.\nif [ -f \"$pf\" ]; then\n  tmp=\"$(mktemp -d \"${TMPDIR:-/tmp}/brg-progress.XXXXXX\")\" || skip \"cannot make a temp dir\"\n  mkdir -p \"$tmp/docs/progress\" && cp \"$pf\" \"$tmp/$pf\" || { rm -rf \"$tmp\"; skip \"cannot copy progress file\"; }\n  if ! python3 \"$kit/skills/session-handoff/scripts/progress.py\" write --root \"$tmp\" --task \"$task\" --branch \"$branch\" --next \"$nxt\" >/dev/null 2>&1; then\n    rm -rf \"$tmp\"; skip \"progress.py write failed\"\n  fi\n  lost=0\n  while IFS= read -r line; do\n    grep -qxF -- \"$line\" \"$tmp/$pf\" || { lost=1; break; }\n  done <<EOF\n$(awk '/^## /{nx=($0 ~ /^## Next[[:space:]]*$/)} nx && !/^## / {next} /^- (Updated|Branch):/ {next} NF' \"$pf\")\nEOF\n  rm -rf \"$tmp\"\n  [ \"$lost\" -eq 0 ] || skip \"would drop lines\"\nfi\npython3 \"$kit/skills/session-handoff/scripts/progress.py\" write --task \"$task\" --branch \"$branch\" --next \"$nxt\" >/dev/null 2>&1 \\\n  || skip \"progress.py write failed\"\nprintf '%s\\n' \"$nxt\" > \"$mark.tmp\" && mv \"$mark.tmp\" \"$mark\"\nexit 0"
+   "body": "#!/usr/bin/env bash\n# SessionEnd: refresh docs/progress/<ID>.md from the checkpoint so a teammate\n# sees where this task stands after the engineer commits and pushes. Never\n# commits. Branches without a task id are left alone. Always exits 0; a skip\n# or failure is logged as `session-end not-run <reason>` when a state dir exists.\nset -u\n# shellcheck source=lib.sh\n. \"$(dirname \"$0\")/lib.sh\"\nroot=\"$(repo_root)\" || exit 0\n[ -n \"$root\" ] || exit 0\n[ -d \"$root/.bearing\" ] || exit 0\nguard=\"$(cd \"$(dirname \"$0\")/../../bin\" && pwd)/brg-guard\"\nskip() { # skip <reason>: a gates.log line through brg-guard log (never through a link or into a FIFO)\n  [ -d \"$root/.bearing/state\" ] || exit 0\n  ( cd \"$root\" && bash \"$guard\" log session-end not-run \"$1\" ) >/dev/null 2>&1\n  exit 0\n}\n# Hooks run outside the sandbox and the working tree is the agent's: every\n# read here is a regular file opened without following a link and without\n# blocking on a FIFO (safe_cat, progress.py show), every write goes through\n# progress.py write (docs/progress opened link-free, temp plus rename) or\n# brg-guard state-write, and nothing is copied: the rehearsal is a dry run\n# that prints the new text.\nsafe_cat() { # safe_cat <file>: its text when it is a regular file; nothing otherwise\n  python3 -I -S -c 'import os, sys\ntry:\n    fd = os.open(sys.argv[1], os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)\n    if os.fstat(fd).st_mode & 0o170000 == 0o100000:\n        sys.stdout.write(os.read(fd, 65536).decode(\"utf-8\", \"replace\"))\nexcept OSError:\n    pass' \"$1\" 2>/dev/null\n}\nbranch=\"$(current_branch)\"\ntask=\"$(task_id_from_branch)\"; [ -n \"$task\" ] || skip \"no task id on branch\"\nkit=\"$(dirname \"$0\")/../..\"\nprog=\"$kit/skills/session-handoff/scripts/progress.py\"\nbash \"$kit/bin/brg-session\" checkpoint >/dev/null 2>&1\nbf=\"$(printf '%s' \"$branch\" | tr '/' '_')\"\ncp_text=\"$(safe_cat \"$root/.bearing/state/$bf.checkpoint.md\")\"\n[ -n \"$cp_text\" ] || skip \"no checkpoint\"\nnxt=\"$(printf '%s\\n' \"$cp_text\" | sed -n 's/^Next (from state file): //p')\"\nif [ -z \"$nxt\" ] || [ \"$nxt\" = none ]; then nxt=\"$(printf '%s\\n' \"$cp_text\" | sed -n 's/^Next flow step: //p')\"; fi\nif [ -z \"$nxt\" ] || [ \"$nxt\" = none ] || [ \"$nxt\" = unknown ]; then skip \"no next step\"; fi\ncd \"$root\" || skip \"cannot enter repo root\"\nmark=\"$bf.progress-next\"\ncur_text=\"$(python3 \"$prog\" show --task \"$task\" 2>/dev/null)\"; rc=$?\ncase \"$rc\" in\n  (0) ;;\n  (3) cur_text=\"\" ;;\n  (*) skip \"progress file is not a regular file\" ;;\nesac\nif [ \"$rc\" -eq 0 ]; then\n  status=\"$(printf '%s\\n' \"$cur_text\" | sed -n 's/^- Status: *//p' | head -1)\"\n  case \"$status\" in merged|abandoned) skip \"closed task\";; esac\n  cur=\"$(printf '%s\\n' \"$cur_text\" | awk '/^## Next/{f=1;next} /^## /{f=0} f && !/^<!--/ && NF {sub(/^- /,\"\"); print; exit}')\"\n  last=\"$(safe_cat \"$root/.bearing/state/$mark\")\"; last=\"${last%\n}\"\n  # keep a person-written Next: overwrite only a placeholder or our own last value\n  case \"$cur\" in ''|none|unknown) ;; *) [ \"$cur\" = \"$last\" ] || exit 0;; esac\n  # progress.py re-renders from the template, so a line a person added outside\n  # its fields would be lost. Rehearse with --dry-run (it prints the new text);\n  # if any non-empty line (other than the Next items, Branch and Updated, which\n  # the write replaces) is missing from it, leave the file alone.\n  new_text=\"$(python3 \"$prog\" write --task \"$task\" --branch \"$branch\" --next \"$nxt\" --dry-run 2>/dev/null)\" \\\n    || skip \"progress.py write failed\"\n  lost=0\n  while IFS= read -r line; do\n    [ -n \"$line\" ] || continue\n    printf '%s\\n' \"$new_text\" | grep -qxF -- \"$line\" || { lost=1; break; }\n  done <<EOF\n$(printf '%s\\n' \"$cur_text\" | awk '/^## /{nx=($0 ~ /^## Next[[:space:]]*$/)} nx && !/^## / {next} /^- (Updated|Branch):/ {next} NF')\nEOF\n  [ \"$lost\" -eq 0 ] || skip \"would drop lines\"\nfi\npython3 \"$prog\" write --task \"$task\" --branch \"$branch\" --next \"$nxt\" >/dev/null 2>&1 \\\n  || skip \"progress.py write failed\"\nprintf '%s\\n' \"$nxt\" | bash \"$guard\" state-write put \"$mark\" >/dev/null 2>&1\nexit 0"
   },
   {
    "event": "Stop",
@@ -18622,7 +18633,7 @@
   {
    "path": "tests/unit/guard_format.sh",
    "kind": "unit",
-   "lines": 128,
+   "lines": 142,
    "header": "tests/unit/guard_format.sh: brg-guard format dispatches each extension to the right formatter, taken only from the guard's fixed directories (here a copy of the guard whose fmt_dirs names a stub directory, the one seam), in a cleared environment; it prints a note, exit 0, when the formatter is not installed; and it runs prettier only when the prettier config that applies is data that loads no code.",
    "asserts": 38
   },
@@ -18681,6 +18692,13 @@
    "lines": 235,
    "header": "tests/unit/hook_hardening.sh: the hooks run outside the sandbox, while the working tree (Makefile, node_modules, .git/config, .gitattributes, .bearing/state) is the agent's to write. So: the edit hook runs no repository command (no make check-file, no node_modules binary, nothing from the inherited PATH) and says what it did not run; every gates.log append refuses a planted link, hard link or FIFO and caps the label; and every git a hook starts runs no filter driver, external diff, pager or signature program the repository configures. Canary files prove nothing ran. bash 3.2 safe.",
    "asserts": 26
+  },
+  {
+   "path": "tests/unit/hook_untrusted.sh",
+   "kind": "unit",
+   "lines": 257,
+   "header": "tests/unit/hook_untrusted.sh: the hooks run outside the sandbox, and the working tree, .git/config and the agent's environment are the agent's to write. So no hook writes through a link the agent planted or copies a linked file anywhere (SessionEnd, progress.py write); brg-update-check runs git ls-remote outside the repository with nothing of the repository's config or the caller's environment; and no hook runs a git command that reads file contents (status, diff, add), so a filter driver that appears between the hook's start and its git (a background loop toggling it in an included file) nev…",
+   "asserts": 43
   },
   {
    "path": "tests/unit/impeccable_reference.sh",
@@ -18825,9 +18843,9 @@
   {
    "path": "tests/unit/progress.sh",
    "kind": "unit",
-   "lines": 178,
+   "lines": 197,
    "header": "tests/unit/progress.sh: plugins/bearing/skills/session-handoff/scripts/progress.py writes docs/progress/<ID>.md from the template (comments removed), updates only the named fields, indexes every file with a count per status (and reads unmerged branches with --refs), fails on zero files, and check catches an unknown status and a missing field. bash 3.2 safe.",
-   "asserts": 87
+   "asserts": 93
   },
   {
    "path": "tests/unit/prose_lint_check.sh",
@@ -18860,9 +18878,9 @@
   {
    "path": "tests/unit/push_settings.sh",
    "kind": "unit",
-   "lines": 40,
-   "header": "tests/unit/push_settings.sh: the settings template denies edits to ~/.config/bearing, ~/.gitconfig and ~/.config/git and the brg-push run verb, keeps the push deny, and AGENTS.md rule 2 and the hooks description name the opt-in push.",
-   "asserts": 17
+   "lines": 48,
+   "header": "tests/unit/push_settings.sh: the settings template denies edits to ~/.config/bearing, ~/.gitconfig and ~/.config/git, Edit and Write to .git, ~/.local/bin, ~/go/bin and ~/.config/git, and the brg-push run verb, keeps the push deny, and AGENTS.md rule 2 and the hooks description name the opt-in push.",
+   "asserts": 18
   },
   {
    "path": "tests/unit/route_frontier.sh",
@@ -19049,9 +19067,9 @@
   {
    "path": "tests/unit/update_check.sh",
    "kind": "unit",
-   "lines": 167,
+   "lines": 191,
    "header": "tests/unit/update_check.sh: brg-update-check and its place in brg-guard session. A local bare repo is the remote; HOME and XDG_CONFIG_HOME are temp dirs, so the network and the real ~/.claude are never touched.",
-   "asserts": 68
+   "asserts": 70
   },
   {
    "path": "tests/unit/ux_flows_check.sh",
@@ -19890,7 +19908,7 @@
   },
   {
    "path": "repo/.claude/settings.json",
-   "lines": 453
+   "lines": 466
   },
   {
    "path": "repo/.editorconfig",
@@ -20028,7 +20046,7 @@
     "Notes for existing repositories",
     "Noted"
    ],
-   "entries": 37,
+   "entries": 59,
    "summary": "- impeccable is pinned (`plugins/bearing/bin/pinned-packs.txt`) and installed in the standard profile; `doctor` reports it, and `install` takes `--skip-impeccable` (held on the full profile too). - design-directions: one impeccable direction round when impeccable is installed and the run is attended, recorded in `approved.json` as the locked `direction`. Without impeccable it prints `impeccable not installed` once and runs the three-variant path as before. - design-system derives `tokens.json` from the `DESIGN.md` frontmatter when it has tokens, else from the approved direction, and records which (`source: design-md | approved-direction`) with the hash of that source. The hash check is the…"
   },
   {
@@ -20852,7 +20870,7 @@
  "settings": {
   "allow": 92,
   "ask": 20,
-  "deny": 190,
+  "deny": 199,
   "defaultMode": "acceptEdits",
   "askSamples": [
    "Bash(pnpm add:*)",

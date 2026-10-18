@@ -2,14 +2,30 @@
 # brg-changed: files changed in the working tree (modified, staged, untracked,
 # the new name of a rename), repository-relative, one per line. With --since
 # <marker>, only files newer than the marker; a missing marker lists all.
-# Uses -z so names with spaces, quotes or arrows survive. With --skip-notes
-# (the Stop gate), an untracked (??) or work-tree-only ( M) record is left out
-# when its path is under .scratch/ or is docs/progress/<ID>.md of the current
-# task branch, as brg-push's gate does: merge-request writes that file after
-# make check by design, and neither is ever pushed. A staged change, another
-# task's progress file and any other path still count.
-# Default mode exits 0 always (the hooks rely on it).
-# --layers [--base <ref>]: files changed against the merge base of <ref> and
+# With --short, every change instead, one "XY path" line each in git's short
+# status codes (X the index against HEAD, Y the work tree against the index:
+# " M", "M ", "A ", "D ", " D", "??"), deleted files included.
+# With --skip-notes (the Stop gate), an untracked (??) or work-tree-only
+# ( M) change is left out when its path is under .scratch/ or is
+# docs/progress/<ID>.md of the current task branch, as brg-push's gate does:
+# merge-request writes that file after make check by design, and neither is
+# ever pushed. A staged change, another task's progress file and any other
+# path still count. The default and --short modes exit 0 always (the hooks
+# rely on it).
+#
+# The hooks call this outside the sandbox, so those two modes run no git
+# command that reads a file's contents (status, diff and add re-read a file
+# whose stat changed, which runs any filter driver .gitattributes names): they
+# read the index (git ls-files --stage --debug, which prints the stat data the
+# index holds), HEAD's tree (git ls-tree) and the untracked list
+# (git ls-files --others --exclude-standard), then compare each tracked
+# file's mtime and size with the index's by lstat. None of these refreshes
+# the index or runs a filter; core.fsmonitor is off. A file whose content is
+# unchanged but whose mtime moved counts as modified (over-reports, never
+# runs anything). Submodules are not looked into.
+#
+# --layers [--base <ref>] (test-run and the autopilot test_run gate, never a
+# hook): files changed against the merge base of <ref> and
 # HEAD plus the working tree (no --base: the working tree only), deleted files
 # included, as one "<layer>\t<file>" line per layer a file maps to (unit api ui
 # visual none), then "brg-changed: <N> files, layers: ..." . Exit 1 on zero
@@ -20,7 +36,7 @@
 # counts line: an older copy of this script ignores the flag and prints plain
 # file names.
 set -u
-root=""; since=""; layers=0; base=""; notes=0; prog=""
+root=""; since=""; layers=0; base=""; notes=0; prog=""; short=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --root) root="${2:-}"; shift 2 || shift;;
@@ -28,6 +44,7 @@ while [ $# -gt 0 ]; do
     --layers) layers=1; shift;;
     --base) base="${2:-}"; shift 2 || shift;;
     --skip-notes) notes=1; shift;;
+    --short) short=1; shift;;
     *) shift;;
   esac
 done
@@ -125,15 +142,113 @@ if [ "$layers" = 1 ]; then
   exit 0
 fi
 
-git -C "$root" status --porcelain --ignore-submodules=dirty -z --untracked-files=all 2>/dev/null |
-  tr '\0' '\n' | awk -v notes="$notes" -v prog="$prog" '
-    skip { skip=0; next }
-    { code=substr($0,1,2); path=substr($0,4) }
-    code ~ /^R/ || code ~ /^.R/ || code ~ /^C/ { print path; skip=1; next }
-    notes == 1 && (code == "??" || code == " M") && (substr(path,1,9) == ".scratch/" || (prog != "" && path == prog)) { next }
-    { print path }' | sort -u | while IFS= read -r f; do
-    [ -n "$f" ] && [ -e "$root/$f" ] || continue
-    if [ -n "$since" ] && [ -f "$since" ] && ! [ "$root/$f" -nt "$since" ]; then continue; fi
-    printf '%s\n' "$f"
-  done
+command -v python3 >/dev/null 2>&1 || exit 0
+# shellcheck disable=SC2016 # the program is Python, not shell
+python3 -I -S -c '
+import os, subprocess, sys
+root, since, notes, prog, short = sys.argv[1], sys.argv[2], sys.argv[3] == "1", sys.argv[4], sys.argv[5] == "1"
+
+def git(*args):
+    try:
+        r = subprocess.run(["git", "--no-optional-locks", "-c", "core.fsmonitor=false", "-c", "core.hooksPath=/dev/null",
+                            "-C", root] + list(args), stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, stdin=subprocess.DEVNULL)
+    except OSError:
+        return None
+    return r.stdout if r.returncode == 0 else None
+
+def name(b):
+    return b.decode("utf-8", "surrogateescape")
+
+# The index: "<mode> <sha> <stage>\t<path>\0" then five debug lines of stat data.
+index, conflicted = {}, set()
+raw = git("ls-files", "-z", "--stage", "--debug")
+if raw is None:
+    sys.exit(0)
+pos = 0
+while pos < len(raw):
+    z = raw.find(b"\0", pos)
+    if z < 0:
+        break
+    head, path = raw[pos:z].split(b"\t", 1)
+    pos = z + 1
+    stat = {}
+    for _ in range(5):
+        nl = raw.find(b"\n", pos)
+        if nl < 0:
+            nl = len(raw)
+        for field in raw[pos:nl].split(b"\t"):
+            k, _sep, v = field.strip().partition(b": ")
+            stat[k] = v
+        pos = nl + 1
+    mode, sha, stage = head.split(b" ")
+    p = name(path)
+    if stage != b"0":
+        conflicted.add(p)
+        continue
+    index[p] = (mode, sha, stat)
+
+tree = {}
+t = git("ls-tree", "-r", "-z", "--full-tree", "HEAD")
+for rec in (t or b"").split(b"\0"):
+    if b"\t" in rec:
+        meta, path = rec.split(b"\t", 1)
+        mode, _typ, sha = meta.split(b" ")
+        tree[name(path)] = (mode, sha)
+
+def work_tree_changed(p, mode, stat):
+    """D when gone, M when the mtime or size differs from what the index holds."""
+    if mode == b"160000":
+        return " "
+    try:
+        st = os.lstat(os.path.join(root, p))
+    except OSError:
+        return "D"
+    try:
+        sec, nsec = (int(x) for x in stat[b"mtime"].split(b":"))
+        size = int(stat[b"size"])
+    except (KeyError, ValueError):
+        return "M"
+    if int(st.st_mtime) != sec or (nsec and st.st_mtime_ns % 1000000000 != nsec):
+        return "M"
+    if st.st_size & 0xFFFFFFFF != size:
+        return "M"
+    return " "
+
+changes = {}
+for p in conflicted:
+    changes[p] = "UU"
+for p, (mode, sha, stat) in index.items():
+    x = " " if tree.get(p) == (mode, sha) else ("A" if p not in tree else "M")
+    y = work_tree_changed(p, mode, stat)
+    if x != " " or y != " ":
+        changes[p] = x + y
+for p in tree:
+    if p not in index and p not in conflicted:
+        changes[p] = "D "
+o = git("ls-files", "-z", "--others", "--exclude-standard")
+for p in (o or b"").split(b"\0"):
+    if p:
+        changes[name(p)] = "??"
+
+mt = None
+if since:
+    try:
+        mt = os.stat(since).st_mtime_ns
+    except OSError:
+        mt = None
+out = sys.stdout.buffer
+for p in sorted(changes):
+    code = changes[p]
+    if notes and code in ("??", " M") and (p.startswith(".scratch/") or (prog and p == prog)):
+        continue
+    if short:
+        out.write((code + " " + p + "\n").encode("utf-8", "surrogateescape"))
+        continue
+    f = os.path.join(root, p)
+    if not os.path.exists(f):
+        continue
+    if mt is not None and not os.stat(f).st_mtime_ns > mt:
+        continue
+    out.write((p + "\n").encode("utf-8", "surrogateescape"))
+' "$root" "$since" "$notes" "$prog" "$short" 2>/dev/null
 exit 0

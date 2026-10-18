@@ -12,6 +12,14 @@
 # A failed or timed-out check is cached as `<epoch>\t-\t<reason>` and not retried
 # for 6 hours, so an offline machine does not pay the budget at every startup.
 # A remote starting with "-" is refused (it would be read as a git option).
+# The SessionStart hook runs this outside the sandbox, from the repository,
+# whose .git/config the agent may have written: the ls-remote runs from /
+# (outside any repository) under env -i, with PATH /usr/bin:/bin, HOME the
+# passwd home, no system config (GIT_CONFIG_NOSYSTEM=1) and an empty global
+# config (GIT_CONFIG_GLOBAL=/dev/null), so no credential.helper, askPass,
+# sshCommand, url rewrite or include of the repository, the engineer's
+# config or the caller's environment runs. Its output goes through a pipe,
+# never a file under TMPDIR.
 set -u
 remote=""; installed=""; budget=3
 while [ $# -gt 0 ]; do
@@ -55,6 +63,39 @@ fi
 now="$(date +%s)"
 case "$remote" in -*) log_fail bad-remote;; esac
 
+# passwd_home: the user's home from the passwd entry (brg-push's), not $HOME.
+passwd_home() {
+  local u h
+  u="$(id -un 2>/dev/null)" || return 1
+  case "$u" in (''|[-+]*|*[!A-Za-z0-9._-]*) return 1;; esac
+  eval "h=~$u"
+  case "$h" in (''|'~'*) return 1;; esac
+  [ -d "$h" ] && [ -O "$h" ] || return 1
+  printf '%s\n' "$h"
+}
+# ls_remote: the one network read, run as the header says; exec, so the pid
+# the watchdog kills is git's own.
+ls_remote() {
+  local ph
+  ph="$(passwd_home)" || ph=/
+  cd / || exit 1
+  exec env -i PATH=/usr/bin:/bin HOME="$ph" ${SSH_AUTH_SOCK:+SSH_AUTH_SOCK="$SSH_AUTH_SOCK"} \
+    GIT_TERMINAL_PROMPT=0 GIT_CONFIG_NOSYSTEM=1 GIT_CONFIG_GLOBAL=/dev/null GIT_CEILING_DIRECTORIES=/ \
+    GIT_ALLOW_PROTOCOL=https:ssh:git:file git ls-remote --tags --refs -- "$remote" 'v*' 2>/dev/null < /dev/null
+}
+# watchdog <pid>: kill the pid once it runs past the budget (TERM, then KILL a second later).
+watchdog() {
+  local i=0 j=0
+  while kill -0 "$1" 2>/dev/null; do
+    if [ "$i" -ge $(( budget * 10 )) ]; then
+      kill "$1" 2>/dev/null
+      while kill -0 "$1" 2>/dev/null && [ "$j" -lt 10 ]; do sleep 0.1; j=$((j+1)); done
+      kill -9 "$1" 2>/dev/null; return 0
+    fi
+    sleep 0.1; i=$((i+1))
+  done
+}
+
 vnum() { printf '%s' "$1" | sed 's/^v//' | awk -F. '{printf "%06d%06d%06d", $1, $2, $3}'; }
 newest=""
 if [ -f "$cache" ]; then
@@ -65,26 +106,19 @@ if [ -f "$cache" ]; then
   else [ "$age" -ge 0 ] && [ "$age" -lt 86400 ] && newest="$cv"; fi
 fi
 if [ -z "$newest" ]; then
-  out="$(mktemp "${TMPDIR:-/tmp}/brg-update.XXXXXX")" || exit 0
-  # exec: the pid is git's own, so the kill below stops it. The child writes only
-  # to $out; the cache is written by this process alone, after a clean finish.
-  # "--" and a protocol allow-list (no ext::): the remote is data, never an option or a command.
-  ( exec env GIT_TERMINAL_PROMPT=0 GIT_ALLOW_PROTOCOL=https:ssh:git:file git ls-remote --tags --refs -- "$remote" 'v*' > "$out" 2>/dev/null < /dev/null ) & pid=$!
-  trap 'kill -9 "$pid" 2>/dev/null; rm -f "$out" "$cache.tmp.$$"; exit 0' TERM INT HUP
-  i=0
-  while kill -0 "$pid" 2>/dev/null; do
-    if [ "$i" -ge $(( budget * 10 )) ]; then
-      kill "$pid" 2>/dev/null; j=0
-      while kill -0 "$pid" 2>/dev/null && [ "$j" -lt 10 ]; do sleep 0.1; j=$((j+1)); done
-      kill -9 "$pid" 2>/dev/null; wait "$pid" 2>/dev/null; rm -f "$out"; log_fail timeout
-    fi
-    sleep 0.1; i=$((i+1))
-  done
-  wait "$pid" || { rm -f "$out"; log_fail ls-remote-failed; }
-  newest="$(sed -n 's|.*refs/tags/\(v[0-9][0-9]*\(\.[0-9][0-9]*\)*\)$|\1|p' "$out" | while read -r t; do echo "$(vnum "$t") $t"; done | sort | tail -1 | awk '{print $2}')"
-  rm -f "$out"
+  # "--" and a protocol allow-list (no ext::): the remote is data, never an
+  # option or a command. The cache is written by this process alone, after a
+  # clean finish; the last line of res is git's exit status.
+  start="$(date +%s)"
+  res="$( { ls_remote & pid=$!; watchdog "$pid" > /dev/null 2>&1 & wait "$pid"; echo "rc=$?"; } )"
+  rc="${res##*rc=}"; res="${res%rc=*}"
+  case "$rc" in (''|*[!0-9]*) rc=1;; esac
+  if [ "$rc" != 0 ]; then
+    if [ "$rc" -gt 128 ] && [ $(( $(date +%s) - start )) -ge "$budget" ]; then log_fail timeout; fi
+    log_fail ls-remote-failed
+  fi
+  newest="$(printf '%s\n' "$res" | sed -n 's|.*refs/tags/\(v[0-9][0-9]*\(\.[0-9][0-9]*\)*\)$|\1|p' | while read -r t; do echo "$(vnum "$t") $t"; done | sort | tail -1 | awk '{print $2}')"
   [ -n "$newest" ] || log_fail no-tags
-  trap - TERM INT HUP
   write_cache "$newest"
 fi
 new="${newest#v}"
