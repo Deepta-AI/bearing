@@ -172,6 +172,15 @@ written, a count printed, a refusal on empty input).
   file to every skill and refuses a request that copies a phrase quoted
   in the skill's own description. When you add a skill, add its requests;
   when you change a description, run `make trigger-eval ONLY=<name>`.
+- `make evals-weekly` runs trigger-eval and harness-eval on a clean tree
+  and appends one row to `evals/scoreboard.jsonl`: the commit measured,
+  recall and false triggers overall and per skill, and the harness pass
+  rate per scenario. It fails on zero cases, and on recall down or false
+  triggers up by more than 5 points, or any harness scenario falling,
+  since the last row; the row is kept either way. The file is tracked so
+  a merge request can show its effect on the score; neither site reads
+  it. `make evals-timer` prints the systemd user units that run it every
+  Sunday from a clone kept on main; commit the new row after each run.
 
 ## Testing a change
 

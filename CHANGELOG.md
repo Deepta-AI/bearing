@@ -4,6 +4,15 @@ All notable changes to Bearing. Keep a Changelog format, semantic versions.
 
 ## [Unreleased]
 
+### Added
+- `make evals-weekly`: trigger-eval and harness-eval, then a row in the
+  tracked `evals/scoreboard.jsonl` (`bin/eval-scoreboard.py`) compared with
+  the last one. Fails on zero cases or a regression (recall or false
+  triggers moved by more than 5 points, a harness scenario falling) and
+  keeps the row. `make evals-timer` prints systemd user units for a weekly
+  run and installs nothing. skill-evals has a `null` slot until its
+  headless driver lands.
+
 ### Changed
 - The handbook and the developer guide are redesigned as one dark-first
   system in the spirit of Linear: tokens in `docs/design/tokens.json`

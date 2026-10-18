@@ -4,7 +4,7 @@
 SHELL := /bin/bash
 KITP := plugins/bearing
 .DEFAULT_GOAL := help
-.PHONY: help hooks gate ci-bash32 site devguide wiki check check-file validate lint-skills lint-tools lint-skill-size lint-questions lint-evals lint-triggers lint-neutral lint-docs lint-json lint-shell lint-portable lint-prose lint-version lint-budget lint-templates lint-plugin-size lint-model-ids test install doctor docs harness-eval trigger-eval
+.PHONY: help hooks gate ci-bash32 site devguide wiki check check-file validate lint-skills lint-tools lint-skill-size lint-questions lint-evals lint-triggers lint-neutral lint-docs lint-json lint-shell lint-portable lint-prose lint-version lint-budget lint-templates lint-plugin-size lint-model-ids test install doctor docs harness-eval trigger-eval evals-weekly evals-timer
 
 help: ## List targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-14s %s\n", $$1, $$2}'
@@ -201,6 +201,12 @@ harness-eval: ## Real Claude Code sessions against the hooks: push, deploy, edit
 
 trigger-eval: ## Real headless sessions: does each plain request load the right skill (evals/triggers.json; ONLY=skill,... J=4 SOURCES=user,project,local; uses the claude CLI; not part of check)
 	python3 bin/trigger-eval.py -j $(or $(J),4) $(if $(ONLY),--only $(ONLY)) $(if $(SOURCES),--sources $(SOURCES))
+
+evals-weekly: ## trigger-eval and harness-eval on a clean tree, then a row in evals/scoreboard.jsonl compared with the last (uses the claude CLI; not part of check)
+	bash bin/evals-weekly.sh
+
+evals-timer: ## Print the systemd user units that run evals-weekly every Sunday, and the commands that install them (installs nothing)
+	@bash bin/evals-timer.sh
 
 install: ## Install on this machine
 	bash install.sh
