@@ -1,0 +1,23 @@
+{
+  "name": "bearing-genai",
+  "version": "0.8.0",
+  "description": "Bearing skills for GenAI and ML products: solution design, RAG, agents, MCP servers, model gateway and routing, guardrails, prompt registry, evals, fine-tuning, datasets, speech, computer vision and tabular ML. Needs the bearing plugin.",
+  "author": {
+    "name": "Ravi Teja Akella"
+  },
+  "homepage": "https://github.com/Deepta-AI/bearing",
+  "repository": "https://github.com/Deepta-AI/bearing",
+  "license": "MIT",
+  "keywords": [
+    "llm",
+    "rag",
+    "agents",
+    "mcp",
+    "evals",
+    "model-routing",
+    "datasets",
+    "fine-tuning",
+    "speech",
+    "computer-vision"
+  ]
+}

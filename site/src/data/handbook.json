@@ -259,7 +259,7 @@
   },
   {
    "name": "computer-vision",
-   "plugin": "bearing",
+   "plugin": "bearing-genai",
    "category": "genai",
    "what": "Builds image features (VLM, classifier, detector, quality check, document extraction) with leak-free splits and a cost-set threshold",
    "when": "asked to \"classify images\", \"detect defects\", \"extract from scans\"",
@@ -522,7 +522,7 @@
   },
   {
    "name": "genai-design",
-   "plugin": "bearing",
+   "plugin": "bearing-genai",
    "category": "genai",
    "what": "Designs a GenAI solution before code: success metric, approach with the cheaper option rejected, model tier, cost, latency, risks, eval plan",
    "when": "asked \"how should we build this with an LLM\" or \"RAG or agent\"",
@@ -687,7 +687,7 @@
   },
   {
    "name": "llm-agent",
-   "plugin": "bearing",
+   "plugin": "bearing-genai",
    "category": "genai",
    "what": "Builds an LLM agent on the Anthropic SDK: tiered tool registry, bounded loop, memory, call logging, guardrails, trajectory evals, kill switch",
    "when": "asked to \"build an agent\", \"give the model tools\" or \"multi-agent\"",
@@ -701,7 +701,7 @@
   },
   {
    "name": "llm-eval",
-   "plugin": "bearing",
+   "plugin": "bearing-genai",
    "category": "genai",
    "what": "Evaluates an LLM feature: a success metric, a human-labelled golden set, code graders then an LLM judge, a CI regression gate",
    "when": "asked to \"evaluate the model\", \"build an eval set\" or \"is the new prompt better\"",
@@ -715,7 +715,7 @@
   },
   {
    "name": "llm-fine-tuning",
-   "plugin": "bearing",
+   "plugin": "bearing-genai",
    "category": "genai",
    "what": "Fine-tunes an open model when prompting and RAG fall short: eval-backed decision, dataset, LoRA, DPO or distillation, vLLM serving",
    "when": "asked to \"fine-tune a model\", \"train on our data\" or \"distil a smaller model\"",
@@ -729,7 +729,7 @@
   },
   {
    "name": "llm-gateway",
-   "plugin": "bearing",
+   "plugin": "bearing-genai",
    "category": "genai",
    "what": "Puts every LLM call behind one gateway: model tiers, retries, timeouts, rate limits, caching, cost, fallbacks; starts by finding every call",
    "when": "asked to \"find every model call\", \"track LLM cost\"",
@@ -742,7 +742,7 @@
   },
   {
    "name": "llm-guardrails",
-   "plugin": "bearing",
+   "plugin": "bearing-genai",
    "category": "genai",
    "what": "Secures an LLM feature or agent: prompt injection and jailbreak defence, PII checks, a tool-call permission gate, output checks, adversarial tests",
    "when": "asked for \"guardrails\" or about \"prompt injection\"",
@@ -798,7 +798,7 @@
   },
   {
    "name": "mcp-server",
-   "plugin": "bearing",
+   "plugin": "bearing-genai",
    "category": "genai",
    "what": "Builds an MCP server in Python or TypeScript: schema-checked tools, both transports, auth, a test per tool, Claude Code registration",
    "when": "asked to \"build an MCP server\" or \"expose this as MCP tools\"",
@@ -1007,7 +1007,7 @@
   },
   {
    "name": "prompt-registry",
-   "plugin": "bearing",
+   "plugin": "bearing-genai",
    "category": "genai",
    "what": "Keeps prompts in a versioned registry (prompts/<name>/vN.md) loaded by one module, with typed variables, fixture tests and scores",
    "when": "asked to \"write the system prompt\", \"improve this prompt\" or \"version prompts\"",
@@ -1048,7 +1048,7 @@
   },
   {
    "name": "rag",
-   "plugin": "bearing",
+   "plugin": "bearing-genai",
    "category": "genai",
    "what": "Builds retrieval-augmented generation (RAG) on pgvector: ingestion, chunking, embeddings, a retriever that cites sources, retrieval metrics",
    "when": "answers must come from documents: \"add RAG\", \"cite the source\"",
@@ -1200,7 +1200,7 @@
   },
   {
    "name": "speech",
-   "plugin": "bearing",
+   "plugin": "bearing-genai",
    "category": "genai",
    "what": "Builds speech features: transcription, diarisation, text-to-speech or a real-time voice agent with barge-in, measured by WER and latency",
    "when": "asked to \"transcribe calls\", \"build a voice agent\" or \"speech to text\"",
@@ -1242,7 +1242,7 @@
   },
   {
    "name": "tabular-ml",
-   "plugin": "bearing",
+   "plugin": "bearing-genai",
    "category": "genai",
    "what": "Builds classical ML on tables or events (churn, scoring, demand forecasts, anomalies) with leak-proof splits, a baseline, calibration, drift checks",
    "when": "asked to \"predict churn\", \"forecast demand\"",

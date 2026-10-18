@@ -42,7 +42,7 @@ there, and keep this skill's decision, data, eval and serving steps.
    for `<name>`. No eval, or no accepted baseline: the Inputs fallback
    (ask, else the minimal path). Training without a number to beat is
    not allowed, so the minimal run happens before step 2.
-2. The decision, written as an ADR (`adr Train <name> with <recipe>`,
+2. The decision, written as an ADR (`bearing:adr Train <name> with <recipe>`,
    or a file in `docs/adr/`) with the evidence table: score with the current prompt, with the
    prompt tuned (`prompt-registry`), with RAG (`rag`), with
    `claude-opus-5` at higher effort, and the cost per 1K requests of

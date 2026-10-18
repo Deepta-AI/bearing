@@ -24,8 +24,8 @@ supervisor runs the full `make test-db` once the batch lands. Other
 agents' type and lint errors are listed, not fixed.
 8. After the build: test-automation names a test after every case
 that is not manual-only or retired (its TC id in the test name); with
-llm in the profile, llm-guardrails writes `guardrails/policy.yaml` and
-wires it at the call sites, and llm-eval writes `docs/genai/evals.md`
+llm in the profile, bearing-genai:llm-guardrails writes `guardrails/policy.yaml` and
+wires it at the call sites, and bearing-genai:llm-eval writes `docs/genai/evals.md`
 (an eval that needs a provider key the run lacks is written and marked
 not run, never reported as passed); for a
 UI, design-critique --unattended scores the design gallery of the running app

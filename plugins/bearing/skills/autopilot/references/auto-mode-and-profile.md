@@ -29,7 +29,7 @@ It decides which stages apply: ux and design_review need ui, the data
 model data and the API contract api (both at contract, from every
 screened feature's data needs when ui is yes too), the deployment
 architecture deploy, and llm (the product calls a language model at run time) adds
-genai-design to design and llm-guardrails and llm-eval to
+bearing-genai:genai-design to design and bearing-genai:llm-guardrails and bearing-genai:llm-eval to
 test_automation.
 Answer from the statement and the stories, not from convenience: the
 dod gate refuses a profile the code contradicts (a UI package with

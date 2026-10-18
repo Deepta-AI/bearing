@@ -5,7 +5,7 @@
   "commandSkills": 0,
   "stackSkills": 12,
   "scripts": 94,
-  "scriptLines": 30476,
+  "scriptLines": 30477,
   "hooks": 8,
   "agents": 8,
   "makeTargets": 31,
@@ -26,7 +26,7 @@
    "dir": "plugins/bearing",
    "description": "A developer workflow for coding agents: skills for every stage from brief to runbook, review subagents, one guard behind every hook, and repository templates. The stack conventions come in bearing-backend and bearing-apps.",
    "required": true,
-   "files": 511,
+   "files": 454,
    "skills": [
     "ab-experiment",
     "accessibility",
@@ -45,7 +45,6 @@
     "client-handover",
     "cloud-cost",
     "company-attribution",
-    "computer-vision",
     "data-model",
     "database",
     "db-migration",
@@ -62,7 +61,6 @@
     "feature-flags",
     "feature-patterns",
     "gate-audit",
-    "genai-design",
     "git-hooks",
     "harness-setup",
     "health-checks",
@@ -71,15 +69,9 @@
     "incident",
     "learn",
     "license-compliance",
-    "llm-agent",
-    "llm-eval",
-    "llm-fine-tuning",
-    "llm-gateway",
-    "llm-guardrails",
     "load-test",
     "logging",
     "low-level-design",
-    "mcp-server",
     "merge-request",
     "motion-design",
     "new-repo",
@@ -92,9 +84,7 @@
     "postmortem",
     "prd",
     "privacy-review",
-    "prompt-registry",
     "prose-lint",
-    "rag",
     "refactor",
     "release",
     "resilience-testing",
@@ -103,10 +93,8 @@
     "secrets",
     "session-handoff",
     "simplify-code",
-    "speech",
     "spike",
     "start-task",
-    "tabular-ml",
     "task-report",
     "tech-debt",
     "tech-decision",
@@ -153,6 +141,27 @@
     "nextjs",
     "react",
     "react-native"
+   ]
+  },
+  {
+   "name": "bearing-genai",
+   "dir": "plugins/bearing-genai",
+   "description": "Bearing skills for GenAI and ML products: solution design, RAG, agents, MCP servers, model gateway and routing, guardrails, prompt registry, evals, fine-tuning, datasets, speech, computer vision and tabular ML. Needs the bearing plugin.",
+   "required": false,
+   "files": 60,
+   "skills": [
+    "computer-vision",
+    "genai-design",
+    "llm-agent",
+    "llm-eval",
+    "llm-fine-tuning",
+    "llm-gateway",
+    "llm-guardrails",
+    "mcp-server",
+    "prompt-registry",
+    "rag",
+    "speech",
+    "tabular-ml"
    ]
   }
  ],
@@ -2369,7 +2378,7 @@
   },
   {
    "name": "computer-vision",
-   "plugin": "bearing",
+   "plugin": "bearing-genai",
    "category": "genai",
    "what": "Builds image features (VLM, classifier, detector, quality check, document extraction) with leak-free splits and a cost-set threshold",
    "when": "asked to \"classify images\", \"detect defects\", \"extract from scans\"",
@@ -4905,7 +4914,7 @@
   },
   {
    "name": "genai-design",
-   "plugin": "bearing",
+   "plugin": "bearing-genai",
    "category": "genai",
    "what": "Designs a GenAI solution before code: success metric, approach with the cheaper option rejected, model tier, cost, latency, risks, eval plan",
    "when": "asked \"how should we build this with an LLM\" or \"RAG or agent\"",
@@ -4932,7 +4941,7 @@
     },
     {
      "title": "Steps",
-     "lines": 55
+     "lines": 56
     },
     {
      "title": "Output contract",
@@ -4957,7 +4966,7 @@
     "Model tier and budget from the tier table in the reference. Write the token budget per request (system, retrieved context, user input, output), the cost per 1,000 requests, and the p95 latency estimate from the output tokens and the tier's output rate. Multiply by calls per user action for agents. Say when a smaller model is right (classification, routing, extraction with a schema, first-pass filters) and when it is…",
     "Risks: hallucination, prompt injection, PII, cost blow-up, latency, plus the specific ones for this problem. Each risk names its mitigation and the skill that builds it: `llm-guardrails`, `llm-gateway`, `llm-eval`, `prompt-registry`. Count risks and mitigated risks; they must be equal or the gap is an open question.",
     "Evaluation plan: golden set size (at least 50 items for classify and extract, 100 for retrieve and answer, 20 task trajectories for agents), source of the items (real inputs, never invented), grading method (exact match, schema check, rubric with a judge model), and the acceptance threshold tied to the success metric. Hand the build of the set to `llm-eval`.",
-    "Write `docs/genai/<kebab>-solution.md` from `templates/solution.md`. Write the ADR stub for the approach decision (`adr`, or a file in `docs/adr/` in the same shape; status Proposed) and name the HLD `high-level-design` can write later. List open questions with owners.",
+    "Write `docs/genai/<kebab>-solution.md` from `templates/solution.md`. Write the ADR stub for the approach decision (`bearing:adr`, or a file in `docs/adr/` in the same shape; status Proposed) and name the HLD `bearing:high-level-design` can write later. List open questions with owners.",
     "Print the output contract."
    ],
    "output": "",
@@ -4972,11 +4981,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 116,
+   "lines": 117,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 116
+     "lines": 117
     },
     {
      "path": "references/decision-tree.md",
@@ -6862,7 +6871,7 @@
   },
   {
    "name": "llm-agent",
-   "plugin": "bearing",
+   "plugin": "bearing-genai",
    "category": "genai",
    "what": "Builds an LLM agent on the Anthropic SDK: tiered tool registry, bounded loop, memory, call logging, guardrails, trajectory evals, kill switch",
    "when": "asked to \"build an agent\", \"give the model tools\" or \"multi-agent\"",
@@ -6920,7 +6929,7 @@
     "Logging through the gateway, else `call_model`: every model and tool call with request id, agent name, turn, model, tokens in and out, cache read tokens, cost, latency, tool name, tier, outcome, error class. Never the prompt body or a tool result in the log at info level.",
     "Guardrails through the module when present, else the tier gate in the registry: input checks before the first call, output checks on the final answer, and the permission tier gate on every tool call. `irreversible` needs an approval (the `human-in-the-loop` type) or is denied (every other type).",
     "Tests: the registry test from step 3, a unit test per tool handler, a test that the gate denies an `irreversible` tool without approval, a test that the loop stops at `max_turns` and at `max_cost_usd`, a test that the kill switch stops a run. Eval set in `evals/<name>/trajectories.jsonl` (at least 20 trajectories: input, expected tool sequence, expected outcome), for `llm-eval` to run later. Count trajectories. Run…",
-    "Record the ADR, status Accepted only for what the user chose and Proposed otherwise, naming no decider who did not decide (`adr`, or a `docs/adr/` file in the same shape) with the type chosen, the cheaper type rejected, the model and the memory store, and the agent section of the HLD when one exists (`high-level-design`). Print the output contract."
+    "Record the ADR, status Accepted only for what the user chose and Proposed otherwise, naming no decider who did not decide (`bearing:adr`, or a `docs/adr/` file in the same shape) with the type chosen, the cheaper type rejected, the model and the memory store, and the agent section of the HLD when one exists (`bearing:high-level-design`). Print the output contract."
    ],
    "output": "",
    "gotchas": [
@@ -6972,7 +6981,7 @@
   },
   {
    "name": "llm-eval",
-   "plugin": "bearing",
+   "plugin": "bearing-genai",
    "category": "genai",
    "what": "Evaluates an LLM feature: a success metric, a human-labelled golden set, code graders then an LLM judge, a CI regression gate",
    "when": "asked to \"evaluate the model\", \"build an eval set\" or \"is the new prompt better\"",
@@ -7028,7 +7037,7 @@
     "Graders from `templates/graders.md`, in `evals/<name>/graders.py` (or `.ts`). Deterministic first (exact, normalised match, F1, JSON schema, end-state check). LLM judge only where the output is prose: judge model stronger than the model under test (`claude-opus-5` judging Sonnet 5 or Haiku 4.5; `claude-fable-5-1` or a pairwise judge with randomised order when Opus 5 is under test), rubric as checkable claims, struct…",
     "Harness: `evals/<name>/run.py` (or `.ts`) behind `make eval EVAL=<name>` when a Makefile exists, else run directly. It runs every case through the real entry point (the gateway when present), records per case: output, grade, `model` from the response, `usage`, latency, judge usage; writes `evals/<name>/results/<version>.jsonl` and a summary with score, cost per run, p95 latency, truncated count. `version` is the git…",
     "Baseline: the last file in `results/` with `accepted: true` in its summary. A run prints the delta against it. Accepting a new baseline is a deliberate edit by a person, recorded in the summary.",
-    "Regression gate: CI job `eval-<name>` (in the pipeline when one exists, else printed for the user; `ci-pipeline` adds it) runs the harness on a stated subset when the full set costs over 5 USD and fails when score drops below baseline by more than the delta in `evals/<name>/gate.yaml` (default 0.02 absolute). It needs the API key as a CI variable; say so under Not done if it is missing.",
+    "Regression gate: CI job `eval-<name>` (in the pipeline when one exists, else printed for the user; `bearing:ci-pipeline` adds it) runs the harness on a stated subset when the full set costs over 5 USD and fails when score drops below baseline by more than the delta in `evals/<name>/gate.yaml` (default 0.02 absolute). It needs the API key as a CI variable; say so under Not done if it is missing.",
     "Report `docs/genai/evals.md`: one table per eval with metric, set size, baseline, current, cost per run, last accepted date, and the three worst cases with why. Update it on every accepted baseline.",
     "Print the contract."
    ],
@@ -7074,7 +7083,7 @@
   },
   {
    "name": "llm-fine-tuning",
-   "plugin": "bearing",
+   "plugin": "bearing-genai",
    "category": "genai",
    "what": "Fine-tunes an open model when prompting and RAG fall short: eval-backed decision, dataset, LoRA, DPO or distillation, vLLM serving",
    "when": "asked to \"fine-tune a model\", \"train on our data\" or \"distil a smaller model\"",
@@ -7125,7 +7134,7 @@
    ],
    "steps": [
     "Name from `$1`, goal from `$2` or asked. Read `docs/genai/evals.md` for `<name>`. No eval, or no accepted baseline: the Inputs fallback (ask, else the minimal path). Training without a number to beat is not allowed, so the minimal run happens before step 2.",
-    "The decision, written as an ADR (`adr Train <name> with <recipe>`, or a file in `docs/adr/`) with the evidence table: score with the current prompt, with the prompt tuned (`prompt-registry`), with RAG (`rag`), with `claude-opus-5` at higher effort, and the cost per 1K requests of each. Training is justified when the best of those misses the target, or hits it at a cost per request the product cannot carry. Say which…",
+    "The decision, written as an ADR (`bearing:adr Train <name> with <recipe>`, or a file in `docs/adr/`) with the evidence table: score with the current prompt, with the prompt tuned (`prompt-registry`), with RAG (`rag`), with `claude-opus-5` at higher effort, and the cost per 1K requests of each. Training is justified when the best of those misses the target, or hits it at a cost per request the product cannot carry. S…",
     "Data. Collection sources (logs with consent, owner-written, the teacher model for distillation), the labelling guide (`docs/genai/labelling-<name>.md`: one page, three worked examples, the edge cases), PII removal with a named function and a test, exact and near-duplicate removal (hash, then MinHash at 0.85), and a split of 80/10/10 into train, validation and test with no document shared across splits. Format is cha…",
     "Run plan in `docs/genai/training-<name>.md`: base model (current open families: Qwen3, Llama 4, Gemma 3; pick the size the serving budget allows and name the exact checkpoint), toolchain (Hugging Face TRL with PEFT by default: plain Python, testable, one file per recipe; Axolotl when the team already runs it and wants YAML-driven multi-GPU jobs), hyperparameters with the defaults from the recipe, compute estimate (t…",
     "Hardware and smoke run. Run `python3 \"${CLAUDE_PLUGIN_ROOT}/skills/llm-fine-tuning/scripts/gpu_check.py\" --params-b <p> --method <lora|qlora|full>` and copy its `gpu-check:` line; when it does not fit, pick QLoRA, a smaller base, or name the cloud GPU in the plan. Then `uv run train_sft.py --smoke` (20 steps on 64 examples; the tiny base on CPU when there is no GPU). It must finish, save an adapter and report an eva…",
@@ -7195,7 +7204,7 @@
   },
   {
    "name": "llm-gateway",
-   "plugin": "bearing",
+   "plugin": "bearing-genai",
    "category": "genai",
    "what": "Puts every LLM call behind one gateway: model tiers, retries, timeouts, rate limits, caching, cost, fallbacks; starts by finding every call",
    "when": "asked to \"find every model call\", \"track LLM cost\"",
@@ -7230,7 +7239,7 @@
     },
     {
      "title": "Steps",
-     "lines": 96
+     "lines": 97
     },
     {
      "title": "Output contract",
@@ -7244,7 +7253,7 @@
    "inputs": [
     "Features, tiers and volume: `docs/genai/*-solution.md`; if absent, asks the task, the scale and the model tier in one question and writes the first route from the answer.",
     "Stack: `--stack`, else `pyproject.toml` versus `package.json`; neither: asks.",
-    "Meter and tracer: the ones `observability` wired; if absent, the gateway creates its own and the stack wiring is a follow-up. `make` targets when a Makefile exists, else `uv run pytest` or `npm test`.",
+    "Meter and tracer: the ones `bearing:observability` wired; if absent, the gateway creates its own and the stack wiring is a follow-up. `make` targets when a Makefile exists, else `uv run pytest` or `npm test`.",
     "Call-site gate: `scripts/llm_callsites_check.py` in this skill, Python 3 only; its header lists the provider patterns it counts."
    ],
    "steps": [
@@ -7274,11 +7283,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 161,
+   "lines": 162,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 161
+     "lines": 162
     },
     {
      "path": "scripts/llm_access_check.py",
@@ -7316,7 +7325,7 @@
   },
   {
    "name": "llm-guardrails",
-   "plugin": "bearing",
+   "plugin": "bearing-genai",
    "category": "genai",
    "what": "Secures an LLM feature or agent: prompt injection and jailbreak defence, PII checks, a tool-call permission gate, output checks, adversarial tests",
    "when": "asked for \"guardrails\" or about \"prompt injection\"",
@@ -7376,7 +7385,7 @@
     "Wire through one path: `check_input` before the call, `gate_tool` around every tool, `check_output` after; no call site reaches the model around it. Logs carry `request_id`, `check`, `verdict`, `reason`, never content: not the prompt, the document, the user's message, the model's reply, nor any free text the model authored (a review reason, an email body). Counters per check and reason; alert on a rate change, not a…",
     "Tests, offline, with the repo's scripted model. The proof is the feature's public entry point, not the detector: every check gets at least one test that runs `process()` or `reply()` and asserts on what the scripted model received (the captured request), what the caller got back, and the side effects (mail sent, queue, record). A detector-level fixture that passes proves the regex, not the wiring or the limit. Requi…",
     "`--audit`: report only. Call sites without `check_input` or `check_output`, tools without a tier, policy keys with no fixture.",
-    "Report: the output contract, then for each deterministic check its match rule and one concrete input it misses (a first name the scan does not know, advice phrased without a trigger word). Never claim injection is prevented or that a check was measured against a real model when only a scripted one ran. Record the block and redact decisions as an ADR (`adr`) when the repo keeps them."
+    "Report: the output contract, then for each deterministic check its match rule and one concrete input it misses (a first name the scan does not know, advice phrased without a trigger word). Never claim injection is prevented or that a check was measured against a real model when only a scripted one ran. Record the block and redact decisions as an ADR (`bearing:adr`) when the repo keeps them."
    ],
    "output": "",
    "gotchas": [
@@ -7756,7 +7765,7 @@
   },
   {
    "name": "mcp-server",
-   "plugin": "bearing",
+   "plugin": "bearing-genai",
    "category": "genai",
    "what": "Builds an MCP server in Python or TypeScript: schema-checked tools, both transports, auth, a test per tool, Claude Code registration",
    "when": "asked to \"build an MCP server\" or \"expose this as MCP tools\"",
@@ -7816,7 +7825,7 @@
     "`client`: from `templates/client.md`. Connect to each configured server (stdio or streamable HTTP), `list_tools`, map each tool into the agent's registry (`llm-agent`'s, else the client's own) with a tier from the mapping file (`mcp/tiers.yaml`: server, tool, tier); an unmapped tool is `irreversible` and is reported. Namespace as `<server>__<tool>`. Reconnect with backoff on a dropped session; re-list on `notificati…",
     "Client tests against a fake server (a FastMCP or McpServer instance started in the test with two tools): discovery maps both, the unmapped one is `irreversible`, a restart reconnects, a list change updates the registry, a timed-out call returns `is_error`.",
     "Remote-only option: when the agent needs a hosted server and no local tools, the Messages API MCP connector (`mcp_servers` plus an `mcp_toolset`, beta `mcp-client-2025-11-20`) lets Anthropic hold the connection; say in the ADR why it was or was not chosen.",
-    "Record the ADR, status Accepted only for what the user chose and Proposed otherwise, naming no decider who did not decide (`adr`, or a file in `docs/adr/`: server boundary, transport, auth); the HLD section when an HLD exists; the eval hook is an `llm-eval` follow-up (the agent's trajectories exercise the MCP tools). Print the output contract."
+    "Record the ADR, status Accepted only for what the user chose and Proposed otherwise, naming no decider who did not decide (`bearing:adr`, or a file in `docs/adr/`: server boundary, transport, auth); the HLD section when an HLD exists; the eval hook is an `llm-eval` follow-up (the agent's trajectories exercise the MCP tools). Print the output contract."
    ],
    "output": "",
    "gotchas": [
@@ -10095,7 +10104,7 @@
   },
   {
    "name": "prompt-registry",
-   "plugin": "bearing",
+   "plugin": "bearing-genai",
    "category": "genai",
    "what": "Keeps prompts in a versioned registry (prompts/<name>/vN.md) loaded by one module, with typed variables, fixture tests and scores",
    "when": "asked to \"write the system prompt\", \"improve this prompt\" or \"version prompts\"",
@@ -10651,7 +10660,7 @@
   },
   {
    "name": "rag",
-   "plugin": "bearing",
+   "plugin": "bearing-genai",
    "category": "genai",
    "what": "Builds retrieval-augmented generation (RAG) on pgvector: ingestion, chunking, embeddings, a retriever that cites sources, retrieval metrics",
    "when": "answers must come from documents: \"add RAG\", \"cite the source\"",
@@ -10682,7 +10691,7 @@
     },
     {
      "title": "Steps",
-     "lines": 70
+     "lines": 71
     },
     {
      "title": "Output contract",
@@ -10703,8 +10712,8 @@
    "steps": [
     "Type from `$1`, name from `$2`. Read `references/rag-types.md` and check the choice against the corpus size, the question shape and the cost profile. If `long-context` fits (corpus under 150K tokens, few queries per day), say so and offer it even when another type was asked for. A type without a stated reason is a finding.",
     "Corpus: `--corpus` or the path the user names. Count documents by kind (pdf, html, markdown, code, tables, images). Zero documents: the Inputs fallback, then stop naming the path to provide. Pick chunking per kind from `references/chunking.md` and write the parameters in the ingestion module header.",
-    "Embedding ADR (`adr`, or a file in `docs/adr/` in that shape). Anthropic has no embedding endpoint; the options are Voyage AI (Anthropic's recommended partner, hosted, per-token cost) or an open model served locally (bge-m3, multilingual-e5-large, no per-call cost, needs a GPU or patience). Record model id, dimensions, max input tokens, whether queries and documents use different prefixes, and the cost per million t…",
-    "Schema from `templates/schema.sql`: `documents` with `version` and `content_hash`, `chunks` with span offsets, a `vector(<dims>)` column, a generated `tsvector` for hybrid, and an HNSW index with `m` and `ef_construction` stated. Apply with `db-migration <name>_rag`, else the repo's migration tool, else hand the SQL file to the user. Qdrant only when an ADR shows pgvector cannot hold the load (over about 10M vectors…",
+    "Embedding ADR (`bearing:adr`, or a file in `docs/adr/` in that shape). Anthropic has no embedding endpoint; the options are Voyage AI (Anthropic's recommended partner, hosted, per-token cost) or an open model served locally (bge-m3, multilingual-e5-large, no per-call cost, needs a GPU or patience). Record model id, dimensions, max input tokens, whether queries and documents use different prefixes, and the cost per m…",
+    "Schema from `templates/schema.sql`: `documents` with `version` and `content_hash`, `chunks` with span offsets, a `vector(<dims>)` column, a generated `tsvector` for hybrid, and an HNSW index with `m` and `ef_construction` stated. Apply with `bearing:db-migration <name>_rag`, else the repo's migration tool, else hand the SQL file to the user. Qdrant only when an ADR shows pgvector cannot hold the load (over about 10M…",
     "Ingestion from `templates/ingest.md`: parse, split, embed in batches, upsert keyed by `(source_uri, content_hash)`. A re-run over an unchanged corpus writes zero rows. A changed document gets a new version; the old chunks are hidden from retrieval, then deleted by a job. Metadata (title, section, page, tenant, updated_at) travels with every chunk. `make ingest` runs it when a Makefile exists, else the native command…",
     "Retrieval API from `templates/retriever.md`: `retrieve(query, k, filters) -> [Hit]`, every `Hit` carrying `document_id`, `chunk_id`, `span`, `score`, `source_uri`. Hybrid fuses BM25 and vector ranks with reciprocal rank fusion (`k=60`); reranked adds a cross-encoder or a `claude-haiku-4-5` pointwise judge over the top 20; agentic plans sub-queries with `claude-opus-5` and loops at most 3 times; sql validates every g…",
     "Generation: the answer prompt cites `[doc:chunk]` per claim and answers \"not in the documents\" when the hits are empty or below the score floor. Set the floor from the golden set: print the top score of every answerable and every unanswerable question and pick the value that separates them. When no value does, say so, leave the floor off, and let a deterministic check reject an answer that cites no hit or a chunk it…",
@@ -10725,11 +10734,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 141,
+   "lines": 142,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 141
+     "lines": 142
     },
     {
      "path": "references/chunking.md",
@@ -12517,7 +12526,7 @@
   },
   {
    "name": "speech",
-   "plugin": "bearing",
+   "plugin": "bearing-genai",
    "category": "genai",
    "what": "Builds speech features: transcription, diarisation, text-to-speech or a real-time voice agent with barge-in, measured by WER and latency",
    "when": "asked to \"transcribe calls\", \"build a voice agent\" or \"speech to text\"",
@@ -12573,7 +12582,7 @@
     "Job from `$1`, name from `$2`. Read `references/speech-stack.md` for the job's shape. State the audio path end to end: source (browser mic at 48 kHz, phone at 8 kHz mu-law, uploaded files), resampling, the model's expected rate, and where audio is stored or not.",
     "Test set. At least 20 utterances per language from the product's own conditions (phone line, OPD noise, speakerphone), reference transcripts typed by a person with the convention written down (script for code-mixed speech, numbers as digits or words, fillers kept or dropped). Consent recorded per clip. Save as `evals/<name>/speech.jsonl` (`id`, `lang`, `ref`, `audio`).",
     "Choose by measurement: run two or three candidate engines from the decision on the test set, write each engine's `hyp` into a copy of the file, and score each with `python3 \"${CLAUDE_PLUGIN_ROOT}/skills/speech/scripts/wer.py\" <file> --worst 5`. Record every engine's `speech-eval:` and `lang` lines in the ADR. Also count names, numbers and dates right (entity accuracy): WER hides a wrong phone number.",
-    "Build the job: - batch: a job queue (`background-jobs`), VAD chunking on silences, word timestamps, diarisation with speaker labels, retries per chunk, transcript stored with the engine and model version; - realtime: streaming recognition with partials, endpointing (silence 500 to 800 ms, tuned on the test set), the model call streamed through the gateway, TTS started on the first sentence, barge-in (caller speech o…",
+    "Build the job: - batch: a job queue (`bearing:background-jobs`), VAD chunking on silences, word timestamps, diarisation with speaker labels, retries per chunk, transcript stored with the engine and model version; - realtime: streaming recognition with partials, endpointing (silence 500 to 800 ms, tuned on the test set), the model call streamed through the gateway, TTS started on the first sentence, barge-in (caller…",
     "Latency (realtime): run twenty scripted turns and `python3 \"${CLAUDE_PLUGIN_ROOT}/skills/speech/scripts/latency_report.py\" logs/<name>-turns.jsonl` with the budget from the solution doc (default total p95 1500 ms). Over budget: fix the largest stage first (region, model size, streaming), rerun.",
     "Safety and privacy: consent before recording, retention of audio (delete after the transcript is accepted unless a reason is written), PII redacted from stored transcripts, no audio or transcript bodies in logs, and scripted handling for anything the agent must not answer, with a test per script.",
     "Agent behaviour (realtime): at least ten scenario tests driven by a simulated caller in text (changing their mind, interrupting, code-mixing, asking something out of scope), scored on task success.",
@@ -12860,7 +12869,7 @@
   },
   {
    "name": "tabular-ml",
-   "plugin": "bearing",
+   "plugin": "bearing-genai",
    "category": "genai",
    "what": "Builds classical ML on tables or events (churn, scoring, demand forecasts, anomalies) with leak-proof splits, a baseline, calibration, drift checks",
    "when": "asked to \"predict churn\", \"forecast demand\"",
@@ -15448,8 +15457,8 @@
    "name": "brg-kit-paths",
    "lang": "bash",
    "group": "quality",
-   "lines": 107,
-   "header": "brg-kit-paths: where the Bearing plugins are on this machine. Bearing ships\nas three plugins from one marketplace: bearing (required: the workflow,\nagents, hooks, bin and templates), bearing-backend and bearing-apps (the\nstack conventions and their templates). A script that looks for a stack\ntemplate or checklist asks here instead of assuming one skills/ folder.\n\n  brg-kit-paths [--skills]        skill roots, one absolute path per line,\n                                  bearing first (the default)\n  brg-kit-paths --plugins         \"name<TAB>root\" per plugin found\n  brg-kit-paths --skill <name>    the directory of one skill, from any\n                                  Bearing plugin; exit 1 naming the plugin\n                                  to install when it is not there\n  brg-kit-paths --owner <name>    the plugin that ships a skill or a stack\n                                  id (go, go-api, react-web ...), found or not\n  brg-kit-paths --install-hint <name>\n                                  one line: \"<name> is in <plugin>, which is\n                                  not installed: /plugin install <plugin>@bearing\"\n  brg-kit-paths --version         the bearing plugin's version\n\nWhere it looks, for each sibling plugin, first hit wins:\n  BEARING_PLUGIN_DIRS  colon-separated plugin roots (tests, other harnesses);\n                       when set, only these are used besides bearing itself\n  <bearing>/../<name>  the repository layout (plugins/<name>)\n  <bearing>/../../<name>/<version>  the Claude Code cache layout\n                       (~/.claude/plugins/cache/<marketplace>/<name>/<version>),\n                       the same version as bearing first, else the newest\nA root counts only when it holds .claude-plugin/plugin.json naming it.\nExit 1 when not even the bearing plugin's own skills are found. bash 3.2 safe.",
+   "lines": 108,
+   "header": "brg-kit-paths: where the Bearing plugins are on this machine. Bearing ships\nas four plugins from one marketplace: bearing (required: the workflow,\nagents, hooks, bin, templates), bearing-backend and bearing-apps (stack\nconventions), bearing-genai (GenAI and ML skills). A script that looks for\na stack template or checklist asks here instead of assuming one skills/ folder.\n\n  brg-kit-paths [--skills]        skill roots, one absolute path per line,\n                                  bearing first (the default)\n  brg-kit-paths --plugins         \"name<TAB>root\" per plugin found\n  brg-kit-paths --skill <name>    the directory of one skill, from any\n                                  Bearing plugin; exit 1 naming the plugin\n                                  to install when it is not there\n  brg-kit-paths --owner <name>    the plugin that ships a skill or a stack\n                                  id (go, go-api, react-web ...), found or not\n  brg-kit-paths --install-hint <name>\n                                  one line: \"<name> is in <plugin>, which is\n                                  not installed: /plugin install <plugin>@bearing\"\n  brg-kit-paths --version         the bearing plugin's version\n\nWhere it looks, for each sibling plugin, first hit wins:\n  BEARING_PLUGIN_DIRS  colon-separated plugin roots (tests, other harnesses);\n                       when set, only these are used besides bearing itself\n  <bearing>/../<name>  the repository layout (plugins/<name>)\n  <bearing>/../../<name>/<version>  the Claude Code cache layout\n                       (~/.claude/plugins/cache/<marketplace>/<name>/<version>),\n                       the same version as bearing first, else the newest\nA root counts only when it holds .claude-plugin/plugin.json naming it.\nExit 1 when not even the bearing plugin's own skills are found. bash 3.2 safe.",
    "functions": [
     "owner_of",
     "is_plugin",
@@ -15869,7 +15878,7 @@
    "lang": "python",
    "group": "quality",
    "lines": 64,
-   "header": "Where the Bearing plugins sit in this repository, for the repository's own\ntools (generators, lints, the eval harness). Bearing ships as three plugins\nfrom one marketplace: plugins/bearing (the workflow, agents, hooks, bin and\ntemplates), plugins/bearing-backend and plugins/bearing-apps (the stack\nskills). The answer comes from plugins/bearing/bin/brg-kit-paths, the same\nresolver the plugin's own scripts use, so the two never disagree.",
+   "header": "Where the Bearing plugins sit in this repository, for the repository's own\ntools (generators, lints, the eval harness). Bearing ships as four plugins\nfrom one marketplace: plugins/bearing (the workflow, agents, hooks, bin and\ntemplates), plugins/bearing-backend and plugins/bearing-apps (the stack\nskills) and plugins/bearing-genai (the GenAI and ML skills). The answer comes from plugins/bearing/bin/brg-kit-paths, the same\nresolver the plugin's own scripts use, so the two never disagree.",
    "functions": [
     "_run",
     "plugins",
@@ -15984,7 +15993,7 @@
    "lang": "python",
    "group": "quality",
    "lines": 40,
-   "header": "lint-version: VERSION matches every plugin's plugin.json, the marketplace\nmetadata and every marketplace entry. The three Bearing plugins (bearing,\nbearing-backend, bearing-apps) are released together, so one number holds for\nall of them. Fails on an empty VERSION, on zero plugins and on any difference;\nprints the number of fields it compared.",
+   "header": "lint-version: VERSION matches every plugin's plugin.json, the marketplace\nmetadata and every marketplace entry. The four Bearing plugins (bearing,\nbearing-backend, bearing-apps, bearing-genai) are released together, so one number holds for\nall of them. Fails on an empty VERSION, on zero plugins and on any difference;\nprints the number of fields it compared.",
    "functions": [],
    "env": [],
    "calls": []
@@ -16339,7 +16348,7 @@
    "calls": []
   },
   {
-   "path": "plugins/bearing/skills/computer-vision/scripts/threshold.py",
+   "path": "plugins/bearing-genai/skills/computer-vision/scripts/threshold.py",
    "name": "threshold.py",
    "lang": "python",
    "group": "skill",
@@ -16696,7 +16705,7 @@
    ]
   },
   {
-   "path": "plugins/bearing/skills/llm-fine-tuning/scripts/gpu_check.py",
+   "path": "plugins/bearing-genai/skills/llm-fine-tuning/scripts/gpu_check.py",
    "name": "gpu_check.py",
    "lang": "python",
    "group": "skill",
@@ -16711,7 +16720,7 @@
    "calls": []
   },
   {
-   "path": "plugins/bearing/skills/llm-gateway/scripts/llm_access_check.py",
+   "path": "plugins/bearing-genai/skills/llm-gateway/scripts/llm_access_check.py",
    "name": "llm_access_check.py",
    "lang": "python",
    "group": "skill",
@@ -16729,7 +16738,7 @@
    "calls": []
   },
   {
-   "path": "plugins/bearing/skills/llm-gateway/scripts/llm_callsites_check.py",
+   "path": "plugins/bearing-genai/skills/llm-gateway/scripts/llm_callsites_check.py",
    "name": "llm_callsites_check.py",
    "lang": "python",
    "group": "skill",
@@ -16964,7 +16973,7 @@
    "calls": []
   },
   {
-   "path": "plugins/bearing/skills/speech/scripts/latency_report.py",
+   "path": "plugins/bearing-genai/skills/speech/scripts/latency_report.py",
    "name": "latency_report.py",
    "lang": "python",
    "group": "skill",
@@ -16979,7 +16988,7 @@
    "calls": []
   },
   {
-   "path": "plugins/bearing/skills/speech/scripts/wer.py",
+   "path": "plugins/bearing-genai/skills/speech/scripts/wer.py",
    "name": "wer.py",
    "lang": "python",
    "group": "skill",
@@ -16995,7 +17004,7 @@
    "calls": []
   },
   {
-   "path": "plugins/bearing/skills/tabular-ml/scripts/baseline_gate.py",
+   "path": "plugins/bearing-genai/skills/tabular-ml/scripts/baseline_gate.py",
    "name": "baseline_gate.py",
    "lang": "python",
    "group": "skill",
@@ -17009,7 +17018,7 @@
    "calls": []
   },
   {
-   "path": "plugins/bearing/skills/tabular-ml/scripts/split_check.py",
+   "path": "plugins/bearing-genai/skills/tabular-ml/scripts/split_check.py",
    "name": "split_check.py",
    "lang": "python",
    "group": "skill",
@@ -17507,7 +17516,7 @@
   },
   {
    "name": "lint-skills",
-   "does": "Every skill in every plugin: hyphenated name (64 max) equal to its frontmatter name, sections, description 220 chars max, references exist, bearing:, bearing-backend: and bearing-apps: names resolve",
+   "does": "Every skill in every plugin: hyphenated name (64 max) equal to its frontmatter name, sections, description 220 chars max, references exist, bearing:, bearing-backend:, bearing-apps: and bearing-genai: names resolve",
    "inCheck": true
   },
   {
@@ -17582,7 +17591,7 @@
   },
   {
    "name": "lint-version",
-   "does": "VERSION matches every plugin.json, the marketplace metadata and every marketplace entry (the three plugins move in lockstep)",
+   "does": "VERSION matches every plugin.json, the marketplace metadata and every marketplace entry (the four plugins move in lockstep)",
    "inCheck": true
   },
   {
@@ -17871,9 +17880,9 @@
   {
    "path": "tests/integration/plugin_split.sh",
    "kind": "integration",
-   "lines": 89,
-   "header": "tests/integration/plugin_split.sh: Bearing ships as three plugins (bearing, bearing-backend, bearing-apps). plugins/bearing/bin/brg-kit-paths finds the siblings in the repository layout and in the Claude Code cache layout (cache/<marketplace>/<plugin>/<version>), and the bearing plugin installed alone scaffolds, adopts and reviews nothing it cannot find: every stack request names the plugin to install and writes nothing. bash 3.2 safe.",
-   "asserts": 33
+   "lines": 101,
+   "header": "tests/integration/plugin_split.sh: Bearing ships as four plugins (bearing, bearing-backend, bearing-apps, bearing-genai). plugins/bearing/bin/brg-kit-paths finds the siblings in the repository layout and in the Claude Code cache layout (cache/<marketplace>/<plugin>/<version>), and the bearing plugin installed alone scaffolds, adopts and reviews nothing it cannot find: every stack request names the plugin to install and writes nothing. bash 3.2 safe.",
+   "asserts": 40
   },
   {
    "path": "tests/integration/scaffold_each_stack.sh",
@@ -18263,9 +18272,9 @@
   {
    "path": "tests/unit/lint_skills_refs.sh",
    "kind": "unit",
-   "lines": 40,
+   "lines": 48,
    "header": "tests/unit/lint_skills_refs.sh: lint-skills resolves a `references/x.md` or `templates/x` citation, and the plugin-root form `${CLAUDE_PLUGIN_ROOT}/references/x.md`, against the skill's own plugin, and fails a citation that does not exist (the plugin-root form is not looked up in another plugin).",
-   "asserts": 10
+   "asserts": 13
   },
   {
    "path": "tests/unit/lint_tools.sh",
@@ -18278,7 +18287,7 @@
    "path": "tests/unit/llm_callsites.sh",
    "kind": "unit",
    "lines": 99,
-   "header": "tests/unit/llm_callsites.sh: plugins/bearing/skills/llm-gateway/scripts/llm_callsites_check.py counts provider call sites from the code and passes only when every one is inside the gateway module. It fails, with file:line, on an Anthropic call, an SDK import or another provider outside llm/, and on empty input (no code file, zero call sites). node_modules and recordings are skipped.",
+   "header": "tests/unit/llm_callsites.sh: plugins/bearing-genai/skills/llm-gateway/scripts/llm_callsites_check.py counts provider call sites from the code and passes only when every one is inside the gateway module. It fails, with file:line, on an Anthropic call, an SDK import or another provider outside llm/, and on empty input (no code file, zero call sites). node_modules and recordings are skipped.",
    "asserts": 22
   },
   {

@@ -43,7 +43,7 @@ prompt") is a request, not a guardrail.
    model call (`messages.create`, `messages.parse`, `tool_runner`,
    `toolRunner`, `messages.stream`, or the repo's own client wrapper)
    and every tool registry; count the call sites. Zero call sites: ask once with AskUserQuestion
-   as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says where the model will be called, then build ahead of it and say
+   as the bearing plugin's `references/console.md` says where the model will be called, then build ahead of it and say
    so in the report. Read the repo's own risk documents (security
    review, policy, README volume) before designing: every number and
    rule the guardrails enforce comes from them where they state one.
@@ -173,7 +173,7 @@ prompt") is a request, not a guardrail.
    does not know, advice phrased without a trigger word). Never claim
    injection is prevented or that a check was measured against a real
    model when only a scripted one ran. Record the block and redact
-   decisions as an ADR (`adr`) when the repo keeps them.
+   decisions as an ADR (`bearing:adr`) when the repo keeps them.
 
 ## Output contract
 

@@ -34,8 +34,8 @@ marketplace); this skill decides, measures and ships around them.
 
 ## Steps
 
-**Decisions first.** Before building, run `tech-decision` for the keys
-vision approach and llm provider and models. `tech-decision` asks only
+**Decisions first.** Before building, run `bearing:tech-decision` for the keys
+vision approach and llm provider and models. `bearing:tech-decision` asks only
 about keys no accepted ADR, the request or the code already settles,
 one question at a time, and records only what the user decides.
 

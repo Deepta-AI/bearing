@@ -35,8 +35,8 @@ marketplace); this skill designs and measures what runs behind them.
 
 ## Steps
 
-**Decisions first.** Before building, run `tech-decision` for the keys
-speech stack and llm provider and models. `tech-decision` asks only about
+**Decisions first.** Before building, run `bearing:tech-decision` for the keys
+speech stack and llm provider and models. `bearing:tech-decision` asks only about
 keys no accepted ADR, the request or the code already settles, one
 question at a time, and records only what the user decides.
 
@@ -58,7 +58,7 @@ question at a time, and records only what the user decides.
    Also count names, numbers and dates right (entity accuracy): WER
    hides a wrong phone number.
 4. Build the job:
-   - batch: a job queue (`background-jobs`), VAD chunking on silences, word
+   - batch: a job queue (`bearing:background-jobs`), VAD chunking on silences, word
      timestamps, diarisation with speaker labels, retries per chunk,
      transcript stored with the engine and model version;
    - realtime: streaming recognition with partials, endpointing

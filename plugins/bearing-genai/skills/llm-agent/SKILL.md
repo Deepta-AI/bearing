@@ -84,10 +84,10 @@ and the cheaper type is named as rejected in the ADR.
    with the granted command (`uv run pytest -s` or `npm test`, or the
    `make` target) and copy the `agent-tools:` line from its output.
 9. Record the ADR, status Accepted only for what the user chose and
-   Proposed otherwise, naming no decider who did not decide (`adr`, or a `docs/adr/` file in the same shape)
+   Proposed otherwise, naming no decider who did not decide (`bearing:adr`, or a `docs/adr/` file in the same shape)
    with the type chosen, the cheaper type rejected, the model and the
    memory store, and the agent section of the HLD when one exists
-   (`high-level-design`). Print the output contract.
+   (`bearing:high-level-design`). Print the output contract.
 
 ## Output contract
 

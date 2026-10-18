@@ -16,7 +16,7 @@ explanation and drift check.
 
 Not this: LLM features are `llm-eval` and `genai-design`; the
 pipelines that feed the features (dbt, Airflow) are `bearing-backend:data-pipeline`; A/B
-analysis of a model's effect is `ab-experiment`.
+analysis of a model's effect is `bearing:ab-experiment`.
 
 ## Inputs
 
@@ -35,8 +35,8 @@ analysis of a model's effect is `ab-experiment`.
 
 ## Steps
 
-**Decisions first.** Before building, run `tech-decision` for the key ml
-model family and serving. `tech-decision` asks only about keys no accepted
+**Decisions first.** Before building, run `bearing:tech-decision` for the key ml
+model family and serving. `bearing:tech-decision` asks only about keys no accepted
 ADR, the request or the code already settles, one question at a time,
 and records only what the user decides.
 

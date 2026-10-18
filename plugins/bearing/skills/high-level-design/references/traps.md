@@ -67,7 +67,7 @@ in step 9 is given this list and checks the draft against it too.
   passages), checked (an answer stating a number, price, date or claim its
   sources lack is replaced by a fallback), bounded (input length, spend
   cap) and evaluated before release, injection attempts included; route
-  the design through `llm-guardrails` and `llm-eval` and name both here.
+  the design through `bearing-genai:llm-guardrails` and `bearing-genai:llm-eval` and name both here.
 - **Provider facts (external integrations).** A provider's rate limits,
   quotas, idempotency support, regions and retention come from its
   documentation, cited with a link in the section that uses them; the

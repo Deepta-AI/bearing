@@ -8,5 +8,5 @@ plugins/bearing/skills/feature-flags/SKILL.md|205|per-run exposure and removal r
 plugins/bearing/skills/prd/SKILL.md|202|per-run delivery never-list and question rules
 plugins/bearing/skills/ab-experiment/SKILL.md|220|per-run design and analysis rules in every step; the rest is examples already one clause long
 plugins/bearing/skills/release/SKILL.md|217|per-run package-mode safety rules (pack check, secrets, provenance, floor) in the steps
-plugins/bearing/skills/llm-guardrails/SKILL.md|217|per-run check lists and required test cases in the steps
+plugins/bearing-genai/skills/llm-guardrails/SKILL.md|217|per-run check lists and required test cases in the steps
 plugins/bearing/skills/git-hooks/SKILL.md|211|per-run proving matrix with exact failing inputs and output strings

@@ -38,5 +38,5 @@ must beat it on the test split by more than the noise floor.
 
 A churn score says who will leave, not who a nudge will keep. Keep a
 random holdout in every campaign built on a score and measure the lift
-with `ab-experiment`; move to uplift models only after a holdout shows
+with `bearing:ab-experiment`; move to uplift models only after a holdout shows
 the nudge works for some segments and not others.

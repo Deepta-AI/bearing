@@ -19,7 +19,7 @@ outside `llm/` is a finding.
   writes the first route from the answer.
 - Stack: `--stack`, else `pyproject.toml` versus `package.json`;
   neither: asks.
-- Meter and tracer: the ones `observability` wired; if absent, the
+- Meter and tracer: the ones `bearing:observability` wired; if absent, the
   gateway creates its own and the stack wiring is a follow-up. `make`
   targets when a Makefile exists, else `uv run pytest` or `npm test`.
 - Call-site gate: `scripts/llm_callsites_check.py` in this skill,
@@ -27,12 +27,13 @@ outside `llm/` is a finding.
 
 ## Steps
 
-**Decisions first.** Before building, run `tech-decision` for the keys llm
-provider and models. `tech-decision` asks only about the keys this task needs that no
+**Decisions first.** Before building, run `bearing:tech-decision` for the keys llm
+provider and models. `bearing:tech-decision` asks only about the keys this task needs that no
 accepted ADR, the request or the code already settles, one question at
 a time, and records only what the user decides; a key still
-awaiting an answer follows
-${CLAUDE_PLUGIN_ROOT}/skills/tech-decision/references/decision-protocol.md.
+awaiting an answer follows the decision protocol of the
+`bearing:tech-decision` skill (references/decision-protocol.md in the
+bearing plugin).
 
 1. Stack from `--stack` or the repo (`pyproject.toml` or `package.json`).
    Both present: one gateway per service, same interface.

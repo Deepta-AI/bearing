@@ -4,7 +4,7 @@
     "name": "Ravi Teja Akella"
   },
   "metadata": {
-    "description": "The Bearing marketplace: bearing (required: the workflow, agents, hooks and templates), bearing-backend and bearing-apps (optional stack conventions).",
+    "description": "bearing (required: the workflow, agents, hooks and templates), bearing-backend and bearing-apps (optional stack conventions), bearing-genai (optional GenAI and ML skills).",
     "version": "0.8.0"
   },
   "plugins": [
@@ -36,6 +36,18 @@
       "name": "bearing-apps",
       "source": "./plugins/bearing-apps",
       "description": "Stack conventions and templates for React, Next.js, React Native, Flutter, iOS and Android. Optional; needs bearing.",
+      "version": "0.8.0",
+      "author": {
+        "name": "Ravi Teja Akella"
+      },
+      "homepage": "https://github.com/Deepta-AI/bearing",
+      "license": "MIT",
+      "category": "development"
+    },
+    {
+      "name": "bearing-genai",
+      "source": "./plugins/bearing-genai",
+      "description": "Skills for GenAI and ML products: RAG, agents, MCP servers, model gateway, guardrails, evals, fine-tuning, speech, computer vision and tabular ML. Optional; needs bearing.",
       "version": "0.8.0",
       "author": {
         "name": "Ravi Teja Akella"

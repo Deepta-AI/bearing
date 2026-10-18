@@ -1,5 +1,5 @@
 -- RAG schema for <name>. Apply through db-migration; keep the header
--- block from skills/db-migration/templates/HEADER.sql above this.
+-- block from the bearing:db-migration skill (templates/HEADER.sql) above this.
 -- Index decision: hnsw on chunks.embedding serves the vector query;
 -- gin on chunks.tsv serves the BM25 leg; btree on (tenant_id, document_id)
 -- serves the ACL filter that runs inside every retrieval query.

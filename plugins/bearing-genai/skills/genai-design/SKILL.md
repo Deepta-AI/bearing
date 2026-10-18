@@ -28,12 +28,13 @@ the reasoning that feeds both.
 
 ## Steps
 
-**Decisions first.** Before building, run `tech-decision` for the keys llm
-provider and models, vector store and embeddings. `tech-decision` asks only about the keys this task needs that no
+**Decisions first.** Before building, run `bearing:tech-decision` for the keys llm
+provider and models, vector store and embeddings. `bearing:tech-decision` asks only about the keys this task needs that no
 accepted ADR, the request or the code already settles, one question at
 a time, and records only what the user decides; a key still
-awaiting an answer follows
-${CLAUDE_PLUGIN_ROOT}/skills/tech-decision/references/decision-protocol.md.
+awaiting an answer follows the decision protocol of the
+`bearing:tech-decision` skill (references/decision-protocol.md in the
+bearing plugin).
 
 1. Title from `$ARGUMENTS`. Inputs from the path given, else
    `docs/product/PRD.md`, `docs/stories/` and `docs/adr/`. Collect the
@@ -78,9 +79,9 @@ ${CLAUDE_PLUGIN_ROOT}/skills/tech-decision/references/decision-protocol.md.
    the acceptance threshold tied to the success metric. Hand the build
    of the set to `llm-eval`.
 8. Write `docs/genai/<kebab>-solution.md` from `templates/solution.md`.
-   Write the ADR stub for the approach decision (`adr`, or a file
+   Write the ADR stub for the approach decision (`bearing:adr`, or a file
    in `docs/adr/` in the same shape; status Proposed) and name the HLD
-   `high-level-design` can write later. List open questions
+   `bearing:high-level-design` can write later. List open questions
    with owners.
 9. Print the output contract.
 

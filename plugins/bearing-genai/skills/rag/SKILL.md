@@ -31,12 +31,13 @@ builds is measured on a golden set before anyone calls it done.
 
 ## Steps
 
-**Decisions first.** Before building, run `tech-decision` for the keys
-vector store and embeddings. `tech-decision` asks only about the keys this task needs that no
+**Decisions first.** Before building, run `bearing:tech-decision` for the keys
+vector store and embeddings. `bearing:tech-decision` asks only about the keys this task needs that no
 accepted ADR, the request or the code already settles, one question at
 a time, and records only what the user decides; a key still
-awaiting an answer follows
-${CLAUDE_PLUGIN_ROOT}/skills/tech-decision/references/decision-protocol.md.
+awaiting an answer follows the decision protocol of the
+`bearing:tech-decision` skill (references/decision-protocol.md in the
+bearing plugin).
 
 1. Type from `$1`, name from `$2`. Read `references/rag-types.md` and
    check the choice against the corpus size, the question shape and the
@@ -48,7 +49,7 @@ ${CLAUDE_PLUGIN_ROOT}/skills/tech-decision/references/decision-protocol.md.
    the Inputs fallback, then stop naming the path to provide. Pick chunking per kind
    from `references/chunking.md` and write the parameters in the
    ingestion module header.
-3. Embedding ADR (`adr`, or a file in `docs/adr/` in that shape).
+3. Embedding ADR (`bearing:adr`, or a file in `docs/adr/` in that shape).
    Anthropic has no embedding endpoint; the options are Voyage AI (Anthropic's
    recommended partner, hosted, per-token cost) or an open model served
    locally (bge-m3, multilingual-e5-large, no per-call cost, needs a
@@ -59,7 +60,7 @@ ${CLAUDE_PLUGIN_ROOT}/skills/tech-decision/references/decision-protocol.md.
 4. Schema from `templates/schema.sql`: `documents` with `version` and
    `content_hash`, `chunks` with span offsets, a `vector(<dims>)` column,
    a generated `tsvector` for hybrid, and an HNSW index with `m` and
-   `ef_construction` stated. Apply with `db-migration <name>_rag`, else the repo's
+   `ef_construction` stated. Apply with `bearing:db-migration <name>_rag`, else the repo's
    migration tool, else hand the SQL file to the user.
    Qdrant only when an ADR shows pgvector cannot hold the load (over
    about 10M vectors or p95 recall latency past the SLO after tuning).
@@ -79,7 +80,7 @@ ${CLAUDE_PLUGIN_ROOT}/skills/tech-decision/references/decision-protocol.md.
    plans sub-queries with `claude-opus-5` and loops at most 3 times;
    sql validates every generated statement (read-only role, allow-listed
    tables, `EXPLAIN` before run). Metrics: `rag_retrieval_duration_seconds`
-   and `rag_empty_results_total` through the meter `observability`
+   and `rag_empty_results_total` through the meter `bearing:observability`
    wired, else one created in the retriever module.
 7. Generation: the answer prompt cites `[doc:chunk]` per claim and
    answers "not in the documents" when the hits are empty or below the

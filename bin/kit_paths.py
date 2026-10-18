@@ -1,8 +1,8 @@
 """Where the Bearing plugins sit in this repository, for the repository's own
-tools (generators, lints, the eval harness). Bearing ships as three plugins
+tools (generators, lints, the eval harness). Bearing ships as four plugins
 from one marketplace: plugins/bearing (the workflow, agents, hooks, bin and
 templates), plugins/bearing-backend and plugins/bearing-apps (the stack
-skills). The answer comes from plugins/bearing/bin/brg-kit-paths, the same
+skills) and plugins/bearing-genai (the GenAI and ML skills). The answer comes from plugins/bearing/bin/brg-kit-paths, the same
 resolver the plugin's own scripts use, so the two never disagree.
 """
 
@@ -56,7 +56,7 @@ def skill_dir(name):
 
 
 def plugin_of(path):
-    """The plugin name a path belongs to (bearing, bearing-backend, bearing-apps)."""
+    """The plugin name a path belongs to (bearing, bearing-backend, bearing-apps, bearing-genai)."""
     p = pathlib.Path(path).resolve()
     for name, root in plugins().items():
         if root == p or root in p.parents:

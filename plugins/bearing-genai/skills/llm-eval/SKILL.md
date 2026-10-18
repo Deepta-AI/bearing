@@ -76,7 +76,7 @@ gate that fails when the number drops.
    summary. A run prints the delta against it. Accepting a new baseline
    is a deliberate edit by a person, recorded in the summary.
 6. Regression gate: CI job `eval-<name>` (in the pipeline when one
-   exists, else printed for the user; `ci-pipeline` adds it) runs the harness
+   exists, else printed for the user; `bearing:ci-pipeline` adds it) runs the harness
    on a stated subset when the full set costs over 5 USD and fails when
    score drops below baseline by more than the delta in
    `evals/<name>/gate.yaml` (default 0.02 absolute). It needs the API

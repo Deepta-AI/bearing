@@ -46,7 +46,7 @@ the agent's registry with a tier before the model can see it.
    the worst case. Resources for read-only data the
    model should browse (`resource://<context>/<id>`); prompts for
    task recipes the client can offer. Zero tools: ask once with AskUserQuestion
-   (as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says), options "name the tools now" (the answer comes as free
+   (as the bearing plugin's `references/console.md` says), options "name the tools now" (the answer comes as free
    text via Other) and "stop", then stop naming what to provide.
 3. Write the server from `templates/server-python.md` or
    `templates/server-typescript.md`: both transports (stdio for local
@@ -90,7 +90,7 @@ the agent's registry with a tier before the model can see it.
    `mcp_toolset`, beta `mcp-client-2025-11-20`) lets Anthropic hold
    the connection; say in the ADR why it was or was not chosen.
 9. Record the ADR, status Accepted only for what the user chose and
-   Proposed otherwise, naming no decider who did not decide (`adr`, or a file in `docs/adr/`: server
+   Proposed otherwise, naming no decider who did not decide (`bearing:adr`, or a file in `docs/adr/`: server
    boundary, transport, auth); the HLD section when an HLD exists; the
    eval hook is an `llm-eval` follow-up (the agent's trajectories
    exercise the MCP tools). Print the output contract.

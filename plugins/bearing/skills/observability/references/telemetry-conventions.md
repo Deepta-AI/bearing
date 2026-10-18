@@ -91,7 +91,7 @@ card number or full body; the deny list is in
   `deployment.environment.name`; request spans add `enduser.id` (the id
   only) and `tenant.id`.
 - GenAI spans use the semconv `gen_ai.*` attributes listed in
-  `llm-gateway`.
+  `bearing-genai:llm-gateway`.
 
 ## Alert and health names
 
