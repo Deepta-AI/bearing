@@ -595,17 +595,37 @@ prot_tmp() {
   mktemp -d "$d/brg-push.XXXXXX"
 }
 
+# prune_tmp: removes this script's own leftovers in the protected tmp (a run
+# killed before its cleanup): directories named brg-push.*, directly under
+# it, owned by the effective user, last changed more than a day ago. find
+# never follows a link (-type d is false for one), and rm -r removes a link
+# inside, not what it points at.
+prune_tmp() {
+  local d="$home/.config/bearing/tmp"
+  [ -n "$home" ] && [ -d "$d" ] && [ ! -L "$d" ] && [ -O "$d" ] || return 0
+  find "$d" -mindepth 1 -maxdepth 1 -type d -name 'brg-push.*' -user "$(id -u)" -mmin +1440 \
+    -exec rm -r -f -- {} + 2>/dev/null
+  return 0
+}
+
 # gen_global <file>: the global git config the clone and the push use,
 # holding only the credential.* keys (helper, username, useHttpPath, per-URL
-# sections) of the engineer's global config (~/.gitconfig and
-# ~/.config/git/config, includes not followed), in their order; a key with
-# no value is written as true. Nothing else (no remote.*, url.*, push.*,
-# core.* or transport key) from any file reaches the push. Exit 1 when the
-# global config cannot be read or the file cannot be written.
+# sections) of the system config, then of the engineer's global config
+# (~/.gitconfig and ~/.config/git/config), includes not followed, in git's
+# own order; a key with no value is written as true. The system file is
+# admin-owned and the sandbox cannot write it; its credential keys keep
+# Apple git's credential.helper=osxkeychain working. cleanenv clears
+# GIT_CONFIG_NOSYSTEM for that read only (the push itself runs with it set).
+# Nothing else (no remote.*, url.*, push.*, core.* or transport key) from
+# any file reaches the push. Exit 1 when either config cannot be read or the
+# file cannot be written.
+sysfile=""   # a test seam, like passwd_home: GIT_CONFIG_SYSTEM for the system read
 gen_global() {
   local rec k v rc
   : > "$1" || return 1
-  ( cd "$tmp" && bounded 10 cleanenv git config --global --null --get-regexp '^credential\.' ) > "$tmp/cred.list" 2>/dev/null
+  ( cd "$tmp" && bounded 10 cleanenv ${sysfile:+GIT_CONFIG_SYSTEM="$sysfile"} git config --system --null --get-regexp '^credential\.' ) > "$tmp/cred.list" 2>/dev/null
+  rc=$?; [ "$rc" -le 1 ] || return 1
+  ( cd "$tmp" && bounded 10 cleanenv git config --global --null --get-regexp '^credential\.' ) >> "$tmp/cred.list" 2>/dev/null
   rc=$?; [ "$rc" -le 1 ] || return 1
   while IFS= read -r -d '' rec; do
     case "$rec" in (*"$nl"*) k="${rec%%"$nl"*}"; v="${rec#*"$nl"}" ;; (*) k="$rec"; v=true ;; esac
@@ -759,6 +779,7 @@ run_main() {
   t0="$(date +%s)"
   tmp="$(prot_tmp)" || { echo "brg-push: no temporary directory under <passwd home>/.config/bearing/tmp; 0 conditions checked" >&2; exit 2; }
   empty="$tmp"   # origin_url reads in it; cleanup removes it and the clone
+  prune_tmp
   if [ "$fg" -eq 1 ]; then
     run_foreground > "$tmp/out" 2>&1; rc=$?
     cat "$tmp/out"

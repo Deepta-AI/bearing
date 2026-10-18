@@ -5,7 +5,7 @@
   "commandSkills": 0,
   "stackSkills": 12,
   "scripts": 99,
-  "scriptLines": 32851,
+  "scriptLines": 32886,
   "hooks": 8,
   "agents": 8,
   "makeTargets": 32,
@@ -15348,13 +15348,15 @@
    "name": "brg-changed",
    "lang": "bash",
    "group": "quality",
-   "lines": 125,
-   "header": "brg-changed: files changed in the working tree (modified, staged, untracked,\nthe new name of a rename), repository-relative, one per line. With --since\n<marker>, only files newer than the marker; a missing marker lists all.\nUses -z so names with spaces, quotes or arrows survive.\nDefault mode exits 0 always (the hooks rely on it).\n--layers [--base <ref>]: files changed against the merge base of <ref> and\nHEAD plus the working tree (no --base: the working tree only), deleted files\nincluded, as one \"<layer>\\t<file>\" line per layer a file maps to (unit api ui\nvisual none), then \"brg-changed: <N> files, layers: ...\" . Exit 1 on zero\nfiles (\"brg-changed: 0 files changed against <base>|the working tree\"), on a\nbase that does not resolve, or on a base with no merge base (shallow clone).\nOutside a repository --layers exits 1 (\"brg-changed: not a git repository\").\nEvery error line goes to stderr. Callers detect --layers support from the\ncounts line: an older copy of this script ignores the flag and prints plain\nfile names.",
+   "lines": 139,
+   "header": "brg-changed: files changed in the working tree (modified, staged, untracked,\nthe new name of a rename), repository-relative, one per line. With --since\n<marker>, only files newer than the marker; a missing marker lists all.\nUses -z so names with spaces, quotes or arrows survive. With --skip-notes\n(the Stop gate), an untracked (??) or work-tree-only ( M) record is left out\nwhen its path is under .scratch/ or is docs/progress/<ID>.md of the current\ntask branch, as brg-push's gate does: merge-request writes that file after\nmake check by design, and neither is ever pushed. A staged change, another\ntask's progress file and any other path still count.\nDefault mode exits 0 always (the hooks rely on it).\n--layers [--base <ref>]: files changed against the merge base of <ref> and\nHEAD plus the working tree (no --base: the working tree only), deleted files\nincluded, as one \"<layer>\\t<file>\" line per layer a file maps to (unit api ui\nvisual none), then \"brg-changed: <N> files, layers: ...\" . Exit 1 on zero\nfiles (\"brg-changed: 0 files changed against <base>|the working tree\"), on a\nbase that does not resolve, or on a base with no merge base (shallow clone).\nOutside a repository --layers exits 1 (\"brg-changed: not a git repository\").\nEvery error line goes to stderr. Callers detect --layers support from the\ncounts line: an older copy of this script ignores the flag and prints plain\nfile names.",
    "functions": [
     "classify"
    ],
    "env": [],
-   "calls": []
+   "calls": [
+    "brg-push"
+   ]
   },
   {
    "path": "plugins/bearing/bin/brg-checklists",
@@ -15752,7 +15754,7 @@
    "name": "brg-push",
    "lang": "bash",
    "group": "quality",
-   "lines": 852,
+   "lines": 873,
    "header": "brg-push: the one way Bearing pushes a task branch, and only where the\nengineer opted the repository in with BEARING_AUTO_PUSH (full push URLs) in\nthe personal bearing.env under the passwd home. The only git push Bearing\nruns, from a fresh clone, never from the working tree.\n\n  brg-push check            the eight conditions, one \"ok|no <name>: <detail>\"\n                            line each, then \"push-check: 8 conditions, M met\";\n                            exit 0 all met, 1 any unmet, 2 usage or not a git\n                            repository\n  brg-push request          check; when it passes, write\n                            .bearing/state/push-request (branch, sha, time);\n                            exit 0 or 1\n  brg-push run --id <sid> [--foreground]\n                            the Stop hook only: judge the request, the opt-in,\n                            the session mark, the gate marker and the global\n                            git transport (\"push-run: 7 conditions before the\n                            clone, M met\"), then start itself with\n                            --foreground, detached, which judges them again,\n                            clones the branch fresh, checks the clone's HEAD\n                            (\"push-run: 8 conditions, M met\") and pushes it;\n                            writes push-result, push.log and a gates.log\n                            line; exit 0 started or pushed, 1 refused or\n                            failed, 2 usage\n  brg-push status [--unseen]\n                            the last result line, or \"push: none\"; with\n                            --unseen (the hooks) \"bearing push: <line>\" once\n                            per new result; exit 0\n  brg-push optin-record     SessionStart only: write .bearing/state/.push-optin\n                            (on|off) for this repository; exit 0 always\n\ncheck, request and status run in the agent's Bash, inside the sandbox.\noptin-record and run run outside the sandbox and run no git command in the\nworking repository: origin's url is read as text from the git common dir's\nconfig file, under a cleared environment, in an empty directory, every read\nof the repository bounded in time, and every write to .bearing/state goes\nthrough state_write, which never follows a link the agent planted. run is for\nthe Stop hook; the guard refuses it from Bash. The opt-in is read from\n<passwd home>/.config/bearing/bearing.env only, never from BEARING_ENV,\nXDG_CONFIG_HOME, HOME or an exported BEARING_AUTO_PUSH: the agent controls\nits own environment. The temporary directory of optin-record and run, and\nso the clone, is a fresh mktemp -d inside <passwd home>/.config/bearing/tmp\n(mode 700, hidden from the sandbox), never TMPDIR; the clone and the push\nread no system config and a generated global config holding only the\nengineer's credential.* keys, and the clone's own config is re-read before\nthe push and refused if it holds a key git clone does not write. An entry\nis never printed (an https entry may carry a token), only its key. A .git\nfile (gitdir:) can point the origin read and the clone source at another\nrepository; the push still goes only to a URL the engineer listed for that\norigin (accepted, amendment ruling Q4). Needs git and python3 (the reads\nand appends in .bearing/state that must not follow a link). The script\nends with the single line `main \"$@\"`, the seam tests use to replace\npasswd_home. bash 3.2 safe.",
    "functions": [
     "url_key",
@@ -15783,6 +15785,7 @@
     "log_gate",
     "run_conditions",
     "prot_tmp",
+    "prune_tmp",
     "gen_global",
     "pgit",
     "push_env",
@@ -18397,9 +18400,9 @@
   {
    "path": "tests/unit/changed_files.sh",
    "kind": "unit",
-   "lines": 182,
+   "lines": 239,
    "header": "tests/unit/changed_files.sh: brg-changed lists changed files rename-safe and space-safe; stop-gate prefers make check-changed and falls back to make check.",
-   "asserts": 62
+   "asserts": 80
   },
   {
    "path": "tests/unit/check_changed_targets.sh",
@@ -18817,9 +18820,9 @@
   {
    "path": "tests/unit/push_run.sh",
    "kind": "unit",
-   "lines": 437,
+   "lines": 478,
    "header": "tests/unit/push_run.sh: brg-push request, run and status, and the hooks that drive them. request writes the request only when check passes; run, from the Stop hook, re-judges the request, the opt-in, the session mark, the gate marker and the engineer's global transport settings, then clones the branch fresh and pushes it to the URL listed in bearing.env, never running a repository hook, Makefile, git config key or exported variable; every file it writes in .bearing/state goes through state_write, never through a planted link. The Stop gate starts it when it passes, and a core.fsmonitor in .gi…",
-   "asserts": 137
+   "asserts": 149
   },
   {
    "path": "tests/unit/push_settings.sh",

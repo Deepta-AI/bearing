@@ -434,4 +434,45 @@ assert_eq "credential.helper=cache --timeout=60|credential.helper=|credential.ht
 rm -f "$home/.gitconfig"
 t_end
 
+t_begin "the system config's credential keys are copied first, and nothing else from it"
+# A fake system config, as Apple git ships one (credential.helper=osxkeychain),
+# reached through the sysfile seam: brg-push reads it with GIT_CONFIG_SYSTEM
+# set to the fixture and GIT_CONFIG_NOSYSTEM unset, for that read only.
+sf="$(tmpdir)/gitconfig"; gt="$(tmpdir)"; rm -f "$home/.gitconfig"
+scfg() { ( cd "$gt" && GIT_CEILING_DIRECTORIES="$gt" git config --file "$sf" "$@" ); }
+scfg credential.helper osxkeychain; scfg credential.https://sys.example.test.username s
+scfg url.file:///evil.insteadOf file:///x; scfg core.sshCommand "touch x"; scfg protocol.file.allow never
+gcfg credential.helper store; gcfg user.name n
+assert_exit 0 env GIT_CONFIG_NOSYSTEM=1 bash -c '. "$1"; home="$2"; tmp="$3"; sysfile="$4"; gen_global "$3/global"' _ "$fns" "$home" "$gt" "$sf"
+# git config --add files a key under its section, so the per-URL key lists
+# last; the helpers keep their order: the system one first, then the global.
+assert_eq "credential.helper=osxkeychain|credential.helper=store|credential.https://sys.example.test.username=s|" \
+  "$(cd "$gt" && GIT_CEILING_DIRECTORIES="$gt" git config --file "$gt/global" --list | tr '\n' '|')" "system credential keys first, then global, nothing else"
+P2="$(tmpdir)/brg-push"; sed '$d' "$P" > "$P2"; printf "sysfile='%s'\nmain \"\$@\"\n" "$sf" >> "$P2"
+setup; gcfg credential.helper store; sleep 1; mark; in_repo request >/dev/null
+assert_exit 0 bash -c "cd '$repo' && bash '$P2' run --id s1 --foreground"
+assert_contains "$T_OUT" "push-run: 8 conditions, 8 met"
+assert_eq "$(git -C "$repo" rev-parse HEAD)" "$(git -C "$remote" rev-parse refs/heads/feature/ABC-1-Thing 2>/dev/null)" "pushed although the system config forbids file://"
+rm -f "$home/.gitconfig"
+t_end
+
+t_begin "run removes its own leftover directories older than a day, nothing else"
+pt="$home/.config/bearing/tmp"; rm -rf "$pt"; mkdir -m 700 "$pt"
+out="$(tmpdir)"; printf 'keep\n' > "$out/keep"
+mkdir -p "$pt/brg-push.old111/c/.git" "$pt/brg-push.new222" "$pt/other.old333"
+printf 'x\n' > "$pt/brg-push.old111/c/.git/config"; chmod 444 "$pt/brg-push.old111/c/.git/config"
+ln -s "$out" "$pt/brg-push.lnk444"; printf 'f\n' > "$pt/brg-push.file555"
+touch -t 202001010000 "$pt/brg-push.old111" "$pt/other.old333" "$pt/brg-push.file555"
+touch -h -t 202001010000 "$pt/brg-push.lnk444" 2>/dev/null
+setup; sleep 1; mark
+assert_exit 1 in_repo run --id s1
+assert_eq absent "$(absent "$pt/brg-push.old111")" "an old brg-push directory is removed"
+assert_eq present "$(absent "$pt/brg-push.new222")" "a fresh one stays"
+assert_eq present "$(absent "$pt/other.old333")" "another name stays"
+assert_eq present "$(absent "$pt/brg-push.lnk444")" "a link stays"
+assert_eq keep "$(cat "$out/keep")" "nothing behind a link is touched"
+assert_eq present "$(absent "$pt/brg-push.file555")" "a file stays"
+rm -rf "$pt"
+t_end
+
 t_summary

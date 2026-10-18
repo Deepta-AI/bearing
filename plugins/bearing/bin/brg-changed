@@ -2,7 +2,12 @@
 # brg-changed: files changed in the working tree (modified, staged, untracked,
 # the new name of a rename), repository-relative, one per line. With --since
 # <marker>, only files newer than the marker; a missing marker lists all.
-# Uses -z so names with spaces, quotes or arrows survive.
+# Uses -z so names with spaces, quotes or arrows survive. With --skip-notes
+# (the Stop gate), an untracked (??) or work-tree-only ( M) record is left out
+# when its path is under .scratch/ or is docs/progress/<ID>.md of the current
+# task branch, as brg-push's gate does: merge-request writes that file after
+# make check by design, and neither is ever pushed. A staged change, another
+# task's progress file and any other path still count.
 # Default mode exits 0 always (the hooks rely on it).
 # --layers [--base <ref>]: files changed against the merge base of <ref> and
 # HEAD plus the working tree (no --base: the working tree only), deleted files
@@ -15,13 +20,14 @@
 # counts line: an older copy of this script ignores the flag and prints plain
 # file names.
 set -u
-root=""; since=""; layers=0; base=""
+root=""; since=""; layers=0; base=""; notes=0; prog=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --root) root="${2:-}"; shift 2 || shift;;
     --since) since="${2:-}"; shift 2 || shift;;
     --layers) layers=1; shift;;
     --base) base="${2:-}"; shift 2 || shift;;
+    --skip-notes) notes=1; shift;;
     *) shift;;
   esac
 done
@@ -30,6 +36,13 @@ if [ -z "$root" ]; then
     [ "$layers" = 0 ] || { echo "brg-changed: not a git repository" >&2; exit 1; }
     exit 0
   }
+fi
+
+if [ "$notes" -eq 1 ]; then
+  # The <ID> of a task branch, as brg-push's task_id reads it.
+  prog="$(git -C "$root" symbolic-ref -q --short HEAD 2>/dev/null |
+    sed -n -E 's#^(feature|bugfix|hotfix|chore|docs)/([A-Z][A-Z0-9]*(-[0-9]+)+)-[A-Za-z0-9]+$#\2#p')"
+  [ -z "$prog" ] || prog="docs/progress/$prog.md"
 fi
 
 # Prints the layers a repository-relative path maps to, first match wins.
@@ -113,10 +126,11 @@ if [ "$layers" = 1 ]; then
 fi
 
 git -C "$root" status --porcelain -z --untracked-files=all 2>/dev/null |
-  tr '\0' '\n' | awk '
+  tr '\0' '\n' | awk -v notes="$notes" -v prog="$prog" '
     skip { skip=0; next }
     { code=substr($0,1,2); path=substr($0,4) }
     code ~ /^R/ || code ~ /^.R/ || code ~ /^C/ { print path; skip=1; next }
+    notes == 1 && (code == "??" || code == " M") && (substr(path,1,9) == ".scratch/" || (prog != "" && path == prog)) { next }
     { print path }' | sort -u | while IFS= read -r f; do
     [ -n "$f" ] && [ -e "$root/$f" ] || continue
     if [ -n "$since" ] && [ -f "$since" ] && ! [ "$root/$f" -nt "$since" ]; then continue; fi

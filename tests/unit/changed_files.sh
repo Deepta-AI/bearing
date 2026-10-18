@@ -179,4 +179,61 @@ assert_exit 2 in_repo stop-gate --id "$sid"
 assert_contains "$T_OUT" "Run make check and fix what fails"
 t_end
 
+# The Stop gate, like brg-push's gate, does not hold a session to this
+# task's uncommitted progress file or to .scratch/: merge-request writes the
+# progress file after make check by design, and neither is ever pushed.
+r2="$(tmpdir)"
+git -C "$r2" init -q -b main
+git -C "$r2" config user.email t@example.com; git -C "$r2" config user.name t
+printf '.bearing/state/\n' > "$r2/.gitignore"
+printf 'check:\n\t@touch .bearing/state/.check-passed\n' > "$r2/Makefile"
+mkdir -p "$r2/docs/progress" "$r2/.scratch"
+printf 'p\n' > "$r2/docs/progress/ABC-1.md"; printf 's\n' > "$r2/.scratch/kept.md"
+git -C "$r2" add -A; git -C "$r2" commit -q -m init
+git -C "$r2" switch -q -c feature/ABC-1-Thing
+mkdir -p "$r2/.bearing/state"
+touch -t 202001010000 "$r2/.bearing/state/.session-$sid"
+sleep 1; touch "$r2/.bearing/state/.check-passed"; sleep 1
+in_r2() { ( cd "$r2" && bash "$GUARD" "$@" ) }
+
+t_begin "stop-gate ignores an untracked progress file of the current task"
+git -C "$r2" switch -q -c feature/ABC-3-Other
+printf 'q\n' > "$r2/docs/progress/ABC-3.md"
+assert_exit 0 in_r2 stop-gate --id "$sid"
+rm -f "$r2/docs/progress/ABC-3.md"; git -C "$r2" switch -q feature/ABC-1-Thing
+t_end
+
+t_begin "stop-gate ignores this task's uncommitted progress file and .scratch/"
+printf 'p2\n' >> "$r2/docs/progress/ABC-1.md"; printf 's2\n' >> "$r2/.scratch/kept.md"; printf 'n\n' > "$r2/.scratch/new.md"
+assert_exit 0 in_r2 stop-gate --id "$sid"
+assert_exit 0 bash "$CHANGED" --root "$r2" --skip-notes
+assert_eq "" "$T_OUT" "brg-changed --skip-notes lists none of them"
+assert_exit 0 bash "$CHANGED" --root "$r2"
+assert_contains "$T_OUT" "docs/progress/ABC-1.md" "without --skip-notes the progress file is listed"
+t_end
+
+t_begin "another task's progress file, a staged progress change and a near name still count"
+printf 'o\n' > "$r2/docs/progress/ABC-9.md"
+assert_exit 2 in_r2 stop-gate --id "$sid"
+assert_contains "$T_OUT" "1 file(s) changed"
+rm -f "$r2/docs/progress/ABC-9.md"
+printf 'b\n' > "$r2/docs/progress/ABC-1.md.bak"
+assert_exit 2 in_r2 stop-gate --id "$sid"
+rm -f "$r2/docs/progress/ABC-1.md.bak"
+git -C "$r2" add docs/progress/ABC-1.md
+assert_exit 2 in_r2 stop-gate --id "$sid"
+assert_contains "$T_OUT" "1 file(s) changed"
+printf 'p3\n' >> "$r2/docs/progress/ABC-1.md"
+assert_exit 2 in_r2 stop-gate --id "$sid"
+assert_contains "$T_OUT" "1 file(s) changed" "staged then changed again (MM) still counts"
+t_end
+
+t_begin "a progress change committed after the check passes the Stop gate and still counts for brg-push"
+git -C "$r2" add docs/progress/ABC-1.md; git -C "$r2" commit -q -m "docs: progress [ABC-1]"
+assert_exit 0 in_r2 stop-gate --id "$sid"
+fns="$(tmpdir)/fns.sh"; sed '$d' "$KIT/plugins/bearing/bin/brg-push" > "$fns"
+assert_exit 0 bash -c '. "$1"; root="$2"; skipped="$nl$4$nl"; printf "%s\0" "$4" | gate_count "$3"' _ "$fns" "$r2" "$r2/.bearing/state/.check-passed" docs/progress/ABC-1.md
+assert_eq "1 1" "$T_OUT" "brg-push's gate counts the committed progress change"
+t_end
+
 t_summary

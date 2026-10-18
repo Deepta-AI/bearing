@@ -228,7 +228,11 @@ engineer whether a request can succeed, and `run` re-judges what matters.
    current task and paths under `.scratch/` (untracked, or changed in the
    work tree only) do not count here or in `gate`: merge-request writes
    them after `make check` and the push sends committed history only. A
-   committed change to them still counts (by its commit time).
+   committed change to them still counts (by its commit time). (Task 3
+   fix round 2) The Stop gate skips the same records (`brg-changed
+   --skip-notes`), so the progress file merge-request writes after
+   `make check` no longer blocks the stop that would run the push; a
+   staged change still counts there.
 6. `ahead`: at least one commit on the branch not on the base
    (`origin/develop`, else `origin/main`, else `origin/master`).
 7. `gate`: `.bearing/state/.check-passed` exists and no file in the
@@ -285,7 +289,9 @@ one of them runs under
 and the clone and the push also pin `-c core.hooksPath=/dev/null` and run
 with `GIT_CONFIG_NOSYSTEM=1` and `GIT_CONFIG_GLOBAL=<tmp>/global`
 (Task 3 fix round 1), a config `run` generates holding only the
-`credential.*` keys of the engineer's global config, so no `remote.*`,
+`credential.*` keys of the system config (read with `GIT_CONFIG_NOSYSTEM`
+cleared for that read only, so Apple git's `credential.helper=osxkeychain`
+still works; fix round 2) and then of the engineer's global config, so no `remote.*`,
 `url.*`, `push.*` or transport key from any file reaches them; a git that
 reports a setting from any other file is refused:
 
@@ -307,7 +313,9 @@ configured url. A tag is never pushed: the clone has none (`--no-tags`)
 and the refspec names one branch. The temporary directory is made with
 `mktemp -d` inside `<passwd home>/.config/bearing/tmp` (created mode 700;
 the sandbox denies the agent reads and writes there), never `TMPDIR`, and
-removed by an `EXIT` trap, pushed or not. Just before the push the
+removed by an `EXIT` trap, pushed or not. Each `run` also removes its
+own leftovers there (fix round 2): `brg-push.*` directories directly
+under it, owned by the user, more than a day old, never through a link. Just before the push the
 clone's `.git/config` is re-read (includes not followed) and the push is
 refused if it holds any key but those git clone writes:
 `core.repositoryformatversion`, `core.filemode`, `core.bare`,

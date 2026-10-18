@@ -1699,7 +1699,7 @@ esac
       [ "$root/$f" -nt "$start" ] || continue
       fresh=$((fresh+1))
     done <<EOF
-$(bash "$(dirname "$0")/brg-changed" --root "$root" --since "$newest")
+$(bash "$(dirname "$0")/brg-changed" --root "$root" --since "$newest" --skip-notes)
 EOF
     if [ "$fresh" -eq 0 ]; then
       gate_log stop-gate passed
