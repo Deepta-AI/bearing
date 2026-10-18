@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """lint-model-ids: every Claude model id named under plugins/ is listed in
 bin/model-ids.txt (default|<id>|<tier> or option|<id>|<why>). An id is a whole
-token: claude-(opus|sonnet|haiku|fable|mythos)-N(-N)*, so a dated snapshot is
-one id. Reads files from git ls-files -co --exclude-standard when the root is
-a git work tree, else walks plugins/. Skips binary files. Prints the count of
+token: claude-(opus|sonnet|haiku|fable|mythos)-N then every following
+letter, digit or hyphen, so a dated snapshot is one id and a run-on id is not
+read as its listed prefix. Reads files from git ls-files -co
+--exclude-standard when the root is a git work tree, else walks plugins/. Skips binary files. Prints the count of
 files scanned and ids found; exit 1 on an unknown id, exit 2 when nothing was
 checked (no files, or no ids listed).
 Usage: lint-model-ids.py [repository root]
@@ -15,7 +16,10 @@ import subprocess
 import sys
 
 ROOT = pathlib.Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else pathlib.Path(__file__).resolve().parents[1]
-TOKEN = re.compile(r"(?<![A-Za-z0-9-])claude-(?:opus|sonnet|haiku|fable|mythos)-[0-9]+(?:-[0-9]+)*(?![0-9A-Za-z])")
+# A token runs to the first character that cannot be part of an id, so a
+# longer run (claude-opus-5-5x, claude-haiku-4-5-2025x) is one unknown id
+# rather than a backtracked listed prefix. A trailing hyphen is dropped.
+TOKEN = re.compile(r"(?<![A-Za-z0-9-])claude-(?:opus|sonnet|haiku|fable|mythos)-[0-9][A-Za-z0-9-]*")
 
 def nothing(msg):
     print(msg, file=sys.stderr)
@@ -65,11 +69,12 @@ for f in files_of(ROOT):
     scanned += 1
     for n, line in enumerate(data.decode("utf-8", "replace").splitlines(), 1):
         for m in TOKEN.finditer(line):
-            kind = listed.get(m.group(0))
+            tok = m.group(0).rstrip("-")
+            kind = listed.get(tok)
             if kind:
                 found[kind] += 1
             else:
-                bad.append(f"unknown model id {m.group(0)} in {f.relative_to(ROOT)}:{n}")
+                bad.append(f"unknown model id {tok} in {f.relative_to(ROOT)}:{n}")
 if scanned == 0:
     nothing("lint-model-ids: 0 files under plugins/, nothing checked")
 total = found["default"] + found["option"] + len(bad)

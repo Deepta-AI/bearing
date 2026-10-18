@@ -5,7 +5,7 @@
   "commandSkills": 0,
   "stackSkills": 12,
   "scripts": 95,
-  "scriptLines": 30568,
+  "scriptLines": 30573,
   "hooks": 8,
   "agents": 8,
   "makeTargets": 32,
@@ -4989,7 +4989,7 @@
     },
     {
      "path": "references/decision-tree.md",
-     "lines": 122
+     "lines": 124
     },
     {
      "path": "templates/solution.md",
@@ -15900,8 +15900,8 @@
    "name": "lint-model-ids.py",
    "lang": "python",
    "group": "quality",
-   "lines": 79,
-   "header": "lint-model-ids: every Claude model id named under plugins/ is listed in\nbin/model-ids.txt (default|<id>|<tier> or option|<id>|<why>). An id is a whole\ntoken: claude-(opus|sonnet|haiku|fable|mythos)-N(-N)*, so a dated snapshot is\none id. Reads files from git ls-files -co --exclude-standard when the root is\na git work tree, else walks plugins/. Skips binary files. Prints the count of\nfiles scanned and ids found; exit 1 on an unknown id, exit 2 when nothing was\nchecked (no files, or no ids listed).\nUsage: lint-model-ids.py [repository root]",
+   "lines": 84,
+   "header": "lint-model-ids: every Claude model id named under plugins/ is listed in\nbin/model-ids.txt (default|<id>|<tier> or option|<id>|<why>). An id is a whole\ntoken: claude-(opus|sonnet|haiku|fable|mythos)-N then every following\nletter, digit or hyphen, so a dated snapshot is one id and a run-on id is not\nread as its listed prefix. Reads files from git ls-files -co\n--exclude-standard when the root is a git work tree, else walks plugins/. Skips binary files. Prints the count of\nfiles scanned and ids found; exit 1 on an unknown id, exit 2 when nothing was\nchecked (no files, or no ids listed).\nUsage: lint-model-ids.py [repository root]",
    "functions": [
     "nothing",
     "files_of"
@@ -18321,9 +18321,9 @@
   {
    "path": "tests/unit/model_ids.sh",
    "kind": "unit",
-   "lines": 42,
+   "lines": 55,
    "header": "tests/unit/model_ids.sh: lint-model-ids holds every Claude id under plugins/ to bin/model-ids.txt (the claude-api skill's current and still-active ids).",
-   "asserts": 15
+   "asserts": 21
   },
   {
    "path": "tests/unit/motion_check.sh",

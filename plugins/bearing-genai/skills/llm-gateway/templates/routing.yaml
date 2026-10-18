@@ -26,7 +26,7 @@ models:
     input_per_m: 1.00
     output_per_m: 5.00
     cache_write_multiplier: 1.25
-    cache_read_multiplier: 0.10   # unverified: the claude-api skill states no Haiku 4.5 cache read price; check before trusting cost
+    cache_read_multiplier: 0.10   # the generic 0.1x in the claude-api skill's shared/prompt-caching.md; it has no Haiku-specific row
     context_window: 200000
   # OpenRouter: one key (OPENROUTER_API_KEY) with a spend limit, many vendors.
   # Model ids are vendor/model; prices are OpenRouter's, per million tokens.

@@ -95,8 +95,10 @@ cost_per_request = tokens_in * in_price/1e6 + tokens_out * out_price/1e6
 cost_per_1000    = cost_per_request * 1000 * calls_per_action
 ```
 
-Cache reads cost about a tenth of input price; a stable system prompt
-and tool list in front of the volatile part earns that. Batch requests
+Cache reads cost 0.05x input price on Opus 5.5, the default, 0.025x on
+Fable 5.1 and about 0.1x elsewhere (claude-api skill,
+shared/prompt-caching.md); a stable system prompt and tool list in front
+of the volatile part earns that. Batch requests
 run at half price when the answer can wait an hour.
 
 ## Latency
