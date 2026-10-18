@@ -39,9 +39,19 @@ tsv="$KIT/plugins/bearing/bin/flow-steps.tsv"
 step() { awk -F'\t' -v f="$1" -v o="$2" '$1==f && $2==o {print $3}' "$tsv"; }
 ran() { in_repo timeline-start --id "r$RANDOM" --skill "$1" >/dev/null; in_repo timeline-close --id "$(grep -o '"session":"r[0-9]*"' "$repo/.bearing/state/timeline.jsonl" | tail -1 | sed 's/.*:"//; s/"//')"; }
 
+C="$KIT/plugins/bearing/bin/brg-config"
+cf="$repo/.bearing/config.json"
+# Every case that writes or depends on the project config starts from none,
+# so a failed assertion in one case cannot leak a flow into the next.
+cfg_reset() { rm -f "$cf"; }
+# Step 1 is start-task in feature, bugfix and site alike, so the flow shows
+# only at step 2: record start-task on this branch, then ask for the next.
+second_step() { ran "bearing:start-task"; in_repo next-step; }
+
 t_begin "a site repository follows the site flow on a feature branch"
+cfg_reset
 git -C "$repo" checkout -q -b feature/TASK-50-Landing
-mkdir -p "$repo/.bearing"; printf '{"flow": "site"}\n' > "$repo/.bearing/config.json"
+mkdir -p "$repo/.bearing"; printf '{"flow": "site"}\n' > "$cf"
 assert_exit 0 in_repo next-step
 assert_eq "$(step site 1)" "$T_OUT"
 assert_eq "start-task" "$(step site 1)" "site step 1"
@@ -51,13 +61,52 @@ assert_eq "brainstorming" "$T_OUT" "site step 2"
 t_end
 
 t_begin "a bugfix branch in a site repository follows the bugfix flow"
+cfg_reset
+mkdir -p "$repo/.bearing"; printf '{"flow": "site"}\n' > "$cf"
 git -C "$repo" checkout -q -b bugfix/TASK-51-Typo
 assert_exit 0 in_repo next-step
 assert_eq "$(step bugfix 1)" "$T_OUT"
-rm -f "$repo/.bearing/config.json"
+assert_eq "$(step bugfix 2)" "$(second_step)" "bugfix step 2, not site"
+cfg_reset
+t_end
+
+t_begin "a pretty-printed config with several keys still selects the site flow"
+cfg_reset
+git -C "$repo" checkout -q -b feature/TASK-52-Pricing
+mkdir -p "$repo/.bearing"
+jq -n '{"stack": "next-app", "workflow": "feature", "flow": "site", "tracker": "none"}' > "$cf"
+assert_eq 6 "$(wc -l < "$cf" | tr -d ' ')" "jq wrote one key per line"
+assert_eq "$(step site 2)" "$(second_step)" "flow key third of four"
+cfg_reset
+t_end
+
+t_begin "a flow other than site, or site under another key, follows the feature flow"
+cfg_reset
+mkdir -p "$repo/.bearing"
+for v in feature genai sites SITE; do
+  git -C "$repo" checkout -q -b "feature/TASK-53-$v"
+  jq -n --arg v "$v" '{"name": "x", "flow": $v}' > "$cf"
+  assert_eq "$(step feature 2)" "$(second_step)" "flow $v"
+done
+git -C "$repo" checkout -q -b feature/TASK-53-subflow
+jq -n '{"subflow": "site", "flowchart": "site"}' > "$cf"
+assert_eq "$(step feature 2)" "$(second_step)" "site under another key"
+cfg_reset
+t_end
+
+t_begin "brg-config set flow site round trips into next-step"
+cfg_reset
+git -C "$repo" checkout -q -b feature/TASK-54-Docs
+assert_exit 0 bash -c "cd '$repo' && bash '$C' set stack next-app && bash '$C' set flow site"
+assert_exit 0 bash -c "cd '$repo' && bash '$C' get flow"
+assert_eq "site" "$T_OUT" "brg-config get"
+assert_eq "next-app" "$(cd "$repo" && bash "$C" get stack)" "the other key kept"
+assert_eq "$(step site 2)" "$(second_step)" "next-step reads what brg-config wrote"
+cfg_reset
 t_end
 
 t_begin "highest order wins: ran steps 1 and 3, next is 4"
+cfg_reset
 git -C "$repo" checkout -q -b feature/TASK-20-hi
 ran "bearing:$(step feature 3)"; ran "$(step feature 1)"
 assert_exit 0 in_repo next-step
@@ -65,6 +114,7 @@ assert_eq "$(step feature 4)" "$T_OUT"
 t_end
 
 t_begin "flow by branch prefix"
+cfg_reset
 for b in feat/x-1 bugfix/y fix/y hotfix/y other/z; do
   git -C "$repo" checkout -q -b "$b"
   case "$b" in bugfix/*|fix/*|hotfix/*) want="$(step bugfix 1)";; *) want="$(step feature 1)";; esac

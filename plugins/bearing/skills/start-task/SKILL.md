@@ -42,10 +42,8 @@ own uncommitted work safe.
 - acceptance criteria: as the user gave them; absent ones are "unknown,
   ask", never invented.
 - flow: `--flow site`, or the request names a landing page or marketing
-  site and the user confirms with AskUserQuestion; record it with
-  `bash "${CLAUDE_PLUGIN_ROOT}/bin/brg-config" set flow site` (the project
-  answer; every later task in this repository follows the site flow).
-  Unattended, only `--flow site` records it; nothing is asked.
+  site and the user confirms with AskUserQuestion. Unattended, only
+  `--flow site` counts; nothing is asked. It is recorded in step 7.
 
 ## Steps
 
@@ -144,7 +142,10 @@ own uncommitted work safe.
    file: `python3 "${CLAUDE_PLUGIN_ROOT}/skills/session-handoff/scripts/progress.py" write --task <ID> --title <PascalName> --status started --criteria <N | unknown> --next <first action>`,
    written in the new branch's tree; it is committed
    with the first commit on the branch, not here. If the script is absent,
-   skip it and say so.
+   skip it and say so. The site flow, when chosen: `bash "${CLAUDE_PLUGIN_ROOT}/bin/brg-config" set flow site`,
+   run in the new branch's tree (it writes that tree's `.bearing/config.json`),
+   never in the engineer's own checkout; it is the project answer, committed
+   with the first change, and every later task here follows the site flow.
 8. **Stop there.** No implementation, no commit, no push, no tag. The next
    step is Superpowers `brainstorming` if the request is vague, else
    test-first work on the branch.

@@ -1564,9 +1564,10 @@
           "title": "Set the design direction",
           "skill": "design-directions",
           "pack": "bearing",
+          "optional": true,
           "does": "One impeccable direction round over the brief's sections when impeccable is installed (three distinct variants without it), then the locked direction is recorded.",
           "output": "docs/design/variants/<feature>/ with a comparison board and approved.json",
-          "why": "A marketing page is judged on its look before its words are read. There is no ux-flows step: a landing page is one scroll with one primary action, so the brief's sections are the screen inventory."
+          "why": "Run it for a new site or a new look; a page that joins a site whose direction is already set, or a copy change, skips it. A marketing page is judged on its look before its words are read. There is no ux-flows step: a landing page is one scroll with one primary action, so the brief's sections are the screen inventory."
         },
         {
           "kind": "branch",
@@ -1696,9 +1697,10 @@
           "title": "Review the built page",
           "skill": "design-critique",
           "pack": "bearing",
+          "optional": true,
           "does": "Scores twelve categories on the running page with evidence from screenshots at three widths in both themes; task cost is n/a without flows.",
           "output": "docs/design/reviews/",
-          "why": "It runs on the built page, not the prototype, so what changed between the design and the build is caught before the code review."
+          "why": "Run it when this task set or changed the design direction; a page built on a direction already reviewed, or a copy change, skips it. It runs on the built page, not the prototype, so what changed between the design and the build is caught before the code review."
         },
         {
           "kind": "phase",

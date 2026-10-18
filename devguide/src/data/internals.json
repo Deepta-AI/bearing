@@ -13042,11 +13042,11 @@
    "sections": [
     {
      "title": "Inputs",
-     "lines": 28
+     "lines": 26
     },
     {
      "title": "Steps",
-     "lines": 99
+     "lines": 102
     },
     {
      "title": "Output contract",
@@ -13065,7 +13065,7 @@
     "type: `--type`; else `hotfix` when the request is about production being wrong now, `bugfix` for other defects, else `feature`; say which.",
     "name: `$2`; else derive a two to four word PascalCase summary from the request and say so (ask only if the request gives nothing to name).",
     "acceptance criteria: as the user gave them; absent ones are \"unknown, ask\", never invented.",
-    "flow: `--flow site`, or the request names a landing page or marketing site and the user confirms with AskUserQuestion; record it with `bash \"${CLAUDE_PLUGIN_ROOT}/bin/brg-config\" set flow site` (the project answer; every later task in this repository follows the site flow). Unattended, only `--flow site` records it; nothing is asked."
+    "flow: `--flow site`, or the request names a landing page or marketing site and the user confirms with AskUserQuestion. Unattended, only `--flow site` counts; nothing is asked. It is recorded in step 7."
    ],
    "steps": [
     "**Validate the id** against the prefix or the generic shape.",
@@ -13089,11 +13089,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 184,
+   "lines": 185,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 184
+     "lines": 185
     }
    ],
    "groups": {
@@ -18818,9 +18818,9 @@
   {
    "path": "tests/unit/session_resume.sh",
    "kind": "unit",
-   "lines": 131,
+   "lines": 181,
    "header": "tests/unit/session_resume.sh: next step from the timeline and the resume block, with and without a task id; a Next: in the state file wins.",
-   "asserts": 40
+   "asserts": 50
   },
   {
    "path": "tests/unit/session_timeline.sh",
