@@ -2,7 +2,7 @@
 name: test-run
 description: 'Runs every test suite present into one report: failures at file:line, slowest, flaky, coverage; a suite that did not run never passes. Use when asked to "run the tests", "what is failing" or "run TC-0231".'
 argument-hint: "[--suite <s>[,<s>] | all[,matrix]] [--except <s>[,<s>]] [--tag @P1] [--tc TC-0231] [--changed] [--timeout 20m]"
-allowed-tools: Read, Write, Edit, Grep, Glob, Bash(make -n:*), Bash(make synthetic:*), Bash(make db:*), Bash(make db-down:*), Bash(make migrate:*), Bash(docker compose down:*), Bash(git status:*), Bash(git diff:*), Bash(git log:*), Bash(git rev-parse:*), Bash(git merge-base:*), Bash(git rev-list:*), Bash(git branch:*), Bash(git worktree:*), Bash(git archive:*), Bash(go test:*), Bash(pnpm exec:*), Bash(uv run pytest:*), Bash(uv run --offline pytest:*), Bash(python3 -m pytest:*), Bash(pytest:*), Bash(.venv/bin/python -m pytest:*), Bash(python3 -c:*), Bash(./gradlew:*), Bash(swift test:*), Bash(xcodebuild test:*), Bash(maestro test:*), Bash(k6 run:*), Bash(bash *bin/brg-state-path*), Bash(bash *bin/brg-changed*)
+allowed-tools: Read, Write, Edit, Grep, Glob, Bash(make -n:*), Bash(make test:*), Bash(make test-integration:*), Bash(make test-e2e:*), Bash(make test-ui:*), Bash(make test-visual:*), Bash(make test-e2e-matrix:*), Bash(make synthetic:*), Bash(make db:*), Bash(make db-down:*), Bash(make migrate:*), Bash(docker compose down:*), Bash(git status:*), Bash(git diff:*), Bash(git log:*), Bash(git rev-parse:*), Bash(git merge-base:*), Bash(git rev-list:*), Bash(git branch:*), Bash(git worktree:*), Bash(git archive:*), Bash(go test:*), Bash(pnpm exec:*), Bash(uv run pytest:*), Bash(uv run --offline pytest:*), Bash(python3 -m pytest:*), Bash(pytest:*), Bash(.venv/bin/python -m pytest:*), Bash(python3 -c:*), Bash(./gradlew:*), Bash(swift test:*), Bash(xcodebuild test:*), Bash(maestro test:*), Bash(k6 run:*), Bash(bash *bin/brg-state-path*), Bash(bash *bin/brg-changed*)
 ---
 
 # test-run
@@ -43,7 +43,10 @@ the table; this only runs what exists and reports.
    native command. Read the branch with `git branch --show-current` now:
    empty is a detached HEAD, stop with "detached HEAD: no branch name for
    the evidence file".
-2. Resolve the selection. `--suite` and `--except` limit the suites;
+2. Resolve the selection. `--suite` and `--except` limit the suites; a
+   name not in the inventory stops with "suite <x> not found (<P> suites
+   present)", and a selection left empty stops with "0 suites selected
+   (<P> present)", both non-zero;
    `--tag` and `--tc` become the runner's own filter from
    `references/runners.md` (`--grep`, `-run`, `-k`, `-m`, `--tests`,
    `--filter`, `--include-tags`). `--changed` runs `bash "${CLAUDE_PLUGIN_ROOT}/bin/brg-changed" --layers --base <base>`
@@ -53,8 +56,11 @@ the table; this only runs what exists and reports.
    `brg-changed:` counts line is an older copy) are in `references/runners.md`,
    "Layers and scoped selection". Zero tests selected: report the diff
    files and exit non-zero.
-3. Run each selected suite with the native command and reporter from
-   `references/runners.md`, raw output under
+3. Run each selected suite through its Makefile target when one exists
+   and step 1 found nothing in it that swallows a failure (`make test`,
+   `make test-integration`, `make test-e2e`, `make test-ui`,
+   `make test-visual`, `make test-e2e-matrix`), else the native command
+   and reporter from `references/runners.md`, raw output under
    `.scratch/test-run/<date>-<branch>/<suite>.<ext>`, the timeout from
    `--timeout` (default 20 minutes per suite) passed through the runner's
    own flag. Check the runner offline first (the Python fallbacks are in
@@ -69,7 +75,8 @@ the table; this only runs what exists and reports.
    status, duration, retries, message. Extract `TC-nnnn` from the name;
    look up the story id in the case table. A suite in which every test
    skipped itself for a missing precondition (`DATABASE_URL not set`, an
-   `importorskip`, no device) is "not run (<reason>)": it examined nothing.
+   `importorskip`, no device) is "not run (<reason>)": it examined nothing;
+   a suite that reports 0 tests is "not run (0 tests)".
    Its tests stay out of the headline counts, which cover run suites only,
    so the headline and the per-suite table agree.
 5. Compute the summary counts, the per-suite table, the failures with the

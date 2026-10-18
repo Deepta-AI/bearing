@@ -1,17 +1,21 @@
 # Runners: the exact command and report format per stack
 
-One row per suite. The Makefile target tells you the suite exists
-(`make -n <target>` shows its real command); the native command below is
-what `test-run` executes, because it produces a file the skill can
-parse. `<t>` is the timeout, `<out>` is
+One row per suite. When the repository's Makefile has the suite's
+target (`test`, `test-integration`, `test-e2e`, `test-ui`, `test-visual`,
+`test-e2e-matrix`), `test-run` runs `make <target>` and reads the report
+file the recipe writes (`make -n <target>` shows it), else the runner's
+summary on stdout. A target that swallows a failure (SKILL.md step 1), or
+no target at all, means the native command below, which writes a file
+the skill can parse. The load suite always runs its k6 command. `<t>` is the timeout, `<out>` is
 `.scratch/test-run/<date>-<branch>/<suite>`.
 
-| Stack | Suite | Make target | Native command | Output |
+| Stack | Suite | Make target (runs when present) | Native command (no target, or one that swallows a failure) | Output |
 | --- | --- | --- | --- | --- |
 | Go | unit | `test` | `go test -json -race -count=1 -cover -timeout <t> ./... > <out>.jsonl` | JSON lines |
 | Go | integration | `test-integration` | `DATABASE_URL=... go test -json -race -count=1 -tags=integration -timeout <t> ./internal/store/... > <out>.jsonl` | JSON lines |
 | React | unit | `test` | `pnpm exec vitest run --reporter=json --outputFile=<out>.json --coverage --coverage.reporter=json-summary --testTimeout=<ms>` | JSON + `coverage/coverage-summary.json` |
 | React | e2e | `test-e2e` | `PLAYWRIGHT_JSON_OUTPUT_NAME=<out>.json pnpm exec playwright test --reporter=json --global-timeout=<ms>` | JSON + `test-results/` traces |
+| React | visual | `test-visual` | `PLAYWRIGHT_JSON_OUTPUT_NAME=<out>.json pnpm exec playwright test e2e/visual --reporter=json --global-timeout=<ms>` | JSON + diff images under `test-results/` |
 | React Native | unit | `test` | `pnpm exec jest --ci --json --outputFile=<out>.json --coverage --coverageReporters=json-summary --testTimeout=<ms>` | JSON + `coverage/coverage-summary.json` |
 | React Native | e2e | `test-e2e` | `maestro test --format junit --output <out>.xml .maestro` | JUnit XML + `~/.maestro/tests/` screenshots |
 | Python | unit | `test` | `uv run pytest -m "not integration" --junitxml=<out>.xml --cov --cov-report=json:<out>-cov.json` | JUnit XML + coverage JSON |
@@ -94,13 +98,26 @@ for the evidence file"). It is a superset of the report JSON, so
    "file": "e2e/auth/login.spec.ts", "line": 41, "message": "expected visible, received hidden"}]}
 ```
 
-`status` is `run`, `covered` or `not run`. `not_run` lists the selected
-suites that did not run, each with its reason in `suites`. `tests` and
-`failed` count only suites with status `run`; a suite that examined zero
-tests is `not run` with reason `0 tests`. Scope full has `layers` and
-`base` empty and `except` as given. Counts line: `S` is the suites with
-status `run` or `covered`, `P` the suites selected and present, `N` the
-suites not run.
+`status` is `run`, `covered` or `not run`. `reason` is `""` for `run`;
+`covered by make check-changed` or `covered by make check` for `covered`;
+for `not run` one of `runner missing`, `timed out`, `on demand`,
+`refused`, `no database`, `0 tests` (a suite that examined zero tests),
+or `precondition: <text>` (every test skipped itself, as
+`precondition: DATABASE_URL not set`). `not_run` lists the selected suites that did not run, each
+with its reason in `suites`. `tests` and `failed` count only suites with
+status `run`. A `covered` suite carries `name`, `status`, `reason`,
+`marker` (the marker file's path) and `passed`, `failed`, `skipped` as
+the target printed them, each `null` when it printed none. In `failures`,
+`line` is an integer, `null` when the runner gives none. Scope full has
+`files` `null` (no diff is taken), `layers` and `base` empty and `except`
+as given. Counts line: `S` is the suites with status `run` or `covered`,
+`P` the suites selected and present, `N` the suites not run.
+
+A run that stops before any suite (zero files changed, a `brg-changed`
+error, a detached HEAD, 0 suites selected or a suite not found) writes
+no evidence and leaves the last file in place. A reader (a gate,
+definition of done, `test-heal`) therefore compares the file's `sha` to
+HEAD and its `scope` to the one it needs before trusting it.
 
 ## Integration database for a full run
 

@@ -60,7 +60,7 @@
    "expectations": [
     "The run determines the change set against develop (the branch's base) and prints a line starting `brg-changed:` with the layers `unit ui visual` for the one changed file src/styles/theme.css, taken from `brg-changed --layers --base develop`",
     "The run does not run the unit suite again: it says `unit: covered by make check-changed` (the marker .bearing/state/.check-changed-passed is newer than theme.css) and does not execute `make test` or vitest",
-    "The run executes the e2e suite and the whole visual suite (the Makefile targets test-e2e and test-visual print stub results: 4 passed and 3 passed; reading them as the suites' results is correct for this fixture), and does not narrow the visual suite to one spec",
+    "The run executes the e2e suite and the whole visual suite through the repository's Makefile targets, `make test-e2e` and `make test-visual` (the skill runs a suite's Makefile target when one exists and swallows no failure, else the native command; these stubs print 4 passed and 3 passed, which are the suites' results), and does not narrow the visual suite to one spec",
     "The run writes nothing under docs/testing/reports/ (a scoped run is a working check, not an archive)",
     "The run writes .scratch/test-run/feat_TASK-7-theme-changed.json with scope changed, layers unit, ui and visual, the unit suite with status covered, the e2e and visual suites with status run, and failed 0",
     "The final message ends with a line that starts with `test-run: scope changed,` and gives the suites run out of present, the tests, the failed count and the not run count",
