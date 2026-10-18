@@ -102,6 +102,18 @@ tests is `not run` with reason `0 tests`. Scope full has `layers` and
 status `run` or `covered`, `P` the suites selected and present, `N` the
 suites not run.
 
+## Integration database for a full run
+
+Definition of done item 14 runs `--except unit`, which includes the
+integration suite. When the inventory has that suite and the Makefile has
+`db` and `migrate` targets, run `make db` then `make migrate` before it,
+and note in the report that this run started the database. After the run,
+stop only what this run started (`make db-down` or `docker compose down`
+when the Makefile or compose file has it) and show the port is free; a
+database that was already up stays up. No `db` target: the suite runs
+with the `DATABASE_URL` the environment gives it, and a suite that cannot
+connect is "not run (no database)", never a pass.
+
 ## Python: choosing the command offline
 
 The Python rows assume uv and pytest-cov; neither is guaranteed, and a

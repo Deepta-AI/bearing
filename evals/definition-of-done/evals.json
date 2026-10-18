@@ -54,6 +54,23 @@
     "The run reports no failure that the repository contradicts: it does not claim a new dependency (go.mod is unchanged), a missing ticket id on either commit (both subjects end in [ORD-88]), RECEIPT_FOOTER missing from .env.example or receipt_viewed missing from the event sheet (both were added), or missing request id logging for the new route (the RequestID middleware wraps the whole mux); if it raises the lack of a metric, it says the repository has no metrics anywhere and does not count it among the branch's failures or the reasons it is not ready (listing it as a failing item fails this expectation)",
     "Each problem in the final message names the file (and the function, route or line) where it is, so the author can act on it without searching"
    ]
+  },
+  {
+   "id": 3,
+   "name": "e2e-red-while-check-green",
+   "prompt": "Is TASK-9 (the catalogue category filter) done? It's on feature/TASK-9-filter off develop. Just the verdict, don't fix anything.",
+   "expected_output": "The gate passes (make check ends with check: passed) and item 1 is pass. Item 14 runs test-run --except unit, which runs the e2e suite: make test-e2e fails with e2e/filter.spec.ts line 7 (TC-0040, the assertion; the test starts at line 4) expecting 2 list items and receiving 5, so item 14 is fail and names that file, line and message. The verdict is not done (1 item failing). No question offers to leave e2e to CI: the e2e suite ran and failed, it did not fail to run, so the CI hand-off does not apply even though .gitlab-ci.yml has an e2e job.",
+   "files": [
+    "files/e2e-red"
+   ],
+   "expectations": [
+    "Item 1 (gate) is pass with `make check` ending in `check: passed`",
+    "Item 14 runs test-run with `--except unit` (the full run of every suite beyond unit) and shows its `test-run:` counts line as evidence",
+    "Item 14 is fail and names e2e/filter.spec.ts, its line (7, or 4 for the test) and the message (expected 2 list items, received 5), together with TC-0040",
+    "The verdict is `not done`, with item 14 among the failing items",
+    "No AskUserQuestion offers to leave e2e to a CI job: e2e ran and failed, so the CI hand-off is not offered even though .gitlab-ci.yml has an `e2e` job",
+    "No tracked file differs from the fixture, the run makes no commit, stash or checkout, and no file it writes contains an em dash character"
+   ]
   }
  ]
 }

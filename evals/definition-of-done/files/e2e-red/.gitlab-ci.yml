@@ -1,0 +1,9 @@
+stages: [test]
+
+check:
+  stage: test
+  script: [make check]
+
+e2e:
+  stage: test
+  script: [make test-e2e]

@@ -3139,9 +3139,15 @@
     "Bash(python3 -m pytest:*)",
     "Bash(./gradlew test:*)",
     "Bash(swift test:*)",
+    "Bash(maestro test:*)",
+    "Bash(xcodebuild test:*)",
+    "Bash(./gradlew connectedDebugAndroidTest:*)",
+    "Bash(printenv BEARING_AUTOPILOT BEARING_NONINTERACTIVE BRG_AUTOPILOT_HEADLESS)",
     "Bash(tail -40)",
     "Bash(bash *skills/definition-of-done/scripts/red_proof.sh *)",
     "Bash(bash *bin/brg-state-path*)",
+    "Bash(bash *bin/brg-changed*)",
+    "Bash(bash *bin/brg-autopilot*)",
     "Bash(python3 *skills/prose-lint/scripts/prose_check.py*)"
    ],
    "extra": {},
@@ -3153,7 +3159,7 @@
     },
     {
      "title": "Steps",
-     "lines": 112
+     "lines": 135
     },
     {
      "title": "Output contract",
@@ -3169,7 +3175,7 @@
     "red proof: `scripts/red_proof.sh` in this skill, bash and git only.",
     "task id: the branch name (`[A-Z][A-Z0-9]*(-[0-9]+)+`); if absent, the state file; if absent, ask once with AskUserQuestion as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says; if none, items 10 and 11 check scope against the stated task and commits without an id, and the table header says \"no task id\".",
     "gate: `make check` when the Makefile has a `check` target; if absent, the stack's native command (`go test ./...`, `pnpm test`, `uv run pytest`, `./gradlew test`, `swift test`); item 1 then says \"improvised gate\" (`new-repo` or `onboard-repo` install the Makefile).",
-    "the list: the thirteen items in step 3, which are the standard's and need no file in the repository; a \"Definition of done additions\" section in AGENTS.md, when present, may add items to them and never removes one.",
+    "the list: the items in step 3, which are the standard's and need no file in the repository; a \"Definition of done additions\" section in AGENTS.md, when present, may add items to them and never removes one.",
     "event sheet: `docs/analytics/EVENT_SHEET.md`; if absent and the diff adds events, item 6 fails with \"no event sheet; `analytics-events` writes one\".",
     "the task's statement: the state file's acceptance criteria; if absent, the MR or commit bodies; if absent, ask once with AskUserQuestion what the task was (free text via Other)."
    ],
@@ -3188,11 +3194,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 174,
+   "lines": 197,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 174
+     "lines": 197
     },
     {
      "path": "scripts/red_proof.sh",
@@ -13677,6 +13683,10 @@
     "Glob",
     "Bash(make -n:*)",
     "Bash(make synthetic:*)",
+    "Bash(make db:*)",
+    "Bash(make db-down:*)",
+    "Bash(make migrate:*)",
+    "Bash(docker compose down:*)",
     "Bash(git status:*)",
     "Bash(git diff:*)",
     "Bash(git log:*)",
@@ -13764,7 +13774,7 @@
     },
     {
      "path": "references/runners.md",
-     "lines": 189
+     "lines": 201
     },
     {
      "path": "templates/report.md",
