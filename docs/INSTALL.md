@@ -312,7 +312,7 @@ Re-record the terminal replays after a change to what they show:
 On a GitLab mirror, the `pages` job can also publish the handbook to
 GitLab Pages where the host serves it (a self-managed GitLab needs its
 administrator to enable it). Where neither Vercel nor Pages is available,
-export the docs and the four task flows to the project wiki. The export
+export the docs and the six task flows to the project wiki. The export
 uses GitLab's wiki page names (`home`, `_sidebar`); a GitHub wiki looks
 for `Home` and `_Sidebar` instead, so rename those two there. Enable the
 wiki (GitHub: Settings, General, Features, Wikis; GitLab: Settings,

@@ -215,14 +215,15 @@ start them for you. The scripts behind the skills keep a `brg-` prefix
   repository commits.
 
 The complete map, one skill for every row, is
-[docs/WORKFLOW.md](docs/WORKFLOW.md). The handbook is a site with the four
-task flows (greenfield, bug fix, feature addition, inherited codebase), every stage, and a page
+[docs/WORKFLOW.md](docs/WORKFLOW.md). The handbook is a site with the six
+task flows (greenfield, bug fix, feature addition, GenAI feature or
+product, inherited codebase, marketing site), every stage, and a page
 per skill with when to use it and where it fits. It is built from
 `site/` (`make site`) and deployed to Vercel by the `docs` GitHub workflow
 (or the `handbook:vercel` job on a GitLab mirror); see
 [docs/INSTALL.md](docs/INSTALL.md#the-handbook-site-on-vercel). On a
 GitLab host without Vercel, the `pages` job publishes it to GitLab Pages,
-and `make wiki` exports the same docs and the four flows as wiki pages
+and `make wiki` exports the same docs and the six flows as wiki pages
 (see [docs/INSTALL.md](docs/INSTALL.md#the-docs-as-wiki-pages)).
 
 ## Other harnesses

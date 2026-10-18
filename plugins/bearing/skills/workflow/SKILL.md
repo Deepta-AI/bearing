@@ -56,6 +56,7 @@ The map, one skill per stage; the full map is `docs/WORKFLOW.md`:
 | Record | `adr`, `high-level-design`, `low-level-design` |
 | Design | `ux-flows`, `design-directions` (calls impeccable when installed), `design-system`, `screen-design`, then `data-model` and `openapi-spec` from the screens' data needs |
 | GenAI | `bearing-genai:genai-design`, then `bearing-genai:rag` or `bearing-genai:llm-agent`, `bearing-genai:llm-gateway`, `bearing-genai:llm-eval`, `bearing-genai:model-routing` |
+| Site | a landing page or marketing site: the site flow (`start-task --flow site`); `screen-design`, `accessibility`, `performance`, `branch-review` |
 | Build | Superpowers `test-driven-development`; `db-migration` |
 | Debug | Superpowers `systematic-debugging`, `/investigate` |
 | Test | `test-run --changed`, `test-heal`, gstack `/qa`, `load-test` |

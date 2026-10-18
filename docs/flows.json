@@ -1,5 +1,5 @@
 {
-  "_about": "The five task flows the handbook draws: greenfield, bug fix, feature addition, GenAI feature or product, inherited codebase. Each step names the skill the workflow runs at that moment (whatever pack provides it), why the step matters and what it produces. bin/gen-guide.py validates every skill name against the kit and the known-skills list and copies this file into the site's data. Edit here, then run make docs.",
+  "_about": "The six task flows the handbook draws: greenfield, bug fix, feature addition, GenAI feature or product, inherited codebase, marketing site. Each step names the skill the workflow runs at that moment (whatever pack provides it), why the step matters and what it produces. bin/gen-guide.py validates every skill name against the kit and the known-skills list and copies this file into the site's data. Edit here, then run make docs.",
   "flows": [
     {
       "id": "greenfield",
@@ -1496,6 +1496,258 @@
           "kind": "link",
           "title": "Fixing a bug: continue with the bug fix flow",
           "flow": "bugfix"
+        }
+      ]
+    },
+    {
+      "id": "site",
+      "title": "Marketing site or landing page",
+      "tagline": "From a goal and a page brief to a fast, accessible page, reviewed and shipped.",
+      "when": "A landing page, a marketing site or a docs-style site: content and screens, no product backend, no API to design.",
+      "steps": [
+        {
+          "kind": "phase",
+          "title": "Frame the page"
+        },
+        {
+          "kind": "step",
+          "id": "s-task",
+          "title": "Start the task",
+          "skill": "start-task",
+          "pack": "bearing",
+          "does": "Creates the feature/ branch and the state file; on the first task it records the repository as a site, so every later task here follows this flow.",
+          "output": "feature/<ID>-<Name>, .bearing/state/<branch>.md and \"flow\": \"site\" in .bearing/config.json",
+          "why": "The task id threads through every commit and the MR, and the recorded flow keeps the next session on these steps."
+        },
+        {
+          "kind": "step",
+          "id": "s-brief",
+          "title": "Write the page brief",
+          "skill": "brainstorming",
+          "pack": "Superpowers",
+          "does": "Questions one at a time until the goal, the audience, the one primary action, the sections in order and the source of the copy are pinned down.",
+          "output": "A page brief: goal, audience, primary action, sections, copy source",
+          "why": "A page with two primary actions serves neither. The brief stands in for the PRD and the backlog, which a site does not need."
+        },
+        {
+          "kind": "branch",
+          "question": "Is there a repository for the site yet?",
+          "options": [
+            {
+              "label": "No",
+              "steps": [
+                {
+                  "kind": "step",
+                  "id": "s-repo",
+                  "title": "Scaffold the site",
+                  "skill": "new-repo",
+                  "pack": "bearing",
+                  "does": "Creates the repository with the next-app stack id: Next.js with the App Router, the Makefile gate, CI, git hooks and AGENTS.md. The nextjs skill holds its build rules.",
+                  "output": "A Next.js repository whose make check passes on the first commit.",
+                  "why": "Pages render statically by default, more pages are a new route, and the gate and hooks are there from the first commit."
+                }
+              ]
+            },
+            {
+              "label": "Yes",
+              "steps": []
+            }
+          ]
+        },
+        {
+          "kind": "phase",
+          "title": "Design the page"
+        },
+        {
+          "kind": "step",
+          "id": "s-direction",
+          "title": "Set the design direction",
+          "skill": "design-directions",
+          "pack": "bearing",
+          "does": "One impeccable direction round over the brief's sections when impeccable is installed (three distinct variants without it), then the locked direction is recorded.",
+          "output": "docs/design/variants/<feature>/ with a comparison board and approved.json",
+          "why": "A marketing page is judged on its look before its words are read. There is no ux-flows step: a landing page is one scroll with one primary action, so the brief's sections are the screen inventory."
+        },
+        {
+          "kind": "branch",
+          "question": "Does the site follow an existing design system?",
+          "options": [
+            {
+              "label": "No",
+              "steps": [
+                {
+                  "kind": "step",
+                  "id": "s-system",
+                  "title": "Turn it into tokens",
+                  "skill": "design-system",
+                  "pack": "bearing",
+                  "does": "Tokens in oklch, the web theme the Next.js app loads, a component contract and a design lint that fails on stray values.",
+                  "output": "docs/design/tokens.json and the web theme",
+                  "why": "It ships deterministic gates, a token lint and a contrast check, so the next page stays on the brand."
+                }
+              ]
+            },
+            {
+              "label": "Yes",
+              "steps": []
+            }
+          ]
+        },
+        {
+          "kind": "step",
+          "id": "s-screens",
+          "title": "Design every section in every state",
+          "skill": "screen-design",
+          "pack": "bearing",
+          "does": "One HTML prototype per page with every section and every state of its form or call to action, desktop beside a 375 px phone layout, checked at 375, 768 and 1440 wide.",
+          "output": "docs/design/screens/<feature>/",
+          "why": "The developer builds from it without inventing a state. It writes no data-needs.md: a site has no API contract or data model for the data needs to feed."
+        },
+        {
+          "kind": "phase",
+          "title": "Build"
+        },
+        {
+          "kind": "step",
+          "id": "s-build",
+          "title": "Build the page",
+          "skill": "nextjs",
+          "pack": "bearing-apps",
+          "does": "The screens as server components, static by default, images and fonts through the framework, the copy from the brief, tests first for the form and any logic.",
+          "output": "The pages under src/app and their tests",
+          "why": "A static page needs no server work per visit, which keeps it fast and cheap to host."
+        },
+        {
+          "kind": "branch",
+          "question": "Does the page track visitors or collect a form?",
+          "options": [
+            {
+              "label": "Yes",
+              "steps": [
+                {
+                  "kind": "step",
+                  "id": "s-events",
+                  "title": "Events from the sheet",
+                  "skill": "analytics-events",
+                  "pack": "bearing",
+                  "does": "Writes the page's events (the view, the primary action, the form submit) into the event sheet and wires typed emit helpers.",
+                  "output": "docs/analytics/ and emit code",
+                  "why": "The goal in the brief is measured by these events; an event not in the sheet is a bug."
+                },
+                {
+                  "kind": "step",
+                  "id": "s-privacy",
+                  "title": "Review the personal data",
+                  "skill": "privacy-review",
+                  "pack": "bearing",
+                  "does": "A data map for what the form and the analytics collect: purpose, basis and retention for each field, and the consent the page asks for.",
+                  "output": "docs/privacy/DATA_MAP.md",
+                  "why": "A form or a tracker on a public page collects personal data from strangers; the map is written before the first visitor arrives."
+                }
+              ]
+            },
+            {
+              "label": "No",
+              "steps": []
+            }
+          ]
+        },
+        {
+          "kind": "phase",
+          "title": "Test"
+        },
+        {
+          "kind": "step",
+          "id": "s-testrun",
+          "title": "Test the change",
+          "skill": "test-run",
+          "pack": "bearing",
+          "does": "test-run --changed: runs the test layers the diff touches (unit, end to end, visual) and writes the evidence for HEAD.",
+          "output": ".scratch/test-run/<branch>-changed.json and a pass or fail line per suite",
+          "why": "The suites this change can break run while the fix is still cheap; the full run waits for definition of done."
+        },
+        {
+          "kind": "phase",
+          "title": "Check"
+        },
+        {
+          "kind": "step",
+          "id": "s-a11y",
+          "title": "Check accessibility",
+          "skill": "accessibility",
+          "pack": "bearing",
+          "does": "WCAG 2.2 AA: contrast, focus order, labels, headings and alt text, findings at file:line, axe checks in Playwright.",
+          "output": "Fixed findings and axe checks in the suite",
+          "why": "A public page is read with keyboards and screen readers too, and the axe checks keep it accessible after the next copy change."
+        },
+        {
+          "kind": "step",
+          "id": "s-perf",
+          "title": "Measure the speed",
+          "skill": "performance",
+          "pack": "bearing",
+          "does": "Lighthouse before and after on the built pages at phone and desktop sizes; each fix is named with the number it moved.",
+          "output": "docs/performance/<kebab>.md with before and after numbers",
+          "why": "Visitors leave a page that renders slowly. It measures first, so every fix follows a number."
+        },
+        {
+          "kind": "step",
+          "id": "s-critique",
+          "title": "Review the built page",
+          "skill": "design-critique",
+          "pack": "bearing",
+          "does": "Scores twelve categories on the running page with evidence from screenshots at three widths in both themes; task cost is n/a without flows.",
+          "output": "docs/design/reviews/",
+          "why": "It runs on the built page, not the prototype, so what changed between the design and the build is caught before the code review."
+        },
+        {
+          "kind": "phase",
+          "title": "Review"
+        },
+        {
+          "kind": "step",
+          "id": "s-review",
+          "title": "Code review",
+          "skill": "branch-review",
+          "pack": "bearing",
+          "does": "gstack /review with the stack checklists (the bearing reviewer in an unattended run), then an independent verifier on every Critical and High; the verdict goes to verdict.txt.",
+          "output": "Verified findings and a verdict",
+          "why": "gstack /review finds; the verifier, who never saw its reasoning, confirms each Critical and High."
+        },
+        {
+          "kind": "phase",
+          "title": "Ship"
+        },
+        {
+          "kind": "step",
+          "id": "s-dod",
+          "title": "Definition of done",
+          "skill": "definition-of-done",
+          "pack": "bearing",
+          "does": "Every item with evidence: gate output, tests, events, scope, commits.",
+          "output": "A verdict",
+          "why": "An item without evidence is a fail."
+        },
+        {
+          "kind": "step",
+          "id": "s-mr",
+          "title": "Open the merge request",
+          "skill": "merge-request",
+          "pack": "bearing",
+          "does": "The gate, the commit audit and the filled template; you push, or the Stop hook does where you opted the repository in.",
+          "output": "The MR description and the push command",
+          "why": "It prepares everything and pushes only where you opted the repository in."
+        },
+        {
+          "kind": "step",
+          "id": "s-verify",
+          "title": "Smoke the deployed pages",
+          "skill": "verify-deploy",
+          "pack": "bearing",
+          "optional": true,
+          "does": "After the engineer deploys: readiness, the version and a smoke of each page, read-only, never rolling back.",
+          "output": "A deploy check with counts",
+          "why": "It confirms the pages that went live are the pages that were reviewed."
         }
       ]
     }

@@ -102,7 +102,15 @@ case "$sub" in
     printf '%s\tcheckpoint\twritten\t%s\t\n' "$(date +%Y-%m-%dT%H:%M:%S)" "$(( ($(date +%s) - t0) * 1000 ))" >> "$st/gates.log";;
   next-step)
     steps="$(dirname "$0")/flow-steps.tsv"; [ -f "$steps" ] || exit 0
-    case "$branch" in bugfix/*|fix/*|hotfix/*) flow=bugfix;; *) flow=feature;; esac
+    # A site repository (.bearing/config.json "flow": "site", written by
+    # start-task through brg-config, one key per line) follows the site flow;
+    # a fix branch still follows bugfix. sed, not jq: bash 3.2 CI lacks jq.
+    case "$branch" in
+      bugfix/*|fix/*|hotfix/*) flow=bugfix;;
+      *) flow=feature
+         cf="$root/.bearing/config.json"
+         [ -f "$cf" ] && [ "$(sed -n 's/.*"flow"[[:space:]]*:[[:space:]]*"\([a-z]*\)".*/\1/p' "$cf" | head -1)" = site ] && flow=site;;
+    esac
     done_list="$(bash "$0" timeline-recent --branch "$branch" --n 200 | sed 's/.*://; s|^/||')"
     [ "$flow" = feature ] && printf '%s\n' "$done_list" | grep -qx 'genai-design' && flow=genai
     printf '%s\n' "$done_list" | awk -F'\t' -v f="$flow" '

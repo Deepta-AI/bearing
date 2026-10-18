@@ -39,6 +39,24 @@ tsv="$KIT/plugins/bearing/bin/flow-steps.tsv"
 step() { awk -F'\t' -v f="$1" -v o="$2" '$1==f && $2==o {print $3}' "$tsv"; }
 ran() { in_repo timeline-start --id "r$RANDOM" --skill "$1" >/dev/null; in_repo timeline-close --id "$(grep -o '"session":"r[0-9]*"' "$repo/.bearing/state/timeline.jsonl" | tail -1 | sed 's/.*:"//; s/"//')"; }
 
+t_begin "a site repository follows the site flow on a feature branch"
+git -C "$repo" checkout -q -b feature/TASK-50-Landing
+mkdir -p "$repo/.bearing"; printf '{"flow": "site"}\n' > "$repo/.bearing/config.json"
+assert_exit 0 in_repo next-step
+assert_eq "$(step site 1)" "$T_OUT"
+assert_eq "start-task" "$(step site 1)" "site step 1"
+ran "bearing:start-task"
+assert_exit 0 in_repo next-step
+assert_eq "brainstorming" "$T_OUT" "site step 2"
+t_end
+
+t_begin "a bugfix branch in a site repository follows the bugfix flow"
+git -C "$repo" checkout -q -b bugfix/TASK-51-Typo
+assert_exit 0 in_repo next-step
+assert_eq "$(step bugfix 1)" "$T_OUT"
+rm -f "$repo/.bearing/config.json"
+t_end
+
 t_begin "highest order wins: ran steps 1 and 3, next is 4"
 git -C "$repo" checkout -q -b feature/TASK-20-hi
 ran "bearing:$(step feature 3)"; ran "$(step feature 1)"

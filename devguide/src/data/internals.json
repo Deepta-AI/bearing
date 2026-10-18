@@ -5,7 +5,7 @@
   "commandSkills": 0,
   "stackSkills": 12,
   "scripts": 98,
-  "scriptLines": 31887,
+  "scriptLines": 31912,
   "hooks": 8,
   "agents": 8,
   "makeTargets": 32,
@@ -13004,7 +13004,7 @@
    "description": "Starts work on a ticket: creates the branch from the right base with the task id, writes state and progress notes, restates the criteria. Use when asked to \"start TASK-142\", \"pick up this ticket\" or \"create a branch\".",
    "invocation": "auto",
    "kind": "step",
-   "args": "<TASK-ID> [PascalName] [--type feature|bugfix|hotfix|chore|docs]",
+   "args": "<TASK-ID> [PascalName] [--type feature|bugfix|hotfix|chore|docs] [--flow site]",
    "tools": [
     "Read",
     "Write",
@@ -13042,7 +13042,7 @@
    "sections": [
     {
      "title": "Inputs",
-     "lines": 23
+     "lines": 28
     },
     {
      "title": "Steps",
@@ -13064,7 +13064,8 @@
     "repository conventions: CONTRIBUTING.md, RELEASING.md, README.md, a branching or release section in docs/, and the deploy configuration (deploy/, k8s/, helm values, a workflow that deploys on a tag). Their naming and base rules override the defaults below; where they contradict what the history shows, the history wins and the report says so.",
     "type: `--type`; else `hotfix` when the request is about production being wrong now, `bugfix` for other defects, else `feature`; say which.",
     "name: `$2`; else derive a two to four word PascalCase summary from the request and say so (ask only if the request gives nothing to name).",
-    "acceptance criteria: as the user gave them; absent ones are \"unknown, ask\", never invented."
+    "acceptance criteria: as the user gave them; absent ones are \"unknown, ask\", never invented.",
+    "flow: `--flow site`, or the request names a landing page or marketing site and the user confirms with AskUserQuestion; record it with `bash \"${CLAUDE_PLUGIN_ROOT}/bin/brg-config\" set flow site` (the project answer; every later task in this repository follows the site flow). Unattended, only `--flow site` records it; nothing is asked."
    ],
    "steps": [
     "**Validate the id** against the prefix or the generic shape.",
@@ -13088,11 +13089,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 179,
+   "lines": 184,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 179
+     "lines": 184
     }
    ],
    "groups": {
@@ -15095,7 +15096,7 @@
    "sections": [
     {
      "title": "With no argument: the menu",
-     "lines": 43
+     "lines": 44
     },
     {
      "title": "Inputs",
@@ -15142,11 +15143,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 191,
+   "lines": 192,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 191
+     "lines": 192
     },
     {
      "path": "references/agent-split.md",
@@ -15835,7 +15836,7 @@
    "name": "brg-session",
    "lang": "bash",
    "group": "quality",
-   "lines": 134,
+   "lines": 142,
    "header": "brg-session: session memory for Bearing, all local and model-free.\n  timeline-start --id <sid> --skill <name>   record a skill start (ends the open one)\n  timeline-close --id <sid>                   end the open skill of this session\n  timeline-recent [--branch <b>] [--n <k>]    last k ended skills on the branch\n  not-run --skill <reason>                    log `timeline not-run <reason>` to gates.log\n  checkpoint                                  write .bearing/state/<branch>.checkpoint.md\n  next-step                                   the next flow step after the timeline\n  resume [--source startup|resume|compact]    the block SessionStart prints\nRuns on bash 3.2; needs git; uses jq when present. Exit 0 always.",
    "functions": [
     "esc",
@@ -15849,6 +15850,7 @@
    ],
    "calls": [
     "brg-autopilot",
+    "brg-config",
     "brg-guard",
     "brg-learn"
    ]
@@ -15942,7 +15944,7 @@
    "name": "flow-steps.tsv",
    "lang": "bash",
    "group": "quality",
-   "lines": 102,
+   "lines": 119,
    "header": "",
    "functions": [],
    "env": [],
@@ -16027,7 +16029,7 @@
    "lang": "python",
    "group": "generators",
    "lines": 1400,
-   "header": "Generate the documents that derive from the skills in this repository:\n\n  site/src/data/handbook.json   everything the handbook site renders\n  docs/WORKFLOW.md              the stage tables between the markers\n\nEvery table comes from one source: the skill frontmatter (name,\ndescription, invocation), CATEGORY and STAGES below, plus one reviewed\nfile: docs/flows.json (the four task flows). Fails when zero skills are\nfound, when a skill has no category, when a row names more than one skill,\nor when a row or a flow names a skill that is neither a Bearing skill nor\nlisted in docs/known-skills.txt.\n\n    gen-guide.py                        write every document\n    gen-guide.py --write-known-skills   rewrite docs/known-skills.txt from\n                                        the skills installed on this\n                                        machine, then continue\n    gen-guide.py --check-names          the default; kept as a flag so a\n                                        caller can name the intent",
+   "header": "Generate the documents that derive from the skills in this repository:\n\n  site/src/data/handbook.json   everything the handbook site renders\n  docs/WORKFLOW.md              the stage tables between the markers\n\nEvery table comes from one source: the skill frontmatter (name,\ndescription, invocation), CATEGORY and STAGES below, plus one reviewed\nfile: docs/flows.json (the six task flows). Fails when zero skills are\nfound, when a skill has no category, when a row names more than one skill,\nor when a row or a flow names a skill that is neither a Bearing skill nor\nlisted in docs/known-skills.txt.\n\n    gen-guide.py                        write every document\n    gen-guide.py --write-known-skills   rewrite docs/known-skills.txt from\n                                        the skills installed on this\n                                        machine, then continue\n    gen-guide.py --check-names          the default; kept as a flag so a\n                                        caller can name the intent",
    "functions": [
     "scan_installed",
     "check_names",
@@ -18816,9 +18818,9 @@
   {
    "path": "tests/unit/session_resume.sh",
    "kind": "unit",
-   "lines": 113,
+   "lines": 131,
    "header": "tests/unit/session_resume.sh: next step from the timeline and the resume block, with and without a task id; a Next: in the state file wins.",
-   "asserts": 33
+   "asserts": 40
   },
   {
    "path": "tests/unit/session_timeline.sh",
