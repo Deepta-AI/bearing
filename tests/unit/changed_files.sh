@@ -27,6 +27,118 @@ assert_exit 0 bash "$CHANGED" --root "$repo" --since "$repo/.bearing/state/.chec
 assert_eq "" "$T_OUT"
 t_end
 
+# --layers: each case builds its own repository (main with one commit, then a
+# branch feat) so the cases cannot leak into each other.
+G() { git -C "$R" -c user.email=t@example.com -c user.name=t "$@"; }
+L() { bash "$CHANGED" --layers --root "$R" "$@"; }
+mkr() {
+  R="$(tmpdir)"
+  git -C "$R" init -q -b main
+  printf 'seed\n' > "$R/seed.txt"
+  G add -A; G commit -q -m init
+  G checkout -q -b feat
+}
+put() { mkdir -p "$R/$(dirname "$1")"; printf 'x\n' > "$R/$1"; }
+commit_all() { G add -A; G commit -q -m "$1"; }
+
+t_begin "layers: each rule maps a file to its layers"
+mkr
+for f in src/money.ts internal/http/orders.go src/components/Button.tsx \
+  e2e/visual/home.spec.ts e2e/login.spec.ts tests/integration/test_orders.py \
+  docs/notes.md "src/my file.go"; do put "$f"; done
+commit_all feat
+assert_exit 0 L --base main
+assert_contains "$T_OUT" "unit	src/money.ts"
+assert_contains "$T_OUT" "api	internal/http/orders.go"
+assert_contains "$T_OUT" "unit	internal/http/orders.go"
+assert_contains "$T_OUT" "visual	src/components/Button.tsx"
+assert_contains "$T_OUT" "ui	src/components/Button.tsx"
+assert_contains "$T_OUT" "visual	e2e/visual/home.spec.ts"
+assert_contains "$T_OUT" "ui	e2e/login.spec.ts"
+assert_contains "$T_OUT" "api	tests/integration/test_orders.py"
+assert_contains "$T_OUT" "none	docs/notes.md"
+assert_contains "$T_OUT" "unit	src/my file.go"
+assert_contains "$T_OUT" "brg-changed: 8 files, layers: unit api ui visual"
+t_end
+
+t_begin "layers: a toolchain file selects every layer and says so"
+mkr; put package.json; commit_all tool
+assert_exit 0 L --base main
+assert_contains "$T_OUT" "brg-changed: 1 files, layers: unit api ui visual (toolchain changed: package.json)"
+assert_contains "$T_OUT" "visual	package.json"
+t_end
+
+t_begin "layers: docs only prints none"
+mkr; put README.md; commit_all docs
+assert_exit 0 L --base main
+assert_contains "$T_OUT" "none	README.md"
+assert_contains "$T_OUT" "brg-changed: 1 files, layers: none"
+t_end
+
+t_begin "layers: zero files fails and says against what"
+mkr
+assert_exit 1 L --base main
+assert_contains "$T_OUT" "brg-changed: 0 files changed against main"
+assert_exit 1 L
+assert_contains "$T_OUT" "brg-changed: 0 files changed against the working tree"
+t_end
+
+t_begin "layers: working tree without --base lists uncommitted files"
+mkr; put src/a.go
+assert_exit 0 L
+assert_contains "$T_OUT" "unit	src/a.go"
+assert_contains "$T_OUT" "brg-changed: 1 files, layers: unit"
+t_end
+
+t_begin "layers: an unknown base fails with one line"
+mkr; put src/a.go; commit_all a
+assert_exit 1 L --base nosuch
+assert_contains "$T_OUT" "nosuch"
+assert_not_contains "$T_OUT" "unit"
+t_end
+
+t_begin "layers: base diff excludes commits that landed on the base after the branch point"
+mkr; put src/mine.go; commit_all mine
+G checkout -q main; put x.go; commit_all onmain; G checkout -q feat
+assert_exit 0 L --base main
+assert_contains "$T_OUT" "src/mine.go"
+assert_not_contains "$T_OUT" "x.go"
+assert_contains "$T_OUT" "brg-changed: 1 files"
+t_end
+
+t_begin "layers: a branch that only deletes files still counts them"
+R="$(tmpdir)"; git -C "$R" init -q -b main
+put src/gone.go; put src/ui/Old.tsx; G add -A; G commit -q -m init; G checkout -q -b feat
+G rm -q src/gone.go; G rm -q src/ui/Old.tsx; commit_all del
+assert_exit 0 L --base main
+assert_contains "$T_OUT" "unit	src/gone.go"
+assert_contains "$T_OUT" "visual	src/ui/Old.tsx"
+assert_contains "$T_OUT" "brg-changed: 2 files, layers: unit ui visual"
+t_end
+
+t_begin "layers: a shallow clone with no merge base fails and says so"
+src="$(tmpdir)"; git -C "$src" init -q -b main
+printf 'a\n' > "$src/a.txt"; git -C "$src" add -A; git -C "$src" -c user.email=t@example.com -c user.name=t commit -q -m one
+printf 'b\n' > "$src/b.go"; git -C "$src" add -A; git -C "$src" -c user.email=t@example.com -c user.name=t commit -q -m two
+git -C "$src" checkout -q -b old HEAD~1
+printf 'c\n' > "$src/c.go"; git -C "$src" add -A; git -C "$src" -c user.email=t@example.com -c user.name=t commit -q -m three
+R="$(tmpdir)"; rmdir "$R" 2>/dev/null; R="$R/clone"
+git clone -q --depth 1 --no-single-branch "file://$src" "$R" 2>/dev/null
+git -C "$R" checkout -q old
+git -C "$R" fetch -q --depth 1 origin main 2>/dev/null
+git -C "$R" branch -q -f basetip FETCH_HEAD 2>/dev/null
+assert_exit 1 L --base basetip
+assert_contains "$T_OUT" "no merge base"
+assert_contains "$T_OUT" "basetip"
+t_end
+
+t_begin "default mode is unchanged by the new flags"
+mkr; put src/a.go
+assert_exit 0 bash "$CHANGED" --root "$R"
+assert_not_contains "$T_OUT" "brg-changed:"
+assert_contains "$T_OUT" "src/a.go"
+t_end
+
 sid=s1
 in_repo() { ( cd "$repo" && bash "$GUARD" "$@" ) }
 t_begin "stop-gate asks for check-changed when the target exists"

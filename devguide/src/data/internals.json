@@ -5,7 +5,7 @@
   "commandSkills": 0,
   "stackSkills": 12,
   "scripts": 94,
-  "scriptLines": 30031,
+  "scriptLines": 30123,
   "hooks": 8,
   "agents": 8,
   "makeTargets": 31,
@@ -15056,9 +15056,11 @@
    "name": "brg-changed",
    "lang": "bash",
    "group": "quality",
-   "lines": 26,
-   "header": "brg-changed: files changed in the working tree (modified, staged, untracked,\nthe new name of a rename), repository-relative, one per line. With --since\n<marker>, only files newer than the marker; a missing marker lists all.\nUses -z so names with spaces, quotes or arrows survive. Exit 0 always.",
-   "functions": [],
+   "lines": 118,
+   "header": "brg-changed: files changed in the working tree (modified, staged, untracked,\nthe new name of a rename), repository-relative, one per line. With --since\n<marker>, only files newer than the marker; a missing marker lists all.\nUses -z so names with spaces, quotes or arrows survive.\nDefault mode exits 0 always (the hooks rely on it).\n--layers [--base <ref>]: files changed against the merge base of <ref> and\nHEAD plus the working tree (no --base: the working tree only), deleted files\nincluded, as one \"<layer>\\t<file>\" line per layer a file maps to (unit api ui\nvisual none), then \"brg-changed: <N> files, layers: ...\" . Exit 1 on zero\nfiles (\"brg-changed: 0 files changed against <base>|the working tree\"), on a\nbase that does not resolve, or on a base with no merge base (shallow clone).\nCallers detect --layers support from that counts line: an older copy of this\nscript ignores the flag and prints plain file names.",
+   "functions": [
+    "classify"
+   ],
    "env": [],
    "calls": []
   },
@@ -17934,9 +17936,9 @@
   {
    "path": "tests/unit/changed_files.sh",
    "kind": "unit",
-   "lines": 53,
+   "lines": 165,
    "header": "tests/unit/changed_files.sh: brg-changed lists changed files rename-safe and space-safe; stop-gate prefers make check-changed and falls back to make check.",
-   "asserts": 13
+   "asserts": 55
   },
   {
    "path": "tests/unit/check_changed_targets.sh",

@@ -2,17 +2,109 @@
 # brg-changed: files changed in the working tree (modified, staged, untracked,
 # the new name of a rename), repository-relative, one per line. With --since
 # <marker>, only files newer than the marker; a missing marker lists all.
-# Uses -z so names with spaces, quotes or arrows survive. Exit 0 always.
+# Uses -z so names with spaces, quotes or arrows survive.
+# Default mode exits 0 always (the hooks rely on it).
+# --layers [--base <ref>]: files changed against the merge base of <ref> and
+# HEAD plus the working tree (no --base: the working tree only), deleted files
+# included, as one "<layer>\t<file>" line per layer a file maps to (unit api ui
+# visual none), then "brg-changed: <N> files, layers: ..." . Exit 1 on zero
+# files ("brg-changed: 0 files changed against <base>|the working tree"), on a
+# base that does not resolve, or on a base with no merge base (shallow clone).
+# Callers detect --layers support from that counts line: an older copy of this
+# script ignores the flag and prints plain file names.
 set -u
-root=""; since=""
+root=""; since=""; layers=0; base=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --root) root="${2:-}"; shift 2 || shift;;
     --since) since="${2:-}"; shift 2 || shift;;
+    --layers) layers=1; shift;;
+    --base) base="${2:-}"; shift 2 || shift;;
     *) shift;;
   esac
 done
 [ -n "$root" ] || root="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 0
+
+# Prints the layers a repository-relative path maps to, first match wins.
+classify() {
+  case "$1" in
+    (*.md|docs/*|*.txt|LICENSE*|.gitignore|.bearing/*|.scratch/*) echo none;;
+    (package.json|*/package.json|pnpm-lock.yaml|go.mod|go.sum|pyproject.toml|uv.lock|Makefile|*.gradle.kts|Package.swift|project.yml|playwright.config.*|vitest.config.*|jest.config.*|tsconfig*.json|Dockerfile|*compose*.yml|*compose*.yaml|.gitlab-ci.yml|.github/workflows/*) echo toolchain;;
+    (e2e/visual/*|*/e2e/visual/*) echo visual;;
+    (e2e/*|*/e2e/*|.maestro/*|*/androidTest/*|*UITests/*|integration_test/*) echo ui;;
+    (tests/integration/*|*/tests/integration/*|*_integration_test.go) echo api;;
+    (*_test.go|*.test.*|*.spec.*|test_*.py|*/tests/*|*Test.kt|*Tests.swift) echo unit;;
+    (api/*|*/api/*|*/routes/*|*/handler/*|*/handlers/*|internal/http/*|internal/store/*|migrations/*|*/migrations/*|*.sql|*/server/*) echo unit api;;
+    (*.tsx|*.jsx|*.vue|*.svelte|*.css|*.scss|*tokens*.json|*.dart|*/res/layout/*|*/ui/*.kt|*Screen.kt|*View.swift|*Screen.swift) echo unit ui visual;;
+    (*) echo unit;;
+  esac
+}
+
+if [ "$layers" = 1 ]; then
+  against="the working tree"
+  mb=""
+  if [ -n "$base" ]; then
+    against="$base"
+    if ! git -C "$root" rev-parse --verify --quiet "$base^{commit}" >/dev/null 2>&1; then
+      echo "brg-changed: base $base does not resolve"; exit 1
+    fi
+    mb="$(git -C "$root" merge-base "$base" HEAD 2>/dev/null)" || mb=""
+    if [ -z "$mb" ]; then
+      echo "brg-changed: base $base has no merge base with HEAD (shallow clone? fetch more history)"; exit 1
+    fi
+  fi
+  list="$(
+    {
+      [ -z "$mb" ] || git -C "$root" diff --name-only -z "$mb" 2>/dev/null
+      git -C "$root" status --porcelain -z --untracked-files=all 2>/dev/null |
+        tr '\0' '\n' | awk '
+          skip { skip=0; next }
+          { code=substr($0,1,2); path=substr($0,4) }
+          code ~ /^R/ || code ~ /^.R/ || code ~ /^C/ { print path; skip=1; next }
+          { print path }'
+    } | tr '\0' '\n' | sort -u
+  )"
+  n=0; seen=""; tool=""
+  nl='
+'
+  out=""
+  set -f
+  OLDIFS="$IFS"; IFS="$nl"
+  for f in $list; do
+    [ -n "$f" ] || continue
+    n=$((n + 1))
+    cl="$(classify "$f")"
+    IFS=' '
+    for l in $cl; do
+      if [ "$l" = toolchain ]; then
+        [ -n "$tool" ] || tool="$f"
+        for t in unit api ui visual; do
+          out="$out$t	$f$nl"
+          case " $seen " in (*" $t "*) ;; (*) seen="$seen $t";; esac
+        done
+      else
+        out="$out$l	$f$nl"
+        case "$l" in (none) ;; (*) case " $seen " in (*" $l "*) ;; (*) seen="$seen $l";; esac;; esac
+      fi
+    done
+    IFS="$nl"
+  done
+  IFS="$OLDIFS"; set +f
+  if [ "$n" -eq 0 ]; then
+    echo "brg-changed: 0 files changed against $against"; exit 1
+  fi
+  printf '%s' "$out"
+  ord=""
+  for t in unit api ui visual; do
+    case " $seen " in (*" $t "*) ord="$ord $t";; esac
+  done
+  ord="${ord# }"; [ -n "$ord" ] || ord="none"
+  line="brg-changed: $n files, layers: $ord"
+  [ -z "$tool" ] || line="$line (toolchain changed: $tool)"
+  echo "$line"
+  exit 0
+fi
+
 git -C "$root" status --porcelain -z --untracked-files=all 2>/dev/null |
   tr '\0' '\n' | awk '
     skip { skip=0; next }
