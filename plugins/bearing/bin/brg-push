@@ -1,0 +1,286 @@
+#!/usr/bin/env bash
+# brg-push: the one way Bearing pushes a task branch, and only where the
+# engineer opted the repository in with BEARING_AUTO_PUSH (full push URLs) in
+# the personal bearing.env under the passwd home. The only git push Bearing
+# runs, from a fresh clone, never from the working tree.
+#
+#   brg-push check            the eight conditions, one "ok|no <name>: <detail>"
+#                             line each, then "push-check: 8 conditions, M met";
+#                             exit 0 all met, 1 any unmet, 2 usage or not a git
+#                             repository
+#   brg-push request          check; when it passes, write
+#                             .bearing/state/push-request; exit 0 or 1
+#   brg-push run --id <sid>   the Stop hook only: judge the request, then clone
+#                             the branch fresh and push it; exit 0 or 1
+#   brg-push status           the last result line, or "push: none"; exit 0
+#   brg-push optin-record     SessionStart only: write .bearing/state/.push-optin
+#                             (on|off) for this repository; exit 0 always
+#
+# check, request and status run in the agent's Bash, inside the sandbox.
+# optin-record and run run outside the sandbox and run no git command in the
+# working repository: origin's url is read as text from the git common dir's
+# config file, under a cleared environment, in an empty directory. run is for
+# the Stop hook; the guard refuses it from Bash. The opt-in is read from
+# <passwd home>/.config/bearing/bearing.env only, never from BEARING_ENV,
+# XDG_CONFIG_HOME, HOME or an exported BEARING_AUTO_PUSH: the agent controls
+# its own environment. An entry is never printed (an https entry may carry a
+# token), only its key. The script ends with the single line `main "$@"`, the
+# seam tests use to replace passwd_home. bash 3.2 safe.
+set -u
+TASK_RE='^(feature|bugfix|hotfix|chore|docs)/[A-Z][A-Z0-9]*(-[0-9]+)+-[A-Za-z0-9]+$'
+
+# url_key <url>: <host>/<path> for a git URL, so an ssh, scp-style or https
+# spelling of one repository gives one key: scheme, user and password
+# dropped, host lower-cased, leading slashes, a trailing slash and .git
+# removed. ssh://git@host:22/group/repo.git, git@host:group/repo.git and
+# https://host/group/repo all give host/group/repo. A port other than the
+# scheme's default (ssh 22, https 443) stays: ssh://git@host:2222/g/r gives
+# host:2222/g/r. Only ssh://, scp-style and https:// are keyed: http://,
+# git://, any other scheme and a <helper>::<address> form exit 1, as do a
+# relative path and no path. A local path or file:// URL gives
+# localhost/<path> (the form tests use; no agent pushes to one in practice).
+url_key() {
+  local u="$1" h p port="" dport
+  case "$u" in
+    (*::*) return 1 ;;
+    (file://*) h=localhost; p="${u#file://}" ;;
+    (ssh://*|https://*)
+      case "$u" in (ssh://*) dport=22;; (*) dport=443;; esac
+      u="${u#*://}"; h="${u%%/*}"; [ "$h" != "$u" ] || return 1
+      p="${u#"$h"}"; h="${h##*@}"
+      case "$h" in (*:*) port="${h##*:}"; h="${h%:*}";; esac
+      case "$port" in (*[!0-9]*) return 1;; esac
+      [ "$port" != "$dport" ] || port="" ;;
+    (*://*) return 1 ;;
+    (/*) h=localhost; p="$u" ;;
+    (*:*) h="${u%%:*}"; case "$h" in (*/*) return 1;; esac
+          p="${u#*:}"; h="${h##*@}" ;;
+    (*) return 1 ;;
+  esac
+  case "$h" in (''|*[!A-Za-z0-9.-]*) return 1;; esac
+  h="$(printf '%s' "$h" | tr 'A-Z' 'a-z')"
+  while :; do case "$p" in (/*) p="${p#/}";; (*/) p="${p%/}";; (*) break;; esac; done
+  p="${p%.git}"
+  [ -n "$p" ] || return 1
+  printf '%s%s/%s\n' "$h" "${port:+:$port}" "$p"
+}
+
+# passwd_home: the current user's home directory from the passwd entry, not
+# from $HOME, which whoever runs git controls. Portable (no getent): tilde
+# expansion of a validated user name, and the directory must belong to the
+# effective user.
+passwd_home() {
+  local u h
+  u="$(id -un 2>/dev/null)" || return 1
+  case "$u" in (''|[-+]*|*[!A-Za-z0-9._-]*) return 1;; esac
+  eval "h=~$u"
+  case "$h" in (''|'~'*) return 1;; esac
+  [ -d "$h" ] && [ -O "$h" ] || return 1
+  printf '%s\n' "$h"
+}
+
+# git_common_dir: the git common directory of $root, found by reading
+# <root>/.git as text: a directory is the answer; a "gitdir: <p>" file gives
+# <p>, then <p>/commondir when present (relative to <p>). No git command.
+git_common_dir() {
+  local g="$root/.git" p c
+  [ -d "$g" ] && { printf '%s\n' "$g"; return 0; }
+  [ -f "$g" ] || return 1
+  p="$(sed -n 's/^gitdir: //p' "$g" | head -1)"; [ -n "$p" ] || return 1
+  case "$p" in (/*) ;; (*) p="$root/$p" ;; esac
+  if [ -f "$p/commondir" ]; then
+    c="$(head -1 "$p/commondir")"
+    case "$c" in (/*) p="$c" ;; (*) p="$p/$c" ;; esac
+  fi
+  printf '%s\n' "$p"
+}
+
+# cleanenv <cmd>: run a command with nothing of the caller's environment but
+# SSH_AUTH_SOCK: PATH is /usr/bin:/bin and HOME the passwd home, so no GIT_*
+# variable, wrapper earlier on PATH or self-supplied HOME takes part.
+cleanenv() {
+  env -i PATH=/usr/bin:/bin HOME="$home" ${SSH_AUTH_SOCK:+SSH_AUTH_SOCK="$SSH_AUTH_SOCK"} GIT_TERMINAL_PROMPT=0 "$@"
+}
+
+# origin_url: remote.origin.url read from the config file as text, in an
+# empty directory under the cleared environment; includes are not followed.
+origin_url() {
+  local d
+  d="$(git_common_dir)" || return 1
+  [ -n "$empty" ] || return 1
+  ( cd "$empty" && cleanenv git config --no-includes --file "$d/config" --get remote.origin.url )
+}
+
+# entry_for: prints the BEARING_AUTO_PUSH entry whose url_key is origin's, or
+# exits 1. The file only: last line wins, quotes stripped, commas as spaces.
+# An entry with no key (a <host>/<path>, an http:// URL) matches nothing.
+entry_for() {
+  local envf line v x k ok=1
+  home="$(passwd_home)" || return 1
+  envf="$home/.config/bearing/bearing.env"
+  k="$(url_key "$(origin_url)")" || return 1
+  [ -f "$envf" ] || return 1
+  line="$(grep -E '^BEARING_AUTO_PUSH[[:space:]]*=' "$envf" | tail -1)"
+  [ -n "$line" ] || return 1
+  v="${line#*=}"; v="${v%%#*}"; v="$(printf '%s' "$v" | tr -d "\"'" | tr ',' ' ')"
+  set -f
+  for x in $v; do
+    [ "$(url_key "$x")" = "$k" ] && { printf '%s\n' "$x"; ok=0; break; }
+  done
+  set +f
+  return "$ok"
+}
+
+n=0; met=0
+cond() { # cond <name> <0 met|1 unmet> <detail>
+  n=$((n+1))
+  if [ "$2" -eq 0 ]; then met=$((met+1)); echo "ok $1: $3"; else echo "no $1: $3"; fi
+}
+
+# base_ref: the first of origin/develop, origin/main, origin/master that exists
+# as a remote-tracking ref (a local branch of that name does not count).
+base_ref() {
+  local b
+  for b in develop main master; do
+    git -C "$root" rev-parse -q --verify "refs/remotes/origin/$b" >/dev/null && { echo "origin/$b"; return 0; }
+  done
+  return 1
+}
+
+# protected <branch>: exit 0 when the branch is main, master, develop,
+# release/*, or a word of PROTECTED_BRANCHES in .githooks/lib.sh (read as
+# text, never sourced).
+protected() {
+  local w ws=""
+  case "$1" in (main|master|develop|release/*) return 0 ;; esac
+  [ -f "$root/.githooks/lib.sh" ] && ws="$(sed -n "s/^PROTECTED_BRANCHES='\(.*\)'.*/\1/p" "$root/.githooks/lib.sh" | head -1)"
+  set -f
+  for w in $ws; do [ "$w" = "$1" ] && { set +f; return 0; }; done
+  set +f
+  return 1
+}
+
+# status_paths: the paths of the NUL-separated `git status -z` records on
+# stdin, NUL-separated; a rename or copy record's second path (the old name)
+# is skipped.
+status_paths() {
+  local rec skip=0
+  while IFS= read -r -d '' rec; do
+    if [ "$skip" -eq 1 ]; then skip=0; continue; fi
+    case "$rec" in ([RC]*) skip=1 ;; esac
+    printf '%s\0' "${rec:3}"
+  done
+}
+
+# gate_count <marker>: reads NUL-separated paths on stdin and prints
+# "<compared> <newer>": each path once, paths under .bearing/ skipped (state
+# files are newer than the marker by construction), existing paths only, and
+# how many of them are newer than the marker.
+gate_count() {
+  local f k=0 j=0 nl='
+' seen='
+'
+  while IFS= read -r -d '' f; do
+    case "$f" in (''|.bearing/*) continue ;; esac
+    case "$seen" in (*"$nl$f$nl"*) continue ;; esac
+    seen="$seen$f$nl"
+    [ -e "$root/$f" ] || [ -L "$root/$f" ] || continue
+    k=$((k+1))
+    if [ "$root/$f" -nt "$1" ]; then j=$((j+1)); fi
+  done
+  echo "$k $j"
+}
+
+# check_conditions: the eight conditions, in order, as cond lines. Runs in the
+# sandbox, where any git command in the working repository is harmless.
+check_conditions() {
+  local url key b base c m counts k j
+  if [ "$(cat "$st/.push-optin" 2>/dev/null)" = on ]; then
+    cond opt-in 0 "bearing.env lists origin's url (recorded at session start)"
+  elif [ -f "$st/.push-optin" ]; then
+    cond opt-in 1 "origin's url is not listed in BEARING_AUTO_PUSH in the personal bearing.env"
+  else
+    cond opt-in 1 "not recorded at session start (no .bearing/state/.push-optin)"
+  fi
+  url="$(git -C "$root" config --get remote.origin.url 2>/dev/null)"
+  if [ -z "$url" ]; then cond origin 1 "no remote named origin"
+  elif key="$(url_key "$url")"; then cond origin 0 "$key"
+  else cond origin 1 "origin's url is not an ssh, scp-style or https URL"; fi
+  b="$(git -C "$root" symbolic-ref -q --short HEAD 2>/dev/null)"
+  if [ -z "$b" ]; then cond branch 1 detached
+  elif printf '%s\n' "$b" | grep -Eq "$TASK_RE"; then cond branch 0 "$b"
+  else cond branch 1 "$b is not a task branch (feature|bugfix|hotfix|chore|docs/<ID>-<slug>)"; fi
+  if [ -z "$b" ]; then cond not-protected 1 detached
+  elif protected "$b"; then cond not-protected 1 "$b is protected"
+  else cond not-protected 0 "$b"; fi
+  c="$(git -C "$root" status --porcelain --untracked-files=no 2>/dev/null | grep -c .)"
+  if [ "$c" -eq 0 ]; then cond clean 0 "no uncommitted change"
+  else cond clean 1 "$c uncommitted change(s)"; fi
+  base="$(base_ref)" || base=""
+  if [ -z "$base" ]; then cond ahead 1 "no origin/develop, origin/main or origin/master"
+  else
+    c="$(git -C "$root" rev-list --count "$base..HEAD" 2>/dev/null)" || c=0
+    if [ "${c:-0}" -ge 1 ]; then cond ahead 0 "$c commit(s) not on $base"
+    else cond ahead 1 "0 commits not on $base"; fi
+  fi
+  m="$st/.check-passed"
+  counts="$( { [ -z "$base" ] || git -C "$root" diff -z --name-only "$base...HEAD" --
+              git -C "$root" status -z --untracked-files=all | status_paths; } | gate_count "$m" )"
+  k="${counts% *}"; j="${counts#* }"
+  if [ ! -f "$m" ]; then cond gate 1 "make check has never passed"
+  elif [ "$j" -gt 0 ]; then cond gate 1 "$j of $k file(s) newer than the last make check"
+  elif [ "$k" -eq 0 ]; then cond gate 1 "0 files on the branch"
+  else cond gate 0 "$k file(s) compared"; fi
+  if [ -z "$b" ]; then cond fast-forward 1 detached
+  elif ! git -C "$root" rev-parse -q --verify "refs/remotes/origin/$b" >/dev/null; then
+    cond fast-forward 0 "no origin/$b yet"
+  elif git -C "$root" merge-base --is-ancestor "refs/remotes/origin/$b" HEAD 2>/dev/null; then
+    cond fast-forward 0 "origin/$b is an ancestor of HEAD"
+  else cond fast-forward 1 "origin/$b has commits HEAD does not (a push is never forced)"; fi
+}
+
+# optin_record: .push-optin is on when an entry's key is origin's key, else
+# off. Written through mktemp and mv, so a planted symlink is replaced, never
+# written through; a symlinked .bearing or state directory is left alone.
+optin_record() {
+  local v t
+  [ -e "$root/.git" ] || return 0
+  if [ -L "$root/.bearing" ] || [ -L "$st" ]; then return 0; fi
+  mkdir -p "$st" 2>/dev/null || return 0
+  if entry_for >/dev/null 2>&1; then v=on; else v=off; fi
+  t="$(mktemp "$st/.push-optin.XXXXXX" 2>/dev/null)" || return 0
+  if printf '%s\n' "$v" > "$t"; then mv -f "$t" "$st/.push-optin" || rm -f "$t"; else rm -f "$t"; fi
+}
+
+usage() {
+  echo "usage: brg-push check | request | run --id <sid> [--foreground] | status | optin-record" >&2
+  exit 2
+}
+
+cleanup() { if [ -n "$empty" ]; then rm -r -f "$empty"; fi; }
+
+main() {
+  local sub="${1:-}"
+  [ $# -gt 0 ] && shift
+  empty=""
+  trap cleanup EXIT
+  home="$(passwd_home 2>/dev/null)" || home=""
+  case "$sub" in
+    (optin-record) root="${CLAUDE_PROJECT_DIR:-$PWD}"   # no git rev-parse: outside the sandbox
+      empty="$(mktemp -d "${TMPDIR:-/tmp}/brg-push.XXXXXX")" || exit 0 ;;
+    (check) root="$(git rev-parse --show-toplevel 2>/dev/null)" || {
+        echo "brg-push: not a git repository; 0 conditions checked" >&2; exit 2; } ;;
+    (*) usage ;;
+  esac
+  st="$root/.bearing/state"
+  case "$sub" in
+    (check)
+      check_conditions
+      echo "push-check: $n conditions, $met met"
+      if [ "$n" -gt 0 ] && [ "$met" -eq "$n" ]; then exit 0; fi
+      exit 1 ;;
+    (optin-record) optin_record; exit 0 ;;
+  esac
+}
+
+main "$@"

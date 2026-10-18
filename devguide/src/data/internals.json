@@ -4,13 +4,13 @@
   "skills": 109,
   "commandSkills": 0,
   "stackSkills": 12,
-  "scripts": 98,
-  "scriptLines": 31912,
+  "scripts": 99,
+  "scriptLines": 32198,
   "hooks": 8,
   "agents": 8,
   "makeTargets": 32,
   "gates": 19,
-  "tests": 109,
+  "tests": 110,
   "fixtures": 25,
   "stacks": 13,
   "templates": 38,
@@ -26,7 +26,7 @@
    "dir": "plugins/bearing",
    "description": "A developer workflow for coding agents: skills for every stage from brief to runbook, review subagents, one guard behind every hook, and repository templates. The stack conventions come in bearing-backend and bearing-apps, and the GenAI and ML skills in bearing-genai.",
    "required": true,
-   "files": 454,
+   "files": 455,
    "skills": [
     "ab-experiment",
     "accessibility",
@@ -15738,6 +15738,38 @@
    ]
   },
   {
+   "path": "plugins/bearing/bin/brg-push",
+   "name": "brg-push",
+   "lang": "bash",
+   "group": "quality",
+   "lines": 286,
+   "header": "brg-push: the one way Bearing pushes a task branch, and only where the\nengineer opted the repository in with BEARING_AUTO_PUSH (full push URLs) in\nthe personal bearing.env under the passwd home. The only git push Bearing\nruns, from a fresh clone, never from the working tree.\n\n  brg-push check            the eight conditions, one \"ok|no <name>: <detail>\"\n                            line each, then \"push-check: 8 conditions, M met\";\n                            exit 0 all met, 1 any unmet, 2 usage or not a git\n                            repository\n  brg-push request          check; when it passes, write\n                            .bearing/state/push-request; exit 0 or 1\n  brg-push run --id <sid>   the Stop hook only: judge the request, then clone\n                            the branch fresh and push it; exit 0 or 1\n  brg-push status           the last result line, or \"push: none\"; exit 0\n  brg-push optin-record     SessionStart only: write .bearing/state/.push-optin\n                            (on|off) for this repository; exit 0 always\n\ncheck, request and status run in the agent's Bash, inside the sandbox.\noptin-record and run run outside the sandbox and run no git command in the\nworking repository: origin's url is read as text from the git common dir's\nconfig file, under a cleared environment, in an empty directory. run is for\nthe Stop hook; the guard refuses it from Bash. The opt-in is read from\n<passwd home>/.config/bearing/bearing.env only, never from BEARING_ENV,\nXDG_CONFIG_HOME, HOME or an exported BEARING_AUTO_PUSH: the agent controls\nits own environment. An entry is never printed (an https entry may carry a\ntoken), only its key. The script ends with the single line `main \"$@\"`, the\nseam tests use to replace passwd_home. bash 3.2 safe.",
+   "functions": [
+    "url_key",
+    "passwd_home",
+    "git_common_dir",
+    "cleanenv",
+    "origin_url",
+    "entry_for",
+    "cond",
+    "base_ref",
+    "protected",
+    "status_paths",
+    "gate_count",
+    "check_conditions",
+    "optin_record",
+    "usage",
+    "cleanup",
+    "main"
+   ],
+   "env": [
+    "BEARING_AUTO_PUSH",
+    "BEARING_ENV",
+    "CLAUDE_PROJECT_DIR"
+   ],
+   "calls": []
+  },
+  {
    "path": "plugins/bearing/bin/brg-rest",
    "name": "brg-rest",
    "lang": "bash",
@@ -18730,6 +18762,13 @@
    "lines": 102,
    "header": "tests/unit/prose_lint_check.sh: plugins/bearing/skills/prose-lint/scripts/prose_check.py passes clean prose and reports file:line and the class for an em dash, filler, praise, an attribution trailer and a hedged claim; leaves a table-cell dash; honours .prose-lint-ignore; reads a git diff file list (skipping deleted paths); and fails on empty input. The em dash and the robot emoji are written as bytes so this file carries neither.",
    "asserts": 38
+  },
+  {
+   "path": "tests/unit/push_check.sh",
+   "kind": "unit",
+   "lines": 167,
+   "header": "tests/unit/push_check.sh: brg-push check prints one line per condition and the count, refuses outside a repository, and names each unmet condition; optin-record writes on or off from the passwd-home bearing.env, matching a full push URL entry to origin by url_key, never from the environment. bash 3.2 safe.",
+   "asserts": 48
   },
   {
    "path": "tests/unit/push_settings.sh",
