@@ -63,6 +63,24 @@ Three requests the tech lead queued, in the order given:
   it denies reads and writes of `~/.config/bearing`
   (`settings.json:361,410-424`). Anything that pushes must therefore run
   outside the sandbox. Hooks do; Bash calls do not.
+- The Stop hook can push. (amended 2026-10-18: clean-clone push) Task 0
+  was run by the engineer on 2026-10-18 against a local bare remote: the
+  Stop hook pushed (`rc=0`), read `~/.config/bearing` and saw the ssh
+  agent, while the model's Bash `ls` of `~/.config/bearing` was blocked.
+  A network ssh push was not tried (local remote only, by design, R8). An
+  untrusted workspace ignores `permissions.allow` but still runs the Stop
+  hook. The Stop hook stays the trigger.
+- Whatever runs in that hook runs outside the sandbox with the
+  engineer's credentials. (amended 2026-10-18: clean-clone push) Three
+  security reviews of the first design, a push from the working tree
+  through the repository's pre-push hook, showed that such a push runs
+  agent-editable code there: the repository's `.githooks` (a two-line
+  edit to `lib.sh` sent a push to an attacker's host), the `Makefile`
+  through the hook's `make check`, and `.git/config` keys
+  (`credential.helper`, `http.curloptResolve` with `http.sslCAInfo`,
+  `core.sshCommand`). A deny list in the hook cannot fix this, because
+  the agent can rewrite the code that checks it. The design below
+  therefore runs no repository code outside the sandbox at all.
 - The guard reads `bash <file> args` as `<file> args` and matches the
   basename (`brg-guard:1148-1182`), so a verb row for a kit script blocks
   it however it is called.
@@ -93,17 +111,43 @@ Three requests the tech lead queued, in the order given:
 
 ### A. Opt-in push (request 1)
 
-**A1. The key.** `BEARING_AUTO_PUSH` in the personal `bearing.env`. The
-request says "the repository's bearing.env"; no such file exists, so
-**author's call**: the opt-in is personal and names repositories. Value:
-a space- or comma-separated list of repository paths as the origin URL
-spells them, host and `.git` removed (`Shop/Server/ShopApi`), the same
-shape as `git_path` in the repo plan. Empty, unset or `off` is off. No
-wildcard (anti-goal G1). The key is read from the file only, never from
-the environment, unlike the other keys
-(`plugins/bearing/templates/user/bearing.env:6-7`), because an
-environment variable is something an agent can set; `BEARING_ENV` still
-names another file for tests.
+**The shape in one paragraph.** (amended 2026-10-18: clean-clone push)
+The agent asks (`brg-push request`, in the sandbox); the Stop hook
+pushes (`brg-push run`, outside it). `run` never pushes from the working
+tree. Under a cleared environment it clones the requested branch from
+the repository path into a fresh temporary directory, so no repository
+hook and no repository config takes part, pushes that clone's branch to
+the exact URL the engineer listed in the personal `bearing.env`, and
+deletes the clone. It runs no `make`, no hook and no git command inside
+the working repository, except the `git upload-pack` the clone starts
+there, which git builds to read an untrusted repository safely. The
+pre-push hook goes back to refusing every agent push.
+
+**A1. The key.** (amended 2026-10-18: clean-clone push)
+`BEARING_AUTO_PUSH` in the personal `bearing.env`. The request says "the
+repository's bearing.env"; no such file exists, so the opt-in is
+personal (user decision 2026-10-18, R0). Value: a space- or
+comma-separated list of full push URLs, each `ssh://`, scp-style
+(`git@host:group/repo.git`) or `https://`. The round-2 scheme allow-list
+holds: `http://`, `git://`, `git+ssh://`, `ssh+git://`, any other scheme
+and a `<helper>::<address>` form never count; an absolute path or a
+`file://` URL is accepted as the test form. `brg-push` picks the entry
+whose `url_key` equals the `url_key` of origin's url and pushes to that
+entry, never to origin's configured url. `url_key` is the round-2
+normalisation: `<host>/<path>` with scheme, user and password dropped,
+the host lower-cased, leading and trailing slashes and `.git` dropped; a
+port other than the scheme's default (ssh 22, https 443) stays in the
+key (`host:2222/group/repo`), and a non-numeric port gives no key. A
+`<host>/<path>` entry from the first fix round is not a URL and matches
+nothing. Empty, unset or `off` is off. No wildcard (anti-goal G1). The
+key is read from `<passwd home>/.config/bearing/bearing.env` only, the
+home taken from the passwd entry (`passwd_home`: tilde expansion of a
+validated `id -un`, the directory owned by the effective user), never
+from `BEARING_ENV`, `XDG_CONFIG_HOME`, `HOME` or an exported
+`BEARING_AUTO_PUSH` (Task 1 already refuses to set it and ignores the
+environment), because the agent controls its own environment.
+`brg-push` never prints an entry, only its key: an https entry may carry
+a token.
 
 Why personal and not `.bearing/config.json`: the standing rule "I push,
 merge, tag and deploy" is the engineer's, and a tracked key would let a
@@ -121,65 +165,159 @@ Write cannot reach the file even under autopilot's `--allowedTools Write`
 (`settings.json:420-422`). As a last line, `brg-push run` refuses when
 `bearing.env` is newer than the session's start mark
 (`.bearing/state/.session-<id>`, written at `brg-guard:1570-1574`): an
-opt-in must predate the session that uses it.
+opt-in must predate the session that uses it. (amended 2026-10-18:
+clean-clone push) The push reads the engineer's global git config and
+ssh config, so the template also denies `Edit(~/.gitconfig)` and
+`Edit(~/.config/git/**)`; the sandbox already denies Bash writes to
+`~/.gitconfig` and `~/.ssh`.
 
-**A3. One executor, `plugins/bearing/bin/brg-push`.** Bash 3.2, about
-200 lines, the only new script. Subcommands:
+**A3. One executor, `plugins/bearing/bin/brg-push`.** (amended
+2026-10-18: clean-clone push) Bash 3.2, about 260 lines, the only new
+script. Plugin-owned: it lives in the plugin, outside every repository,
+so the agent cannot edit the code that decides the destination. It
+holds the code that the first design put in the repository's `lib.sh`:
+`url_key`, `passwd_home` and the round-2 transport check. Subcommands:
 
 ```
 brg-push check            the conditions below, one line each, then
-                          "push-check: N conditions, M met"; exit 0 all met,
+                          "push-check: 8 conditions, M met"; exit 0 all met,
                           1 any unmet, 2 usage or not a git repository
 brg-push request          check; when it exits 0, write
                           .bearing/state/push-request (branch, HEAD sha, time)
-brg-push run --id <sid>   Stop hook only: check again plus the request and
-                          opt-in age conditions; then push in the background
+brg-push run --id <sid>   Stop hook only: the run conditions; then, in the
+                          background, clone the branch fresh and push it
 brg-push status           the last result line, or "push: none"
 brg-push optin-record     SessionStart only: write .bearing/state/.push-optin
                           (on|off) for this repository from bearing.env
 ```
 
-Conditions, each printed as `ok <name>: <detail>` or `no <name>: <detail>`:
+Where each subcommand runs. `check`, `request` and `status` run in the
+agent's Bash, inside the sandbox, where any git command is harmless.
+`optin-record` and `run` run from hooks, outside the sandbox, and there
+they run no git command inside the working repository and nothing from
+it: origin's url is read as text with
+`git config --file <git common dir>/config --get remote.origin.url`
+(includes not followed; the git directory found by reading `.git`, a
+directory, or a `gitdir:` file plus its `commondir`), and the branch
+content is reached only through `git clone --no-local`, whose source
+side is `git upload-pack`, the one git command git documents as safe to
+run in an untrusted repository (settings that run a program, such as
+`uploadpack.packObjectsHook`, are honoured from protected config only).
+No `git status`, `git diff`, `make` or repository hook runs from
+`optin-record` or `run`.
 
-1. `opt-in`: `check` reads `.bearing/state/.push-optin` (written at
-   session start, outside the sandbox, because the sandbox hides
-   `bearing.env` from Bash); `run` reads `bearing.env` itself.
-2. `origin`: a remote named `origin` exists; its path is the one listed.
+`check` conditions, each printed as `ok <name>: <detail>` or
+`no <name>: <detail>`. They are advisory: they tell the agent and the
+engineer whether a request can succeed, and `run` re-judges what matters.
+
+1. `opt-in`: `.bearing/state/.push-optin` reads `on`. `optin-record`
+   writes it at session start, outside the sandbox, because the sandbox
+   hides `bearing.env` from Bash: `on` when an entry's `url_key` equals
+   the `url_key` of origin's url.
+2. `origin`: a remote named `origin` exists and its url has a `url_key`
+   (the detail prints the key).
 3. `branch`: on a branch (not detached) matching
    `^(feature|bugfix|hotfix|chore|docs)/[A-Z][A-Z0-9]*(-[0-9]+)+-[A-Za-z0-9]+$`
    (`plugins/bearing/skills/merge-request/SKILL.md:56`).
 4. `not-protected`: not `main`, `master`, `develop`, not `release/*`,
    and not in `PROTECTED_BRANCHES` of `.githooks/lib.sh` when present
-   (`templates/repo/.githooks/lib.sh:12`). **Author's call**: `hotfix/*`
-   is allowed, because this is a branch push, not a merge (Q2).
+   (`templates/repo/.githooks/lib.sh:12`). `hotfix/*` is allowed (user
+   decision 2026-10-18, R0).
 5. `clean`: `git status --porcelain --untracked-files=no` is empty.
 6. `ahead`: at least one commit on the branch not on the base
    (`origin/develop`, else `origin/main`, else `origin/master`).
-7. `gate`: `.bearing/state/.check-passed` exists and no file in the branch
-   diff (`git diff --name-only <base>...HEAD`) or the working tree is
-   newer than it; the line prints how many files it compared. Zero files
-   compared is `no gate: 0 files on the branch`.
+7. `gate`: `.bearing/state/.check-passed` exists and no file in the
+   branch diff (`git diff -z --name-only <base>...HEAD`) or the working
+   tree (`git status -z`) is newer than it, paths under `.bearing/`
+   skipped (R3); `-z` so a name with a space or a non-ASCII byte is
+   counted, not dropped. The line prints how many files it compared;
+   zero files compared is `no gate: 0 files on the branch`.
 8. `fast-forward`: `origin/<branch>` absent, or an ancestor of HEAD
-   (`check` uses the local ref; `run` fetches first). There is no force
-   option at all.
-9. `pre-push`: `core.hooksPath` unset, or its `lib.sh` defines
-   `auto_push_allowed` (A5); otherwise the hook would refuse the push and
-   `check` says which file to update.
-10. `request` (`run` only): `.bearing/state/push-request` names this
-    branch and HEAD's sha.
-11. `opt-in-age` (`run` only): `bearing.env` older than the session mark.
+   (local ref only). There is no force option at all; the remote refuses
+   a non-fast-forward of an unforced push in any case.
 
-The push itself, the only form `brg-push` ever runs:
-`GIT_TERMINAL_PROMPT=0 git push --no-follow-tags --set-upstream origin HEAD:refs/heads/<branch>`.
+The first design's condition 9 (`pre-push`: the repository's hooks know
+the opt-in) is gone: no repository hook takes part in the push.
+
+`run` conditions, the same line format, then
+`push-run: 8 conditions, M met`:
+
+1. `request`: `.bearing/state/push-request` holds `branch=` and a
+   40-hex `sha=` (absent prints `no request: none`).
+2. `branch`: the request's branch matches the task-branch regex above.
+   The value comes from an agent-writable file, so it is judged before it
+   reaches any command line, which also rules out an option-shaped name.
+3. `not-protected`: the request's branch is not `main`, `master`,
+   `develop` or `release/*`, nor in `PROTECTED_BRANCHES` read as text
+   with `sed` from the repository's `lib.sh` (never sourced).
+4. `opt-in`: an entry of `BEARING_AUTO_PUSH` in the passwd-home
+   `bearing.env` has the `url_key` of origin's url; the detail prints the
+   key, never the entry.
+5. `opt-in-age`: `bearing.env` is not newer than the session mark.
+6. `marker`: `.bearing/state/.check-passed` exists. Its freshness was
+   judged by `request` in the sandbox (condition 7 of `check`) and the
+   Stop gate calls `run` only on `passed`; `run` does not re-read the
+   working tree to judge it (that read would run repository config
+   outside the sandbox).
+7. `transport`: the round-2 check, applied to the engineer's system and
+   global git config read in an empty directory under the cleared
+   environment: refused, naming the key, when `core.sshCommand` is set
+   to anything but `ssh`, or `core.gitProxy`, `http.proxy`,
+   `https.proxy`, `http.<url>.proxy` or `http.curloptResolve` is set, or
+   `http.sslVerify` (or `http.<url>.sslVerify`) is false, or a
+   `url.<base>.insteadOf` or `pushInsteadOf` value is a prefix of the
+   chosen entry. Environment variables need no check: the environment is
+   cleared.
+8. `clone`: the clone succeeded and its `HEAD` is the request's `sha`
+   (a commit made after the request refuses; the agent requests again).
+
+Besides the `git config --file` reads and a `rev-parse HEAD` inside the
+clone, the clone and the push are the only git commands `run` runs. Every
+one of them runs under
+`env -i PATH=/usr/bin:/bin HOME=<passwd home> SSH_AUTH_SOCK=<value> GIT_TERMINAL_PROMPT=0`,
+and the clone and the push also pin `-c core.hooksPath=/dev/null`:
+
+```
+git -c core.hooksPath=/dev/null clone --no-local --single-branch \
+    --branch <branch> --no-tags --no-checkout -- <repository path> <tmp>/c
+git -C <tmp>/c -c core.hooksPath=/dev/null push --no-follow-tags \
+    <entry URL> HEAD:refs/heads/<branch>
+```
+
+`--no-checkout` is added to the decided form: the push needs no work
+tree, and without a checkout no attribute or filter of the branch's own
+tree takes part. `core.hooksPath=/dev/null` keeps any hook out of the
+clone and the push, the engineer's global hooks included, so even a
+global config that pointed hooks at the repository would run nothing.
 No `--force`, `--force-with-lease`, `--tags`, `--all`, `--mirror`,
-`--delete`, no second refspec. `run` detaches (`nohup ... &`) so the
-Stop hook returns inside its 15 s timeout
-(`plugins/bearing/hooks/hooks.json`), writes `.bearing/state/push.log`
-and one line to `.bearing/state/push-result`
-(`pushed <branch> <sha> to origin <time>` or `push failed: <reason>`),
-and logs gate `push` with outcome `pushed|refused|failed` through the
-same `gates.log` format (`brg-guard:262-297`). Every refusal deletes the
-request, so a stale request never fires later.
+`--delete`, `--set-upstream`, no second refspec, never origin's
+configured url. A tag is never pushed: the clone has none (`--no-tags`)
+and the refspec names one branch. The temporary directory is made with
+`mktemp -d` and removed by an `EXIT` trap, pushed or not.
+
+`run` checks conditions 1 to 7 at the Stop and prints
+`push-run: 7 conditions before the clone, M met`; when all hold it
+detaches (`nohup ... &`, R7) so the Stop hook returns inside its 15 s
+timeout (`plugins/bearing/hooks/hooks.json`), and the detached
+`run --foreground` judges all eight again and pushes. It writes
+`.bearing/state/push.log` and one line to `.bearing/state/push-result`
+(`pushed <branch> <sha> to <key> <time>` or `push failed: <reason>` or
+`push refused: <first unmet>`), and logs gate `push` with outcome
+`pushed|refused|failed` through the same `gates.log` format
+(`brg-guard:262-297`). Every refusal deletes the request, so a stale
+request never fires later. The push does not touch the working
+repository: no upstream is set and its `origin/<branch>` moves at the
+engineer's next fetch.
+
+**Accepted risk.** (amended 2026-10-18: clean-clone push) No repository
+code runs outside the sandbox, so `make check` is not rerun at push
+time: `run` trusts the gate marker the sandboxed session wrote, and CI
+checks the branch after the push. An agent can forge the marker (touch
+`.check-passed`), so an unchecked task branch can reach the remote,
+where CI and the merge request review catch it. Nothing else follows
+from a forged marker: the branch name, the protected names, the
+destination and the transport are judged by plugin code from files the
+agent cannot write.
 
 **A4. Where the guard checks it.** Three places in `brg-guard`, no new
 hook script:
@@ -195,34 +333,52 @@ hook script:
   passes" is enforced.
 - `session` and `task-id`: `session` calls `brg-push optin-record` on
   startup and resume, and both print an unseen `push-result` once
-  (`bearing push: pushed feature/X abc1234 to origin`), then mark it
+  (`bearing push: pushed feature/X abc1234 to <key>`), then mark it
   seen. That is how the model, and so the engineer, learns the outcome.
+  (amended 2026-10-18: clean-clone push: the line names the entry's key,
+  not origin.)
 
 `brg-harness` does not vendor `brg-push` (`brg-harness:160-164` vendors
 the session scripts only), and `stop-gate` skips the push when the file
 is absent, so other harnesses keep today's behaviour (anti-goal G4).
 
-**A5. The pre-push hook.** Both copies
+**A5. The pre-push hook refuses every agent push.** (amended 2026-10-18:
+clean-clone push) The hook drops the agent opt-in path entirely: every
+agent push through it is refused as before sub-project 5. Both copies
 (`plugins/bearing/templates/repo/.githooks/` and
 `plugins/bearing/skills/git-hooks/templates/.githooks/`, kept identical
-by `Makefile:59`) gain `auto_push_allowed` in `lib.sh`: it reads
-`${BEARING_ENV:-${XDG_CONFIG_HOME:-$HOME/.config}/bearing/bearing.env}`
-directly and returns 0 when `BEARING_AUTO_PUSH` lists this repository.
-In `pre-push`, where an agent environment is detected
-(`pre-push:62-70`), the push is allowed only when `auto_push_allowed`,
-every ref is a branch (a tag ref is refused, not skipped as at
-`pre-push:34`), no ref is protected or `release/*`, and every ref is a
-fast-forward (`git merge-base --is-ancestor <remote sha> <local sha>`
-when the remote sha is not zero). It notes
-`agent push allowed by BEARING_AUTO_PUSH: <n> branch ref(s)` and then
-runs the full `GATE_CMD` exactly as today (`pre-push:84-97`). A
-repository with older hooks refuses the agent push, `brg-push` records
-"pre-push refused", and condition 9 named it in advance.
+by `Makefile:59`) change as follows.
 
-**A6. How merge-request uses it.** Step 8
+- `lib.sh` loses every line the branch added (`url_key`,
+  `BRG_PUSH_PARAMS`, `transport_redirect`, `passwd_home`, `AUTO_WHY`,
+  `auto_push_allowed`) and is again byte for byte the file at the
+  branch's start (`a36fdcd`).
+- `pre-push` keeps one rule from the first security round (C3): the
+  agent detection sits above the ref loop, and in the non-branch arm a
+  push of any non-branch ref with an agent variable set and
+  `PUSH_CONFIRM` not `off` fails with
+  `an agent push carries only branches: <ref>`, so a tag-only agent push
+  no longer slips through the early "none a branch update" exit. Every
+  other agent push fails at the `PUSH_CONFIRM` step with today's message
+  `a coding agent is pushing (<VAR> is set); the engineer runs git push`,
+  with or without a `BEARING_AUTO_PUSH` entry.
+
+The opt-in push never meets this hook: the fresh clone has no repository
+hooks and `run` pins `core.hooksPath=/dev/null`. So a repository's hook
+version no longer matters to auto push, and the first design's "older
+hooks refuse" path is gone. The url and home code moved to `brg-push`
+(A3), with its tests: the `url_key`, `passwd_home` and self-supplied
+`BEARING_ENV`/`XDG_CONFIG_HOME`/`HOME` cases go to
+`tests/unit/push_check.sh`, the destination and transport cases to
+`tests/unit/push_run.sh`. The round-2 findings about the hook's own deny
+list are moot. The guard rows and the settings deny stay as defence in
+depth.
+
+**A6. How merge-request uses it.** (amended 2026-10-18: clean-clone
+push) Step 8
 (`merge-request/SKILL.md:93-98`) gains: run `brg-push check`; when it
 exits 0, run `brg-push request` and print
-`Push: requested; the Stop hook pushes <branch> to origin when this turn ends and the gate holds (brg-push status shows the result)`;
+`Push: requested; the Stop hook pushes <branch> from a fresh clone to the URL listed for origin when this turn ends and the gate holds (brg-push status shows the result)`;
 otherwise print the unmet conditions in one line and the push command as
 today. The MR or PR itself is never created (forge writes stay blocked,
 anti-goal G2). The output contract's `Push:` line
@@ -243,7 +399,12 @@ passes; the run's final Stop pushes. The output contract line
 - `g_mr` (`brg-autopilot:796-815`) also passes when the upstream's sha
   equals HEAD and `.bearing/state/push-result` records that sha as
   pushed by `brg-push`; any other upstream movement still fails with
-  "the run must not push".
+  "the run must not push". (amended 2026-10-18: clean-clone push) The
+  result line reads `pushed <branch> <sha> to <key> <time>`, so the
+  match is on `^pushed (\S+) ([0-9a-f]{40}) to `. The push from a clone
+  sets no upstream and does not move the working repository's
+  `origin/<branch>`, so this path fires only after a fetch (R16: it
+  rarely fires).
 - the `mr` stage text (`:112`) reads "nothing pushed except by brg-push
   under the opt-in".
 - the report sentence (`:959`) reads "Nothing was merged or deployed;
@@ -265,10 +426,10 @@ stays because it describes that raw push.
 | `plugins/bearing/templates/user/bearing.env` | no key | a commented `# BEARING_AUTO_PUSH=` block with the rules |
 | `CONTRIBUTING.md:120` | "A skill never pushes" | "A skill never pushes, except merge-request and autopilot through `brg-push request` under the opt-in" |
 | `plugins/bearing/templates/repo/AGENTS.md:16` rule 2 | never push | adds "except a `brg-push request` where the engineer opted this repository in" (budget 3,600 bytes, file is 2,864: `Makefile:157`) |
-| `plugins/bearing/templates/repo/.claude/settings.json:10,16` `_readme` | "push ... stay blocked" | names the hook-run exception; deny list unchanged plus `Edit(~/.config/bearing/**)` |
+| `plugins/bearing/templates/repo/.claude/settings.json:10,16` `_readme` | "push ... stay blocked" | names the hook-run exception and the clean-clone push; deny list unchanged plus `Edit(~/.config/bearing/**)`, `Edit(~/.gitconfig)`, `Edit(~/.config/git/**)` (amended 2026-10-18: clean-clone push) |
 | `plugins/bearing/hooks/hooks.json:2` | "the agent does not" | adds "except an opted-in feature branch push from the Stop hook" |
 | `plugins/bearing/bin/brg-guard:64` comment | engineer pushes | adds the `brg-push` exception; the deny message at `:253` is unchanged (it answers a raw push, pinned by `tests/unit/guard_deny_table.sh:474`) |
-| `.githooks/pre-push:60,68,70` (both copies) | agents refused | A5 |
+| `.githooks/pre-push:60,68,70` (both copies) | agents refused | unchanged in effect: every agent push refused, plus the agent tag refusal (A5) (amended 2026-10-18: clean-clone push) |
 | `plugins/bearing/skills/merge-request/SKILL.md:3,10,93-98,123,128` | "never pushes" | A6; the description ends "pushes only where opted in" within 220 chars |
 | `plugins/bearing/skills/autopilot/SKILL.md:3,13-15,74-81,93` | "never pushes" | A7, same description pattern |
 | `plugins/bearing/skills/autopilot/references/review-smoke-and-mr.md:28` | push command | A7 |
@@ -277,7 +438,7 @@ stays because it describes that raw push.
 | `bin/gen-guide.py:800` | "the engineer pushes" | "the engineer pushes, or the Stop hook where the repository opts in" |
 | `docs/flows.json:509,893` (`mr` steps) | "never pushes", "the engineer pushes" | the same qualifier |
 | `docs/WORKFLOW.md:232,243` (hand-written) | never pushes | qualifier; lines 157 and 187 are generated and follow `gen-guide.py` |
-| `devguide/src/pages/Architecture.tsx:49-53,207` | four walls | each wall's text names how the opt-in passes it (only the Stop hook's `brg-push` passes the guard and the deny; the pre-push hook checks the opt-in itself) |
+| `devguide/src/pages/Architecture.tsx:49-53,207` | four walls | each wall's text names how the opt-in passes it (only the Stop hook's `brg-push` passes the guard and the deny; the pre-push hook still refuses every agent push, and the push from a fresh clone never runs it) (amended 2026-10-18: clean-clone push) |
 | `devguide/src/pages/Autopilot.tsx:165`, `Start.tsx:133`, `Home.tsx:28` | never pushes | qualifier |
 | `site/src/pages/Guides.tsx:167,443` | never pushes | qualifier |
 | `plugins/bearing/bin/brg-harness:360,381,502,584` | never push (other harnesses) | unchanged: no auto push off Claude Code (G4) |
@@ -428,8 +589,10 @@ Status is `merged`; the engineer sets it after each merge, as today
 - G1. No wildcard, no "every repository" value, no per-host opt-in, and
   no environment variable that turns pushing on.
 - G2. No merge, no MR or PR creation, no tag, no release, no force push,
-  no push of any branch but the current one, no push to a remote other
-  than `origin`, under any setting.
+  no push of any branch but the current one, no push to a URL other
+  than the `BEARING_AUTO_PUSH` entry whose key matches origin's url, and
+  never to origin's configured url itself, under any setting. (amended
+  2026-10-18: clean-clone push)
 - G3. The raw `git push` verb row, the settings deny and the sandbox
   network allowlist do not change. The only path is `brg-push run` from
   the Stop hook.
@@ -441,6 +604,10 @@ Status is `merged`; the engineer sets it after each merge, as today
 - G7. The site flow does not get its own autopilot profile.
 
 ## Open questions for the user
+
+Q1, Q2, Q4 and Q5 are closed by the user's decisions of 2026-10-18
+(preflight R10): personal `bearing.env` only, `hotfix/*` allowed, one
+session per repository, `nextjs` for sites. Q3 stays open.
 
 - Q1. Opt-in location. The request says "the repository's bearing.env",
   which does not exist. This spec uses the personal `bearing.env` listing
@@ -462,25 +629,33 @@ Status is `merged`; the engineer sets it after each merge, as today
    no Bearing code path runs `git push`
    (`tests/unit/guard_deny_table.sh`, `tests/unit/autopilot_state.sh`).
 2. `brg-push check` prints one line per condition and
-   `push-check: 9 conditions, M met`; exits 1 on any unmet; exits 2
+   `push-check: 8 conditions, M met`; exits 1 on any unmet; exits 2
    outside a git repository and prints "0 conditions checked".
+   (amended 2026-10-18: clean-clone push)
 3. Opted in, on `feature/ABC-1-X`, clean, gate fresh, a request
-   present: a Stop that passes the gate pushes to a local bare `origin`
-   with exactly `--no-follow-tags --set-upstream origin HEAD:refs/heads/feature/ABC-1-X`;
-   `push-result` records the sha; no tag reaches the remote.
+   present: a Stop that passes the gate clones the branch into a fresh
+   temporary directory and pushes from it to the listed entry (a local
+   bare repository in the test) with exactly
+   `--no-follow-tags <entry> HEAD:refs/heads/feature/ABC-1-X`;
+   `push-result` records the sha and the key, never the entry; no tag
+   reaches the remote; the temporary clone is gone afterwards. (amended
+   2026-10-18: clean-clone push)
 4. Each of these refuses with its named condition and pushes nothing:
    `main`, `release/v1.2.0`, detached HEAD, dirty tree, stale gate, zero
    commits ahead, non-fast-forward remote, no request, a request for
-   another sha, `bearing.env` newer than the session mark, repository
-   not listed.
+   another sha, a request naming a protected or non-task branch,
+   `bearing.env` newer than the session mark, origin's key not listed, a
+   redirecting setting in the engineer's global git config. (amended
+   2026-10-18: clean-clone push)
 5. `brg-guard command 'bash /x/bin/brg-push run --id s'` exits 2;
    `brg-push check` and `brg-push request` are allowed.
 6. `brg-config set auto-push x --user` (and `auto_push`, `AUTO.PUSH`)
    exits 2 and leaves `bearing.env` unchanged.
-7. The pre-push hook, with an agent variable set: refuses without the
-   opt-in (today's message), allows a fast-forward feature branch with
-   it, refuses a tag ref, a protected branch and a non-fast-forward
-   with it; both copies identical.
+7. The pre-push hook, with an agent variable set, refuses every push
+   with today's message, a `BEARING_AUTO_PUSH` entry or not, and refuses
+   a tag-only push with `an agent push carries only branches`; `lib.sh`
+   holds no opt-in code; both copies identical. (amended 2026-10-18:
+   clean-clone push)
 8. The autopilot `mr` gate passes when the upstream equals HEAD and
    `push-result` records it, and fails as today for any other upstream.
 9. `make docs` reports the new flow count; `flow-steps.tsv` holds
@@ -496,3 +671,11 @@ Status is `merged`; the engineer sets it after each merge, as today
 12. `make lint-plugin-size` shows `bearing` at its pre-branch count plus
     2; every touched SKILL.md is 200 lines or fewer; `make check` ends
     with `check: passed`.
+13. No repository code runs at push time. (amended 2026-10-18:
+    clean-clone push) With the template hooks installed and edited to
+    write a canary file, a `Makefile` whose `check` writes one, and
+    `.git/config` holding `core.sshCommand`, `credential.helper`,
+    `core.fsmonitor` and a `url.<x>.pushInsteadOf` of the entry, each
+    writing a canary, a requested push lands at the listed entry and no
+    canary exists. Exported `GIT_SSH_COMMAND`, `GIT_CONFIG_PARAMETERS`
+    and `GIT_DIR` change nothing.
