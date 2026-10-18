@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# tests/unit/push_settings.sh: the settings template denies edits to the
-# engineer's Bearing config and the brg-push run verb, keeps the push deny,
-# and AGENTS.md rule 2 and the hooks description name the opt-in push.
+# tests/unit/push_settings.sh: the settings template denies edits to
+# ~/.config/bearing, ~/.gitconfig and ~/.config/git and the brg-push run
+# verb, keeps the push deny, and AGENTS.md rule 2 and the hooks description
+# name the opt-in push.
 set -u
 . "$(dirname "$0")/../lib/assert.sh"
 
@@ -9,6 +10,8 @@ t_begin "the settings template denies edits to the user config and the run verb"
 S="$KIT/plugins/bearing/templates/repo/.claude/settings.json"
 deny="$(jq -r '.permissions.deny[]' "$S")"
 assert_contains "$deny" "Edit(~/.config/bearing/**)"
+assert_contains "$deny" "Edit(~/.gitconfig)"
+assert_contains "$deny" "Edit(~/.config/git/**)"
 assert_contains "$deny" "Bash(bash *bin/brg-push run*)"
 assert_contains "$deny" "Bash(git push:*)"
 assert_contains "$(cat "$KIT/plugins/bearing/templates/repo/AGENTS.md")" "BEARING_AUTO_PUSH"
@@ -19,7 +22,9 @@ readme="$(jq -r '._readme[]' "$S")"
 assert_contains "$readme" "BEARING_AUTO_PUSH"
 assert_contains "$readme" "first line"
 assert_contains "$readme" "brg-push run"
-assert_contains "$readme" "<host>/<path>"
+assert_contains "$readme" "push URL"
+assert_contains "$readme" "fresh clone"
+assert_not_contains "$readme" "pre-push hook's to judge"
 assert_contains "$readme" "./bin/brg-push run"
 t_end
 
