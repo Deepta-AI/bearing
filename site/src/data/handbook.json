@@ -133,7 +133,7 @@
    "name": "autopilot",
    "plugin": "bearing",
    "category": "meta",
-   "what": "Runs unattended from one requirement statement to a prepared merge request, taking each decision as Proposed for review; never pushes",
+   "what": "Runs unattended from one requirement statement to a prepared merge request, deciding as Proposed for review; pushes only where opted in",
    "when": "asked to \"autopilot this\", \"run it end to end\" or \"build this unattended\"",
    "phrases": [
     "autopilot this",
@@ -826,7 +826,7 @@
    "name": "merge-request",
    "plugin": "bearing",
    "category": "task flow",
-   "what": "Prepares the merge request for the current branch: gate run, commit audit, diff summary, description, ticket link, push command; never pushes",
+   "what": "Prepares the merge request for the current branch: gate run, commit audit, diff summary, description, ticket link; pushes only where opted in",
    "when": "asked to \"prepare the MR\", \"write the PR description\"",
    "phrases": [
     "prepare the MR",

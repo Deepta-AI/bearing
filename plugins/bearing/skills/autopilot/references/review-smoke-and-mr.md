@@ -35,5 +35,10 @@ only that report as a change after the run's sha.
 write (`git status` clean after it: a progress file touched later is
 work the MR does not carry); paste its decisions table into
 the description, with the exact push command (`git push -u origin <branch>`)
-under it; print the same command in the last message. Do
-not run it.
+under it. Then, in this order: `make check` again (the report commit is
+newer than the gate marker, and `brg-push check` refuses a stale gate),
+`bash "${CLAUDE_PLUGIN_ROOT}/bin/brg-push" check`, and on exit 0
+`bash "${CLAUDE_PLUGIN_ROOT}/bin/brg-push" request`: the run's last Stop
+pushes the branch from a fresh clone. This request replaces the one
+`merge-request` made, which named the commit before the report.
+Otherwise print the push command in the last message. Never run `git push`; unattended, never ask.

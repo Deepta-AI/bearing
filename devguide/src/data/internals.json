@@ -5,7 +5,7 @@
   "commandSkills": 0,
   "stackSkills": 12,
   "scripts": 99,
-  "scriptLines": 32657,
+  "scriptLines": 32691,
   "hooks": 8,
   "agents": 8,
   "makeTargets": 32,
@@ -1365,9 +1365,9 @@
    "name": "autopilot",
    "plugin": "bearing",
    "category": "meta",
-   "what": "Runs unattended from one requirement statement to a prepared merge request, taking each decision as Proposed for review; never pushes",
+   "what": "Runs unattended from one requirement statement to a prepared merge request, deciding as Proposed for review; pushes only where opted in",
    "when": "asked to \"autopilot this\", \"run it end to end\" or \"build this unattended\"",
-   "description": "Runs unattended from one requirement statement to a prepared merge request, taking each decision as Proposed for review; never pushes. Use when asked to \"autopilot this\", \"run it end to end\" or \"build this unattended\".",
+   "description": "Runs unattended from one requirement statement to a prepared merge request, deciding as Proposed for review; pushes only where opted in. Use when asked to \"autopilot this\", \"run it end to end\" or \"build this unattended\".",
    "invocation": "auto",
    "kind": "step",
    "args": "\"<requirement statement>\" [--resume]",
@@ -1382,7 +1382,7 @@
     "Bash"
    ],
    "extra": {},
-   "intro": "One statement in, one prepared merge request out, with nobody answering questions in between. Every decision a stage would put to the user is taken with the recommended option, written as Proposed and listed in one digest the user reviews at the end. The run never pushes, merges or deploys: the guard, the sandbox and, where the repository has it, the pre-push hook stop it if it tries, and the last stage prints the push command for the engineer.",
+   "intro": "One statement in, one prepared merge request out, with nobody answering questions in between. Every decision a stage would put to the user is taken with the recommended option, written as Proposed and listed in one digest the user reviews at the end. The run never merges or deploys, and pushes only through `brg-push` where the engineer opted the repository in: the guard, the sandbox and the pre-push hook stop any other push, and the last stage prints the push command when there is no opt-in.",
    "sections": [
     {
      "title": "Inputs",
@@ -1390,7 +1390,7 @@
     },
     {
      "title": "Steps",
-     "lines": 41
+     "lines": 44
     },
     {
      "title": "Output contract",
@@ -1422,8 +1422,8 @@
     "Build is test first, story by story, in the order of the backlog. Read the traps in references/reviewer-checks.md first. Detail: references/build-and-after.md",
     "After the build: test-automation, the LLM stages when the profile says llm, then `test-run --changed` (the test_run stage), and design-critique until the bar holds. Detail: references/build-and-after.md",
     "Review is `branch-review --unattended`; fix every Critical and High it confirms, record each fix as `<n> <sha>` in `.scratch/review/<slug>/fixed.txt`, then `make check` again; `definition-of-done --unattended` includes the smoke run and the full test run. Read references/reviewer-checks.md again before dod. Detail: references/review-smoke-and-mr.md",
-    "The mr stage: `merge-request` prepares the description; `report` writes `docs/autopilot/<run>.md`; commit it, and let that commit be the last write (`git status` clean after it); paste its decisions table into the description with the exact push command under it, and print the same command in the last message. Do not run it. Detail: references/review-smoke-and-mr.md",
-    "Blocked or finished, the last message is the report: stages done, the decisions to review, what is not done and why, and the push command when the MR is ready."
+    "The mr stage: `merge-request` prepares the description; `report` writes `docs/autopilot/<run>.md`; commit it, and let that commit be the last write (`git status` clean after it); paste its decisions table into the description with the exact push command under it. The report commit is newer than the gate marker, so run `make check` once more, then `brg-push check`; exit 0: `brg-push request` (the run's last Stop push…",
+    "Blocked or finished, the last message is the report: stages done, the decisions to review, what is not done and why, and the push line when the MR is ready (requested, or the command for the engineer)."
    ],
    "output": "",
    "gotchas": [
@@ -1436,11 +1436,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 127,
+   "lines": 132,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 127
+     "lines": 132
     },
     {
      "path": "references/auto-mode-and-profile.md",
@@ -1460,7 +1460,7 @@
     },
     {
      "path": "references/review-smoke-and-mr.md",
-     "lines": 39
+     "lines": 44
     },
     {
      "path": "references/reviewer-checks.md",
@@ -8019,9 +8019,9 @@
    "name": "merge-request",
    "plugin": "bearing",
    "category": "task flow",
-   "what": "Prepares the merge request for the current branch: gate run, commit audit, diff summary, description, ticket link, push command; never pushes",
+   "what": "Prepares the merge request for the current branch: gate run, commit audit, diff summary, description, ticket link; pushes only where opted in",
    "when": "asked to \"prepare the MR\", \"write the PR description\"",
-   "description": "Prepares the merge request for the current branch: gate run, commit audit, diff summary, description, ticket link, push command; never pushes. Use when asked to \"prepare the MR\", \"write the PR description\".",
+   "description": "Prepares the merge request for the current branch: gate run, commit audit, diff summary, description, ticket link; pushes only where opted in. Use when asked to \"prepare the MR\", \"write the PR description\".",
    "invocation": "auto",
    "kind": "step",
    "args": "[target branch, default develop]",
@@ -8047,10 +8047,13 @@
     "Bash(swift test:*)",
     "Bash(bash *bin/brg-state-path*)",
     "Bash(python3 *skills/session-handoff/scripts/progress.py*)",
+    "Bash(bash *bin/brg-push check*)",
+    "Bash(bash *bin/brg-push request*)",
+    "Bash(bash *bin/brg-push status*)",
     "AskUserQuestion"
    ],
    "extra": {},
-   "intro": "The engineer pushes and opens the MR in under a minute with what this produces. It works in any git repository; a repository on the standard only makes the inputs below quicker to find.",
+   "intro": "The engineer pushes and opens the MR in under a minute with what this produces, or, where they opted the repository in, the Stop hook pushes the branch for them. It works in any git repository; a repository on the standard only makes the inputs below quicker to find.",
    "sections": [
     {
      "title": "Inputs",
@@ -8058,7 +8061,7 @@
     },
     {
      "title": "Steps",
-     "lines": 56
+     "lines": 60
     },
     {
      "title": "Output contract",
@@ -8066,7 +8069,7 @@
     },
     {
      "title": "Gotchas",
-     "lines": 16
+     "lines": 18
     }
    ],
    "inputs": [
@@ -8089,13 +8092,13 @@
     "Commits: every subject Conventional with `[ID]` when an id exists; no AI trailer in any body (`git log --format=%B`). List offenders; never rewrite history.",
     "Description: fill the template from Inputs. Title is a commit subject with `[ID]` when there is one. Summary is why, not what. How to test is numbered and runnable. Verification is the gate tail verbatim, headed with the command that produced it. Checklist: tick only what you verified (`definition-of-done` output if it ran); leave the rest unticked with a reason. For UI changes, leave a screenshot placeholder and sa…",
     "Prose: no em dashes, no self-praise, no sentence that only says the work matches the request.",
-    "Write to `.scratch/mr-<ID or branch>.md`, print it, then the output contract, and last: `git push -u origin <branch>` and the host's \"new change\" URL pattern: GitLab `<remote web url>/-/merge_requests/new?merge_request[source_branch]=<branch>`; GitHub `<remote web url>/compare/<target>...<branch>?expand=1` (or the `gh pr create --fill --base <target>` line, printed, never run).",
+    "Write to `.scratch/mr-<ID or branch>.md` and print it. Then `bash \"${CLAUDE_PLUGIN_ROOT}/bin/brg-push\" check`. Exit 0: `bash \"${CLAUDE_PLUGIN_ROOT}/bin/brg-push\" request` and print `Push: requested; the Stop hook pushes <branch> from a fresh clone to the URL listed for origin when this turn ends and the gate holds (brg-push status shows the result)`. Otherwise print its first `no` line and the push command as below.…",
     "Ticket: with a task id and a tracker, run `bash \"${CLAUDE_PLUGIN_ROOT}/bin/brg-tracker\" trace <ID> --branch <branch> --commits <list> [--tests ..] [--adr ..]` and report its line; exit 3 means `tracker: none`, reported as such. The MR url is posted by the engineer after opening it: print `tracker-sync trace <ID> --mr <url>` under the push command, and the line that records it in the progress file: `progress.py write…",
     "Progress file: `python3 \"${CLAUDE_PLUGIN_ROOT}/skills/session-handoff/scripts/progress.py\" write --task <ID> --status \"in review\" --next \"address review comments\"` (add `--ticket <url>` when known). Leave it uncommitted and print the command that commits it (`git add <file> && git commit -m \"docs(progress): [<ID>] in review\"`); the engineer decides whether it goes in this MR (a hotfix to `main` usually should not ca…"
    ],
    "output": "",
    "gotchas": [
-    "Never run `git push`, `glab mr create`, `gh pr create`, `git commit` (plain or `--amend`), `git rebase` or `git reset`. If asked, decline in one line and print the command.",
+    "Never run `git push`, `glab mr create`, `gh pr create`, `git commit` (plain or `--amend`), `git rebase` or `git reset`. If asked, decline in one line and print the command. The only push path is `brg-push request` after a passing `brg-push check`; the Stop hook makes the push, never this skill.",
     "Change no tracked file to make a checklist item true (unskipping a test, adding a variable to `.env.example`): leave the item unticked and name the fix under Not done.",
     "A failing gate on a pre-existing issue still makes the MR not ready; report it under Not done, do not fix it in this MR.",
     "Do not tick \"regression test\" unless you opened the test file.",
@@ -8104,11 +8107,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 143,
+   "lines": 150,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 143
+     "lines": 150
     },
     {
      "path": "templates/mr.md",
@@ -15230,8 +15233,8 @@
    "name": "brg-autopilot",
    "lang": "python",
    "group": "workflow",
-   "lines": 1874,
-   "header": "brg-autopilot: the state, the gates and the report of an unattended run from\none requirement statement to a prepared merge request.\n\nThe autopilot skill drives the stages; this script is the part that cannot\nbe talked around: which stage is next, whether its gate holds (checked on\ndisk, never taken from the model's word), how many attempts are left, the\ndigest of every decision taken on the user's behalf, and the report. Nothing\nhere pushes, merges or deploys; the run stops at a prepared merge request.\n\n  brg-autopilot start \"<statement>\" [--dir D]   begin a run (refuses when one is open)\n  brg-autopilot next [--dir D]                  the next stage, its skill and its gate\n  brg-autopilot done <stage> [--dir D]          check the gate; mark done or say what is missing\n  brg-autopilot fail <stage> \"<why>\" [--dir D]  count a failed attempt (3 and the stage is blocked)\n  brg-autopilot decision <key> <choice> <alternatives> <why> [--adr PATH] [--dir D]\n                                                one row of the decision digest\n  brg-autopilot report [--dir D]                write docs/autopilot/<run>.md (the MR carries it)\n  brg-autopilot status [--dir D]                the stages, attempts and decisions so far\n  brg-autopilot profile --ui|--data|--api|--deploy yes|no [--llm yes|no] [--scope lean|full] --why W [--dir D]\n                                                what the product has; decides which stages apply\n                                                and how much document each one needs\n  brg-autopilot stages                          the stage names, in order\n  brg-autopilot launch \"<statement>\" [--dir D] [--print]\n                                                run it headless: claude -p with autopilot,\n                                                then any smoke it asked for, outside the sandbox\n  brg-autopilot smoke-request [--id ID] [--dir D]\n                                                headless dod: ask the launcher to run the smoke\n  brg-autopilot repos-request [--dir D]         headless repos: ask the launcher to scaffold the\n                                                repo plan's missing repositories beside this one\n\nState lives in <dir>/.bearing/state/autopilot.json. Every command prints what it\nchecked and exits 1 when a gate fails or there is nothing to act on.",
+   "lines": 1908,
+   "header": "brg-autopilot: the state, the gates and the report of an unattended run from\none requirement statement to a prepared merge request.\n\nThe autopilot skill drives the stages; this script is the part that cannot\nbe talked around: which stage is next, whether its gate holds (checked on\ndisk, never taken from the model's word), how many attempts are left, the\ndigest of every decision taken on the user's behalf, and the report. Nothing\nhere pushes, merges or deploys; a push, where the engineer opted the repository\nin, is brg-push's from the Stop hook. The run stops at a prepared merge request.\n\n  brg-autopilot start \"<statement>\" [--dir D]   begin a run (refuses when one is open)\n  brg-autopilot next [--dir D]                  the next stage, its skill and its gate\n  brg-autopilot done <stage> [--dir D]          check the gate; mark done or say what is missing\n  brg-autopilot fail <stage> \"<why>\" [--dir D]  count a failed attempt (3 and the stage is blocked)\n  brg-autopilot decision <key> <choice> <alternatives> <why> [--adr PATH] [--dir D]\n                                                one row of the decision digest\n  brg-autopilot report [--dir D]                write docs/autopilot/<run>.md (the MR carries it)\n  brg-autopilot status [--dir D]                the stages, attempts and decisions so far\n  brg-autopilot profile --ui|--data|--api|--deploy yes|no [--llm yes|no] [--scope lean|full] --why W [--dir D]\n                                                what the product has; decides which stages apply\n                                                and how much document each one needs\n  brg-autopilot stages                          the stage names, in order\n  brg-autopilot launch \"<statement>\" [--dir D] [--print]\n                                                run it headless: claude -p with autopilot,\n                                                then any smoke it asked for, outside the sandbox\n  brg-autopilot smoke-request [--id ID] [--dir D]\n                                                headless dod: ask the launcher to run the smoke\n  brg-autopilot repos-request [--dir D]         headless repos: ask the launcher to scaffold the\n                                                repo plan's missing repositories beside this one\n\nState lives in <dir>/.bearing/state/autopilot.json. Every command prints what it\nchecked and exits 1 when a gate fails or there is nothing to act on.",
    "functions": [
     "sh",
     "git",
@@ -15300,6 +15303,7 @@
     "profile_contradictions",
     "smoke_evidence",
     "upstream_sha",
+    "pushed_by_brg_push",
     "g_mr",
     "next_stage",
     "existing_repo",
@@ -15333,6 +15337,7 @@
    "calls": [
     "brg-doctor",
     "brg-kit-paths",
+    "brg-push",
     "brg-scaffold"
    ]
   },
@@ -18375,9 +18380,9 @@
   {
    "path": "tests/unit/autopilot_state.sh",
    "kind": "unit",
-   "lines": 332,
-   "header": "tests/unit/autopilot_state.sh: plugins/bearing/bin/brg-autopilot keeps the order and checks every gate on disk. A new run starts at repo; done on a stage whose gate is not met fails and says what is missing; stages run in order; an ADR this run wrote as Accepted fails the decide gate; three failed attempts block a stage; an upstream on the branch fails the mr gate (the run never pushes); the report carries the digest; a second start on an open run is refused.",
-   "asserts": 98
+   "lines": 367,
+   "header": "tests/unit/autopilot_state.sh: plugins/bearing/bin/brg-autopilot keeps the order and checks every gate on disk. A new run starts at repo; done on a stage whose gate is not met fails and says what is missing; stages run in order; an ADR this run wrote as Accepted fails the decide gate; three failed attempts block a stage; an upstream on the branch fails the mr gate unless brg-push pushed it at HEAD (the run never pushes itself); the report carries the digest; a second start on an open run is refused.",
+   "asserts": 104
   },
   {
    "path": "tests/unit/changed_files.sh",
@@ -20936,7 +20941,7 @@
    {
     "name": "mr",
     "skill": "merge-request, then brg-autopilot report",
-    "gate": "a merge request description in .scratch/, docs/autopilot/<run>.md committed, nothing pushed"
+    "gate": "a merge request description in .scratch/, docs/autopilot/<run>.md committed, nothing pushed except by brg-push under the opt-in"
    }
   ]
  }
