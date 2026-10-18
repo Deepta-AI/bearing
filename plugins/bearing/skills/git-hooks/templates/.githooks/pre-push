@@ -27,9 +27,12 @@ done
 # inherited by brg-push run). It is accepted only when auto_push_allowed finds
 # the URL git is pushing to ($2, through remote origin, no differing pushurl)
 # as a <host>/<path> entry of BEARING_AUTO_PUSH in the engineer's bearing.env
-# under the passwd home. Then it may carry fast-forward updates of task
-# branches and nothing else: never a tag or other non-branch ref, so brg-push
-# run pushes with --no-follow-tags.
+# under the passwd home, and when no ssh command, proxy, config injection,
+# insteadOf rewrite of origin or other hooks path redirects the transport
+# (brg-push run pins `-c core.sshCommand=ssh -c core.hooksPath=.githooks`).
+# Then it may carry fast-forward updates of task branches and nothing else:
+# never a tag or other non-branch ref, so brg-push run pushes with
+# --no-follow-tags.
 agent=""
 for v in CLAUDECODE CLAUDE_CODE_ENTRYPOINT CODEX_SANDBOX CODEX_SANDBOX_NETWORK_DISABLED GEMINI_CLI CURSOR_AGENT; do
   [ -n "${!v:-}" ] && { agent="$v"; break; }
