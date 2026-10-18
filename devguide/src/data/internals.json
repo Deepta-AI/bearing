@@ -10,7 +10,7 @@
   "agents": 8,
   "makeTargets": 32,
   "gates": 19,
-  "tests": 112,
+  "tests": 113,
   "fixtures": 25,
   "stacks": 13,
   "templates": 38,
