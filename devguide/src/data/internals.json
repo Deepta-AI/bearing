@@ -19442,7 +19442,7 @@
     "Notes for existing repositories",
     "Noted"
    ],
-   "entries": 16,
+   "entries": 17,
    "summary": "- impeccable is pinned (`plugins/bearing/bin/pinned-packs.txt`) and installed in the standard profile; `doctor` reports it, and `install` takes `--skip-impeccable` (held on the full profile too). - design-directions: one impeccable direction round when impeccable is installed and the run is attended, recorded in `approved.json` as the locked `direction`. Without impeccable it prints `impeccable not installed` once and runs the three-variant path as before. - design-system derives `tokens.json` from the `DESIGN.md` frontmatter when it has tokens, else from the approved direction, and records which (`source: design-md | approved-direction`) with the hash of that source. The hash check is the…"
   },
   {

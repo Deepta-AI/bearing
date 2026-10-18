@@ -62,8 +62,8 @@
   {
    "id": 3,
    "name": "task-over-budget",
-   "prompt": "Draft the invite flows for epic E-7. Heads up: the old invite was a five-step wizard (pick role, enter email, add a note, review, confirm) and admins complained it took forever. Keep the remove-member confirmation as it is.",
-   "expected_output": "Team invite flows under docs/design/flows/ with a ## Task paths table that has one row per covered story with its kind, path, and screen and interaction counts, and the flows check run with its task paths line printed verbatim. The five-step wizard is not carried over: the invite task is redesigned within 3 screens and 6 interactions using a named pattern (one form, or a sheet over the Members page), or a row over budget carries an over: reason from the legitimate list. The remove-member confirmation stays.",
+   "prompt": "Draft the invite flows for epic E-7. Heads up: the old invite was a five-step wizard (pick role, enter email, add a note, review, confirm) and admins complained it took forever. Revoking a pending invite asks for confirmation today (AC-213.2); keep that.",
+   "expected_output": "Team invite flows under docs/design/flows/ with a ## Task paths table that has one row per covered story with its kind, path, and screen and interaction counts, and the flows check run with its task paths line printed verbatim. The five-step wizard is not carried over: the invite task is redesigned within 3 screens and 6 interactions using a named pattern (one form, or a sheet over the Members page), or a row over budget carries an over: reason from the legitimate list. The revoke confirmation (AC-213.2) stays.",
    "files": [
     "files/team-invites"
    ],
@@ -72,7 +72,7 @@
     "The final message prints the flows check's task paths line verbatim, in the form `task paths: N tasks, N over budget (N with reason)`, with the real numbers, and the flows check was actually run (ux-flows: ... N problems), not described",
     "The invite task is not a five-step wizard: it fits within the primary budget of 3 screens and 6 interactions, and the flows name the pattern that gets it there (one form on the Members page, or a sheet or dialog over it) with the role, email and note handled in that one place",
     "Any task path over budget has an Over cell reading `over: <reason>` with a reason from the legitimate list in the task-paths reference (for example a legal step or a destructive confirmation); a path that is simply long is redesigned, not excused",
-    "The remove-member confirmation is kept as its own dialog entry with a way back (cancel), and is not folded away to save interactions",
+    "The revoke confirmation required by AC-213.2 is kept as its own step or dialog entry with a way back (cancel), is not folded away to save interactions, and, where it pushes a path over budget, is cited as the destructive-confirmation reason in an `over: <reason>` cell",
     "The written screen and interaction counts agree with the paths (a typed field is one interaction, not one per keystroke); the run does not edit a count to make the check pass",
     "No file outside docs/ was created or changed and no git commit was made"
    ]

@@ -22,7 +22,8 @@ All notable changes to Bearing. Keep a Changelog format, semantic versions.
   contrast gates (one fix, then revert on a failing gate).
 - screen-design writes `docs/design/screens/<feature>/data-needs.md` (per
   screen: fields, actions with outcomes, states with a server condition,
-  each marked exists or new) and checks it with
+  each marked exists or new; fields have ids F-nn and actions A-nn, other
+  shapes fail) and checks it with
   `states_check.py --needs <data-needs.md> --flows <flows.md>`, which
   prints `data-needs: N screens, N fields, N actions (...), N outcomes, N
   states, N problems` and fails on zero.
@@ -49,8 +50,9 @@ All notable changes to Bearing. Keep a Changelog format, semantic versions.
   API contract and the threat model.
 - `autopilot` gains a `contract` stage after `ux`. A feature with screens
   needs its `data-needs.md` when the run has a UI and data or an API. A
-  run saved before this change that is already past `lld` has `contract`
-  carried as done when it is loaded, with a note. The newest flows file is
+  run saved before this change, with `design` done and a later stage (`lld`
+  or after) done, has `contract` carried as done when it is loaded, with a
+  note. The newest flows file is
   chosen by version number.
 - design-critique weights: twelve categories, typography 10%, task cost 5%.
 
@@ -59,6 +61,8 @@ All notable changes to Bearing. Keep a Changelog format, semantic versions.
   (columns Task, Story, Kind, Entry, Path, Screens, Interactions, Over; the
   `ux-flows` skill's `references/task-paths.md` has the format), then run
   `flows_check.py`. Without it the flows check fails.
+- A `data-needs.md` written by hand uses ids F-nn for fields and A-nn for
+  actions; `states_check.py --needs` rejects other shapes.
 
 ### Noted
 - impeccable `critique` asks a question at its close, so an unattended run
