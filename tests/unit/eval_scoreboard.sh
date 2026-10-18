@@ -125,13 +125,22 @@ cat > "$stubs/harness" <<S
 mkdir -p "\$BRG_HARNESS_EVAL_OUT/run" && cp "$d/h1.json" "\$BRG_HARNESS_EVAL_OUT/run/results.json"
 echo "harness-eval: stub"
 S
-chmod 755 "$stubs/trigger" "$stubs/harness"
-wk() { BRG_TRIGGER_EVAL="$stubs/trigger" BRG_HARNESS_EVAL="$stubs/harness" BRG_SCOREBOARD="${BOARD_AT:-$d/weekly.jsonl}" bash "$repo/bin/evals-weekly.sh" "$@"; }
+cat > "$stubs/skills" <<'S'
+#!/usr/bin/env bash
+while [ $# -gt 0 ]; do [ "$1" = --out ] && out="$2"; shift; done
+mkdir -p "$out"
+echo '{"skills": {"adr": {"commit": "c0", "date": "2026-10-19", "cases": 2, "arms": {"with_skill": {"pass_rate": 1.0}, "without_skill": {"pass_rate": 0.5}}, "margin": 0.5, "result": "bearing ahead"}}}' > "$out/summary.json"
+echo "skill-evals-run: stub"
+S
+chmod 755 "$stubs/trigger" "$stubs/harness" "$stubs/skills"
+wk() { BRG_SKILL_EVALS="$stubs/skills" BRG_TRIGGER_EVAL="$stubs/trigger" BRG_HARNESS_EVAL="$stubs/harness" BRG_SCOREBOARD="${BOARD_AT:-$d/weekly.jsonl}" bash "$repo/bin/evals-weekly.sh" "$@"; }
 
 t_begin "the weekly run runs both suites and writes one row"
 assert_exit 0 wk
 assert_contains "$T_OUT" "trigger-eval: stub"
 assert_contains "$T_OUT" "harness-eval: stub"
+assert_contains "$T_OUT" "skill-evals-run: stub"
+assert_contains "$T_OUT" "1 skills measured"
 assert_contains "$T_OUT" "eval-scoreboard: 15 trigger cases, 2 harness runs checked"
 assert_eq 1 "$(wc -l < "$d/weekly.jsonl" | tr -d ' ')" "weekly rows"
 t_end

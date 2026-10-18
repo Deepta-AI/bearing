@@ -20,9 +20,12 @@ Folders are named arm-1..arm-N until grading is done, so the grader does not
 know which arm produced what; `unblind` renames them. The benchmark's delta is
 the first two configurations in sorted order.
 
-Results go to .scratch/private/comparisons.json (git ignores .scratch/), never
-to a tracked file: the measured numbers are an internal audit, not something
-the docs or the sites publish.
+Results go to .scratch/private/comparisons.json (git ignores .scratch/).
+bin/skill-evals-run.py drives these commands unattended and copies each
+measurement into the tracked evals/scoreboard.jsonl; neither site reads it,
+so the numbers stay out of the handbook and the developer guide.
+BRG_SKILL_EVALS_WS and BRG_SKILL_EVALS_PRIVATE move the workspace and the
+results file (the tests use them).
 
   skill-evals.py prepare <skill> [--iteration N]   workspace, fixtures, prompts
   skill-evals.py reset <run dir>...               rebuild interrupted runs from the fixture
@@ -52,9 +55,11 @@ KIT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(KIT, "bin"))
 import kit_paths  # noqa: E402
 
-WS = os.path.join(KIT, ".scratch", "skill-evals")
+WS = os.environ.get("BRG_SKILL_EVALS_WS") or os.path.join(KIT, ".scratch", "skill-evals")
 # Internal and untracked: .scratch/ is in .gitignore.
-COMPARISONS = os.path.join(KIT, ".scratch", "private", "comparisons.json")
+COMPARISONS = os.environ.get("BRG_SKILL_EVALS_PRIVATE") or os.path.join(
+    KIT, ".scratch", "private", "comparisons.json"
+)
 ARMS = ["with_skill", "with_the_alternative", "without_skill"]
 
 

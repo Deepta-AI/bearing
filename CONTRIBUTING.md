@@ -157,8 +157,14 @@ written, a count printed, a refusal on empty input).
 - `bin/skill-evals.py` runs the same cases with the skill and with no
   skill, blinds the arms for the grader, and records the result in
   `.scratch/private/comparisons.json`, an untracked file for the
-  maintainers; nothing published reads it.
-  `python3 bin/skill-evals.py --help` lists its commands.
+  maintainers. `python3 bin/skill-evals.py --help` lists its commands.
+- `bin/skill-evals-run.py` drives those commands with no one at the
+  keyboard: executor and grader sessions through `claude -p` in Claude
+  Code's Bash sandbox (network limited to localhost, no Skill tool, no
+  settings), a rotating set chosen from `evals/scoreboard.jsonl` (changed
+  since last measured, then never measured, then oldest; `--max`, default
+  5), and a `summary.json` the scoreboard copies in. `--list` shows the
+  set without running it.
 - Workspaces go under `.scratch/skill-evals/`, which git ignores.
 - `make harness-eval` drives real Claude Code sessions against the hooks
   (push, deploy, edit lint, stop gate, compaction). It needs the claude
@@ -172,12 +178,15 @@ written, a count printed, a refusal on empty input).
   file to every skill and refuses a request that copies a phrase quoted
   in the skill's own description. When you add a skill, add its requests;
   when you change a description, run `make trigger-eval ONLY=<name>`.
-- `make evals-weekly` runs trigger-eval and harness-eval on a clean tree
+- `make evals-weekly` runs trigger-eval, harness-eval and skill-evals-run
+  on a clean tree
   and appends one row to `evals/scoreboard.jsonl`: the commit measured,
   recall and false triggers overall and per skill, and the harness pass
-  rate per scenario. It fails on zero cases, and on recall down or false
-  triggers up by more than 5 points, or any harness scenario falling,
-  since the last row; the row is kept either way. The file is tracked so
+  rate per scenario, and each measured skill's pass rate with and without
+  it. It fails on zero cases, and on recall down or false triggers up by
+  more than 5 points, any harness scenario falling, or a skill's
+  with_skill rate down more than 10 points since it was last measured;
+  the row is kept either way. The file is tracked so
   a merge request can show its effect on the score; neither site reads
   it. `make evals-timer` prints the systemd user units that run it every
   Sunday from a clone kept on main; commit the new row after each run.

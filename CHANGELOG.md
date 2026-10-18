@@ -10,8 +10,16 @@ All notable changes to Bearing. Keep a Changelog format, semantic versions.
   the last one. Fails on zero cases or a regression (recall or false
   triggers moved by more than 5 points, a harness scenario falling) and
   keeps the row. `make evals-timer` prints systemd user units for a weekly
-  run and installs nothing. skill-evals has a `null` slot until its
-  headless driver lands.
+  run and installs nothing.
+- `bin/skill-evals-run.py`: skill-evals with no one at the keyboard.
+  Executor and grader sessions run through `claude -p` in the Bash
+  sandbox (localhost only, no Skill tool, no settings) over a rotating
+  set of skills (changed since last measured, then never measured, then
+  oldest; five a week by default). `make evals-weekly` runs it and the
+  scoreboard records each skill's pass rate with and without it; a
+  with_skill drop of more than 10 points since the skill's last
+  measurement fails the run. `bin/skill-evals.py` takes
+  `BRG_SKILL_EVALS_WS` and `BRG_SKILL_EVALS_PRIVATE`.
 
 ### Changed
 - The handbook and the developer guide are redesigned as one dark-first
