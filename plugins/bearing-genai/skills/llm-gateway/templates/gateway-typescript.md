@@ -80,34 +80,39 @@ async complete(input: LLMRequest): Promise<LLMResponse> {
   const idem = req.idempotencyKey && (await this.idem.get(req.tenantId, req.idempotencyKey));
   if (idem) return idem;
   await this.limits.take(req.tenantId, route.tier);
-  const key = route.cacheable ? this.cache.key(route.model, req) : null;
+  const legs = route.strategy === "cascade" ? this.routing.cascadeLegs(route) : null;
+  const first = legs ? legs.first : route;                // a leg: its own model, effort, maxTokens, timeoutS
+  const key = route.cacheable ? this.cache.key(first.model, req) : null;
   const cached = key && (await this.cache.get(key));
   if (cached) return { ...cached, fromCache: true };
-  return this.tracer.startActiveSpan(`chat ${route.model}`, async (span) => {
-    const t0 = performance.now();
+  return this.tracer.startActiveSpan(`chat ${first.model}`, async (span) => {
+    let t0 = performance.now();
+    let used: Route = first;                                // the Route whose prices bill this answer
     let result: ProviderResult;
     let fallbackReason: string | undefined;
     try {
-      result = await this.call(route.model, req, route);
+      result = await this.call(first.model, req, first);
     } catch (e) {
       if (!(e instanceof ProviderUnavailable) || !route.fallback) throw e;
       this.metrics.fallback.add(1, { feature: req.feature, reason: e.reason });
       const fb = this.routing.resolveFallback(route);
+      used = fb;
       result = await this.call(fb.model, req, fb);
       fallbackReason = e.reason;
     }
     let escalated = false;
-    const why = route.strategy === "cascade" ? this.escalateReason(route, req, result) : null;
-    if (why) {                                              // escalate_on: invalid, refusal, max_tokens
-      await this.accounting.record(req, route, result, Math.round(performance.now() - t0), fallbackReason);
+    const why = legs ? this.escalateReason(route, req, result) : null;
+    if (legs && why) {                                      // escalate_on: invalid, refusal, max_tokens
+      await this.accounting.record(req, used, result, Math.round(performance.now() - t0), fallbackReason);
       this.metrics.escalation.add(1, { feature: req.feature });
-      const then = this.routing.cascadeThen(route);         // `cascade.then`, a models: key
-      result = await this.call(then.model, req, then);      // once; never escalates again
+      t0 = performance.now();
+      used = legs.then;                                     // `cascade.then`, billed at its own prices
+      result = await this.call(used.model, req, used);      // once; never escalates again
       escalated = true;
       fallbackReason = undefined;                           // the reason belonged to the first call
     }
-    const resp = { ...(await this.accounting.record(req, route, result, Math.round(performance.now() - t0), fallbackReason)), escalated };
-    span.setAttributes(this.spanAttrs(req, route, resp));
+    const resp = { ...(await this.accounting.record(req, used, result, Math.round(performance.now() - t0), fallbackReason)), escalated };
+    span.setAttributes(this.spanAttrs(req, used, resp));
     span.end();
     if (resp.stopReason === "refusal") throw new Refused(resp);
     if (key) await this.cache.put(key, resp);
@@ -136,10 +141,11 @@ export class AnthropicProvider implements Provider {
     if (req.tools) params.tools = req.tools;
     if (req.outputSchema) params.output_config = { format: { type: "json_schema", schema: req.outputSchema } };
     if (route.effort) params.output_config = { ...(params.output_config ?? {}), effort: route.effort };
+    const opts = route.timeoutS ? { timeout: route.timeoutS * 1000 } : {}; // a leg's own timeout, milliseconds
     try {
       const msg = route.stream || maxTokens > 16_000
-        ? await this.client.messages.stream(params).finalMessage()
-        : await this.client.messages.create(params);
+        ? await this.client.messages.stream(params, opts).finalMessage()
+        : await this.client.messages.create(params, opts);
       return { message: msg, requestId: msg._request_id ?? null };
     } catch (e) {
       if (e instanceof Anthropic.BadRequestError) throw e;                       // never retried
@@ -167,12 +173,17 @@ Cost formula, ClickHouse `llm_calls` record, metric names, redaction
 rules and the `LOG_LLM_BODIES` toggle are the same as the Python
 template. `FakeProvider` replays `tests/llm/recordings/<feature>/<sha256>.json`;
 `RECORD_LLM=1` records on a laptop only. The cascade follows the Python
-template: the fallback runs first, `escalateReason` checks `escalate_on`
-once, both calls are recorded, `llm_escalation_total{feature}` counts the
-escalation. The vitest suite covers the same sixteen cases,
+template: `routing.cascadeLegs(route)` gives each leg its own model,
+`effort` (a Haiku 4.5 leg sets null and sends none), `maxTokens` and
+`timeoutS`; the fallback runs first, `escalateReason` checks
+`escalate_on` once, the first call is recorded under the route that
+answered (`first`, or `fb` after a fallback) and the escalated one under
+`then`, and `llm_escalation_total{feature}` counts the escalation. The
+vitest suite covers the same seventeen cases,
 `model_override refused without flag`, `model_override unknown key
 refused`, `model_override skips fallback`, `cascade escalates once`,
-`escalation counted` and `no escalation when valid` among them. `npm run llm:audit`
+`escalation counted`, `cascade leg settings` and `no escalation when
+valid` among them. `npm run llm:audit`
 greps for `@anthropic-ai/sdk` and `messages.create(` outside `src/llm/`
 and fails on any hit; the count
 found is printed.

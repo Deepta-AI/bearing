@@ -11,6 +11,9 @@ RF="$KIT/plugins/bearing-genai/skills/model-routing/scripts/route_frontier.py"
 ES="$KIT/plugins/bearing-genai/skills/llm-eval/scripts/eval_stats.py"
 d="$(tmpdir)"
 H=claude-haiku-4-5; S=claude-sonnet-5-5; O=claude-opus-5-5
+# flat <file>: its text on one line, runs of spaces as one, so a phrase
+# a Markdown file wraps across lines still matches.
+flat() { tr '\n' ' ' < "$1" | tr -s ' '; }
 
 # cand <file> <model> <cost per call> <latency ms> <spec>...
 # A spec is [k*]score,valid[,latency]: k rows (default 1) with that score
@@ -107,6 +110,25 @@ assert_contains "$T_OUT" "cascade $H->$S: not simulated (20 rows without valid)"
 assert_contains "$T_OUT" "chose $H"
 t_end
 
+t_begin "only the larger model carries valid: the cascade is not simulated, said so"
+cand "$d/sonnet-v.jsonl" "$S" 0.001 1000 '38*1,true' '2*0,true'
+assert_exit 0 python3 "$RF" --threshold 0.85 "$d/haiku.jsonl" "$d/sonnet-v.jsonl"
+assert_contains "$T_OUT" "cascade $H->$S: not simulated (cheaper model has no valid)"
+assert_contains "$T_OUT" "(0 cascades)"
+t_end
+
+t_begin "a cascade over fewer shared cases than either file says so"
+P=c cand "$d/haiku-30.jsonl" "$H" 0.0002 100 '30*1,true'
+P=c cand "$d/s25.jsonl" "$S" 0.001 1000 '25*1,-'
+P=x cand "$d/s10.jsonl" "$S" 0.001 1000 '10*1,-'
+cat "$d/s25.jsonl" "$d/s10.jsonl" > "$d/sonnet-35.jsonl"
+assert_exit 0 python3 "$RF" --threshold 0.5 "$d/haiku-30.jsonl" "$d/sonnet-35.jsonl"
+assert_contains "$T_OUT" "cascade $H->$S: note: simulated on 25 shared cases ($H has 30, $S has 35)"
+assert_contains "$T_OUT" "option cascade $H->$S: n 25,"
+assert_exit 0 python3 "$RF" --threshold 0.85 "$d/haiku-v.jsonl" "$d/sonnet.jsonl"
+assert_not_contains "$T_OUT" "shared cases ("
+t_end
+
 t_begin "a truncated share over --max-truncated makes a candidate ineligible"
 cand "$d/haiku-t.jsonl" "$H" 0.0002 100 '36*1,-' '4*T,-'
 assert_exit 0 python3 "$RF" --threshold 0.85 "$d/haiku-t.jsonl" "$d/sonnet.jsonl"
@@ -165,8 +187,36 @@ t="$(cat "$KIT/plugins/bearing-genai/skills/llm-gateway/templates/gateway-python
 for want in test_cascade_escalates_once test_escalation_counted test_no_escalation_when_valid test_model_override_skips_fallback; do
   assert_contains "$t" "$want"
 done
+t="$(flat "$KIT/plugins/bearing-genai/skills/llm-gateway/templates/gateway-typescript.md")"
+for want in "cascade escalates once" "escalation counted" "no escalation when valid" "model_override skips fallback"; do
+  assert_contains "$t" "$want" gateway-typescript.md
+done
 t="$(cat "$KIT/plugins/bearing-genai/skills/llm-gateway/templates/routing.yaml")"
 for want in "strategy: cascade" "escalate_on: [invalid, refusal, max_tokens]" "budget_usd_month:"; do assert_contains "$t" "$want"; done
+t_end
+
+t_begin "each cascade leg carries its own effort, max_tokens and timeout; Haiku 4.5 sends none"
+t="$(cat "$KIT/plugins/bearing-genai/skills/llm-gateway/templates/routing.yaml")"
+assert_contains "$t" "first: { model: claude-haiku-4-5, effort: null, max_tokens: 2048, timeout_s: 20 }"
+assert_contains "$t" "then: { model: claude-sonnet-5-5, effort: medium, max_tokens: 2048, timeout_s: 60 }"
+t="$(cat "$KIT/plugins/bearing-genai/skills/llm-gateway/templates/gateway-python.md")"
+for want in "legs = self.routing.cascade_legs(route)" "first = legs.first if legs else route" \
+  "result = self._call(first.model, req, first)" "used = fb" "used = legs.then" \
+  "self.accounting.record(req, used, result" "if route.effort:" "with_options(timeout=route.timeout_s)"; do
+  assert_contains "$t" "$want" gateway-python.md
+done
+assert_not_contains "$t" "self.accounting.record(req, route, result"
+t="$(cat "$KIT/plugins/bearing-genai/skills/llm-gateway/templates/gateway-typescript.md")"
+for want in "const legs = route.strategy === \"cascade\" ? this.routing.cascadeLegs(route) : null;" \
+  "const first = legs ? legs.first : route;" "result = await this.call(first.model, req, first);" \
+  "used = fb;" "used = legs.then;" "this.accounting.record(req, used, result" "if (route.effort)" "timeout: route.timeoutS * 1000"; do
+  assert_contains "$t" "$want" gateway-typescript.md
+done
+assert_not_contains "$t" "this.accounting.record(req, route, result"
+for f in SKILL.md references/strategies.md; do
+  t="$(flat "$KIT/plugins/bearing-genai/skills/model-routing/$f")"
+  assert_contains "$t" "own \`effort\` (null for Haiku 4.5), \`max_tokens\` and \`timeout_s\`" "$f"
+done
 t_end
 
 t_begin "the ticket-router eval fixture chooses the cascade at its threshold"

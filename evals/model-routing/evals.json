@@ -5,7 +5,7 @@
    "id": 1,
    "name": "triage-cascade-from-recorded-runs",
    "prompt": "Triage costs us too much on Sonnet. We ran the triage eval on haiku, sonnet and opus last week, results are in evals/triage/results. Pick the cheapest setup that still meets the bar in the triage solution doc and set the route.",
-   "expected_output": "route_frontier.py run on the three recorded files at threshold 0.85 from docs/genai/triage-solution.md; the frontier prints six options (three static, three cascades) and chooses cascade claude-haiku-4-5->claude-sonnet-5-5 (lower 0.883, $1.58 per 1k, 20.0% escalated) over static Sonnet ($2.18 per 1k); llm/routing.yaml routes.triage becomes strategy cascade with first and then as models: keys, escalate_on [invalid, refusal, max_tokens], a budget_usd_month and the frontier line as evidence; docs/genai/routing.md holds the row with a monthly estimate at 20,000 calls a day and a re-run date; prices come from the routing.yaml price table, not memory.",
+   "expected_output": "route_frontier.py run on the three recorded files at threshold 0.85 from docs/genai/triage-solution.md; the frontier prints six options (three static, three cascades) and chooses cascade claude-haiku-4-5->claude-sonnet-5-5 (lower 0.883, $1.58 per 1k, 20.0% escalated) over static Sonnet ($2.18 per 1k); llm/routing.yaml routes.triage becomes strategy cascade with legs first and then, each naming a models: key with its own effort (null on the claude-haiku-4-5 leg, never inherited from the balanced tier), max_tokens and timeout_s, escalate_on [invalid, refusal, max_tokens], a budget_usd_month and the frontier line as evidence; docs/genai/routing.md holds the row with a monthly estimate at 20,000 calls a day and a re-run date; prices come from the routing.yaml price table, not memory.",
    "files": [
     "files/ticket-router"
    ],
@@ -14,6 +14,7 @@
     "The threshold 0.85 is taken from docs/genai/triage-solution.md, not asked for or invented",
     "It chooses cascade claude-haiku-4-5->claude-sonnet-5-5 from the frontier line (lower 0.883 at or above 0.85, $1.58 per 1k, escalated 20.0%) rather than static claude-sonnet-5-5 at $2.18 per 1k",
     "llm/routing.yaml routes.triage gains strategy: cascade, cascade with first claude-haiku-4-5 and then claude-sonnet-5-5 (both keys of models:), escalate_on [invalid, refusal, max_tokens] and a budget_usd_month, with the frontier line and a date as a comment",
+    "Each cascade leg carries its own effort, max_tokens and timeout_s: the claude-haiku-4-5 leg has effort null (Haiku 4.5 rejects effort), so it does not inherit the route's balanced tier effort",
     "A monthly estimate is given from the 20,000 calls a day in the README and the frontier's cost per 1k, with the current static Sonnet cost beside it",
     "docs/genai/routing.md has a row for triage with the chosen route, the score, the cost per 1,000 and a re-run date (when a model id or price changes, or 90 days)",
     "It does not quote a price from memory: every price or cost it states comes from llm/routing.yaml or from route_frontier.py output",

@@ -17,7 +17,7 @@ eval_stats.py), cost per 1,000 requests (mean cost_usd over every row x
 
 Cascade, for each pair with the cheaper model first whose rows all carry
 `valid` (a truncated row counts as not valid), over the case ids both files
-share: a valid case keeps the small model's score, cost and latency; any
+share (a note says so when they share fewer than either file holds): a valid case keeps the small model's score, cost and latency; any
 other case takes the large model's score and pays both costs and both
 latencies. `valid` is only what the gateway can check at run time, so the
 saving simulated here is the one production sees.
@@ -168,9 +168,12 @@ def option(name, rows, a, escalated=None):
     return o
 
 
-def cascade(small, large, a):
-    """small, large: (model, rows). Returns an option or a reason it is not simulated."""
+def cascade(small, large, a, notes):
+    """small, large: (model, rows). Returns an option or a reason it is not
+    simulated; a cascade over fewer cases than either file adds a note."""
     (sm, srows), (lm, lrows) = small, large
+    if not any(isinstance(r.get("valid"), bool) for r in srows):
+        return None, f"cascade {sm}->{lm}: not simulated (cheaper model has no valid)"
     without = sum(
         1 for r in srows if not r["truncated"] and not isinstance(r.get("valid"), bool)
     )
@@ -180,6 +183,11 @@ def cascade(small, large, a):
     shared = [r for r in srows if r["case_id"] in big]
     if not shared:
         return None, f"cascade {sm}->{lm}: not simulated (0 shared cases)"
+    if len(shared) < max(len(srows), len(lrows)):
+        notes.append(
+            f"cascade {sm}->{lm}: note: simulated on {len(shared)} shared cases "
+            f"({sm} has {len(srows)}, {lm} has {len(lrows)})"
+        )
     rows, up = [], 0
     for s in shared:
         if not s["truncated"] and s["valid"] is True:
@@ -230,12 +238,10 @@ def main():
         )
     elif len(cands) > 1:
         for small in cands:
-            if not any(isinstance(r.get("valid"), bool) for r in small[1]):
-                continue
             for large in cands:
                 if large is small or cost[small[0]] >= cost[large[0]]:
                     continue
-                o, why = cascade(small, large, a)
+                o, why = cascade(small, large, a, notes)
                 if o:
                     cascades.append(o)
                 else:

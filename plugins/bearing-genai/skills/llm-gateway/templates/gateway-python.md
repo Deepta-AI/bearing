@@ -90,28 +90,33 @@ class Gateway:
         if req.idempotency_key and (hit := self.idem.get(req.tenant_id, req.idempotency_key)):
             return hit
         self.limits.take(req.tenant_id, route.tier)           # RateLimited
-        key = self.cache.key(route.model, req) if route.cacheable else None
+        legs = self.routing.cascade_legs(route) if route.strategy == "cascade" else None
+        first = legs.first if legs else route                 # a leg: its own model, effort, max_tokens, timeout_s
+        key = self.cache.key(first.model, req) if route.cacheable else None
         if key and (hit := self.cache.get(key)):
             return replace(hit, from_cache=True)
-        with self.tracer.start_as_current_span(f"chat {route.model}") as span:
+        with self.tracer.start_as_current_span(f"chat {first.model}") as span:
             t0 = time.monotonic()
+            used = first                                      # the Route whose prices bill this answer
             try:
-                result = self._call(route.model, req, route)
+                result = self._call(first.model, req, first)
             except ProviderUnavailable as e:
                 if not route.fallback:
                     raise
                 self.metrics.fallback.add(1, {"feature": req.feature, "reason": e.reason})
                 fb = self.routing.resolve_fallback(route)
+                used = fb
                 result = self._call(fb.model, req, fb)
                 result.fallback_reason = e.reason
-            if route.strategy == "cascade" and (why := self._escalate(route, req, result)):
-                self.accounting.record(req, route, result, int((time.monotonic() - t0) * 1000))
+            if legs and (why := self._escalate(route, req, result)):
+                self.accounting.record(req, used, result, int((time.monotonic() - t0) * 1000))
                 self.metrics.escalation.add(1, {"feature": req.feature})   # `why` goes on the span
-                then = self.routing.cascade_then(route)            # `cascade.then`, a models: key
-                result = self._call(then.model, req, then)          # once; never escalates again
+                t0 = time.monotonic()
+                used = legs.then                              # `cascade.then`, billed at its own prices
+                result = self._call(used.model, req, used)    # once; never escalates again
                 result.escalated = True
-            resp = self.accounting.record(req, route, result, int((time.monotonic() - t0) * 1000))
-            span.set_attributes(self._span_attrs(req, route, resp))
+            resp = self.accounting.record(req, used, result, int((time.monotonic() - t0) * 1000))
+            span.set_attributes(self._span_attrs(req, used, resp))
         if resp.stop_reason == "refusal":
             raise Refused(resp)
         if key:
@@ -124,16 +129,22 @@ class Gateway:
 `_call` retries once on 529 with jitter after the SDK's own retries;
 never on 400.
 
-A route with `strategy: cascade` calls `cascade.first` (its `route.model`);
-the fallback, when that model is unavailable, runs first and its answer is
-what the cascade judges. `_escalate` returns the first `escalate_on` reason
+A route with `strategy: cascade` calls `cascade.first`.
+`routing.cascade_legs(route)` returns the two legs as routes: each takes
+its model (provider and prices) from the `models:` key it names and its
+own `effort`, `max_tokens` and `timeout_s` from the leg, never from the
+route's tier, so a Haiku 4.5 leg with `effort: null` sends no `effort`.
+The fallback, when the first model is unavailable, runs first and its
+answer is what the cascade judges. `_escalate` returns the first `escalate_on` reason
 that holds, else None: `refusal` (`stop_reason == "refusal"`), `max_tokens`
 (`stop_reason == "max_tokens"`), `invalid` (the text does not parse against
 `output_schema`, or `req.check` returns False). Those are the checks the
 gateway can run, the same `valid` that `llm-eval` records and
 `model-routing` simulates. On a reason the gateway records the first call
-(both calls are billed), counts `llm_escalation_total{feature}` once
-and calls `cascade.then` once; that answer stands whatever it is.
+under the route that answered it (`first`, or `fb` after a fallback),
+counts `llm_escalation_total{feature}` once, calls `cascade.then` once
+and records that call under `then`, at its own prices and latency; that
+answer stands whatever it is.
 
 ## Anthropic provider
 
@@ -145,6 +156,7 @@ class AnthropicProvider:
         self.client = anthropic.Anthropic(timeout=timeout_s, max_retries=max_retries)
 
     def complete(self, model: str, req: LLMRequest, route: Route) -> ProviderResult:
+        client = self.client.with_options(timeout=route.timeout_s) if route.timeout_s else self.client
         kwargs: dict[str, Any] = dict(model=model, max_tokens=req.max_tokens or route.max_tokens,
                                       messages=req.messages)
         if req.system:
@@ -156,14 +168,14 @@ class AnthropicProvider:
             kwargs["tools"] = req.tools
         if req.output_schema:
             kwargs["output_config"] = {"format": {"type": "json_schema", "schema": req.output_schema}}
-        if route.effort:
+        if route.effort:                                     # null (Haiku 4.5): no effort sent
             kwargs.setdefault("output_config", {})["effort"] = route.effort
         try:
             if route.stream or (req.max_tokens or route.max_tokens) > 16000:
-                with self.client.messages.stream(**kwargs) as s:
+                with client.messages.stream(**kwargs) as s:
                     msg = s.get_final_message()
             else:
-                msg = self.client.messages.create(**kwargs)
+                msg = client.messages.create(**kwargs)
         except anthropic.BadRequestError:
             raise                                             # never retried
         except anthropic.RateLimitError as e:
@@ -241,7 +253,10 @@ Tests in `tests/llm/`: `test_route_picks_tier`, `test_retry_529_then_ok`,
 `test_cascade_escalates_once` (an invalid `first` answer calls `then`
 once, an invalid `then` answer is returned, not escalated again),
 `test_escalation_counted` (one `llm_escalation_total`, two accounting
-records, one per call) and `test_no_escalation_when_valid`.
+records, one per call, the second at the `then` model's prices),
+`test_cascade_leg_settings` (a `first` leg with `effort: null` sends no
+`output_config.effort`; each leg's `max_tokens` and `timeout_s` reach
+the provider) and `test_no_escalation_when_valid`.
 A laptop-only test `test_prompt_cache_hit` makes two identical calls and
 asserts `cache_read_input_tokens > 0` on the second.
 

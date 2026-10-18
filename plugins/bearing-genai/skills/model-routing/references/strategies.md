@@ -52,10 +52,23 @@ Cache: prompt caches are scoped to one model, so a cascade forfeits cache
 reuse between its two models. On a route with a long cached system prompt
 the cache saving can outweigh the cascade's; measure both.
 
-Gateway: `route.model` is `cascade.first`; the route's fallback, when the
-first model is unavailable, runs before the cascade judges the answer.
-Escalation happens at most once, both calls are recorded, and
-`llm_escalation_total{feature}` counts it. Alert when the escalation rate
+Legs: `cascade.first` and `cascade.then` each name a `models:` key and
+carry their own `effort` (null for Haiku 4.5), `max_tokens` and
+`timeout_s`. Nothing comes from the route's tier: a Haiku 4.5 leg that
+inherited a tier's `effort` would fail every call with a 400. The gateway
+sends `effort` only when the leg sets it.
+
+```yaml
+cascade:
+  first: { model: claude-haiku-4-5, effort: null, max_tokens: 2048, timeout_s: 20 }
+  then: { model: claude-sonnet-5-5, effort: medium, max_tokens: 2048, timeout_s: 60 }
+```
+
+Gateway: the first call goes to `cascade.first`; the route's fallback,
+when that model is unavailable, runs before the cascade judges the
+answer. Escalation happens at most once. Each call is recorded under the
+model that answered it (`first`, the fallback, or `then`) at that model's
+prices, and `llm_escalation_total{feature}` counts the escalation. Alert when the escalation rate
 over a day is more than 1.5 times the rate the frontier measured: the
 traffic has drifted from the golden set and the saving is no longer the
 one that was measured. Re-run `model-routing`.

@@ -33,7 +33,9 @@ writes the cheapest route whose score still clears the bar.
   below 10 labelled cases, stops the skill with one line,
   `model-routing: unattended, missing:` then the list (price row for
   <key>, golden set for <feature>, labelled cases N of 10). It never
-  writes a route from a `minimal` set unattended.
+  writes a route from a `minimal` set unattended: it prints the frontier
+  and stops with this line:
+  `model-routing: unattended, missing: full golden set for <feature> (N of <minimum> cases); route unchanged`.
 
 ## Steps
 
@@ -55,8 +57,10 @@ bearing plugin).
    `models:` row or no price: ask with AskUserQuestion (as the bearing
    plugin's `references/console.md` says), options "paste the price and
    its source (Recommended)" (input and output per million tokens, the
-   page and the date) and "leave this candidate out". Never fill a price
-   from memory; Claude prices come from the `claude-api` skill.
+   page and the date) and "leave this candidate out". Unattended (see
+   Inputs): ask nothing, leave it out and name it in the `missing:`
+   line. Never fill a price from memory; Claude prices come from the
+   `claude-api` skill.
 3. Measure: the `llm-eval` harness once per candidate, with the override
    key: `make eval EVAL=<feature> MODEL=<key>` when the Makefile has it,
    else `uv run python evals/<feature>/run.py --model <key>` or
@@ -75,11 +79,15 @@ bearing plugin).
    goes back to step 2. Exit 1: nothing meets the threshold; the route
    stays, the report says so. No threshold from Inputs: ask with
    AskUserQuestion, options "no worse than today: the current route's
-   lower bound (Recommended)" and "state the threshold".
+   lower bound (Recommended)" and "state the threshold". Unattended (see
+   Inputs): ask nothing, take the recommended option and say so.
 5. Write the route in `llm/routing.yaml` `routes.<feature>`:
-   `strategy: static` with the model, or `strategy: cascade` with
-   `cascade: {first: <key>, then: <key>}` and
-   `escalate_on: [invalid, refusal, max_tokens]`; the evidence as a
+   `strategy: static` with the model, or `strategy: cascade` with legs
+   `cascade.first` and `cascade.then`, each
+   `{model: <key>, effort, max_tokens, timeout_s}`, and
+   `escalate_on: [invalid, refusal, max_tokens]`. Each leg carries its own `effort` (null for Haiku 4.5),
+   `max_tokens` and `timeout_s`; a leg never inherits the route's tier,
+   whose `effort` Haiku 4.5 rejects with a 400. The evidence as a
    comment (the `route-frontier:` line, date, eval version);
    `budget_usd_month` by the rule in `references/strategies.md`, with an
    alert at 80 percent through `bearing:observability`. A gateway built

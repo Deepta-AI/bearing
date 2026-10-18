@@ -65,8 +65,10 @@ bearing plugin).
    default: reasoning, planning, anything a user reads). Each route
    names a feature, a tier, `effort`, `max_tokens`, `timeout_s`,
    `cacheable`, `fallback`, `enabled`, `canary`, and `strategy`
-   (`static`, or `cascade` with `escalate_on` and `budget_usd_month`,
-   which `bearing-genai:model-routing` writes from measured evals). The
+   (`static`, or `cascade` whose `first` and `then` legs each carry
+   their own `effort`, `max_tokens` and `timeout_s`, with `escalate_on`
+   and `budget_usd_month`, which `bearing-genai:model-routing` writes
+   from measured evals). The
    schema is validated at startup; an unknown feature fails the call,
    not the boot.
 5. Resilience. Retries: the SDK's `max_retries` (default 2, backoff on

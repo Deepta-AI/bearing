@@ -5,7 +5,7 @@
   "commandSkills": 0,
   "stackSkills": 12,
   "scripts": 98,
-  "scriptLines": 31481,
+  "scriptLines": 31487,
   "hooks": 8,
   "agents": 8,
   "makeTargets": 32,
@@ -7365,7 +7365,7 @@
     },
     {
      "title": "Steps",
-     "lines": 100
+     "lines": 102
     },
     {
      "title": "Output contract",
@@ -7409,11 +7409,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 166,
+   "lines": 168,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 166
+     "lines": 168
     },
     {
      "path": "scripts/llm_access_check.py",
@@ -7425,15 +7425,15 @@
     },
     {
      "path": "templates/gateway-python.md",
-     "lines": 249
+     "lines": 264
     },
     {
      "path": "templates/gateway-typescript.md",
-     "lines": 178
+     "lines": 189
     },
     {
      "path": "templates/routing.yaml",
-     "lines": 126
+     "lines": 130
     }
    ],
    "groups": {
@@ -8148,11 +8148,11 @@
    "sections": [
     {
      "title": "Inputs",
-     "lines": 20
+     "lines": 22
     },
     {
      "title": "Steps",
-     "lines": 54
+     "lines": 60
     },
     {
      "title": "Output contract",
@@ -8173,10 +8173,10 @@
    ],
    "steps": [
     "Features from `$1` (`all`: every route in `llm/routing.yaml`). No routing file: run the call-site gate, `python3 \"${CLAUDE_PLUGIN_ROOT}/skills/llm-gateway/scripts/llm_callsites_check.py\" .`, copy its counts line and stop with \"put the calls behind `bearing-genai:llm-gateway` first\": a route needs a gateway to live in. Volume per feature as Inputs says, and which source it came from.",
-    "Candidates: the defaults plus `--candidates`. A candidate with no `models:` row or no price: ask with AskUserQuestion (as the bearing plugin's `references/console.md` says), options \"paste the price and its source (Recommended)\" (input and output per million tokens, the page and the date) and \"leave this candidate out\". Never fill a price from memory; Claude prices come from the `claude-api` skill.",
+    "Candidates: the defaults plus `--candidates`. A candidate with no `models:` row or no price: ask with AskUserQuestion (as the bearing plugin's `references/console.md` says), options \"paste the price and its source (Recommended)\" (input and output per million tokens, the page and the date) and \"leave this candidate out\". Unattended (see Inputs): ask nothing, leave it out and name it in the `missing:` line. Never fill…",
     "Measure: the `llm-eval` harness once per candidate, with the override key: `make eval EVAL=<feature> MODEL=<key>` when the Makefile has it, else `uv run python evals/<feature>/run.py --model <key>` or `npx tsx@4.23.15 evals/<feature>/run.ts --model <key>`. Reuse a results file already recorded for the same eval version and model. No golden set: run `bearing-genai:llm-eval` first. A set at `llm-eval`'s minimum size i…",
     "Decide: `python3 \"${CLAUDE_PLUGIN_ROOT}/skills/model-routing/scripts/route_frontier.py\" --threshold <x> evals/<feature>/results/<run>.jsonl ...` (one file per candidate). It prints one `option` line per candidate and per cheaper-first cascade, then the `route-frontier:` line; copy them verbatim. Exit 2 names what to fix: a file holding two models means a fallback ran during that eval, so refuse the candidate and re-…",
-    "Write the route in `llm/routing.yaml` `routes.<feature>`: `strategy: static` with the model, or `strategy: cascade` with `cascade: {first: <key>, then: <key>}` and `escalate_on: [invalid, refusal, max_tokens]`; the evidence as a comment (the `route-frontier:` line, date, eval version); `budget_usd_month` by the rule in `references/strategies.md`, with an alert at 80 percent through `bearing:observability`. A gateway…",
+    "Write the route in `llm/routing.yaml` `routes.<feature>`: `strategy: static` with the model, or `strategy: cascade` with legs `cascade.first` and `cascade.then`, each `{model: <key>, effort, max_tokens, timeout_s}`, and `escalate_on: [invalid, refusal, max_tokens]`. Each leg carries its own `effort` (null for Haiku 4.5), `max_tokens` and `timeout_s`; a leg never inherits the route's tier, whose `effort` Haiku 4.5 re…",
     "Report `docs/genai/routing.md`: one row per feature with the chosen route, lower bound and threshold, cost per 1,000, monthly estimate at current volume next to the current route's, `full` or `minimal`, and the re-run date (when a model id or a price changes, or 90 days).",
     "Print the contract."
    ],
@@ -8192,19 +8192,19 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 126,
+   "lines": 134,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 126
+     "lines": 134
     },
     {
      "path": "references/strategies.md",
-     "lines": 87
+     "lines": 100
     },
     {
      "path": "scripts/route_frontier.py",
-     "lines": 264
+     "lines": 270
     }
    ],
    "groups": {
@@ -17052,8 +17052,8 @@
    "lang": "python",
    "group": "skill",
    "skill": "model-routing",
-   "lines": 264,
-   "header": "route_frontier: the cheapest model or cascade that still passes the eval.\n\nReads one llm-eval results file per candidate model (JSON Lines, one row per\ncase, the schema llm-eval step 4 writes):\n  {\"case_id\": str, \"score\": float 0..1, \"model\": str, \"cost_usd\": float,\n   \"latency_ms\": number, \"truncated\": bool, \"valid\": bool|null, ...}\n\nUsage:\n  route_frontier.py --threshold <x> <results.jsonl>... [--resamples 2000]\n                    [--seed 7] [--max-truncated 0.05]\n\nPer candidate: mean score over the rows that are not truncated, the lower\nbound of a percentile bootstrap 95% interval (the same block as llm-eval's\neval_stats.py), cost per 1,000 requests (mean cost_usd over every row x\n1000) and p95 latency by nearest rank over every row.\n\nCascade, for each pair with the cheaper model first whose rows all carry\n`valid` (a truncated row counts as not valid), over the case ids both files\nshare: a valid case keeps the small model's score, cost and latency; any\nother case takes the large model's score and pays both costs and both\nlatencies. `valid` is only what the gateway can check at run time, so the\nsaving simulated here is the one production sees.\n\nAn option is eligible when its lower bound is at or above the threshold\nand its truncated share is at most --max-truncated. The cheapest eligible\noption wins, then the lowest p95.\n\nOutput, one line per option, then the decision:\n  option <name>: n N, mean M, lower L, $C per 1k, p95 P ms, truncated T[, escalated E%][, ineligible (...)]\n  route-frontier: K options (J cascades), N rows, chose <name> (lower L >= X, $C per 1k)\nExit 0 on a choice; 1 with \"none meets threshold X\"; 2 when nothing was\nchecked (no files, zero rows, zero scored rows) or a file cannot be trusted\n(more than one model, a row without a price, a malformed row).",
+   "lines": 270,
+   "header": "route_frontier: the cheapest model or cascade that still passes the eval.\n\nReads one llm-eval results file per candidate model (JSON Lines, one row per\ncase, the schema llm-eval step 4 writes):\n  {\"case_id\": str, \"score\": float 0..1, \"model\": str, \"cost_usd\": float,\n   \"latency_ms\": number, \"truncated\": bool, \"valid\": bool|null, ...}\n\nUsage:\n  route_frontier.py --threshold <x> <results.jsonl>... [--resamples 2000]\n                    [--seed 7] [--max-truncated 0.05]\n\nPer candidate: mean score over the rows that are not truncated, the lower\nbound of a percentile bootstrap 95% interval (the same block as llm-eval's\neval_stats.py), cost per 1,000 requests (mean cost_usd over every row x\n1000) and p95 latency by nearest rank over every row.\n\nCascade, for each pair with the cheaper model first whose rows all carry\n`valid` (a truncated row counts as not valid), over the case ids both files\nshare (a note says so when they share fewer than either file holds): a valid case keeps the small model's score, cost and latency; any\nother case takes the large model's score and pays both costs and both\nlatencies. `valid` is only what the gateway can check at run time, so the\nsaving simulated here is the one production sees.\n\nAn option is eligible when its lower bound is at or above the threshold\nand its truncated share is at most --max-truncated. The cheapest eligible\noption wins, then the lowest p95.\n\nOutput, one line per option, then the decision:\n  option <name>: n N, mean M, lower L, $C per 1k, p95 P ms, truncated T[, escalated E%][, ineligible (...)]\n  route-frontier: K options (J cascades), N rows, chose <name> (lower L >= X, $C per 1k)\nExit 0 on a choice; 1 with \"none meets threshold X\"; 2 when nothing was\nchecked (no files, zero rows, zero scored rows) or a file cannot be trusted\n(more than one model, a row without a price, a malformed row).",
    "functions": [
     "die",
     "is_num",
@@ -18701,9 +18701,9 @@
   {
    "path": "tests/unit/route_frontier.sh",
    "kind": "unit",
-   "lines": 180,
+   "lines": 230,
    "header": "tests/unit/route_frontier.sh: model-routing's route_frontier.py. Per candidate results file it prints the mean, the bootstrap lower bound, cost per 1,000 requests and p95 latency; for each cheaper-first pair whose small model's rows carry `valid` it simulates a cascade; it chooses the cheapest option whose lower bound meets the threshold. Exit 1 when none does, exit 2 when it checked nothing or a file cannot be trusted.",
-   "asserts": 62
+   "asserts": 78
   },
   {
    "path": "tests/unit/runbook_check.sh",
