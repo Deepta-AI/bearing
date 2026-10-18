@@ -112,8 +112,8 @@ And the `bearing` plugin is full: 508 of 512 files.
   `evals/triggers.json` (3 should, 2 near misses); `evals/.pending` only
   shrinks.
 - Defaults: `claude-opus-5-5` (deep, the default tier),
-  `claude-sonnet-5-5` (balanced), `claude-haiku-4-5-20251001` (fast), as
-  the brief gives them; routing is provider-neutral (Anthropic, OpenAI,
+  `claude-sonnet-5-5` (balanced), `claude-haiku-5-5` (fast; the user's
+  decision of 2026-10-18); routing is provider-neutral (Anthropic, OpenAI,
   Google, OpenRouter, a served open model through vLLM or any
   OpenAI-compatible endpoint).
 - The four plugins move in version lockstep (`lint-version`).
@@ -195,9 +195,9 @@ every Claude id our own text may name, one row
 ```
 default|claude-opus-5-5|deep
 default|claude-sonnet-5-5|balanced
-default|claude-haiku-4-5-20251001|fast
+default|claude-haiku-5-5|fast
 option|claude-fable-5-1|the highest tier, for a route the eval shows needs it
-option|claude-haiku-5-5|a fast-tier candidate that model-routing measures
+option|claude-haiku-4-5-20251001|the previous fast snapshot, a legacy id kept allowed for existing repositories and as a routing candidate
 ```
 
 `bin/lint-model-ids.py` (target `lint-model-ids`, in `make check`) scans
@@ -399,16 +399,18 @@ rows (model routing, dataset generation) with `from` set to
 - Bootstrap resample count (the plan uses 2,000) and seed.
 - Order of moved files inside each commit.
 
-## Open questions for the user
+## Decisions
 
-1. The `claude-api` skill lists `claude-haiku-5-5` as the current Haiku
-   at $0.10 / $0.50 per million tokens, a tenth of
-   `claude-haiku-4-5-20251001`. The brief names the 4.5 snapshot as the
-   fast default. This spec follows the brief and lists Haiku 5.5 as a
-   routing candidate; changing the default is one row in
-   `bin/model-ids.txt` and one in the gateway template.
-2. Should `bearing-genai` be installed by default by `install.sh` like
-   the stack plugins (this spec: yes), or only on request?
+Both decided by the user on 2026-10-18.
+
+1. Fast default model: "The fast default is `claude-haiku-5-5`, not
+   `claude-haiku-4-5-20251001`." The gateway template, `bin/model-ids.txt`
+   and the routing tables use `claude-haiku-5-5`. The old snapshot
+   `claude-haiku-4-5-20251001` stays in `bin/model-ids.txt` as an `option`
+   row (legacy id), so existing repositories and routing candidates still
+   lint clean; it is not a default anywhere.
+2. Default install: "`bearing-genai` installs by default from `install.sh`,
+   like the stack plugins." It is not on-request only.
 
 ## Acceptance for phase 1
 

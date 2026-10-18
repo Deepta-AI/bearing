@@ -19,7 +19,8 @@
 - Every command a skill body runs is granted in `allowed-tools`; script grants use the form `Bash(python3 *skills/<skill>/scripts/<file>.py*)`.
 - Python 3 stdlib only; bash 3.2 portable; no `sed -i`, `grep -P`, `readlink -f`, `date -d`.
 - No new external fetch (nothing added to `pinned-packs.txt`).
-- Default model ids: `claude-opus-5-5` (deep, default tier), `claude-sonnet-5-5` (balanced), `claude-haiku-4-5-20251001` (fast). Options: `claude-fable-5-1`, `claude-haiku-5-5`.
+- Default model ids: `claude-opus-5-5` (deep, default tier), `claude-sonnet-5-5` (balanced), `claude-haiku-5-5` (fast, the user's decision of 2026-10-18). Options: `claude-fable-5-1`, `claude-haiku-4-5-20251001` (legacy id, allowed).
+- `bearing-genai` installs by default from `install.sh`, like the stack plugins (the user's decision of 2026-10-18).
 - References from `bearing-genai` to bearing skills are `bearing:<name>`; from bearing to moved skills `bearing-genai:<name>`.
 - Every new skill: `## Inputs`, `## Steps`, `## Output contract`, `## Gotchas`; description at most 220 chars with "Use when" and two quoted phrases; `evals/<name>/evals.json`; 3 should and 2 near-miss rows in `evals/triggers.json`; a name in `gen-guide.py` CATEGORY `genai`.
 - Bearing never pushes, merges or tags. Commits only on `feat/GenAIPack`, no attribution trailer.
@@ -206,7 +207,7 @@ assert_contains "$T_OUT" "unknown model id claude-opus-5 in plugins/p/skills/s/S
 assert_not_contains "$T_OUT" "claude-opus-5-5 in"
 t_end
 t_begin "a dated snapshot is one id, not its alias plus digits"
-printf 'claude-haiku-4-5-20251001\n' > "$r/plugins/p/skills/s/SKILL.md"
+printf 'claude-haiku-5-5\n' > "$r/plugins/p/skills/s/SKILL.md"
 assert_exit 0 python3 "$KIT/bin/lint-model-ids.py" "$r"
 t_end
 t_begin "no files is a failure"
@@ -224,7 +225,7 @@ Expected: FAIL, `bin/lint-model-ids.py` not found.
 
 - [ ] **Step 3: Implement**
 
-`bin/model-ids.txt` holds the five rows in spec section B. The lint reads files from `git ls-files -co --exclude-standard -- plugins` when the root is a git work tree, else walks `plugins/`; skips binary files; matches `claude-(opus|sonnet|haiku|fable|mythos)-[0-9]+(-[0-9]+)*` as a whole token (not followed by `[0-9a-z]`). Then replace every unknown id under `plugins/bearing-genai/`: `claude-opus-5` to `claude-opus-5-5`, `claude-sonnet-5` to `claude-sonnet-5-5`, `claude-haiku-4-5` to `claude-haiku-4-5-20251001`, adjusting prose ("Opus 5" to "Opus 5.5", "Haiku 4.5" stays). In `routing.yaml`: `claude-opus-5-5` input 4.00, output 20.00, cache_read_multiplier 0.05; `claude-sonnet-5-5` 2.00, 10.00, 0.10; `claude-haiku-4-5-20251001` 1.00, 5.00, 0.10; cache_write_multiplier 1.25 each; a header line `# Prices: claude-api skill shared/models.md, as_of 2026-10-17. Re-read them there; never from memory.` Opus 5.5 thinking cannot be disabled and its default effort is medium: the `llm-gateway` Gotcha about Opus 5 becomes "Opus 5.5 and Sonnet 5.5 reject `budget_tokens` and sampling parameters; control depth with `output_config.effort` per route."
+`bin/model-ids.txt` holds the five rows in spec section B. The lint reads files from `git ls-files -co --exclude-standard -- plugins` when the root is a git work tree, else walks `plugins/`; skips binary files; matches `claude-(opus|sonnet|haiku|fable|mythos)-[0-9]+(-[0-9]+)*` as a whole token (not followed by `[0-9a-z]`). Then replace every unknown id under `plugins/bearing-genai/`: `claude-opus-5` to `claude-opus-5-5`, `claude-sonnet-5` to `claude-sonnet-5-5`, `claude-haiku-4-5` to `claude-haiku-5-5`, adjusting prose ("Opus 5" to "Opus 5.5", "Haiku 4.5" to "Haiku 5.5"). In `routing.yaml`: `claude-opus-5-5` input 4.00, output 20.00, cache_read_multiplier 0.05; `claude-sonnet-5-5` 2.00, 10.00, 0.10; `claude-haiku-5-5` 0.10, 0.50, 0.10, with the price from the `claude-api` skill re-read at build time; cache_write_multiplier 1.25 each; a header line `# Prices: claude-api skill shared/models.md, as_of 2026-10-17. Re-read them there; never from memory.` Opus 5.5 thinking cannot be disabled and its default effort is medium: the `llm-gateway` Gotcha about Opus 5 becomes "Opus 5.5 and Sonnet 5.5 reject `budget_tokens` and sampling parameters; control depth with `output_config.effort` per route."
 
 - [ ] **Step 4: Run the test and the gate**
 
@@ -346,9 +347,9 @@ t_end
 t_begin "a cascade that escalates only the invalid cases beats the static choice"
 # haiku valid on 30 of 40 with score 1 there, invalid (score 0) on 10; sonnet scores 1 on all 40
 assert_exit 0 python3 "$RF" --threshold 0.85 "$d/haiku-v.jsonl" "$d/sonnet.jsonl"
-assert_contains "$T_OUT" "option cascade claude-haiku-4-5-20251001->claude-sonnet-5-5"
+assert_contains "$T_OUT" "option cascade claude-haiku-5-5->claude-sonnet-5-5"
 assert_contains "$T_OUT" "escalated 25.0%"
-assert_contains "$T_OUT" "chose cascade claude-haiku-4-5-20251001->claude-sonnet-5-5"
+assert_contains "$T_OUT" "chose cascade claude-haiku-5-5->claude-sonnet-5-5"
 t_end
 t_begin "nothing passes: exit 1"
 assert_exit 1 python3 "$RF" --threshold 0.99 "$d/haiku.jsonl"; assert_contains "$T_OUT" "none meets threshold 0.99"
@@ -397,7 +398,7 @@ re-run: when a model id or price changes, or by <date + 90 days>
 report: docs/genai/routing.md
 ```
 
-Gotchas: a fallback during an eval run invalidates the candidate; price rows carry source and date; Haiku 4.5 has no `effort`; a cascade's p95 is the escalated path's; never route on a `minimal` set without saying provisional. Gateway templates: the `cascade` branch calls `then` once when the first answer fails `escalate_on`, counts `llm_escalation_total`, accounts both calls. `gen-guide.py`: `model-routing` in CATEGORY `genai`; STAGES "GenAI features" row `("Cheapest model that passes", "model-routing", "bearing-genai", "frontier of score and cost per candidate, cascade, budget and alert")`. `workflow/SKILL.md` GenAI row adds `bearing-genai:model-routing`. Triggers: should rows such as "the triage feature runs on the big model and costs us 4k a month, can a cheaper one do it" and "compare haiku sonnet and a gpt model on our extraction eval and set the route"; near misses expecting `llm-gateway` ("put all our model calls behind one module with retries") and `llm-eval` ("build a golden set for the summariser"). Evals case 1 on `files/ticket-router` (three recorded result files built so the cascade wins, threshold 0.85 in `docs/genai/triage-solution.md`): expectations "runs route_frontier.py on the three files", "chooses the cascade from the frontier line", "writes strategy cascade with escalate_on and a budget to llm/routing.yaml", "does not quote a price from memory". Case 2: one result file holds two models; expectation "refuses the candidate and asks for a re-run".
+Gotchas: a fallback during an eval run invalidates the candidate; price rows carry source and date; check the `claude-api` skill for whether Haiku 5.5 takes `effort` before the template sets it; a cascade's p95 is the escalated path's; never route on a `minimal` set without saying provisional. Gateway templates: the `cascade` branch calls `then` once when the first answer fails `escalate_on`, counts `llm_escalation_total`, accounts both calls. `gen-guide.py`: `model-routing` in CATEGORY `genai`; STAGES "GenAI features" row `("Cheapest model that passes", "model-routing", "bearing-genai", "frontier of score and cost per candidate, cascade, budget and alert")`. `workflow/SKILL.md` GenAI row adds `bearing-genai:model-routing`. Triggers: should rows such as "the triage feature runs on the big model and costs us 4k a month, can a cheaper one do it" and "compare haiku sonnet and a gpt model on our extraction eval and set the route"; near misses expecting `llm-gateway` ("put all our model calls behind one module with retries") and `llm-eval` ("build a golden set for the summariser"). Evals case 1 on `files/ticket-router` (three recorded result files built so the cascade wins, threshold 0.85 in `docs/genai/triage-solution.md`): expectations "runs route_frontier.py on the three files", "chooses the cascade from the frontier line", "writes strategy cascade with escalate_on and a budget to llm/routing.yaml", "does not quote a price from memory". Case 2: one result file holds two models; expectation "refuses the candidate and asks for a re-run".
 
 - [ ] **Step 6: Run the gate**
 
