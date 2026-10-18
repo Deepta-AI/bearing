@@ -60,7 +60,8 @@ what is on disk, never from what the model says it did.
 5. Tools go through the repository's make targets; never call a package
    manager directly. Detail: references/auto-mode-and-profile.md
 6. Before the build, in lean scope: the design note, then test-cases. In
-   full scope: architecture, design, repos and ux stages. Detail:
+   full scope: architecture, design, repos, ux, then contract (the data
+   model and API from the screens' data needs). Detail:
    references/design-stages.md
 7. Build is test first, story by story, in the order of the backlog. Read
    the traps in references/reviewer-checks.md first. Detail:
@@ -84,7 +85,7 @@ what is on disk, never from what the model says it did.
 
 ```
 ## Autopilot <run>: <statement>
-Stages: <n> of 17 done   Blocked: <stage (why)> | none
+Stages: <n> of 18 done   Blocked: <stage (why)> | none
 Decisions to review: N (all Proposed)  docs/autopilot/<run>.md
 Profile: ui=<yes|no> data=<yes|no> api=<yes|no> deploy=<yes|no>
 | Key | Choice | Alternatives | Why |

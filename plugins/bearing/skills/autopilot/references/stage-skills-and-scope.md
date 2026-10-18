@@ -10,7 +10,9 @@ Read when loading a stage skill the Skill tool refuses, or when deciding lean or
   `${CLAUDE_PLUGIN_ROOT}/skills/<name>/SKILL.md` and followed the same way.
   Every skill `next` names is run, each in turn; writing its document
   freehand instead is how the first run skipped the data model, the API
-  contract and every design skill while its gate still passed.
+  contract and every design skill while its gate still passed. The
+  contract stage runs data-model and openapi-spec after screen-design,
+  from each feature's data-needs.md, never from the HLD alone.
 - scope: `lean` or `full`, printed by `status` and by each gate. Lean is a
   change to a repository that already had code, or a new product with
   no UI, data, API or deployment (a CLI, a library). Full is everything
