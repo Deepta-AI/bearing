@@ -9,17 +9,22 @@ plugins/bearing/skills/merge-request/SKILL.md plugins/bearing/skills/autopilot/S
 plugins/bearing/skills/start-task/SKILL.md
 plugins/bearing/templates/repo/CLAUDE.md plugins/bearing/templates/repo/CONTRIBUTING.md
 plugins/bearing/templates/user/CLAUDE.md
+plugins/bearing/templates/repo/.claude/settings.json docs/INSTALL.md
 devguide/src/pages/Architecture.tsx devguide/src/pages/Autopilot.tsx devguide/src/pages/Start.tsx
 devguide/src/pages/Home.tsx site/src/pages/Guides.tsx"
 t_begin "every never-pushes claim is qualified"
 out="$(cd "$KIT" && python3 - $files <<'PY'
 import re, sys
-claim = re.compile(r"never push(es)?\b|engineer pushes|agent never pushes", re.I)
+claim = re.compile(r"never push(es|ed)?\b|engineer pushes|agent never pushes|\byou push\b|\bI push\b", re.I)
 ok = re.compile(r"BEARING_AUTO_PUSH|\bopt(s|ed)?\b|brg-push", re.I)
 n = k = bad = 0
 for f in sys.argv[1:]:
+    try:
+        lines = open(f, encoding="utf-8").read().split("\n")
+    except OSError as e:
+        print(f"missing: {f} ({e.strerror})")
+        print(f"push-claims: {n} files, {k} claims, a listed file is missing"); sys.exit(1)
     n += 1
-    lines = open(f, encoding="utf-8").read().split("\n")
     for i, l in enumerate(lines):
         if claim.search(l):
             k += 1

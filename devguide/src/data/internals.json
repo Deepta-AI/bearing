@@ -18810,7 +18810,7 @@
   {
    "path": "tests/unit/push_claims.sh",
    "kind": "unit",
-   "lines": 36,
+   "lines": 41,
    "header": "tests/unit/push_claims.sh: every public \"never pushes\" claim names the opt-in exception (spec A8). Counts files and claims; fails on zero.",
    "asserts": 2
   },
@@ -19907,7 +19907,7 @@
   },
   {
    "path": "repo/CONTRIBUTING.md",
-   "lines": 75
+   "lines": 76
   },
   {
    "path": "repo/SECURITY.md",

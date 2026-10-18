@@ -24,8 +24,8 @@ export default function Home() {
   return (
     <Page full title="How Bearing works inside" lede={
       <>
-        Bearing is an open-source (MIT) Claude Code plugin that gives every stage of a product a skill, and makes the rules that must not bend (the agent
-        never pushes and the Stop hook pushes only an opted-in task branch, every gate counts, everything traces) physical instead of polite. This guide
+        Bearing is an open-source (MIT) Claude Code plugin that gives every stage of a product a skill, and makes the rules that must not bend physical instead of polite: the agent
+        never pushes (where you opt a repository in, the Stop hook pushes its task branch), every gate counts, and everything traces. This guide
         is its service manual: what runs when, which file decides, and where to make a change without breaking the rest. The source is at{" "}
         <a href="https://github.com/Deepta-AI/bearing">github.com/Deepta-AI/bearing</a>.
       </>

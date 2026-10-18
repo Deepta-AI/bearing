@@ -91,9 +91,12 @@ event JSON with `jq` and calls one subcommand of
 
 The hooks write only under the repository's `.bearing/state/` (the
 handoff and compaction snapshots, and `gates.log` with what each gate
-decided). They make no network call of their own; the one indirect case
-is the format hook in a Python repository without `ruff` on PATH, where
-`uv run ruff` lets uv install the project's own locked dependencies.
+decided), and they make no network call of their own, with two
+exceptions. Under the opt-in (`BEARING_AUTO_PUSH`), the Stop hook clones
+the task branch into a protected directory under `~/.config/bearing` and
+pushes it over the network to the listed URL. And the format hook in a
+Python repository without `ruff` on PATH runs `uv run ruff`, which lets
+uv install the project's own locked dependencies.
 
 **What `brg-guard` blocks.** `bash plugins/bearing/bin/brg-guard --verbs`
 prints the table: 136 rules over 55 programs, matched after wrappers such
@@ -125,10 +128,10 @@ as `env`, `sudo` and `bash -c` and any path are stripped.
 The engineer runs these; the agent prints the command instead. The one
 exception is opt-in: list a repository's push URL in `BEARING_AUTO_PUSH`
 and merge-request (or autopilot) can ask the Stop hook to push its task
-branch (feature, bugfix, hotfix, chore or docs) after the gate (`brg-push`,
-from a fresh clone). That push is never to main, master, develop or release, never a
-tag, a force or a deletion, and the pre-push hook still refuses every
-agent push.
+branch (feature, bugfix, hotfix, chore or docs) after the gate
+(`brg-push`, from a fresh clone). That push is never to main, master,
+develop or release, never a tag, a force or a deletion, and the pre-push
+hook still refuses every agent push.
 
 **External fetches.** The plugins download nothing when they install or
 load. The steps below do, and every version or commit they fetch is set
