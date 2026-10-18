@@ -18808,6 +18808,13 @@
    "asserts": 109
   },
   {
+   "path": "tests/unit/push_claims.sh",
+   "kind": "unit",
+   "lines": 36,
+   "header": "tests/unit/push_claims.sh: every public \"never pushes\" claim names the opt-in exception (spec A8). Counts files and claims; fails on zero.",
+   "asserts": 2
+  },
+  {
    "path": "tests/unit/push_run.sh",
    "kind": "unit",
    "lines": 437,
@@ -19892,7 +19899,7 @@
   },
   {
    "path": "repo/CLAUDE.md",
-   "lines": 33
+   "lines": 34
   },
   {
    "path": "repo/CODEOWNERS",
@@ -19900,7 +19907,7 @@
   },
   {
    "path": "repo/CONTRIBUTING.md",
-   "lines": 73
+   "lines": 75
   },
   {
    "path": "repo/SECURITY.md",
@@ -19960,7 +19967,7 @@
   },
   {
    "path": "user/CLAUDE.md",
-   "lines": 30
+   "lines": 32
   },
   {
    "path": "user/bearing.env",
@@ -20857,10 +20864,10 @@
   ],
   "sessionBytes": {
    "agents": 3029,
-   "claude": 1265,
+   "claude": 1339,
    "unscopedRules": 840
   },
-  "sessionTokens": 1283
+  "sessionTokens": 1302
  },
  "autopilot": {
   "maxAttempts": 3,

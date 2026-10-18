@@ -119,8 +119,11 @@ plugin directory's limits.
   exempt on their own.
 - A skill works on its own: every input names a fallback. Never make a
   skill depend on another skill having run.
-- A skill never pushes, merges, tags, deploys or opens an MR. It prints
-  the command for the engineer.
+- A skill never pushes, merges, tags, deploys or opens an MR, except the
+  opt-in push: merge-request and autopilot may run `brg-push request`
+  where the engineer listed the repository in `BEARING_AUTO_PUSH`, and the
+  Stop hook then pushes the task branch from a fresh clone after the gate.
+  Otherwise the skill prints the command for the engineer.
 - Place the skill in the stage map in `bin/gen-guide.py`: a `CATEGORY`
   entry and, where the workflow runs it for a stage, a `STAGES` row.
   `make docs` regenerates `docs/WORKFLOW.md`, `docs/SKILLS.md` and the

@@ -3,14 +3,16 @@
 Bearing is a development workflow for teams that build software with
 coding agents. Every stage of a product, from the brief to the runbook,
 has one skill that runs the checklist, and the rules that must not bend
-(the agent never pushes, every gate prints a count, everything traces)
-are enforced by hooks and git rather than by prose. It is for engineers on
-any harness (Claude Code as a plugin; Cursor, Codex, Gemini CLI, Copilot
-and others through `harness-setup`), for tech leads who want one standard
-across repositories, for PMs and designers who want the PRD, the backlog
-and the screens to come out in a known shape, and for solo developers who
-want the discipline without a team to supply it. Nothing in the kit names
-a company, a git host or a tracker: those are yours to configure.
+(the agent never pushes, and only where you opt a repository in does the
+Stop hook push its task branch, after the gate; every gate prints a count;
+everything traces) are enforced by hooks and git rather than by prose.
+It is for engineers on any harness (Claude Code as a plugin; Cursor,
+Codex, Gemini CLI, Copilot and others through `harness-setup`), for tech
+leads who want one standard across repositories, for PMs and designers
+who want the PRD, the backlog and the screens to come out in a known
+shape, and for solo developers who want the discipline without a team to
+supply it. Nothing in the kit names a company, a git host or a tracker:
+those are yours to configure.
 
 Bearing is open source under the MIT licence. Its home is
 <https://github.com/Deepta-AI/bearing>. Two sites are built from this
@@ -85,7 +87,7 @@ event JSON with `jq` and calls one subcommand of
 | `PreToolUse` (Bash) | `block-publish.sh` | `brg-guard command`: refuses the commands listed below, and any command it cannot read (fail closed, which is every command when `jq` is missing) | yes, exit 2 |
 | `PostToolUse` (Edit, Write, MultiEdit) | `format-file.sh` | `brg-guard format`: formats the edited file with the repository's own formatter when one is installed (gofmt, prettier, ruff or `uv run ruff`, ktlint, swiftformat and the like); then `brg-guard check-file`: `make check-file FILE=<file>` when the repository's Makefile has that target, else `bash -n` and shellcheck, a JSON parse or `py_compile` | sends Claude back with the problems; the edit stands |
 | `PreCompact` | `precompact.sh` | `brg-guard precompact`: writes `.bearing/state/<branch>.compact.md` (branch, changes, check state, the last requests) | no |
-| `Stop` | `stop-summary.sh` | `brg-guard stop-gate`: when files changed in this session since `make check` last passed, sends Claude back once with the reason; the second stop only reminds, so it cannot loop | once |
+| `Stop` | `stop-summary.sh` | `brg-guard stop-gate`: when files changed in this session since `make check` last passed, sends Claude back once with the reason; the second stop only reminds, so it cannot loop. On a stop that passes, when merge-request or autopilot requested it and the engineer opted the repository in, `brg-push run` pushes the task branch from a fresh clone, in the background | once |
 
 The hooks write only under the repository's `.bearing/state/` (the
 handoff and compaction snapshots, and `gates.log` with what each gate
@@ -120,7 +122,13 @@ as `env`, `sudo` and `bash -c` and any path are stripped.
   `chown -R /`, `shutdown`, `reboot`, `killall`, `pkill -f`, `ssh`, and
   `scp` or `rsync` to a remote.
 
-The engineer runs these; the agent prints the command instead.
+The engineer runs these; the agent prints the command instead. The one
+exception is opt-in: list a repository's push URL in `BEARING_AUTO_PUSH`
+and merge-request (or autopilot) can ask the Stop hook to push its task
+branch (feature, bugfix, hotfix, chore or docs) after the gate (`brg-push`,
+from a fresh clone). That push is never to main, master, develop or release, never a
+tag, a force or a deletion, and the pre-push hook still refuses every
+agent push.
 
 **External fetches.** The plugins download nothing when they install or
 load. The steps below do, and every version or commit they fetch is set
@@ -243,7 +251,9 @@ enforces is in
 
 One file, `~/.config/bearing/bearing.env` (mode 600, never inside a
 repository): the tracker and its credentials, the git host, the kit
-remote, the org id. Every key is explained in
+remote, the org id, and `BEARING_AUTO_PUSH`, the push URLs of the
+repositories whose task branch the Stop hook may push (empty by default,
+so nothing is pushed). Every key is explained in
 [docs/INSTALL.md](docs/INSTALL.md) and the adapters in
 [docs/TRACKERS.md](docs/TRACKERS.md).
 

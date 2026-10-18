@@ -33,7 +33,9 @@ How work moves through this repository. The standards themselves are in
 7. `merge-request` runs `make check`, audits the commits and fills the merge
    request or pull request template into `.scratch/`. You push and open
    the request yourself; the pre-push hook asks you to type the branch
-   name.
+   name. Where you listed this repository's push URL in `BEARING_AUTO_PUSH`
+   (your personal bearing.env), the Stop hook pushes the task branch for
+   you after the gate, from a fresh clone; you still open the request.
 8. One peer and one lead approve. Address every thread; resolve none of
    your own.
 9. Squash-merge with the Conventional subject. Delete the branch.

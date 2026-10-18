@@ -164,7 +164,7 @@ export function Concepts() {
           <b>Subagent</b>A separate agent with a clean context and its own tool limits, named like <code>bearing:reviewer</code>. The reviewer, verifier, security auditor, explorer and critic are read-only; the test writer works in a worktree; the doc writer edits only <code>docs/</code>.
         </div>
         <div>
-          <b>Hook</b>A script the harness runs at a moment: session start, before a shell command, after an edit. Hooks enforce what prose cannot, such as never pushing.
+          <b>Hook</b>A script the harness runs at a moment: session start, before a shell command, after an edit. Hooks enforce what prose cannot, such as refusing the agent's own git push.
         </div>
         <div>
           <b>Plugin</b>How skills, agents and hooks ship together and install in one command. Bearing is one; other harnesses take the same skills through the skills CLI.
@@ -440,7 +440,7 @@ export function Rules() {
           <b>One skill per step</b>Every step names the one skill the workflow runs, whichever pack provides it. Where that is another pack's skill, Bearing calls it and adds its own gates.
         </div>
         <div>
-          <b>The agent never pushes</b>No push, merge, tag, deploy or change request from the agent. Hooks and permissions enforce it; you run the printed command.
+          <b>The agent never pushes</b>No push, merge, tag, deploy or change request from the agent. Hooks and permissions enforce it; you run the printed command. The one exception is opt-in: list a repository's push URL in <code>BEARING_AUTO_PUSH</code> and the Stop hook pushes its task branch after the gate, from a fresh clone.
         </div>
         <div>
           <b>Gates count what they checked</b>Every check fails on empty input and prints how many things it verified. A pass over zero items is a bug.
