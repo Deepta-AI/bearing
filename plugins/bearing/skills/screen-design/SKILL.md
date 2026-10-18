@@ -48,10 +48,10 @@ screen that opens from a file.
 - Screenshots: `~/.claude/skills/gstack/browse/dist/browse` when
   executable; otherwise none are taken and the report says so.
 - Templates: `templates/screen.html`, `templates/index.html`,
-  `templates/gallery.html`, `templates/design.schema.json`,
+  `templates/gallery.html`, `templates/data-needs.md`, `templates/design.schema.json`,
   `templates/DESIGN-SYNC.md`, `templates/CHANGES.md`.
-- Gates, Python 3 only: `scripts/gallery_check.py`, `scripts/states_check.py`,
-  `scripts/bundle.py`, plus `evidence.py` and `contrast.py` from sibling
+- Gates, Python 3 only: `scripts/gallery_check.py`, `scripts/states_check.py`
+  (also `--needs`), `scripts/bundle.py`, plus `evidence.py` and `contrast.py` from sibling
   skills. Detail: references/targets-and-gates.md
 - `--standalone`: each page carries a copy of the tokens in
   `<style data-tokens>` instead of the link, for sending one file.
@@ -124,6 +124,14 @@ concern (`ambiguity`, `missing-screen`, `undefined-state`, `dead-end`,
 4. Not installed: print `impeccable not installed` once, no pass, the
    doctrine decides.
 
+### Data needs
+
+1. With the flows file on disk, after the screens and the impeccable pass:
+   write `docs/design/screens/<feature>/data-needs.md` from
+   `templates/data-needs.md`, then run the `--needs` check of
+   `scripts/states_check.py` (command in the reference) and fix until it
+   exits 0. Without flows, skip it and say so. Detail: references/targets-and-gates.md
+
 ### A review round (client or team comments)
 
 1. Find where the pages really come from; triage every comment before
@@ -139,12 +147,13 @@ Sources: flows <file> (against PRD v<x>) | PRD v<y> | ADRs <ids> | API <files>
 Reconciled: <n> states added beyond the flows (<names>); gaps raised: <one line each, owner>
 Screens: <gate counts line, verbatim>
 Bundle: <bundle.py check counts line, verbatim> | not used (<reason>)
+Data needs: <states_check.py --needs counts line, verbatim> | skipped (no flows file)
 Contrast: <contrast.py counts line, verbatim> | no colour changed
 Impeccable: harden <n> and polish <n> screen sets | not installed; inferred: <facts> | none
 Round: <per comment: verdict and reason> | first round
 Ran: <each command with its result>
 Not run: <build, typecheck, dev server, screenshots, each with its reason> | none
-Next: design-critique docs/design/screens/<feature>
+Next: design-critique docs/design/screens/<feature>; then data-model and openapi-spec
 ```
 
 ## Gotchas

@@ -5,20 +5,20 @@
   "commandSkills": 0,
   "stackSkills": 12,
   "scripts": 94,
-  "scriptLines": 29501,
+  "scriptLines": 29672,
   "hooks": 8,
   "agents": 8,
   "makeTargets": 31,
   "gates": 18,
-  "tests": 99,
-  "fixtures": 21,
+  "tests": 100,
+  "fixtures": 23,
   "stacks": 13,
   "templates": 38,
   "ciJobs": 16,
   "ghJobs": 6,
   "ghWorkflows": 2,
   "evals": 107,
-  "skillFiles": 1053
+  "skillFiles": 1054
  },
  "plugins": [
   {
@@ -26,7 +26,7 @@
    "dir": "plugins/bearing",
    "description": "A developer workflow for coding agents: skills for every stage from brief to runbook, review subagents, one guard behind every hook, and repository templates. The stack conventions come in bearing-backend and bearing-apps.",
    "required": true,
-   "files": 510,
+   "files": 511,
    "skills": [
     "ab-experiment",
     "accessibility",
@@ -12013,11 +12013,11 @@
     },
     {
      "title": "Steps",
-     "lines": 71
+     "lines": 79
     },
     {
      "title": "Output contract",
-     "lines": 14
+     "lines": 15
     },
     {
      "title": "Gotchas",
@@ -12033,8 +12033,8 @@
     "Gallery files (react-shadcn): `src/design/screen.ts`, `Gallery.tsx`, `registry.ts`. Detail: references/targets-and-gates.md",
     "Previous rounds: `docs/design/screens/<feature>/CHANGES.md` and `docs/design/feedback/`; `git log` on the mockup pages.",
     "Screenshots: `~/.claude/skills/gstack/browse/dist/browse` when executable; otherwise none are taken and the report says so.",
-    "Templates: `templates/screen.html`, `templates/index.html`, `templates/gallery.html`, `templates/design.schema.json`, `templates/DESIGN-SYNC.md`, `templates/CHANGES.md`.",
-    "Gates, Python 3 only: `scripts/gallery_check.py`, `scripts/states_check.py`, `scripts/bundle.py`, plus `evidence.py` and `contrast.py` from sibling skills. Detail: references/targets-and-gates.md",
+    "Templates: `templates/screen.html`, `templates/index.html`, `templates/gallery.html`, `templates/data-needs.md`, `templates/design.schema.json`, `templates/DESIGN-SYNC.md`, `templates/CHANGES.md`.",
+    "Gates, Python 3 only: `scripts/gallery_check.py`, `scripts/states_check.py` (also `--needs`), `scripts/bundle.py`, plus `evidence.py` and `contrast.py` from sibling skills. Detail: references/targets-and-gates.md",
     "`--standalone`: each page carries a copy of the tokens in `<style data-tokens>` instead of the link, for sending one file."
    ],
    "steps": [
@@ -12048,6 +12048,7 @@
     "A failing gate gets one fix in the screen, never by weakening it; still failing, that file is copied back from the snapshot (`cp -p .scratch/impeccable-pass/<file> <file>`, target files only; never git checkout, restore or stash) and listed. A token-level change impeccable wants goes back to design-system (`tokens.json` is not edited by hand).",
     "Unattended, polish runs only when the binding system and the flows are on disk; else harden only, with `polish skipped: unattended (<why>)`. A polish that asks is stopped, its targets restored from the snapshot, and `polish skipped: unattended (asked)` printed.",
     "Not installed: print `impeccable not installed` once, no pass, the doctrine decides.",
+    "With the flows file on disk, after the screens and the impeccable pass: write `docs/design/screens/<feature>/data-needs.md` from `templates/data-needs.md`, then run the `--needs` check of `scripts/states_check.py` (command in the reference) and fix until it exits 0. Without flows, skip it and say so. Detail: references/targets-and-gates.md",
     "Find where the pages really come from; triage every comment before editing anything; measure colour changes; change only what the comments need; append the round to `CHANGES.md`. Detail: references/review-round.md"
    ],
    "output": "",
@@ -12067,11 +12068,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 174,
+   "lines": 183,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 174
+     "lines": 183
     },
     {
      "path": "references/html-bundle.md",
@@ -12095,7 +12096,7 @@
     },
     {
      "path": "references/targets-and-gates.md",
-     "lines": 29
+     "lines": 60
     },
     {
      "path": "scripts/bundle.py",
@@ -12107,7 +12108,7 @@
     },
     {
      "path": "scripts/states_check.py",
-     "lines": 183
+     "lines": 354
     },
     {
      "path": "templates/CHANGES.md",
@@ -12116,6 +12117,10 @@
     {
      "path": "templates/DESIGN-SYNC.md",
      "lines": 73
+    },
+    {
+     "path": "templates/data-needs.md",
+     "lines": 57
     },
     {
      "path": "templates/design.schema.json",
@@ -12138,7 +12143,7 @@
     ".": 1,
     "references": 6,
     "scripts": 3,
-    "templates": 6
+    "templates": 7
    },
    "evals": true,
    "hasSections": [
@@ -16846,13 +16851,17 @@
    "lang": "python",
    "group": "skill",
    "skill": "screen-design",
-   "lines": 183,
-   "header": "states_check: every screen prototype renders every state its inventory lists.\n\nThe inventory is section 2 (\"Interaction states\") of the flows file: one\n\"### S-nn <name>\" heading per screen and a table of states under it; a row\nwhose second cell starts with \"n/a\" is out of scope. With no flows file,\neach screen must render the five baseline states (loading, empty, error,\nsuccess, partial) unless the page carries <!-- n/a: <state> because ... -->.\n\nA screen's prototype is <screens dir>/<id>-<name>.html (S-01-orders.html).\nIts states are the values of data-state=\"...\" on its panels; each panel also\nneeds a control that reaches it (data-state-target=\"...\", a repo's own\ndata-target=\"...\", or an href=\"#state=...\" link), and the file must hold no\nunfilled {{PLACEHOLDER}}. State names compare case-blind with spaces and\nunderscores read as hyphens, so the flows' \"no slots\" is the page's\n\"no-slots\": a repository's existing mockups are checked as they are, never\nrewritten to suit this gate.\n\nUsage: states_check.py --screens <dir> [--flows <flows.md>] [--only S-01,S-03]\nPrints one line per problem and the counts; exits 1 on any problem, or when\nzero screens were checked.",
+   "lines": 354,
+   "header": "states_check: every screen prototype renders every state its inventory lists.\n\nThe inventory is section 2 (\"Interaction states\") of the flows file: one\n\"### S-nn <name>\" heading per screen and a table of states under it; a row\nwhose second cell starts with \"n/a\" is out of scope. With no flows file,\neach screen must render the five baseline states (loading, empty, error,\nsuccess, partial) unless the page carries <!-- n/a: <state> because ... -->.\n\nA screen's prototype is <screens dir>/<id>-<name>.html (S-01-orders.html).\nIts states are the values of data-state=\"...\" on its panels; each panel also\nneeds a control that reaches it (data-state-target=\"...\", a repo's own\ndata-target=\"...\", or an href=\"#state=...\" link), and the file must hold no\nunfilled {{PLACEHOLDER}}. State names compare case-blind with spaces and\nunderscores read as hyphens, so the flows' \"no slots\" is the page's\n\"no-slots\": a repository's existing mockups are checked as they are, never\nrewritten to suit this gate.\n\nUsage: states_check.py --screens <dir> [--flows <flows.md>] [--only S-01,S-03]\nPrints one line per problem and the counts; exits 1 on any problem, or when\nzero screens were checked.\n\nNeeds mode: states_check.py --needs <data-needs.md> --flows <flows.md> checks\nthe feature's data-needs.md against the flows inventory (see needs_main);\nparse_needs and outcomes are importable for the contract checks.",
    "functions": [
     "norm",
     "row_counts",
     "inventory",
     "screen_file",
+    "parse_needs",
+    "outcomes",
+    "_flows_check",
+    "needs_main",
     "main"
    ],
    "env": [],
@@ -18277,6 +18286,13 @@
    "lines": 167,
    "header": "tests/unit/screen_bundle.sh: plugins/bearing/skills/screen-design/scripts/bundle.py audits a design bundle from the files and writes real numbers into design.json, renders the gallery, and checks it: passes a complete bundle and fails, with the reason, on a null audit, a stale audit, a state panel without its app chrome or its annotation, a link to a screen file that does not exist, a navigation-map edge with no link, a colour literal, a screen that does not link tokens.css, a story nothing serves, a flows screen the manifest lacks, and a manifest with zero screens.",
    "asserts": 54
+  },
+  {
+   "path": "tests/unit/screen_data_needs.sh",
+   "kind": "unit",
+   "lines": 95,
+   "header": "tests/unit/screen_data_needs.sh: states_check.py --needs checks a feature's data-needs.md against the flows inventory: every screen has an entry, every server action names its outcomes with a status and a code, every empty, loading and error state has a server condition, ids are unique, and zero input fails. parse_needs and outcomes are importable without side effects.",
+   "asserts": 24
   },
   {
    "path": "tests/unit/screen_gallery.sh",
