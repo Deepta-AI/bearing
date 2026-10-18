@@ -5,7 +5,7 @@
   "commandSkills": 0,
   "stackSkills": 12,
   "scripts": 98,
-  "scriptLines": 31750,
+  "scriptLines": 31886,
   "hooks": 8,
   "agents": 8,
   "makeTargets": 32,
@@ -12630,11 +12630,11 @@
     },
     {
      "path": "scripts/progress.py",
-     "lines": 428
+     "lines": 564
     },
     {
      "path": "templates/progress.md",
-     "lines": 45
+     "lines": 46
     }
    ],
    "groups": {
@@ -17289,8 +17289,8 @@
    "lang": "python",
    "group": "skill",
    "skill": "session-handoff",
-   "lines": 428,
-   "header": "progress: the committed, per-task progress record in docs/progress/.\n\nThe session state in .bearing/state/ is local to one machine and ignored by\ngit. This file is the shared summary: one file per task, committed on the\ntask branch, so a second engineer or a fresh clone sees what is in flight.\nEach branch only ever writes its own file, so two branches never conflict.\n\n  write --task ID [--field value ...]\n      Upsert fields in docs/progress/<ID>.md, creating it from\n      skills/session-handoff/templates/progress.md (guidance comments removed).\n      Only the named fields change; Updated is set to today (UTC) on every\n      write; Started, Owner (the latest commit's author), Branch and Status\n      get defaults on create.\n      Scalars: --title --branch --status --owner --criteria --next --mr\n      --ticket. Lists (repeat the flag; the given items replace the list,\n      \"none\" clears it): --done --blocker --decision. Appending:\n      --add-done --add-decision (an item already present is not repeated).\n      A file that would reach 40 lines folds the oldest Done items into one\n      \"N earlier items\" line.\n  index [--root DIR] [--status S] [--open] [--refs]\n      A table of every docs/progress/*.md (task, status, owner, updated,\n      next) and a final \"progress: N tasks (...)\" line counting each status.\n      --open leaves out merged and abandoned. --refs also reads the file\n      from every local and remote-tracking branch (git ls-tree), so tasks\n      still on unmerged branches show; the newest Updated wins per task.\n      Exits 1 when there are zero progress files.\n  check [--root DIR]\n      Exits 1 when a file lacks a required field (Next may be \"none\" once\n      merged or abandoned), has an unknown status or\n      a malformed date, is 40 lines or more, or is named for another task;\n      prints each problem and the counts. Zero files is a failure too.\n\npython3 stdlib only. Exit codes: 0 ok, 1 findings or empty input, 2 usage.",
+   "lines": 564,
+   "header": "progress: the committed, per-task progress record in docs/progress/.\n\nThe session state in .bearing/state/ is local to one machine and ignored by\ngit. This file is the shared summary: one file per task, committed on the\ntask branch, so a second engineer or a fresh clone sees what is in flight.\nEach branch only ever writes its own file, so two branches never conflict.\n\n  write --task ID [--field value ...]\n      Upsert fields in docs/progress/<ID>.md, creating it from\n      skills/session-handoff/templates/progress.md (guidance comments removed).\n      Only the named fields change; Updated is set to today (UTC) on every\n      write; Started, Owner (the latest commit's author), Branch and Status\n      get defaults on create.\n      Scalars: --title --branch --status --owner --criteria --next --mr\n      --ticket. Lists (repeat the flag; the given items replace the list,\n      \"none\" clears it): --done --blocker --decision --repo (\"<n>. <Name>\n      (<path>)\", at most 8; the file gets a \"## Repos\" section after Links\n      only when the list is not empty). Appending:\n      --add-done --add-decision (an item already present is not repeated).\n      A file that would reach 40 lines folds the oldest Done items into one\n      \"N earlier items\" line.\n  index [--root DIR] [--status S] [--open] [--refs]\n      A table of every docs/progress/*.md (task, status, owner, updated,\n      next) and a final \"progress: N tasks (...)\" line counting each status.\n      --open leaves out merged and abandoned. --refs also reads the file\n      from every local and remote-tracking branch (git ls-tree), so tasks\n      still on unmerged branches show; the newest Updated wins per task.\n      Exits 1 when there are zero progress files.\n  check [--root DIR]\n      Exits 1 when a file lacks a required field (Next may be \"none\" once\n      merged or abandoned), has an unknown status or\n      a malformed date, is 40 lines or more, or is named for another task;\n      prints each problem and the counts. Zero files is a failure too.\n\n  set [--root DIR] --task ID\n      For a task that spans repositories: reads the Repos list of this\n      repository's docs/progress/<ID>.md and prints one row per repository,\n      \"<n>. <Name> <path>: ready | merged | not ready: <reason>\", then\n      \"set: N repos, R ready, M merged, K not ready; merge order A, B, C\".\n      Not ready reasons, in this order: uncommitted changes, branch missing,\n      then the gate: make check has never passed (marker missing), files\n      newer than the last make check, 0 files on the branch. The row whose\n      path is \".\" ends with \"(this repository)\". Exits 1 on no progress file,\n      zero repositories or a missing path.\n\npython3 stdlib only. Exit codes: 0 ok, 1 findings or empty input, 2 usage.",
    "functions": [
     "die",
     "today",
@@ -17301,6 +17301,9 @@
     "render",
     "fit",
     "cmd_write",
+    "base_ref",
+    "gate",
+    "cmd_set",
     "local_records",
     "ref_records",
     "gather",
@@ -18708,9 +18711,9 @@
   {
    "path": "tests/unit/progress.sh",
    "kind": "unit",
-   "lines": 120,
+   "lines": 178,
    "header": "tests/unit/progress.sh: plugins/bearing/skills/session-handoff/scripts/progress.py writes docs/progress/<ID>.md from the template (comments removed), updates only the named fields, indexes every file with a count per status (and reads unmerged branches with --refs), fails on zero files, and check catches an unknown status and a missing field. bash 3.2 safe.",
-   "asserts": 59
+   "asserts": 87
   },
   {
    "path": "tests/unit/prose_lint_check.sh",
