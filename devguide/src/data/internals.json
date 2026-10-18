@@ -13544,7 +13544,7 @@
    "description": "Fixes failing or flaky tests: classifies each failure with evidence, heals locator, timing and data drift, leaves regressions red, quarantines flakes. Use when asked to \"fix the flaky tests\" or \"heal the tests\".",
    "invocation": "auto",
    "kind": "step",
-   "args": "[report path, default the newest in docs/testing/reports/] [--tc TC-0231 | --suite e2e]",
+   "args": "[report path, default the newest in docs/testing/reports/ or .scratch/test-run/] [--tc TC-0231 | --suite e2e]",
    "tools": [
     "Read",
     "Write",
@@ -13597,7 +13597,7 @@
     }
    ],
    "inputs": [
-    "Report: `$1`; if absent, the newest `docs/testing/reports/*.json`; if absent, run the suites present (Makefile targets `test`, `test-integration`, `test-e2e`, `test-ui`, else the test folders) and take the failures from the runner output, running a shuffled or parallel suite several times, since one run shows only some of its flakes.",
+    "Report: `$1`; if absent, the newest of `docs/testing/reports/*.json` and `.scratch/test-run/*.json` (the latter carries every failure with file:line and message); if absent, run the suites present (Makefile targets `test`, `test-integration`, `test-e2e`, `test-ui`, else the test folders) and take the failures from the runner output, running a shuffled or parallel suite several times, since one run shows only some of…",
     "Failure history: CI logs or run exports in the repository, the healing log, the report. From them take each test's observed failure rate p (failures over runs) and the conditions it failed under (shuffle, parallel, time of day, time zone, machine). Unknown p is said so.",
     "Failing test files: the report's file:line; else grep the test folders for the test name or the TC id.",
     "Traces: Playwright `test-results/`, Maestro `~/.maestro/tests/`, gradle `app/build/reports/androidTests/`, `build/TestResults.xcresult`; if absent, the runner's text output is the only evidence and the log row says so.",
@@ -13668,7 +13668,7 @@
    "description": "Runs every test suite present into one report: failures at file:line, slowest, flaky, coverage; a suite that did not run never passes. Use when asked to \"run the tests\", \"what is failing\" or \"run TC-0231\".",
    "invocation": "auto",
    "kind": "step",
-   "args": "[--suite unit|integration|e2e|matrix|visual|ui|load|synthetic] [--tag @P1] [--tc TC-0231] [--changed] [--timeout 20m]",
+   "args": "[--suite <s>[,<s>] | all[,matrix]] [--except <s>[,<s>]] [--tag @P1] [--tc TC-0231] [--changed] [--timeout 20m]",
    "tools": [
     "Read",
     "Write",
@@ -13683,6 +13683,7 @@
     "Bash(git rev-parse:*)",
     "Bash(git merge-base:*)",
     "Bash(git rev-list:*)",
+    "Bash(git branch:*)",
     "Bash(git worktree:*)",
     "Bash(git archive:*)",
     "Bash(go test:*)",
@@ -13698,7 +13699,8 @@
     "Bash(xcodebuild test:*)",
     "Bash(maestro test:*)",
     "Bash(k6 run:*)",
-    "Bash(bash *bin/brg-state-path*)"
+    "Bash(bash *bin/brg-state-path*)",
+    "Bash(bash *bin/brg-changed*)"
    ],
    "extra": {},
    "intro": "A green pipeline says nothing about which tests ran. This skill runs every suite the repository has, parses the runner's own machine-readable output, and writes one report that names each test, each failure and each suite that never started. A suite that did not run is never a pass.",
@@ -13709,11 +13711,11 @@
     },
     {
      "title": "Steps",
-     "lines": 90
+     "lines": 98
     },
     {
      "title": "Output contract",
-     "lines": 23
+     "lines": 27
     },
     {
      "title": "Gotchas",
@@ -13723,8 +13725,8 @@
    "inputs": [
     "Stack: looks in the Makefile and `stack.json`; if absent, detects from `package.json` (react, expo), `go.mod`, `pyproject.toml`, `build.gradle.kts`, `Package.swift` or `project.yml`. None of these: stop with \"provide a repository with a package manifest\".",
     "Suites: looks in the Makefile targets `test`, `test-integration`, `test-e2e`, `test-e2e-matrix` (matrix), `test-visual` (visual), `test-ui`, `load-test`, `synthetic` (`make -n <target>` shows the real command); if absent, the test folders (`*_test.go`, `tests/`, `tests/integration/`, `e2e/`, `.maestro/`, `androidTest/`, `UITests/`, `tests/load/`, `tests/synthetic/`).",
-    "Selection: `$ARGUMENTS` as in the hint; if absent, every suite present except `matrix`, `load` and `synthetic`, which run only when named with `--suite` (the matrix repeats e2e on every browser and phone; CI runs it after merge).",
-    "Base for `--changed`: looks in `.bearing/state/<branch with / as _>.md` (`bash \"${CLAUDE_PLUGIN_ROOT}/bin/brg-state-path\"` prints it) (`Base:` line); if absent, every one of `origin/develop`, `develop`, `origin/main`, `main`, `origin/master`, `master` that `git rev-parse --verify` finds is a candidate, and the base is the candidate whose merge base with HEAD leaves the fewest branch commits (`git rev-list --count <m…",
+    "Selection: `$ARGUMENTS` as in the hint. `--suite` takes a comma list; `all` is every suite present except `matrix`, `load` and `synthetic`, and `all,matrix` adds the matrix, which replaces `e2e` (it repeats e2e on every browser and phone; CI runs it after merge). `--except` drops named suites. Absent: scope full, as `all`. `--changed` is scope changed.",
+    "Base for `--changed`: a base the user names wins; else looks in `.bearing/state/<branch with / as _>.md` (`bash \"${CLAUDE_PLUGIN_ROOT}/bin/brg-state-path\"` prints it) (`Base:` line); if absent, every one of `origin/develop`, `develop`, `origin/main`, `main`, `origin/master`, `master` that `git rev-parse --verify` finds is a candidate, and the base is the candidate whose merge base with HEAD leaves the fewest branch…",
     "Case table: `docs/testing/test-cases.md` for the TC to story map; if absent, the story column says \"no case table\" (the table comes from `test-cases`).",
     "Earlier reports: `docs/testing/reports/*.json` for flaky candidates across runs; if absent, flaky candidates come from retries in this run only.",
     "Production host for `--suite load`: `.gitlab-ci.yml` `deploy-production` environment; if absent, the `prod` substring in `BASE_URL`. A match refuses the suite.",
@@ -13732,13 +13734,13 @@
    ],
    "steps": [
     "Detect the stack and inventory the suites as in Inputs. Print the inventory (suite, runner, command, present or absent) before running anything. Zero suites: stop with \"0 suites found: no Makefile test target and no test folder\" and exit non-zero. For each Makefile target and each CI job that runs one, read the recipe from `make -n` and the Makefile text for anything that swallows a failure: `|| true`, `|| :`, `; tr…",
-    "Resolve the selection. `--suite` limits the suites; `--tag` and `--tc` become the runner's own filter from `references/runners.md` (`--grep`, `-run`, `-k`, `-m`, `--tests`, `--filter`, `--include-tags`); `--changed` selects tests whose file is in the diff, tests in the feature folder of a changed source file, and tests named with a TC id whose row changed in the case table. Zero tests selected: report the diff files…",
+    "Resolve the selection. `--suite` and `--except` limit the suites; `--tag` and `--tc` become the runner's own filter from `references/runners.md` (`--grep`, `-run`, `-k`, `-m`, `--tests`, `--filter`, `--include-tags`). `--changed` runs `bash \"${CLAUDE_PLUGIN_ROOT}/bin/brg-changed\" --layers --base <base>` and runs only the suites of the layers it prints. The layer table, the selection inside a layer, the unit reuse, a…",
     "Run each selected suite with the native command and reporter from `references/runners.md`, raw output under `.scratch/test-run/<date>-<branch>/<suite>.<ext>`, the timeout from `--timeout` (default 20 minutes per suite) passed through the runner's own flag. Check the runner offline first (the Python fallbacks are in `references/runners.md`: `uv run --offline`, then `python3 -m pytest`, and `--cov` only when `pytest_c…",
     "Parse every raw file into one model per test: suite, name, file:line, status, duration, retries, message. Extract `TC-nnnn` from the name; look up the story id in the case table. A suite in which every test skipped itself for a missing precondition (`DATABASE_URL not set`, an `importorskip`, no device) is \"not run (<reason>)\": it examined nothing. Its tests stay out of the headline counts, which cover run suites onl…",
     "Compute the summary counts, the per-suite table, the failures with the assertion message and file:line, the slowest ten, the flaky candidates (passed after a retry in this run, or a different result from the last report on the same commit), and coverage from the runner's summary file when present.",
     "Quarantine: when `docs/testing/quarantine.md` exists, every row with an empty Released cell and a Deadline before today goes at the top of the report as \"overdue quarantine: <test> (TC, task, deadline)\" and into the summary as a count; the run fails on any overdue row, so a quarantine cannot outlive its deadline silently.",
     "Read what the runner cannot tell you. The counts say what ran; a senior engineer also says what the green and the skipped parts prove. - Every skipped or quarantined test on the code in question: run it with the skip disabled (pytest: `-p no:skipping` with the test's node id ignores skip marks; Go, vitest, others: a `git worktree` copy under `.scratch/` with the skip line removed). Report \"still fails (<message>)\" o…",
-    "Write `docs/testing/reports/<date>-<branch>.md` from `templates/report.md` (slashes in the branch become `-`) and the same data as `docs/testing/reports/<date>-<branch>.json`. Print the summary line. Exit non-zero when any test failed or any selected suite did not run.",
+    "Every run writes the evidence file `.scratch/test-run/<branch with / as _>-<scope>.json` (keys in `references/runners.md`). Scope full also writes `docs/testing/reports/<date>-<branch>.md` from `templates/report.md` (slashes in the branch become `-`) and the same data as `.json`; scope changed writes only under `.scratch/test-run/`, so it never dirties the tree. Print the summary line and end the message with the co…",
     "Sort the failures into hints: \"element not found\", \"timeout waiting\", \"strict mode violation\", a 4xx from a fixture or a unique constraint are heal candidates for `test-heal`; a screenshot mismatch is a visual candidate, and a failure on one browser or phone of the matrix only is reported with that project's name; an assertion on an expected value the product no longer produces is a likely regression. This is a hint…"
    ],
    "output": "The final message is the deliverable; the report file is the archive. Everything the user needs to act (each failure's full test name, file:line and got/want values, the base for `--changed`, the commands) is in the message itself, not only in the report or the working log. Readiness: never call a branch good or ready while a test fails, a selected suite did not run, or part of the change is covered only by tests that did not run; say what must happen first.",
@@ -13754,19 +13756,19 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 171,
+   "lines": 183,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 171
+     "lines": 183
     },
     {
      "path": "references/runners.md",
-     "lines": 110
+     "lines": 189
     },
     {
      "path": "templates/report.md",
-     "lines": 134
+     "lines": 135
     }
    ],
    "groups": {

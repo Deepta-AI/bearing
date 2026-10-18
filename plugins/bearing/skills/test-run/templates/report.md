@@ -9,7 +9,7 @@
      claim; a .json twin carries the same data. Delete each comment when
      you fill its section. -->
 
-Date: <YYYY-MM-DD HH:MM> | Stack: <stack> | Selection: <all | --suite ... | --tag ... | --tc ... | --changed>
+Date: <YYYY-MM-DD HH:MM> | Stack: <stack> | Scope: <changed (layers <layers>) | full (except <suites>)> | Selection: <all | --suite ... | --tag ... | --tc ... | --changed>
 Raw output: `.scratch/test-run/<date>-<branch>/`
 
 ## Summary
@@ -24,6 +24,7 @@ Raw output: `.scratch/test-run/<date>-<branch>/`
 
 ```
 tests: N run, P passed, F failed, S skipped, coverage C%
+test-run: scope <changed|full>, <S> of <P> suites run, <T> tests, <F> failed, <N> not run
 ```
 
 Exit: <0 | 1 (F failures, M suites not run)>

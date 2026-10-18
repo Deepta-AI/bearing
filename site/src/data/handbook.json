@@ -1333,7 +1333,7 @@
     "heal the tests"
    ],
    "invocation": "auto",
-   "args": "[report path, default the newest in docs/testing/reports/] [--tc TC-0231 | --suite e2e]"
+   "args": "[report path, default the newest in docs/testing/reports/ or .scratch/test-run/] [--tc TC-0231 | --suite e2e]"
   },
   {
    "name": "test-run",
@@ -1347,7 +1347,7 @@
     "run TC-0231"
    ],
    "invocation": "auto",
-   "args": "[--suite unit|integration|e2e|matrix|visual|ui|load|synthetic] [--tag @P1] [--tc TC-0231] [--changed] [--timeout 20m]"
+   "args": "[--suite <s>[,<s>] | all[,matrix]] [--except <s>[,<s>]] [--tag @P1] [--tc TC-0231] [--changed] [--timeout 20m]"
   },
   {
    "name": "themes",

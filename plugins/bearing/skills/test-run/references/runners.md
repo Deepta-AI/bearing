@@ -23,6 +23,85 @@ parse. `<t>` is the timeout, `<out>` is
 | any | load | `load-test` | `k6 run --summary-export <out>.json -e STAGE=smoke -e BASE_URL=<url> tests/load/<flow>.js` | summary JSON |
 | any | synthetic | `synthetic` | `make synthetic` (from `health-checks`) | JUnit XML when the target writes one, else exit code and the probe count on stdout |
 
+## Layers and scoped selection
+
+`--changed` (scope changed) maps the diff to layers and runs the suites of
+those layers. The layers and their suites:
+
+| Layer | Suites (Makefile target) |
+| --- | --- |
+| `unit` | `test` |
+| `api` | `test-integration` (responses checked against `api/openapi.yaml` where `test-automation` wired it) |
+| `ui` | `test-e2e` (Playwright, Maestro), `test-ui` (Android, iOS) |
+| `visual` | `test-visual` |
+
+A layer whose suite the repository lacks is printed "api: no integration
+suite here"; the suite is absent, not unrun, and is not counted. Scope
+full is every suite present (a regression is scope full plus `matrix` at
+a release); the matrix replaces `e2e` when selected.
+
+### The call and what its result means
+
+`bash "${CLAUDE_PLUGIN_ROOT}/bin/brg-changed" --layers --base <base>`
+prints `<layer>\t<file>` lines, then
+`brg-changed: <N> files, layers: <list|none>[ (toolchain changed: <file>)]`.
+Skip the `none` lines. Read the exit code and the counts line together:
+
+| Result | Meaning | What the run does |
+| --- | --- | --- |
+| exit 0, counts line, layers listed | normal | run the listed layers; a toolchain change lists all four |
+| exit 0, counts line, `layers: none` | documentation only, N files | write the evidence with `layers: []` and `files: N`, print "0 layers touched by N changed files: nothing to test", exit non-zero |
+| exit 1, `0 files changed against <base>` or `against the working tree` | nothing changed | print it, exit non-zero, no suite runs |
+| exit 1, any other line (`base ... does not resolve`, `has no merge base`) | an error | quote the line, exit non-zero, no suite runs; never fall back to the whole tree |
+| exit 0, no `brg-changed:` counts line | an older copy that ignores `--layers` and prints plain file names | say "brg-changed lacks --layers" in the report, select as before over every suite present |
+
+Deleted files count as changed. The flag is detected from the counts line,
+never from the exit code alone: an old copy exits 0 on any flag.
+
+### Inside a layer
+
+Within a selected suite run the test files in the diff, test files in the
+feature folder of a changed source file, and tests naming a TC whose row
+changed in the case table. When that selects zero tests in a layer the
+diff touched, run the whole suite: a touched layer never runs zero tests.
+The `visual` layer always runs the whole visual suite, since a shared
+style or token reaches every screen.
+
+### Unit reuse
+
+When `.bearing/state/.check-changed-passed` or `.bearing/state/.check-passed`
+is newer than every changed file, the unit suite is not rerun. The report
+says `unit: covered by make check-changed at <time>`, status `covered`,
+with the counts that target printed when it printed them, else
+`unit: covered, counts n/a`. Reuse needs both: the marker is newer than
+every changed file now, and no file changed after it. The autopilot gate
+checks the same mtimes again, so a stale claim fails there.
+
+### The evidence file
+
+Every run writes `.scratch/test-run/<branch>-<scope>.json`, overwriting the
+last, with the branch from `git branch --show-current` and `/` turned into
+`_` (empty output is a detached HEAD: stop, "detached HEAD: no branch name
+for the evidence file"). It is a superset of the report JSON, so
+`test-heal` can read it:
+
+```json
+{"scope": "changed", "sha": "<HEAD>", "dirty": false, "base": "origin/develop",
+ "files": 3, "layers": ["unit", "ui", "visual"], "except": [],
+ "suites": [{"name": "e2e", "status": "run", "reason": "", "passed": 4, "failed": 0, "skipped": 0}],
+ "tests": 9, "failed": 0, "not_run": ["integration"],
+ "failures": [{"suite": "e2e", "test": "TC-0012 rejects an expired token", "tc": "TC-0012",
+   "file": "e2e/auth/login.spec.ts", "line": 41, "message": "expected visible, received hidden"}]}
+```
+
+`status` is `run`, `covered` or `not run`. `not_run` lists the selected
+suites that did not run, each with its reason in `suites`. `tests` and
+`failed` count only suites with status `run`; a suite that examined zero
+tests is `not run` with reason `0 tests`. Scope full has `layers` and
+`base` empty and `except` as given. Counts line: `S` is the suites with
+status `run` or `covered`, `P` the suites selected and present, `N` the
+suites not run.
+
 ## Python: choosing the command offline
 
 The Python rows assume uv and pytest-cov; neither is guaranteed, and a

@@ -1,7 +1,7 @@
 ---
 name: test-heal
 description: 'Fixes failing or flaky tests: classifies each failure with evidence, heals locator, timing and data drift, leaves regressions red, quarantines flakes. Use when asked to "fix the flaky tests" or "heal the tests".'
-argument-hint: "[report path, default the newest in docs/testing/reports/] [--tc TC-0231 | --suite e2e]"
+argument-hint: "[report path, default the newest in docs/testing/reports/ or .scratch/test-run/] [--tc TC-0231 | --suite e2e]"
 allowed-tools: Read, Write, Edit, Grep, Glob, Bash(make db:*), Bash(make dev:*), Bash(make migrate:*), Bash(make test-repeat:*), Bash(make test-visual-update:*), Bash(make check:*), Bash(make test:*), Bash(git diff:*), Bash(git log:*), Bash(git show:*), Bash(git status:*), Bash(go test:*), Bash(go vet:*), Bash(pnpm exec:*), Bash(pytest:*), Bash(python3 -m pytest:*), Bash(uv run pytest:*), Bash(./gradlew:*), Bash(swift test:*), Bash(xcodebuild test:*), Bash(maestro test:*), Bash(curl -fsS http://localhost:*), Bash(bash *bin/brg-state-path*), Bash(curl -fsS http://localhost:3100/loki/api/v1/query_range*)
 ---
 
@@ -17,7 +17,7 @@ test must expect; this classifies with evidence and heals drift only.
 
 ## Inputs
 
-- Report: `$1`; if absent, the newest `docs/testing/reports/*.json`; if absent, run the suites present (Makefile targets `test`, `test-integration`, `test-e2e`, `test-ui`, else the test folders) and take the failures from the runner output, running a shuffled or parallel suite several times, since one run shows only some of its flakes.
+- Report: `$1`; if absent, the newest of `docs/testing/reports/*.json` and `.scratch/test-run/*.json` (the latter carries every failure with file:line and message); if absent, run the suites present (Makefile targets `test`, `test-integration`, `test-e2e`, `test-ui`, else the test folders) and take the failures from the runner output, running a shuffled or parallel suite several times, since one run shows only some of its flakes.
 - Failure history: CI logs or run exports in the repository, the healing log, the report. From them take each test's observed failure rate p (failures over runs) and the conditions it failed under (shuffle, parallel, time of day, time zone, machine). Unknown p is said so.
 - Failing test files: the report's file:line; else grep the test folders for the test name or the TC id.
 - Traces: Playwright `test-results/`, Maestro `~/.maestro/tests/`, gradle `app/build/reports/androidTests/`, `build/TestResults.xcresult`; if absent, the runner's text output is the only evidence and the log row says so.
