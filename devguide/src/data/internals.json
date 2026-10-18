@@ -5,7 +5,7 @@
   "commandSkills": 0,
   "stackSkills": 12,
   "scripts": 98,
-  "scriptLines": 31626,
+  "scriptLines": 31746,
   "hooks": 8,
   "agents": 8,
   "makeTargets": 32,
@@ -18,7 +18,7 @@
   "ghJobs": 6,
   "ghWorkflows": 2,
   "evals": 109,
-  "skillFiles": 1064
+  "skillFiles": 1065
  },
  "plugins": [
   {
@@ -148,7 +148,7 @@
    "dir": "plugins/bearing-genai",
    "description": "Bearing skills for GenAI and ML products: solution design, RAG, agents, MCP servers, model gateway and routing, guardrails, prompt registry, evals, fine-tuning, datasets, speech, computer vision and tabular ML. Needs the bearing plugin.",
    "required": false,
-   "files": 70,
+   "files": 71,
    "skills": [
     "computer-vision",
     "dataset-generation",
@@ -3047,11 +3047,11 @@
    "sections": [
     {
      "title": "Inputs",
-     "lines": 20
+     "lines": 23
     },
     {
      "title": "Steps",
-     "lines": 64
+     "lines": 69
     },
     {
      "title": "Output contract",
@@ -3067,16 +3067,16 @@
     "Seed: `--seed <path>`, else the rows of `evals/<name>/cases.jsonl` whose `source` is not synthetic, else `datasets/<name>/seed.jsonl`. Row shapes are the ones `llm-eval` and `llm-fine-tuning` write: `input` a string or an object, or chat `messages`; any `source` string.",
     "Cells: `docs/genai/<name>-solution.md` (inputs, users, languages, edge cases) and the three worst cases in `docs/genai/evals.md`.",
     "Model under test and candidate generators: `llm/routing.yaml` (`routes.<name>` and the `models:` table); eval scores per model from `docs/genai/evals.md` for choosing a teacher.",
-    "Golden set to check against: `evals/<name>/cases.jsonl`, for every kind.",
+    "Golden set to check against: `evals/<name>/cases.jsonl` from `bearing-genai:llm-eval`, which comes first in the GenAI flow; required for `train` and `preference`.",
     "Methods, prompts and the audit sample: `references/generation.md`.",
     "Unattended: `--unattended`, or `printenv BEARING_AUTOPILOT BEARING_NONINTERACTIVE` prints a value other than `0`. The skill then asks nothing: the generator takes the recommended default from step 3 when one exists; rows are generated, filtered and the audit sample drawn, but nothing is promoted or handed to training, because the audit is a person's step. It stops with one line, `dataset-generation: unattended, miss…"
    ],
    "steps": [
-    "Seed. Count it: `python3 \"${CLAUDE_PLUGIN_ROOT}/skills/dataset-generation/scripts/dataset_check.py\" <seed> --kind <kind>` and read real plus owner from its count line. Fewer than 10 stops the skill with \"synthetic data with no real seed measures the generator; give me at least 10 real rows\" and generates nothing. Seed rows with PII are cleaned first (`bearing:privacy-review` names the fields).",
+    "Seed. Count it: `python3 \"${CLAUDE_PLUGIN_ROOT}/skills/dataset-generation/scripts/dataset_check.py\" <seed> --kind <kind>` and read real plus owner from its count line (problems it lists for the seed, such as no `--against`, do not matter here). Fewer than 10 stops the skill with \"synthetic data with no real seed measures the generator; give me at least 10 real rows\" and generates nothing. Seed rows with PII are clea…",
     "Taxonomy in `datasets/<name>/taxonomy.json`, `{\"dimensions\": {dim: [values]}}`: the dimensions that matter (intent, difficulty, language including code-mixed, length, edge case, adversarial), values from the solution doc and the worst cases. Keep it to what the product sees; every cell needs a reason. Target per cell from `--target` (default: the larger of 100 and 5 times the seed) divided by the cells, more for the…",
     "Generator. For `eval` rows, a model of a different family or tier from the model under test (`routes.<name>` in `llm/routing.yaml`); for `train` and `preference`, a teacher whose eval score in `docs/genai/evals.md` beats the model being trained. Ask with AskUserQuestion (as the bearing plugin's `references/console.md` says), options \"<the strongest `models:` key that is not the model under test> (Recommended)\" (for…",
     "Generate. `datasets/<name>/generate.py` from `references/generation.md`: a versioned prompt from `bearing-genai:prompt-registry` (`<name>-generate` v1, a new version for every change), one call per cell batch through the gateway (`llm/`) on a `dataset-<name>` route set to the generator, seed rows rotated as examples, each row written with `source: synthetic`, its `cell`, the `expected` or `rubric` the generator prop…",
-    "Filter. Run `python3 \"${CLAUDE_PLUGIN_ROOT}/skills/dataset-generation/scripts/dataset_check.py\" datasets/<name>/generated.jsonl --kind <kind> --against evals/<name>/cases.jsonl --taxonomy datasets/<name>/taxonomy.json`. Drop every row it names (exact or near duplicate at 5-gram Jaccard 0.8, contaminated, missing a field) into `datasets/<name>/rows.jsonl` and run it again on that file until only the audit problem is…",
+    "Filter. Run `python3 \"${CLAUDE_PLUGIN_ROOT}/skills/dataset-generation/scripts/dataset_check.py\" datasets/<name>/generated.jsonl --kind <kind> --against evals/<name>/cases.jsonl --taxonomy datasets/<name>/taxonomy.json`. No `evals/<name>/cases.jsonl` yet: kind `eval` leaves `--against` out (it is growing the first golden set from the seed); `train` and `preference` stop with \"run `bearing-genai:llm-eval` first: train…",
     "Audit. Draw the sample in `references/generation.md` (the gate's required count, capped at the synthetic rows: for kind `eval`, 20 percent or 30 rows, whichever is larger, `llm-eval`'s labelling rule; for `train` and `preference`, 10 percent or 30) into `datasets/<name>/audit-sample.jsonl`. A person writes `datasets/<name>/audit.jsonl`, one row per checked row with `id`, `verdict` (`accept` or `reject`), `by` and `w…",
     "Use and record. `datasets/<name>/DATASHEET.md` from `templates/DATASHEET.md`, every section filled, the filtering counts copied from the gate. Then by kind: - `eval`: on `dataset-check: passed`, append the batch less its rejected rows to `evals/<name>/cases.jsonl` with `source: synthetic`, `labelled_by` the auditor and `labelled_at`. The gate already holds synthetic rows to at most half of rows plus golden set; rows…"
    ],
@@ -3094,11 +3094,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 144,
+   "lines": 152,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 144
+     "lines": 152
     },
     {
      "path": "references/generation.md",
@@ -3106,7 +3106,7 @@
     },
     {
      "path": "scripts/dataset_check.py",
-     "lines": 532
+     "lines": 558
     },
     {
      "path": "templates/DATASHEET.md",
@@ -5101,7 +5101,7 @@
     },
     {
      "path": "references/decision-tree.md",
-     "lines": 124
+     "lines": 127
     },
     {
      "path": "templates/solution.md",
@@ -7021,7 +7021,7 @@
     },
     {
      "title": "Gotchas",
-     "lines": 17
+     "lines": 18
     }
    ],
    "inputs": [
@@ -7048,18 +7048,18 @@
     "A tool without a tier is `irreversible` until someone says otherwise. Default to the strictest tier, not the loosest.",
     "`max_turns` alone does not bound cost; one turn can carry a huge tool result. Bound money from `usage`, not from counting turns.",
     "Return every tool result for a turn in one user message, including failures as `is_error: true`. Splitting them teaches the model to stop calling tools in parallel.",
-    "Fable 5.1 rejects forced `tool_choice`. Use `auto` and an instruction; `strict: true` on the tool keeps the arguments schema-valid.",
+    "Fable 5.1, Mythos 5.1, Opus 5.5 and Sonnet 5.5 reject forced `tool_choice` (a 400, and Opus 5.5 is the default here). Use `auto` and an instruction; `strict: true` on the tool keeps the arguments schema-valid.",
     "The Claude Agent SDK is a different product from the SDK tool runner. Use it when the agent needs the built-in file, shell and search tools; not for an agent with three domain tools.",
     "LangGraph is an option for a `workflow` graph with many branches, not the default: it is a second runtime to trace, test and upgrade, and the tool runner plus a plain state machine covers most flows.",
     "The eval set is trajectories, not answers. A right answer reached by calling a `write` tool it did not need is a failure."
    ],
    "layout": "",
    "commands": [],
-   "lines": 122,
+   "lines": 123,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 122
+     "lines": 123
     },
     {
      "path": "references/agent-types.md",
@@ -7067,11 +7067,11 @@
     },
     {
      "path": "templates/agent-python.md",
-     "lines": 123
+     "lines": 125
     },
     {
      "path": "templates/agent-typescript.md",
-     "lines": 115
+     "lines": 117
     },
     {
      "path": "templates/tool-registry.md",
@@ -7112,6 +7112,7 @@
     "Bash(make eval:*)",
     "Bash(python3 -c:*)",
     "Bash(python3 *skills/llm-eval/scripts/eval_stats.py*)",
+    "Bash(python3 evals/tools/eval_stats.py*)",
     "Bash(printenv BEARING_AUTOPILOT BEARING_NONINTERACTIVE)",
     "Bash(git log:*)",
     "Bash(git branch:*)",
@@ -7123,11 +7124,11 @@
    "sections": [
     {
      "title": "Inputs",
-     "lines": 30
+     "lines": 32
     },
     {
      "title": "Steps",
-     "lines": 70
+     "lines": 78
     },
     {
      "title": "Output contract",
@@ -7144,16 +7145,16 @@
     "Golden set: `evals/<name>/cases.jsonl`; if absent, builds a seed set from real inputs the user pastes or points to, else from fixtures in the code (`tests/`, `fixtures/`), marked `source: seed`.",
     "Entry point: the function or route that calls the model; if not obvious from a grep for the SDK, asks for its path. Nothing to call stops the skill: \"name the function or route to evaluate\".",
     "Gateway and Makefile: used when present; else the harness calls the entry point directly and runs as `uv run python evals/<name>/run.py` or `npx tsx@4.23.15 evals/<name>/run.ts`. Where eslint lints with `projectService` and the tsconfig does not include `evals/`, write the runner as `run.mjs` (run with `node`) or add `evals/` to the tsconfig; a `.ts` file outside the project fails lint. An entry point that imports `…",
-    "Unattended: `--unattended`, or `printenv BEARING_AUTOPILOT BEARING_NONINTERACTIVE` prints a value other than `0`. The skill then puts no question to anyone: no criteria takes the class's first metric from step 1 and says so; no entry point, no person labels for the set, or no person-labelled judge sample stops the skill with one line, `llm-eval: unattended, missing:` then the list (entry point, person labels N of M,…",
+    "Unattended: `--unattended`, or `printenv BEARING_AUTOPILOT BEARING_NONINTERACTIVE` prints a value other than `0`. The skill then puts no question to anyone: no criteria takes the class's first metric from step 1 and says so; a judge with no person-labelled sample is reported as `judge: not calibrated, reported only` and the run continues (the gate never uses it, as attended); no entry point or no person labels for t…",
     "Methods: `references/eval-methods.md` (judge bias and its controls, noise floor, contamination, pairwise or pointwise, the statistics)."
    ],
    "steps": [
-    "Name from `$1`; task class from `--task` or inferred from the solution doc (`docs/design/<name>-hld.md` or the PRD). Read the success criteria there. Zero criteria: ask the Inputs question, propose a metric from the class below, and continue. Map each to a metric: - classification: accuracy, macro F1, per-class recall - extraction: field-level F1 against a labelled record - generation: rubric score (0 to 3 per crite…",
+    "Name from `$1`; task class from `--task` or inferred from the solution doc (`docs/design/<name>-hld.md` or the PRD). Read the success criteria there. Zero criteria: ask the Inputs question (unattended: ask nothing and take the class's first metric, as Inputs says), propose a metric from the class below, and continue. Map each to a metric: - classification: accuracy, macro F1, per-class recall - extraction: field-lev…",
     "Golden set in `evals/<name>/cases.jsonl` from `templates/cases.jsonl`. Minimum size: 50 for classification and extraction, 30 for generation with a rubric, 20 trajectories for agents. Source from real inputs with PII removed, then owner-written cases, then synthetic (marked `source: synthetic`). Every case has `expected` or `rubric` filled by a person, `labelled_by` and `labelled_at`. Count cases with labels; it mus…",
     "Graders from `templates/graders.md`, in `evals/<name>/graders.py` (or `.ts`). Deterministic first (exact, normalised match, F1, JSON schema, end-state check). LLM judge only where the output is prose: judge model stronger than the model under test (`claude-opus-5-5` judging Sonnet 5.5 or Haiku 4.5; `claude-fable-5-1` or a pairwise judge with randomised order when Opus 5.5 is under test), rubric as checkable claims,…",
     "Harness: `evals/<name>/run.py` (or `.ts`) behind `make eval EVAL=<name>` when a Makefile exists, else run directly. It runs every case through the real entry point (the gateway when present) and takes `--model <key>`, a key of the `models:` table in `llm/routing.yaml`; it sets `LLM_ALLOW_MODEL_OVERRIDE=1` for its own process only and passes the key as `model_override`. It writes `evals/<name>/results/<version>.jsonl…",
     "Baseline: the last file in `results/` with `accepted: true` in its summary. A run prints both lines, verbatim in the contract: `python3 \"${CLAUDE_PLUGIN_ROOT}/skills/llm-eval/scripts/eval_stats.py\" summary evals/<name>/results/<version>.jsonl` and `python3 \"${CLAUDE_PLUGIN_ROOT}/skills/llm-eval/scripts/eval_stats.py\" compare <baseline>.jsonl evals/<name>/results/<version>.jsonl`. `compare` pairs cases by `case_id`;…",
-    "Regression gate: CI job `eval-<name>` (in the pipeline when one exists, else printed for the user; `bearing:ci-pipeline` adds it) runs the harness on a stated subset when the full set costs over 5 USD. `evals/<name>/gate.yaml` sets `method: paired` (the default from 30 cases: fail when `compare` prints `worse`) or `method: delta` (below 30 cases: fail when score drops below baseline by more than `delta`, default 0.0…",
+    "Regression gate: CI has no plugin, so copy the statistics into the repository: `python3 \"${CLAUDE_PLUGIN_ROOT}/skills/llm-eval/scripts/eval_stats.py\" vendor evals/tools/eval_stats.py` (a header names bearing-genai, its version and the body's sha256; commit it). On a rerun, `python3 \"${CLAUDE_PLUGIN_ROOT}/skills/llm-eval/scripts/eval_stats.py\" parity evals/tools/eval_stats.py` says whether the copy is current; re-cop…",
     "Report `docs/genai/evals.md`: one table per eval with metric, set size, baseline, current, cost per run, last accepted date, and the three worst cases with why. Update it on every accepted baseline.",
     "Print the contract."
    ],
@@ -7170,19 +7171,19 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 154,
+   "lines": 164,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 154
+     "lines": 164
     },
     {
      "path": "references/eval-methods.md",
-     "lines": 93
+     "lines": 112
     },
     {
      "path": "scripts/eval_stats.py",
-     "lines": 214
+     "lines": 308
     },
     {
      "path": "templates/cases.jsonl",
@@ -7242,7 +7243,7 @@
     },
     {
      "title": "Steps",
-     "lines": 65
+     "lines": 69
     },
     {
      "title": "Output contract",
@@ -7284,11 +7285,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 145,
+   "lines": 149,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 145
+     "lines": 149
     },
     {
      "path": "references/recipes.md",
@@ -7297,6 +7298,10 @@
     {
      "path": "scripts/gpu_check.py",
      "lines": 87
+    },
+    {
+     "path": "templates/audit.jsonl",
+     "lines": 1
     },
     {
      "path": "templates/dataset.jsonl",
@@ -7323,7 +7328,7 @@
     ".": 1,
     "references": 1,
     "scripts": 1,
-    "templates": 5
+    "templates": 6
    },
    "evals": true,
    "hasSections": [
@@ -7370,7 +7375,7 @@
     },
     {
      "title": "Steps",
-     "lines": 102
+     "lines": 104
     },
     {
      "title": "Output contract",
@@ -7414,11 +7419,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 168,
+   "lines": 170,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 168
+     "lines": 170
     },
     {
      "path": "scripts/llm_access_check.py",
@@ -7430,15 +7435,15 @@
     },
     {
      "path": "templates/gateway-python.md",
-     "lines": 264
+     "lines": 287
     },
     {
      "path": "templates/gateway-typescript.md",
-     "lines": 189
+     "lines": 200
     },
     {
      "path": "templates/routing.yaml",
-     "lines": 130
+     "lines": 167
     }
    ],
    "groups": {
@@ -8157,7 +8162,7 @@
     },
     {
      "title": "Steps",
-     "lines": 62
+     "lines": 69
     },
     {
      "title": "Output contract",
@@ -8179,9 +8184,9 @@
    "steps": [
     "Features from `$1` (`all`: every route in `llm/routing.yaml`). No routing file: run the call-site gate, `python3 \"${CLAUDE_PLUGIN_ROOT}/skills/llm-gateway/scripts/llm_callsites_check.py\" .`, copy its counts line and stop with \"put the calls behind `bearing-genai:llm-gateway` first\": a route needs a gateway to live in. Volume per feature as Inputs says, and which source it came from.",
     "Candidates: the defaults plus `--candidates`. A candidate with no `models:` row or no price: ask with AskUserQuestion (as the bearing plugin's `references/console.md` says), options \"paste the price and its source (Recommended)\" (input and output per million tokens, the page and the date) and \"leave this candidate out\". Unattended (see Inputs): ask nothing, leave it out and name it in the `missing:` line. Never fill…",
-    "Measure: the `llm-eval` harness once per candidate, with the override key: `make eval EVAL=<feature> MODEL=<key>` when the Makefile has it, else `uv run python evals/<feature>/run.py --model <key>` or `npx tsx@4.23.15 evals/<feature>/run.ts --model <key>`. Reuse a results file already recorded for the same eval version and model. No golden set: run `bearing-genai:llm-eval` first. A set at `llm-eval`'s minimum size i…",
+    "Measure: the `llm-eval` harness once per candidate, with the override key: `make eval EVAL=<feature> MODEL=<key>` when the Makefile has it, else `uv run python evals/<feature>/run.py --model <key>` or `npx tsx@4.23.15 evals/<feature>/run.ts --model <key>`. Reuse a results file already recorded for the same eval version and model. The override runs on the key's `models:` row (its `effort`, `max_tokens` and `timeout_s…",
     "Decide: `python3 \"${CLAUDE_PLUGIN_ROOT}/skills/model-routing/scripts/route_frontier.py\" --threshold <x> evals/<feature>/results/<run>.jsonl ...` (one file per candidate). It prints one `option` line per candidate and per cheaper-first cascade, then the `route-frontier:` line; copy them verbatim. Exit 2 names what to fix: a file holding two models means a fallback ran during that eval, so refuse the candidate and re-…",
-    "Write the route in `llm/routing.yaml` `routes.<feature>`: `strategy: static` with the model, or `strategy: cascade` with legs `cascade.first` and `cascade.then`, each `{model: <key>, effort, max_tokens, timeout_s}`, and `escalate_on: [invalid, refusal, max_tokens]`. Each leg carries its own `effort` (null for Haiku 4.5), `max_tokens` and `timeout_s`; a leg never inherits the route's tier, whose `effort` Haiku 4.5 re…",
+    "Write the route in `llm/routing.yaml` `routes.<feature>`: `strategy: static` with one leg, `leg: {model: <key>, effort, max_tokens, timeout_s}` (the settings the eval measured, so a route moved to Haiku 4.5 sends no `effort` whatever its old tier said), or `strategy: cascade` with legs `cascade.first` and `cascade.then`, each `{model: <key>, effort, max_tokens, timeout_s}`, and `escalate_on: [invalid, refusal, max_t…",
     "Report `docs/genai/routing.md`: one row per feature with the chosen route, lower bound and threshold, cost per 1,000, monthly estimate at current volume next to the current route's, `full` or `minimal`, and the re-run date (when a model id or a price changes, or 90 days).",
     "Print the contract."
    ],
@@ -8189,7 +8194,7 @@
    "gotchas": [
     "A fallback during an eval run invalidates the candidate: its file scores two models. Re-run it; never drop the foreign rows and score the rest.",
     "Price rows carry source and date. A price changes; the route's evidence comment and the re-run date make the next run due.",
-    "Haiku 4.5 takes no `effort` (the `claude-api` skill's thinking table); its tier sets `effort: null` and thinking, if wanted, is `budget_tokens`. Check the skill before a template sets either.",
+    "Haiku 4.5 takes no `effort` (the `claude-api` skill's thinking table); its tier and its `models:` row set `effort: null` and thinking, if wanted, is `budget_tokens`. Check the skill before a template sets either.",
     "A cascade's p95 is the escalated path's: both calls in series.",
     "Never route on a `minimal` set without saying provisional.",
     "`valid` is only what the gateway can check at call time. A cascade simulated on a semantic grader shows a saving production never sees.",
@@ -8197,15 +8202,15 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 136,
+   "lines": 143,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 136
+     "lines": 143
     },
     {
      "path": "references/strategies.md",
-     "lines": 100
+     "lines": 114
     },
     {
      "path": "scripts/route_frontier.py",
@@ -14496,6 +14501,8 @@
     "Read",
     "Edit",
     "Skill",
+    "AskUserQuestion",
+    "Bash(printenv BEARING_AUTOPILOT BEARING_NONINTERACTIVE)",
     "Bash(bash *bin/brg-doctor*)",
     "Bash(claude plugin:*)",
     "Bash(git status:*)",
@@ -14525,7 +14532,7 @@
     },
     {
      "title": "Steps",
-     "lines": 86
+     "lines": 97
     },
     {
      "title": "Output contract",
@@ -14548,7 +14555,7 @@
     "Blockers, each stops its own source only: - Dirty checkout: never stash, reset, branch or commit inside it; it is someone's work. Report the full path of every changed file and whether the new version changes the same file, and hold the source so its pin and checkout stay together. - Local patches (a patch file, or edits in `git status` that match one): reverse-apply (`git apply -R`), check the patch applies on the…",
     "Move a project-pinned source: - Detached checkout: `git pull` fails there; `git fetch --tags`, then `git checkout --detach <tag>`. Record the full commit of the tag. - Update the pin in the same change, version and full ref. Pin and checkout must agree afterwards; a pin naming a version the checkout is not at is worse than no upgrade. - Apply every configuration migration from step 2 to the project's config, writing…",
     "Verify the teammate path, not only your checkout. In a scratch copy, run the project's bootstrap twice: from a fresh clone, and on an existing checkout at the OLD pin with its patches applied, the state every teammate is in (the old patch applied, not the new one). A bootstrap that aborts there (\"local changes would be overwritten\") means the upgrade does not reach the team: make the smallest fix to the bootstrap an…",
-    "Machine-wide sources, when in scope: - Plugins: for a marketplace added from a local path (`claude plugin marketplace list`), apply step 3 in that checkout; on a branch `git pull --ff-only`, detached `git fetch --tags` and check out the tag. A URL marketplace: `claude plugin marketplace update <name>`. Then `claude plugin update <plugin>@<marketplace>`, one row each. - gstack: invoke the `gstack-upgrade` skill with…",
+    "Machine-wide sources, when in scope: - Plugins: for a marketplace added from a local path (`claude plugin marketplace list`), apply step 3 in that checkout; on a branch `git pull --ff-only`, detached `git fetch --tags` and check out the tag. A URL marketplace: `claude plugin marketplace update <name>`. Then `claude plugin update <plugin>@<marketplace>`, one row each. - A plugin new since the installed version: from…",
     "Report. Do not commit, push or open a merge request: leave the change in the working tree and list the files to commit. Say how teammates get it (merge the pin change, rerun the bootstrap, restart Claude Code) and that Claude Code must be restarted for plugin or skill changes to load. Name what you did not verify."
    ],
    "output": "",
@@ -14563,11 +14570,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 163,
+   "lines": 174,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 163
+     "lines": 174
     }
    ],
    "groups": {
@@ -16655,8 +16662,8 @@
    "lang": "python",
    "group": "skill",
    "skill": "dataset-generation",
-   "lines": 532,
-   "header": "dataset_check: the gate a generated dataset passes before anyone uses it.\n\nUsage:\n  dataset_check.py <rows.jsonl> --kind eval|train|preference\n                   [--against <cases.jsonl>] [--taxonomy <taxonomy.json>]\n                   [--audit <audit.jsonl>] [--near 0.8] [--max-near 0.02]\n\nRows (JSON Lines) come in the shapes llm-eval and llm-fine-tuning write:\n  {\"id\", \"input\": str | object, \"source\": str, \"cell\": {dim: value}, ...}\nplus `expected` or `rubric` (eval), `output` or chat `messages` with an\nassistant turn (train), `chosen` and `rejected` (preference). A chat row\n(`messages`, or `prompt` for a preference pair) takes its input from the\nuser turns (a string, or a list of content blocks whose `text` is\nread); the system prompt is shared by every row and is not compared.\n`source` is any non-empty string: `owner` is counted by name; `synthetic`,\n`teacher`, and any `<generator>:` prefix (`synthetic:x`, `teacher:<model>`,\n`<model>:<tag>` such as `claude-opus-5-5:v2`, `llama3:8b` or `gpt4o`) count\nas synthetic; every other value is real.\n\nComparison text: a string as is; an object as canonical JSON with sorted\nkeys; then NFKC-normalised, format characters (Unicode category Cf, such\nas zero-width spaces) removed, lower-cased, whitespace collapsed.\nContamination targets of a case: its input as canonical JSON, its string values joined, and each\nstring value of 20 or more characters on its own, so a chat row, a string\nrow, or a row that repeats one field (a question without its context) is\ncaught. A row is contaminated by an exact match of any target, a near\nmatch (character 5-gram Jaccard at or above --near), or containment: the\nshare of a target's 5-grams found in the row at or above the same\n--near, which catches a row that wraps a case (\"Classify: <case text>\").\nContainment can also flag a long row that quotes a short case; targets\nunder 20 characters are not checked for it. One threshold, --near\n(default 0.8), serves duplicates, contamination and containment. Above\n20,000 rows only exact matches are checked.\n\nTaxonomy: {\"dimensions\": {dim: [values]}}; cells are the product of the\nvalues. Audit rows: {\"id\", \"verdict\": \"accept\"|\"reject\", \"by\"}; a row\nwithout `by` is not a person's audit and does not count. Required audit is\nmin(synthetic, max(30, ceil(f x synthetic))) with f 0.2 for kind eval\n(llm-eval's rule that a person checks 20% of model-labelled cases) and\n0.1 for train and preference; acceptance must be at\nleast 90%. For kind eval the synthetic share of the rows plus --against\ncases is at most 0.5.\n\nOutput: one count line, then `dataset-check: passed` (exit 0) or\n`dataset-check: X problems` and one line per problem (exit 1). Zero rows,\nor a rows, --against, --audit or --taxonomy file that cannot be read,\nprints `dataset-check: 0 rows checked, nothing checked (...)` and exits 2.",
+   "lines": 558,
+   "header": "dataset_check: the gate a generated dataset passes before anyone uses it.\n\nUsage:\n  dataset_check.py <rows.jsonl> --kind eval|train|preference\n                   [--against <cases.jsonl>] [--taxonomy <taxonomy.json>]\n                   [--audit <audit.jsonl>] [--near 0.8] [--max-near 0.02]\n\nRows (JSON Lines) come in the shapes llm-eval and llm-fine-tuning write:\n  {\"id\", \"input\": str | object, \"source\": str, \"cell\": {dim: value}, ...}\nplus `expected` or `rubric` (eval), `output` or chat `messages` with an\nassistant turn (train), `chosen` and `rejected` (preference). A chat row\n(`messages`, or `prompt` for a preference pair) takes its input from the\nuser turns (a string, or a list of content blocks whose `text` is\nread); the system prompt is shared by every row and is not compared.\n`source` is any non-empty string: `owner` is counted by name; `synthetic`,\n`teacher`, and any `<generator>:` prefix (`synthetic:x`, `teacher:<model>`,\n`<model>:<tag>` such as `claude-opus-5-5:v2`, `llama3:8b` or `gpt4o`) count\nas synthetic. So do vendor and platform forms of a model id: the part after\nthe last `/` (`anthropic/claude-sonnet-5-5`, `meta-llama/Llama-3.1-8B`,\n`Qwen/Qwen2.5-7B-Instruct`), a model after a vendor and a dot, with an\noptional region (`anthropic.claude-haiku-4-5`, `us.anthropic.claude-...`),\nand a serving platform's prefix (`vllm:`, `ollama:`, `openrouter:`,\n`bedrock:`, `vertex:`, `together:`, `fireworks:`, `groq:`). Every other\nvalue is real.\n\nComparison text: a string as is; an object as canonical JSON with sorted\nkeys; then NFKC-normalised, format characters (Unicode category Cf, such\nas zero-width spaces) removed, lower-cased, whitespace collapsed.\nContamination targets of a case: its input as canonical JSON, its string values joined, and each\nstring value of 20 or more characters on its own, so a chat row, a string\nrow, or a row that repeats one field (a question without its context) is\ncaught. A row is contaminated by an exact match of any target, a near\nmatch (character 5-gram Jaccard at or above --near), or containment: the\nshare of a target's 5-grams found in the row at or above the same\n--near, which catches a row that wraps a case (\"Classify: <case text>\").\nContainment can also flag a long row that quotes a short case; targets\nunder 20 characters are not checked for it. One threshold, --near\n(default 0.8), serves duplicates, contamination and containment. Above\n20,000 rows only exact matches are checked.\n\nTaxonomy: {\"dimensions\": {dim: [values]}}; cells are the product of the\nvalues. Audit rows: {\"id\", \"verdict\": \"accept\"|\"reject\", \"by\"}; a row\nwithout `by` is not a person's audit and does not count. Required audit is\nmin(synthetic, max(30, ceil(f x synthetic))) with f 0.2 for kind eval\n(llm-eval's rule that a person checks 20% of model-labelled cases) and\n0.1 for train and preference; acceptance must be at\nleast 90%. For kind eval the synthetic share of the rows plus --against\ncases is at most 0.5.\n\nOutput: one count line, then `dataset-check: passed` (exit 0) or\n`dataset-check: X problems` and one line per problem (exit 1). Kind train\nor preference with no --against is a problem (`contamination: 0 cases\nchecked`): contamination is the reason this gate exists for training\ndata. Kind eval may run without it while the first golden set grows. Zero rows,\nor a rows, --against, --audit or --taxonomy file that cannot be read,\nprints `dataset-check: 0 rows checked, nothing checked (...)` and exits 2.",
    "functions": [
     "die",
     "read_jsonl",
@@ -16988,8 +16995,8 @@
    "lang": "python",
    "group": "skill",
    "skill": "llm-eval",
-   "lines": 214,
-   "header": "eval_stats: intervals, paired comparison and judge calibration for llm-eval.\n\nReads results rows (JSON Lines), one per case, as every llm-eval harness\nwrites them:\n  {\"case_id\": str, \"score\": float 0..1, \"model\": str, \"usage\": {...},\n   \"cost_usd\": float|null, \"latency_ms\": int, \"truncated\": bool,\n   \"valid\": bool|null, \"label\": str|null}\nA truncated row (max_tokens hit) is excluded from every number and counted.\n\nUsage:\n  eval_stats.py summary <results.jsonl> [--resamples 2000] [--seed 7]\n    eval-stats: N cases (T truncated, excluded), mean M, 95% CI [L, U]\n  eval_stats.py compare <base.jsonl> <new.jsonl> [--resamples 2000] [--seed 7]\n    eval-compare: S shared cases (base B, new W), delta +D, 95% CI [+L, +U]: better|worse|no difference\n    Pairs rows by case_id where neither side is truncated; better when L > 0,\n    worse when U < 0 (exit 1). First prints \"eval-compare: warning: <file>\n    holds models a, b: ...\" for a run whose rows name more than one model.\n  eval_stats.py agree <people.jsonl> <judge.jsonl> [--min-items 30] [--min-kappa 0.6]\n    eval-agree: S shared items, agreement A, kappa K: calibrated|uncalibrated\n    Pairs `label` by case_id; calibrated needs S >= --min-items and\n    kappa >= --min-kappa, else exit 1.\nEvery subcommand exits 2 with \"nothing checked\" when it has zero cases or\nzero shared ids, and exits 2 on a malformed row or a duplicate case_id.",
+   "lines": 308,
+   "header": "eval_stats: intervals, paired comparison and judge calibration for llm-eval.\n\nReads results rows (JSON Lines), one per case, as every llm-eval harness\nwrites them:\n  {\"case_id\": str, \"score\": float 0..1, \"model\": str, \"usage\": {...},\n   \"cost_usd\": float|null, \"latency_ms\": int, \"truncated\": bool,\n   \"valid\": bool|null, \"label\": str|null}\nA truncated row (max_tokens hit) is excluded from every number and counted.\n\nUsage:\n  eval_stats.py summary <results.jsonl> [--resamples 2000] [--seed 7]\n    eval-stats: N cases (T truncated, excluded), mean M, 95% CI [L, U]\n  eval_stats.py compare <base.jsonl> <new.jsonl> [--resamples 2000] [--seed 7]\n    eval-compare: S shared cases (base B, new W), delta +D, 95% CI [+L, +U]: better|worse|no difference\n    Pairs rows by case_id where neither side is truncated; better when L > 0,\n    worse when U < 0 (exit 1). First prints \"eval-compare: warning: <file>\n    holds models a, b: ...\" for a run whose rows name more than one model.\n  eval_stats.py agree <people.jsonl> <judge.jsonl> [--min-items 30] [--min-kappa 0.6]\n    eval-agree: S shared items, agreement A, kappa K: calibrated|uncalibrated\n    Pairs `label` by case_id; calibrated needs S >= --min-items and\n    kappa >= --min-kappa, else exit 1.\n  eval_stats.py vendor <dest>\n    eval-stats vendor: wrote <dest> from bearing-genai <version>, sha256 <h>\n    Copies this script into a repository (evals/tools/eval_stats.py) so CI\n    runs the same statistics without the plugin. Two header lines after\n    the shebang name the source and version and the sha256 of the body.\n  eval_stats.py parity <vendored.py>\n    eval-stats parity: 1 file checked, same as bearing-genai <version>\n    Exit 1 when the copy's body differs from its header's sha256 (edited)\n    or from this script (out of date); exit 2 when the file has no header.\nEvery subcommand exits 2 with \"nothing checked\" when it has zero cases or\nzero shared ids, and exits 2 on a malformed row or a duplicate case_id.",
    "functions": [
     "die",
     "load",
@@ -17001,6 +17008,11 @@
     "compare",
     "labels",
     "agree",
+    "body_of",
+    "sha",
+    "own_text",
+    "vendor",
+    "parity",
     "main"
    ],
    "env": [],
@@ -18212,9 +18224,9 @@
   {
    "path": "tests/integration/plugin_split.sh",
    "kind": "integration",
-   "lines": 101,
+   "lines": 113,
    "header": "tests/integration/plugin_split.sh: Bearing ships as four plugins (bearing, bearing-backend, bearing-apps, bearing-genai). plugins/bearing/bin/brg-kit-paths finds the siblings in the repository layout and in the Claude Code cache layout (cache/<marketplace>/<plugin>/<version>), and the bearing plugin installed alone scaffolds, adopts and reviews nothing it cannot find: every stack request names the plugin to install and writes nothing. bash 3.2 safe.",
-   "asserts": 40
+   "asserts": 47
   },
   {
    "path": "tests/integration/scaffold_each_stack.sh",
@@ -18352,9 +18364,9 @@
   {
    "path": "tests/unit/dataset_check.sh",
    "kind": "unit",
-   "lines": 252,
+   "lines": 281,
    "header": "tests/unit/dataset_check.sh: dataset-generation's dataset_check.py. It counts rows by source, taxonomy cells filled, exact and near duplicates, contamination against a golden set and the person audit of synthetic rows; exit 1 on any problem, exit 2 when it checked nothing. Rows come in the shapes llm-eval and llm-fine-tuning already write: `input` a string or an object, chat `messages`, any `source` string.",
-   "asserts": 77
+   "asserts": 90
   },
   {
    "path": "tests/unit/deliverables_pack.sh",
@@ -18443,9 +18455,9 @@
   {
    "path": "tests/unit/eval_stats.sh",
    "kind": "unit",
-   "lines": 145,
+   "lines": 180,
    "header": "tests/unit/eval_stats.sh: llm-eval's eval_stats.py. summary gives a mean and a seeded percentile bootstrap interval over the rows that are not truncated; compare pairs two runs by case_id and calls the change better, worse or no difference from the interval of the paired deltas; agree measures a judge against person labels with Cohen's kappa. Every subcommand prints its count and exits 2 when it checked nothing.",
-   "asserts": 53
+   "asserts": 74
   },
   {
    "path": "tests/unit/feature_flags_check.sh",
@@ -18457,9 +18469,9 @@
   {
    "path": "tests/unit/flow_order.sh",
    "kind": "unit",
-   "lines": 18,
+   "lines": 24,
    "header": "tests/unit/flow_order.sh: screens come before the contract in the flows.",
-   "asserts": 0
+   "asserts": 2
   },
   {
    "path": "tests/unit/gate_probe.sh",
@@ -18646,9 +18658,9 @@
   {
    "path": "tests/unit/model_ids.sh",
    "kind": "unit",
-   "lines": 55,
+   "lines": 66,
    "header": "tests/unit/model_ids.sh: lint-model-ids holds every Claude id under plugins/ to bin/model-ids.txt (the claude-api skill's current and still-active ids).",
-   "asserts": 21
+   "asserts": 24
   },
   {
    "path": "tests/unit/motion_check.sh",
@@ -18709,9 +18721,9 @@
   {
    "path": "tests/unit/route_frontier.sh",
    "kind": "unit",
-   "lines": 230,
+   "lines": 256,
    "header": "tests/unit/route_frontier.sh: model-routing's route_frontier.py. Per candidate results file it prints the mean, the bootstrap lower bound, cost per 1,000 requests and p95 latency; for each cheaper-first pair whose small model's rows carry `valid` it simulates a cascade; it chooses the cheapest option whose lower bound meets the threshold. Exit 1 when none does, exit 2 when it checked nothing or a file cannot be trusted.",
-   "asserts": 78
+   "asserts": 87
   },
   {
    "path": "tests/unit/runbook_check.sh",

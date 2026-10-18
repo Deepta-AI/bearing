@@ -2,7 +2,7 @@
 name: llm-eval
 description: 'Evaluates an LLM feature: a success metric, a human-labelled golden set, code graders then an LLM judge, a CI regression gate. Use when asked to "evaluate the model", "build an eval set" or "is the new prompt better".'
 argument-hint: "<name> [--task classification|extraction|generation|agent|retrieval] [--unattended]"
-allowed-tools: Read, Write, Edit, Grep, Glob, Bash(ls:*), Bash(wc -l:*), Bash(make eval:*), Bash(python3 -c:*), Bash(python3 *skills/llm-eval/scripts/eval_stats.py*), Bash(printenv BEARING_AUTOPILOT BEARING_NONINTERACTIVE), Bash(git log:*), Bash(git branch:*), Bash(uv run python evals/*), Bash(npx tsx@4.23.15 evals/*)
+allowed-tools: Read, Write, Edit, Grep, Glob, Bash(ls:*), Bash(wc -l:*), Bash(make eval:*), Bash(python3 -c:*), Bash(python3 *skills/llm-eval/scripts/eval_stats.py*), Bash(python3 evals/tools/eval_stats.py*), Bash(printenv BEARING_AUTOPILOT BEARING_NONINTERACTIVE), Bash(git log:*), Bash(git branch:*), Bash(uv run python evals/*), Bash(npx tsx@4.23.15 evals/*)
 ---
 
 # llm-eval
@@ -36,11 +36,13 @@ gate that fails when the number drops.
 - Unattended: `--unattended`, or
   `printenv BEARING_AUTOPILOT BEARING_NONINTERACTIVE` prints a value
   other than `0`. The skill then puts no question to anyone: no criteria
-  takes the class's first metric from step 1 and says so; no entry
-  point, no person labels for the set, or no person-labelled judge
-  sample stops the skill with one line, `llm-eval: unattended, missing:`
-  then the list (entry point, person labels N of M, judge calibration
-  labels); it never marks a baseline accepted.
+  takes the class's first metric from step 1 and says so; a judge with no person-labelled sample is reported as `judge: not calibrated, reported only` and the run continues
+  (the gate never uses it, as attended); no entry point or no person
+  labels for the set stops the skill with one line,
+  `llm-eval: unattended, missing:` then the list (entry point, person
+  labels N of M); it never marks a baseline accepted. Unattended, it still writes `docs/genai/evals.md`
+  (step 7) for every run that scored, with the judge marked
+  uncalibrated, so autopilot's `llm` profile check finds it.
 - Methods: `references/eval-methods.md` (judge bias and its controls,
   noise floor, contamination, pairwise or pointwise, the statistics).
 
@@ -48,7 +50,7 @@ gate that fails when the number drops.
 
 1. Name from `$1`; task class from `--task` or inferred from the solution
    doc (`docs/design/<name>-hld.md` or the PRD). Read the success
-   criteria there. Zero criteria: ask the Inputs question, propose a
+   criteria there. Zero criteria: ask the Inputs question (unattended: ask nothing and take the class's first metric, as Inputs says), propose a
    metric from the class below, and continue. Map each to a metric:
    - classification: accuracy, macro F1, per-class recall
    - extraction: field-level F1 against a labelled record
@@ -104,10 +106,18 @@ gate that fails when the number drops.
    `compare` pairs cases by `case_id`; only `better` supports a claim
    that the change helped. Accepting a new baseline is a deliberate edit
    by a person, recorded in the summary; the skill never makes it.
-6. Regression gate: CI job `eval-<name>` (in the pipeline when one
-   exists, else printed for the user; `bearing:ci-pipeline` adds it)
-   runs the harness on a stated subset when the full set costs over 5
-   USD. `evals/<name>/gate.yaml` sets `method: paired` (the default
+6. Regression gate: CI has no plugin, so copy the statistics into the
+   repository:
+   `python3 "${CLAUDE_PLUGIN_ROOT}/skills/llm-eval/scripts/eval_stats.py" vendor evals/tools/eval_stats.py`
+   (a header names bearing-genai, its version and the body's sha256;
+   commit it). On a rerun,
+   `python3 "${CLAUDE_PLUGIN_ROOT}/skills/llm-eval/scripts/eval_stats.py" parity evals/tools/eval_stats.py`
+   says whether the copy is current; re-copy when it differs. CI job
+   `eval-<name>` (the example in `references/eval-methods.md`; in the
+   pipeline when one exists, else printed for the user) checks parity,
+   runs the harness, then
+   `python3 evals/tools/eval_stats.py compare <baseline> <run>`. It
+   runs on a stated subset when the full set costs over 5 USD. `evals/<name>/gate.yaml` sets `method: paired` (the default
    from 30 cases: fail when `compare` prints `worse`) or `method: delta`
    (below 30 cases: fail when score drops below baseline by more than
    `delta`, default 0.02 absolute). It needs the API key as a CI

@@ -16,7 +16,13 @@ read); the system prompt is shared by every row and is not compared.
 `source` is any non-empty string: `owner` is counted by name; `synthetic`,
 `teacher`, and any `<generator>:` prefix (`synthetic:x`, `teacher:<model>`,
 `<model>:<tag>` such as `claude-opus-5-5:v2`, `llama3:8b` or `gpt4o`) count
-as synthetic; every other value is real.
+as synthetic. So do vendor and platform forms of a model id: the part after
+the last `/` (`anthropic/claude-sonnet-5-5`, `meta-llama/Llama-3.1-8B`,
+`Qwen/Qwen2.5-7B-Instruct`), a model after a vendor and a dot, with an
+optional region (`anthropic.claude-haiku-4-5`, `us.anthropic.claude-...`),
+and a serving platform's prefix (`vllm:`, `ollama:`, `openrouter:`,
+`bedrock:`, `vertex:`, `together:`, `fireworks:`, `groq:`). Every other
+value is real.
 
 Comparison text: a string as is; an object as canonical JSON with sorted
 keys; then NFKC-normalised, format characters (Unicode category Cf, such
@@ -43,7 +49,10 @@ least 90%. For kind eval the synthetic share of the rows plus --against
 cases is at most 0.5.
 
 Output: one count line, then `dataset-check: passed` (exit 0) or
-`dataset-check: X problems` and one line per problem (exit 1). Zero rows,
+`dataset-check: X problems` and one line per problem (exit 1). Kind train
+or preference with no --against is a problem (`contamination: 0 cases
+checked`): contamination is the reason this gate exists for training
+data. Kind eval may run without it while the first golden set grows. Zero rows,
 or a rows, --against, --audit or --taxonomy file that cannot be read,
 prints `dataset-check: 0 rows checked, nothing checked (...)` and exits 2.
 """
@@ -59,12 +68,19 @@ NEAR_CAP = 20000
 GRAM = 5
 LONG = 20  # a case string value this long is a contamination target alone
 SYN_HEADS = {"synthetic", "teacher", "generated", "distilled"}
+PLATFORM_HEADS = {
+    "vllm", "ollama", "openrouter", "bedrock", "vertex", "together", "fireworks", "groq",
+}
+# Bedrock style: an optional region, a vendor, a dot, then the model.
+VENDOR_DOT = re.compile(
+    r"^(?:(?:us|eu|apac|global)\.)?(?:anthropic|meta|mistral|cohere|amazon|deepseek|qwen|openai)\.(.+)$"
+)
 # A model family, then nothing, a version digit (llama3, gpt4o, qwen2.5) or a
 # separator (claude-opus-5-5). The o-series already ends in its digit, so it
 # takes a separator only and a real source such as `o365` stays real.
 MODEL_HEAD = re.compile(
     r"^(?:(claude|gpt|gemini|gemma|llama|qwen|mistral|mixtral|deepseek|phi|command|grok)"
-    r"(\d[\w.-]*|[-_.][\w.-]*)?|o[134]([-_.][\w.-]*)?)$"
+    r"(\d[\w.+-]*|[-_.][\w.+-]*)?|o[134]([-_.][\w.+-]*)?)$"
 )
 
 
@@ -272,7 +288,13 @@ def source_kind(src):
     if s == "owner":
         return "owner"
     head = s.split(":", 1)[0].strip()
-    if head in SYN_HEADS or MODEL_HEAD.match(head):
+    if head in SYN_HEADS or head in PLATFORM_HEADS:
+        return "synthetic"
+    model = head.rsplit("/", 1)[-1]
+    m = VENDOR_DOT.match(model)
+    if m:
+        model = m.group(1)
+    if MODEL_HEAD.match(model):
         return "synthetic"
     return "real"
 
@@ -406,6 +428,10 @@ def main():
     # duplicates
     near_on = len(rows) <= NEAR_CAP
     against = []
+    if not a.against and a.kind in ("train", "preference"):
+        problems.append(
+            f"contamination: 0 cases checked; kind {a.kind} needs --against <evals/<name>/cases.jsonl>"
+        )
     if a.against:
         cases = read_jsonl(a.against, "against", problems)
         if not cases:

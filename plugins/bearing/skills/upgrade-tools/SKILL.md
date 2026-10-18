@@ -2,7 +2,7 @@
 name: upgrade-tools
 description: 'Upgrades every installed Claude Code plugin and skill pack on this machine (plugins, gstack, skills CLI, GSD), versions before and after. Use when asked to "update the plugins", "upgrade the skills" or "update all".'
 argument-hint: "[source to limit: Bearing | plugins | gstack | skills | gsd; default: all]"
-allowed-tools: Read, Edit, Skill, Bash(bash *bin/brg-doctor*), Bash(claude plugin:*), Bash(git status:*), Bash(git pull:*), Bash(git fetch:*), Bash(git log:*), Bash(git diff:*), Bash(git show:*), Bash(git tag:*), Bash(git describe:*), Bash(git rev-parse:*), Bash(git symbolic-ref:*), Bash(git checkout:*), Bash(git apply:*), Bash(git clone:*), Bash(make:*), Bash(npx skills@1.7.0:*), Bash(cat:*), Bash(ls:*)
+allowed-tools: Read, Edit, Skill, AskUserQuestion, Bash(printenv BEARING_AUTOPILOT BEARING_NONINTERACTIVE), Bash(bash *bin/brg-doctor*), Bash(claude plugin:*), Bash(git status:*), Bash(git pull:*), Bash(git fetch:*), Bash(git log:*), Bash(git diff:*), Bash(git show:*), Bash(git tag:*), Bash(git describe:*), Bash(git rev-parse:*), Bash(git symbolic-ref:*), Bash(git checkout:*), Bash(git apply:*), Bash(git clone:*), Bash(make:*), Bash(npx skills@1.7.0:*), Bash(cat:*), Bash(ls:*)
 ---
 
 # upgrade-tools
@@ -113,6 +113,17 @@ installed from here; an absent source is a row that says so.
      check out the tag. A URL marketplace:
      `claude plugin marketplace update <name>`. Then
      `claude plugin update <plugin>@<marketplace>`, one row each.
+   - A plugin new since the installed version: from 0.9.0 the GenAI and
+     ML skills (`rag`, `llm-eval`, `genai-design` and the rest) live in
+     `bearing-genai`, so when `bearing` is installed and `bearing-genai`
+     is not (`claude plugin list`), ask once with AskUserQuestion (as
+     `references/console.md` says): "install bearing-genai
+     (Recommended)", which runs
+     `claude plugin install bearing-genai@<marketplace>` and adds its row,
+     or "skip", which says those skills and `profile --llm yes` stay
+     unavailable. Unattended (`BEARING_NONINTERACTIVE` or `BEARING_AUTOPILOT` set to a value other than `0`): ask nothing and print the command
+     on the row as "not installed: run <command>";
+     `printenv BEARING_AUTOPILOT BEARING_NONINTERACTIVE` tells which.
    - gstack: invoke the `gstack-upgrade` skill with the Skill tool and
      let it finish; never pull that checkout or run its setup directly
      (a bare pull skips its backup and migrations). Absent: the row is

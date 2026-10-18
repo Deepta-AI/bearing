@@ -102,8 +102,10 @@ Notes:
 - Streaming: construct the runner with `stream: true` and set
   `eager_input_streaming: true` on each client tool (spread it onto
   the `betaZodTool` result); validate the parsed input before running.
-- Fable 5.1: omit `thinking`, keep `tool_choice` at `auto`, add the
-  `fallbacks` parameter as the `claude-api` skill shows.
+- Fable 5.1, Mythos 5.1, Opus 5.5 and Sonnet 5.5 reject forced `tool_choice` (`any`,
+  `tool`): keep it at `auto` and name the tool in the instruction.
+- Fable 5.1: omit `thinking`, add the `fallbacks` parameter as the
+  `claude-api` skill shows.
 - Use SDK types (`Anthropic.MessageParam`, `Anthropic.ToolUseBlock`);
   do not redeclare them.
 - Registry test: `src/agents/registry.test.ts` from `tool-registry.md`

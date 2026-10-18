@@ -229,7 +229,10 @@ gstack (through `/gstack-upgrade`), the skills-CLI packs (`npx
 skills@1.7.0 update`) and GSD Core (through `/gsd-update`), prints versions before and after with a count, and reruns
 the doctor. Restart the harness afterwards. On a plugin-only install,
 `claude plugin update <name>@bearing` for each installed plugin is the
-whole upgrade; the three move in lockstep, so update all of them. Read
+whole upgrade; the four move in lockstep, so update all of them.
+Upgrading from 0.8.0 or earlier: the GenAI and ML skills moved to
+`bearing-genai`, so run `claude plugin install bearing-genai@bearing`
+(or rerun install.sh, or let `/bearing:upgrade-tools` offer it). Read
 `CHANGELOG.md` for the version you are crossing.
 
 ## 8. Uninstall

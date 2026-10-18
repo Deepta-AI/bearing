@@ -98,4 +98,16 @@ assert_contains "$T_OUT" "install bearing-backend: /plugin install bearing-backe
 assert_contains "$T_OUT" "install bearing-apps: /plugin install bearing-apps@bearing"
 t_end
 
+t_begin "upgraders get bearing-genai: upgrade-tools installs it when missing, INSTALL says four (I5)"
+t="$(tr '\n' ' ' < "$KIT/plugins/bearing/skills/upgrade-tools/SKILL.md" | tr -s ' ')"
+assert_contains "$t" "claude plugin install bearing-genai@<marketplace>"
+assert_contains "$t" "references/console.md"
+assert_contains "$t" "Unattended (\`BEARING_NONINTERACTIVE\` or \`BEARING_AUTOPILOT\` set to a value other than \`0\`): ask nothing and print the command"
+assert_contains "$(sed -n '/^---$/,/^---$/p' "$KIT/plugins/bearing/skills/upgrade-tools/SKILL.md")" "AskUserQuestion"
+t="$(tr '\n' ' ' < "$KIT/docs/INSTALL.md" | tr -s ' ')"
+assert_contains "$t" "the four move in lockstep"
+assert_not_contains "$t" "the three move in lockstep"
+assert_not_contains "$(cat "$KIT/docs/superpowers/plans/2026-10-17-genai-pack.md")" "feat/GenAIPack"
+t_end
+
 t_summary

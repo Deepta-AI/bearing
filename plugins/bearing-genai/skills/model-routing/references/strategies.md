@@ -10,12 +10,26 @@ One model per feature, set in `llm/routing.yaml` (`strategy: static`).
 The cheapest candidate whose interval's lower bound meets the threshold.
 Simple to reason about, one prompt cache, one failure mode.
 
+The route carries one leg,
+`leg: {model: <key>, effort, max_tokens, timeout_s}`, the settings the
+eval measured. The tier is not read, so a
+route moved from a `balanced` tier to Haiku 4.5 does not keep the tier's
+`effort`.
+
 Before building a cascade, add the larger model at a lower effort as a
-candidate of its own: a `models:` key such as `sonnet-low` with
-`id: claude-sonnet-5-5` and the route's `effort: low`. On current models a
-lower effort often holds quality at a fraction of the output tokens, and
-one model keeps one cache. Haiku 4.5 takes no `effort` (the `claude-api`
-skill's thinking table: it errors), so its candidate has `effort: null`.
+candidate of its own: a `models:` row of its own, which the eval override
+and a static leg both read.
+
+```yaml
+sonnet-low: { provider: anthropic, id: claude-sonnet-5-5, effort: low, max_tokens: 4096, timeout_s: 60, input_per_m: 2.00, output_per_m: 10.00 }
+```
+
+`id` is the model the provider gets; the key names the row, its prices
+and the results file. On current models a lower effort often holds
+quality at a fraction of the output tokens, and one model keeps one
+cache. Haiku 4.5 takes no `effort` (the `claude-api` skill's thinking
+table: it errors), so its row sets `effort: null` and the gateway sends
+it none, from an override, a static leg or a tier.
 
 ## Cascade
 

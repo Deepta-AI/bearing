@@ -73,8 +73,8 @@ feature	28	canary
 genai	1	start-task
 genai	2	genai-design
 genai	3	tech-decision
-genai	4	dataset-generation
-genai	5	llm-eval
+genai	4	llm-eval
+genai	5	dataset-generation
 genai	6	rag
 genai	7	llm-agent
 genai	8	mcp-server

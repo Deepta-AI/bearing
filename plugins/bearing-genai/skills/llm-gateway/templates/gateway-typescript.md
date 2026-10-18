@@ -71,7 +71,7 @@ async complete(input: LLMRequest): Promise<LLMResponse> {
     if (process.env.LLM_ALLOW_MODEL_OVERRIDE !== "1" || !(req.modelOverride in this.routing.models)) {
       throw new ModelOverrideRefused(req.modelOverride);
     }
-    route = this.routing.withModel(route, req.modelOverride); // model, provider, prices
+    route = this.routing.withModel(route, req.modelOverride); // a leg from the models: row
     route = { ...route, fallback: null, strategy: "static" };  // one model per eval run
   }
   if (!route.enabled || process.env[`LLM_KILL_${req.feature.toUpperCase()}`] === "1") {
@@ -81,8 +81,8 @@ async complete(input: LLMRequest): Promise<LLMResponse> {
   if (idem) return idem;
   await this.limits.take(req.tenantId, route.tier);
   const legs = route.strategy === "cascade" ? this.routing.cascadeLegs(route) : null;
-  const first = legs ? legs.first : route;                // a leg: its own model, effort, maxTokens, timeoutS
-  const key = route.cacheable ? this.cache.key(first.model, req) : null;
+  const first = legs ? legs.first : this.routing.staticLeg(route); // a leg: its own model, effort, maxTokens, timeoutS
+  const key = route.cacheable ? this.cache.key(first.key, req) : null;
   const cached = key && (await this.cache.get(key));
   if (cached) return { ...cached, fromCache: true };
   return this.tracer.startActiveSpan(`chat ${first.model}`, async (span) => {
@@ -160,11 +160,21 @@ export class AnthropicProvider implements Provider {
 }
 ```
 
+Legs follow the Python template: `routing.staticLeg(route)` (a route's
+`leg:`, else its tier) and `routing.withModel(route, key)` (the
+`models:` row's `effort`, `maxTokens` and `timeoutS`) both go through
+`routing.leg()`, which sends the row's `id` and drops `effort` for a row
+with `effort: null`: an override to `claude-haiku-4-5` on a `balanced` route sends no `effort`.
+The Zod schema accepts `leg` on a route and `id`, `effort`,
+`max_tokens` and `timeout_s` on a `models:` row.
+
 Same model notes as the Python template: no `thinking` or
 `temperature` or `budget_tokens` on Opus 5.5, Sonnet 5.5 and Fable 5.1;
 `effort` inside `output_config`; Sonnet 5.5 turns thinking off with
 `between_tools`, never `disabled`; no assistant prefill; Haiku 4.5 without
-`effort` (it keeps `budget_tokens`); `stop_reason` read before
+`effort` (it keeps `budget_tokens`); Fable 5.1, Mythos 5.1, Opus 5.5 and Sonnet 5.5 reject forced `tool_choice`
+(`any`, `tool`), so send `auto` with an instruction, `strict: true`, or
+structured outputs; `stop_reason` read before
 `content`; `_request_id` logged on failures.
 
 ## Accounting, logging, tests
@@ -179,9 +189,10 @@ template: `routing.cascadeLegs(route)` gives each leg its own model,
 `escalate_on` once, the first call is recorded under the route that
 answered (`first`, or `fb` after a fallback) and the escalated one under
 `then`, and `llm_escalation_total{feature}` counts the escalation. The
-vitest suite covers the same seventeen cases,
+vitest suite covers the same nineteen cases,
 `model_override refused without flag`, `model_override unknown key
-refused`, `model_override skips fallback`, `cascade escalates once`,
+refused`, `model_override uses model effort`, `static leg settings`,
+`model_override skips fallback`, `cascade escalates once`,
 `escalation counted`, `cascade leg settings` and `no escalation when
 valid` among them. `npm run llm:audit`
 greps for `@anthropic-ai/sdk` and `messages.create(` outside `src/llm/`

@@ -23,7 +23,7 @@
 - `bearing-genai` installs by default from `install.sh`, like the stack plugins (the user's decision of 2026-10-18).
 - References from `bearing-genai` to bearing skills are `bearing:<name>`; from bearing to moved skills `bearing-genai:<name>`.
 - Every new skill: `## Inputs`, `## Steps`, `## Output contract`, `## Gotchas`; description at most 220 chars with "Use when" and two quoted phrases; `evals/<name>/evals.json`; 3 should and 2 near-miss rows in `evals/triggers.json`; a name in `gen-guide.py` CATEGORY `genai`.
-- Bearing never pushes, merges or tags. Commits only on `feat/GenAIPack`, no attribution trailer.
+- Bearing never pushes, merges or tags. Commits only on `feat/sp4-genai`, no attribution trailer.
 - Run `make docs` after any change to a skill, flows.json or gen-guide.py, and commit the regenerated files.
 
 ## Review Focus
@@ -602,7 +602,7 @@ Expected: `lint-version: 9 fields match VERSION 0.9.0 (4 plugins, 4 marketplace 
 ```bash
 git add -A VERSION .claude-plugin plugins CHANGELOG.md docs site/src/data devguide/src/data
 git commit -m "chore: release 0.9.0"
-echo "When you are ready: make gate && git push -u origin feat/GenAIPack"
+echo "When you are ready: make gate && git push -u origin feat/sp4-genai"
 ```
 
 ---

@@ -65,7 +65,10 @@ bearing plugin).
    key: `make eval EVAL=<feature> MODEL=<key>` when the Makefile has it,
    else `uv run python evals/<feature>/run.py --model <key>` or
    `npx tsx@4.23.15 evals/<feature>/run.ts --model <key>`. Reuse a results
-   file already recorded for the same eval version and model. No golden
+   file already recorded for the same eval version and model. The
+   override runs on the key's `models:` row (its `effort`, `max_tokens`
+   and `timeout_s`; Haiku 4.5's row sets `effort: null`), never on the
+   route's tier, or a Haiku 4.5 candidate 400s on every case. No golden
    set: run `bearing-genai:llm-eval` first. A set at `llm-eval`'s minimum
    size is `full`; from 10 labelled cases up to it, `minimal`, and every
    decision below is provisional; under 10, stop.
@@ -82,7 +85,9 @@ bearing plugin).
    lower bound (Recommended)" and "state the threshold". Unattended (see
    Inputs): ask nothing, take the recommended option and say so.
 5. Write the route in `llm/routing.yaml` `routes.<feature>`:
-   `strategy: static` with the model, or `strategy: cascade` with legs
+   `strategy: static` with one leg, `leg: {model: <key>, effort, max_tokens, timeout_s}`
+   (the settings the eval measured, so a route moved to Haiku 4.5 sends
+   no `effort` whatever its old tier said), or `strategy: cascade` with legs
    `cascade.first` and `cascade.then`, each
    `{model: <key>, effort, max_tokens, timeout_s}`, and
    `escalate_on: [invalid, refusal, max_tokens]`. Each leg carries its own `effort` (null for Haiku 4.5),
@@ -95,7 +100,9 @@ bearing plugin).
    templates (one escalation, `llm_escalation_total{feature}`, both calls
    recorded) with its three cascade tests, and run them. Update an
    existing gateway's routing schema to the leg shape (`model`, `effort`,
-   `max_tokens`, `timeout_s`) too, or it rejects the new legs at startup.
+   `max_tokens`, `timeout_s`) on `leg:`, cascade legs and `models:` rows
+   (plus `id`) too, or it rejects them at startup; add its
+   `test_model_override_uses_model_effort` and `test_static_leg_settings`.
 6. Report `docs/genai/routing.md`: one row per feature with the chosen
    route, lower bound and threshold, cost per 1,000, monthly estimate at
    current volume next to the current route's, `full` or `minimal`, and
@@ -126,7 +133,7 @@ report: docs/genai/routing.md
 - Price rows carry source and date. A price changes; the route's
   evidence comment and the re-run date make the next run due.
 - Haiku 4.5 takes no `effort` (the `claude-api` skill's thinking table);
-  its tier sets `effort: null` and thinking, if wanted, is
+  its tier and its `models:` row set `effort: null` and thinking, if wanted, is
   `budget_tokens`. Check the skill before a template sets either.
 - A cascade's p95 is the escalated path's: both calls in series.
 - Never route on a `minimal` set without saying provisional.

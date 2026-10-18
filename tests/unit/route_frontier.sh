@@ -200,7 +200,7 @@ t="$(cat "$KIT/plugins/bearing-genai/skills/llm-gateway/templates/routing.yaml")
 assert_contains "$t" "first: { model: claude-haiku-4-5, effort: null, max_tokens: 2048, timeout_s: 20 }"
 assert_contains "$t" "then: { model: claude-sonnet-5-5, effort: medium, max_tokens: 2048, timeout_s: 60 }"
 t="$(cat "$KIT/plugins/bearing-genai/skills/llm-gateway/templates/gateway-python.md")"
-for want in "legs = self.routing.cascade_legs(route)" "first = legs.first if legs else route" \
+for want in "legs = self.routing.cascade_legs(route)" "first = legs.first if legs else self.routing.static_leg(route)" \
   "result = self._call(first.model, req, first)" "used = fb" "used = legs.then" \
   "self.accounting.record(req, used, result" "if route.effort:" "with_options(timeout=route.timeout_s)"; do
   assert_contains "$t" "$want" gateway-python.md
@@ -208,7 +208,7 @@ done
 assert_not_contains "$t" "self.accounting.record(req, route, result"
 t="$(cat "$KIT/plugins/bearing-genai/skills/llm-gateway/templates/gateway-typescript.md")"
 for want in "const legs = route.strategy === \"cascade\" ? this.routing.cascadeLegs(route) : null;" \
-  "const first = legs ? legs.first : route;" "result = await this.call(first.model, req, first);" \
+  "const first = legs ? legs.first : this.routing.staticLeg(route);" "result = await this.call(first.model, req, first);" \
   "used = fb;" "used = legs.then;" "this.accounting.record(req, used, result" "if (route.effort)" "timeout: route.timeoutS * 1000"; do
   assert_contains "$t" "$want" gateway-typescript.md
 done
@@ -217,6 +217,32 @@ for f in SKILL.md references/strategies.md; do
   t="$(flat "$KIT/plugins/bearing-genai/skills/model-routing/$f")"
   assert_contains "$t" "own \`effort\` (null for Haiku 4.5), \`max_tokens\` and \`timeout_s\`" "$f"
 done
+t_end
+
+t_begin "an override, a static route and a models: row take the leg shape; Haiku 4.5 sends no effort (I1)"
+t="$(cat "$KIT/plugins/bearing-genai/skills/llm-gateway/templates/routing.yaml")"
+assert_contains "$t" "effort: null                   # rejects effort: never sent, whatever the tier says"
+assert_contains "$t" "leg: { model: claude-haiku-4-5, effort: null, max_tokens: 1024, timeout_s: 20 }"
+assert_contains "$t" "  # sonnet-low:"
+assert_contains "$t" "  #   id: claude-sonnet-5-5"
+for g in gateway-python.md gateway-typescript.md; do
+  t="$(flat "$KIT/plugins/bearing-genai/skills/llm-gateway/templates/$g")"
+  assert_contains "$t" "an override to \`claude-haiku-4-5\` on a \`balanced\` route sends no \`effort\`" "$g"
+done
+t="$(cat "$KIT/plugins/bearing-genai/skills/llm-gateway/templates/gateway-python.md")"
+for want in "first = legs.first if legs else self.routing.static_leg(route)" \
+  "route = self.routing.with_model(route, req.model_override)   # a leg: the models: row's model, effort, max_tokens, timeout_s" \
+  "test_model_override_uses_model_effort"; do
+  assert_contains "$t" "$want" gateway-python.md
+done
+t="$(flat "$KIT/plugins/bearing-genai/skills/llm-gateway/templates/gateway-typescript.md")"
+for want in "const first = legs ? legs.first : this.routing.staticLeg(route);" "model_override uses model effort" "same nineteen cases"; do
+  assert_contains "$t" "$want" gateway-typescript.md
+done
+t="$(flat "$KIT/plugins/bearing-genai/skills/model-routing/SKILL.md")"
+assert_contains "$t" "\`strategy: static\` with one leg, \`leg: {model: <key>, effort, max_tokens, timeout_s}\`"
+t="$(flat "$KIT/plugins/bearing-genai/skills/model-routing/references/strategies.md")"
+assert_contains "$t" "sonnet-low: { provider: anthropic, id: claude-sonnet-5-5, effort: low"
 t_end
 
 t_begin "the ticket-router eval fixture chooses the cascade at its threshold"

@@ -3390,8 +3390,18 @@
      "title": "Set the bar"
     },
     {
+     "kind": "step",
+     "id": "g-eval",
+     "title": "Decide what good enough means",
+     "skill": "llm-eval",
+     "pack": "bearing-genai",
+     "does": "A person-labelled golden set, deterministic graders first, then a calibrated judge, a baseline run with intervals, wired to make eval.",
+     "output": "evals/<name>/ with cases, graders and gate.yaml",
+     "why": "Without a baseline every prompt or model change is a guess."
+    },
+    {
      "kind": "branch",
-     "question": "Is there enough real data for a golden set?",
+     "question": "Did real data fill the golden set to its minimum size?",
      "options": [
       {
        "label": "No",
@@ -3402,7 +3412,7 @@
          "title": "Grow the data from a real seed",
          "skill": "dataset-generation",
          "pack": "bearing-genai",
-         "does": "A taxonomy from real seed rows, generated rows, dedupe and contamination counts against the eval set, a person audit and a datasheet.",
+         "does": "A taxonomy from the real seed, generated rows, dedupe and contamination counts against the golden set llm-eval started, a person audit and a datasheet; audited eval rows join the golden set.",
          "output": "datasets/<name>/ with rows.jsonl and DATASHEET.md",
          "why": "Its gate fails on rows that leak eval cases, so a score is not earned on its own test."
         }
@@ -3413,16 +3423,6 @@
        "steps": []
       }
      ]
-    },
-    {
-     "kind": "step",
-     "id": "g-eval",
-     "title": "Decide what good enough means",
-     "skill": "llm-eval",
-     "pack": "bearing-genai",
-     "does": "A person-labelled golden set, deterministic graders first, then a calibrated judge, a baseline run with intervals, wired to make eval.",
-     "output": "evals/<name>/ with cases, graders and gate.yaml",
-     "why": "Without a baseline every prompt or model change is a guess."
     },
     {
      "kind": "phase",

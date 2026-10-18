@@ -20,14 +20,29 @@ Usage:
     eval-agree: S shared items, agreement A, kappa K: calibrated|uncalibrated
     Pairs `label` by case_id; calibrated needs S >= --min-items and
     kappa >= --min-kappa, else exit 1.
+  eval_stats.py vendor <dest>
+    eval-stats vendor: wrote <dest> from bearing-genai <version>, sha256 <h>
+    Copies this script into a repository (evals/tools/eval_stats.py) so CI
+    runs the same statistics without the plugin. Two header lines after
+    the shebang name the source and version and the sha256 of the body.
+  eval_stats.py parity <vendored.py>
+    eval-stats parity: 1 file checked, same as bearing-genai <version>
+    Exit 1 when the copy's body differs from its header's sha256 (edited)
+    or from this script (out of date); exit 2 when the file has no header.
 Every subcommand exits 2 with "nothing checked" when it has zero cases or
 zero shared ids, and exits 2 on a malformed row or a duplicate case_id.
 """
 
 import argparse
+import hashlib
 import json
+import os
 import random
 import sys
+
+VENDOR_FROM = "# vendored-from: "
+VENDOR_SHA = "# vendored-sha256: "
+SOURCE = "skills/llm-eval/scripts/eval_stats.py"
 
 
 def die(msg):
@@ -188,6 +203,75 @@ def agree(a):
     return 0
 
 
+def body_of(text):
+    """The script without its vendored header lines."""
+    return "".join(
+        ln
+        for ln in text.splitlines(keepends=True)
+        if not ln.startswith((VENDOR_FROM, VENDOR_SHA))
+    )
+
+
+def sha(text):
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def own_text():
+    return open(os.path.abspath(__file__), encoding="utf-8").read()
+
+
+def vendor(a):
+    here = os.path.dirname(os.path.abspath(__file__))
+    pj = os.path.join(here, "..", "..", "..", ".claude-plugin", "plugin.json")
+    try:
+        version = json.load(open(pj, encoding="utf-8"))["version"]
+    except (OSError, ValueError, KeyError):
+        die("eval-stats vendor: 0 files written, nothing checked (no plugin.json "
+            "beside this script; run the bearing-genai plugin's copy)")
+    body = body_of(own_text())
+    h = sha(body)
+    first, rest = body.split("\n", 1)
+    out = (
+        f"{first}\n{VENDOR_FROM}bearing-genai {version} {SOURCE}\n"
+        f"{VENDOR_SHA}{h} (never edit; re-copy with `eval_stats.py vendor`)\n{rest}"
+    )
+    d = os.path.dirname(a.dest)
+    if d:
+        os.makedirs(d, exist_ok=True)
+    with open(a.dest, "w", encoding="utf-8") as f:
+        f.write(out)
+    os.chmod(a.dest, 0o755)
+    print(f"eval-stats vendor: wrote {a.dest} from bearing-genai {version}, sha256 {h[:12]}")
+    return 0
+
+
+def parity(a):
+    try:
+        text = open(a.vendored, encoding="utf-8").read()
+    except OSError as e:
+        die(f"eval-stats parity: 0 files checked, nothing checked (cannot read {a.vendored}: {e.strerror})")
+    origin = declared = None
+    for ln in text.splitlines():
+        if ln.startswith(VENDOR_FROM):
+            origin = ln[len(VENDOR_FROM):].split(" " + SOURCE)[0].strip()
+        elif ln.startswith(VENDOR_SHA):
+            declared = ln[len(VENDOR_SHA):].split()[0] if ln[len(VENDOR_SHA):].split() else ""
+    if not origin or not declared:
+        die(f"eval-stats parity: 0 files checked, nothing checked ({a.vendored} has no vendored-from header)")
+    got = sha(body_of(text))
+    mine = sha(body_of(own_text()))
+    if got == declared == mine:
+        print(f"eval-stats parity: 1 file checked, same as {origin} (sha256 {got[:12]})")
+        return 0
+    why = "edited after it was copied" if got != declared else "out of date with this script"
+    print(
+        f"eval-stats parity: 1 file checked, differs: {a.vendored} is {why} "
+        f"(body {got[:12]}, header {declared[:12]}, this script {mine[:12]}); "
+        "re-copy it with `eval_stats.py vendor` from bearing-genai"
+    )
+    return 1
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -204,10 +288,20 @@ def main():
     g.add_argument("judge")
     g.add_argument("--min-items", type=int, default=30)
     g.add_argument("--min-kappa", type=float, default=0.6)
+    v = sub.add_parser("vendor")
+    v.add_argument("dest")
+    y = sub.add_parser("parity")
+    y.add_argument("vendored")
     a = ap.parse_args()
     if getattr(a, "resamples", 1) < 1:
         die("eval-stats: --resamples must be at least 1")
-    return {"summary": summary, "compare": compare, "agree": agree}[a.cmd](a)
+    return {
+        "summary": summary,
+        "compare": compare,
+        "agree": agree,
+        "vendor": vendor,
+        "parity": parity,
+    }[a.cmd](a)
 
 
 if __name__ == "__main__":

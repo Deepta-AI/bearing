@@ -52,4 +52,15 @@ z="$(tmpdir)"; mkdir -p "$z/plugins/p" "$z/bin"; echo x > "$z/plugins/p/f.md"; p
 assert_exit 2 python3 "$KIT/bin/lint-model-ids.py" "$z"
 assert_contains "$T_OUT" "no ids listed"
 t_end
+t_begin "forced tool_choice: every page that mentions it names each current model that rejects it (I7)"
+g="$KIT/plugins/bearing-genai/skills"; n=0
+for f in genai-design/references/decision-tree.md llm-agent/SKILL.md llm-agent/templates/agent-python.md \
+  llm-agent/templates/agent-typescript.md llm-gateway/templates/gateway-python.md llm-gateway/templates/gateway-typescript.md; do
+  t="$(tr '\n' ' ' < "$g/$f" | tr -s ' ')"; n=$((n+1))
+  assert_contains "$t" "Fable 5.1, Mythos 5.1, Opus 5.5 and Sonnet 5.5 reject forced \`tool_choice\`" "$f"
+  assert_not_contains "$t" "Fable 5.1 rejects forced" "$f"
+done
+assert_eq 6 "$n" "pages checked"
+t_end
+
 t_summary

@@ -24,7 +24,9 @@ a sample before a row counts. `scripts/dataset_check.py` is the gate.
 - Model under test and candidate generators: `llm/routing.yaml`
   (`routes.<name>` and the `models:` table); eval scores per model from
   `docs/genai/evals.md` for choosing a teacher.
-- Golden set to check against: `evals/<name>/cases.jsonl`, for every kind.
+- Golden set to check against: `evals/<name>/cases.jsonl` from
+  `bearing-genai:llm-eval`, which comes first in the GenAI flow; required
+  for `train` and `preference`.
 - Methods, prompts and the audit sample: `references/generation.md`.
 - Unattended: `--unattended`, or
   `printenv BEARING_AUTOPILOT BEARING_NONINTERACTIVE` prints a value
@@ -33,13 +35,15 @@ a sample before a row counts. `scripts/dataset_check.py` is the gate.
   filtered and the audit sample drawn, but nothing is promoted or handed
   to training, because the audit is a person's step. It stops with one
   line, `dataset-generation: unattended, missing:` then the list
-  (generator for <name>, person audit of Q rows, seed rows N of 10).
+  (generator for <name>, person audit of Q rows, seed rows N of 10,
+  golden set for <name> when the kind is train or preference).
 
 ## Steps
 
 1. Seed. Count it:
    `python3 "${CLAUDE_PLUGIN_ROOT}/skills/dataset-generation/scripts/dataset_check.py" <seed> --kind <kind>`
-   and read real plus owner from its count line. Fewer than 10 stops the
+   and read real plus owner from its count line (problems it lists for
+   the seed, such as no `--against`, do not matter here). Fewer than 10 stops the
    skill with "synthetic data with no real seed measures the generator;
    give me at least 10 real rows" and generates nothing. Seed rows with
    PII are cleaned first (`bearing:privacy-review` names the fields).
@@ -73,7 +77,11 @@ a sample before a row counts. `scripts/dataset_check.py` is the gate.
    It writes `datasets/<name>/generated.jsonl` and prints its count.
 5. Filter. Run
    `python3 "${CLAUDE_PLUGIN_ROOT}/skills/dataset-generation/scripts/dataset_check.py" datasets/<name>/generated.jsonl --kind <kind> --against evals/<name>/cases.jsonl --taxonomy datasets/<name>/taxonomy.json`.
-   Drop every row it names (exact or near duplicate at 5-gram Jaccard
+   No `evals/<name>/cases.jsonl` yet: kind `eval` leaves `--against` out
+   (it is growing the first golden set from the seed); `train` and
+   `preference` stop with "run `bearing-genai:llm-eval` first: training
+   rows are checked against the golden set" (the gate prints
+   `contamination: 0 cases checked` without it). Drop every row it names (exact or near duplicate at 5-gram Jaccard
    0.8, contaminated, missing a field) into `datasets/<name>/rows.jsonl`
    and run it again on that file until only the audit problem is left.
    Zero contamination is allowed for every kind: a train row that matches

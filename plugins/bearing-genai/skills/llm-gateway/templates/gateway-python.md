@@ -83,7 +83,7 @@ class Gateway:
         if req.model_override is not None:                    # before any network call
             if os.environ.get("LLM_ALLOW_MODEL_OVERRIDE") != "1" or req.model_override not in self.routing.models:
                 raise ModelOverrideRefused(req.model_override)
-            route = self.routing.with_model(route, req.model_override)   # model, provider, prices
+            route = self.routing.with_model(route, req.model_override)   # a leg: the models: row's model, effort, max_tokens, timeout_s
             route = replace(route, fallback=None, strategy="static")      # one model per eval run
         if not route.enabled or os.environ.get(f"LLM_KILL_{req.feature.upper()}") == "1":
             raise FeatureDisabled(req.feature)
@@ -91,8 +91,8 @@ class Gateway:
             return hit
         self.limits.take(req.tenant_id, route.tier)           # RateLimited
         legs = self.routing.cascade_legs(route) if route.strategy == "cascade" else None
-        first = legs.first if legs else route                 # a leg: its own model, effort, max_tokens, timeout_s
-        key = self.cache.key(first.model, req) if route.cacheable else None
+        first = legs.first if legs else self.routing.static_leg(route)   # a leg: its own model, effort, max_tokens, timeout_s
+        key = self.cache.key(first.key, req) if route.cacheable else None
         if key and (hit := self.cache.get(key)):
             return replace(hit, from_cache=True)
         with self.tracer.start_as_current_span(f"chat {first.model}") as span:
@@ -128,6 +128,21 @@ class Gateway:
 
 `_call` retries once on 529 with jitter after the SDK's own retries;
 never on 400.
+
+Every call goes out on a leg: a model (a `models:` key, with its
+provider, prices and `id`), `effort`, `max_tokens` and `timeout_s`.
+`routing.static_leg(route)` gives a static route's leg: its `leg:` when
+model-routing wrote one, else the tier's settings with any `effort`,
+`max_tokens` or `timeout_s` the route sets. `routing.with_model(route,
+key)` gives an eval override's leg from the `models:` row: its `effort`,
+`max_tokens` and `timeout_s`, the tier's where the row has none. Every
+leg passes through `routing.leg()`, which sends the row's `id` as the
+model (the key when the row has none) and drops `effort` when the row
+sets `effort: null`, the mark of a model that rejects it (Haiku 4.5): an
+override to `claude-haiku-4-5` on a `balanced` route sends no `effort`,
+and neither does a static Haiku 4.5 route whose tier has one. The
+routing schema accepts `leg:` on a route and `id`, `effort`,
+`max_tokens` and `timeout_s` on a `models:` row.
 
 A route with `strategy: cascade` calls `cascade.first`.
 `routing.cascade_legs(route)` returns the two legs as routes: each takes
@@ -191,7 +206,11 @@ class AnthropicProvider:
 
 Notes that hold on current models: thinking is adaptive by default on
 Opus 5.5, Sonnet 5.5 and Fable 5.1; do not send `thinking`, `temperature`
-or `budget_tokens` (400). Sonnet 5.5 rejects `thinking: {type: "disabled"}`;
+or `budget_tokens` (400). Fable 5.1, Mythos 5.1, Opus 5.5 and Sonnet 5.5 reject forced `tool_choice`
+(`any`, `tool`) with a 400, on `count_tokens` and batches too: send
+`auto` with an instruction naming the tool, `strict: true` on the tool
+for schema-valid arguments, or structured outputs (`output_schema`)
+when the forced call only existed to get JSON back. Sonnet 5.5 rejects `thinking: {type: "disabled"}`;
 `{type: "between_tools"}` turns it off at effort `high` or below. Opus
 5.5 cannot disable thinking at all. None of them takes an assistant
 prefill. Haiku 4.5 takes no `effort`, so its route sets it to null; it
@@ -248,6 +267,10 @@ Tests in `tests/llm/`: `test_route_picks_tier`, `test_retry_529_then_ok`,
 `test_no_bodies_in_logs_by_default`, `test_refusal_raises_after_accounting`,
 `test_model_override_refused_without_flag`,
 `test_model_override_unknown_key_refused`,
+`test_model_override_uses_model_effort` (an override to
+`claude-haiku-4-5` on a `balanced` route sends no `output_config.effort`
+and the row's `max_tokens`), `test_static_leg_settings` (a static
+`leg:` with `effort: null` sends none whatever the tier says),
 `test_model_override_skips_fallback` (the provider raises
 `ProviderUnavailable`; the call raises and no fallback model is called),
 `test_cascade_escalates_once` (an invalid `first` answer calls `then`

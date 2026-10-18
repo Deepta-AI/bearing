@@ -110,7 +110,8 @@ ADR: docs/adr/NNNN-<kebab>.md   HLD: docs/design/<kebab>-hld.md
 - Return every tool result for a turn in one user message, including
   failures as `is_error: true`. Splitting them teaches the model to stop
   calling tools in parallel.
-- Fable 5.1 rejects forced `tool_choice`. Use `auto` and an instruction;
+- Fable 5.1, Mythos 5.1, Opus 5.5 and Sonnet 5.5 reject forced `tool_choice` (a 400,
+  and Opus 5.5 is the default here). Use `auto` and an instruction;
   `strict: true` on the tool keeps the arguments schema-valid.
 - The Claude Agent SDK is a different product from the SDK tool runner.
   Use it when the agent needs the built-in file, shell and search

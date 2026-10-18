@@ -60,8 +60,12 @@ there, and keep this skill's decision, data, eval and serving steps.
    `preference`), which audits them. Duplicates and contamination are
    that skill's gate, one threshold for both, run on every training file
    before the split:
-   `python3 "${CLAUDE_PLUGIN_ROOT}/skills/dataset-generation/scripts/dataset_check.py" data/<name>/all.jsonl --kind train --against evals/<name>/cases.jsonl`
-   (copy its count line; `--kind preference` for DPO pairs). Then a
+   `python3 "${CLAUDE_PLUGIN_ROOT}/skills/dataset-generation/scripts/dataset_check.py" data/<name>/all.jsonl --kind train --against evals/<name>/cases.jsonl --audit data/<name>/audit.jsonl`
+   (copy its count line; `--kind preference` for DPO pairs). The audit
+   file is the one the rows arrived with (dataset-generation's
+   `datasets/<name>/audit.jsonl`, shape in `templates/audit.jsonl`), and
+   row ids are kept through the merge into `all.jsonl`, or every teacher
+   row reads as unaudited. Then a
    split of 80/10/10 into train, validation and test with no document
    shared across splits. Format is chat messages JSONL from
    `templates/dataset.jsonl`; DPO pairs from

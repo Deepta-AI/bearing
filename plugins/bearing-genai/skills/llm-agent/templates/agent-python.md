@@ -106,8 +106,10 @@ Notes:
 - A `pause_turn` (server tools) is not resumed by the Python runner;
   mirror the history and restart the runner with the paused turn, or
   keep server tools out of this agent.
-- Fable 5.1: omit `thinking`, keep `tool_choice` at `auto`, add the
-  `fallbacks` parameter as the `claude-api` skill shows, and stream.
+- Fable 5.1, Mythos 5.1, Opus 5.5 and Sonnet 5.5 reject forced `tool_choice` (`any`,
+  `tool`): keep it at `auto` and name the tool in the instruction.
+- Fable 5.1: omit `thinking`, add the `fallbacks` parameter as the
+  `claude-api` skill shows, and stream.
 - Parallel tool calls in one turn come back as one user message; the
   runner does that. A manual loop must too.
 - Memory: keep the last N turns; beyond that, server-side compaction

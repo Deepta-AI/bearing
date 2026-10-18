@@ -97,6 +97,12 @@ write("syn200.jsonl", [{"id": f"y{i}", "input": t, "expected": "x", "output": "x
 # Task 6 fix round 2 fixtures: model ids with no separator after the family,
 # real sources that only resemble a family, and a case hidden by format characters
 write("modelid.jsonl", [dict(r, source=s) for r, s in zip(train[:4], ("llama3:8b", "gpt4o", "qwen2.5:7b", "user-log"))])
+# vendor and platform prefixes (M1): the model after the last / or a
+# vendor. prefix decides; a platform head such as vllm: counts as synthetic
+write("vendor.jsonl", [dict(r, source=s) for r, s in zip(train[:10], (
+    "anthropic/claude-sonnet-5-5", "meta-llama/Llama-3.1-8B-Instruct", "Qwen/Qwen2.5-7B-Instruct",
+    "anthropic.claude-haiku-4-5", "us.anthropic.claude-opus-5-5", "vllm:support-classifier-v1",
+    "openrouter:x", "Command-R+", "user-log", "crm/export"))])
 write("lookalike.jsonl", [dict(r, source=s) for r, s in zip(train[:5], ("commander", "o365", "gptzero", "phish-reports", "claudette"))])
 zw = golden[2].replace(" ", " \u200b").replace("a", "a\u200d", 1)
 write("zerowidth.jsonl", train[:3] + [{"id": "zw", "input": "\ufeff" + zw, "output": "x", "source": "owner"}])
@@ -138,7 +144,7 @@ t_end
 t_begin "a near duplicate is counted and fails over --max-near"
 assert_exit 1 python3 "$DC" "$d/near.jsonl" --kind train
 assert_contains "$T_OUT" "exact duplicates 0, near duplicates 1"
-assert_exit 0 python3 "$DC" "$d/near.jsonl" --kind train --max-near 0.5
+assert_exit 0 python3 "$DC" "$d/near.jsonl" --kind train --max-near 0.5 --against "$d/cases.jsonl"
 t_end
 
 t_begin "a train row with no output or assistant turn fails"
@@ -146,7 +152,7 @@ assert_exit 1 python3 "$DC" "$d/nooutput.jsonl" --kind train; assert_contains "$
 t_end
 
 t_begin "chat preference rows read prompt, chosen and rejected"
-assert_exit 0 python3 "$DC" "$d/pref.jsonl" --kind preference
+assert_exit 0 python3 "$DC" "$d/pref.jsonl" --kind preference --against "$d/cases.jsonl"
 assert_contains "$T_OUT" "dataset-check: 4 rows (real 0, owner 4, synthetic 0)"
 assert_exit 1 python3 "$DC" "$d/train.jsonl" --kind preference; assert_contains "$T_OUT" "no chosen"
 t_end
@@ -168,7 +174,7 @@ assert_exit 1 python3 "$DC" "$d/syn40.jsonl" --kind eval --audit "$d/audit30ok.j
 t_end
 
 t_begin "empty cells are counted"
-assert_exit 0 python3 "$DC" "$d/train-3cells.jsonl" --kind train --taxonomy "$d/tax.json"; assert_contains "$T_OUT" "cells 3 of 4 filled (1 empty)"
+assert_exit 0 python3 "$DC" "$d/train-3cells.jsonl" --kind train --taxonomy "$d/tax.json" --against "$d/cases.jsonl"; assert_contains "$T_OUT" "cells 3 of 4 filled (1 empty)"
 t_end
 
 t_begin "a cell outside the taxonomy fails"
@@ -176,7 +182,7 @@ assert_exit 1 python3 "$DC" "$d/offtax.jsonl" --kind train --taxonomy "$d/tax.js
 t_end
 
 t_begin "above 20000 rows near duplicates are skipped and said so"
-assert_exit 0 python3 "$DC" "$d/big.jsonl" --kind train
+assert_exit 0 python3 "$DC" "$d/big.jsonl" --kind train --against "$d/cases.jsonl"
 assert_contains "$T_OUT" "dataset-check: 20001 rows"
 assert_contains "$T_OUT" "near duplicates: skipped above 20000 rows"
 t_end
@@ -240,13 +246,36 @@ assert_contains "$T_OUT" "4 rows (real 1, owner 0, synthetic 3)"
 t_end
 
 t_begin "real sources that only resemble a model family stay real"
-assert_exit 0 python3 "$DC" "$d/lookalike.jsonl" --kind train
+assert_exit 0 python3 "$DC" "$d/lookalike.jsonl" --kind train --against "$d/cases.jsonl"
 assert_contains "$T_OUT" "5 rows (real 5, owner 0, synthetic 0)"
 t_end
 
 t_begin "zero-width and format characters do not hide a case"
 assert_exit 1 python3 "$DC" "$d/zerowidth.jsonl" --kind train --against "$d/cases.jsonl"
 assert_contains "$T_OUT" "zw: contaminated"
+t_end
+
+t_begin "train and preference without --against fail: 0 cases checked; eval does not need it (I6)"
+assert_exit 1 python3 "$DC" "$d/train.jsonl" --kind train
+assert_contains "$T_OUT" "contamination: 0 cases checked"
+assert_contains "$T_OUT" "contaminated 0 against 0 cases"
+assert_exit 1 python3 "$DC" "$d/pref.jsonl" --kind preference
+assert_contains "$T_OUT" "contamination: 0 cases checked"
+assert_exit 0 python3 "$DC" "$d/eval-repeat.jsonl" --kind eval
+assert_contains "$T_OUT" "dataset-check: passed"
+t_end
+
+t_begin "vendor and platform prefixes count as synthetic (M1)"
+assert_exit 1 python3 "$DC" "$d/vendor.jsonl" --kind train --against "$d/cases.jsonl"
+assert_contains "$T_OUT" "10 rows (real 2, owner 0, synthetic 8)"
+t_end
+
+t_begin "llm-fine-tuning step 3's command passes on its shipped templates, audit included (I3)"
+assert_exit 0 python3 "$DC" "$FT/dataset.jsonl" --kind train --against "$TC" --audit "$FT/audit.jsonl"
+assert_contains "$T_OUT" "audited 1 of 1 required"
+assert_contains "$T_OUT" "dataset-check: passed"
+t="$(tr '\n' ' ' < "$KIT/plugins/bearing-genai/skills/llm-fine-tuning/SKILL.md" | tr -s ' ')"
+assert_contains "$t" "--against evals/<name>/cases.jsonl --audit data/<name>/audit.jsonl"
 t_end
 
 t_summary

@@ -63,7 +63,26 @@ Every number excludes rows with `truncated: true` and counts them.
   `nothing checked`; a duplicate `case_id` or a score outside 0 to 1
   exits 2 with its line.
 
-`gate.yaml` `method: paired` fails CI on `worse`. Below 30 cases the
+`gate.yaml` `method: paired` fails CI on `worse`. CI runs the copy in
+`evals/tools/eval_stats.py` (llm-eval step 6), never the plugin's. A
+GitLab job (`bearing:ci-pipeline` adapts it to other CI):
+
+```yaml
+eval-<name>:
+  stage: test
+  rules:
+    - changes: [llm/**/*, prompts/**/*, evals/<name>/**/*]
+  variables:
+    BASE: evals/<name>/results/<accepted version>.jsonl  # updated when a person accepts a baseline
+  script:
+    - python3 evals/tools/eval_stats.py parity evals/tools/eval_stats.py
+    - make eval EVAL=<name> VERSION=ci
+    - python3 evals/tools/eval_stats.py summary evals/<name>/results/ci.jsonl
+    - python3 evals/tools/eval_stats.py compare "$BASE" evals/<name>/results/ci.jsonl
+```
+
+`ANTHROPIC_API_KEY` is a masked, protected CI variable. `compare` exits 1
+on `worse` and 2 when it checked nothing, so both fail the job. Below 30 cases the
 interval is too wide to be useful, so `method: delta` keeps the fixed
 drop (default 0.02). As a guide, on 40 pass or fail cases at 0.80 a
 single run's interval is about plus or minus 0.12; a paired interval

@@ -3,6 +3,12 @@
 # Prices are USD per million tokens; the gateway derives cost from the
 # usage in each response, never from the request.
 # Prices: claude-api skill shared/models.md, as_of 2026-10-18. Re-read them there; never from memory.
+#
+# A `models:` row names one model the gateway can call: `provider`, `id` (the
+# model id the provider gets; the key when absent), prices, and the leg
+# settings a call on it takes when an eval override or a static `leg:` does
+# not set them (`effort`, `max_tokens`, `timeout_s`). `effort: null` marks a
+# model that rejects effort (Haiku 4.5): the gateway never sends it one.
 
 version: 1
 
@@ -14,6 +20,9 @@ models:
     cache_write_multiplier: 1.25
     cache_read_multiplier: 0.05
     context_window: 1000000
+    effort: high                   # Opus 5.5 default is medium; thinking cannot be disabled
+    max_tokens: 16000
+    timeout_s: 300
   claude-sonnet-5-5:
     provider: anthropic
     input_per_m: 2.00
@@ -21,6 +30,9 @@ models:
     cache_write_multiplier: 1.25
     cache_read_multiplier: 0.10
     context_window: 1000000
+    effort: medium
+    max_tokens: 4096
+    timeout_s: 60
   claude-haiku-4-5:
     provider: anthropic
     input_per_m: 1.00
@@ -28,6 +40,21 @@ models:
     cache_write_multiplier: 1.25
     cache_read_multiplier: 0.10   # the generic 0.1x in the claude-api skill's shared/prompt-caching.md; it has no Haiku-specific row
     context_window: 200000
+    effort: null                   # rejects effort: never sent, whatever the tier says
+    max_tokens: 1024
+    timeout_s: 20
+  # The larger model at a lower effort, a candidate of its own before a
+  # cascade (model-routing references/strategies.md):
+  # sonnet-low:
+  #   provider: anthropic
+  #   id: claude-sonnet-5-5
+  #   input_per_m: 2.00
+  #   output_per_m: 10.00
+  #   cache_write_multiplier: 1.25
+  #   cache_read_multiplier: 0.10
+  #   effort: low
+  #   max_tokens: 4096
+  #   timeout_s: 60
   # OpenRouter: one key (OPENROUTER_API_KEY) with a spend limit, many vendors.
   # Model ids are vendor/model; prices are OpenRouter's, per million tokens.
   # or-sonnet:
@@ -97,6 +124,16 @@ routes:
     stream: true
     fallback: { tier: balanced }
     prompt_cache: true
+
+  # Written by model-routing, strategy static: one leg, which names a key
+  # of `models:` and carries its own effort, max_tokens and timeout_s; the
+  # tier is not read, so a Haiku 4.5 route never inherits a tier's effort.
+  # evidence: <the route-frontier line, verbatim>, <date>, eval <version>
+  ticket_triage:
+    strategy: static
+    leg: { model: claude-haiku-4-5, effort: null, max_tokens: 1024, timeout_s: 20 }
+    budget_usd_month: 60           # alert at 80 percent (bearing:observability)
+    fallback: null
 
   # Written by model-routing. The small model answers; when its answer fails
   # a check the gateway can run, the large one answers once, both are billed

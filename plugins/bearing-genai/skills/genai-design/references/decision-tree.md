@@ -78,8 +78,11 @@ Rules that go with the table:
   and takes no `effort`.
 - Fable 5.1 turns can run for minutes on hard tasks. Stream, and plan
   the timeout and the progress UX before choosing it.
-- Fable 5.1 rejects forced `tool_choice` (`any`, `tool`) and
-  `temperature`; design tool use with `auto` and an instruction.
+- Fable 5.1, Mythos 5.1, Opus 5.5 and Sonnet 5.5 reject forced `tool_choice` (`any`,
+  `tool`) with a 400, and a non-default `temperature`; design tool use
+  with `auto` and an instruction naming the tool, `strict: true` for
+  schema-valid arguments, or structured outputs when only JSON is
+  wanted. Haiku 4.5 still accepts a forced tool.
 - A smaller model is right when the golden set passes on it. Run the
   set on Haiku 4.5 or Sonnet 5.5 first; move up only on a measured miss.
 - The cheapest strong lever is effort, not a model swap: Opus 5.5 at

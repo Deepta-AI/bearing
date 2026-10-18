@@ -9,6 +9,8 @@ set -u
 . "$(dirname "$0")/../lib/assert.sh"
 ES="$KIT/plugins/bearing-genai/skills/llm-eval/scripts/eval_stats.py"
 d="$(tmpdir)"
+# flat <file>: its text on one line, runs of spaces as one.
+flat() { tr '\n' ' ' < "$1" | tr -s ' '; }
 row() { printf '{"case_id":"%s","score":%s,"model":"m","truncated":false}\n' "$1" "$2"; }
 { row a 1; row b 1; row c 0; row d 1
   printf '{"case_id":"e","score":null,"model":"m","truncated":true}\n'; } > "$d/a.jsonl"
@@ -141,5 +143,38 @@ assert_exit 0 python3 "$ES" compare "$f/v2.jsonl" "$f/v3.jsonl"
 assert_contains "$T_OUT" "eval-compare: 40 shared cases"
 assert_contains "$T_OUT" "delta +0.010"
 assert_contains "$T_OUT" ": no difference"
+t_end
+t_begin "vendor copies eval_stats.py into the repository with a source and version header; parity holds it (I2)"
+ver="$(sed -n 's/.*"version": "\([^"]*\)".*/\1/p' "$KIT/plugins/bearing-genai/.claude-plugin/plugin.json")"
+v="$d/repo/evals/tools/eval_stats.py"
+assert_exit 0 python3 "$ES" vendor "$v"
+assert_contains "$T_OUT" "eval-stats vendor: wrote $v from bearing-genai $ver"
+assert_contains "$(sed -n 2p "$v")" "# vendored-from: bearing-genai $ver skills/llm-eval/scripts/eval_stats.py"
+assert_contains "$(sed -n 3p "$v")" "# vendored-sha256: "
+assert_eq "$(python3 "$ES" summary "$d/a.jsonl")" "$(python3 "$v" summary "$d/a.jsonl")" "the vendored copy computes the same summary"
+assert_exit 0 python3 "$v" parity "$v"
+assert_contains "$T_OUT" "eval-stats parity: 1 file checked, same as bearing-genai $ver"
+assert_exit 0 python3 "$ES" parity "$v"
+assert_contains "$T_OUT" "1 file checked, same"
+replace_in "$v" "def f3(x):" "def f3(x):  # edited"
+assert_exit 1 python3 "$v" parity "$v"
+assert_contains "$T_OUT" "1 file checked, differs"
+printf 'print(1)\n' > "$d/plain.py"
+assert_exit 2 python3 "$ES" parity "$d/plain.py"
+assert_contains "$T_OUT" "0 files checked"
+t="$(flat "$KIT/plugins/bearing-genai/skills/llm-eval/SKILL.md")"
+assert_contains "$t" "eval_stats.py\" vendor evals/tools/eval_stats.py"
+assert_contains "$t" "python3 evals/tools/eval_stats.py compare"
+t="$(cat "$KIT/plugins/bearing-genai/skills/llm-eval/references/eval-methods.md")"
+assert_contains "$t" "eval-<name>:"
+assert_contains "$t" "python3 evals/tools/eval_stats.py parity evals/tools/eval_stats.py"
+t_end
+
+t_begin "unattended llm-eval reports an uncalibrated judge and continues, and writes the report (I8)"
+t="$(flat "$KIT/plugins/bearing-genai/skills/llm-eval/SKILL.md")"
+assert_not_contains "$t" "judge calibration labels)"
+assert_contains "$t" "a judge with no person-labelled sample is reported as \`judge: not calibrated, reported only\` and the run continues"
+assert_contains "$t" "Unattended, it still writes \`docs/genai/evals.md\`"
+assert_contains "$t" "Zero criteria: ask the Inputs question (unattended: ask nothing and take the class's first metric, as Inputs says)"
 t_end
 t_summary

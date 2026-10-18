@@ -15,4 +15,10 @@ t_end
 t_begin "feature: screens come before the API and the data model"
 before feature ux-flows openapi-spec; before feature screen-design data-model
 t_end
+t_begin "genai: the golden set comes before dataset-generation, which checks against it (I4)"
+before genai llm-eval dataset-generation
+t="$(tr '\n' ' ' < "$KIT/plugins/bearing-genai/skills/dataset-generation/SKILL.md" | tr -s ' ')"
+assert_contains "$t" "No \`evals/<name>/cases.jsonl\` yet: kind \`eval\` leaves \`--against\` out"
+assert_contains "$t" "\`train\` and \`preference\` stop with"
+t_end
 t_summary
