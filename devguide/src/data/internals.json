@@ -5,7 +5,7 @@
   "commandSkills": 0,
   "stackSkills": 12,
   "scripts": 99,
-  "scriptLines": 32654,
+  "scriptLines": 32657,
   "hooks": 8,
   "agents": 8,
   "makeTargets": 32,
@@ -15497,7 +15497,7 @@
    "name": "brg-guard",
    "lang": "bash",
    "group": "guard",
-   "lines": 1872,
+   "lines": 1875,
    "header": "brg-guard: the harness-neutral guard logic behind every hook adapter.\n\n  brg-guard command \"<shell command>\"   exit 2 and a message when the command\n                                        publishes, rewrites history, deploys\n                                        or destroys; exit 2 when the command\n                                        cannot be read (fail closed)\n  brg-guard format <file>               format one file with the repo's formatter\n  brg-guard task-id [\"<prompt>\"]        print \"Task: <ID> ...\" when the branch\n                                        carries a ticket id the prompt lacks\n  brg-guard session                     print branch, task, changes, handoff state\n  brg-guard stop                        print a reminder when changes are unchecked\n  brg-guard stop-gate --id <session> [--active]\n                                        exit 2 (reason on stderr) when files\n                                        changed in this session since make\n                                        check last passed; --active (the\n                                        harness already continued once) only\n                                        reminds, so it never loops\n  brg-guard check-file <file>           lint one edited file (make check-file\n                                        when the Makefile has it); exit 2 and\n                                        the problems on stderr\n  brg-guard precompact [<transcript>]   write .bearing/state/<branch>.compact.md\n  brg-guard session [--id <session>] [--source startup|resume|compact]\n  brg-guard stats                       what the gates decided here, how often\n                                        and at what cost (.bearing/state/gates.log)\n  brg-guard readonly \"<shell command>\"  exit 2 unless every program in the\n                                        command is a read-only tool (git\n                                        diff|log|show|status|blame|ls-files,\n                                        ls, cat, grep, rg, find without -exec,\n                                        sed without -i, jq and similar);\n                                        used by the read-only subagents\n  brg-guard --verbs                     the blocked verb table (tool, pattern,\n                                        label; tab-separated) for generators\n  brg-guard --version                   the version stamp\n\nClaude Code hooks, Cursor hooks and any other harness adapter call these\nsubcommands and translate their own event JSON into arguments. One logic,\none behaviour on every harness. Runs on bash 3.2 (macOS) and needs no tool\nbeyond git for the session subcommands.",
    "functions": [
     "verb_table",
@@ -18795,9 +18795,9 @@
   {
    "path": "tests/unit/push_run.sh",
    "kind": "unit",
-   "lines": 331,
+   "lines": 341,
    "header": "tests/unit/push_run.sh: brg-push request, run and status, and the hooks that drive them. request writes the request only when check passes; run, from the Stop hook, re-judges the request, the opt-in, the session mark, the gate marker and the engineer's global transport settings, then clones the branch fresh and pushes it to the URL listed in bearing.env, never running a repository hook, Makefile, git config key or exported variable; every file it writes in .bearing/state goes through state_write, never through a planted link. The Stop gate starts it when it passes, and a core.fsmonitor in .gi…",
-   "asserts": 109
+   "asserts": 112
   },
   {
    "path": "tests/unit/push_settings.sh",

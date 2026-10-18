@@ -48,6 +48,9 @@ READONLY=0
 # does this. Last wins, so the value appended here holds.
 # shellcheck disable=SC2089,SC2090 # the quotes are git's own format, kept literally
 export GIT_CONFIG_PARAMETERS="${GIT_CONFIG_PARAMETERS:+$GIT_CONFIG_PARAMETERS }'core.fsmonitor=false'"
+# brg-push beside this script, as an absolute path (no cd: CDPATH plays no
+# part), so it still resolves after a cd to the repository root.
+case "$0" in (/*) BRG_PUSH="${0%/*}/brg-push" ;; (*) BRG_PUSH="$PWD/$(dirname "$0")/brg-push" ;; esac
 
 # --------------------------------------------------------------------------
 # The blocked verb table. One rule per line: tool|pattern|label.
@@ -1561,8 +1564,8 @@ esac
     prompt="${1:-}"
     [ "$prompt" != "$SENTINEL" ] || exit 0
     # An auto push result not yet shown (brg-push status --unseen prints it once).
-    if [ -f "$(dirname "$0")/brg-push" ] && proot="$(git rev-parse --show-toplevel 2>/dev/null)" && [ -f "$proot/.bearing/state/push-result" ]; then
-      ( cd "$proot" && CLAUDE_PROJECT_DIR="$proot" bash "$(dirname "$0")/brg-push" status --unseen 2>/dev/null )
+    if [ -f "$BRG_PUSH" ] && proot="$(git rev-parse --show-toplevel 2>/dev/null)" && [ -f "$proot/.bearing/state/push-result" ]; then
+      ( cd "$proot" && CLAUDE_PROJECT_DIR="$proot" bash "$BRG_PUSH" status --unseen 2>/dev/null )
     fi
     task="$(git branch --show-current 2>/dev/null | grep -oE '[A-Z][A-Z0-9]*(-[0-9]+)+' | head -1)"
     [ -n "$task" ] || exit 0
@@ -1593,9 +1596,9 @@ esac
     fi
     # Auto push: record whether bearing.env opts this repository in (the
     # sandbox hides bearing.env from the agent), and show a result not yet seen.
-    if [ -f "$(dirname "$0")/brg-push" ]; then
-      ( cd "$root" && CLAUDE_PROJECT_DIR="$root" bash "$(dirname "$0")/brg-push" optin-record >/dev/null 2>&1
-        CLAUDE_PROJECT_DIR="$root" bash "$(dirname "$0")/brg-push" status --unseen 2>/dev/null )
+    if [ -f "$BRG_PUSH" ]; then
+      ( cd "$root" && CLAUDE_PROJECT_DIR="$root" bash "$BRG_PUSH" optin-record >/dev/null 2>&1
+        CLAUDE_PROJECT_DIR="$root" bash "$BRG_PUSH" status --unseen 2>/dev/null )
     fi
     branch="$(git branch --show-current 2>/dev/null)"
     task="$(printf '%s' "$branch" | grep -oE '[A-Z][A-Z0-9]*(-[0-9]+)+' | head -1)"
@@ -1700,8 +1703,8 @@ EOF
       # passes. brg-push run judges it from files, starts the push detached and
       # returns; its last line is the one shown.
       if [ -f "$state/push-request" ] || [ -L "$state/push-request" ]; then
-        if [ -f "$(dirname "$0")/brg-push" ]; then
-          ( cd "$root" && CLAUDE_PROJECT_DIR="$root" bash "$(dirname "$0")/brg-push" run --id "$sid" 2>&1 ) | tail -1
+        if [ -f "$BRG_PUSH" ]; then
+          ( cd "$root" && CLAUDE_PROJECT_DIR="$root" bash "$BRG_PUSH" run --id "$sid" 2>&1 ) | tail -1
         fi
       fi
       exit 0

@@ -276,6 +276,16 @@ assert_contains "$(cat "$repo/.bearing/state/push.log")" "push started"
 assert_eq "$(git -C "$repo" rev-parse HEAD)" "$(git -C "$remote" rev-parse refs/heads/feature/ABC-1-Thing)"
 t_end
 
+t_begin "a vendored guard called by a relative path from a subdirectory still runs the push"
+setup; sleep 1; mark; in_repo request >/dev/null
+mkdir -p "$repo/.bearing/bin" "$repo/sub"; cp -R "$pb/bin/." "$repo/.bearing/bin/"
+printf '.bearing/bin/\nsub/\n' >> "$repo/.git/info/exclude"
+assert_exit 0 bash -c "cd '$repo/sub' && bash ../.bearing/bin/brg-guard stop-gate --id s1"
+assert_contains "$T_OUT" "bearing push: started for feature/ABC-1-Thing"
+for i in 1 2 3 4 5 6 7 8 9 10; do [ -f "$repo/.bearing/state/push-result" ] && break; sleep 1; done
+assert_contains "$(cat "$repo/.bearing/state/push-result" 2>/dev/null)" "pushed feature/ABC-1-Thing"
+t_end
+
 t_begin "the Stop hook returns while the push runs in the background"
 setup; sleep 1; mark; in_repo request >/dev/null
 printf '{"session_id":"s1","stop_hook_active":false}' > "$repo/.bearing/state/stop.json"
