@@ -38,13 +38,19 @@
 # the Stop hook; the guard refuses it from Bash. The opt-in is read from
 # <passwd home>/.config/bearing/bearing.env only, never from BEARING_ENV,
 # XDG_CONFIG_HOME, HOME or an exported BEARING_AUTO_PUSH: the agent controls
-# its own environment. An entry is never printed (an https entry may carry a
-# token), only its key. A .git file (gitdir:) can point the origin read and
-# the clone source at another repository; the push still goes only to a URL
-# the engineer listed for that origin (accepted, amendment ruling Q4). Needs
-# git and python3 (the reads and appends in .bearing/state that must not
-# follow a link). The script ends with the single line `main "$@"`, the seam
-# tests use to replace passwd_home. bash 3.2 safe.
+# its own environment. The temporary directory of optin-record and run, and
+# so the clone, is a fresh mktemp -d inside <passwd home>/.config/bearing/tmp
+# (mode 700, hidden from the sandbox), never TMPDIR; the clone and the push
+# read no system config and a generated global config holding only the
+# engineer's credential.* keys, and the clone's own config is re-read before
+# the push and refused if it holds a key git clone does not write. An entry
+# is never printed (an https entry may carry a token), only its key. A .git
+# file (gitdir:) can point the origin read and the clone source at another
+# repository; the push still goes only to a URL the engineer listed for that
+# origin (accepted, amendment ruling Q4). Needs git and python3 (the reads
+# and appends in .bearing/state that must not follow a link). The script
+# ends with the single line `main "$@"`, the seam tests use to replace
+# passwd_home. bash 3.2 safe.
 set -u
 TASK_RE='^(feature|bugfix|hotfix|chore|docs)/[A-Z][A-Z0-9]*(-[0-9]+)+-[A-Za-z0-9]+$'
 
@@ -213,23 +219,62 @@ protected() {
   return 1
 }
 
-# status_paths: the paths of the NUL-separated `git status -z` records on
-# stdin, NUL-separated; a rename or copy record's second path (the old name)
-# is skipped.
+# task_id <branch>: the <ID> of a task branch (feature/ABC-12-slug gives
+# ABC-12); nothing for any other name.
+task_id() {
+  printf '%s\n' "$1" | sed -n -E 's#^(feature|bugfix|hotfix|chore|docs)/([A-Z][A-Z0-9]*(-[0-9]+)+)-[A-Za-z0-9]+$#\2#p'
+}
+
+# uncommitted_ok <XY> <path>: exit 0 when a `git status` record is an
+# uncommitted file the push never sends and merge-request writes after
+# make check by design: untracked (??) or changed in the work tree only
+# ( M, the index as HEAD), and either this task's progress file
+# ($progress, docs/progress/<ID>.md) or a path under .scratch/. A staged
+# change, another task's progress file or any other path is not.
+progress=""
+uncommitted_ok() {
+  case "$1" in ('??'|' M') ;; (*) return 1 ;; esac
+  case "$2" in (.scratch/*) return 0 ;; esac
+  [ -n "$progress" ] && [ "$2" = "$progress" ]
+}
+
+# status_paths [kept|skipped]: the paths of the NUL-separated `git status -z`
+# records on stdin, NUL-separated; a rename or copy record's second path
+# (the old name) is skipped. kept (the default) leaves out the records
+# uncommitted_ok accepts; skipped prints only those.
 status_paths() {
-  local rec skip=0
+  local rec skip=0 want="${1:-kept}" ok
   while IFS= read -r -d '' rec; do
     if [ "$skip" -eq 1 ]; then skip=0; continue; fi
     case "$rec" in ([RC]*) skip=1 ;; esac
+    if uncommitted_ok "${rec:0:2}" "${rec:3}"; then ok=skipped; else ok=kept; fi
+    [ "$ok" = "$want" ] || continue
     printf '%s\0' "${rec:3}"
   done
+}
+
+# committed_newer <path> <marker>: exit 0 when the last commit on HEAD that
+# touched <path> is newer than the marker (to the second: the commit time is
+# set on a scratch file with touch -t, which BSD and GNU both read).
+committed_newer() {
+  local ct f
+  ct="$(git -C "$root" log -1 --format=%cd --date=format-local:%Y%m%d%H%M.%S HEAD -- "$1" 2>/dev/null)"
+  [ -n "$ct" ] || return 1
+  f="$(mktemp "${TMPDIR:-/tmp}/brg-push.XXXXXX")" || return 0
+  touch -t "$ct" "$f" 2>/dev/null || { rm -f "$f"; return 0; }
+  if [ "$f" -nt "$2" ]; then rm -f "$f"; return 0; fi
+  rm -f "$f"; return 1
 }
 
 # gate_count <marker>: reads NUL-separated paths on stdin and prints
 # "<compared> <newer>": each path once, paths under .bearing/state/ skipped
 # (state files are newer than the marker by construction; any other .bearing/
 # file counts), existing paths only, and how many of them are newer than the
-# marker.
+# marker. A path in $skipped (newline-separated: an uncommitted change
+# uncommitted_ok accepts, which reaches here from the branch diff) is judged
+# by the time of its last commit instead, so its committed change still
+# counts and its uncommitted one does not.
+skipped=""
 gate_count() {
   local f k=0 j=0 nl='
 ' seen='
@@ -240,6 +285,9 @@ gate_count() {
     seen="$seen$f$nl"
     [ -e "$root/$f" ] || [ -L "$root/$f" ] || continue
     k=$((k+1))
+    case "$skipped" in
+      (*"$nl$f$nl"*) if committed_newer "$f" "$1"; then j=$((j+1)); fi; continue ;;
+    esac
     if [ "$root/$f" -nt "$1" ]; then j=$((j+1)); fi
   done
   echo "$k $j"
@@ -248,7 +296,7 @@ gate_count() {
 # check_conditions: the eight conditions, in order, as cond lines. Runs in the
 # sandbox, where any git command in the working repository is harmless.
 check_conditions() {
-  local url key b base c m counts k j
+  local url key b base c m counts k j id
   if [ "$(cat "$st/.push-optin" 2>/dev/null)" = on ]; then
     cond opt-in 0 "bearing.env lists origin's url (recorded at session start)"
   elif [ -f "$st/.push-optin" ]; then
@@ -267,10 +315,15 @@ check_conditions() {
   if [ -z "$b" ]; then cond not-protected 1 detached
   elif protected "$b"; then cond not-protected 1 "$b is protected"
   else cond not-protected 0 "$b"; fi
-  if ! c="$(git -C "$root" status --porcelain --untracked-files=no 2>/dev/null)"; then
+  # The push sends committed history only: this task's uncommitted progress
+  # file and .scratch/ (uncommitted_ok) count for neither clean nor gate.
+  progress=""; id="$(task_id "$b")"; [ -z "$id" ] || progress="docs/progress/$id.md"
+  if ! c="$(git -C "$root" status -z --untracked-files=no 2>/dev/null | status_paths | tr -cd '\000' | wc -c
+            exit "${PIPESTATUS[0]}")"; then
     cond clean 1 "git status failed"
-  elif [ -z "$c" ]; then cond clean 0 "no uncommitted change"
-  else cond clean 1 "$(printf '%s\n' "$c" | grep -c .) uncommitted change(s)"; fi
+  elif [ "$c" -eq 0 ]; then cond clean 0 "no uncommitted change"
+  else cond clean 1 "$((c)) uncommitted change(s)"; fi
+  skipped="$nl$(git -C "$root" status -z --untracked-files=all 2>/dev/null | status_paths skipped | tr '\000' '\n')$nl"
   base="$(base_ref)" || base=""
   if [ -z "$base" ]; then cond ahead 1 "no origin/develop, origin/main or origin/master"
   else
@@ -422,12 +475,16 @@ tgit() { ( cd "${tgdir:-$tmp}" && bounded 10 cleanenv git "$@" ); }
 # 1 when there is none: core.sshCommand other than ssh; a non-empty
 # core.gitProxy, http.proxy, https.proxy, http.<url>.proxy or
 # http.curloptResolve; http.sslVerify or http.<url>.sslVerify false; a
-# url.<base>.insteadOf or pushInsteadOf whose value is a prefix of the entry.
+# url.<base>.insteadOf or pushInsteadOf whose value is a prefix of the entry;
+# any key of a remote named by the entry URL itself (remote.<entry>.pushurl,
+# .url, .receivepack, .push ...), which `git push <entry>` would apply, named
+# as remote.<entry>.<key> (an entry is never printed). The push itself sees
+# none of these (push_env), so this is the early, named refusal.
 # The environment needs no check: every git run runs under cleanenv. A config
 # git cannot read is refused too ("git config").
 transport_redirect() {
-  local e="$1" k val o keys rc
-  keys="$(tgit config --name-only --get-regexp '^(core\.(sshcommand|gitproxy)|https?\.(.*\.)?proxy|http\.(.*\.)?(sslverify|curloptresolve)|url\..*\.(push)?insteadof)$' 2>/dev/null)"
+  local e="$1" k val o keys rc sub
+  keys="$(tgit config --name-only --get-regexp '^(core\.(sshcommand|gitproxy)|https?\.(.*\.)?proxy|http\.(.*\.)?(sslverify|curloptresolve)|url\..*\.(push)?insteadof|remote\..*\.[a-z0-9-]*)$' 2>/dev/null)"
   rc=$?
   if [ "$rc" -gt 1 ]; then echo "git config"; return 0; fi
   while IFS= read -r k; do
@@ -442,6 +499,9 @@ transport_redirect() {
 $(tgit config --get-all "$k")
 EOF
         [ "$o" -eq 0 ] || continue ;;
+      (remote.*) sub="${k#remote.}"; sub="${sub%.*}"
+        [ -n "$e" ] && [ "$sub" = "$e" ] || continue
+        k="remote.<entry>.${k##*.}" ;;
       (*) [ -n "$(tgit config --get "$k")" ] || continue ;;
     esac
     printf '%s\n' "$k"; return 0
@@ -520,27 +580,119 @@ run_conditions() {
   else cond transport 0 "nothing in the system or global git config redirects it"; fi
 }
 
+# prot_tmp: a fresh directory for one run, made with mktemp -d inside
+# <passwd home>/.config/bearing/tmp, never TMPDIR: the sandbox denies the
+# agent reads and writes under ~/.config/bearing, so nothing the agent runs
+# can write the clone's config (or the generated global config) between the
+# clone and the push. tmp itself is made mode 700 and must be a directory,
+# not a link, owned by the effective user; it is set back to 700 each run.
+prot_tmp() {
+  local d
+  [ -n "$home" ] && [ -d "$home/.config/bearing" ] || return 1
+  d="$home/.config/bearing/tmp"
+  mkdir -m 700 "$d" 2>/dev/null
+  [ -d "$d" ] && [ ! -L "$d" ] && [ -O "$d" ] && chmod 700 "$d" || return 1
+  mktemp -d "$d/brg-push.XXXXXX"
+}
+
+# gen_global <file>: the global git config the clone and the push use,
+# holding only the credential.* keys (helper, username, useHttpPath, per-URL
+# sections) of the engineer's global config (~/.gitconfig and
+# ~/.config/git/config, includes not followed), in their order; a key with
+# no value is written as true. Nothing else (no remote.*, url.*, push.*,
+# core.* or transport key) from any file reaches the push. Exit 1 when the
+# global config cannot be read or the file cannot be written.
+gen_global() {
+  local rec k v rc
+  : > "$1" || return 1
+  ( cd "$tmp" && bounded 10 cleanenv git config --global --null --get-regexp '^credential\.' ) > "$tmp/cred.list" 2>/dev/null
+  rc=$?; [ "$rc" -le 1 ] || return 1
+  while IFS= read -r -d '' rec; do
+    case "$rec" in (*"$nl"*) k="${rec%%"$nl"*}"; v="${rec#*"$nl"}" ;; (*) k="$rec"; v=true ;; esac
+    case "$k" in (credential.*) ;; (*) continue ;; esac
+    ( cd "$tmp" && bounded 10 cleanenv git config --file "$1" --add "$k" "$v" ) || return 1
+  done < "$tmp/cred.list"
+}
+
+# pgit <args>: git as the clone and the push run it: under cleanenv, no
+# system config (GIT_CONFIG_NOSYSTEM=1), the generated global config
+# ($tmp/global) and no hook (core.hooksPath=/dev/null). Bounded by the caller.
+pgit() {
+  cleanenv GIT_CONFIG_NOSYSTEM=1 GIT_CONFIG_GLOBAL="$tmp/global" git -c core.hooksPath=/dev/null "$@"
+}
+
+# push_env: writes $tmp/global with gen_global, then asks git, in the empty
+# temporary directory, where each setting it sees comes from: every one must
+# come from $tmp/global or the command line, so a git that ignores
+# GIT_CONFIG_NOSYSTEM or GIT_CONFIG_GLOBAL (older than 2.32) is refused
+# rather than reading the real files. Prints why on failure.
+push_env() {
+  local rec o=1
+  gen_global "$tmp/global" || { echo "the global git config could not be read for its credential keys"; return 1; }
+  ( cd "$tmp" && bounded 10 pgit config --null --show-origin --list ) > "$tmp/origins" 2>/dev/null \
+    || { echo "git could not list the push's config"; return 1; }
+  while IFS= read -r -d '' rec; do
+    o=$((1-o))
+    [ "$o" -eq 0 ] || continue   # origin, then key and value, alternate
+    case "$rec" in ("file:$tmp/global"|"command line:") ;;
+      (*) echo "this git reads config the push must not see (needs git 2.32 or later)"; return 1 ;; esac
+  done < "$tmp/origins"
+}
+
+# clone_config_extra: re-reads the clone's .git/config (includes not
+# followed) just before the push and prints the first key git clone did not
+# write itself, "no config keys" for an empty one, or why it could not be
+# read; exit 0 then, so the caller refuses. Exit 1 when every key is one
+# clone writes: core.repositoryformatversion, core.filemode, core.bare,
+# core.logallrefupdates, core.ignorecase, core.precomposeunicode,
+# core.symlinks, extensions.objectformat, extensions.refstorage,
+# remote.origin.url, remote.origin.fetch, remote.origin.tagopt,
+# branch.<branch>.remote and branch.<branch>.merge; ckeys holds the count.
+ckeys=0
+clone_config_extra() {
+  local k
+  ckeys=0
+  ( cd "$tmp" && bounded 10 cleanenv git config --file "$tmp/c/.git/config" --no-includes --null --name-only --list ) \
+    > "$tmp/clone.keys" 2>/dev/null || { echo "an unreadable config"; return 0; }
+  while IFS= read -r -d '' k; do
+    case "$k" in
+      (core.repositoryformatversion|core.filemode|core.bare|core.logallrefupdates|core.ignorecase) ;;
+      (core.precomposeunicode|core.symlinks|extensions.objectformat|extensions.refstorage) ;;
+      (remote.origin.url|remote.origin.fetch|remote.origin.tagopt|"branch.$b.remote"|"branch.$b.merge") ;;
+      (*) printf '%s\n' "$k"; return 0 ;;
+    esac
+    ckeys=$((ckeys+1))
+  done < "$tmp/clone.keys"
+  [ "$ckeys" -gt 0 ] || { echo "no config keys"; return 0; }
+  return 1
+}
+
 # push_clone: the eighth condition and the push. The branch is cloned from
-# the repository path into the temporary directory (upload-pack is the only
-# git that runs there), no hook anywhere, no checkout; its HEAD must be the
-# requested sha. Then that clone pushes the one branch to the listed entry:
-# no force, no tags, never origin's configured url.
+# the repository path into the protected temporary directory (upload-pack is
+# the only git that runs there), no hook anywhere, no checkout; its HEAD must
+# be the requested sha. Then that clone pushes the one branch to the listed
+# entry: no force, no tags, never origin's configured url. The clone, its
+# rev-parse and the push run through pgit: the generated global config only.
 push_clone() {
-  local head r
-  if ( cd "$tmp" && bounded 600 cleanenv git -c core.hooksPath=/dev/null clone -q --no-local --single-branch \
+  local head r why
+  if ! why="$(push_env)"; then cond clone 1 "$why"
+  elif ( cd "$tmp" && bounded 600 pgit clone -q --no-local --single-branch \
          --branch "$b" --no-tags --no-checkout -- "$root" "$tmp/c" ) > "$tmp/clone.err" 2>&1; then
-    head="$( cd "$tmp" && bounded 30 cleanenv git -C "$tmp/c" rev-parse -q --verify HEAD 2>/dev/null )"
-    # The transport again, as git sees it inside the clone, where an
-    # includeIf of the global config (gitdir:, onbranch:) may apply.
+    head="$( cd "$tmp" && bounded 30 pgit -C "$tmp/c" rev-parse -q --verify HEAD 2>/dev/null )"
+    # The transport again, as git sees the real global config inside the
+    # clone, where an includeIf (gitdir:, onbranch:) may apply. Then the
+    # clone's own config, re-read last, right before the push.
     if [ "$head" != "$sha" ]; then cond clone 1 "the branch is at ${head:0:7}, not the requested ${sha:0:7}; request again"
     elif r="$(tgdir="$tmp/c" transport_redirect "$entry")"; then cond clone 1 "$r could redirect the push (config seen inside the clone)"
-    else cond clone 0 "HEAD is ${sha:0:7}"; fi
+    elif clone_config_extra > "$tmp/clone.extra"; then
+      cond clone 1 "the clone's config holds $(head -1 "$tmp/clone.extra"), which git clone did not write"
+    else cond clone 0 "HEAD is ${sha:0:7}; $ckeys config keys, each one git clone writes"; fi
   else
     cond clone 1 "the clone failed: $(redact "$entry" "$key" < "$tmp/clone.err" | grep . | tail -1)"
   fi
   echo "push-run: $n conditions, $met met"
   [ "$met" -eq "$n" ] || return 1
-  ( cd "$tmp" && bounded 600 cleanenv git -C "$tmp/c" -c core.hooksPath=/dev/null push --no-follow-tags \
+  ( cd "$tmp" && bounded 600 pgit -C "$tmp/c" push --no-follow-tags \
       "$entry" "HEAD:refs/heads/$b" ) > "$tmp/push.err" 2>&1
   pushrc=$?
   redact "$entry" "$key" < "$tmp/push.err"
@@ -605,7 +757,7 @@ run_main() {
   case "$root" in (/*) ;; (*) echo "brg-push: no absolute project directory; 0 conditions checked" >&2; exit 2 ;; esac
   st="$root/.bearing/state"
   t0="$(date +%s)"
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/brg-push.XXXXXX")" || { echo "brg-push: no temporary directory; 0 conditions checked" >&2; exit 2; }
+  tmp="$(prot_tmp)" || { echo "brg-push: no temporary directory under <passwd home>/.config/bearing/tmp; 0 conditions checked" >&2; exit 2; }
   empty="$tmp"   # origin_url reads in it; cleanup removes it and the clone
   if [ "$fg" -eq 1 ]; then
     run_foreground > "$tmp/out" 2>&1; rc=$?
@@ -676,7 +828,9 @@ main() {
   home="$(passwd_home 2>/dev/null)" || home=""
   case "$sub" in
     (optin-record) root="${CLAUDE_PROJECT_DIR:-$PWD}"   # no git rev-parse: outside the sandbox
-      empty="$(mktemp -d "${TMPDIR:-/tmp}/brg-push.XXXXXX")" || exit 0 ;;
+      # No protected directory: empty stays unset, origin_url fails, and
+      # optin_record writes off.
+      empty="$(prot_tmp)" || empty="" ;;
     (check|request) root="$(git rev-parse --show-toplevel 2>/dev/null)" || {
         echo "brg-push: not a git repository; 0 conditions checked" >&2; exit 2; } ;;
     (run) run_main "$@" ;;

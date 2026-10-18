@@ -111,12 +111,15 @@ none_ran
 t_end
 
 t_begin "the temporary clone is removed, pushed or refused"
+pt="$home/.config/bearing/tmp"
 setup; sleep 1; mark; in_repo request >/dev/null
 t="$(tmpdir)"; ( cd "$repo" && TMPDIR="$t" bash "$P" run --id s1 --foreground >/dev/null )
-assert_eq "" "$(ls -A "$t")" "nothing left in TMPDIR after a push"
+assert_eq "" "$(ls -A "$t")" "nothing in TMPDIR after a push"
+assert_eq "" "$(ls -A "$pt" 2>/dev/null)" "nothing left in the protected tmp after a push"
 setup; sleep 1; mark; in_repo request >/dev/null; git -C "$repo" commit -q --allow-empty -m "chore: later [ABC-1]"
 t="$(tmpdir)"; ( cd "$repo" && TMPDIR="$t" bash "$P" run --id s1 --foreground >/dev/null )
-assert_eq "" "$(ls -A "$t")" "nothing left in TMPDIR after a refusal"
+assert_eq "" "$(ls -A "$t")" "nothing in TMPDIR after a refusal"
+assert_eq "" "$(ls -A "$pt" 2>/dev/null)" "nothing left in the protected tmp after a refusal"
 t_end
 
 t_begin "run refuses a request for another sha"
@@ -326,7 +329,27 @@ printf '{"session_id":"s1","source":"startup","stop_hook_active":false}' > "$rep
 none_ran
 t_end
 
-t_begin "every hook script sources lib.sh, and lib.sh and the guard turn core.fsmonitor off"
+t_begin "a repository hook never runs from the Stop or SessionStart hooks"
+# git status refreshes the index and runs post-index-change from core.hooksPath
+# or .git/hooks; the hooks pin core.hooksPath=/dev/null for every git they start.
+setup; sleep 1; mark; printf 'dirty\n' > "$repo/c.txt"
+mkdir -p "$repo/tools"; printf 'tools/\n' >> "$repo/.git/info/exclude"
+for d in "$repo/tools" "$repo/.git/hooks"; do
+  printf '#!/bin/sh\ntouch "%s/post-index-change-$$"\n' "$canary" > "$d/post-index-change"; chmod +x "$d/post-index-change"
+done
+printf '{"session_id":"s1","source":"startup","stop_hook_active":false}' > "$repo/.bearing/state/hook.json"
+for hooks in tools .git/hooks; do
+  git -C "$repo" config core.hooksPath "$hooks"
+  sleep 1; touch "$repo/a.txt"; ( cd "$repo" && bash "$GUARD" session --id s1 --source startup ) >/dev/null 2>&1
+  sleep 1; touch "$repo/a.txt"; ( cd "$repo" && bash "$pb/hooks/scripts/stop-summary.sh" < .bearing/state/hook.json ) >/dev/null 2>&1
+  sleep 1; touch "$repo/a.txt"; ( cd "$repo" && bash "$pb/hooks/scripts/session-start.sh" < .bearing/state/hook.json ) >/dev/null 2>&1
+  sleep 1; touch "$repo/a.txt"; ( cd "$repo" && bash "$GUARD" stop-gate --id s1 ) >/dev/null 2>&1
+done
+assert_eq 0 "$(find "$canary" -type f | wc -l | tr -d ' ')" "repository hook runs from the guard session, stop-summary.sh, session-start.sh and stop-gate"
+rm -f "$canary"/*
+t_end
+
+t_begin "every hook script sources lib.sh, and lib.sh and the guard turn core.fsmonitor and repository hooks off"
 n=0
 for f in "$KIT"/plugins/bearing/hooks/scripts/*.sh; do
   [ "${f##*/}" = lib.sh ] && continue
@@ -334,8 +357,81 @@ for f in "$KIT"/plugins/bearing/hooks/scripts/*.sh; do
   assert_contains "$(cat "$f")" '. "$(dirname "$0")/lib.sh"' "${f##*/} sources lib.sh"
 done
 assert_eq 1 "$([ "$n" -ge 7 ] && echo 1)" "hook scripts checked: $n"
-assert_contains "$(cat "$KIT/plugins/bearing/hooks/scripts/lib.sh")" "'core.fsmonitor=false'"
-assert_contains "$(cat "$KIT/plugins/bearing/bin/brg-guard")" "'core.fsmonitor=false'"
+assert_contains "$(cat "$KIT/plugins/bearing/hooks/scripts/lib.sh")" "'core.fsmonitor=false' 'core.hooksPath=/dev/null'"
+assert_contains "$(cat "$KIT/plugins/bearing/bin/brg-guard")" "'core.fsmonitor=false' 'core.hooksPath=/dev/null'"
+t_end
+
+t_begin "the clone lives in a mode 700 directory under the passwd home, never TMPDIR"
+# A process that can write TMPDIR (the sandbox can) watches for the clone and
+# writes a push URL and a receive-pack command into its config.
+setup; sleep 1; mark; in_repo request >/dev/null
+pt="$home/.config/bearing/tmp"; rm -rf "$pt"; mkdir -m 755 "$pt"
+evil="$(tmpdir)/evil.git"; git init -q --bare "$evil"; t="$(tmpdir)"; found="$(tmpdir)/found"
+( end=$(( $(date +%s) + 30 ))
+  while [ "$(date +%s)" -lt "$end" ] && [ ! -f "$t/stop" ]; do
+    for c in "$t"/*/c/.git/config "$t"/*/*/.git/config; do
+      [ -f "$c" ] || continue
+      printf '[remote "file://%s"]\n\tpushurl = file://%s\n\treceivepack = touch %s/receivepack; git-receive-pack\n' "$remote" "$evil" "$canary" >> "$c"
+      touch "$found"; exit 0
+    done
+  done ) & wpid=$!
+assert_exit 0 bash -c "cd '$repo' && TMPDIR='$t' bash '$P' run --id s1 --foreground"
+touch "$t/stop"; wait "$wpid"
+assert_contains "$T_OUT" "push-run: 8 conditions, 8 met"
+assert_eq absent "$(absent "$found")" "no clone in TMPDIR to write to"
+assert_eq "$(git -C "$repo" rev-parse HEAD)" "$(git -C "$remote" rev-parse refs/heads/feature/ABC-1-Thing)" "landed at the listed entry"
+assert_eq "" "$(git --git-dir="$evil" for-each-ref)" "nothing reached the written URL"
+assert_eq drwx------ "$(ls -ld "$pt" | cut -c1-10)" "the protected tmp is mode 700"
+none_ran
+t_end
+
+t_begin "a clone config holding anything git clone did not write is refused before the push"
+cl="$(tmpdir)"; r="$(tmpdir)/r"; git init -q -b main "$r"
+git -C "$r" -c user.email=t@example.com -c user.name=t commit -q --allow-empty -m i; git -C "$r" switch -q -c feature/ABC-1-Thing
+git clone -q --no-local --single-branch --branch feature/ABC-1-Thing --no-tags --no-checkout -- "$r" "$cl/c"
+cce() { bash -c '. "$1"; tmp="$2"; root="$3"; b=feature/ABC-1-Thing; home="$4"; clone_config_extra; rc=$?; echo "keys=$ckeys"; exit $rc' _ "$fns" "$cl" "$r" "$home"; }
+assert_exit 1 cce
+assert_eq 1 "$(printf '%s\n' "$T_OUT" | sed -n 's/^keys=//p' | awk '$1 >= 9 { print 1 }')" "9 or more keys as clone wrote them: $T_OUT"
+for kv in "remote.file:///x.pushurl=file:///evil" "remote.file:///x.receivepack=touch x" "remote.origin.pushurl=file:///evil" \
+          "include.path=/tmp/x" "core.sshCommand=touch x" "branch.main.remote=origin" "url.file:///evil.pushInsteadOf=file:///x"; do
+  cp "$cl/c/.git/config" "$cl/keep"
+  ( cd "$cl" && GIT_CEILING_DIRECTORIES="$cl" git config --file "$cl/c/.git/config" "${kv%%=*}" "${kv#*=}" )
+  assert_exit 0 cce
+  assert_contains "$T_OUT" "$(printf '%s' "${kv%%=*}" | tr 'A-Z' 'a-z')"
+  cp "$cl/keep" "$cl/c/.git/config"
+done
+: > "$cl/c/.git/config"
+assert_exit 0 cce; assert_contains "$T_OUT" "no config keys"
+t_end
+
+t_begin "a global remote section named by the entry URL refuses, naming the key"
+for v in pushurl url receivepack push; do
+  setup; sleep 1; mark; in_repo request >/dev/null
+  evil="$(tmpdir)/evil.git"; git init -q --bare "$evil"
+  gcfg "remote.file://$remote.$v" "file://$evil"
+  assert_exit 1 in_repo run --id s1 --foreground
+  assert_contains "$T_OUT" "no transport: remote.<entry>.$v"
+  assert_not_contains "$T_OUT" "file://$remote"
+  assert_eq "" "$(git -C "$remote" branch --list 'feature/*')" "nothing pushed with remote.<entry>.$v"
+  assert_eq "" "$(git --git-dir="$evil" for-each-ref)" "nothing at the pushurl with remote.<entry>.$v"
+done
+t_end
+
+t_begin "the clone and the push read no system or global git config but the credential keys"
+setup; sleep 1; mark; in_repo request >/dev/null
+gcfg protocol.file.allow never
+gcfg push.followTags true
+gcfg credential.helper store
+assert_exit 0 in_repo run --id s1 --foreground
+assert_contains "$T_OUT" "push-run: 8 conditions, 8 met"
+assert_eq "$(git -C "$repo" rev-parse HEAD)" "$(git -C "$remote" rev-parse refs/heads/feature/ABC-1-Thing 2>/dev/null)" "pushed although the global config forbids file://"
+gt="$(tmpdir)"; rm -f "$home/.gitconfig"
+gcfg credential.helper "cache --timeout=60"; gcfg --add credential.helper ""; gcfg credential.https://git.example.test/g.username u
+gcfg user.name n; gcfg url.file:///evil.insteadOf file:///x; gcfg protocol.file.allow never
+assert_exit 0 bash -c '. "$1"; home="$2"; tmp="$3"; gen_global "$3/global"' _ "$fns" "$home" "$gt"
+assert_eq "credential.helper=cache --timeout=60|credential.helper=|credential.https://git.example.test/g.username=u|" \
+  "$(cd "$gt" && GIT_CEILING_DIRECTORIES="$gt" git config --file "$gt/global" --list | tr '\n' '|')" "only the credential keys"
+rm -f "$home/.gitconfig"
 t_end
 
 t_summary

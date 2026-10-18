@@ -224,6 +224,11 @@ engineer whether a request can succeed, and `run` re-judges what matters.
    (`templates/repo/.githooks/lib.sh:12`). `hotfix/*` is allowed (user
    decision 2026-10-18, R0).
 5. `clean`: `git status --porcelain --untracked-files=no` is empty.
+   (Task 3 fix round 1) An uncommitted `docs/progress/<ID>.md` of the
+   current task and paths under `.scratch/` (untracked, or changed in the
+   work tree only) do not count here or in `gate`: merge-request writes
+   them after `make check` and the push sends committed history only. A
+   committed change to them still counts (by its commit time).
 6. `ahead`: at least one commit on the branch not on the base
    (`origin/develop`, else `origin/main`, else `origin/master`).
 7. `gate`: `.bearing/state/.check-passed` exists and no file in the
@@ -267,8 +272,9 @@ the opt-in) is gone: no repository hook takes part in the push.
    `https.proxy`, `http.<url>.proxy` or `http.curloptResolve` is set, or
    `http.sslVerify` (or `http.<url>.sslVerify`) is false, or a
    `url.<base>.insteadOf` or `pushInsteadOf` value is a prefix of the
-   chosen entry. Environment variables need no check: the environment is
-   cleared.
+   chosen entry, or (Task 3 fix round 1) any `remote.<entry URL>.*` key
+   (`pushurl`, `url`, `receivepack` ...), named as `remote.<entry>.<key>`.
+   Environment variables need no check: the environment is cleared.
 8. `clone`: the clone succeeded and its `HEAD` is the request's `sha`
    (a commit made after the request refuses; the agent requests again).
 
@@ -276,7 +282,12 @@ Besides the `git config --file` reads and a `rev-parse HEAD` inside the
 clone, the clone and the push are the only git commands `run` runs. Every
 one of them runs under
 `env -i PATH=/usr/bin:/bin HOME=<passwd home> SSH_AUTH_SOCK=<value> GIT_TERMINAL_PROMPT=0`,
-and the clone and the push also pin `-c core.hooksPath=/dev/null`:
+and the clone and the push also pin `-c core.hooksPath=/dev/null` and run
+with `GIT_CONFIG_NOSYSTEM=1` and `GIT_CONFIG_GLOBAL=<tmp>/global`
+(Task 3 fix round 1), a config `run` generates holding only the
+`credential.*` keys of the engineer's global config, so no `remote.*`,
+`url.*`, `push.*` or transport key from any file reaches them; a git that
+reports a setting from any other file is refused:
 
 ```
 git -c core.hooksPath=/dev/null clone --no-local --single-branch \
@@ -294,7 +305,16 @@ No `--force`, `--force-with-lease`, `--tags`, `--all`, `--mirror`,
 `--delete`, `--set-upstream`, no second refspec, never origin's
 configured url. A tag is never pushed: the clone has none (`--no-tags`)
 and the refspec names one branch. The temporary directory is made with
-`mktemp -d` and removed by an `EXIT` trap, pushed or not. (Task 3) The
+`mktemp -d` inside `<passwd home>/.config/bearing/tmp` (created mode 700;
+the sandbox denies the agent reads and writes there), never `TMPDIR`, and
+removed by an `EXIT` trap, pushed or not. Just before the push the
+clone's `.git/config` is re-read (includes not followed) and the push is
+refused if it holds any key but those git clone writes:
+`core.repositoryformatversion`, `core.filemode`, `core.bare`,
+`core.logallrefupdates`, `core.ignorecase`, `core.precomposeunicode`,
+`core.symlinks`, `extensions.objectformat`, `extensions.refstorage`,
+`remote.origin.url`, `remote.origin.fetch`, `remote.origin.tagopt`,
+`branch.<branch>.remote`, `branch.<branch>.merge`. (Task 3) The
 transport check runs a second time inside the fresh clone, as part of
 condition 8, so an `includeIf` of the global config that applies only in
 a repository (`gitdir:`, `onbranch:`) is judged too. Every file `run` reads
@@ -309,7 +329,9 @@ repository; the push still goes only to a URL the engineer listed for
 that origin (accepted, amendment ruling Q4). Every hook sets
 `core.fsmonitor=false` for each git it starts (ruling Q3), since a
 `core.fsmonitor` in `.git/config` names a program git runs when it reads
-the index.
+the index, and (Task 3 fix round 1) `core.hooksPath=/dev/null`, since
+`git status` runs a repository's `post-index-change` hook when it
+refreshes the index.
 
 `run` checks conditions 1 to 7 at the Stop and prints
 `push-run: 7 conditions before the clone, M met`; when all hold it

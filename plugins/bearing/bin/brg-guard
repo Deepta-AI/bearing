@@ -42,12 +42,14 @@ set -u
 sub="${1:-}"; shift || true
 READONLY=0
 # Hooks run outside the sandbox. A repository's core.fsmonitor names a
-# program git runs whenever it reads the index, so every git this script
-# starts, and every git those start, runs as with -c core.fsmonitor=false:
+# program git runs whenever it reads the index, and its core.hooksPath (or
+# .git/hooks) holds hooks git status runs when it refreshes the index
+# (post-index-change). So every git this script starts, and every git those
+# start, runs as with -c core.fsmonitor=false -c core.hooksPath=/dev/null:
 # git hands -c settings to its children through GIT_CONFIG_PARAMETERS, and so
-# does this. Last wins, so the value appended here holds.
+# does this. Last wins, so the values appended here hold.
 # shellcheck disable=SC2089,SC2090 # the quotes are git's own format, kept literally
-export GIT_CONFIG_PARAMETERS="${GIT_CONFIG_PARAMETERS:+$GIT_CONFIG_PARAMETERS }'core.fsmonitor=false'"
+export GIT_CONFIG_PARAMETERS="${GIT_CONFIG_PARAMETERS:+$GIT_CONFIG_PARAMETERS }'core.fsmonitor=false' 'core.hooksPath=/dev/null'"
 # brg-push beside this script, as an absolute path (no cd: CDPATH plays no
 # part), so it still resolves after a cd to the repository root.
 case "$0" in (/*) BRG_PUSH="${0%/*}/brg-push" ;; (*) BRG_PUSH="$PWD/$(dirname "$0")/brg-push" ;; esac
@@ -74,7 +76,9 @@ case "$0" in (/*) BRG_PUSH="${0%/*}/brg-push" ;; (*) BRG_PUSH="$PWD/$(dirname "$
 # The engineer pushes, merges and deploys; the agent prepares. The one
 # exception: brg-push run, which only the Stop hook calls, under the
 # engineer's BEARING_AUTO_PUSH opt-in; it pushes from a fresh clone and runs
-# no repository code.
+# no repository code. The row matches the program name, so a renamed copy of
+# brg-push can still run `run` from Bash; it runs in the sandbox there, where
+# bearing.env is unreadable, so the opt-in condition fails and nothing pushes.
 # --------------------------------------------------------------------------
 verb_table() { verb_rows | tr '|' '\t'; }
 verb_rows() {

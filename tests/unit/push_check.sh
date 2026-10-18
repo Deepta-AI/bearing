@@ -297,10 +297,19 @@ assert_exit 3 bash -c '. "$1"; bounded 5 sh -c "exit 3"' _ "$fns"
 t_end
 
 t_begin "optin-record ignores a repository above its temp directory"
-setup; above="$(tmpdir)"
-printf 'gitdir: /nonexistent\n' > "$above/.git"   # git stops with "not a git repository" if it looks here
-mkdir -p "$above/t"; ( cd "$repo" && TMPDIR="$above/t" bash "$P" optin-record )
+setup; pt="$home/.config/bearing/tmp"; mkdir -p "$pt"
+printf 'gitdir: /nonexistent\n' > "$pt/.git"   # git stops with "not a git repository" if it looks here
+( cd "$repo" && bash "$P" optin-record )
+rm -f "$pt/.git"
 assert_eq on "$(cat "$repo/.bearing/state/.push-optin")"
+t_end
+
+t_begin "optin-record works in the protected tmp, never TMPDIR"
+setup; t="$(tmpdir)"; chmod 500 "$t"; rm -f "$repo/.bearing/state/.push-optin"
+( cd "$repo" && TMPDIR="$t" bash "$P" optin-record )
+chmod 700 "$t"
+assert_eq on "$(cat "$repo/.bearing/state/.push-optin" 2>/dev/null)"
+assert_eq "" "$(ls -A "$home/.config/bearing/tmp" 2>&1)" "the protected tmp exists and holds nothing after the run"
 t_end
 
 t_begin "a tracked .bearing file changed after make check makes the gate stale"
@@ -312,6 +321,43 @@ t_end
 t_begin "clean fails closed when git status fails"
 setup; printf 'garbage' > "$repo/.git/index"
 assert_exit 1 in_repo check; assert_contains "$T_OUT" "no clean:"
+t_end
+
+t_begin "an uncommitted progress file for this task and .scratch/ files neither stale the gate nor dirty the tree"
+setup; sleep 1; mkdir -p "$repo/docs/progress" "$repo/.scratch"
+printf 'p\n' > "$repo/docs/progress/ABC-1.md"; printf 'm\n' > "$repo/.scratch/mr-ABC-1.md"
+assert_exit 0 in_repo check
+assert_contains "$T_OUT" "ok clean:"; assert_contains "$T_OUT" "ok gate: 1 file(s) compared"
+t_end
+
+t_begin "a tracked progress file changed but not committed after make check still passes"
+setup; mkdir -p "$repo/docs/progress" "$repo/.scratch"
+printf 'p\n' > "$repo/docs/progress/ABC-1.md"; printf 's\n' > "$repo/.scratch/notes.md"
+git -C "$repo" add docs/progress/ABC-1.md .scratch/notes.md; git -C "$repo" commit -q -m "docs: progress [ABC-1]"
+sleep 1; touch "$repo/.bearing/state/.check-passed"; sleep 1
+printf 'q\n' >> "$repo/docs/progress/ABC-1.md"; printf 't\n' >> "$repo/.scratch/notes.md"
+assert_exit 0 in_repo check
+assert_contains "$T_OUT" "ok clean:"; assert_contains "$T_OUT" "ok gate: 3 file(s) compared"
+t_end
+
+t_begin "a progress file committed after make check still counts"
+setup; sleep 1; mkdir -p "$repo/docs/progress"; printf 'p\n' > "$repo/docs/progress/ABC-1.md"
+git -C "$repo" add docs/progress/ABC-1.md; git -C "$repo" commit -q -m "docs: progress [ABC-1]"
+assert_exit 1 in_repo check; assert_contains "$T_OUT" "no gate: 1 of 2 file(s) newer than the last make check"
+printf 'q\n' >> "$repo/docs/progress/ABC-1.md"
+assert_exit 1 in_repo check; assert_contains "$T_OUT" "no gate: 1 of 2 file(s) newer than the last make check"
+t_end
+
+t_begin "another task's progress file, a staged progress change and other docs still count"
+setup; sleep 1; mkdir -p "$repo/docs/progress"; printf 'p\n' > "$repo/docs/progress/XYZ-9.md"
+assert_exit 1 in_repo check; assert_contains "$T_OUT" "no gate: 1 of 2 file(s) newer than the last make check"
+setup; mkdir -p "$repo/docs/progress"; printf 'p\n' > "$repo/docs/progress/ABC-1.md"
+git -C "$repo" add docs/progress/ABC-1.md; git -C "$repo" commit -q -m "docs: progress [ABC-1]"
+sleep 1; touch "$repo/.bearing/state/.check-passed"; sleep 1
+printf 'q\n' >> "$repo/docs/progress/ABC-1.md"; git -C "$repo" add docs/progress/ABC-1.md
+assert_exit 1 in_repo check; assert_contains "$T_OUT" "no clean: 1 uncommitted change(s)"
+setup; sleep 1; mkdir -p "$repo/docs/progress"; printf 'p\n' > "$repo/docs/progress/ABC-1.md.bak"
+assert_exit 1 in_repo check; assert_contains "$T_OUT" "no gate: 1 of 2 file(s) newer than the last make check"
 t_end
 
 t_summary
