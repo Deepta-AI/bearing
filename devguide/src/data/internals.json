@@ -10,7 +10,7 @@
   "agents": 8,
   "makeTargets": 32,
   "gates": 19,
-  "tests": 107,
+  "tests": 108,
   "fixtures": 25,
   "stacks": 13,
   "templates": 38,
@@ -5237,7 +5237,7 @@
     },
     {
      "path": "templates/.githooks/lib.sh",
-     "lines": 74
+     "lines": 94
     },
     {
      "path": "templates/.githooks/pre-commit",
@@ -5245,7 +5245,7 @@
     },
     {
      "path": "templates/.githooks/pre-push",
-     "lines": 98
+     "lines": 119
     }
    ],
    "groups": {
@@ -18506,6 +18506,13 @@
    "asserts": 21
   },
   {
+   "path": "tests/unit/githooks_pre_push.sh",
+   "kind": "unit",
+   "lines": 84,
+   "header": "tests/unit/githooks_pre_push.sh: the committed pre-push hook refuses an agent push without the opt-in, allows a fast-forward feature branch with it, and refuses a tag, a protected or release branch, a deletion and a forced update with it. The opt-in is read from bearing.env only: an exported BEARING_AUTO_PUSH does not count. bash 3.2 safe.",
+   "asserts": 11
+  },
+  {
    "path": "tests/unit/guard_deny_table.sh",
    "kind": "unit",
    "lines": 549,
@@ -19750,7 +19757,7 @@
   },
   {
    "path": "repo/.githooks/lib.sh",
-   "lines": 74
+   "lines": 94
   },
   {
    "path": "repo/.githooks/pre-commit",
@@ -19758,7 +19765,7 @@
   },
   {
    "path": "repo/.githooks/pre-push",
-   "lines": 98
+   "lines": 119
   },
   {
    "path": "repo/.github/PULL_REQUEST_TEMPLATE.md",

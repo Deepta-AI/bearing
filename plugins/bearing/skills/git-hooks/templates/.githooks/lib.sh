@@ -40,6 +40,26 @@ task_of() { printf '%s' "$1" | grep -oE "$TASK_ID_RE" | head -1; }
 # is_protected <branch>
 is_protected() { case " $PROTECTED_BRANCHES " in *" $1 "*) return 0;; esac; return 1; }
 
+# auto_push_allowed: exit 0 when the engineer's personal bearing.env lists this
+# repository's origin path in BEARING_AUTO_PUSH (space or comma separated,
+# quotes optional). It reads that file only: an exported BEARING_AUTO_PUSH is
+# never consulted, because an agent controls its own environment. The file is
+# ${BEARING_ENV:-${XDG_CONFIG_HOME:-$HOME/.config}/bearing/bearing.env}.
+auto_push_allowed() {
+  local envf line v u p x
+  envf="${BEARING_ENV:-${XDG_CONFIG_HOME:-$HOME/.config}/bearing/bearing.env}"
+  [ -f "$envf" ] || return 1
+  line="$(grep -E '^BEARING_AUTO_PUSH[[:space:]]*=' "$envf" | tail -1)"; [ -n "$line" ] || return 1
+  v="${line#*=}"; v="${v%%#*}"; v="$(printf '%s' "$v" | tr -d "\"'" | tr ',' ' ')"
+  u="$(git remote get-url origin 2>/dev/null)" || return 1
+  u="${u%.git}"
+  case "$u" in (*://*) u="${u#*://}"; u="${u#*/}";; (/*) ;; (*:*) u="${u#*:}";; esac
+  p="${u#/}"
+  [ -n "$p" ] || return 1
+  for x in $v; do [ "$x" = "$p" ] && return 0; done
+  return 1
+}
+
 # message_problem <message file> <task id or empty>: prints why the message
 # breaks the rules and returns 1, or prints nothing and returns 0. commit-msg
 # runs it on the message being written; pre-push runs it on every commit being

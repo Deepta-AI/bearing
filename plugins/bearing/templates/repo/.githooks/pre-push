@@ -22,6 +22,18 @@ for b in $PROTECTED_BRANCHES; do
   git rev-parse -q --verify "refs/heads/$b" >/dev/null && known+=("refs/heads/$b")
 done
 
+# Agent contract (brg-push run, Stop hook): an agent push is one whose
+# environment carries a variable below (CLAUDECODE is set by Claude Code and
+# inherited by brg-push run), and it is accepted only when auto_push_allowed
+# finds this repository in BEARING_AUTO_PUSH in the engineer's bearing.env.
+# Then it may carry fast-forward updates of feature branches and nothing else.
+agent=""
+for v in CLAUDECODE CLAUDE_CODE_ENTRYPOINT CODEX_SANDBOX CODEX_SANDBOX_NETWORK_DISABLED GEMINI_CLI CURSOR_AGENT; do
+  [ -n "${!v:-}" ] && { agent="$v"; break; }
+done
+auto=0
+if [ -n "$agent" ] && auto_push_allowed; then auto=1; fi
+
 # git feeds one line per ref on stdin:
 #   <local ref> <local sha> <remote ref> <remote sha>
 refs=0; commits=0; checked=0; dest=""; pushed_shas=""
@@ -30,8 +42,13 @@ while read -r local_ref local_sha remote_ref remote_sha; do
   refs=$((refs+1))
   case "$remote_ref" in
     refs/heads/*) rbranch="${remote_ref#refs/heads/}" ;;
-    *) hook_note "$remote_ref: not a branch, branch rules not applied"; continue ;;
+    *) [ "$auto" -eq 1 ] && hook_fail "an agent push carries only branches: $remote_ref"
+       hook_note "$remote_ref: not a branch, branch rules not applied"; continue ;;
   esac
+  if [ "$auto" -eq 1 ]; then
+    case "$rbranch" in (release/*) hook_fail "direct push to $rbranch is not allowed (from $local_ref); open a merge request";; esac
+    [ "$local_sha" != "$zero" ] || hook_fail "an agent push never deletes a branch: $rbranch"
+  fi
   if is_protected "$rbranch"; then
     [ "$local_sha" = "$zero" ] && hook_fail "deleting $rbranch on $remote is not allowed"
     hook_fail "direct push to $rbranch is not allowed (from $local_ref); open a merge request"
@@ -39,6 +56,10 @@ while read -r local_ref local_sha remote_ref remote_sha; do
   [ "$local_sha" = "$zero" ] && { hook_note "delete $rbranch"; continue; }
   printf '%s' "$rbranch" | grep -Eq "$BRANCH_RE" \
     || hook_fail "branch '$rbranch' does not match (${BRANCH_PREFIXES})/<TASK-ID>-<ShortName> or release/vX.Y.Z"
+  if [ "$auto" -eq 1 ] && [ "$remote_sha" != "$zero" ]; then
+    git merge-base --is-ancestor "$remote_sha" "$local_sha" 2>/dev/null \
+      || hook_fail "an agent push is never forced: $rbranch"
+  fi
   if [ "$remote_sha" = "$zero" ] || ! git cat-file -e "$remote_sha^{commit}" 2>/dev/null; then
     range=("$local_sha" --not --remotes="$remote" ${known[@]+"${known[@]}"})
   else
@@ -58,18 +79,17 @@ done
 [ "$checked" -gt 0 ] || { hook_note "$refs ref(s), none a branch update; gate not needed"; exit 0; }
 
 # Confirmation (lib.sh PUSH_CONFIRM). The engineer pushes; a coding agent
-# does not.
-agent=""
-for v in CLAUDECODE CLAUDE_CODE_ENTRYPOINT CODEX_SANDBOX CODEX_SANDBOX_NETWORK_DISABLED GEMINI_CLI CURSOR_AGENT; do
-  [ -n "${!v:-}" ] && { agent="$v"; break; }
-done
+# does not, except under the engineer's BEARING_AUTO_PUSH opt-in, a
+# fast-forward of a feature branch (auto=1, judged above).
 case "$PUSH_CONFIRM" in
   off) ;;
-  agents) [ -z "$agent" ] || hook_fail "a coding agent is pushing ($agent is set); the engineer runs git push" ;;
+  agents) [ -z "$agent" ] || [ "$auto" -eq 1 ] || hook_fail "a coding agent is pushing ($agent is set); the engineer runs git push" ;;
   *)
-    [ -z "$agent" ] || hook_fail "a coding agent is pushing ($agent is set); the engineer runs git push"
+    [ -z "$agent" ] || [ "$auto" -eq 1 ] || hook_fail "a coding agent is pushing ($agent is set); the engineer runs git push"
     # A pipeline that pushes opts in with both a CI marker and the kit flag.
-    if { [ "${CI:-}" = true ] || [ -n "${GITLAB_CI:-}${GITHUB_ACTIONS:-}" ]; } && [ "${BEARING_PUSH_CONFIRMED:-0}" = 1 ]; then
+    if [ "$auto" -eq 1 ]; then
+      :  # no terminal to type on: the opt-in stands in for the confirmation
+    elif { [ "${CI:-}" = true ] || [ -n "${GITLAB_CI:-}${GITHUB_ACTIONS:-}" ]; } && [ "${BEARING_PUSH_CONFIRMED:-0}" = 1 ]; then
       hook_note "push confirmed by CI (BEARING_PUSH_CONFIRMED=1)"
     else
       { exec 3<>/dev/tty; } 2>/dev/null \
@@ -80,6 +100,7 @@ case "$PUSH_CONFIRM" in
       [ "$typed" = "$dest" ] || hook_fail "push not confirmed"
     fi ;;
 esac
+[ "$auto" -eq 0 ] || hook_note "agent push allowed by BEARING_AUTO_PUSH: $checked branch ref(s)"
 
 # The gate runs on the working tree, which is what was pushed only when HEAD
 # is the pushed commit and nothing tracked is modified. Say so when it is not.
