@@ -81,9 +81,9 @@ a sample before a row counts. `scripts/dataset_check.py` is the gate.
    repeats one adds nothing. Empty cells go back to step 4 once; still
    empty, the report names them.
 6. Audit. Draw the sample in `references/generation.md` (the gate's
-   required count: 10 percent or 30 rows, whichever is larger, capped at
-   the synthetic rows; for rows promoted to the golden set, at least 20
-   percent, `llm-eval`'s labelling rule) into
+   required count, capped at the synthetic rows: for kind `eval`, 20
+   percent or 30 rows, whichever is larger, `llm-eval`'s labelling rule;
+   for `train` and `preference`, 10 percent or 30) into
    `datasets/<name>/audit-sample.jsonl`. A person writes
    `datasets/<name>/audit.jsonl`, one row per checked row with `id`,
    `verdict` (`accept` or `reject`), `by` and `why`; the skill never
@@ -123,9 +123,16 @@ N of 10, or the unattended `missing:` list) in place of the rest.
 - The model under test generating its own eval rows writes cases it
   finds easy. A different family or tier generates; a person audits.
 - Contamination hides behind shape. A chat row and an object case with
-  the same words are the same case; the gate compares both forms.
-- One near-duplicate threshold (0.8) for the set and for contamination.
-  `llm-fine-tuning` uses this gate instead of its own.
+  the same words are the same case; so is a row that repeats one field
+  of a case, or wraps it ("Classify: <case text>"). The gate checks
+  each form.
+- One threshold (0.8) for near duplicates, contamination and
+  containment. `llm-fine-tuning` uses this gate instead of its own.
+- Never run `--against` the file the rows were drawn from, such as the
+  step 1 seed check against its own `cases.jsonl`: every row matches
+  itself, so all read as contaminated and the count says nothing. Step
+  1 runs without `--against`; steps 5 and 6 check generated rows
+  against the golden set.
 - A filled taxonomy is not a varied one. Read 20 rows of the biggest
   cell; templated phrasing shows there first.
 - Unaudited synthetic rows never join a golden set and never train a

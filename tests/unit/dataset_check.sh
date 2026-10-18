@@ -39,7 +39,7 @@ json.dump({"dimensions": {"intent": ["billing", "access"], "length": ["short", "
 texts = sentences(2, 12)
 train = []
 for i, t in enumerate(texts):
-    src = ("user-log", "real", "teacher:claude-opus-5-5")[i % 3]
+    src = ("user-log", "real", "crm-export")[i % 3]
     c = cells[i % 4]
     if i < 6:
         train.append({"id": f"t{i}", "input": t, "output": "billing", "source": src, "cell": c})
@@ -84,6 +84,16 @@ write("pref.jsonl", [{"id": f"p{i}", "source": "owner",
                       "prompt": [{"role": "user", "content": t}],
                       "chosen": [{"role": "assistant", "content": "good"}],
                       "rejected": [{"role": "assistant", "content": "bad"}]} for i, t in enumerate(sentences(5, 4))])
+# Task 6 fix round 1 fixtures
+blocks = {"id": "cb", "source": "user-log", "messages": [
+    {"role": "user", "content": [{"type": "text", "text": "My invoice for March shows two charges for the same plan."}]},
+    {"role": "assistant", "content": "billing_dispute"}]}
+write("blocks.jsonl", train[:3] + [blocks])
+write("question.jsonl", train[:3] + [{"id": "q", "input": "Summarise the cancellation terms for a monthly plan.", "output": "x", "source": "owner"}])
+write("wrapped.jsonl", train[:3] + [{"id": "w", "input": "Classify this support message and reply with one label only: My invoice for March shows two charges for the same plan. Thanks in advance", "output": "x", "source": "owner"}])
+write("teacher.jsonl", [dict(r, source=s) for r, s in zip(train[:4], ("teacher:claude-opus-5-5", "claude-sonnet-5-5:v2", "teacher", "user-log"))])
+syn200 = sentences(6, 200)
+write("syn200.jsonl", [{"id": f"y{i}", "input": t, "expected": "x", "output": "x", "source": "synthetic"} for i, t in enumerate(syn200)])
 with open(f"{d}/big.jsonl", "w") as f:
     for i in range(20001):
         f.write(json.dumps({"id": f"b{i}", "input": f"row number {i}", "output": "x", "source": "user-log"}) + "\n")
@@ -171,6 +181,51 @@ t_end
 
 t_begin "an empty --against file is a problem, not a pass"
 assert_exit 1 python3 "$DC" "$d/train.jsonl" --kind train --against "$d/none.jsonl"; assert_contains "$T_OUT" "0 cases"
+t_end
+
+TC="$KIT/plugins/bearing-genai/skills/llm-eval/templates/cases.jsonl"
+FT="$KIT/plugins/bearing-genai/skills/llm-fine-tuning/templates"
+
+t_begin "chat content blocks are flattened and match an object case"
+assert_exit 1 python3 "$DC" "$d/blocks.jsonl" --kind train --against "$TC"
+assert_contains "$T_OUT" "cb: contaminated"
+t_end
+
+t_begin "a row repeating one string value of a case is contaminated"
+assert_exit 1 python3 "$DC" "$d/question.jsonl" --kind train --against "$TC"
+assert_contains "$T_OUT" "q: contaminated"
+t_end
+
+t_begin "a row that wraps a case text is contaminated by containment"
+assert_exit 1 python3 "$DC" "$d/wrapped.jsonl" --kind train --against "$TC"
+assert_contains "$T_OUT" "w: contaminated"
+t_end
+
+t_begin "teacher and model-prefixed sources count as synthetic"
+assert_exit 1 python3 "$DC" "$d/teacher.jsonl" --kind train
+assert_contains "$T_OUT" "4 rows (real 1, owner 0, synthetic 3)"
+t_end
+
+t_begin "eval kind audits 20 percent, other kinds 10 percent or 30"
+assert_exit 1 python3 "$DC" "$d/syn200.jsonl" --kind eval; assert_contains "$T_OUT" "audited 0 of 40 required"
+assert_exit 1 python3 "$DC" "$d/syn200.jsonl" --kind train; assert_contains "$T_OUT" "audited 0 of 30 required"
+t_end
+
+t_begin "the fine-tuning templates do not copy the llm-eval cases"
+# the teacher row still needs its audit, so only contamination is asserted
+t_run python3 "$DC" "$FT/dataset.jsonl" --kind train --against "$TC"
+assert_contains "$T_OUT" "3 rows (real 1, owner 1, synthetic 1)"
+assert_contains "$T_OUT" "contaminated 0 against 4 cases"
+assert_exit 0 python3 "$DC" "$FT/preference.jsonl" --kind preference --against "$TC"
+assert_contains "$T_OUT" "contaminated 0 against 4 cases"
+t_end
+
+t_begin "a missing rows, against, audit or taxonomy file prints 0 rows and exits 2"
+assert_exit 2 python3 "$DC" "$d/absent.jsonl" --kind train; assert_contains "$T_OUT" "0 rows"
+assert_exit 2 python3 "$DC" "$d/train.jsonl" --kind train --against "$d/absent.jsonl"; assert_contains "$T_OUT" "0 rows"
+assert_exit 2 python3 "$DC" "$d/train.jsonl" --kind train --audit "$d/absent.jsonl"; assert_contains "$T_OUT" "0 rows"
+assert_exit 2 python3 "$DC" "$d/train.jsonl" --kind train --taxonomy "$d/absent.json"; assert_contains "$T_OUT" "0 rows"
+assert_not_contains "$T_OUT" "  cell "
 t_end
 
 t_summary

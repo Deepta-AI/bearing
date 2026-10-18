@@ -93,8 +93,9 @@ top-up goes in the datasheet's Filtering section as a gap.
 ## Audit sample
 
 Required count from the gate: the smaller of the synthetic rows and
-`max(30, ceil(0.1 x synthetic))`; for eval rows bound for the golden set, at least 20
-percent of them (`llm-eval`'s rule for model-labelled cases). Draw it
+`max(30, ceil(0.2 x synthetic))` for kind `eval` (`llm-eval`'s rule
+that a person checks 20 percent of model-labelled cases), or
+`max(30, ceil(0.1 x synthetic))` for `train` and `preference`. Draw it
 with a fixed seed, stratified by cell (each cell's share of the sample
 follows its share of the rows, at least one per filled cell), into
 `audit-sample.jsonl`. The person reads input, label or answer, and

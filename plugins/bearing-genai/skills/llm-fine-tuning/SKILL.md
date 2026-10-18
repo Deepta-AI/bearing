@@ -64,7 +64,8 @@ there, and keep this skill's decision, data, eval and serving steps.
    (copy its count line; `--kind preference` for DPO pairs). Then a
    split of 80/10/10 into train, validation and test with no document
    shared across splits. Format is chat messages JSONL from
-   `templates/dataset.jsonl`. The test split is the golden set from
+   `templates/dataset.jsonl`; DPO pairs from
+   `templates/preference.jsonl`. The test split is the golden set from
    `llm-eval`, never training data. Print counts at every stage.
 4. Run plan in `docs/genai/training-<name>.md`: base model (current
    open families: Qwen3, Llama 4, Gemma 3; pick the size the serving

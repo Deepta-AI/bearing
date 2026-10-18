@@ -11,40 +11,59 @@ Rows (JSON Lines) come in the shapes llm-eval and llm-fine-tuning write:
 plus `expected` or `rubric` (eval), `output` or chat `messages` with an
 assistant turn (train), `chosen` and `rejected` (preference). A chat row
 (`messages`, or `prompt` for a preference pair) takes its input from the
-user turns; the system prompt is shared by every row and is not compared.
-`source` is any non-empty string: `owner` and `synthetic` (or
-`synthetic:<generator>`) are counted by name, every other value as real.
+user turns (a string, or a list of content blocks whose `text` is
+read); the system prompt is shared by every row and is not compared.
+`source` is any non-empty string: `owner` is counted by name; `synthetic`,
+`teacher`, and any `<generator>:` prefix (`synthetic:x`, `teacher:<model>`,
+`<model>:<tag>` such as `claude-opus-5-5:v2`) count as synthetic; every
+other value is real.
 
 Comparison text: a string as is; an object as canonical JSON with sorted
-keys; then lower-cased with whitespace collapsed. Contamination also
-compares the object's string values alone, so a chat row or a string row
-that repeats an object case is caught. Near duplicate: character 5-gram
-Jaccard at or above --near (one threshold for duplicates and for
-contamination). Above 20,000 rows only exact matches are checked.
+keys; then lower-cased with whitespace collapsed. Contamination targets of
+a case: its input as canonical JSON, its string values joined, and each
+string value of 20 or more characters on its own, so a chat row, a string
+row, or a row that repeats one field (a question without its context) is
+caught. A row is contaminated by an exact match of any target, a near
+match (character 5-gram Jaccard at or above --near), or containment: the
+share of a target's 5-grams found in the row at or above the same
+--near, which catches a row that wraps a case ("Classify: <case text>").
+Containment can also flag a long row that quotes a short case; targets
+under 20 characters are not checked for it. One threshold, --near
+(default 0.8), serves duplicates, contamination and containment. Above
+20,000 rows only exact matches are checked.
 
 Taxonomy: {"dimensions": {dim: [values]}}; cells are the product of the
 values. Audit rows: {"id", "verdict": "accept"|"reject", "by"}; a row
 without `by` is not a person's audit and does not count. Required audit is
-min(synthetic, max(30, ceil(0.1 x synthetic))); acceptance must be at
+min(synthetic, max(30, ceil(f x synthetic))) with f 0.2 for kind eval
+(llm-eval's rule that a person checks 20% of model-labelled cases) and
+0.1 for train and preference; acceptance must be at
 least 90%. For kind eval the synthetic share of the rows plus --against
 cases is at most 0.5.
 
 Output: one count line, then `dataset-check: passed` (exit 0) or
 `dataset-check: X problems` and one line per problem (exit 1). Zero rows,
-or a file that cannot be read, prints `nothing checked` and exits 2.
+or a rows, --against, --audit or --taxonomy file that cannot be read,
+prints `dataset-check: 0 rows checked, nothing checked (...)` and exits 2.
 """
 
 import argparse
 import json
 import math
+import re
 import sys
 
 NEAR_CAP = 20000
 GRAM = 5
+LONG = 20  # a case string value this long is a contamination target alone
+SYN_HEADS = {"synthetic", "teacher", "generated", "distilled"}
+MODEL_HEAD = re.compile(
+    r"^(claude|gpt|o[134]|gemini|gemma|llama|qwen|mistral|mixtral|deepseek|phi|command|grok)([-_.][\w.-]*)?$"
+)
 
 
 def die(msg):
-    print(f"dataset-check: nothing checked ({msg})")
+    print(f"dataset-check: 0 rows checked, nothing checked ({msg})")
     sys.exit(2)
 
 
@@ -90,20 +109,35 @@ def leaves(v):
     return [v if isinstance(v, str) else json.dumps(v)]
 
 
+def content_text(c):
+    """Text of a chat message content: a string, or content blocks."""
+    if isinstance(c, str):
+        return [c]
+    if isinstance(c, list):
+        out = []
+        for b in c:
+            out.extend(content_text(b))
+        return out
+    if isinstance(c, dict):
+        if isinstance(c.get("text"), str):
+            return [c["text"]]
+        if "content" in c:
+            return content_text(c["content"])
+        return leaves({k: v for k, v in c.items() if k not in ("type", "source")})
+    return leaves(c)
+
+
 def user_turns(msgs):
     if not isinstance(msgs, list):
         return None
-    parts = [
-        m.get("content")
-        for m in msgs
-        if isinstance(m, dict) and m.get("role") == "user"
-    ]
-    parts = [p if isinstance(p, str) else json.dumps(p, sort_keys=True) for p in parts]
+    parts = []
+    for m in msgs:
+        if isinstance(m, dict) and m.get("role") == "user":
+            parts.extend(content_text(m.get("content")))
     return " ".join(parts) if parts else None
 
 
-def texts(row):
-    """(canonical, plain) comparison texts of a row's input, or None."""
+def raw_input(row):
     inp = row.get("input")
     if inp is None:
         inp = user_turns(row.get("messages"))
@@ -113,6 +147,12 @@ def texts(row):
             if isinstance(row.get("prompt"), list)
             else row.get("prompt")
         )
+    return inp
+
+
+def texts(row):
+    """(canonical, plain) comparison texts of a row's input, or None."""
+    inp = raw_input(row)
     if inp is None or inp == "" or inp == {}:
         return None
     if isinstance(inp, str):
@@ -164,6 +204,50 @@ class NearIndex:
         return False
 
 
+class ContainIndex:
+    """Targets T contained in a row R: |T & R| / |T| >= t. Any
+    len - ceil(t * len) + 1 grams of T include one that is in R, so T is
+    indexed by that many of its rarest grams."""
+
+    def __init__(self, t, order):
+        self.t, self.order, self.post, self.sets = t, order, {}, []
+
+    def add(self, g):
+        i = len(self.sets)
+        self.sets.append(g)
+        ranked = sorted(g, key=lambda x: (self.order.get(x, 0), x))
+        keep = len(ranked) - math.ceil(self.t * len(ranked) - 1e-9) + 1
+        for x in ranked[: max(keep, 1)]:
+            self.post.setdefault(x, []).append(i)
+
+    def hit(self, g):
+        seen = set()
+        for x in g:
+            for i in self.post.get(x, ()):
+                if i in seen:
+                    continue
+                seen.add(i)
+                if len(self.sets[i] & g) >= self.t * len(self.sets[i]) - 1e-9:
+                    return True
+        return False
+
+
+def case_targets(case):
+    """(exact strings, near and containment texts) of one golden case."""
+    t = texts(case)
+    if t is None:
+        return set(), []
+    canon, plain = t
+    inp = raw_input(case)
+    longs = []
+    if not isinstance(inp, str):
+        for v in leaves(inp):
+            n = norm(v)
+            if len(n) >= LONG and n != plain and n not in longs:
+                longs.append(n)
+    return {canon, plain, *longs}, [plain] + longs
+
+
 def frequency(*gram_lists):
     freq = {}
     for gl in gram_lists:
@@ -174,9 +258,11 @@ def frequency(*gram_lists):
 
 
 def source_kind(src):
-    if src == "owner":
+    s = src.strip().lower()
+    if s == "owner":
         return "owner"
-    if src == "synthetic" or src.startswith("synthetic:"):
+    head = s.split(":", 1)[0].strip()
+    if head in SYN_HEADS or MODEL_HEAD.match(head):
         return "synthetic"
     return "real"
 
@@ -204,6 +290,19 @@ def main():
     a = ap.parse_args()
     if not 0 < a.near <= 1:
         die("--near must be in (0, 1]")
+
+    for what, path in (
+        ("rows", a.rows),
+        ("--against", a.against),
+        ("--audit", a.audit),
+        ("--taxonomy", a.taxonomy),
+    ):
+        if path is None:
+            continue
+        try:
+            open(path, encoding="utf-8").close()
+        except OSError as e:
+            die(f"cannot read {what} {path}: {e.strerror}")
 
     problems = []
     rows = read_jsonl(a.rows, "rows", problems)
@@ -304,9 +403,9 @@ def main():
                 f"--against {a.against}: 0 cases, nothing to check contamination against"
             )
         for c in cases:
-            t = texts(c)
-            if t is not None:
-                against.append((c.get("id"), t[0], t[1], c.get("source")))
+            ex, near_t = case_targets(c)
+            if near_t:
+                against.append((c.get("id"), ex, near_t, c.get("source")))
 
     exact_seen = set()
     dup = 0
@@ -322,7 +421,9 @@ def main():
         uniq.append((rid, canon, plain))
 
     row_grams = [grams(p) for _, _, p in uniq] if near_on else []
-    case_grams = [grams(p) for _, _, p, _ in against] if near_on else []
+    case_grams = (
+        [grams(p) for _, _, ts, _ in against for p in ts] if near_on else []
+    )
     if near_on:
         order = frequency(row_grams, case_grams)
         idx = NearIndex(a.near, order)
@@ -333,25 +434,30 @@ def main():
 
     # contamination
     case_exact = set()
-    for _, canon, plain, _ in against:
-        case_exact.add(canon)
-        case_exact.add(plain)
-    cidx = None
+    for _, ex, _, _ in against:
+        case_exact |= ex
+    cidx = kidx = None
     if near_on and against:
         cidx = NearIndex(a.near, order)
-        for g in case_grams:
+        kidx = ContainIndex(a.near, order)
+        texts_flat = [p for _, _, ts, _ in against for p in ts]
+        for p, g in zip(texts_flat, case_grams):
             cidx.add(g)
+            if len(p) >= LONG:
+                kidx.add(g)
     contaminated = 0
     for i, (rid, canon, plain) in enumerate(keyed):
         hit = canon in case_exact or plain in case_exact
         if not hit and cidx is not None:
-            hit = cidx.hit(grams(plain))
+            g = grams(plain)
+            hit = cidx.hit(g) or kidx.hit(g)
         if hit:
             contaminated += 1
             problems.append(f"{rid}: contaminated, matches a case in {a.against}")
 
     # audit
-    required = min(len(syn_ids), max(30, math.ceil(0.1 * len(syn_ids))))
+    share = 0.2 if a.kind == "eval" else 0.1
+    required = min(len(syn_ids), max(30, math.ceil(share * len(syn_ids))))
     verdicts = {}
     if a.audit:
         for n, r in enumerate(read_jsonl(a.audit, "audit", problems), 1):

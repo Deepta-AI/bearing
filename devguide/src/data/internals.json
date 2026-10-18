@@ -5,7 +5,7 @@
   "commandSkills": 0,
   "stackSkills": 12,
   "scripts": 98,
-  "scriptLines": 31487,
+  "scriptLines": 31593,
   "hooks": 8,
   "agents": 8,
   "makeTargets": 32,
@@ -18,7 +18,7 @@
   "ghJobs": 6,
   "ghWorkflows": 2,
   "evals": 109,
-  "skillFiles": 1063
+  "skillFiles": 1064
  },
  "plugins": [
   {
@@ -148,7 +148,7 @@
    "dir": "plugins/bearing-genai",
    "description": "Bearing skills for GenAI and ML products: solution design, RAG, agents, MCP servers, model gateway and routing, guardrails, prompt registry, evals, fine-tuning, datasets, speech, computer vision and tabular ML. Needs the bearing plugin.",
    "required": false,
-   "files": 69,
+   "files": 70,
    "skills": [
     "computer-vision",
     "dataset-generation",
@@ -3059,7 +3059,7 @@
     },
     {
      "title": "Gotchas",
-     "lines": 17
+     "lines": 24
     }
    ],
    "inputs": [
@@ -3077,15 +3077,16 @@
     "Generator. For `eval` rows, a model of a different family or tier from the model under test (`routes.<name>` in `llm/routing.yaml`); for `train` and `preference`, a teacher whose eval score in `docs/genai/evals.md` beats the model being trained. Ask with AskUserQuestion (as the bearing plugin's `references/console.md` says), options \"<the strongest `models:` key that is not the model under test> (Recommended)\" (for…",
     "Generate. `datasets/<name>/generate.py` from `references/generation.md`: a versioned prompt from `bearing-genai:prompt-registry` (`<name>-generate` v1, a new version for every change), one call per cell batch through the gateway (`llm/`) on a `dataset-<name>` route set to the generator, seed rows rotated as examples, each row written with `source: synthetic`, its `cell`, the `expected` or `rubric` the generator prop…",
     "Filter. Run `python3 \"${CLAUDE_PLUGIN_ROOT}/skills/dataset-generation/scripts/dataset_check.py\" datasets/<name>/generated.jsonl --kind <kind> --against evals/<name>/cases.jsonl --taxonomy datasets/<name>/taxonomy.json`. Drop every row it names (exact or near duplicate at 5-gram Jaccard 0.8, contaminated, missing a field) into `datasets/<name>/rows.jsonl` and run it again on that file until only the audit problem is…",
-    "Audit. Draw the sample in `references/generation.md` (the gate's required count: 10 percent or 30 rows, whichever is larger, capped at the synthetic rows; for rows promoted to the golden set, at least 20 percent, `llm-eval`'s labelling rule) into `datasets/<name>/audit-sample.jsonl`. A person writes `datasets/<name>/audit.jsonl`, one row per checked row with `id`, `verdict` (`accept` or `reject`), `by` and `why`; th…",
+    "Audit. Draw the sample in `references/generation.md` (the gate's required count, capped at the synthetic rows: for kind `eval`, 20 percent or 30 rows, whichever is larger, `llm-eval`'s labelling rule; for `train` and `preference`, 10 percent or 30) into `datasets/<name>/audit-sample.jsonl`. A person writes `datasets/<name>/audit.jsonl`, one row per checked row with `id`, `verdict` (`accept` or `reject`), `by` and `w…",
     "Use and record. `datasets/<name>/DATASHEET.md` from `templates/DATASHEET.md`, every section filled, the filtering counts copied from the gate. Then by kind: - `eval`: on `dataset-check: passed`, append the batch less its rejected rows to `evals/<name>/cases.jsonl` with `source: synthetic`, `labelled_by` the auditor and `labelled_at`. The gate already holds synthetic rows to at most half of rows plus golden set; rows…"
    ],
    "output": "Stopped early: the contract's first line, then the stop line (seed rows N of 10, or the unattended `missing:` list) in place of the rest.",
    "gotchas": [
     "Synthetic data with no real seed measures the generator, not the product. The seed rule is not negotiable.",
     "The model under test generating its own eval rows writes cases it finds easy. A different family or tier generates; a person audits.",
-    "Contamination hides behind shape. A chat row and an object case with the same words are the same case; the gate compares both forms.",
-    "One near-duplicate threshold (0.8) for the set and for contamination. `llm-fine-tuning` uses this gate instead of its own.",
+    "Contamination hides behind shape. A chat row and an object case with the same words are the same case; so is a row that repeats one field of a case, or wraps it (\"Classify: <case text>\"). The gate checks each form.",
+    "One threshold (0.8) for near duplicates, contamination and containment. `llm-fine-tuning` uses this gate instead of its own.",
+    "Never run `--against` the file the rows were drawn from, such as the step 1 seed check against its own `cases.jsonl`: every row matches itself, so all read as contaminated and the count says nothing. Step 1 runs without `--against`; steps 5 and 6 check generated rows against the golden set.",
     "A filled taxonomy is not a varied one. Read 20 rows of the biggest cell; templated phrasing shows there first.",
     "Unaudited synthetic rows never join a golden set and never train a model, in any mode.",
     "Generating from customer data needs the consent the seed had, and a teacher's outputs used for training need the provider's usage policy checked (`llm-fine-tuning` records it in its ADR).",
@@ -3093,19 +3094,19 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 137,
+   "lines": 144,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 137
+     "lines": 144
     },
     {
      "path": "references/generation.md",
-     "lines": 107
+     "lines": 108
     },
     {
      "path": "scripts/dataset_check.py",
-     "lines": 416
+     "lines": 522
     },
     {
      "path": "templates/DATASHEET.md",
@@ -7241,7 +7242,7 @@
     },
     {
      "title": "Steps",
-     "lines": 64
+     "lines": 65
     },
     {
      "title": "Output contract",
@@ -7283,11 +7284,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 144,
+   "lines": 145,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 144
+     "lines": 145
     },
     {
      "path": "references/recipes.md",
@@ -7299,11 +7300,15 @@
     },
     {
      "path": "templates/dataset.jsonl",
-     "lines": 4
+     "lines": 3
     },
     {
      "path": "templates/model-card.md",
      "lines": 143
+    },
+    {
+     "path": "templates/preference.jsonl",
+     "lines": 1
     },
     {
      "path": "templates/serve-vllm.md",
@@ -7318,7 +7323,7 @@
     ".": 1,
     "references": 1,
     "scripts": 1,
-    "templates": 4
+    "templates": 5
    },
    "evals": true,
    "hasSections": [
@@ -16650,17 +16655,20 @@
    "lang": "python",
    "group": "skill",
    "skill": "dataset-generation",
-   "lines": 416,
-   "header": "dataset_check: the gate a generated dataset passes before anyone uses it.\n\nUsage:\n  dataset_check.py <rows.jsonl> --kind eval|train|preference\n                   [--against <cases.jsonl>] [--taxonomy <taxonomy.json>]\n                   [--audit <audit.jsonl>] [--near 0.8] [--max-near 0.02]\n\nRows (JSON Lines) come in the shapes llm-eval and llm-fine-tuning write:\n  {\"id\", \"input\": str | object, \"source\": str, \"cell\": {dim: value}, ...}\nplus `expected` or `rubric` (eval), `output` or chat `messages` with an\nassistant turn (train), `chosen` and `rejected` (preference). A chat row\n(`messages`, or `prompt` for a preference pair) takes its input from the\nuser turns; the system prompt is shared by every row and is not compared.\n`source` is any non-empty string: `owner` and `synthetic` (or\n`synthetic:<generator>`) are counted by name, every other value as real.\n\nComparison text: a string as is; an object as canonical JSON with sorted\nkeys; then lower-cased with whitespace collapsed. Contamination also\ncompares the object's string values alone, so a chat row or a string row\nthat repeats an object case is caught. Near duplicate: character 5-gram\nJaccard at or above --near (one threshold for duplicates and for\ncontamination). Above 20,000 rows only exact matches are checked.\n\nTaxonomy: {\"dimensions\": {dim: [values]}}; cells are the product of the\nvalues. Audit rows: {\"id\", \"verdict\": \"accept\"|\"reject\", \"by\"}; a row\nwithout `by` is not a person's audit and does not count. Required audit is\nmin(synthetic, max(30, ceil(0.1 x synthetic))); acceptance must be at\nleast 90%. For kind eval the synthetic share of the rows plus --against\ncases is at most 0.5.\n\nOutput: one count line, then `dataset-check: passed` (exit 0) or\n`dataset-check: X problems` and one line per problem (exit 1). Zero rows,\nor a file that cannot be read, prints `nothing checked` and exits 2.",
+   "lines": 522,
+   "header": "dataset_check: the gate a generated dataset passes before anyone uses it.\n\nUsage:\n  dataset_check.py <rows.jsonl> --kind eval|train|preference\n                   [--against <cases.jsonl>] [--taxonomy <taxonomy.json>]\n                   [--audit <audit.jsonl>] [--near 0.8] [--max-near 0.02]\n\nRows (JSON Lines) come in the shapes llm-eval and llm-fine-tuning write:\n  {\"id\", \"input\": str | object, \"source\": str, \"cell\": {dim: value}, ...}\nplus `expected` or `rubric` (eval), `output` or chat `messages` with an\nassistant turn (train), `chosen` and `rejected` (preference). A chat row\n(`messages`, or `prompt` for a preference pair) takes its input from the\nuser turns (a string, or a list of content blocks whose `text` is\nread); the system prompt is shared by every row and is not compared.\n`source` is any non-empty string: `owner` is counted by name; `synthetic`,\n`teacher`, and any `<generator>:` prefix (`synthetic:x`, `teacher:<model>`,\n`<model>:<tag>` such as `claude-opus-5-5:v2`) count as synthetic; every\nother value is real.\n\nComparison text: a string as is; an object as canonical JSON with sorted\nkeys; then lower-cased with whitespace collapsed. Contamination targets of\na case: its input as canonical JSON, its string values joined, and each\nstring value of 20 or more characters on its own, so a chat row, a string\nrow, or a row that repeats one field (a question without its context) is\ncaught. A row is contaminated by an exact match of any target, a near\nmatch (character 5-gram Jaccard at or above --near), or containment: the\nshare of a target's 5-grams found in the row at or above the same\n--near, which catches a row that wraps a case (\"Classify: <case text>\").\nContainment can also flag a long row that quotes a short case; targets\nunder 20 characters are not checked for it. One threshold, --near\n(default 0.8), serves duplicates, contamination and containment. Above\n20,000 rows only exact matches are checked.\n\nTaxonomy: {\"dimensions\": {dim: [values]}}; cells are the product of the\nvalues. Audit rows: {\"id\", \"verdict\": \"accept\"|\"reject\", \"by\"}; a row\nwithout `by` is not a person's audit and does not count. Required audit is\nmin(synthetic, max(30, ceil(f x synthetic))) with f 0.2 for kind eval\n(llm-eval's rule that a person checks 20% of model-labelled cases) and\n0.1 for train and preference; acceptance must be at\nleast 90%. For kind eval the synthetic share of the rows plus --against\ncases is at most 0.5.\n\nOutput: one count line, then `dataset-check: passed` (exit 0) or\n`dataset-check: X problems` and one line per problem (exit 1). Zero rows,\nor a rows, --against, --audit or --taxonomy file that cannot be read,\nprints `dataset-check: 0 rows checked, nothing checked (...)` and exits 2.",
    "functions": [
     "die",
     "read_jsonl",
     "norm",
     "leaves",
+    "content_text",
     "user_turns",
+    "raw_input",
     "texts",
     "grams",
     "jaccard",
+    "case_targets",
     "frequency",
     "source_kind",
     "has_assistant",
@@ -18344,9 +18352,9 @@
   {
    "path": "tests/unit/dataset_check.sh",
    "kind": "unit",
-   "lines": 176,
+   "lines": 231,
    "header": "tests/unit/dataset_check.sh: dataset-generation's dataset_check.py. It counts rows by source, taxonomy cells filled, exact and near duplicates, contamination against a golden set and the person audit of synthetic rows; exit 1 on any problem, exit 2 when it checked nothing. Rows come in the shapes llm-eval and llm-fine-tuning already write: `input` a string or an object, chat `messages`, any `source` string.",
-   "asserts": 46
+   "asserts": 71
   },
   {
    "path": "tests/unit/deliverables_pack.sh",
