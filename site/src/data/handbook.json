@@ -1613,7 +1613,7 @@
      "stage": "API contract",
      "skill": "openapi-spec",
      "from": "bearing",
-     "output": "api/openapi.yaml and a drift report"
+     "output": "api/openapi.yaml with an operation per screen action (x-data-needs) and a drift report"
     },
     {
      "stage": "API versioning and retirement",
@@ -1649,7 +1649,7 @@
      "stage": "Data model",
      "skill": "data-model",
      "from": "bearing",
-     "output": "ERD, schema per store, migration plan"
+     "output": "ERD, schema per store and migration plan, with columns taken from the screens' data needs (--needs)"
     },
     {
      "stage": "Deployment architecture",
@@ -1677,15 +1677,9 @@
     },
     {
      "stage": "Design direction",
-     "skill": "/design-consultation",
-     "from": "gstack",
-     "output": "DESIGN.md with aesthetic, type, colour, spacing, motion"
-    },
-    {
-     "stage": "Three variants to choose from",
      "skill": "design-directions",
      "from": "bearing",
-     "output": "three distinct HTML variants, comparison board, approved.json"
+     "output": "one impeccable direction round over the real screens when impeccable is installed, three variants without it; a comparison board and approved.json"
     },
     {
      "stage": "Design system and tokens",
@@ -1697,7 +1691,7 @@
      "stage": "Screen designs",
      "skill": "screen-design",
      "from": "bearing",
-     "output": "one HTML prototype per screen with every state, redlines"
+     "output": "one HTML prototype per screen with every state, redlines, and data-needs.md listing the data each action reads and writes"
     },
     {
      "stage": "Theming",
@@ -1715,7 +1709,7 @@
      "stage": "Design review and iteration",
      "skill": "design-critique",
      "from": "bearing",
-     "output": "ten scored categories with evidence on prototypes or a URL, an AI-slop detector, approved fixes, a re-score; used while only prototypes exist; once the app runs in a browser, the workflow calls gstack /design-review"
+     "output": "twelve scored categories, task cost among them, with evidence on prototypes or a URL, an AI-slop detector, approved fixes, a re-score; used while only prototypes exist; once the app runs in a browser, the workflow calls gstack /design-review"
     },
     {
      "stage": "Copy and clarity",
@@ -2265,6 +2259,7 @@
   "analytics-events serves two rows: under Set up the repository it designs the sheet and wires the SDK once; under Build a task it adds one feature's events against that sheet. Same skill, two moments.",
   "explain-codebase serves two rows as well: Discover (a repository you do not know) and Build a task (the subsystem you are about to change).",
   "tracker-sync appears under Plan and under Ship: ticket creation first, then the status and the MR link. With BEARING_TRACKER=none both rows are skipped with a note; rest (any server speaking the REST tracker protocol) is one adapter among none, jira, gitlab and github (docs/TRACKERS.md).",
+  "Screens come before the contract: ux-flows, design-directions, design-system and screen-design run first, and the screens' data-needs.md feeds data-model (--needs) and openapi-spec (api_doc.py needs), so the API and the tables are derived from what the screens show.",
   "Design review changes skill with time: design-critique while only prototypes exist, gstack /design-review once the app runs in a browser."
  ],
  "flows": [
@@ -2378,36 +2373,6 @@
      "why": "An independent review loop; writing a design and grading it in the same pass finds little."
     },
     {
-     "kind": "step",
-     "id": "datamodel",
-     "title": "Design the data model",
-     "skill": "data-model",
-     "pack": "bearing",
-     "does": "Tables, columns, constraints and indexes from the stories, with a reason per column, a runnable schema and an ERD.",
-     "output": "docs/design/data-model.md and a schema.sql",
-     "why": "The low level designs and the API contract read the tables from here, not from guesses."
-    },
-    {
-     "kind": "step",
-     "id": "apicontract",
-     "title": "Design the API contract",
-     "skill": "openapi-spec",
-     "pack": "bearing",
-     "does": "Every endpoint the HLD names, as an OpenAPI 3.1 contract with request, response and error shapes, and readable API docs.",
-     "output": "api/openapi.yaml and the generated API docs",
-     "why": "The client and the server build against one contract, and the drift count catches either side moving alone."
-    },
-    {
-     "kind": "step",
-     "id": "threats",
-     "title": "Model the threats",
-     "skill": "threat-model",
-     "pack": "bearing",
-     "does": "STRIDE per entry point; every mitigation is a file and line, a story, or a new story.",
-     "output": "docs/security/threat-model-<name>.md",
-     "why": "It runs on the API contract and the data model, so every entry point and stored field is in scope; the VAPT report at release links its findings to these threat ids."
-    },
-    {
      "kind": "branch",
      "question": "What does the product include?",
      "multi": true,
@@ -2429,11 +2394,11 @@
          "kind": "step",
          "id": "gf-direction",
          "title": "Set the design direction",
-         "skill": "/design-consultation",
-         "pack": "gstack",
-         "does": "Researches the landscape and proposes a complete system: type, colour, spacing, motion.",
-         "output": "DESIGN.md",
-         "why": "It researches the product and its field before proposing a direction."
+         "skill": "design-directions",
+         "pack": "bearing",
+         "does": "One impeccable direction round over the real screens when impeccable is installed (three distinct variants without it), then the locked direction is recorded.",
+         "output": "docs/design/variants/<feature>/ with a comparison board and approved.json",
+         "why": "The direction is judged against the real screens from ux-flows, not a blank page."
         },
         {
          "kind": "step",
@@ -2451,8 +2416,8 @@
          "title": "Design every screen in every state",
          "skill": "screen-design",
          "pack": "bearing",
-         "does": "One HTML prototype per screen with every state switchable, checked by a script against the state table.",
-         "output": "docs/design/screens/",
+         "does": "One HTML prototype per screen with every state switchable, checked by a script against the state table; each action lists the data it reads and writes in data-needs.md.",
+         "output": "docs/design/screens/ and docs/design/screens/<feature>/data-needs.md",
          "why": "A developer builds from it without inventing a state."
         },
         {
@@ -2461,7 +2426,7 @@
          "title": "Review the prototypes",
          "skill": "design-critique",
          "pack": "bearing",
-         "does": "Scores ten categories with evidence from screenshots at three widths in both themes.",
+         "does": "Scores twelve categories, task cost among them, with evidence from screenshots at three widths in both themes.",
          "output": "docs/design/reviews/",
          "why": "It works on static prototypes; switch to gstack /design-review once the app runs."
         }
@@ -2503,6 +2468,36 @@
        ]
       }
      ]
+    },
+    {
+     "kind": "step",
+     "id": "datamodel",
+     "title": "Design the data model",
+     "skill": "data-model",
+     "pack": "bearing",
+     "does": "Tables, columns, constraints and indexes derived from the screens' data needs (docs/design/screens/<feature>/data-needs.md) and the stories, with a reason per column, a runnable schema and an ERD.",
+     "output": "docs/design/data-model.md and a schema.sql",
+     "why": "The screens say what data each action reads and writes, so the tables come from what the product shows, not from guesses."
+    },
+    {
+     "kind": "step",
+     "id": "apicontract",
+     "title": "Design the API contract",
+     "skill": "openapi-spec",
+     "pack": "bearing",
+     "does": "Every action in the screens' data-needs.md becomes an operation (api_doc.py needs maps each one and records x-data-needs), as an OpenAPI 3.1 contract with request, response and error shapes, and readable API docs.",
+     "output": "api/openapi.yaml and the generated API docs",
+     "why": "The client and the server build against one contract derived from the screens, and the drift count catches either side moving alone."
+    },
+    {
+     "kind": "step",
+     "id": "threats",
+     "title": "Model the threats",
+     "skill": "threat-model",
+     "pack": "bearing",
+     "does": "STRIDE per entry point; every mitigation is a file and line, a story, or a new story.",
+     "output": "docs/security/threat-model-<name>.md",
+     "why": "It runs on the API contract and the data model, so every entry point and stored field is in scope; the VAPT report at release links its findings to these threat ids."
     },
     {
      "kind": "step",
@@ -2868,21 +2863,6 @@
      "multi": true,
      "options": [
       {
-       "label": "A new technology or boundary",
-       "steps": [
-        {
-         "kind": "step",
-         "id": "f-decide",
-         "title": "Decide and record",
-         "skill": "tech-decision",
-         "pack": "bearing",
-         "does": "Options, a recommendation, your decision, an ADR.",
-         "output": "docs/adr/",
-         "why": "Nothing is chosen silently."
-        }
-       ]
-      },
-      {
        "label": "Screens",
        "steps": [
         {
@@ -2902,8 +2882,23 @@
          "skill": "screen-design",
          "pack": "bearing",
          "does": "Every screen in every state, checked against the state table.",
-         "output": "docs/design/screens/",
+         "output": "docs/design/screens/ and docs/design/screens/<feature>/data-needs.md",
          "why": "The developer builds from it."
+        }
+       ]
+      },
+      {
+       "label": "A new technology or boundary",
+       "steps": [
+        {
+         "kind": "step",
+         "id": "f-decide",
+         "title": "Decide and record",
+         "skill": "tech-decision",
+         "pack": "bearing",
+         "does": "Options, a recommendation, your decision, an ADR.",
+         "output": "docs/adr/",
+         "why": "Nothing is chosen silently."
         }
        ]
       },
@@ -2916,7 +2911,7 @@
          "title": "Contract first",
          "skill": "openapi-spec",
          "pack": "bearing",
-         "does": "Writes the OpenAPI contract before handlers, or reports drift with counts.",
+         "does": "Writes the OpenAPI contract before handlers, taking the screens' data needs as its operations when the change has screens, or reports drift with counts.",
          "output": "api/openapi.yaml",
          "why": "Clients and handlers agree before code."
         }
@@ -2931,7 +2926,7 @@
          "title": "Change the data model",
          "skill": "data-model",
          "pack": "bearing",
-         "does": "Adds the tables or columns the stories need, with a reason per column, and updates the ERD.",
+         "does": "Adds the tables or columns the stories need, taking the screens' data needs when the change has screens, with a reason per column, and updates the ERD.",
          "output": "docs/design/data-model.md",
          "why": "The migration is written from the model, so the schema stays deliberate."
         },
@@ -3840,7 +3835,7 @@
     },
     {
      "stage": "Design the product",
-     "row": "Three variants to choose from"
+     "row": "Design direction"
     }
    ]
   },

@@ -54,7 +54,7 @@ The map, one skill per stage; the full map is `docs/WORKFLOW.md`:
 | Start | `start-task <ID>` |
 | Choose | `tech-decision` (options, recommendation, user decides) |
 | Record | `adr`, `high-level-design`, `low-level-design` |
-| Design | `ux-flows`, `/design-consultation`, `design-directions`, `design-system`, `screen-design` |
+| Design | `ux-flows`, `design-directions` (calls impeccable when installed), `design-system`, `screen-design`, then `data-model` and `openapi-spec` from the screens' data needs |
 | GenAI | `genai-design`, then `rag` or `llm-agent`, `llm-gateway`, `llm-eval` |
 | Build | Superpowers `test-driven-development`; `db-migration` |
 | Debug | Superpowers `systematic-debugging`, `/investigate` |

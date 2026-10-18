@@ -5,12 +5,12 @@
   "commandSkills": 0,
   "stackSkills": 12,
   "scripts": 94,
-  "scriptLines": 29852,
+  "scriptLines": 29847,
   "hooks": 8,
   "agents": 8,
   "makeTargets": 31,
   "gates": 18,
-  "tests": 101,
+  "tests": 102,
   "fixtures": 24,
   "stacks": 13,
   "templates": 38,
@@ -15732,7 +15732,7 @@
    "name": "gen-guide.py",
    "lang": "python",
    "group": "generators",
-   "lines": 1391,
+   "lines": 1386,
    "header": "Generate the documents that derive from the skills in this repository:\n\n  site/src/data/handbook.json   everything the handbook site renders\n  docs/WORKFLOW.md              the stage tables between the markers\n\nEvery table comes from one source: the skill frontmatter (name,\ndescription, invocation), CATEGORY and STAGES below, plus one reviewed\nfile: docs/flows.json (the four task flows). Fails when zero skills are\nfound, when a skill has no category, when a row names more than one skill,\nor when a row or a flow names a skill that is neither a Bearing skill nor\nlisted in docs/known-skills.txt.\n\n    gen-guide.py                        write every document\n    gen-guide.py --write-known-skills   rewrite docs/known-skills.txt from\n                                        the skills installed on this\n                                        machine, then continue\n    gen-guide.py --check-names          the default; kept as a flag so a\n                                        caller can name the intent",
    "functions": [
     "scan_installed",
@@ -18049,6 +18049,13 @@
    "lines": 166,
    "header": "tests/unit/feature_flags_check.sh: plugins/bearing/skills/feature-flags/scripts/flags_check.py passes when the Go flags module and the register agree, every flag has an owner and a future removal date, and code reads flags only through the module; fails on each mismatch direction, a removed flag still in code, a missing owner, a missing or past date, a key or FLAG_ read outside the module, a removed flag still read by a client file or set in deploy config, a FLAG_ setting for no flag, and on empty input. Reads a team's register without an \"Active flags\" heading as it is, lists client reads an…",
    "asserts": 43
+  },
+  {
+   "path": "tests/unit/flow_order.sh",
+   "kind": "unit",
+   "lines": 18,
+   "header": "tests/unit/flow_order.sh: screens come before the contract in the flows.",
+   "asserts": 0
   },
   {
    "path": "tests/unit/gate_probe.sh",
