@@ -112,15 +112,20 @@ STAGES = [
      "every case in docs/testing/test-cases.md not manual-only or retired is named by its TC id in a "
      "test file, and make check passed after the last change; profile llm: guardrails/policy.yaml and "
      "docs/genai/evals.md"),
+    ("test_run", "test-run --changed",
+     "a .scratch/test-run/<branch>-changed.json for HEAD with at least one suite run, 0 failed, and every "
+     "suite not run left to CI by a recorded decision"),
     ("design_review", "profile ui: design-critique --unattended on the design gallery of the running app",
      "profile ui: a review scoring overall 8.0 with no category below 7 and every screenshot present; "
      "otherwise nothing"),
     ("review", "branch-review",
-     "a review folder under .scratch/review/ for this branch"),
+     "the newest .scratch/review/*/verdict.txt reviews more than 0 files at a commit on this branch, and "
+     "a 'not ready to merge' verdict has every blocking finding fixed in a later commit listed in fixed.txt"),
     ("dod", "definition-of-done",
-     "make check passed after the last change, every change committed on the branch, and, when the "
-     "repository ships something runnable, a .scratch/smoke-*.md newer than the last commit with "
-     "'smoke: N requests checked, 0 failed' (N > 0)"),
+     "make check passed after the last change, every change committed on the branch, when the "
+     "repository ships something runnable a .scratch/smoke-*.md newer than the last commit with "
+     "'smoke: N requests checked, 0 failed' (N > 0), and a .scratch/test-run/<branch>-full.json with "
+     "0 failed whose sha differs from HEAD only by docs/testing/reports/"),
     ("mr", "merge-request, then brg-autopilot report",
      "a merge request description in .scratch/, docs/autopilot/<run>.md committed, nothing pushed"),
 ]
@@ -153,6 +158,7 @@ def load(d):
         sys.exit(1)
     st = json.load(open(p))
     carry_contract(st)
+    carry_test_run(st)
     # a run started by an older brg-autopilot lacks the stages added since;
     # they join as pending so the run continues instead of failing on a key
     for n in NAMES:
@@ -175,6 +181,22 @@ def carry_contract(st):
     if any((stages.get(n) or {}).get("status") == "done" for n in later):
         stages["contract"] = {"status": "done", "attempts": 0, "checked": CARRIED, "notes": [CARRIED]}
         print(f"brg-autopilot: contract {CARRIED}", file=sys.stderr)
+
+
+TEST_RUN_CARRIED = ("carried: the run was past test_automation before the test_run stage existed; "
+                    "dod's full run still checks every suite")
+
+
+def carry_test_run(st):
+    """A run from before the test_run stage, resumed with test_automation done:
+    the stage it would rejoin as pending sits behind where the run stood, so
+    it is marked done rather than pulling the run back a stage. The dod gate's
+    full run still holds every suite to 0 failed."""
+    stages = st.get("stages") or {}
+    if "test_run" in stages or (stages.get("test_automation") or {}).get("status") != "done":
+        return
+    stages["test_run"] = {"status": "done", "attempts": 0, "checked": TEST_RUN_CARRIED, "notes": [TEST_RUN_CARRIED]}
+    print(f"brg-autopilot: test_run {TEST_RUN_CARRIED}", file=sys.stderr)
 
 
 def save(d, st):
@@ -832,9 +854,265 @@ def g_build(d, st):
                   "after the last change")
 
 
+# test-run's evidence (skills/test-run/references/runners.md): one file per
+# scope, named from the branch, overwritten by each run; a run that stops
+# before any suite writes none, so a reader compares sha and scope itself.
+EVIDENCE_KEYS = ("scope", "sha", "dirty", "suites", "tests", "failed", "not_run")
+UNIT_ONLY = "no suite beyond unit"
+
+
+def evidence(d, scope):
+    """The parsed .scratch/test-run/<branch>-<scope>.json, or None and why."""
+    b = git(d, "branch", "--show-current")
+    if not b:
+        return None, "detached HEAD: no branch name for the evidence file"
+    rel = f".scratch/test-run/{b.replace('/', '_')}-{scope}.json"
+    p = os.path.join(d, rel)
+    if not os.path.isfile(p):
+        return None, f"no file {rel}"
+    try:
+        with open(p, encoding="utf-8") as f:
+            ev = json.load(f)
+    except json.JSONDecodeError as e:
+        return None, f"{rel}: not valid JSON ({e.msg} at line {e.lineno}); run test-run again"
+    except (OSError, UnicodeDecodeError) as e:
+        return None, f"{rel}: unreadable ({e})"
+    if not isinstance(ev, dict):
+        return None, f"{rel}: not a JSON object"
+    for k in EVIDENCE_KEYS:
+        if k not in ev:
+            return None, f"{rel}: no \"{k}\" key"
+    if not isinstance(ev["suites"], list) or not all(isinstance(s, dict) for s in ev["suites"]):
+        return None, f"{rel}: \"suites\" is not a list of suites"
+    if not isinstance(ev["not_run"], list):
+        return None, f"{rel}: \"not_run\" is not a list"
+    for k in ("tests", "failed"):
+        if not isinstance(ev[k], int) or isinstance(ev[k], bool):
+            return None, f"{rel}: \"{k}\" is not a number"
+    if ev["scope"] != scope:
+        return None, f"{rel}: scope is {ev['scope']!r}, not {scope!r}"
+    ev["_rel"] = rel
+    return ev, rel
+
+
+def not_run_split(st, ev):
+    """The suites the run did not run (its not_run list and any suite marked
+    "not run"), split into those a test_run.<suite> decision left to CI and
+    those with none."""
+    decided = {x.get("key") for x in st.get("decisions") or []}
+    names = list(ev.get("not_run") or [])
+    names += [s.get("name") for s in ev["suites"] if s.get("status") == "not run" and s.get("name") not in names]
+    return ([n for n in names if f"test_run.{n}" in decided],
+            [n for n in names if f"test_run.{n}" not in decided])
+
+
+def not_run_undecided(st, ev):
+    """Suites the run did not run with no test_run.<suite> decision leaving them to CI."""
+    return not_run_split(st, ev)[1]
+
+
+def left_to_ci(st, ev):
+    return not_run_split(st, ev)[0]
+
+
+def same_run(d, ev, what):
+    """The run is of HEAD on a committed tree, or why not."""
+    head = git(d, "rev-parse", "HEAD")
+    if ev["sha"] != head:
+        return f"the {what} is on {str(ev['sha'])[:7]}, HEAD is {head[:7]}: run test-run again"
+    if ev["dirty"]:
+        return f"the {what} was on an uncommitted tree: commit, then run again"
+    return ""
+
+
+def undecided_msg(names):
+    return (f"not run with no decision: {', '.join(names)} (only when a CI job runs it: "
+            f"brg-autopilot decision test_run.<suite> \"left to CI job <job>\" ...)")
+
+
+def g_test_run(d, st):
+    """test-run --changed on HEAD: at least one suite ran or was covered by a
+    make check that still holds, nothing failed, and every suite not run is
+    left to CI by a recorded decision. A documentation-only diff passes on the
+    file count test-run recorded, never on an empty one."""
+    ev, why = evidence(d, "changed")
+    if ev is None and why.startswith("no file "):
+        ev, why_full = evidence(d, "full")
+        if ev is None and why_full.startswith("no file "):
+            return False, f"no test-run evidence ({why[len('no file '):]}; test-run --changed)"
+        why = why_full
+    if ev is None:
+        return False, why
+    rel = ev["_rel"]
+    suites = ev["suites"]
+    ran = [s for s in suites if s.get("status") in ("run", "covered")]
+    covered = [s for s in ran if s.get("status") == "covered"]
+    docs_only = ev["scope"] == "changed" and ev.get("layers") == [] and not suites
+    if docs_only:
+        n = ev.get("files")
+        if not isinstance(n, int) or isinstance(n, bool) or n <= 0:
+            return False, f"{rel}: 0 layers and {n if n is not None else 'no'} files: nothing was tested"
+    elif not ran:
+        return False, f"{rel}: 0 suites ran"
+    if ev["failed"] > 0:
+        return False, f"{rel}: {ev['failed']} failed"
+    other = same_run(d, ev, "run")
+    if other:
+        return False, other
+    if ev["tests"] == 0 and not covered and not docs_only:
+        return False, f"{rel}: 0 tests ran in {len(ran)} suite(s)"
+    if covered:
+        stale = changed_since_check(d)
+        if stale:
+            return False, (f"{', '.join(s.get('name', '?') for s in covered)} covered by make check, but make "
+                           f"check has not passed since: {', '.join(stale[:5])}")
+    open_ = not_run_undecided(st, ev)
+    if open_:
+        return False, f"{rel}: {undecided_msg(open_)}"
+    if docs_only:
+        return True, f"0 layers touched by {ev['files']} files: nothing to test ({rel})"
+    layers = ", ".join(ev.get("layers") or []) or ev["scope"]
+    ci = left_to_ci(st, ev)
+    return True, (f"{ev['tests']} tests in {len(ran)} suites ({layers}), 0 failed"
+                  + (f"; left to CI: {', '.join(ci)}" if ci else ""))
+
+
+# branch-review's verdict.txt (skills/branch-review/SKILL.md, output contract).
+# The range may hold spaces and "...", so the first line anchors on its end.
+VERDICT_HEAD = re.compile(r"^review: (.*) @ ([0-9a-f]{7,40}), (\d+) files?\s*$")
+VERDICT_LINE = re.compile(r"^Verdict: (ready to merge|ready after ([0-9][0-9 ]*)|not ready to merge)\s*$", re.M)
+FINDINGS_LINE = re.compile(r"^findings: (\d+) critical, (\d+) high, (\d+) medium, (\d+) low; verified (\d+): "
+                           r"(\d+) confirmed, (\d+) refuted, (\d+) uncertain\s*$", re.M)
+BLOCKING_LINE = re.compile(r"^blocking: (none|\d+(?: \d+)*)\s*$", re.M)
+
+
+def newest_verdict(d):
+    """The newest .scratch/review/*/verdict.txt (by mtime, a tie by folder
+    name), parsed, or None and why."""
+    files = [f for f in glob.glob(os.path.join(d, ".scratch", "review", "*", "verdict.txt")) if os.path.isfile(f)]
+    if not files:
+        return None, "no .scratch/review/*/verdict.txt (branch-review)"
+    p = max(files, key=lambda f: (os.path.getmtime(f), f))
+    rel = os.path.relpath(p, d)
+    text = open(p, encoding="utf-8", errors="replace").read()
+    lines = text.splitlines()
+    head = VERDICT_HEAD.match(lines[0]) if lines else None
+    if not head:
+        return None, f"{rel}: no first line 'review: <range> @ <sha>, <N> files'; run branch-review again"
+    v = {"range": head.group(1), "sha": head.group(2), "files": int(head.group(3)),
+         "slug": os.path.basename(os.path.dirname(p)), "rel": rel}
+    if v["files"] == 0:
+        v.update(verdict="", findings=None, blocking=[])
+        return v, rel
+    verdict = VERDICT_LINE.search(text)
+    if not verdict:
+        return None, f"{rel}: no 'Verdict:' line"
+    findings = FINDINGS_LINE.search(text)
+    blocking = BLOCKING_LINE.search(text)
+    v["verdict"] = verdict.group(1)
+    v["items"] = (verdict.group(2) or "").split()
+    v["findings"] = dict(zip(("critical", "high", "medium", "low", "verified", "confirmed", "refuted", "uncertain"),
+                             (int(x) for x in findings.groups()))) if findings else None
+    v["blocking"] = [] if not blocking or blocking.group(1) == "none" else [int(n) for n in blocking.group(1).split()]
+    v["has_blocking"] = bool(blocking)
+    return v, rel
+
+
+def is_ancestor(d, a, b):
+    return sh(["git", "merge-base", "--is-ancestor", a, b], d).returncode == 0
+
+
 def g_review(d, st):
-    dirs = [p for p in glob.glob(os.path.join(d, ".scratch", "review", "*")) if os.path.isdir(p)]
-    return (bool(dirs), f"review folders: {len(dirs)}")
+    """The verdict branch-review wrote: a review of more than 0 files, at a
+    commit on this branch; "not ready to merge" passes only when every blocking
+    finding has a fix, a commit after the reviewed one, in fixed.txt."""
+    v, why = newest_verdict(d)
+    if v is None:
+        return False, why
+    rel = v["rel"]
+    if v["files"] == 0:
+        return False, f"{rel}: 0 files reviewed, which is never a pass; review the branch's diff"
+    if v["findings"] is None:
+        return False, f"{rel}: no findings: line; run branch-review again"
+    if not v["has_blocking"]:
+        return False, f"{rel}: no blocking: line; run branch-review again"
+    reviewed = v["sha"]
+    if not is_ancestor(d, reviewed, "HEAD"):
+        return False, f"{rel}: the reviewed commit {reviewed[:7]} is not an ancestor of HEAD; review this branch"
+    fixed = 0
+    if v["verdict"] == "not ready to merge":
+        if not v["blocking"]:
+            return False, f"{rel}: not ready to merge with no blocking finding to fix; read the verdict and review again"
+        fx = os.path.join(d, ".scratch", "review", v["slug"], "fixed.txt")
+        reviewed_full = git(d, "rev-parse", reviewed)
+        fixes = {}
+        for line in read(d, os.path.relpath(fx, d)).splitlines():
+            m = re.match(r"^\s*(\d+)\s+([0-9a-f]{7,40})\s*$", line)
+            if m:
+                fixes.setdefault(int(m.group(1)), []).append(m.group(2))
+        for n in v["blocking"]:
+            ok = False
+            for sha in fixes.get(n, []):
+                full = git(d, "rev-parse", "-q", "--verify", f"{sha}^{{commit}}")
+                if full and full != reviewed_full and is_ancestor(d, reviewed, full) \
+                        and is_ancestor(d, full, "HEAD"):
+                    ok = True
+                    break
+            if not ok:
+                return False, (f"{rel}: finding {n} has no fix in .scratch/review/{v['slug']}/fixed.txt "
+                               f"('{n} <sha>', a commit after {reviewed[:7]} on this branch)")
+            fixed += 1
+        verdict = v["verdict"]
+    elif v["items"]:
+        verdict = f"ready after {len(v['items'])} items ({' '.join(v['items'])})"
+    else:
+        verdict = v["verdict"]
+    return True, f"review of {v['files']} files: {verdict}; {v['findings']['confirmed']} confirmed, {fixed} fixed ({rel})"
+
+
+REPORTS = "docs/testing/reports/"
+
+
+def full_run(d, st):
+    """definition-of-done item 14's full run: every suite beyond unit on HEAD,
+    or on a commit that only its report followed."""
+    ev, why = evidence(d, "full")
+    if ev is None:
+        if why.startswith("no file "):
+            return False, f"no full test-run evidence ({why[len('no file '):]}; definition-of-done item 14)"
+        return False, why
+    rel = ev["_rel"]
+    exc = ev.get("except")
+    if exc not in ([], ["unit"]):
+        named = ", ".join(map(str, exc)) if isinstance(exc, list) else repr(exc)
+        return False, f"{rel}: except {named}: a full run leaves out only unit"
+    suites = ev["suites"]
+    unit_only = not suites and exc == ["unit"] and ev.get("n_a") == UNIT_ONLY
+    ran = [s for s in suites if s.get("status") in ("run", "covered")]
+    if ev["failed"] > 0:
+        return False, f"{rel}: {ev['failed']} failed"
+    if not suites and not unit_only:
+        return False, f"{rel}: 0 suites ran (a unit-only repository has \"n_a\": \"{UNIT_ONLY}\")"
+    if ev["dirty"]:
+        return False, "the full run was on an uncommitted tree: commit, then run again"
+    sha = str(ev["sha"])
+    if not git(d, "rev-parse", "-q", "--verify", f"{sha}^{{commit}}"):
+        return False, f"the full run is on {sha[:7]}, which is not in this repository: run it again"
+    after = [f for f in git(d, "diff", "--name-only", sha, "HEAD").splitlines() if f]
+    code = [f for f in after if not f.startswith(REPORTS)]
+    if code:
+        return False, (f"changed since the full run on {sha[:7]}: {', '.join(code[:5])}"
+                       f"{' ...' if len(code) > 5 else ''}; run it again (definition-of-done item 14)")
+    open_ = not_run_undecided(st, ev)
+    if open_:
+        return False, f"{rel}: {undecided_msg(open_)}"
+    if suites and not ran and not left_to_ci(st, ev):
+        return False, f"{rel}: 0 suites ran"
+    if unit_only:
+        return True, "full run: 0 suites beyond unit (n/a: make check ran unit)"
+    ci = left_to_ci(st, ev)
+    return True, (f"full run: {len(ran)} suites, {ev['tests']} tests, 0 failed"
+                  + (f"; left to CI: {', '.join(ci)}" if ci else ""))
 
 
 def g_dod(d, st):
@@ -855,7 +1133,10 @@ def g_dod(d, st):
     ok, smoke = smoke_evidence(d)
     if not ok:
         return False, smoke
-    return True, f"{ahead} commit(s) on the branch, clean, make check passed after the last change; {smoke}"
+    ok, full = full_run(d, st)
+    if not ok:
+        return False, full
+    return True, f"{ahead} commit(s) on the branch, clean, make check passed after the last change; {smoke}; {full}"
 
 
 RUN_FILES = re.compile(r"(^|/)((docker-)?compose\.ya?ml|Dockerfile)$")
@@ -954,7 +1235,7 @@ GATES = {"repo": g_repo, "branch": g_branch, "prd": g_prd, "stories": g_stories,
          "contract": g_contract, "lld": g_lld,
          "test_cases": g_test_cases,
          "build": g_build, "test_automation": g_test_automation,
-         "design_review": g_design_review, "review": g_review, "dod": g_dod, "mr": g_mr}
+         "test_run": g_test_run, "design_review": g_design_review, "review": g_review, "dod": g_dod, "mr": g_mr}
 assert list(GATES) == NAMES, "every stage has its gate, in order"
 
 

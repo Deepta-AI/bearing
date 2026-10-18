@@ -1,6 +1,6 @@
 # autopilot: the build and what follows it
 
-Read at steps 7 and 8: test first story by story, parallel subagents, test-automation, LLM stages and the design critique bar.
+Read at steps 7 and 8: test first story by story, parallel subagents, test-automation, LLM stages, the scoped test run and the design critique bar.
 
 7. Build is test first, story by story, in the order of the backlog:
 a failing test named for the story, the code, `make check`, a commit
@@ -33,3 +33,13 @@ UI, design-critique --unattended scores the design gallery of the running app
 and re-scores until the bar holds: overall 8.0, no category below 7,
 every screenshot present. The design_review gate reads the report;
 a design under the bar is not done, however many stages passed.
+The test_run stage runs `test-run --changed` after test-automation: the
+suites of the layers the branch touched, on HEAD with the tree committed,
+the unit suite reused when `make check` passed after the last change. Its
+gate reads `.scratch/test-run/<branch>-changed.json`. A failed test is
+fixed test first and the run repeated; a documentation-only diff passes
+on the file count the run recorded. A suite the sandbox cannot start (no
+browser, device or Docker) goes to CI only when a job in `.gitlab-ci.yml`
+or `.github/workflows/` runs it, and the run records that without a question:
+`brg-autopilot decision test_run.<suite> "left to CI job <job>" "run locally" "<why>"`.
+No such job: the suite is not run, and the gate fails.

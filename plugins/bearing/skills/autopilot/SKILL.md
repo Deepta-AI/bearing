@@ -67,10 +67,11 @@ what is on disk, never from what the model says it did.
    the traps in references/reviewer-checks.md first. Detail:
    references/build-and-after.md
 8. After the build: test-automation, the LLM stages when the profile says
-   llm, and design-critique until the bar holds. Detail:
-   references/build-and-after.md
-9. Review is `branch-review`; fix every Critical and High it confirms, then
-   `make check` again; `definition-of-done` includes the smoke run. Read references/reviewer-checks.md again before
+   llm, then `test-run --changed` (the test_run stage), and design-critique
+   until the bar holds. Detail: references/build-and-after.md
+9. Review is `branch-review`; fix every Critical and High it confirms,
+   record each fix as `<n> <sha>` in `.scratch/review/<slug>/fixed.txt`, then
+   `make check` again; `definition-of-done` includes the smoke run and the full test run. Read references/reviewer-checks.md again before
    dod. Detail: references/review-smoke-and-mr.md
 10. The mr stage: `merge-request` prepares the description; `report` writes
    `docs/autopilot/<run>.md`; commit it, and let that commit be the last
@@ -85,7 +86,7 @@ what is on disk, never from what the model says it did.
 
 ```
 ## Autopilot <run>: <statement>
-Stages: <n> of 18 done   Blocked: <stage (why)> | none
+Stages: <n> of <N> done   Blocked: <stage (why)> | none
 Decisions to review: N (all Proposed)  docs/autopilot/<run>.md
 Profile: ui=<yes|no> data=<yes|no> api=<yes|no> deploy=<yes|no>
 | Key | Choice | Alternatives | Why |
@@ -119,7 +120,7 @@ Read before the first line of code. Detail: references/reviewer-checks.md
   touch is reported, not fixed here, unless the change itself caused it.
 - Long runs survive compaction through the snapshot hook and resume
   from `.bearing/state/autopilot.json`; `--resume` continues at the
-  next stage.
+  next stage. `<N>` in the output is the line count of `stages`.
 - Unattended from a script: `python3 bin/brg-autopilot launch "<statement>"`
   runs `claude -p` in the directory with the repository's settings, so
   the sandbox and the guard apply.
