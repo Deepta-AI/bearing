@@ -5,7 +5,7 @@
   "commandSkills": 0,
   "stackSkills": 12,
   "scripts": 98,
-  "scriptLines": 31746,
+  "scriptLines": 31750,
   "hooks": 8,
   "agents": 8,
   "makeTargets": 32,
@@ -15369,12 +15369,13 @@
    "name": "brg-config",
    "lang": "bash",
    "group": "quality",
-   "lines": 85,
-   "header": "brg-config: remembered answers. Project answers (shared, committed) live in\n<repo>/.bearing/config.json; personal answers live in bearing.env as\nBEARING_<KEY>. Skills call it; the guard does not.\n  brg-config get <key> [--user]          print the value, or nothing\n  brg-config set <key> <value> [--user]  record it (atomic write)\nKeys use [A-Za-z0-9._-] only (exit 2 otherwise). Project scope needs jq\n(exit 1 without it). User scope maps the key to BEARING_<KEY> (upper-cased,\n\".\" and \"-\" become \"_\") in ${BEARING_ENV:-${XDG_CONFIG_HOME:-$HOME/.config}/bearing/bearing.env};\nset keeps every other line, comments and blank lines included, and mode 600.\nget reads the value the way the other Bearing scripts do (quotes stripped,\na trailing \" # comment\" dropped from an unquoted value); the last line wins.",
+   "lines": 89,
+   "header": "brg-config: remembered answers. Project answers (shared, committed) live in\n<repo>/.bearing/config.json; personal answers live in bearing.env as\nBEARING_<KEY>. Skills call it; the guard does not.\n  brg-config get <key> [--user]          print the value, or nothing\n  brg-config set <key> <value> [--user]  record it (atomic write)\nKeys use [A-Za-z0-9._-] only (exit 2 otherwise). Project scope needs jq\n(exit 1 without it). User scope maps the key to BEARING_<KEY> (upper-cased,\n\".\" and \"-\" become \"_\") in ${BEARING_ENV:-${XDG_CONFIG_HOME:-$HOME/.config}/bearing/bearing.env};\nset keeps every other line, comments and blank lines included, and mode 600.\nget reads the value the way the other Bearing scripts do (quotes stripped,\na trailing \" # comment\" dropped from an unquoted value); the last line wins.\nset refuses the auto-push key (exit 2): the engineer writes it by hand.",
    "functions": [
     "usage"
    ],
    "env": [
+    "BEARING_AUTO_PUSH",
     "BEARING_ENV"
    ],
    "calls": []
@@ -18343,9 +18344,9 @@
   {
    "path": "tests/unit/config_helper.sh",
    "kind": "unit",
-   "lines": 89,
+   "lines": 104,
    "header": "tests/unit/config_helper.sh: brg-config answers round-trip in project and user scope, keep every other line of bearing.env, validate keys, and need jq for project scope.",
-   "asserts": 46
+   "asserts": 52
   },
   {
    "path": "tests/unit/critique_unattended.sh",
@@ -19854,7 +19855,7 @@
   },
   {
    "path": "user/bearing.env",
-   "lines": 88
+   "lines": 99
   }
  ],
  "changelog": [

@@ -86,4 +86,19 @@ assert_exit 1 bash -c "cd '$repo' && PATH='$nojq' XDG_CONFIG_HOME='$cfg' '$(comm
 assert_contains "$T_OUT" "brg-config: jq required"
 assert_exit 0 bash -c "cd '$repo' && PATH='$nojq' XDG_CONFIG_HOME='$cfg' '$(command -v bash)' '$C' set a b --user"
 t_end
+t_begin "set refuses the auto-push key in every spelling"
+printf 'BEARING_TRACKER=none\n' > "$envf"
+for k in auto-push auto_push AUTO.PUSH Auto-Push; do
+  assert_exit 2 run set "$k" "Shop/Server/ShopApi" --user
+  assert_contains "$T_OUT" "BEARING_AUTO_PUSH is set by hand"
+  assert_exit 2 run set "$k" on
+done
+assert_eq "BEARING_TRACKER=none" "$(cat "$envf")" "bearing.env unchanged"
+t_end
+
+t_begin "get reads the auto-push key"
+printf 'BEARING_AUTO_PUSH="Shop/Server/ShopApi, Shop/Client/ShopWeb"\n' > "$envf"
+assert_exit 0 run get auto-push --user
+assert_eq "Shop/Server/ShopApi, Shop/Client/ShopWeb" "$T_OUT"
+t_end
 t_summary
