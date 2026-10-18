@@ -1,6 +1,6 @@
 # data-model: design checks
 
-Read when: step 8 and the review: walk each check against the model before writing, and again when the critic grades the schema.
+Read when: step 8 and the review: walk each check against the model before writing, and again when the critic grades the schema; the Revising section when the data model already exists.
 
 A strong generalist gets the tables right and misses these. Walk each one
 against the model before writing; each that applies is a row, a
@@ -53,3 +53,19 @@ constraint or an open concern, never silence.
   `lower(col)` or `citext`; scope it (per tenant or global) from the
   story, and say what happens to a closed or soft-deleted row (partial
   index on open rows, or reopen).
+
+## Revising
+
+When `docs/design/data-model.md` (or the data model the
+repository already has) exists, this run is a revision: read
+`${CLAUDE_PLUGIN_ROOT}/skills/adr/references/revision-protocol.md` and
+follow it. The existing document is approved work a reviewer will diff:
+edit it in place, keep its layout, headings, numbering and wording, and
+change only the rows the new stories touch. Do not move it onto this
+skill's template, and create companion files (`schema.sql`, dictionary,
+ERD) only if the repository already has them; the gate then runs on what
+exists or reads "n/a (revision of a document without companions)".
+Applied migrations are history: every change is a new migration after the
+highest number, planned against the live table's size and locks. In a
+revision the Migrations line counts only the migrations the changed rows
+require, each named for `db-migration` with its expand and contract steps.

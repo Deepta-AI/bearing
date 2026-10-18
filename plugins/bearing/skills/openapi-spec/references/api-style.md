@@ -93,6 +93,14 @@ against them; `branch-review` checks handlers against them.
   `/docs` (Redoc or Scalar) and `docs/api/README.md` says how.
 - Every schema has an `example`. Every operation has `x-story-ids`.
 
+## Data needs
+
+- An operation that answers a screen action carries `x-data-needs: [A-01]`,
+  the action ids from `docs/design/screens/*/data-needs.md`. Why: the
+  contract is derived from what the screens need, and the A- id is the one
+  join key from an action to an operation, so `api_doc.py needs` can prove
+  every action is served and every outcome has a response.
+
 ## Conventions summary
 
 The numbered list below is what `scripts/api_doc.py` copies into

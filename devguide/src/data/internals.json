@@ -5,13 +5,13 @@
   "commandSkills": 0,
   "stackSkills": 12,
   "scripts": 94,
-  "scriptLines": 29681,
+  "scriptLines": 29852,
   "hooks": 8,
   "agents": 8,
   "makeTargets": 31,
   "gates": 18,
-  "tests": 100,
-  "fixtures": 23,
+  "tests": 101,
+  "fixtures": 24,
   "stacks": 13,
   "templates": 38,
   "ciJobs": 16,
@@ -2495,11 +2495,11 @@
    "sections": [
     {
      "title": "Inputs",
-     "lines": 20
+     "lines": 23
     },
     {
      "title": "Steps",
-     "lines": 99
+     "lines": 92
     },
     {
      "title": "Design checks",
@@ -2507,7 +2507,7 @@
     },
     {
      "title": "Output contract",
-     "lines": 19
+     "lines": 20
     },
     {
      "title": "Gotchas",
@@ -2517,6 +2517,7 @@
    "inputs": [
     "Stories: looks in `docs/product/backlog.md` and `docs/product/PRD.md`; if absent, entities come from the migrations, models, ORM schema and route payloads in the code; if the code has none, asks one question for the entity names or a brief, and the Serves line reads `unnumbered`; `backlog` produces the fuller backlog. Nothing after that stops the skill: \"provide stories, a schema or the entity names\".",
     "Stores: looks in `--stores`, else the ADRs; if absent, Postgres, and the output reads `ADR needed`.",
+    "Data needs: `docs/design/screens/*/data-needs.md`, if any; each `new` server field becomes a column whose Why cites the field id (`F-02`), or is `derived:` (no column). `exists` and `client:` fields add nothing.",
     "HLD data section: looks in `docs/design/*-hld.md`; if absent, entity ownership comes from the module layout.",
     "Store references: `database` under the plugin root; always present.",
     "Templates: `templates/data-model.md`, `templates/schema.sql`, `templates/data-dictionary.csv` and `templates/erd.md` in this skill; one worked example (customers, invoices) that already passes the gate.",
@@ -2534,7 +2535,7 @@
     "Rule check: walk the applicable rules of each reference. Every rule is followed or has a line `deviation: <rule>, <why>`. Count both.",
     "Write the four files (a new model; for a revision see Revising), from this skill's templates, replacing the worked example: `docs/design/data-model.md` (headline line: store, tables, columns, indexes, personal-data columns); `docs/design/schema.sql` (one `BEGIN;` ... `COMMIT;`, enum types first, tables in foreign-key order, a `-- Serves US-...` comment before each table, `COMMENT ON TABLE` and `COMMENT ON COLUMN` fo…",
     "Review: fork `critic` with the paths of `data-model.md` and `schema.sql` and the stories file, asking it to argue against the schema from the acceptance criteria and the Design checks below, and grade each finding BLOCKER (the schema cannot serve a criterion, or does not apply), MAJOR (a criterion is served wrongly or a guarantee is missing), MINOR or NIT, each with the table, the failure and the fix. Fix what can b…",
-    "Gate: `python3 \"${CLAUDE_PLUGIN_ROOT}/skills/data-model/scripts/model_check.py\" --dir docs/design`. It fails on zero tables, on any table or column in the SQL but not in the dictionary or the reverse, on an empty Why, on a table or column with no `COMMENT ON`, on an unnamed CHECK, on FK order, and on headline counts that disagree. Fix and rerun until it prints 0 problems. Then prove it applies: `bash \"${CLAUDE_PLUGI…"
+    "Gate: `python3 \"${CLAUDE_PLUGIN_ROOT}/skills/data-model/scripts/model_check.py\" --dir docs/design`, with `--needs docs/design/screens/*/data-needs.md` when those files exist. It fails on zero tables, on any table or column in the SQL but not in the dictionary or the reverse, on an empty Why, on a table or column with no `COMMENT ON`, on an unnamed CHECK, on FK order, and on headline counts that disagree; with `--nee…"
    ],
    "output": "",
    "gotchas": [
@@ -2553,15 +2554,15 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 200,
+   "lines": 197,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 200
+     "lines": 197
     },
     {
      "path": "references/design-checks.md",
-     "lines": 55
+     "lines": 71
     },
     {
      "path": "references/per-store-tables.md",
@@ -2573,7 +2574,7 @@
     },
     {
      "path": "scripts/model_check.py",
-     "lines": 485
+     "lines": 541
     },
     {
      "path": "templates/data-dictionary.csv",
@@ -9529,15 +9530,15 @@
    "sections": [
     {
      "title": "Inputs",
-     "lines": 18
+     "lines": 22
     },
     {
      "title": "Steps",
-     "lines": 82
+     "lines": 88
     },
     {
      "title": "Output contract",
-     "lines": 16
+     "lines": 17
     },
     {
      "title": "Gotchas",
@@ -9548,6 +9549,7 @@
     "Mode: looks in `$1`; if absent, `check` when `api/openapi.yaml` exists, else `new`.",
     "Style rules: `references/api-style.md` in this skill.",
     "Operations for `new`: looks in `docs/product/backlog.md` and the HLD interfaces section; if absent, the routes already in the code (the step 3 patterns); if none, asks one question for a pasted list of operations (method, path, purpose). Zero operations after that stops the skill: \"provide the stories or a list of operations\".",
+    "Data needs: `docs/design/screens/*/data-needs.md`, if any (the screens come first; the contract answers what they need). Each server action (`Server` not `none:`) is an operation or maps to one; none: the screens are not designed, and the sources above stand alone.",
     "Auth scheme: looks in `docs/adr/`; if absent, the Decisions first protocol decides it, else the spec carries `x-adr-needed: auth`.",
     "Spec for `check`: `api/openapi.yaml`; if absent, the mode is `new`.",
     "Template: `templates/openapi.yaml` in this skill.",
@@ -9562,6 +9564,7 @@
     "Lint: `command -v npx` then `npx @redocly/cli@2.54.3 lint api/openapi.yaml`; print SKIPPED when unavailable. Breaking changes: the tag from `--against` or `git tag --sort=-v:refname | head -1`; write the old spec with `git show <tag>:api/openapi.yaml` to `.scratch/`, then `oasdiff breaking <old> api/openapi.yaml`; SKIPPED when unavailable or when no tag has a spec.",
     "Conformance: the grep in step 3 reads the code; this sends real requests. Paste `templates/api-conformance.mk` into the Makefile when it has no `api-conformance` target, and add a CI job `api-conformance` in stage `test` that starts the service (the stack's `docker compose up -d --wait` plus `make migrate`) and runs the target with `API_BASE_URL` set to it. When a local server answers its health route at `API_BASE_U…",
     "Docs: grep for `redoc`, `swagger`, `scalar`, `/docs` to find how the repo serves the spec. Write `docs/api/README.md`: where the spec lives, the docs route, how to lint, the style rules. No route found: write \"unconfirmed: no docs route\" and name the one to add. Then generate the readable design, in both modes, after the spec is final: in `new` mode fill the spec's `info.x-api-style`, `info.x-versioning` and `info.x…",
+    "Data needs, when `docs/design/screens/*/data-needs.md` exists: `uv run --quiet --with pyyaml==6.0.3 python \"${CLAUDE_PLUGIN_ROOT}/skills/openapi-spec/scripts/api_doc.py\" needs --spec api/openapi.yaml --needs docs/design/screens/*/data-needs.md` (`command -v uv` fails: the same with `python3`). It fails on an action no operation maps, an outcome with no response, an id no file has, an action id in two files, zero act…",
     "Print the output contract."
    ],
    "output": "",
@@ -9578,19 +9581,19 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 163,
+   "lines": 174,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 163
+     "lines": 174
     },
     {
      "path": "references/api-style.md",
-     "lines": 112
+     "lines": 120
     },
     {
      "path": "scripts/api_doc.py",
-     "lines": 423
+     "lines": 538
     },
     {
      "path": "templates/api-conformance.mk",
@@ -16326,8 +16329,8 @@
    "lang": "python",
    "group": "skill",
    "skill": "data-model",
-   "lines": 485,
-   "header": "model_check: schema.sql, data-dictionary.csv and data-model.md say the same thing.\n\ndata-model writes three views of one Postgres design. They drift the\nmoment one is edited by hand, and a dictionary that lists a column the\nschema dropped is worse than no dictionary. This gate reads all three and\nchecks, with the standard library only:\n\n  schema.sql\n    - opens a transaction (BEGIN;) and closes it (COMMIT;);\n    - every CREATE TYPE comes before the first CREATE TABLE;\n    - every REFERENCES target is created earlier in the file (FK order);\n    - every CREATE TABLE is preceded by a \"-- Serves ...\" comment;\n    - every table has COMMENT ON TABLE and every column COMMENT ON COLUMN;\n    - every CHECK constraint is named (CONSTRAINT <name> CHECK ...);\n  data-dictionary.csv\n    - the header is exactly the eleven columns below;\n    - every (table, column) in the SQL is a row, and every row is in the SQL;\n    - Nullable agrees with NOT NULL / PRIMARY KEY, Type agrees with the SQL;\n    - Description and Why are non-empty; Personal Data is Yes or No;\n    - a row with an FK key names its References as table.column that exists;\n  data-model.md\n    - every table has a heading that names it in backticks;\n    - every index and every named CHECK constraint is mentioned;\n    - the headline counts (Tables, Columns, Indexes, Personal-data columns)\n      match the SQL and the dictionary.\n\nUsage: model_check.py [--dir docs/design] [--schema F] [--dictionary F] [--model F]\nPrints one line per problem, then:\n  data-model: N tables, N columns, N indexes, N checks, N enums, N personal-data columns, N problems\nExits 1 on any problem, on a missing file, and on zero tables.",
+   "lines": 541,
+   "header": "model_check: schema.sql, data-dictionary.csv and data-model.md say the same thing.\n\ndata-model writes three views of one Postgres design. They drift the\nmoment one is edited by hand, and a dictionary that lists a column the\nschema dropped is worse than no dictionary. This gate reads all three and\nchecks, with the standard library only:\n\n  schema.sql\n    - opens a transaction (BEGIN;) and closes it (COMMIT;);\n    - every CREATE TYPE comes before the first CREATE TABLE;\n    - every REFERENCES target is created earlier in the file (FK order);\n    - every CREATE TABLE is preceded by a \"-- Serves ...\" comment;\n    - every table has COMMENT ON TABLE and every column COMMENT ON COLUMN;\n    - every CHECK constraint is named (CONSTRAINT <name> CHECK ...);\n  data-dictionary.csv\n    - the header is exactly the eleven columns below;\n    - every (table, column) in the SQL is a row, and every row is in the SQL;\n    - Nullable agrees with NOT NULL / PRIMARY KEY, Type agrees with the SQL;\n    - Description and Why are non-empty; Personal Data is Yes or No;\n    - a row with an FK key names its References as table.column that exists;\n  data-model.md\n    - every table has a heading that names it in backticks;\n    - every index and every named CHECK constraint is mentioned;\n    - the headline counts (Tables, Columns, Indexes, Personal-data columns)\n      match the SQL and the dictionary.\n\nUsage: model_check.py [--dir docs/design] [--schema F] [--dictionary F] [--model F]\n                      [--needs data-needs.md [...]]\nWith --needs, the screens' data-needs files are read too (parse_needs from\nscreen-design/scripts/states_check.py) and a second line is printed:\n  data needs: N fields, M stored, K derived, U unmapped\nA field with Status new and Source server is stored when a data-dictionary\nWhy cites its id (F-02), else unmapped (a problem); derived: fields count in\nK; exists and client: fields count in none of M, K, U. Zero fields exits 1.\nPrints one line per problem, then:\n  data-model: N tables, N columns, N indexes, N checks, N enums, N personal-data columns, N problems\nExits 1 on any problem, on a missing file, and on zero tables.",
    "functions": [
     "unquote",
     "statements",
@@ -16338,6 +16341,7 @@
     "refcheck",
     "named_checks",
     "read_dictionary",
+    "check_needs",
     "main"
    ],
    "env": [],
@@ -16728,8 +16732,8 @@
    "lang": "python",
    "group": "skill",
    "skill": "openapi-spec",
-   "lines": 423,
-   "header": "api_doc: write docs/api/API.md, the human-readable API design, from api/openapi.yaml.\n\nThe spec is the contract; this is the page a reviewer, a client developer or\na tester reads first. It is generated so the two cannot disagree:\n\n  header       title and version; Style, Base path and Versioning; an\n               Authentication paragraph; the error code table (code, HTTP\n               status, meaning) from x-error-codes on the error envelope.\n  Conventions  numbered, each with its reason: \"N. <rule>. Why: <reason>.\"\n               lines from the style reference (--style), then the spec's\n               own x-conventions ([{rule, why}]).\n  per-status   an operation may narrow the codes behind a status with\n  codes        x-error-codes: {\"409\": [invoice_closed]}; a shared response\n               may carry x-error-codes: [code, ...]; otherwise every code\n               the envelope declares for that status is listed.\n  resources    one section per tag: its description as the purpose,\n               \"Serves US-...\" from the operations' x-story-ids, and a\n               table Method | Path | Does | Auth | Success | Errors, then\n               the idempotency note for each write.\n\nReads YAML with PyYAML (run it as `uv run --quiet --with pyyaml==6.0.3 python\napi_doc.py ...`); a spec written as JSON also loads without PyYAML.\n\nUsage: api_doc.py --spec api/openapi.yaml [--style api-style.md] [--out docs/api/API.md]\nPrints the findings (an operation with no x-story-ids, a create POST with no\nIdempotency-Key, a PATCH not documented idempotent, an error status with no\ndeclared code) and one counts line:\n  api-doc: N operations in N resources, N paths, N error codes, N conventions, N stories, N findings -> <out>\nExits 1 on zero operations, zero conventions from a given --style, or an\nunreadable spec; the document is not written then. Findings do not fail the\nrun; the skill reports them.",
+   "lines": 538,
+   "header": "api_doc: write docs/api/API.md, the human-readable API design, from api/openapi.yaml.\n\nThe spec is the contract; this is the page a reviewer, a client developer or\na tester reads first. It is generated so the two cannot disagree:\n\n  header       title and version; Style, Base path and Versioning; an\n               Authentication paragraph; the error code table (code, HTTP\n               status, meaning) from x-error-codes on the error envelope.\n  Conventions  numbered, each with its reason: \"N. <rule>. Why: <reason>.\"\n               lines from the style reference (--style), then the spec's\n               own x-conventions ([{rule, why}]).\n  per-status   an operation may narrow the codes behind a status with\n  codes        x-error-codes: {\"409\": [invoice_closed]}; a shared response\n               may carry x-error-codes: [code, ...]; otherwise every code\n               the envelope declares for that status is listed.\n  resources    one section per tag: its description as the purpose,\n               \"Serves US-...\" from the operations' x-story-ids, and a\n               table Method | Path | Does | Auth | Success | Errors, then\n               the idempotency note for each write.\n\nReads YAML with PyYAML (run it as `uv run --quiet --with pyyaml==6.0.3 python\napi_doc.py ...`); a spec written as JSON also loads without PyYAML.\n\nNeeds mode: api_doc.py needs --spec api/openapi.yaml --needs F [F ...] checks\nthe spec against the screens' data-needs.md files (see needs_main). It\nprints one \"problem:\" line each and one counts line:\n  data needs: N actions, M mapped, K new operations; O outcomes, U without a response, P problems\nN counts server actions (not \"none:\"); K counts operations whose\nx-data-needs holds an action with Status new. Actions present but all\nclient-only print \"data needs: N actions, 0 server, 0 mapped, 0 new operations\".\nExits 1 on a problem, zero actions, zero operations or a missing file.\n\nUsage: api_doc.py --spec api/openapi.yaml [--style api-style.md] [--out docs/api/API.md]\nPrints the findings (an operation with no x-story-ids, a create POST with no\nIdempotency-Key, a PATCH not documented idempotent, an error status with no\ndeclared code) and one counts line:\n  api-doc: N operations in N resources, N paths, N error codes, N conventions, N stories, N findings -> <out>\nExits 1 on zero operations, zero conventions from a given --style, or an\nunreadable spec; the document is not written then. Findings do not fail the\nrun; the skill reports them.",
    "functions": [
     "load",
     "resolve",
@@ -16740,6 +16744,8 @@
     "codes_by_status",
     "describe_responses",
     "idempotency_note",
+    "_states_check",
+    "needs_main",
     "main"
    ],
    "env": [],
@@ -17868,6 +17874,13 @@
    "asserts": 64
   },
   {
+   "path": "tests/unit/api_data_needs.sh",
+   "kind": "unit",
+   "lines": 71,
+   "header": "tests/unit/api_data_needs.sh: api_doc.py needs checks an OpenAPI spec against the screens' data-needs.md files: every server action maps to an operation through x-data-needs, every outcome has a response, every named id exists, an action id lives in one file, and zero input fails with the counts.",
+   "asserts": 19
+  },
+  {
    "path": "tests/unit/api_doc_generate.sh",
    "kind": "unit",
    "lines": 120,
@@ -17940,9 +17953,9 @@
   {
    "path": "tests/unit/data_model_check.sh",
    "kind": "unit",
-   "lines": 104,
+   "lines": 122,
    "header": "tests/unit/data_model_check.sh: plugins/bearing/skills/data-model/scripts/model_check.py (schema.sql, data-dictionary.csv and data-model.md agree: every table and column in both, a Why per column, COMMENT ON everywhere, named CHECKs, FK order, enums first, headline counts) and scripts/apply_check.sh (SKIPPED without docker, fails on a missing file). The shipped templates are the passing fixture, so they cannot drift apart either.",
-   "asserts": 35
+   "asserts": 44
   },
   {
    "path": "tests/unit/deliverables_pack.sh",

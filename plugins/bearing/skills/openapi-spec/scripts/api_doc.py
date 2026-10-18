@@ -22,6 +22,15 @@ a tester reads first. It is generated so the two cannot disagree:
 Reads YAML with PyYAML (run it as `uv run --quiet --with pyyaml==6.0.3 python
 api_doc.py ...`); a spec written as JSON also loads without PyYAML.
 
+Needs mode: api_doc.py needs --spec api/openapi.yaml --needs F [F ...] checks
+the spec against the screens' data-needs.md files (see needs_main). It
+prints one "problem:" line each and one counts line:
+  data needs: N actions, M mapped, K new operations; O outcomes, U without a response, P problems
+N counts server actions (not "none:"); K counts operations whose
+x-data-needs holds an action with Status new. Actions present but all
+client-only print "data needs: N actions, 0 server, 0 mapped, 0 new operations".
+Exits 1 on a problem, zero actions, zero operations or a missing file.
+
 Usage: api_doc.py --spec api/openapi.yaml [--style api-style.md] [--out docs/api/API.md]
 Prints the findings (an operation with no x-story-ids, a create POST with no
 Idempotency-Key, a PATCH not documented idempotent, an error status with no
@@ -33,6 +42,7 @@ run; the skill reports them.
 """
 
 import argparse
+import importlib.util
 import json
 import os
 import re
@@ -182,7 +192,112 @@ def idempotency_note(method, path, op, params, findings, where):
     return ""
 
 
+def _states_check():
+    path = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)),
+        "..",
+        "..",
+        "screen-design",
+        "scripts",
+        "states_check.py",
+    )
+    spec = importlib.util.spec_from_file_location("states_check", path)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def needs_main(argv):
+    ap = argparse.ArgumentParser(prog="api_doc.py needs")
+    ap.add_argument("--spec", required=True)
+    ap.add_argument("--needs", nargs="+", required=True)
+    a = ap.parse_args(argv)
+    for p in [a.spec] + a.needs:
+        if not os.path.isfile(p):
+            print(f"data needs: {p} not found, nothing checked")
+            return 1
+    spec = load(a.spec)
+    if not isinstance(spec, dict):
+        print(f"data needs: {a.spec} is empty or not a mapping, nothing checked")
+        return 1
+    sc = _states_check()
+    problems, actions, where = [], {}, {}
+    for path in a.needs:
+        parsed = sc.parse_needs(open(path, encoding="utf-8").read())
+        for sid in parsed:
+            for r in parsed[sid]["actions"]:
+                aid = r.get("id", "").strip() if "none" not in r else ""
+                if not aid:
+                    continue
+                actions.setdefault(aid, r)
+                where.setdefault(aid, []).append(path)
+    for aid, files in where.items():
+        if len(files) > 1:
+            problems.append(f"{aid} is in two files: {', '.join(files)}")
+
+    ops = {}  # "METHOD /path" -> x-data-needs ids
+    statuses = {}  # "METHOD /path" -> response statuses
+    for path, item in (spec.get("paths") or {}).items():
+        if not isinstance(item, dict):
+            continue
+        for method in METHODS:
+            op = item.get(method)
+            if not isinstance(op, dict):
+                continue
+            key = f"{method.upper()} {path}"
+            ids = op.get("x-data-needs") or []
+            ops[key] = [str(i) for i in ids] if isinstance(ids, list) else []
+            statuses[key] = {str(s) for s in (op.get("responses") or {})}
+    for key, ids in ops.items():
+        for i in ids:
+            if i not in actions:
+                problems.append(f"{key} x-data-needs names {i}, which no data-needs file has")
+
+    def is_client(r):
+        return bool(re.match(r"^none:", r.get("server", "").strip(), re.I))
+
+    server = {k: r for k, r in actions.items() if not is_client(r)}
+    mapped = n_out = n_missing = 0
+    for aid, r in server.items():
+        mine = [k for k, ids in ops.items() if aid in ids]
+        label = f"{aid} ({r.get('action', '').strip() or 'action'})"
+        if mine:
+            mapped += 1
+        else:
+            problems.append(f"{label} maps to no operation")
+        for status, code in sc.outcomes(r.get("outcomes", "")):
+            if not status:
+                continue
+            n_out += 1
+            if mine and not any(status in statuses[k] for k in mine):
+                n_missing += 1
+                problems.append(
+                    f"{aid} outcome {status} {code}: no {status} response on {', '.join(mine)}"
+                )
+    new_ops = sum(
+        1
+        for ids in ops.values()
+        if any(i in server and server[i].get("status", "").strip().lower() == "new" for i in ids)
+    )
+    if not actions:
+        problems.append(f"0 actions in {', '.join(a.needs)}: nothing for the API to answer")
+    if not ops:
+        problems.append(f"0 operations in {a.spec}")
+    for p in problems:
+        print(f"problem: {p}")
+    if actions and not server:
+        print(f"data needs: {len(actions)} actions, 0 server, 0 mapped, 0 new operations")
+    else:
+        print(
+            f"data needs: {len(server)} actions, {mapped} mapped, {new_ops} new operations; "
+            f"{n_out} outcomes, {n_missing} without a response, {len(problems)} problems"
+        )
+    return 1 if problems else 0
+
+
 def main():
+    if len(sys.argv) > 1 and sys.argv[1] == "needs":
+        return needs_main(sys.argv[2:])
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--spec", default="api/openapi.yaml")
     ap.add_argument("--style")

@@ -25,6 +25,9 @@ a data dictionary and an ERD.
   skill: "provide stories, a schema or the entity names".
 - Stores: looks in `--stores`, else the ADRs; if absent, Postgres, and
   the output reads `ADR needed`.
+- Data needs: `docs/design/screens/*/data-needs.md`, if any; each `new`
+  server field becomes a column whose Why cites the field id (`F-02`), or
+  is `derived:` (no column). `exists` and `client:` fields add nothing.
 - HLD data section: looks in `docs/design/*-hld.md`; if absent, entity
   ownership comes from the module layout.
 - Store references: `database` under the plugin root; always present.
@@ -41,18 +44,9 @@ a data dictionary and an ERD.
 ## Steps
 
 **Revising.** When `docs/design/data-model.md` (or the data model the
-repository already has) exists, this run is a revision: read
-`${CLAUDE_PLUGIN_ROOT}/skills/adr/references/revision-protocol.md` and
-follow it. The existing document is approved work a reviewer will diff:
-edit it in place, keep its layout, headings, numbering and wording, and
-change only the rows the new stories touch. Do not move it onto this
-skill's template, and create companion files (`schema.sql`, dictionary,
-ERD) only if the repository already has them; the gate then runs on what
-exists or reads "n/a (revision of a document without companions)".
-Applied migrations are history: every change is a new migration after the
-highest number, planned against the live table's size and locks. In a
-revision the Migrations line counts only the migrations the changed rows
-require, each named for `db-migration` with its expand and contract steps.
+repository already has) exists, this run is a revision: follow the
+`## Revising` section of `references/design-checks.md`, which has the
+protocol, the edit-in-place rules and the migration rule.
 
 **Decisions first.** Before building, run `tech-decision` for the keys
 database and analytics store, and only for the stores this scope needs.
@@ -129,11 +123,13 @@ ${CLAUDE_PLUGIN_ROOT}/skills/tech-decision/references/decision-protocol.md.
     found" with Status open. Then write "Open concerns": each tagged
     `[conflict]`, `[gap]`, `[ambiguity]`, `[risk]` or `[scope]`, with an
     owner, a date and "Blocks development: yes | no".
-11. Gate: `python3 "${CLAUDE_PLUGIN_ROOT}/skills/data-model/scripts/model_check.py" --dir docs/design`.
+11. Gate: `python3 "${CLAUDE_PLUGIN_ROOT}/skills/data-model/scripts/model_check.py" --dir docs/design`,
+    with `--needs docs/design/screens/*/data-needs.md` when those files exist.
     It fails on zero tables, on any table or column in the SQL but not in
     the dictionary or the reverse, on an empty Why, on a table or column
     with no `COMMENT ON`, on an unnamed CHECK, on FK order, and on
-    headline counts that disagree. Fix and rerun until it prints 0
+    headline counts that disagree; with `--needs`, also on a new server
+    field no Why cites and on zero fields. Fix and rerun until it prints 0
     problems. Then prove it applies:
     `bash "${CLAUDE_PLUGIN_ROOT}/skills/data-model/scripts/apply_check.sh" docs/design/schema.sql`
     (a throwaway `postgres:16` container, no port, no shared database;
@@ -164,6 +160,7 @@ Rules checked: N   Deviations: K
 Review: BLOCKER b, MAJOR m, MINOR n, NIT t (open O) | not run (<reason>)
 Open concerns: N (blocks development: K)
 Gate: data-model: <model_check.py counts line, verbatim>
+Data needs: <the "data needs: N fields, ..." line, verbatim> | none (no screens)
 Apply: schema-apply: <apply_check.sh line, verbatim> | SKIPPED (<reason>)
 Revision: v<n> -> v<n+1>, sections changed C, ADRs superseded S, downstream D | v1 (new)
 ```
