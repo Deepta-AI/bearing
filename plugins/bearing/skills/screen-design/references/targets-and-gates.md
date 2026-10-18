@@ -56,5 +56,19 @@ Data needs step).
   fields, actions (exists and new), outcomes, states and problems. Without
   a flows file there is no
   inventory to check against, so the step is skipped and said.
+- Format for readers (the grammar other scripts rely on):
+  - An outcome is a 3-digit status, then a code (`409 already_member`);
+    outcomes are separated by `;` or a newline; backticks and asterisks are
+    stripped. `2xx` and `default` are rejected.
+  - Server `none: <reason>` marks a client-only action; its Outcomes and
+    Status may then be blank.
+  - A row whose first cell is `none:` is a placeholder, not an action, field
+    or state.
+  - Action ids (`A-<digits>`) are unique across the whole file and are the
+    only join key from an action to an API operation; the Action and Server
+    columns are free text. Field ids are `F-<digits>`.
+  - Source and Status are matched case-insensitively.
+  - The reference parser is `parse_needs(text)` and `outcomes(cell)` in
+    `scripts/states_check.py`; other scripts load it by path.
 - `data-model` and `openapi-spec` read this file (fields to columns,
   actions to operations, outcomes to documented responses).

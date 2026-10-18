@@ -5,7 +5,7 @@
   "commandSkills": 0,
   "stackSkills": 12,
   "scripts": 94,
-  "scriptLines": 29672,
+  "scriptLines": 29681,
   "hooks": 8,
   "agents": 8,
   "makeTargets": 31,
@@ -12096,7 +12096,7 @@
     },
     {
      "path": "references/targets-and-gates.md",
-     "lines": 60
+     "lines": 74
     },
     {
      "path": "scripts/bundle.py",
@@ -12108,7 +12108,7 @@
     },
     {
      "path": "scripts/states_check.py",
-     "lines": 354
+     "lines": 363
     },
     {
      "path": "templates/CHANGES.md",
@@ -16851,7 +16851,7 @@
    "lang": "python",
    "group": "skill",
    "skill": "screen-design",
-   "lines": 354,
+   "lines": 363,
    "header": "states_check: every screen prototype renders every state its inventory lists.\n\nThe inventory is section 2 (\"Interaction states\") of the flows file: one\n\"### S-nn <name>\" heading per screen and a table of states under it; a row\nwhose second cell starts with \"n/a\" is out of scope. With no flows file,\neach screen must render the five baseline states (loading, empty, error,\nsuccess, partial) unless the page carries <!-- n/a: <state> because ... -->.\n\nA screen's prototype is <screens dir>/<id>-<name>.html (S-01-orders.html).\nIts states are the values of data-state=\"...\" on its panels; each panel also\nneeds a control that reaches it (data-state-target=\"...\", a repo's own\ndata-target=\"...\", or an href=\"#state=...\" link), and the file must hold no\nunfilled {{PLACEHOLDER}}. State names compare case-blind with spaces and\nunderscores read as hyphens, so the flows' \"no slots\" is the page's\n\"no-slots\": a repository's existing mockups are checked as they are, never\nrewritten to suit this gate.\n\nUsage: states_check.py --screens <dir> [--flows <flows.md>] [--only S-01,S-03]\nPrints one line per problem and the counts; exits 1 on any problem, or when\nzero screens were checked.\n\nNeeds mode: states_check.py --needs <data-needs.md> --flows <flows.md> checks\nthe feature's data-needs.md against the flows inventory (see needs_main);\nparse_needs and outcomes are importable for the contract checks.",
    "functions": [
     "norm",
@@ -18290,9 +18290,9 @@
   {
    "path": "tests/unit/screen_data_needs.sh",
    "kind": "unit",
-   "lines": 95,
+   "lines": 117,
    "header": "tests/unit/screen_data_needs.sh: states_check.py --needs checks a feature's data-needs.md against the flows inventory: every screen has an entry, every server action names its outcomes with a status and a code, every empty, loading and error state has a server condition, ids are unique, and zero input fails. parse_needs and outcomes are importable without side effects.",
-   "asserts": 24
+   "asserts": 32
   },
   {
    "path": "tests/unit/screen_gallery.sh",

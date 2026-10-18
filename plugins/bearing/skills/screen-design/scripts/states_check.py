@@ -140,7 +140,7 @@ def parse_needs(text):
         if header is None:
             header = [c.lower() for c in cells]
             continue
-        if cells and set(cells[0]) <= set("-: "):
+        if cells[0] and set(cells[0]) <= set("-: "):
             continue
         first = re.sub(r"[`*]", "", cells[0]).strip()
         if first.lower().startswith("none:"):
@@ -213,7 +213,10 @@ def needs_main(needs_path, flows_path):
             if "none" in r:
                 continue
             nf += 1
-            label = f"{r.get('id', '?')} ({sid})"
+            fid = r.get("id", "").strip()
+            label = f"{fid or 'field'} ({sid})"
+            if not re.match(r"^F-\d+$", fid):
+                problems.append(f"{label}: field id must be F-<digits>, got \"{fid}\" in {sid}")
             src = r.get("source", "").strip().lower()
             if not (src == "server" or re.match(r"^(derived|client):\s*\S", src)):
                 problems.append(f"{label} source must be server, derived: <how> or client: <where>")
@@ -222,9 +225,12 @@ def needs_main(needs_path, flows_path):
             if "none" in r:
                 continue
             na += 1
-            aid = r.get("id", "?")
-            label = f"{aid} ({sid})"
-            seen.setdefault(aid, []).append(sid)
+            aid = r.get("id", "").strip()
+            label = f"{aid or 'action'} ({sid})"
+            if not re.match(r"^A-\d+$", aid):
+                problems.append(f"{label}: action id must be A-<digits>, got \"{aid}\" in {sid}")
+            else:
+                seen.setdefault(aid, []).append(sid)
             server = r.get("server", "").strip()
             m = re.match(r"^none:\s*(.*)$", server, re.I)
             if m and not m.group(1).strip():
@@ -279,6 +285,9 @@ def main():
     ap.add_argument("--only", default="")
     a = ap.parse_args()
     if a.needs:
+        if not a.flows:
+            print("states_check: --flows is required with --needs", file=sys.stderr)
+            return 2
         return needs_main(a.needs, a.flows)
     if not a.screens:
         ap.error("--screens is required (or --needs with --flows)")
