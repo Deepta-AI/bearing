@@ -171,7 +171,7 @@ CATEGORY = {
 CAT_OF = {s: c for c, names in CATEGORY.items() for s in names}
 
 # The Bearing skills: every directory under a Bearing plugin's skills/ that
-# holds a SKILL.md (plugins/bearing, plugins/bearing-backend, plugins/bearing-apps).
+# holds a SKILL.md (plugins/bearing, plugins/bearing-backend, plugins/bearing-apps, plugins/bearing-genai).
 # Membership in this set, not a name prefix, is what makes a name a Bearing skill.
 existing = {p.name for p in SKILL_DIRS}
 absent = [s for s in CAT_OF if s not in existing]

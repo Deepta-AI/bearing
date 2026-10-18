@@ -26,12 +26,15 @@ There are two paths. Both give the same skills, subagents and hooks.
 /plugin install bearing@bearing
 /plugin install bearing-backend@bearing   # optional: Go, Python, Node, data pipelines, infrastructure
 /plugin install bearing-apps@bearing      # optional: React, Next.js, React Native, Flutter, iOS, Android
+/plugin install bearing-genai@bearing     # optional: GenAI and ML skills (RAG, agents, MCP, gateway and routing, evals, datasets, speech, vision, tabular ML)
 ```
 
-The marketplace holds three plugins. `bearing` is required: the workflow
+The marketplace holds four plugins. `bearing` is required: the workflow
 skills, the subagents, the hooks, the scripts and the repository
 templates. `bearing-backend` and `bearing-apps` carry the stack skills
-and their scaffold templates; install the ones your repositories use.
+and their scaffold templates; `bearing-genai` carries the GenAI and ML skills
+(RAG, agents, MCP, gateway and routing, evals, datasets, speech, vision, tabular
+ML). Install the ones your repositories use.
 Without a stack plugin, its skills are absent, and `new-repo`,
 `onboard-repo`, `ci-pipeline` and the review checklists stop on that
 stack with the line to install it (`/plugin install bearing-backend@bearing`).
@@ -66,9 +69,9 @@ touch nothing), `--no-claude` (no claude CLI steps; see step 6),
 What it does, in order, skipping anything already present:
 
 1. Registers `~/bearing` (or `--remote`) as the marketplace `bearing` and
-   installs its three plugins at user scope: `bearing@bearing`,
-   `bearing-backend@bearing` and `bearing-apps@bearing` (an installed one
-   is updated instead).
+   installs its four plugins at user scope: `bearing@bearing`,
+   `bearing-backend@bearing`, `bearing-apps@bearing` and
+   `bearing-genai@bearing` (an installed one is updated instead).
 2. Writes `~/.config/bearing/bearing.env` from `plugins/bearing/templates/user/bearing.env`
    with placeholders, mode 600. It never overwrites an existing file.
 3. Copies a personal `~/.claude/CLAUDE.md` starter if you have none. Open
@@ -220,7 +223,7 @@ triggering reliable on your machine:
 ```
 
 It pulls the kit, updates each installed Bearing plugin (`claude plugin
-update bearing@bearing`, and the same for `bearing-backend` and `bearing-apps`),
+update bearing@bearing`, and the same for `bearing-backend`, `bearing-apps` and `bearing-genai`),
 gstack (through `/gstack-upgrade`), the skills-CLI packs (`npx
 skills@1.7.0 update`) and GSD Core (through `/gsd-update`), prints versions before and after with a count, and reruns
 the doctor. Restart the harness afterwards. On a plugin-only install,
@@ -234,7 +237,7 @@ whole upgrade; the three move in lockstep, so update all of them. Read
 bash ~/bearing/install.sh --uninstall
 ```
 
-It removes the three plugins and the marketplace, asks before removing the env
+It removes the four plugins and the marketplace, asks before removing the env
 file, removes `~/.claude/CLAUDE.md` only while it is still the untouched
 template, and prints how to unhook each repository. Superpowers, gstack
 and GSD Core are independent: `claude plugin uninstall

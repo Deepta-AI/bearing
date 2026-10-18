@@ -65,9 +65,9 @@ make harness-eval ONLY=push        # a real Claude session against the hooks (no
       <H2 id="map">The repository map</H2>
       <Tree
         rows={[
-          { path: ".claude-plugin/", dir: true, note: "marketplace.json: the marketplace bearing and its three plugins (bearing@bearing, bearing-backend@bearing, bearing-apps@bearing)" },
+          { path: ".claude-plugin/", dir: true, note: "marketplace.json: the marketplace bearing and its four plugins (bearing@bearing, bearing-backend@bearing, bearing-apps@bearing, bearing-genai@bearing)" },
           { path: "plugins/bearing/", dir: true, note: "the required plugin: its own .claude-plugin/plugin.json, LICENSE and README.md, and the folders below" },
-          { path: "plugins/*/skills/", dir: true, note: `${c.skills} skill folders across the three plugins, each SKILL.md plus references/, templates/ and scripts/ (${c.skillFiles} files in all)` },
+          { path: "plugins/*/skills/", dir: true, note: `${c.skills} skill folders across the four plugins, each SKILL.md plus references/, templates/ and scripts/ (${c.skillFiles} files in all)` },
           { path: "plugins/bearing/agents/", dir: true, note: `${c.agents} subagents: reviewer, verifier, security auditor, explorer, test writer, doc writer, critic` },
           { path: "plugins/bearing/hooks/", dir: true, note: "hooks.json maps six events to six short adapters in scripts/, all over plugins/bearing/bin/brg-guard" },
           { path: "plugins/bearing/bin/", dir: true, note: `${pbin} brg- scripts: the guard, scaffold and adopt, trackers, autopilot, brg-kit-paths` },
@@ -75,6 +75,7 @@ make harness-eval ONLY=push        # a real Claude session against the hooks (no
           { path: "plugins/bearing/templates/user/", dir: true, note: "the per-developer files install.sh writes: bearing.env and a personal CLAUDE.md" },
           { path: "plugins/bearing-backend/", dir: true, note: "optional plugin: the go, python, node, data-pipeline and infra stack skills and their templates" },
           { path: "plugins/bearing-apps/", dir: true, note: "optional plugin: the react, nextjs, react-native, flutter, ios and android stack skills and their templates" },
+          { path: "plugins/bearing-genai/", dir: true, note: "optional plugin, installed by default: the GenAI and ML skills (genai-design, rag, llm-agent, llm-eval, llm-gateway and more) and their templates" },
           { path: "bin/", dir: true, note: `${bin} repository tools, never shipped: the generators, lints and eval harnesses` },
           { path: "tests/", dir: true, note: `${c.tests} test files and ${c.fixtures} fixtures; tests/run.sh runs them inside make check` },
           { path: "evals/", dir: true, note: `${c.evals} skills with measured evals; evals/.pending lists the rest, and it only shrinks` },

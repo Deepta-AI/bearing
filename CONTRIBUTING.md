@@ -66,15 +66,17 @@ A team that keeps its own fork, for company skills or a pinned version:
 
 ## Where things live
 
-The repository is a marketplace of three plugins, and only what a plugin
+The repository is a marketplace of four plugins, and only what a plugin
 needs at run time sits inside one:
 
 - `plugins/bearing/`: the workflow skills, `agents/`, `hooks/`, `bin/`
-  (the `brg-` scripts, with `brg-kit-paths`, which finds the other two
+  (the `brg-` scripts, with `brg-kit-paths`, which finds the other
   plugins) and `templates/`. Required.
 - `plugins/bearing-backend/skills/`: go, python, node, data-pipeline, infra.
 - `plugins/bearing-apps/skills/`: react, nextjs, react-native, flutter,
   ios, android.
+- `plugins/bearing-genai/skills/`: the GenAI and ML skills (genai-design, rag,
+  llm-agent, llm-eval, llm-gateway, speech, and the rest).
 - Outside every plugin: `evals/`, `tests/`, `site/`, `devguide/`, `docs/`
   and `bin/` at the root (generators, lints, the eval harnesses, and
   `bin/kit_paths.py`, which asks `brg-kit-paths` where the skills are).
@@ -100,7 +102,7 @@ plugin directory's limits.
   "Use when" with at least two quoted phrases, the sections Inputs, Steps,
   Output contract and Gotchas (stack skills use their own set), every
   backticked `templates/` or `references/` path existing, every
-  `bearing:<name>`, `bearing-backend:<name>` or `bearing-apps:<name>` it
+  `bearing:<name>`, `bearing-backend:<name>`, `bearing-apps:<name>` or `bearing-genai:<name>` it
   mentions resolving to a skill (or, for bearing, an agent), and `Skill`
   in `allowed-tools` for any skill that runs the decision protocol.
 - Lead the description with the job and the phrases a user says. Claude
@@ -157,7 +159,7 @@ written, a count printed, a refusal on empty input).
 - `make trigger-eval` checks that a plain request loads the right skill.
   Each skill has three requests that should load it and two near misses
   that should not, in `evals/triggers.json`. Each request runs in a fresh
-  headless session with only the three plugins loaded;
+  headless session with only the four plugins loaded;
   `SOURCES=user,project,local` runs with everything installed on your
   machine instead. `make lint-triggers` (part of `make check`) holds the
   file to every skill and refuses a request that copies a phrase quoted

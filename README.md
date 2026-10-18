@@ -21,13 +21,14 @@ inside).
 
 ## Install
 
-Bearing is one marketplace with three plugins:
+Bearing is one marketplace with four plugins:
 
 | Plugin | What it holds | Needed |
 | --- | --- | --- |
 | `bearing` | the workflow skills, the eight subagents, the hooks and the guard behind them, the scripts (`bin/`) and the repository templates | required |
 | `bearing-backend` | the stack skills and scaffold templates for Go, Python, Node, data pipelines (dbt, Airflow) and infrastructure (Terraform, Kubernetes) | optional |
 | `bearing-apps` | the stack skills and scaffold templates for React, Next.js, React Native, Flutter, iOS and Android | optional |
+| `bearing-genai` | GenAI and ML skills: RAG, agents, MCP, gateway and routing, evals, datasets, speech, vision, tabular ML | optional; `install.sh` installs it by default |
 
 **The plugins only.** Inside Claude Code:
 
@@ -36,6 +37,7 @@ Bearing is one marketplace with three plugins:
 /plugin install bearing@bearing
 /plugin install bearing-backend@bearing   # optional
 /plugin install bearing-apps@bearing      # optional
+/plugin install bearing-genai@bearing     # optional
 ```
 
 Install the stack plugins your repositories use. Without one, its stack
@@ -129,7 +131,7 @@ fetch without one.
 
 | What | When | Fetches | Pinned |
 | --- | --- | --- | --- |
-| `install.sh` | you run it | the marketplace from GitHub (or your checkout) and the three plugins | the commit you install from |
+| `install.sh` | you run it | the marketplace from GitHub (or your checkout) and the four plugins | the commit you install from |
 | `install.sh`, profile standard or full | you run it | gstack: `git fetch --depth 1 https://github.com/garrytan/gstack.git 2a113ae7e623f590095bcaaa0cc581c9a10a6632` into `~/.claude/skills/gstack`, then its own `./setup`, which installs gstack's dependencies from its `bun.lock` and Playwright's Chromium; an existing gstack checkout is left as it is | commit `2a113ae7e623` (`--skip-gstack`) |
 | | | GSD Core: `npx --yes @opengsd/gsd-core@1.14.0 --global --claude` | `1.14.0` (`--skip-gsd`) |
 | | | impeccable: `npx --yes skills@1.7.0 add pbakaus/impeccable#08d5b470495d242ca0470f4aeae1956c3a074f83 -a claude-code -g -y`; an existing `~/.claude/skills/impeccable` or `~/.agents/skills/impeccable` is left as it is | the skills CLI at `1.7.0`, the repository at commit `08d5b470495d`, version 4.6.0 (at 08d5b47) (`--skip-impeccable`, which holds on `--profile full` too) |
@@ -177,8 +179,8 @@ loads the matching skill. Every skill can also be called directly as
 `dod`) because on a machine with hundreds of skills Claude Code may list
 some by name only; see
 [Keep the skill listing lean](docs/INSTALL.md#keep-the-skill-listing-lean).
-The stack skills live in the other two plugins and carry their prefix:
-`/bearing-backend:go`, `/bearing-apps:react`. The subagents are called
+The stack skills and the GenAI and ML skills live in the other plugins and carry their prefix:
+`/bearing-backend:go`, `/bearing-apps:react`, `/bearing-genai:rag`. The subagents are called
 the same way, `bearing:reviewer`, `bearing:critic` and so on; the skills
 start them for you. The scripts behind the skills keep a `brg-` prefix
 (`plugins/bearing/bin/brg-guard`, `plugins/bearing/bin/brg-tracker`).
@@ -292,8 +294,8 @@ guide to Vercel). `.gitlab-ci.yml` is the twin of both for a GitLab
 mirror.
 
 The repository is the marketplace: `.claude-plugin/marketplace.json`
-lists `plugins/bearing`, `plugins/bearing-backend` and
-`plugins/bearing-apps`. Evals (`evals/`), tests (`tests/`), the sites and
+lists `plugins/bearing`, `plugins/bearing-backend`,
+`plugins/bearing-apps` and `plugins/bearing-genai`. Evals (`evals/`), tests (`tests/`), the sites and
 the repository's own tools (`bin/`: generators, lints, the eval
 harnesses) sit outside every plugin and never ship. `make
 lint-plugin-size` keeps each plugin under 512 files and every non-image

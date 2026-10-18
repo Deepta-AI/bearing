@@ -29,9 +29,11 @@ Inside Claude Code:
 /plugin install bearing@bearing
 ```
 
-This plugin is required. The stack plugins are optional:
-`bearing-backend` (Go, Python, Node, data pipelines, infrastructure) and
-`bearing-apps` (React, Next.js, React Native, Flutter, iOS, Android).
+This plugin is required. The other plugins are optional:
+`bearing-backend` (Go, Python, Node, data pipelines, infrastructure),
+`bearing-apps` (React, Next.js, React Native, Flutter, iOS, Android) and
+`bearing-genai` (GenAI and ML skills: RAG, agents, MCP, gateway and routing,
+evals, datasets, speech, vision, tabular ML).
 
 ## More
 

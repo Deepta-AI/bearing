@@ -38,7 +38,7 @@ skill and against a baseline without it. Neither replaces the other.
   missing, the row or line is printed for the author to place.
 - Plugin: `plugins/bearing` for a stack-neutral workflow skill;
   `plugins/bearing-backend` or `plugins/bearing-apps` for a skill about
-  one language, framework or platform. Written below as `<plugin>`.
+  one language, framework or platform; `plugins/bearing-genai` for a GenAI or ML skill. Written below as `<plugin>`.
 - Sibling skills and scripts: `plugins/*/skills/*/SKILL.md` and
   `plugins/*/bin/`; the precedent for shape, and something to audit.
 - Evals: the `skill-creator` skill; if it is not installed or not

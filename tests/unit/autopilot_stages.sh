@@ -284,6 +284,14 @@ assert_exit 0 ap "done" contract
 assert_contains "$T_OUT" "threat models 1"
 t_end
 
+t_begin "an llm profile without bearing-genai is refused before it is recorded"
+at design
+assert_exit 2 env BEARING_PLUGIN_DIRS=/nonexistent python3 "$AP" profile --ui no --data no --api no --deploy no --llm yes --scope full --why fixture --dir "$d"
+assert_contains "$T_OUT" "genai-design is in the bearing-genai plugin, which is not installed: /plugin install bearing-genai@bearing"
+assert_contains "$T_OUT" "no profile recorded"
+assert_not_contains "$(ap status)" "llm=yes"
+t_end
+
 t_begin "a full-scope profile without data or API needs only the threat model at contract"
 at design; ap profile --ui no --data no --api no --deploy no --scope full --why fixture >/dev/null
 archset "$d"; printf '# LLD\n' > "$d/docs/design/x-lld.md"

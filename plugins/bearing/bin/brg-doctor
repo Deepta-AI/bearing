@@ -65,11 +65,12 @@ echo "profile: ${profile:-unset} ($profile_src; standard or full makes superpowe
 command -v claude >/dev/null && pass "claude $(claude --version 2>/dev/null | head -1)" || fail "claude CLI not on PATH"
 plugins="$(claude plugin list 2>/dev/null || true)"
 # bearing is required; bearing-backend and bearing-apps carry the stack
-# conventions and templates and are optional.
+# conventions and templates, bearing-genai the GenAI and ML skills; all optional.
 printf '%s' "$plugins" | grep -Eq '(^|[^a-z-])bearing@' && pass "plugin Bearing installed" || fail "plugin Bearing not installed (claude plugin install bearing@bearing, or bash install.sh from the Bearing checkout)"
-for sp_name in bearing-backend bearing-apps; do
+for sp_name in bearing-backend bearing-apps bearing-genai; do
+  case "$sp_name" in (bearing-genai) sp_what="its GenAI and ML skills are unavailable";; (*) sp_what="its stack skills and templates are unavailable";; esac
   if printf '%s' "$plugins" | grep -q "$sp_name@"; then pass "plugin $sp_name installed"
-  else optional "plugin $sp_name not installed; its stack skills and templates are unavailable (claude plugin install $sp_name@bearing)"; fi
+  else optional "plugin $sp_name not installed; $sp_what (claude plugin install $sp_name@bearing)"; fi
 done
 sp=0; printf '%s' "$plugins" | grep -q 'superpowers' && sp=1
 pack_check "$sp" "plugin superpowers installed" "superpowers not installed (claude plugin install superpowers@claude-plugins-official)"

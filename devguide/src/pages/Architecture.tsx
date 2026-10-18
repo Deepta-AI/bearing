@@ -9,7 +9,7 @@ const LAYERS = [
     name: "The plugin manifest",
     path: ".claude-plugin/",
     kind: "declares",
-    text: "marketplace.json names a marketplace called bearing that holds three plugins; each plugin's own plugin.json names it and its version. Claude Code finds skills/, agents/ and hooks/hooks.json by convention inside each plugin folder. Nothing else registers anything.",
+    text: "marketplace.json names a marketplace called bearing that holds four plugins; each plugin's own plugin.json names it and its version. Claude Code finds skills/, agents/ and hooks/hooks.json by convention inside each plugin folder. Nothing else registers anything.",
     to: "/install",
   },
   {

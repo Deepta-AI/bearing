@@ -1484,6 +1484,16 @@ def cmd_profile(a):
     design_review need ui, the data model data, the API contract api, the
     deployment architecture deploy. Recorded as a row of the digest; the dod
     gate refuses a profile the code contradicts."""
+    if a.llm == "yes":
+        # A product that calls a model owes genai-design, which lives in the
+        # optional bearing-genai plugin; refuse before anything is recorded.
+        kp = os.path.join(os.path.dirname(os.path.abspath(__file__)), "brg-kit-paths")
+        r = subprocess.run(["bash", kp, "--skill", "genai-design"], capture_output=True, text=True)
+        if r.returncode != 0:
+            hint = (r.stderr or r.stdout).strip().splitlines()
+            print(f"profile llm: {hint[-1] if hint else 'genai-design did not resolve'}; no profile recorded",
+                  file=sys.stderr)
+            return 2
     st = load(a.dir)
     st["profile"] = {k: getattr(a, k) for k in PROFILE_KEYS}
     st["profile"]["llm"] = a.llm
