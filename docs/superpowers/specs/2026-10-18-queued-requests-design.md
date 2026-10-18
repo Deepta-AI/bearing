@@ -294,7 +294,22 @@ No `--force`, `--force-with-lease`, `--tags`, `--all`, `--mirror`,
 `--delete`, `--set-upstream`, no second refspec, never origin's
 configured url. A tag is never pushed: the clone has none (`--no-tags`)
 and the refspec names one branch. The temporary directory is made with
-`mktemp -d` and removed by an `EXIT` trap, pushed or not.
+`mktemp -d` and removed by an `EXIT` trap, pushed or not. (Task 3) The
+transport check runs a second time inside the fresh clone, as part of
+condition 8, so an `includeIf` of the global config that applies only in
+a repository (`gitdir:`, `onbranch:`) is judged too. Every file `run` reads
+or writes in `.bearing/state` goes through `state_read` or `state_write`:
+the directory is entered one name at a time and judged with getcwd, a
+read or an append opens with `O_NOFOLLOW` and `O_NONBLOCK` (python3 -I)
+and takes only a regular file with one link, and a whole write is a new
+file renamed into place, so a link, a hard link or a FIFO the agent
+plants is never followed, read back or waited on. A `.git` file
+(`gitdir:`) can point the origin read and the clone source at another
+repository; the push still goes only to a URL the engineer listed for
+that origin (accepted, amendment ruling Q4). Every hook sets
+`core.fsmonitor=false` for each git it starts (ruling Q3), since a
+`core.fsmonitor` in `.git/config` names a program git runs when it reads
+the index.
 
 `run` checks conditions 1 to 7 at the Stop and prints
 `push-run: 7 conditions before the clone, M met`; when all hold it

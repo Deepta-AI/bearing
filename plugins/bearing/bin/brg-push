@@ -9,10 +9,23 @@
 #                             exit 0 all met, 1 any unmet, 2 usage or not a git
 #                             repository
 #   brg-push request          check; when it passes, write
-#                             .bearing/state/push-request; exit 0 or 1
-#   brg-push run --id <sid>   the Stop hook only: judge the request, then clone
-#                             the branch fresh and push it; exit 0 or 1
-#   brg-push status           the last result line, or "push: none"; exit 0
+#                             .bearing/state/push-request (branch, sha, time);
+#                             exit 0 or 1
+#   brg-push run --id <sid> [--foreground]
+#                             the Stop hook only: judge the request, the opt-in,
+#                             the session mark, the gate marker and the global
+#                             git transport ("push-run: 7 conditions before the
+#                             clone, M met"), then start itself with
+#                             --foreground, detached, which judges them again,
+#                             clones the branch fresh, checks the clone's HEAD
+#                             ("push-run: 8 conditions, M met") and pushes it;
+#                             writes push-result, push.log and a gates.log
+#                             line; exit 0 started or pushed, 1 refused or
+#                             failed, 2 usage
+#   brg-push status [--unseen]
+#                             the last result line, or "push: none"; with
+#                             --unseen (the hooks) "bearing push: <line>" once
+#                             per new result; exit 0
 #   brg-push optin-record     SessionStart only: write .bearing/state/.push-optin
 #                             (on|off) for this repository; exit 0 always
 #
@@ -26,8 +39,12 @@
 # <passwd home>/.config/bearing/bearing.env only, never from BEARING_ENV,
 # XDG_CONFIG_HOME, HOME or an exported BEARING_AUTO_PUSH: the agent controls
 # its own environment. An entry is never printed (an https entry may carry a
-# token), only its key. The script ends with the single line `main "$@"`, the
-# seam tests use to replace passwd_home. bash 3.2 safe.
+# token), only its key. A .git file (gitdir:) can point the origin read and
+# the clone source at another repository; the push still goes only to a URL
+# the engineer listed for that origin (accepted, amendment ruling Q4). Needs
+# git and python3 (the reads and appends in .bearing/state that must not
+# follow a link). The script ends with the single line `main "$@"`, the seam
+# tests use to replace passwd_home. bash 3.2 safe.
 set -u
 TASK_RE='^(feature|bugfix|hotfix|chore|docs)/[A-Z][A-Z0-9]*(-[0-9]+)+-[A-Za-z0-9]+$'
 
@@ -166,10 +183,11 @@ entry_for() {
   return "$ok"
 }
 
-n=0; met=0
-cond() { # cond <name> <0 met|1 unmet> <detail>
+n=0; met=0; first=""
+cond() { # cond <name> <0 met|1 unmet> <detail>; first holds the first unmet
   n=$((n+1))
-  if [ "$2" -eq 0 ]; then met=$((met+1)); echo "ok $1: $3"; else echo "no $1: $3"; fi
+  if [ "$2" -eq 0 ]; then met=$((met+1)); echo "ok $1: $3"
+  else [ -n "$first" ] || first="$1: $3"; echo "no $1: $3"; fi
 }
 
 # base_ref: the first of origin/develop, origin/main, origin/master that exists
@@ -188,7 +206,7 @@ base_ref() {
 protected() {
   local w ws=""
   case "$1" in (main|master|develop|release/*) return 0 ;; esac
-  [ -f "$root/.githooks/lib.sh" ] && ws="$(sed -n "s/^PROTECTED_BRANCHES='\(.*\)'.*/\1/p" "$root/.githooks/lib.sh" | head -1)"
+  [ -f "$root/.githooks/lib.sh" ] && ws="$(bounded 5 sed -n "s/^PROTECTED_BRANCHES='\(.*\)'.*/\1/p" "$root/.githooks/lib.sh" | head -1)"
   set -f
   for w in $ws; do [ "$w" = "$1" ] && { set +f; return 0; }; done
   set +f
@@ -285,38 +303,91 @@ check_conditions() {
 # renamed later.
 in_state_dir() { [ "$(/bin/pwd -P)" = "$1/.bearing/state" ]; }
 
-# state_write put|rm <name>: the one way brg-push changes a file in
+# state_cd <op>: enter the real <root>/.bearing/state one name at a time
+# (put and add make a missing one with mkdir, never mkdir -p, which follows a
+# linked .bearing), each cd `cd -P -- ./<name>` so CDPATH plays no part, root
+# resolved with /bin/pwd -P, and where it lands judged by in_state_dir.
+# Return 0 there, 1 refused, 2 when the directory does not exist.
+state_cd() {
+  local real c
+  real="$(cd -P -- "$root" 2>/dev/null && /bin/pwd -P)" && cd -P -- "$real" || return 1
+  for c in .bearing state; do
+    case "$1" in (put|add) mkdir "./$c" 2>/dev/null ;; esac
+    if [ ! -e "./$c" ] && [ ! -L "./$c" ]; then return 2; fi
+    cd -P -- "./$c" 2>/dev/null || return 1
+  done
+  in_state_dir "$real" || return 1
+}
+
+# The two file opens state_write add and state_read make, in python3 -I (no
+# current directory on the module path, no PYTHON* variable): O_NOFOLLOW, so
+# a link at the name is refused; O_NONBLOCK, so a FIFO cannot hang the hook;
+# and the opened file must be a regular file with one link, so a hard link to
+# a file the sandbox hides is neither read nor appended to.
+PY_OPEN='import os, sys
+def opened(flags):
+    try:
+        fd = os.open(sys.argv[1], flags | os.O_NOFOLLOW | os.O_NONBLOCK, 0o644)
+    except OSError:
+        sys.exit(1)
+    st = os.fstat(fd)
+    if st.st_mode & 0o170000 != 0o100000 or st.st_nlink != 1:
+        sys.exit(1)
+    return fd, st
+'
+PY_APPEND="$PY_OPEN"'fd, st = opened(os.O_WRONLY | os.O_APPEND | os.O_CREAT)
+if st.st_size > 1048576:
+    sys.exit(1)
+os.write(fd, sys.stdin.buffer.read(65536))
+'
+PY_READ="$PY_OPEN"'fd, st = opened(os.O_RDONLY)
+sys.stdout.buffer.write(os.read(fd, 65536))
+'
+
+# state_write put|rm|add <name>: the one way brg-push changes a file in
 # .bearing/state, safe outside the sandbox against links the agent plants.
-# It enters the state directory one name at a time (put makes a missing one
-# with mkdir, never mkdir -p, which follows a linked .bearing) and goes on
-# only when `pwd -P` is the real <root>/.bearing/state, root resolved with
-# pwd -P. From there it uses relative names only, so a link swapped in later
-# is never followed. put: stdin goes to a new file under an unused random
-# name, created with noclobber (O_EXCL: never through a link); then whatever
-# <name> is gets removed (rm -rf removes a link, not its target) and the file
-# renamed onto it (mv -T, or -h on BSD: never into a linked directory). rm:
-# removes <name> of any type; a missing state directory is nothing to do.
-# There is no append: opening an existing name could follow a link, so a log
-# is written whole with put. Exit 0 done, 1 refused or failed. The body is a
-# subshell, so the cd stays in it. Each cd is `cd -P -- ./<name>`, so CDPATH
-# plays no part, and where it is is judged by in_state_dir.
+# It enters the state directory with state_cd and uses relative names only
+# from there, so a link swapped in later is never followed. put: stdin goes
+# to a new file under an unused random name, created with noclobber (O_EXCL:
+# never through a link); then whatever <name> is gets removed (rm -rf removes
+# a link, not its target) and the file renamed onto it (mv -T, or -h on BSD:
+# never into a linked directory). rm: removes <name> of any type; a missing
+# state directory is nothing to do. add: appends stdin (64 KiB at most) to a
+# regular, singly linked <name> of 1 MiB or less, or creates it, through
+# PY_APPEND; never a `>>` through a path; anything else at <name> (a link, a
+# FIFO, a hard link, a log over 1 MiB) is removed and a fresh file started.
+# Exit 0 done, 1 refused or failed.
+# The body is a subshell, so the cd stays in it.
 state_write() (
   op="$1"; name="$2"
-  case "$op" in (put|rm) ;; (*) exit 1 ;; esac
+  case "$op" in (put|rm|add) ;; (*) exit 1 ;; esac
   case "$name" in (''|.|..|*/*) exit 1 ;; esac
-  real="$(cd -P -- "$root" 2>/dev/null && /bin/pwd -P)" && cd -P -- "$real" || exit 1
-  for c in .bearing state; do
-    if [ "$op" = put ]; then mkdir "./$c" 2>/dev/null; fi
-    if [ "$op" = rm ] && [ ! -e "./$c" ] && [ ! -L "./$c" ]; then exit 0; fi
-    cd -P -- "./$c" 2>/dev/null || exit 1
-  done
-  in_state_dir "$real" || exit 1
+  state_cd "$op"; rc=$?
+  if [ "$rc" -eq 2 ] && [ "$op" = rm ]; then exit 0; fi
+  [ "$rc" -eq 0 ] || exit 1
   if [ "$op" = rm ]; then rm -r -f "./$name"; exit $?; fi
+  if [ "$op" = add ]; then
+    body="$(cat)"
+    printf '%s\n' "$body" | python3 -I -c "$PY_APPEND" "./$name" 2>/dev/null && exit 0
+    # A link, a FIFO, a hard link or an oversized log: start a fresh file.
+    rm -r -f "./$name"
+    printf '%s\n' "$body" | python3 -I -c "$PY_APPEND" "./$name" 2>/dev/null; exit $?
+  fi
   t="$(mktemp -u "./$name.XXXXXX")" || exit 1
   set -C
   if ! cat > "$t"; then rm -f "$t"; exit 1; fi
   rm -r -f "./$name"
   mv -f -T "$t" "./$name" 2>/dev/null || mv -f -h "$t" "./$name" 2>/dev/null || { rm -f "$t"; exit 1; }
+)
+
+# state_read <name>: prints <name> from .bearing/state (64 KiB at most) when
+# it is a regular file with one link, opened without following a link and
+# without blocking (PY_READ); exit 1 otherwise. A read from a hook must not
+# hand the agent a file the sandbox hides from it.
+state_read() (
+  case "$1" in (''|.|..|*/*) exit 1 ;; esac
+  state_cd read || exit 1
+  exec python3 -I -c "$PY_READ" "./$1"
 )
 
 # optin_record: .push-optin is on when an entry's key is origin's key, else
@@ -330,12 +401,272 @@ optin_record() {
   printf '%s\n' "$v" | state_write put .push-optin
 }
 
+# is_task_branch <value>: one line matching TASK_RE (a value with a newline
+# never passes, whatever its first line is).
+is_task_branch() {
+  case "$1" in (''|*"$nl"*) return 1 ;; esac
+  printf '%s\n' "$1" | grep -Eq "$TASK_RE"
+}
+nl='
+'
+
+# tgit <args>: git in the empty temporary directory (or in tgdir, the fresh
+# clone) under the cleared environment, bounded, so it reads only the system
+# and global config (the engineer's, which the sandbox and the Edit denies keep
+# from the agent) and, in the clone, the config clone wrote itself.
+tgdir=""
+tgit() { ( cd "${tgdir:-$tmp}" && bounded 10 cleanenv git "$@" ); }
+
+# transport_redirect <entry URL>: prints the first system or global git
+# setting that could send this push somewhere other than the entry, or exits
+# 1 when there is none: core.sshCommand other than ssh; a non-empty
+# core.gitProxy, http.proxy, https.proxy, http.<url>.proxy or
+# http.curloptResolve; http.sslVerify or http.<url>.sslVerify false; a
+# url.<base>.insteadOf or pushInsteadOf whose value is a prefix of the entry.
+# The environment needs no check: every git run runs under cleanenv. A config
+# git cannot read is refused too ("git config").
+transport_redirect() {
+  local e="$1" k val o keys rc
+  keys="$(tgit config --name-only --get-regexp '^(core\.(sshcommand|gitproxy)|https?\.(.*\.)?proxy|http\.(.*\.)?(sslverify|curloptresolve)|url\..*\.(push)?insteadof)$' 2>/dev/null)"
+  rc=$?
+  if [ "$rc" -gt 1 ]; then echo "git config"; return 0; fi
+  while IFS= read -r k; do
+    [ -n "$k" ] || continue
+    case "$k" in
+      (core.sshcommand) [ "$(tgit config --get "$k")" != ssh ] || continue ;;
+      (*.sslverify) [ "$(tgit config --bool --get "$k" 2>/dev/null)" = false ] || continue ;;
+      (url.*) o=1
+        while IFS= read -r val; do
+          case "$e" in ("$val"*) o=0 ;; esac
+        done <<EOF
+$(tgit config --get-all "$k")
+EOF
+        [ "$o" -eq 0 ] || continue ;;
+      (*) [ -n "$(tgit config --get "$k")" ] || continue ;;
+    esac
+    printf '%s\n' "$k"; return 0
+  done <<EOF
+$(printf '%s\n' "$keys" | sort -u)
+EOF
+  return 1
+}
+
+# redact <entry> <key>: stdin with every copy of the entry replaced by its
+# key and any user:password@ after a :// dropped, so no line brg-push writes
+# holds a token an https entry may carry.
+redact() {
+  local line
+  while IFS= read -r line || [ -n "$line" ]; do
+    if [ -n "$1" ]; then line="${line//"$1"/$2}"; fi
+    printf '%s\n' "$line"
+  done | sed 's#://[^/@[:space:]]*@#://#g'
+}
+
+utc() { date -u +%Y-%m-%dT%H:%M:%SZ; }
+
+# result <line>: the one-line push-result, written whole.
+result() { printf '%s\n' "$1" | state_write put push-result; }
+
+# log_gate <outcome> <label>: a gates.log line in the guard's format (time,
+# gate, outcome, ms, label), appended through state_write add.
+log_gate() {
+  local label
+  label="$(printf '%s' "$2" | tr '\t\r\n' '   ' | cut -c1-120)"
+  printf '%s\tpush\t%s\t%s\t%s\n' "$(date +%Y-%m-%dT%H:%M:%S)" "$1" "$(( ($(date +%s) - t0) * 1000 ))" "$label" \
+    | state_write add gates.log
+}
+
+# run_conditions: the seven conditions run judges before the clone, from
+# files only: no git command in the working repository. Sets b, sha, entry,
+# key. The request is agent-written, so the branch is judged before any use
+# and only a value that passed reaches a command line.
+run_conditions() {
+  local req envf mark ok=1 r
+  b=""; sha=""; entry=""; key=""
+  if [ ! -e "$st/push-request" ] && [ ! -L "$st/push-request" ]; then
+    cond request 1 none
+  elif ! req="$(state_read push-request)"; then
+    cond request 1 "not a regular file with one link"
+  else
+    b="$(printf '%s\n' "$req" | sed -n 's/^branch=//p')"
+    sha="$(printf '%s\n' "$req" | sed -n 's/^sha=//p')"
+    case "$sha" in
+      (*[!0-9a-f]*|'') cond request 1 "needs a branch= line and a 40-hex sha= line" ;;
+      (*) if [ "${#sha}" -eq 40 ] && [ -n "$b" ]; then cond request 0 "sha ${sha:0:7}"
+          else cond request 1 "needs a branch= line and a 40-hex sha= line"; fi ;;
+    esac
+  fi
+  if [ -z "$b" ]; then cond branch 1 "none requested"
+  elif is_task_branch "$b"; then ok=0; cond branch 0 "$b"
+  else cond branch 1 "not a task branch (feature|bugfix|hotfix|chore|docs/<ID>-<slug>)"; fi
+  if [ "$ok" -ne 0 ]; then b=""; cond not-protected 1 "no task branch to judge"
+  elif protected "$b"; then cond not-protected 1 "$b is protected"
+  else cond not-protected 0 "$b"; fi
+  if entry="$(entry_for)" && key="$(url_key "$entry")"; then cond opt-in 0 "$key"
+  else entry=""; key=""; cond opt-in 1 "origin's url is not listed in BEARING_AUTO_PUSH in the personal bearing.env"; fi
+  envf="${home:+$home/.config/bearing/bearing.env}"
+  case "$sid" in
+    (''|.*|*[!A-Za-z0-9._-]*) cond opt-in-age 1 "no usable session id" ;;
+    (*) mark="$st/.session-$sid"
+      if [ ! -f "$mark" ]; then cond opt-in-age 1 "no session mark for this session"
+      elif [ -z "$envf" ] || [ ! -f "$envf" ]; then cond opt-in-age 1 "no bearing.env"
+      elif [ "$envf" -nt "$mark" ]; then cond opt-in-age 1 "bearing.env changed during this session; it counts from the next one"
+      else cond opt-in-age 0 "bearing.env predates the session"; fi ;;
+  esac
+  if [ -f "$st/.check-passed" ]; then cond marker 0 "make check passed (judged by request and the Stop gate)"
+  else cond marker 1 "make check has never passed"; fi
+  if [ -z "$home" ]; then cond transport 1 "no passwd home"
+  elif r="$(transport_redirect "$entry")"; then cond transport 1 "$r could redirect the push (the system or global git config)"
+  else cond transport 0 "nothing in the system or global git config redirects it"; fi
+}
+
+# push_clone: the eighth condition and the push. The branch is cloned from
+# the repository path into the temporary directory (upload-pack is the only
+# git that runs there), no hook anywhere, no checkout; its HEAD must be the
+# requested sha. Then that clone pushes the one branch to the listed entry:
+# no force, no tags, never origin's configured url.
+push_clone() {
+  local head r
+  if ( cd "$tmp" && bounded 600 cleanenv git -c core.hooksPath=/dev/null clone -q --no-local --single-branch \
+         --branch "$b" --no-tags --no-checkout -- "$root" "$tmp/c" ) > "$tmp/clone.err" 2>&1; then
+    head="$( cd "$tmp" && bounded 30 cleanenv git -C "$tmp/c" rev-parse -q --verify HEAD 2>/dev/null )"
+    # The transport again, as git sees it inside the clone, where an
+    # includeIf of the global config (gitdir:, onbranch:) may apply.
+    if [ "$head" != "$sha" ]; then cond clone 1 "the branch is at ${head:0:7}, not the requested ${sha:0:7}; request again"
+    elif r="$(tgdir="$tmp/c" transport_redirect "$entry")"; then cond clone 1 "$r could redirect the push (config seen inside the clone)"
+    else cond clone 0 "HEAD is ${sha:0:7}"; fi
+  else
+    cond clone 1 "the clone failed: $(redact "$entry" "$key" < "$tmp/clone.err" | grep . | tail -1)"
+  fi
+  echo "push-run: $n conditions, $met met"
+  [ "$met" -eq "$n" ] || return 1
+  ( cd "$tmp" && bounded 600 cleanenv git -C "$tmp/c" -c core.hooksPath=/dev/null push --no-follow-tags \
+      "$entry" "HEAD:refs/heads/$b" ) > "$tmp/push.err" 2>&1
+  pushrc=$?
+  redact "$entry" "$key" < "$tmp/push.err"
+  return 0
+}
+
+# refuse: the request is deleted, so a refused request never fires later.
+refuse() {
+  state_write rm push-request
+  result "push refused: $(printf '%s' "$first" | tr '\t\r\n' '   ')"
+  log_gate refused "$first"
+  echo "bearing push: refused: $first"
+}
+
+# run_foreground: judge all eight, push, record. Output goes to the caller
+# and, redacted, to push.log.
+run_foreground() {
+  local why
+  run_conditions
+  if [ -z "$first" ]; then state_write rm push-request; fi
+  if [ -n "$first" ]; then
+    cond clone 1 "not tried"
+    echo "push-run: $n conditions, $met met"
+    # No request at all: nothing to refuse, and no result over the last one.
+    if [ -n "$b$sha" ] || [ -e "$st/push-request" ] || [ -L "$st/push-request" ]; then refuse; fi
+    return 1
+  fi
+  pushrc=1
+  push_clone || { refuse; return 1; }
+  if [ "$pushrc" -eq 0 ]; then
+    result "pushed $b $sha to $key $(utc)"
+    log_gate pushed "$b"
+    echo "bearing push: pushed $b ${sha:0:7} to $key"
+    return 0
+  fi
+  why="$(redact "$entry" "$key" < "$tmp/push.err" | tr -d '\r' | grep . | tail -1 | tr '\t' ' ')"
+  result "push failed: ${why:-git push exited $pushrc}"
+  log_gate failed "$why"
+  echo "bearing push: failed: ${why:-git push exited $pushrc}"
+  return 1
+}
+
+# run_main [--id <sid>] [--foreground]: the Stop hook's entry. Root is
+# CLAUDE_PROJECT_DIR, else the working directory; no git rev-parse. Without
+# --foreground it judges the seven conditions and, when they hold, starts the
+# foreground run detached (nohup, stdin from /dev/null, output to /dev/null:
+# nothing it inherits keeps the hook open) and returns inside the hook's
+# timeout. A .git gitfile can point the origin read and the clone source at
+# another repository; the push still goes only to a URL the engineer listed
+# (accepted, amendment ruling Q4).
+run_main() {
+  local fg=0 rc self
+  sid=""
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      (--id) sid="${2:-}"; shift; [ $# -gt 0 ] && shift ;;
+      (--foreground) fg=1; shift ;;
+      (*) usage ;;
+    esac
+  done
+  root="${CLAUDE_PROJECT_DIR:-$PWD}"
+  case "$root" in (/*) ;; (*) echo "brg-push: no absolute project directory; 0 conditions checked" >&2; exit 2 ;; esac
+  st="$root/.bearing/state"
+  t0="$(date +%s)"
+  tmp="$(mktemp -d "${TMPDIR:-/tmp}/brg-push.XXXXXX")" || { echo "brg-push: no temporary directory; 0 conditions checked" >&2; exit 2; }
+  empty="$tmp"   # origin_url reads in it; cleanup removes it and the clone
+  if [ "$fg" -eq 1 ]; then
+    run_foreground > "$tmp/out" 2>&1; rc=$?
+    cat "$tmp/out"
+    { printf '%s push run --foreground\n' "$(utc)"; redact "$entry" "$key" < "$tmp/out"; } | state_write add push.log
+    exit "$rc"
+  fi
+  run_conditions
+  echo "push-run: $n conditions before the clone, $met met"
+  if [ -n "$first" ]; then
+    if [ -n "$b$sha" ] || [ -e "$st/push-request" ] || [ -L "$st/push-request" ]; then refuse; fi
+    exit 1
+  fi
+  case "$0" in (/*) self="$0" ;; (*) self="$PWD/$0" ;; esac   # no cd: CDPATH plays no part
+  printf '%s push started for %s\n' "$(utc)" "$b" | state_write add push.log
+  CLAUDE_PROJECT_DIR="$root" nohup bash "$self" run --id "$sid" --foreground < /dev/null > /dev/null 2>&1 &
+  echo "bearing push: started for $b"
+  exit 0
+}
+
+# request_main: check, then the request (branch, HEAD sha, time) written
+# whole through state_write. Runs in the agent's Bash, in the sandbox.
+request_main() {
+  local b sha
+  check_conditions
+  echo "push-check: $n conditions, $met met"
+  [ "$n" -gt 0 ] && [ "$met" -eq "$n" ] || exit 1
+  b="$(git -C "$root" symbolic-ref -q --short HEAD)" && sha="$(git -C "$root" rev-parse -q --verify HEAD)" || exit 1
+  printf 'branch=%s\nsha=%s\ntime=%s\n' "$b" "$sha" "$(utc)" | state_write put push-request \
+    || { echo "brg-push: could not write .bearing/state/push-request" >&2; exit 1; }
+  echo "push: requested $b $(git -C "$root" rev-parse --short HEAD)"
+  exit 0
+}
+
+# status_main [--unseen]: the push-result line, or "push: none". With
+# --unseen (the hooks): "bearing push: <line>" only when it differs from the
+# line last shown, which .push-result-seen then holds. No git command when
+# the hooks pass CLAUDE_PROJECT_DIR.
+status_main() {
+  local line seen unseen=0
+  [ "${1:-}" = --unseen ] && unseen=1
+  root="${CLAUDE_PROJECT_DIR:-}"
+  if [ -z "$root" ]; then root="$(git -c core.fsmonitor=false rev-parse --show-toplevel 2>/dev/null)" || exit 0; fi
+  st="$root/.bearing/state"
+  line="$(state_read push-result 2>/dev/null | head -1)"
+  if [ "$unseen" -eq 0 ]; then echo "${line:-push: none}"; exit 0; fi
+  [ -n "$line" ] || exit 0
+  seen="$(state_read .push-result-seen 2>/dev/null | head -1)"
+  [ "$seen" != "$line" ] || exit 0
+  echo "bearing push: $line"
+  printf '%s\n' "$line" | state_write put .push-result-seen
+  exit 0
+}
+
 usage() {
   echo "usage: brg-push check | request | run --id <sid> [--foreground] | status | optin-record" >&2
   exit 2
 }
 
 cleanup() { if [ -n "$empty" ]; then rm -r -f "$empty"; fi; }
+empty=""; entry=""; key=""; b=""; sha=""; sid=""; tmp=""; t0=0; pushrc=1
 
 main() {
   local sub="${1:-}"
@@ -346,8 +677,10 @@ main() {
   case "$sub" in
     (optin-record) root="${CLAUDE_PROJECT_DIR:-$PWD}"   # no git rev-parse: outside the sandbox
       empty="$(mktemp -d "${TMPDIR:-/tmp}/brg-push.XXXXXX")" || exit 0 ;;
-    (check) root="$(git rev-parse --show-toplevel 2>/dev/null)" || {
+    (check|request) root="$(git rev-parse --show-toplevel 2>/dev/null)" || {
         echo "brg-push: not a git repository; 0 conditions checked" >&2; exit 2; } ;;
+    (run) run_main "$@" ;;
+    (status) status_main "$@" ;;
     (*) usage ;;
   esac
   st="$root/.bearing/state"
@@ -357,6 +690,7 @@ main() {
       echo "push-check: $n conditions, $met met"
       if [ "$n" -gt 0 ] && [ "$met" -eq "$n" ]; then exit 0; fi
       exit 1 ;;
+    (request) request_main ;;
     (optin-record) optin_record; exit 0 ;;
   esac
 }

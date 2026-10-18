@@ -8,6 +8,14 @@
 # subcommands (format, task-id, session, stop) are hints, not safety
 # controls, and simply do nothing on the sentinel.
 
+# Hooks run outside the sandbox. A repository's core.fsmonitor names a
+# program git runs whenever it reads the index, so every git a hook starts,
+# here or in a script it calls (brg-session, progress.py), runs as with
+# -c core.fsmonitor=false: git hands -c settings to its children through
+# GIT_CONFIG_PARAMETERS, and so does this. Last wins.
+# shellcheck disable=SC2089,SC2090 # the quotes are git's own format, kept literally
+export GIT_CONFIG_PARAMETERS="${GIT_CONFIG_PARAMETERS:+$GIT_CONFIG_PARAMETERS }'core.fsmonitor=false'"
+
 HOOK_JSON="$(cat 2>/dev/null || true)"
 BEARING_JQ_WARNED=0
 

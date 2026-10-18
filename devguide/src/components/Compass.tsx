@@ -24,7 +24,7 @@ export const EVENTS: { event: string; short: string; when: string; does: string;
     event: "PreToolUse",
     short: "Before Bash",
     when: "The model is about to run a shell command.",
-    does: "Hands the command to the guard, which takes it apart (wrappers, substitutions, heredocs, chained segments) and checks every program against 135 rules. Push, amend, rebase, deploy, publish and deletes outside the repository are refused.",
+    does: "Hands the command to the guard, which takes it apart (wrappers, substitutions, heredocs, chained segments) and checks every program against 136 rules. Push, amend, rebase, deploy, publish and deletes outside the repository are refused.",
     blocks: "Exit 2 refuses the command, and the reason goes back to the model.",
     tone: "signal",
   },

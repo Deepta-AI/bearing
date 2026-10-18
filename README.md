@@ -94,7 +94,7 @@ is the format hook in a Python repository without `ruff` on PATH, where
 `uv run ruff` lets uv install the project's own locked dependencies.
 
 **What `brg-guard` blocks.** `bash plugins/bearing/bin/brg-guard --verbs`
-prints the table: 135 rules over 54 programs, matched after wrappers such
+prints the table: 136 rules over 55 programs, matched after wrappers such
 as `env`, `sudo` and `bash -c` and any path are stripped.
 
 - git that publishes or rewrites history: `push`, `commit --amend`,
