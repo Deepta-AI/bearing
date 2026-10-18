@@ -29,6 +29,11 @@ BEARING_GUARD_VERSION="__VERSION__"
 #   brg-guard log <gate> <outcome> [label] [ms]
 #                                         append one gates.log line, never
 #                                         through a link or into a FIFO
+#   brg-guard state-write put|add <name> [cap]
+#                                         write stdin to .bearing/state/<name>
+#                                         (put: replace; add: append, rotating
+#                                         to <name>.1 over cap bytes), never
+#                                         through a link or into a FIFO
 #   brg-guard readonly "<shell command>"  exit 2 unless every program in the
 #                                         command is a read-only tool (git
 #                                         diff|log|show|status|blame|ls-files,
@@ -72,7 +77,7 @@ EOF
   export GIT_PAGER=cat
   unset GIT_EXTERNAL_DIFF
 }
-case "$sub" in (command|readonly|--verbs|--version|stats|log) ;; (*) git_lockdown ;; esac
+case "$sub" in (command|readonly|--verbs|--version|stats|log|state-write) ;; (*) git_lockdown ;; esac
 # brg-push beside this script, as an absolute path (no cd: CDPATH plays no
 # part), so it still resolves after a cd to the repository root.
 case "$0" in (/*) BRG_PUSH="${0%/*}/brg-push" ;; (*) BRG_PUSH="$PWD/$(dirname "$0")/brg-push" ;; esac
@@ -374,6 +379,74 @@ gate_log() { # gate_log <gate> <outcome> [label] [ms]
   command -v python3 >/dev/null 2>&1 || return 0
   python3 -I -S -c "$GATE_LOG_PY" "$root" "$1" "$2" "${4:-$(( $(now_ms) - GATE_T0 ))}" "${3:-}" \
     < /dev/null > /dev/null 2>&1 || true
+}
+
+# --- state files the hooks write. The precompact snapshot (here) and
+# brg-session's checkpoint and timeline are written outside the sandbox into
+# .bearing/state, the agent's to write, so they go through STATE_WRITE_PY,
+# the same opens as GATE_LOG_PY: .bearing and state each opened O_NOFOLLOW
+# from the one before (a linked directory is refused). put: stdin goes to a
+# new file under a random name created O_EXCL|O_NOFOLLOW, then renamed onto
+# <name> (a rename replaces a link or FIFO there, never writes through it).
+# add: <name> is moved to <name>.1 once over [cap] bytes, then opened
+# O_APPEND|O_NOFOLLOW|O_NONBLOCK and kept only as a regular file with one
+# link, else removed and started afresh. <name> is one plain file name.
+# `brg-guard state-write put|add <name> [cap]` is the same write for
+# brg-session. Without python3 nothing is written.
+STATE_WRITE_PY='import os, sys
+root, mode, name = sys.argv[1:4]
+cap = int(sys.argv[4]) if len(sys.argv) > 4 and sys.argv[4].isdigit() else 0
+if mode not in ("put", "add") or not name or "/" in name or name in (".", ".."):
+    sys.exit(1)
+data = sys.stdin.buffer.read(1048576)
+DIR = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW
+def write_all(fd):
+    view = memoryview(data)
+    while view:
+        view = view[os.write(fd, view):]
+    os.close(fd)
+def opened(d):
+    fd = os.open(name, os.O_WRONLY | os.O_APPEND | os.O_CREAT | os.O_NOFOLLOW | os.O_NONBLOCK, 0o644, dir_fd=d)
+    st = os.fstat(fd)
+    if st.st_mode & 0o170000 != 0o100000 or st.st_nlink != 1:
+        os.close(fd)
+        raise OSError("not a regular file with one link")
+    return fd
+try:
+    d = os.open(".bearing", DIR, dir_fd=os.open(root, os.O_RDONLY | os.O_DIRECTORY))
+    try:
+        os.mkdir("state", 0o755, dir_fd=d)
+    except FileExistsError:
+        pass
+    d = os.open("state", DIR, dir_fd=d)
+    if mode == "put":
+        tmp = ".%s.%s.tmp" % (name[:64], os.urandom(8).hex())
+        write_all(os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o644, dir_fd=d))
+        try:
+            os.rename(tmp, name, src_dir_fd=d, dst_dir_fd=d)
+        except OSError:
+            os.unlink(tmp, dir_fd=d)
+            sys.exit(1)
+    else:
+        try:
+            if cap and os.stat(name, dir_fd=d, follow_symlinks=False).st_size > cap:
+                os.rename(name, name + ".1", src_dir_fd=d, dst_dir_fd=d)
+        except FileNotFoundError:
+            pass
+        try:
+            fd = opened(d)
+        except OSError:
+            os.unlink(name, dir_fd=d)
+            fd = opened(d)
+        write_all(fd)
+except OSError:
+    sys.exit(1)
+'
+state_write() { # state_write put|add <name> [cap] < content
+  local root
+  root="$(bearing_root)" || return 1
+  command -v python3 >/dev/null 2>&1 || return 1
+  python3 -I -S -c "$STATE_WRITE_PY" "$root" "$1" "$2" "${3:-0}" > /dev/null 2>&1
 }
 
 load_rules() {
@@ -1795,7 +1868,7 @@ esac
       done
     fi
     snap="$root/.bearing/state/$(printf '%s' "$branch" | tr '/' '_').compact.md"
-    if [ "$source" = "compact" ] && [ -f "$snap" ]; then
+    if [ "$source" = "compact" ] && [ -f "$snap" ] && [ ! -L "$snap" ]; then
       echo "The context was just summarised. What stood before it (${snap#"$root"/}):"
       head -60 "$snap"
     fi
@@ -1880,8 +1953,8 @@ EOF
     [ -d "$root/.bearing" ] || exit 0
     branch="$(git -C "$root" branch --show-current 2>/dev/null)"
     task="$(printf '%s' "$branch" | grep -oE '[A-Z][A-Z0-9]*(-[0-9]+)+' | head -1)"
-    mkdir -p "$root/.bearing/state"
-    snap="$root/.bearing/state/$(printf '%s' "${branch:-detached}" | tr '/' '_').compact.md"
+    snapname="$(printf '%s' "${branch:-detached}" | tr '/' '_').compact.md"
+    snap="$root/.bearing/state/$snapname"
     base="$(git -C "$root" rev-parse -q --verify origin/HEAD 2>/dev/null || git -C "$root" rev-parse -q --verify main 2>/dev/null || git -C "$root" rev-parse -q --verify master 2>/dev/null)"
     marker="$root/.bearing/state/.check-passed"
     {
@@ -1909,13 +1982,18 @@ EOF
           printf '%s\n' "$asks" | while IFS= read -r line; do printf -- '- %s\n' "$(printf '%s' "$line" | jq -r '.')"; done
         fi
       fi
-    } > "$snap.tmp" && mv "$snap.tmp" "$snap"
+    } | ( cd "$root" && state_write put "$snapname" ) || { gate_log precompact failed; exit 0; }
     echo "bearing: compaction snapshot written to ${snap#"$root"/}"
     gate_log precompact written
     exit 0;;
   log)
     [ -n "${1:-}" ] && [ -n "${2:-}" ] || { echo "brg-guard log: a gate and an outcome are required" >&2; exit 1; }
     gate_log "$1" "$2" "${3:-}" "${4:-0}"
+    exit 0;;
+  state-write)
+    case "${1:-}" in (put|add) ;; (*) echo "brg-guard state-write: put or add, and a file name, are required" >&2; exit 1;; esac
+    case "${2:-}" in (''|.|..|*/*) echo "brg-guard state-write: one plain file name under .bearing/state is required" >&2; exit 1;; esac
+    state_write "$1" "$2" "${3:-0}" || { echo "brg-guard state-write: ${2} not written (a link, a FIFO, no .bearing or no python3)" >&2; exit 1; }
     exit 0;;
   stats)
     root="$(bearing_root)" || { echo "brg-guard stats: not a Bearing repository (no .bearing/), nothing logged" >&2; exit 1; }

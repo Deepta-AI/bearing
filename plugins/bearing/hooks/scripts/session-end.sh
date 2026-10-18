@@ -20,6 +20,8 @@ task="$(task_id_from_branch)"; [ -n "$task" ] || skip "no task id on branch"
 kit="$(dirname "$0")/../.."
 bash "$kit/bin/brg-session" checkpoint >/dev/null 2>&1
 cpf="$root/.bearing/state/$(printf '%s' "$branch" | tr '/' '_').checkpoint.md"
+# read only a regular file, never a link or a FIFO planted at the name
+{ [ -f "$cpf" ] && [ ! -L "$cpf" ]; } || skip "no checkpoint"
 nxt="$(sed -n 's/^Next (from state file): //p' "$cpf" 2>/dev/null)"
 if [ -z "$nxt" ] || [ "$nxt" = none ]; then nxt="$(sed -n 's/^Next flow step: //p' "$cpf" 2>/dev/null)"; fi
 if [ -z "$nxt" ] || [ "$nxt" = none ] || [ "$nxt" = unknown ]; then skip "no next step"; fi

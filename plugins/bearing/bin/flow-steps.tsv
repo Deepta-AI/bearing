@@ -1,119 +1,119 @@
-greenfield	1	office-hours
-greenfield	2	prd
-greenfield	3	backlog
-greenfield	4	estimate
-greenfield	5	tech-decision
-greenfield	6	high-level-design
-greenfield	7	architecture-diagram
-greenfield	8	plan-eng-review
-greenfield	9	ux-flows
-greenfield	10	design-directions
-greenfield	11	design-system
-greenfield	12	screen-design
-greenfield	13	design-critique
-greenfield	14	genai-design
-greenfield	15	llm-guardrails
-greenfield	16	llm-eval
-greenfield	17	data-model
-greenfield	18	openapi-spec
-greenfield	19	threat-model
-greenfield	20	low-level-design
-greenfield	21	new-repo
-greenfield	22	observability
-greenfield	23	tracker-sync
-greenfield	24	gsd-new-project
-greenfield	25	test-run
-greenfield	26	branch-review
-greenfield	27	load-test
-greenfield	28	resilience-testing
-greenfield	29	claude-security
-greenfield	30	vapt-report
-greenfield	31	release
-greenfield	32	runbook
-greenfield	33	canary
-bugfix	1	start-task
-bugfix	2	incident
-bugfix	3	diagnosing-bugs
-bugfix	4	systematic-debugging
-bugfix	5	test-driven-development
-bugfix	6	test-run
-bugfix	7	branch-review
-bugfix	8	cso
-bugfix	9	definition-of-done
-bugfix	10	merge-request
-bugfix	11	postmortem
-feature	1	start-task
-feature	2	explain-codebase
-feature	3	brainstorming
-feature	4	ux-flows
-feature	5	screen-design
-feature	6	tech-decision
-feature	7	openapi-spec
-feature	8	data-model
-feature	9	db-migration
-feature	10	low-level-design
-feature	11	feature-flags
-feature	12	analytics-events
-feature	13	genai-design
-feature	14	llm-guardrails
-feature	15	llm-eval
-feature	16	writing-plans
-feature	17	plan-eng-review
-feature	18	test-cases
-feature	19	test-driven-development
-feature	20	test-automation
-feature	21	test-run
-feature	22	qa
-feature	23	load-test
-feature	24	branch-review
-feature	25	cso
-feature	26	definition-of-done
-feature	27	merge-request
-feature	28	canary
-genai	1	start-task
-genai	2	genai-design
-genai	3	tech-decision
-genai	4	llm-eval
-genai	5	dataset-generation
-genai	6	rag
-genai	7	llm-agent
-genai	8	mcp-server
-genai	9	speech
-genai	10	computer-vision
-genai	11	tabular-ml
-genai	12	llm-fine-tuning
-genai	13	prompt-registry
-genai	14	llm-gateway
-genai	15	model-routing
-genai	16	llm-guardrails
-genai	17	test-cases
-genai	18	test-automation
-genai	19	test-run
-genai	20	definition-of-done
-genai	21	branch-review
-genai	22	merge-request
-inherited	1	onboard-repo
-inherited	2	explain-codebase
-inherited	3	architecture-diagram
-inherited	4	docs-drift
-inherited	5	test-run
-inherited	6	refactor
-inherited	7	dependency-audit
-inherited	8	tech-debt
-site	1	start-task
-site	2	brainstorming
-site	3	new-repo
-site	4	design-directions
-site	5	design-system
-site	6	screen-design
-site	7	nextjs
-site	8	analytics-events
-site	9	privacy-review
-site	10	test-run
-site	11	accessibility
-site	12	performance
-site	13	design-critique
-site	14	branch-review
-site	15	definition-of-done
-site	16	merge-request
-site	17	verify-deploy
+greenfield	1	office-hours	branch
+greenfield	2	prd	step
+greenfield	3	backlog	step
+greenfield	4	estimate	step
+greenfield	5	tech-decision	step
+greenfield	6	high-level-design	step
+greenfield	7	architecture-diagram	step
+greenfield	8	plan-eng-review	step
+greenfield	9	ux-flows	branch
+greenfield	10	design-directions	branch
+greenfield	11	design-system	branch
+greenfield	12	screen-design	branch
+greenfield	13	design-critique	branch
+greenfield	14	genai-design	branch
+greenfield	15	llm-guardrails	branch
+greenfield	16	llm-eval	branch
+greenfield	17	data-model	step
+greenfield	18	openapi-spec	step
+greenfield	19	threat-model	step
+greenfield	20	low-level-design	step
+greenfield	21	new-repo	step
+greenfield	22	observability	step
+greenfield	23	tracker-sync	step
+greenfield	24	gsd-new-project	step
+greenfield	25	test-run	step
+greenfield	26	branch-review	step
+greenfield	27	load-test	branch
+greenfield	28	resilience-testing	branch
+greenfield	29	claude-security	step
+greenfield	30	vapt-report	step
+greenfield	31	release	step
+greenfield	32	runbook	step
+greenfield	33	canary	step
+bugfix	1	start-task	step
+bugfix	2	incident	branch
+bugfix	3	diagnosing-bugs	branch
+bugfix	4	systematic-debugging	branch
+bugfix	5	test-driven-development	step
+bugfix	6	test-run	step
+bugfix	7	branch-review	step
+bugfix	8	cso	branch
+bugfix	9	definition-of-done	step
+bugfix	10	merge-request	step
+bugfix	11	postmortem	branch
+feature	1	start-task	step
+feature	2	explain-codebase	step
+feature	3	brainstorming	branch
+feature	4	ux-flows	branch
+feature	5	screen-design	branch
+feature	6	tech-decision	branch
+feature	7	openapi-spec	branch
+feature	8	data-model	branch
+feature	9	db-migration	branch
+feature	10	low-level-design	branch
+feature	11	feature-flags	branch
+feature	12	analytics-events	branch
+feature	13	genai-design	branch
+feature	14	llm-guardrails	branch
+feature	15	llm-eval	branch
+feature	16	writing-plans	step
+feature	17	plan-eng-review	step
+feature	18	test-cases	step
+feature	19	test-driven-development	step
+feature	20	test-automation	step
+feature	21	test-run	step
+feature	22	qa	branch
+feature	23	load-test	branch
+feature	24	branch-review	step
+feature	25	cso	branch
+feature	26	definition-of-done	step
+feature	27	merge-request	step
+feature	28	canary	step
+genai	1	start-task	step
+genai	2	genai-design	step
+genai	3	tech-decision	branch
+genai	4	llm-eval	step
+genai	5	dataset-generation	branch
+genai	6	rag	branch
+genai	7	llm-agent	branch
+genai	8	mcp-server	branch
+genai	9	speech	branch
+genai	10	computer-vision	branch
+genai	11	tabular-ml	branch
+genai	12	llm-fine-tuning	branch
+genai	13	prompt-registry	step
+genai	14	llm-gateway	step
+genai	15	model-routing	step
+genai	16	llm-guardrails	step
+genai	17	test-cases	step
+genai	18	test-automation	step
+genai	19	test-run	step
+genai	20	definition-of-done	step
+genai	21	branch-review	step
+genai	22	merge-request	step
+inherited	1	onboard-repo	step
+inherited	2	explain-codebase	step
+inherited	3	architecture-diagram	step
+inherited	4	docs-drift	step
+inherited	5	test-run	branch
+inherited	6	refactor	step
+inherited	7	dependency-audit	step
+inherited	8	tech-debt	step
+site	1	start-task	step
+site	2	brainstorming	step
+site	3	new-repo	branch
+site	4	design-directions	step
+site	5	design-system	branch
+site	6	screen-design	step
+site	7	nextjs	step
+site	8	analytics-events	branch
+site	9	privacy-review	branch
+site	10	test-run	step
+site	11	accessibility	step
+site	12	performance	step
+site	13	design-critique	step
+site	14	branch-review	step
+site	15	definition-of-done	step
+site	16	merge-request	step
+site	17	verify-deploy	step

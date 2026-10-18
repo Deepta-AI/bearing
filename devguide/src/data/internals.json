@@ -5,12 +5,12 @@
   "commandSkills": 0,
   "stackSkills": 12,
   "scripts": 99,
-  "scriptLines": 33133,
+  "scriptLines": 33230,
   "hooks": 8,
   "agents": 8,
   "makeTargets": 32,
   "gates": 19,
-  "tests": 114,
+  "tests": 115,
   "fixtures": 25,
   "stacks": 13,
   "templates": 38,
@@ -15093,6 +15093,7 @@
     "Bash(wc -l)",
     "Bash(bash *bin/brg-state-path*)",
     "Bash(bash *bin/brg-session*)",
+    "Bash(bash *bin/brg-config*)",
     "Bash(bash *bin/brg-learn*)",
     "Bash(python3 *skills/session-handoff/scripts/progress.py*)"
    ],
@@ -15105,7 +15106,7 @@
     },
     {
      "title": "Inputs",
-     "lines": 30
+     "lines": 36
     },
     {
      "title": "Steps",
@@ -15127,6 +15128,7 @@
     "Base: the default branch is `origin/HEAD` (usually `origin/main`), not the local `main`, which may never have been pulled.",
     "Stack: `package.json`, `go.mod`, `pyproject.toml`, `app.json`, `build.gradle.kts`, `Package.swift`, `*.tf`; if none, `unknown`.",
     "Task id: from the branch name (`[A-Z][A-Z0-9]*(-[0-9]+)+`).",
+    "Flow, read before picking one: `bash \"${CLAUDE_PLUGIN_ROOT}/bin/brg-config\" get flow`. `site` means the site flow on every branch but a fix branch (bugfix); empty means choose from the branch and the request. The next flow step is `bash \"${CLAUDE_PLUGIN_ROOT}/bin/brg-session\" next-step`, which skips `new-repo` once the repository has commits and `design-system` once `docs/design/tokens.json` exists.",
     "Handoff: `.bearing/state/<branch with / as _>.md` (`bash \"${CLAUDE_PLUGIN_ROOT}/bin/brg-state-path\"` prints it); local to this machine, often newer than the committed record.",
     "Progress records: `python3 \"${CLAUDE_PLUGIN_ROOT}/skills/session-handoff/scripts/progress.py\" index --refs` reads `docs/progress/*.md` from every local and remote-tracking branch and keeps the newest per task. It reports what the records say, nothing more: it does not know a branch was merged, a blocker was resolved or a test exists. Exit 1 with \"0 progress files\" means none recorded, not nothing in flight.",
     "Gate: a Makefile `check` target. Read it with `make -n check` first; run `make check` when it only builds and tests (no formatter writing files, no network, no containers). If it would write or cannot run here, say \"not run\" and why. Never say a gate passed without running it."
@@ -15135,7 +15137,7 @@
     "Detect the state in one batch as in Inputs. Note the date of the newest commit on any ref: \"stale\" is measured against that, not the clock.",
     "One task (a resume, \"where did I leave X\", \"can I open the MR\"): a. Read the handoff and `docs/progress/<ID>.md`. List every claim they make: each Done item, each test named, the status, the Next. b. Diff the branch against its base: `git diff <base>...HEAD --stat` for committed work, `git status` and `git diff` for uncommitted. Where the base is behind `origin/main`, list what `origin/main` gained (`git log HEAD..o…",
     "The team (\"what is in flight\", standup): list every task from the index, every branch named for a task, and every task named in a merge commit on `origin/main`, then reconcile each: - merged: its branch is in `git branch -r --merged origin/main` or a merge commit names it; closed, whatever its record says; - newer elsewhere: the origin copy of a record beats a local branch that is behind it; the index already prefer…",
-    "Place the work on the map by asking, in order: is there a repository; a task branch; a clear request; a plan; code; do the criteria hold in the code; does the gate pass; is the branch current with `origin/main`; is there an MR. The first \"no\" is the stage.",
+    "Place the work on the recorded flow's map by asking, in order: is there a repository; a task branch; a clear request; a plan; code; do the criteria hold in the code; does the gate pass; is the branch current with `origin/main`; is there an MR. The first \"no\" is the stage.",
     "Write the answer. Change nothing: no record corrected, no rebase, no stash, no commit, no fetch. Name the skill for each next step; do not run it."
    ],
    "output": "Lead with the answer to the question asked, in the user's terms, then the evidence, then the next steps. No preamble, no command log.",
@@ -15148,11 +15150,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 192,
+   "lines": 198,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 192
+     "lines": 198
     },
     {
      "path": "references/agent-split.md",
@@ -15506,8 +15508,8 @@
    "name": "brg-guard",
    "lang": "bash",
    "group": "guard",
-   "lines": 1951,
-   "header": "brg-guard: the harness-neutral guard logic behind every hook adapter.\n\n  brg-guard command \"<shell command>\"   exit 2 and a message when the command\n                                        publishes, rewrites history, deploys\n                                        or destroys; exit 2 when the command\n                                        cannot be read (fail closed)\n  brg-guard format <file>               format one file with an allow-listed\n                                        formatter from fixed directories, in\n                                        a cleared environment\n  brg-guard task-id [\"<prompt>\"]        print \"Task: <ID> ...\" when the branch\n                                        carries a ticket id the prompt lacks\n  brg-guard session                     print branch, task, changes, handoff state\n  brg-guard stop                        print a reminder when changes are unchecked\n  brg-guard stop-gate --id <session> [--active]\n                                        exit 2 (reason on stderr) when files\n                                        changed in this session since make\n                                        check last passed; --active (the\n                                        harness already continued once) only\n                                        reminds, so it never loops\n  brg-guard check-file <file>           print that no hook runs the per-file\n                                        check (make check-file runs in the\n                                        session); exit 0\n  brg-guard precompact [<transcript>]   write .bearing/state/<branch>.compact.md\n  brg-guard session [--id <session>] [--source startup|resume|compact]\n  brg-guard stats                       what the gates decided here, how often\n                                        and at what cost (.bearing/state/gates.log)\n  brg-guard log <gate> <outcome> [label] [ms]\n                                        append one gates.log line, never\n                                        through a link or into a FIFO\n  brg-guard readonly \"<shell command>\"  exit 2 unless every program in the\n                                        command is a read-only tool (git\n                                        diff|log|show|status|blame|ls-files,\n                                        ls, cat, grep, rg, find without -exec,\n                                        sed without -i, jq and similar);\n                                        used by the read-only subagents\n  brg-guard --verbs                     the blocked verb table (tool, pattern,\n                                        label; tab-separated) for generators\n  brg-guard --version                   the version stamp\n\nClaude Code hooks, Cursor hooks and any other harness adapter call these\nsubcommands and translate their own event JSON into arguments. One logic,\none behaviour on every harness. Runs on bash 3.2 (macOS) and needs no tool\nbeyond git for the session subcommands.",
+   "lines": 2029,
+   "header": "brg-guard: the harness-neutral guard logic behind every hook adapter.\n\n  brg-guard command \"<shell command>\"   exit 2 and a message when the command\n                                        publishes, rewrites history, deploys\n                                        or destroys; exit 2 when the command\n                                        cannot be read (fail closed)\n  brg-guard format <file>               format one file with an allow-listed\n                                        formatter from fixed directories, in\n                                        a cleared environment\n  brg-guard task-id [\"<prompt>\"]        print \"Task: <ID> ...\" when the branch\n                                        carries a ticket id the prompt lacks\n  brg-guard session                     print branch, task, changes, handoff state\n  brg-guard stop                        print a reminder when changes are unchecked\n  brg-guard stop-gate --id <session> [--active]\n                                        exit 2 (reason on stderr) when files\n                                        changed in this session since make\n                                        check last passed; --active (the\n                                        harness already continued once) only\n                                        reminds, so it never loops\n  brg-guard check-file <file>           print that no hook runs the per-file\n                                        check (make check-file runs in the\n                                        session); exit 0\n  brg-guard precompact [<transcript>]   write .bearing/state/<branch>.compact.md\n  brg-guard session [--id <session>] [--source startup|resume|compact]\n  brg-guard stats                       what the gates decided here, how often\n                                        and at what cost (.bearing/state/gates.log)\n  brg-guard log <gate> <outcome> [label] [ms]\n                                        append one gates.log line, never\n                                        through a link or into a FIFO\n  brg-guard state-write put|add <name> [cap]\n                                        write stdin to .bearing/state/<name>\n                                        (put: replace; add: append, rotating\n                                        to <name>.1 over cap bytes), never\n                                        through a link or into a FIFO\n  brg-guard readonly \"<shell command>\"  exit 2 unless every program in the\n                                        command is a read-only tool (git\n                                        diff|log|show|status|blame|ls-files,\n                                        ls, cat, grep, rg, find without -exec,\n                                        sed without -i, jq and similar);\n                                        used by the read-only subagents\n  brg-guard --verbs                     the blocked verb table (tool, pattern,\n                                        label; tab-separated) for generators\n  brg-guard --version                   the version stamp\n\nClaude Code hooks, Cursor hooks and any other harness adapter call these\nsubcommands and translate their own event JSON into arguments. One logic,\none behaviour on every harness. Runs on bash 3.2 (macOS) and needs no tool\nbeyond git for the session subcommands.",
    "functions": [
     "git_lockdown",
     "verb_table",
@@ -15518,6 +15520,7 @@
     "bearing_root",
     "guard_gate",
     "gate_log",
+    "state_write",
     "load_rules",
     "is_table_tool",
     "sq",
@@ -15919,10 +15922,12 @@
    "name": "brg-session",
    "lang": "bash",
    "group": "quality",
-   "lines": 146,
+   "lines": 160,
    "header": "brg-session: session memory for Bearing, all local and model-free.\n  timeline-start --id <sid> --skill <name>   record a skill start (ends the open one)\n  timeline-close --id <sid>                   end the open skill of this session\n  timeline-recent [--branch <b>] [--n <k>]    last k ended skills on the branch\n  not-run --skill <reason>                    log `timeline not-run <reason>` to gates.log\n  checkpoint                                  write .bearing/state/<branch>.checkpoint.md\n  next-step                                   the next flow step after the timeline\n  resume [--source startup|resume|compact]    the block SessionStart prints\nRuns on bash 3.2; needs git; uses jq when present. Exit 0 always.",
    "functions": [
     "glog",
+    "swrite",
+    "rf",
     "esc",
     "skill_of",
     "event",
@@ -16095,8 +16100,8 @@
    "name": "gen-flow-steps.py",
    "lang": "python",
    "group": "generators",
-   "lines": 44,
-   "header": "gen-flow-steps: docs/flows.json -> plugins/bearing/bin/flow-steps.tsv.\n\nOne line per skill step, depth first through branch options in file order,\nso brg-session can tell the next step without shipping the whole handbook.",
+   "lines": 47,
+   "header": "gen-flow-steps: docs/flows.json -> plugins/bearing/bin/flow-steps.tsv.\n\nOne line per skill step, depth first through branch options in file order,\nso brg-session can tell the next step without shipping the whole handbook:\nflow, order, skill, and \"branch\" for a step inside a branch option (taken\nonly on one answer, so brg-session may skip it when its condition already\nholds) or \"step\" for one on the main line.",
    "functions": [
     "bare",
     "walk",
@@ -16494,7 +16499,7 @@
    "name": "session-end.sh",
    "lang": "bash",
    "group": "hooks",
-   "lines": 59,
+   "lines": 61,
    "header": "SessionEnd: refresh docs/progress/<ID>.md from the checkpoint so a teammate\nsees where this task stands after the engineer commits and pushes. Never\ncommits. Branches without a task id are left alone. Always exits 0; a skip\nor failure is logged as `session-end not-run <reason>` when a state dir exists.",
    "functions": [
     "skip"
@@ -17705,7 +17710,7 @@
     "log",
     "skip"
    ],
-   "body": "#!/usr/bin/env bash\n# SessionEnd: refresh docs/progress/<ID>.md from the checkpoint so a teammate\n# sees where this task stands after the engineer commits and pushes. Never\n# commits. Branches without a task id are left alone. Always exits 0; a skip\n# or failure is logged as `session-end not-run <reason>` when a state dir exists.\nset -u\n# shellcheck source=lib.sh\n. \"$(dirname \"$0\")/lib.sh\"\nroot=\"$(repo_root)\" || exit 0\n[ -n \"$root\" ] || exit 0\n[ -d \"$root/.bearing\" ] || exit 0\nguard=\"$(cd \"$(dirname \"$0\")/../../bin\" && pwd)/brg-guard\"\nskip() { # skip <reason>: a gates.log line through brg-guard log (never through a link or into a FIFO)\n  [ -d \"$root/.bearing/state\" ] || exit 0\n  ( cd \"$root\" && bash \"$guard\" log session-end not-run \"$1\" ) >/dev/null 2>&1\n  exit 0\n}\nbranch=\"$(current_branch)\"\ntask=\"$(task_id_from_branch)\"; [ -n \"$task\" ] || skip \"no task id on branch\"\nkit=\"$(dirname \"$0\")/../..\"\nbash \"$kit/bin/brg-session\" checkpoint >/dev/null 2>&1\ncpf=\"$root/.bearing/state/$(printf '%s' \"$branch\" | tr '/' '_').checkpoint.md\"\nnxt=\"$(sed -n 's/^Next (from state file): //p' \"$cpf\" 2>/dev/null)\"\nif [ -z \"$nxt\" ] || [ \"$nxt\" = none ]; then nxt=\"$(sed -n 's/^Next flow step: //p' \"$cpf\" 2>/dev/null)\"; fi\nif [ -z \"$nxt\" ] || [ \"$nxt\" = none ] || [ \"$nxt\" = unknown ]; then skip \"no next step\"; fi\ncd \"$root\" || skip \"cannot enter repo root\"\npf=\"docs/progress/$task.md\"\nmark=\"$root/.bearing/state/$(printf '%s' \"$branch\" | tr '/' '_').progress-next\"\nif [ -f \"$pf\" ]; then\n  status=\"$(sed -n 's/^- Status: *//p' \"$pf\" | head -1)\"\n  case \"$status\" in merged|abandoned) skip \"closed task\";; esac\n  cur=\"$(awk '/^## Next/{f=1;next} /^## /{f=0} f && !/^<!--/ && NF {sub(/^- /,\"\"); print; exit}' \"$pf\")\"\n  last=\"$(cat \"$mark\" 2>/dev/null)\"\n  # keep a person-written Next: overwrite only a placeholder or our own last value\n  case \"$cur\" in ''|none|unknown) ;; *) [ \"$cur\" = \"$last\" ] || exit 0;; esac\nfi\n# progress.py re-renders from the template, so a line a person added outside\n# its fields would be lost. Rehearse the write on a copy first; if any\n# non-empty line (other than the Next items, Branch and Updated, which the\n# write replaces) is missing from the result, leave the file alone.\nif [ -f \"$pf\" ]; then\n  tmp=\"$(mktemp -d \"${TMPDIR:-/tmp}/brg-progress.XXXXXX\")\" || skip \"cannot make a temp dir\"\n  mkdir -p \"$tmp/docs/progress\" && cp \"$pf\" \"$tmp/$pf\" || { rm -rf \"$tmp\"; skip \"cannot copy progress file\"; }\n  if ! python3 \"$kit/skills/session-handoff/scripts/progress.py\" write --root \"$tmp\" --task \"$task\" --branch \"$branch\" --next \"$nxt\" >/dev/null 2>&1; then\n    rm -rf \"$tmp\"; skip \"progress.py write failed\"\n  fi\n  lost=0\n  while IFS= read -r line; do\n    grep -qxF -- \"$line\" \"$tmp/$pf\" || { lost=1; break; }\n  done <<EOF\n$(awk '/^## /{nx=($0 ~ /^## Next[[:space:]]*$/)} nx && !/^## / {next} /^- (Updated|Branch):/ {next} NF' \"$pf\")\nEOF\n  rm -rf \"$tmp\"\n  [ \"$lost\" -eq 0 ] || skip \"would drop lines\"\nfi\npython3 \"$kit/skills/session-handoff/scripts/progress.py\" write --task \"$task\" --branch \"$branch\" --next \"$nxt\" >/dev/null 2>&1 \\\n  || skip \"progress.py write failed\"\nprintf '%s\\n' \"$nxt\" > \"$mark.tmp\" && mv \"$mark.tmp\" \"$mark\"\nexit 0"
+   "body": "#!/usr/bin/env bash\n# SessionEnd: refresh docs/progress/<ID>.md from the checkpoint so a teammate\n# sees where this task stands after the engineer commits and pushes. Never\n# commits. Branches without a task id are left alone. Always exits 0; a skip\n# or failure is logged as `session-end not-run <reason>` when a state dir exists.\nset -u\n# shellcheck source=lib.sh\n. \"$(dirname \"$0\")/lib.sh\"\nroot=\"$(repo_root)\" || exit 0\n[ -n \"$root\" ] || exit 0\n[ -d \"$root/.bearing\" ] || exit 0\nguard=\"$(cd \"$(dirname \"$0\")/../../bin\" && pwd)/brg-guard\"\nskip() { # skip <reason>: a gates.log line through brg-guard log (never through a link or into a FIFO)\n  [ -d \"$root/.bearing/state\" ] || exit 0\n  ( cd \"$root\" && bash \"$guard\" log session-end not-run \"$1\" ) >/dev/null 2>&1\n  exit 0\n}\nbranch=\"$(current_branch)\"\ntask=\"$(task_id_from_branch)\"; [ -n \"$task\" ] || skip \"no task id on branch\"\nkit=\"$(dirname \"$0\")/../..\"\nbash \"$kit/bin/brg-session\" checkpoint >/dev/null 2>&1\ncpf=\"$root/.bearing/state/$(printf '%s' \"$branch\" | tr '/' '_').checkpoint.md\"\n# read only a regular file, never a link or a FIFO planted at the name\n{ [ -f \"$cpf\" ] && [ ! -L \"$cpf\" ]; } || skip \"no checkpoint\"\nnxt=\"$(sed -n 's/^Next (from state file): //p' \"$cpf\" 2>/dev/null)\"\nif [ -z \"$nxt\" ] || [ \"$nxt\" = none ]; then nxt=\"$(sed -n 's/^Next flow step: //p' \"$cpf\" 2>/dev/null)\"; fi\nif [ -z \"$nxt\" ] || [ \"$nxt\" = none ] || [ \"$nxt\" = unknown ]; then skip \"no next step\"; fi\ncd \"$root\" || skip \"cannot enter repo root\"\npf=\"docs/progress/$task.md\"\nmark=\"$root/.bearing/state/$(printf '%s' \"$branch\" | tr '/' '_').progress-next\"\nif [ -f \"$pf\" ]; then\n  status=\"$(sed -n 's/^- Status: *//p' \"$pf\" | head -1)\"\n  case \"$status\" in merged|abandoned) skip \"closed task\";; esac\n  cur=\"$(awk '/^## Next/{f=1;next} /^## /{f=0} f && !/^<!--/ && NF {sub(/^- /,\"\"); print; exit}' \"$pf\")\"\n  last=\"$(cat \"$mark\" 2>/dev/null)\"\n  # keep a person-written Next: overwrite only a placeholder or our own last value\n  case \"$cur\" in ''|none|unknown) ;; *) [ \"$cur\" = \"$last\" ] || exit 0;; esac\nfi\n# progress.py re-renders from the template, so a line a person added outside\n# its fields would be lost. Rehearse the write on a copy first; if any\n# non-empty line (other than the Next items, Branch and Updated, which the\n# write replaces) is missing from the result, leave the file alone.\nif [ -f \"$pf\" ]; then\n  tmp=\"$(mktemp -d \"${TMPDIR:-/tmp}/brg-progress.XXXXXX\")\" || skip \"cannot make a temp dir\"\n  mkdir -p \"$tmp/docs/progress\" && cp \"$pf\" \"$tmp/$pf\" || { rm -rf \"$tmp\"; skip \"cannot copy progress file\"; }\n  if ! python3 \"$kit/skills/session-handoff/scripts/progress.py\" write --root \"$tmp\" --task \"$task\" --branch \"$branch\" --next \"$nxt\" >/dev/null 2>&1; then\n    rm -rf \"$tmp\"; skip \"progress.py write failed\"\n  fi\n  lost=0\n  while IFS= read -r line; do\n    grep -qxF -- \"$line\" \"$tmp/$pf\" || { lost=1; break; }\n  done <<EOF\n$(awk '/^## /{nx=($0 ~ /^## Next[[:space:]]*$/)} nx && !/^## / {next} /^- (Updated|Branch):/ {next} NF' \"$pf\")\nEOF\n  rm -rf \"$tmp\"\n  [ \"$lost\" -eq 0 ] || skip \"would drop lines\"\nfi\npython3 \"$kit/skills/session-handoff/scripts/progress.py\" write --task \"$task\" --branch \"$branch\" --next \"$nxt\" >/dev/null 2>&1 \\\n  || skip \"progress.py write failed\"\nprintf '%s\\n' \"$nxt\" > \"$mark.tmp\" && mv \"$mark.tmp\" \"$mark\"\nexit 0"
   },
   {
    "event": "Stop",
@@ -18939,9 +18944,16 @@
   {
    "path": "tests/unit/session_resume.sh",
    "kind": "unit",
-   "lines": 181,
+   "lines": 235,
    "header": "tests/unit/session_resume.sh: next step from the timeline and the resume block, with and without a task id; a Next: in the state file wins.",
-   "asserts": 50
+   "asserts": 68
+  },
+  {
+   "path": "tests/unit/session_state_nofollow.sh",
+   "kind": "unit",
+   "lines": 116,
+   "header": "tests/unit/session_state_nofollow.sh: the precompact snapshot and brg-session's checkpoint and timeline writes run from hooks, outside the sandbox, into .bearing/state, which the agent can write. So none of them writes through a planted link (at the name, at a temporary name or at the state directory), through a hard link, or blocks on a FIFO; the timeline still rotates past its size cap. bash 3.2 safe.",
+   "asserts": 26
   },
   {
    "path": "tests/unit/session_timeline.sh",

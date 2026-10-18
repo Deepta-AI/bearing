@@ -178,4 +178,58 @@ ran "bearing-genai:genai-design"
 assert_exit 0 in_repo next-step
 assert_eq "$(step bugfix 1)" "$T_OUT"
 t_end
+
+# A branch step whose condition already holds is skipped: new-repo once the
+# repository has a commit, design-system once docs/design/tokens.json (what
+# design-system updates in place) exists.
+t_begin "an existing site repository skips new-repo: after brainstorming comes design-directions"
+cfg_reset
+git -C "$repo" checkout -q -b feature/TASK-60-Pricing
+printf '{"flow": "site"}\n' > "$cf"
+ran "bearing:start-task"; ran "superpowers:brainstorming"
+assert_eq "new-repo" "$(step site 3)" "site step 3 is the branch step new-repo"
+assert_exit 0 in_repo next-step
+assert_eq "design-directions" "$T_OUT" "new-repo skipped"
+assert_exit 0 in_repo resume --source startup
+assert_contains "$T_OUT" "Next: design-directions."
+assert_not_contains "$T_OUT" "new-repo"
+t_end
+
+t_begin "a site repository with no commit yet still gets new-repo"
+r4="$(tmpdir)"; git -C "$r4" init -q -b feature/TASK-61-Site
+mkdir -p "$r4/.bearing/state"; printf '{"flow": "site"}\n' > "$r4/.bearing/config.json"
+( cd "$r4" && bash "$S" timeline-start --id n1 --skill bearing:start-task && bash "$S" timeline-close --id n1 &&
+  bash "$S" timeline-start --id n2 --skill superpowers:brainstorming && bash "$S" timeline-close --id n2 ) >/dev/null
+assert_exit 0 bash -c "cd '$r4' && bash '$S' next-step"
+assert_eq "new-repo" "$T_OUT" "no commit: the scaffold step stays"
+t_end
+
+t_begin "design-system is skipped once docs/design/tokens.json exists, kept before"
+cfg_reset
+git -C "$repo" checkout -q -b feature/TASK-62-Brand
+printf '{"flow": "site"}\n' > "$cf"
+ran "bearing:design-directions"
+assert_exit 0 in_repo next-step
+assert_eq "design-system" "$T_OUT" "no tokens: design-system is next"
+mkdir -p "$repo/docs/design"; printf '{}\n' > "$repo/docs/design/tokens.json"
+assert_exit 0 in_repo next-step
+assert_eq "screen-design" "$T_OUT" "tokens exist: design-system skipped"
+rm -f "$repo/docs/design/tokens.json"
+t_end
+
+t_begin "only branch steps are skipped, and the flow table marks them"
+assert_eq "branch" "$(awk -F'\t' '$1=="site" && $3=="new-repo" {print $4}' "$tsv")" "site new-repo is a branch step"
+assert_eq "branch" "$(awk -F'\t' '$1=="site" && $3=="design-system" {print $4}' "$tsv")" "site design-system is a branch step"
+assert_eq "step" "$(awk -F'\t' '$1=="greenfield" && $3=="new-repo" {print $4}' "$tsv")" "greenfield new-repo is a main-line step"
+assert_eq 0 "$(awk -F'\t' '$4!="step" && $4!="branch"' "$tsv" | wc -l | tr -d ' ')" "every row has a kind"
+cfg_reset
+t_end
+
+t_begin "the workflow skill reads the recorded flow before it picks one"
+wf="$KIT/plugins/bearing/skills/workflow/SKILL.md"
+fl="$(grep -n 'bin/brg-config" get flow' "$wf" | head -1 | cut -d: -f1)"
+sl="$(grep -n '^## Steps' "$wf" | head -1 | cut -d: -f1)"
+assert_eq 1 "$([ -n "$fl" ] && [ -n "$sl" ] && [ "$fl" -lt "$sl" ] && echo 1)" "brg-config get flow is read in Inputs, before the steps"
+assert_contains "$(sed -n 's/^allowed-tools: //p' "$wf")" "Bash(bash *bin/brg-config*)" "granted"
+t_end
 t_summary
