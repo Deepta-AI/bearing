@@ -297,8 +297,69 @@
         },
         {
           "kind": "link",
-          "title": "Build each task with the feature flow",
+          "title": "Build each task with the feature flow (each task is tested and reviewed there)",
           "flow": "feature"
+        },
+        {
+          "kind": "phase",
+          "title": "Test and review the release"
+        },
+        {
+          "kind": "step",
+          "id": "regression",
+          "title": "Run the full regression",
+          "skill": "test-run",
+          "pack": "bearing",
+          "does": "test-run --suite all,matrix: every suite present plus the browser and device matrix, on one commit.",
+          "output": "The full report under docs/testing/reports/",
+          "why": "Each task ran the layers it touched; the release needs every suite together on the commit it ships."
+        },
+        {
+          "kind": "step",
+          "id": "relreview",
+          "title": "Review the release as a whole",
+          "skill": "branch-review",
+          "pack": "bearing",
+          "does": "Reviews the range from the previous release tag to HEAD, or from the root commit for the first release.",
+          "output": "Verified findings across the release and a verdict",
+          "why": "It reads across tasks, which the per-task reviews cannot."
+        },
+        {
+          "kind": "branch",
+          "question": "Does the product serve traffic people wait on?",
+          "options": [
+            {
+              "label": "Yes",
+              "steps": [
+                {
+                  "kind": "step",
+                  "id": "gf-load",
+                  "title": "Load-test the release",
+                  "skill": "load-test",
+                  "pack": "bearing",
+                  "optional": true,
+                  "does": "Runs the load profile against qa, with thresholds from the HLD's scaling and limits.",
+                  "output": "A k6 run with its thresholds passed or failed",
+                  "why": "The first real traffic should not be the first load test."
+                },
+                {
+                  "kind": "step",
+                  "id": "gf-resilience",
+                  "title": "Drill a failure",
+                  "skill": "resilience-testing",
+                  "pack": "bearing",
+                  "optional": true,
+                  "does": "resilience-testing drill: a fault from the HLD failure-mode table and a restore, with the recovery time measured.",
+                  "output": "A dated drill report with the measured recovery",
+                  "why": "A restore nobody has run is a hope, not a plan."
+                }
+              ]
+            },
+            {
+              "label": "No",
+              "steps": []
+            }
+          ]
         },
         {
           "kind": "phase",
@@ -455,13 +516,13 @@
         },
         {
           "kind": "step",
-          "id": "dod",
-          "title": "Prove it is done",
-          "skill": "definition-of-done",
+          "id": "testrun",
+          "title": "Test the change",
+          "skill": "test-run",
           "pack": "bearing",
-          "does": "Walks the definition of done with evidence, and proves the regression test fails without the fix in a throwaway worktree.",
-          "output": "A done or not-done verdict with evidence per item.",
-          "why": "The red proof shows the test actually guards the bug."
+          "does": "test-run --changed: runs the test layers the fix touches, beyond the one regression test.",
+          "output": ".scratch/test-run/<branch>-changed.json and a pass or fail line per suite",
+          "why": "A fix can break a neighbouring path the regression test never reaches."
         },
         {
           "kind": "step",
@@ -469,7 +530,7 @@
           "title": "Get it reviewed",
           "skill": "branch-review",
           "pack": "bearing",
-          "does": "Runs gstack /review with the stack checklists passed in, then an independent verifier on every Critical and High.",
+          "does": "Runs gstack /review with the stack checklists passed in (the bearing reviewer in an unattended run), then an independent verifier on every Critical and High; the verdict goes to verdict.txt.",
           "output": "Ranked, verified findings.",
           "why": "gstack /review finds; the verifier, who never saw its reasoning, confirms."
         },
@@ -497,6 +558,16 @@
               "steps": []
             }
           ]
+        },
+        {
+          "kind": "step",
+          "id": "dod",
+          "title": "Prove it is done",
+          "skill": "definition-of-done",
+          "pack": "bearing",
+          "does": "Walks the definition of done with evidence, runs every suite in full on HEAD, and proves the regression test fails without the fix in a throwaway worktree.",
+          "output": "A done or not-done verdict with evidence per item.",
+          "why": "The red proof shows the test actually guards the bug."
         },
         {
           "kind": "step",
@@ -819,48 +890,23 @@
         },
         {
           "kind": "phase",
-          "title": "Verify"
+          "title": "Test"
         },
         {
           "kind": "step",
-          "id": "dod",
-          "title": "Definition of done",
-          "skill": "definition-of-done",
+          "id": "testrun",
+          "title": "Test the change",
+          "skill": "test-run",
           "pack": "bearing",
-          "does": "Every item with evidence: gate output, tests, schemas, errors, observability, events, scope, commits.",
-          "output": "A verdict",
-          "why": "An item without evidence is a fail."
-        },
-        {
-          "kind": "step",
-          "id": "review",
-          "title": "Code review",
-          "skill": "branch-review",
-          "pack": "bearing",
-          "does": "gstack /review with the stack checklists, then an independent verifier on every Critical and High.",
-          "output": "Verified findings",
-          "why": "gstack /review finds; the verifier, who never saw its reasoning, confirms each Critical and High."
+          "does": "test-run --changed: runs the test layers the diff touches (unit, integration, end to end, visual) and writes the evidence for HEAD.",
+          "output": ".scratch/test-run/<branch>-changed.json and a pass or fail line per suite",
+          "why": "The suites this change can break run while the fix is still cheap; the full run waits for definition of done."
         },
         {
           "kind": "branch",
-          "question": "Anything that needs a deeper check?",
+          "question": "Does the change need a deeper test?",
           "multi": true,
           "options": [
-            {
-              "label": "Auth, payments, personal data",
-              "steps": [
-                {
-                  "kind": "step",
-                  "id": "f-cso",
-                  "title": "Security pass",
-                  "skill": "/cso",
-                  "pack": "gstack",
-                  "does": "Security audit of the diff, each finding independently verified.",
-                  "output": ".gstack/security-reports/",
-                  "why": "A new path is a new attack surface."
-                }
-              ]
-            },
             {
               "label": "A user interface",
               "steps": [
@@ -875,8 +921,77 @@
                   "why": "It exercises the real app, not the source."
                 }
               ]
+            },
+            {
+              "label": "A hot path or an endpoint under load",
+              "steps": [
+                {
+                  "kind": "step",
+                  "id": "f-load",
+                  "title": "Load-test the hot path",
+                  "skill": "load-test",
+                  "pack": "bearing",
+                  "optional": true,
+                  "does": "Runs the smoke profile against local or qa, with thresholds on the endpoints the change touches.",
+                  "output": "A k6 run with its thresholds passed or failed",
+                  "why": "A slow query or a held lock shows under load, not in a unit test."
+                }
+              ]
             }
           ]
+        },
+        {
+          "kind": "phase",
+          "title": "Review"
+        },
+        {
+          "kind": "step",
+          "id": "review",
+          "title": "Code review",
+          "skill": "branch-review",
+          "pack": "bearing",
+          "does": "gstack /review with the stack checklists (the bearing reviewer in an unattended run), then an independent verifier on every Critical and High; the verdict goes to verdict.txt.",
+          "output": "Verified findings and a verdict",
+          "why": "gstack /review finds; the verifier, who never saw its reasoning, confirms each Critical and High."
+        },
+        {
+          "kind": "branch",
+          "question": "Does the change touch auth, payments, personal data or external input?",
+          "options": [
+            {
+              "label": "Yes",
+              "steps": [
+                {
+                  "kind": "step",
+                  "id": "f-cso",
+                  "title": "Security pass",
+                  "skill": "/cso",
+                  "pack": "gstack",
+                  "does": "Security audit of the diff, each finding independently verified.",
+                  "output": ".gstack/security-reports/",
+                  "why": "A new path is a new attack surface."
+                }
+              ]
+            },
+            {
+              "label": "No",
+              "steps": []
+            }
+          ]
+        },
+        {
+          "kind": "phase",
+          "title": "Verify"
+        },
+        {
+          "kind": "step",
+          "id": "dod",
+          "title": "Definition of done",
+          "skill": "definition-of-done",
+          "pack": "bearing",
+          "does": "Every item with evidence: gate output, tests, schemas, errors, observability, events, scope, commits; item 14 runs every suite in full on HEAD, or records a suite a CI job runs instead.",
+          "output": "A verdict",
+          "why": "An item without evidence is a fail."
         },
         {
           "kind": "phase",

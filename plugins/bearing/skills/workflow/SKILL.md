@@ -58,7 +58,9 @@ The map, one skill per stage; the full map is `docs/WORKFLOW.md`:
 | GenAI | `genai-design`, then `rag` or `llm-agent`, `llm-gateway`, `llm-eval` |
 | Build | Superpowers `test-driven-development`; `db-migration` |
 | Debug | Superpowers `systematic-debugging`, `/investigate` |
-| Verify | `test-run`, `test-heal`, `docs-drift`, `definition-of-done`, `branch-review` (gstack `/review` plus independent verification), `/cso` |
+| Test | `test-run --changed`, `test-heal`, gstack `/qa`, `load-test` |
+| Review | `branch-review` (gstack `/review` plus independent verification), gstack `/cso` |
+| Verify | `definition-of-done`, which runs every suite, `docs-drift` |
 | Ship | `merge-request`, `tracker-sync`, `task-report`; release: `release`, then claude-security and `vapt-report` |
 | Operate | after the engineer deploys: `verify-deploy`, then gstack `/canary` on prod; `runbook`, `incident`, `postmortem` |
 | Pause | `session-handoff` (local state, and the shared `docs/progress/<ID>.md`) |

@@ -133,7 +133,7 @@ own names (`/office-hours`, `brainstorming`).
 | Stage | Skill | From | Output |
 | --- | --- | --- | --- |
 | Automated tests | `test-automation` | bearing | suite per stack, generated tests by TC id |
-| Run tests, pass/fail report | `test-run` | bearing | docs/testing/reports/<date>.md and .json |
+| Run tests: scoped to the change while you work, in full at definition of done | `test-run` | bearing | .scratch/test-run/ for a scoped run; docs/testing/reports/<date>-<branch>.md and .json for a full run |
 | Docs still match the code | `docs-drift` | bearing | a drift report with counts: broken paths, make targets and config names, docs older than their code; code is the truth for what it does, the doc for what was intended |
 | Self-heal tests | `test-heal` | bearing | healed tests, quarantine, healing log, regressions kept red |
 | Load and performance | `load-test` | bearing | k6 scripts with thresholds |
@@ -141,7 +141,7 @@ own names (`/office-hours`, `brainstorming`).
 | Accessibility | `accessibility` | bearing | findings fixed or listed |
 | Privacy review | `privacy-review` | bearing | data map, deletion wired to it, DSAR paths, a DPIA, a PII lint |
 | Open-source compliance | `license-compliance` | bearing | CycloneDX SBOM, licence inventory gated by policy with counts, NOTICE-THIRD-PARTY.md |
-| Definition of done | `definition-of-done` | bearing | verdict with evidence |
+| Definition of done | `definition-of-done` | bearing | verdict with evidence; every suite run on HEAD |
 | Code review | `branch-review` | bearing | gstack /review with the stack checklists, then an independent verifier on every Critical and High |
 | Security review | `/cso` | gstack | a verified report under .gstack/security-reports/ (use --diff on a branch) |
 | Browser QA | `/qa` | gstack | QA report |

@@ -41,6 +41,29 @@ All notable changes to Bearing. Keep a Changelog format, semantic versions.
   `flows_check.py`, which prints a `task paths:` line.
 - Eval cases for the task budget, written data needs, operations from data
   needs, and the impeccable fallback and unattended runs.
+- Quality phases in every flow. The feature flow has a Test phase
+  (`test-run --changed`, then `/qa` for a user interface or `load-test` at
+  smoke for a hot path) and a Review phase (`branch-review`, then `/cso`
+  when the change touches auth, payments, personal data or external input)
+  before Verify. The bug fix flow runs `test-run --changed` after the fix,
+  then the review and the security branch, then definition of done.
+  Greenfield gains a "Test and review the release" phase before the first
+  release: the full regression (`test-run --suite all,matrix`), a review of
+  the whole release range, and optional `load-test` and
+  `resilience-testing` drills.
+- `brg-changed --layers [--base <ref>]` maps a diff to test layers and
+  prints `brg-changed: <N> files, layers: ...`; it exits 1 on zero files.
+- test-run has two scopes: `--changed` runs the layers the diff touches,
+  and a full run (`--except <suites>`) runs every suite present. Every run
+  writes `.scratch/test-run/<branch>-<scope>.json` (the branch with `/` as
+  `_`); a full run also writes `docs/testing/reports/<date>-<branch>.md`
+  and `.json`. A suite runs its Makefile target (`test`,
+  `test-integration`, `test-e2e`, `test-ui`, `test-visual`,
+  `test-e2e-matrix`) when one exists.
+- branch-review writes `.scratch/review/<slug>/verdict.txt` (the reviewed
+  range, the head sha, the file count, the verdict, the findings and the
+  blocking finding numbers). An unattended run uses the bearing reviewer,
+  never gstack `/review`, which can ask a question.
 
 ### Changed
 - `flows_check.py` requires `## Task paths`: a flows file without it now
@@ -69,6 +92,22 @@ All notable changes to Bearing. Keep a Changelog format, semantic versions.
 - autopilot passes `--unattended` to screen-design and design-critique, and
   design-critique also reads `brg-config get noninteractive --user`, so an
   unattended review never runs impeccable `critique`.
+- `autopilot` gains a `test_run` stage after `test_automation`: a scoped
+  run of HEAD with at least one suite run and 0 failed, or a docs-only diff
+  (0 layers, files above 0). A suite not run passes only when a
+  `test_run.<suite>` decision whose choice starts "left to CI" records it.
+- The autopilot review gate reads the newest `verdict.txt`: 0 files never
+  passes, the reviewed sha must be on the branch, and a "not ready to
+  merge" verdict needs each blocking finding listed as `<n> <sha>` in
+  `.scratch/review/<slug>/fixed.txt`, a commit after the reviewed one. A
+  review folder with no `verdict.txt` no longer passes.
+- definition-of-done item 14 runs every suite beyond unit in full on HEAD
+  (`test-run --except unit`), or reuses a full run whose sha differs from
+  HEAD only by `docs/testing/reports/`. A suite it cannot run is handed to
+  CI: attended, the user is asked; unattended, only when a CI job runs the
+  suite, recorded with
+  `brg-autopilot decision test_run.<suite> "left to CI job <job>" ...`.
+  The autopilot dod gate needs `.scratch/test-run/<branch>-full.json`.
 
 ### Notes for existing repositories
 - Add a `## Task paths` table to every `docs/design/flows/*/flows.md`
@@ -79,6 +118,20 @@ All notable changes to Bearing. Keep a Changelog format, semantic versions.
   actions; `states_check.py --needs` rejects other shapes. Renumber any id
   that repeats another feature's, and add the read action to each screen
   that shows server data.
+- An autopilot run saved before the `test_run` stage, with
+  `test_automation` and a later stage done, has `test_run` carried as done
+  when it is loaded, with a note; dod's full run still checks every suite.
+  A run that stopped right after `test_automation` runs the new gate next.
+- A run past `review` before this change keeps it; a run that reaches the
+  review gate now needs branch-review to have written `verdict.txt`, so an
+  older review folder is reviewed again.
+- definition-of-done item 14 is new: the first dod on a branch runs every
+  suite beyond unit, and a unit-only repository records `"n_a": "no suite
+  beyond unit"`. Record each suite left to CI as a `test_run.<suite>`
+  decision (unattended) or a `CI-accepted:` state line (attended).
+- Commit the full run's report under `docs/testing/reports/` before the
+  merge request; the dod gate accepts a full run followed only by that
+  report.
 
 ### Noted
 - impeccable `critique` asks a question at its close, so an unattended run

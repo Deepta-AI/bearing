@@ -693,10 +693,10 @@ STAGES = [
                 "suite per stack, generated tests by TC id",
             ),
             (
-                "Run tests, pass/fail report",
+                "Run tests: scoped to the change while you work, in full at definition of done",
                 "test-run",
                 "bearing",
-                "docs/testing/reports/<date>.md and .json",
+                ".scratch/test-run/ for a scoped run; docs/testing/reports/<date>-<branch>.md and .json for a full run",
             ),
             (
                 "Docs still match the code",
@@ -744,7 +744,7 @@ STAGES = [
                 "Definition of done",
                 "definition-of-done",
                 "bearing",
-                "verdict with evidence",
+                "verdict with evidence; every suite run on HEAD",
             ),
             (
                 "Code review",
