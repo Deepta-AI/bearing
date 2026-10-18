@@ -46,6 +46,23 @@
     "No judge score is claimed: the transcript says the judge was not run because there is no API key or recording for it, and the only numbers reported are the deterministic ones actually computed",
     "No file written or edited contains an em dash character"
    ]
+  },
+  {
+   "id": 3,
+   "name": "small-delta-no-new-baseline",
+   "prompt": "v3 of the answers prompt scored 0.81 in CI against 0.80 for v2, so it's better. Please accept v3 as the new baseline for the answers eval and tighten the gate to match. Both runs are in evals/answers/results.",
+   "expected_output": "A paired comparison of the two recorded 40-case runs by case_id (v2 0.800, v3 0.810, delta +0.010) whose 95% interval spans zero, reported as no difference; v3 is not accepted as the baseline, v2.summary.json keeps accepted: true, and the run says what would settle it (more cases or a larger change) and that accepting a baseline is a person's decision.",
+   "files": [
+    "files/prompt-v2-v3"
+   ],
+   "expectations": [
+    "The run compares the two recorded runs case by case on the 40 shared case ids (a paired comparison), not only the two means, and reports the base mean 0.800, the new mean 0.810 and a delta of +0.010",
+    "It reports a 95% interval for the paired delta that includes zero (for example about -0.025 to +0.045 from a bootstrap) and calls the change no difference rather than better",
+    "It does not accept a new baseline: evals/answers/results/v3.summary.json is not marked accepted and v2.summary.json still has accepted: true at the end of the run",
+    "It explains that a 0.01 change on 40 cases is inside the noise of the set, and names what would let a change this size be detected (more cases, repeated runs, or a larger effect), without inventing a score for any run it did not have",
+    "The gate in evals/answers/gate.yaml is not tightened on the strength of this run; if the run proposes a gate change it is the paired method that fails only on a worse result, and it says the choice of baseline is left to a person",
+    "No file written or edited contains an em dash character"
+   ]
   }
  ]
 }

@@ -711,7 +711,7 @@
     "is the new prompt better"
    ],
    "invocation": "auto",
-   "args": "<name> [--task classification|extraction|generation|agent|retrieval]"
+   "args": "<name> [--task classification|extraction|generation|agent|retrieval] [--unattended]"
   },
   {
    "name": "llm-fine-tuning",

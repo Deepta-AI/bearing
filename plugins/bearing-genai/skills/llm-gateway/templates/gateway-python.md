@@ -24,6 +24,7 @@ class LLMRequest:
     tier: Literal["fast", "balanced", "deep"] | None = None   # route decides when None
     max_tokens: int | None = None
     idempotency_key: str | None = None
+    model_override: str | None = None   # a key of routing.yaml `models:`; eval harnesses only
 
 @dataclass(frozen=True)
 class Usage:
@@ -52,12 +53,21 @@ class Provider(Protocol):
 
 Errors: `LLMError` base; `FeatureDisabled`, `UnknownFeature`,
 `RateLimited`, `ProviderUnavailable`, `Refused` (carries the
-`stop_details` category). The edge maps them to 503, 500, 429, 503, 422.
+`stop_details` category), `ModelOverrideRefused`. The edge maps them to
+503, 500, 429, 503, 422, 500.
+
+`model_override` lets an eval harness (`llm-eval` step 4) run one feature
+on another model. It names a key of the `models:` table in
+`routing.yaml`, never a raw model id, so the provider and the price row
+come with it. It is honoured only when the process has
+`LLM_ALLOW_MODEL_OVERRIDE=1`; without it, or with a key the table does
+not have, the gateway raises `ModelOverrideRefused` before any network
+call. Production never sets the variable.
 
 ## Pipeline in `Gateway.complete`
 
 ```
-kill switch -> route -> idempotency lookup -> rate limit -> response cache
+model override check -> kill switch -> route -> idempotency lookup -> rate limit -> response cache
 -> provider (retries) -> refusal or fallback -> accounting -> span -> cache write
 ```
 
@@ -65,6 +75,10 @@ kill switch -> route -> idempotency lookup -> rate limit -> response cache
 class Gateway:
     def complete(self, req: LLMRequest) -> LLMResponse:
         route = self.routing.route(req.feature)               # UnknownFeature
+        if req.model_override is not None:                    # before any network call
+            if os.environ.get("LLM_ALLOW_MODEL_OVERRIDE") != "1" or req.model_override not in self.routing.models:
+                raise ModelOverrideRefused(req.model_override)
+            route = self.routing.with_model(route, req.model_override)   # model, provider, prices
         if not route.enabled or os.environ.get(f"LLM_KILL_{req.feature.upper()}") == "1":
             raise FeatureDisabled(req.feature)
         if req.idempotency_key and (hit := self.idem.get(req.tenant_id, req.idempotency_key)):
@@ -169,7 +183,9 @@ inserts through the existing events pipeline) or, without ClickHouse,
 one structured log line `llm_call` with the same fields. Metrics from
 the same record: `llm_calls_total{feature,model,status}`,
 `llm_cost_usd_total{feature,tenant}`, `llm_fallback_total{feature,reason}`,
-`llm_request_duration_seconds{feature,model}`.
+`llm_request_duration_seconds{feature,model}`. A call made with
+`model_override` is recorded with `override: true` and the overriding
+key, so eval traffic never mixes with production cost.
 
 ## Logging
 
@@ -191,7 +207,9 @@ Tests in `tests/llm/`: `test_route_picks_tier`, `test_retry_529_then_ok`,
 `test_no_retry_on_400`, `test_idempotent_replay_not_billed_twice`,
 `test_rate_limit_per_tenant`, `test_kill_switch_before_network`,
 `test_fallback_counted`, `test_cost_from_usage`,
-`test_no_bodies_in_logs_by_default`, `test_refusal_raises_after_accounting`.
+`test_no_bodies_in_logs_by_default`, `test_refusal_raises_after_accounting`,
+`test_model_override_refused_without_flag`,
+`test_model_override_unknown_key_refused`.
 A laptop-only test `test_prompt_cache_hit` makes two identical calls and
 asserts `cache_read_input_tokens > 0` on the second.
 

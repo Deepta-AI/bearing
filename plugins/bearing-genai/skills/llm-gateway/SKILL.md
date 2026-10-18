@@ -57,6 +57,7 @@ bearing plugin).
    many vendors, a spend limit per key; the OpenAI-compatible API at
    `https://openrouter.ai/api/v1`), `openai`, and `vllm` or
    `openai_compatible` for a served open model (`llm-fine-tuning`).
+   `model_override` (a `models:` key, only with `LLM_ALLOW_MODEL_OVERRIDE=1`, else `ModelOverrideRefused` before any call) serves `llm-eval`.
 4. Routing in `llm/routing.yaml` from `templates/routing.yaml`: tiers
    `fast` (`claude-haiku-4-5`: classification, routing, short
    extraction), `balanced` (`claude-sonnet-5-5`: bulk generation, RAG

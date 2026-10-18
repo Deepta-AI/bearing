@@ -22,6 +22,7 @@ export const LLMRequest = z.object({
   tier: z.enum(["fast", "balanced", "deep"]).optional(),
   maxTokens: z.number().int().positive().optional(),
   idempotencyKey: z.string().optional(),
+  modelOverride: z.string().optional(),   // a key of routing.yaml `models:`; eval harnesses only
 });
 export type LLMRequest = z.infer<typeof LLMRequest>;
 
@@ -44,19 +45,30 @@ export interface Provider {
 ```
 
 Errors extend `LLMError`: `FeatureDisabled`, `UnknownFeature`,
-`RateLimited`, `ProviderUnavailable` (with `reason`), `Refused`. The
-HTTP layer maps them to 503, 500, 429, 503, 422.
+`RateLimited`, `ProviderUnavailable` (with `reason`), `Refused`,
+`ModelOverrideRefused`. The HTTP layer maps them to 503, 500, 429, 503,
+422, 500. `modelOverride` follows the Python template: a key of the
+`models:` table, honoured only with `LLM_ALLOW_MODEL_OVERRIDE=1`, else
+`ModelOverrideRefused` before any network call; accounting records
+`override: true`.
 
 ## Pipeline
 
-Same order as the Python template: kill switch, route, idempotency
-lookup, rate limit, response cache, provider with retries, fallback,
-accounting, span, cache write, refusal raised after accounting.
+Same order as the Python template: model override check, kill switch,
+route, idempotency lookup, rate limit, response cache, provider with
+retries, fallback, accounting, span, cache write, refusal raised after
+accounting.
 
 ```typescript
 async complete(input: LLMRequest): Promise<LLMResponse> {
   const req = LLMRequest.parse(input);
-  const route = this.routing.route(req.feature);
+  let route = this.routing.route(req.feature);
+  if (req.modelOverride !== undefined) {                  // before any network call
+    if (process.env.LLM_ALLOW_MODEL_OVERRIDE !== "1" || !(req.modelOverride in this.routing.models)) {
+      throw new ModelOverrideRefused(req.modelOverride);
+    }
+    route = this.routing.withModel(route, req.modelOverride); // model, provider, prices
+  }
   if (!route.enabled || process.env[`LLM_KILL_${req.feature.toUpperCase()}`] === "1") {
     throw new FeatureDisabled(req.feature);
   }
@@ -140,6 +152,8 @@ Cost formula, ClickHouse `llm_calls` record, metric names, redaction
 rules and the `LOG_LLM_BODIES` toggle are the same as the Python
 template. `FakeProvider` replays `tests/llm/recordings/<feature>/<sha256>.json`;
 `RECORD_LLM=1` records on a laptop only. The vitest suite covers the
-same ten cases. `npm run llm:audit` greps for `@anthropic-ai/sdk` and
-`messages.create(` outside `src/llm/` and fails on any hit; the count
+same twelve cases, `model_override refused without flag` and
+`model_override unknown key refused` among them. `npm run llm:audit`
+greps for `@anthropic-ai/sdk` and `messages.create(` outside `src/llm/`
+and fails on any hit; the count
 found is printed.
