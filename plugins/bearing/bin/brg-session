@@ -104,6 +104,7 @@ case "$sub" in
     steps="$(dirname "$0")/flow-steps.tsv"; [ -f "$steps" ] || exit 0
     case "$branch" in bugfix/*|fix/*|hotfix/*) flow=bugfix;; *) flow=feature;; esac
     done_list="$(bash "$0" timeline-recent --branch "$branch" --n 200 | sed 's/.*://; s|^/||')"
+    [ "$flow" = feature ] && printf '%s\n' "$done_list" | grep -qx 'genai-design' && flow=genai
     printf '%s\n' "$done_list" | awk -F'\t' -v f="$flow" '
       FNR==NR { if ($1==f) { name[$2]=$3; ord[$3]=$2; if ($2+0>max) max=$2+0 } next }
       ($0 in ord) && ord[$0]+0>best { best=ord[$0]+0 }

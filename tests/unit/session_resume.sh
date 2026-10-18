@@ -97,4 +97,17 @@ printf '# Handoff\n\nNext: none\n' > "$repo/.bearing/state/bugfix_TASK-31-next.m
 assert_exit 0 in_repo resume --source startup
 assert_contains "$T_OUT" "Next: $first." "none falls back to the flow step"
 t_end
+t_begin "a branch that ran genai-design follows the genai flow"
+git -C "$repo" checkout -q -b feat/TASK-40-genai
+ran "bearing-genai:genai-design"
+assert_exit 0 in_repo next-step
+assert_eq "$(step genai 3)" "$T_OUT"
+assert_eq "tech-decision" "$(step genai 3)" "genai step 3"
+t_end
+t_begin "a bugfix branch stays on the bugfix flow after genai-design"
+git -C "$repo" checkout -q -b bugfix/TASK-41-g
+ran "bearing-genai:genai-design"
+assert_exit 0 in_repo next-step
+assert_eq "$(step bugfix 1)" "$T_OUT"
+t_end
 t_summary

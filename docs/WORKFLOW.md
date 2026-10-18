@@ -78,20 +78,20 @@ own names (`/office-hours`, `brainstorming`).
 
 | Stage | Skill | From | Output |
 | --- | --- | --- | --- |
-| Problem statement to approach | `genai-design` | bearing | solution doc, ADR stub, cost and risk |
-| Prompts | `prompt-registry` | bearing | versioned registry with tests and eval scores |
-| Retrieval | `rag` | bearing | ingestion, pgvector schema, retriever with citations |
-| Agents | `llm-agent` | bearing | tool registry, bounded loop, kill switch |
-| Tools for models | `mcp-server` | bearing | MCP server with schema-checked tools, both transports, auth, a test per tool, the harness registration |
-| Safety | `llm-guardrails` | bearing | policy file, input, tool and output checks |
-| Every model call | `llm-gateway` | bearing | routing, retries, caching, cost, tracing |
-| Is it good enough | `llm-eval` | bearing | golden set, graders, CI regression gate |
+| Problem statement to approach | `genai-design` | bearing-genai | solution doc, ADR stub, cost and risk |
+| Prompts | `prompt-registry` | bearing-genai | versioned registry with tests and eval scores |
+| Retrieval | `rag` | bearing-genai | ingestion, pgvector schema, retriever with citations |
+| Agents | `llm-agent` | bearing-genai | tool registry, bounded loop, kill switch |
+| Tools for models | `mcp-server` | bearing-genai | MCP server with schema-checked tools, both transports, auth, a test per tool, the harness registration |
+| Safety | `llm-guardrails` | bearing-genai | policy file, input, tool and output checks |
+| Every model call | `llm-gateway` | bearing-genai | routing, retries, caching, cost, tracing |
+| Is it good enough | `llm-eval` | bearing-genai | golden set, graders, CI regression gate |
 | Cheapest model that passes | `model-routing` | bearing-genai | frontier of score and cost per candidate, cascade, budget and alert |
 | Data when real data is short | `dataset-generation` | bearing-genai | taxonomy, generated rows, dedupe and contamination counts, audit, datasheet |
-| Prompting is not enough | `llm-fine-tuning` | bearing | data prep, recipe, GPU check, smoke run, vLLM serving, model card |
-| Speech and voice | `speech` | bearing | WER per language, latency per stage, barge-in, audio privacy |
-| Vision | `computer-vision` | bearing | group-safe splits, AUROC or mAP, threshold from costs, serving latency |
-| Classical ML and forecasting | `tabular-ml` | bearing | leakage check, baseline gate, calibration, explanations, drift |
+| Prompting is not enough | `llm-fine-tuning` | bearing-genai | data prep, recipe, GPU check, smoke run, vLLM serving, model card |
+| Speech and voice | `speech` | bearing-genai | WER per language, latency per stage, barge-in, audio privacy |
+| Vision | `computer-vision` | bearing-genai | group-safe splits, AUROC or mAP, threshold from costs, serving latency |
+| Classical ML and forecasting | `tabular-ml` | bearing-genai | leakage check, baseline gate, calibration, explanations, drift |
 
 ## 7. Set up the repository
 

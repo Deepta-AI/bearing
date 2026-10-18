@@ -2,7 +2,7 @@ import { DocPage } from "@ui";
 import { Link } from "react-router";
 import { data } from "../lib/data";
 
-const lines: Record<string, string> = { greenfield: "var(--ok)", bugfix: "var(--gate)", feature: "var(--gsd)", inherited: "var(--sp)" };
+const lines: Record<string, string> = { greenfield: "var(--ok)", bugfix: "var(--gate)", feature: "var(--gsd)", inherited: "var(--sp)", genai: "var(--ok)" };
 
 /** A thumbnail of a flow: one dot per step on a line, coloured by pack. */
 function Mini({ id }: { id: string }) {

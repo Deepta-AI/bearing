@@ -93,7 +93,9 @@ bearing plugin).
    alert at 80 percent through `bearing:observability`. A gateway built
    before the cascade path: add it from `bearing-genai:llm-gateway`'s
    templates (one escalation, `llm_escalation_total{feature}`, both calls
-   recorded) with its three cascade tests, and run them.
+   recorded) with its three cascade tests, and run them. Update an
+   existing gateway's routing schema to the leg shape (`model`, `effort`,
+   `max_tokens`, `timeout_s`) too, or it rejects the new legs at startup.
 6. Report `docs/genai/routing.md`: one row per feature with the chosen
    route, lower bound and threshold, cost per 1,000, monthly estimate at
    current volume next to the current route's, `full` or `minimal`, and

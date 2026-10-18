@@ -1,5 +1,5 @@
 {
-  "_about": "The four task flows the handbook draws: greenfield, bug fix, feature addition, inherited codebase. Each step names the skill the workflow runs at that moment (whatever pack provides it), why the step matters and what it produces. bin/gen-guide.py validates every skill name against the kit and the known-skills list and copies this file into the site's data. Edit here, then run make docs.",
+  "_about": "The five task flows the handbook draws: greenfield, bug fix, feature addition, GenAI feature or product, inherited codebase. Each step names the skill the workflow runs at that moment (whatever pack provides it), why the step matters and what it produces. bin/gen-guide.py validates every skill name against the kit and the known-skills list and copies this file into the site's data. Edit here, then run make docs.",
   "flows": [
     {
       "id": "greenfield",
@@ -178,9 +178,9 @@
                   "id": "gf-genai",
                   "title": "Design the GenAI approach",
                   "skill": "genai-design",
-                  "pack": "bearing",
+                  "pack": "bearing-genai",
                   "does": "One metric, the task class, the cheapest approach that could work with the next one up rejected, model tier, cost and risks.",
-                  "output": "docs/design/genai-<name>.md",
+                  "output": "docs/genai/<name>-solution.md",
                   "why": "It forces the cheaper rung to be rejected with a reason."
                 },
                 {
@@ -188,9 +188,9 @@
                   "id": "gf-guard",
                   "title": "Guard the model's output",
                   "skill": "llm-guardrails",
-                  "pack": "bearing",
+                  "pack": "bearing-genai",
                   "does": "Injection and jailbreak defence, output checks against the sources, input and spend limits, and adversarial cases for the eval.",
-                  "output": "docs/design/<feature>-guardrails.md and guardrail tests",
+                  "output": "guardrails/policy.yaml and guardrail tests",
                   "why": "A model answering the public on the product's behalf needs limits written before code, not after a bad answer."
                 },
                 {
@@ -198,10 +198,15 @@
                   "id": "gf-eval",
                   "title": "Decide what good enough means",
                   "skill": "llm-eval",
-                  "pack": "bearing",
+                  "pack": "bearing-genai",
                   "does": "A person-labelled golden set, deterministic graders first, then a judge, wired to make eval.",
                   "output": "evals/ and a regression gate",
                   "why": "Without it every prompt change is a guess."
+                },
+                {
+                  "kind": "link",
+                  "title": "Build the model part with the GenAI flow",
+                  "flow": "genai"
                 }
               ]
             }
@@ -804,9 +809,9 @@
                   "id": "f-genai",
                   "title": "Design the GenAI change",
                   "skill": "genai-design",
-                  "pack": "bearing",
+                  "pack": "bearing-genai",
                   "does": "Success metric, approach with the cheaper option rejected, model tier, cost, latency and the eval plan.",
-                  "output": "docs/design/<feature>-genai.md",
+                  "output": "docs/genai/<name>-solution.md",
                   "why": "A model call is a product decision with a cost; it is designed before it is built."
                 },
                 {
@@ -814,9 +819,9 @@
                   "id": "f-guard",
                   "title": "Guard the model's output",
                   "skill": "llm-guardrails",
-                  "pack": "bearing",
+                  "pack": "bearing-genai",
                   "does": "Injection defence, output checks against the sources, input and spend limits.",
-                  "output": "docs/design/<feature>-guardrails.md and guardrail tests",
+                  "output": "guardrails/policy.yaml and guardrail tests",
                   "why": "Output shown to people needs limits written before code."
                 },
                 {
@@ -824,10 +829,15 @@
                   "id": "f-eval",
                   "title": "Gate it with an eval",
                   "skill": "llm-eval",
-                  "pack": "bearing",
+                  "pack": "bearing-genai",
                   "does": "A golden set, graders and a CI regression gate for the changed prompt or model.",
                   "output": "An eval suite and its CI gate",
                   "why": "A prompt change without an eval is a regression nobody sees."
+                },
+                {
+                  "kind": "link",
+                  "title": "Build the model part with the GenAI flow",
+                  "flow": "genai"
                 }
               ]
             }
@@ -1017,6 +1027,336 @@
           "does": "Watches the deployed app for errors and regressions.",
           "output": "A canary report",
           "why": "It checks the running app after the deploy."
+        }
+      ]
+    },
+    {
+      "id": "genai",
+      "title": "GenAI feature or product",
+      "tagline": "From a problem a model should solve to a measured, routed, guarded release.",
+      "when": "Anything whose behaviour comes from a model: retrieval, agents, tools for models, speech, vision, tabular ML, training.",
+      "steps": [
+        {
+          "kind": "phase",
+          "title": "Frame"
+        },
+        {
+          "kind": "step",
+          "id": "g-task",
+          "title": "Start the task",
+          "skill": "start-task",
+          "pack": "bearing",
+          "does": "Creates the branch from the right base with the task id, writes the state file and restates the acceptance criteria.",
+          "output": "A task branch and .bearing/state/<branch>.md",
+          "why": "Every later step records against this branch; the session resumes from its state file."
+        },
+        {
+          "kind": "step",
+          "id": "g-design",
+          "title": "Design the GenAI approach",
+          "skill": "genai-design",
+          "pack": "bearing-genai",
+          "does": "One success metric, the task class, the cheapest approach that could work with the next one up rejected for a reason, the model tier, cost, latency, risks and the eval plan.",
+          "output": "docs/genai/<name>-solution.md",
+          "why": "Every later step in this flow reads the metric and the approach from this file."
+        },
+        {
+          "kind": "branch",
+          "question": "Is a provider, model or store still open?",
+          "options": [
+            {
+              "label": "Yes",
+              "steps": [
+                {
+                  "kind": "step",
+                  "id": "g-decide",
+                  "title": "Settle the open choice",
+                  "skill": "tech-decision",
+                  "pack": "bearing",
+                  "does": "Compares the open provider, model or vector store on criteria weighted before scoring, and records the choice.",
+                  "output": "An ADR under docs/adr/",
+                  "why": "The gateway, the eval and the cost table all depend on the choice; an open one stalls them."
+                }
+              ]
+            },
+            {
+              "label": "No",
+              "steps": []
+            }
+          ]
+        },
+        {
+          "kind": "phase",
+          "title": "Set the bar"
+        },
+        {
+          "kind": "branch",
+          "question": "Is there enough real data for a golden set?",
+          "options": [
+            {
+              "label": "No",
+              "steps": [
+                {
+                  "kind": "step",
+                  "id": "g-data",
+                  "title": "Grow the data from a real seed",
+                  "skill": "dataset-generation",
+                  "pack": "bearing-genai",
+                  "does": "A taxonomy from real seed rows, generated rows, dedupe and contamination counts against the eval set, a person audit and a datasheet.",
+                  "output": "datasets/<name>/ with rows.jsonl and DATASHEET.md",
+                  "why": "Its gate fails on rows that leak eval cases, so a score is not earned on its own test."
+                }
+              ]
+            },
+            {
+              "label": "Yes",
+              "steps": []
+            }
+          ]
+        },
+        {
+          "kind": "step",
+          "id": "g-eval",
+          "title": "Decide what good enough means",
+          "skill": "llm-eval",
+          "pack": "bearing-genai",
+          "does": "A person-labelled golden set, deterministic graders first, then a calibrated judge, a baseline run with intervals, wired to make eval.",
+          "output": "evals/<name>/ with cases, graders and gate.yaml",
+          "why": "Without a baseline every prompt or model change is a guess."
+        },
+        {
+          "kind": "phase",
+          "title": "Build"
+        },
+        {
+          "kind": "branch",
+          "question": "What is being built?",
+          "multi": true,
+          "options": [
+            {
+              "label": "Retrieval",
+              "steps": [
+                {
+                  "kind": "step",
+                  "id": "g-rag",
+                  "title": "Answer from documents",
+                  "skill": "rag",
+                  "pack": "bearing-genai",
+                  "does": "Ingestion, chunking, embeddings on pgvector, a retriever that cites its sources and retrieval metrics.",
+                  "output": "The retrieval module and evals/<name>/retrieval.jsonl",
+                  "why": "Retrieval is measured on its own before the answer is graded."
+                }
+              ]
+            },
+            {
+              "label": "An agent",
+              "steps": [
+                {
+                  "kind": "step",
+                  "id": "g-agent",
+                  "title": "Give the model tools in a bounded loop",
+                  "skill": "llm-agent",
+                  "pack": "bearing-genai",
+                  "does": "A tiered tool registry, a bounded loop, memory, call logging, trajectory evals and a kill switch.",
+                  "output": "The agent module and evals/<name>/trajectories.jsonl",
+                  "why": "An agent that can act needs a step limit and an off switch before it runs."
+                }
+              ]
+            },
+            {
+              "label": "Tools for models",
+              "steps": [
+                {
+                  "kind": "step",
+                  "id": "g-mcp",
+                  "title": "Expose tools over MCP",
+                  "skill": "mcp-server",
+                  "pack": "bearing-genai",
+                  "does": "An MCP server with schema-checked tools, both transports, auth, a test per tool and the harness registration.",
+                  "output": "The MCP server and its tool tests",
+                  "why": "Every tool is tested on its own, outside a model session."
+                }
+              ]
+            },
+            {
+              "label": "Speech or voice",
+              "steps": [
+                {
+                  "kind": "step",
+                  "id": "g-speech",
+                  "title": "Build the speech path",
+                  "skill": "speech",
+                  "pack": "bearing-genai",
+                  "does": "Transcription, diarisation, text to speech or a real-time voice agent, measured by WER per language and latency per stage.",
+                  "output": "The speech pipeline and evals/<name>/speech.jsonl",
+                  "why": "Voice fails on latency and accents first; both are measured."
+                }
+              ]
+            },
+            {
+              "label": "Vision",
+              "steps": [
+                {
+                  "kind": "step",
+                  "id": "g-vision",
+                  "title": "Build the image path",
+                  "skill": "computer-vision",
+                  "pack": "bearing-genai",
+                  "does": "A VLM, classifier, detector or extractor with group-safe splits and a threshold set from the cost of each error.",
+                  "output": "The vision module and its scored validation set",
+                  "why": "A split that leaks near-duplicate images reports a score the product never sees."
+                }
+              ]
+            },
+            {
+              "label": "Tabular ML",
+              "steps": [
+                {
+                  "kind": "step",
+                  "id": "g-tabular",
+                  "title": "Build the tabular model",
+                  "skill": "tabular-ml",
+                  "pack": "bearing-genai",
+                  "does": "A leakage check, a baseline gate, calibration, explanations and drift checks on tables or events.",
+                  "output": "The model, docs/ml/<name>.md and its drift checks",
+                  "why": "A model that does not clear its baseline is not shipped."
+                }
+              ]
+            },
+            {
+              "label": "Training an open model",
+              "steps": [
+                {
+                  "kind": "step",
+                  "id": "g-train",
+                  "title": "Train an open model",
+                  "skill": "llm-fine-tuning",
+                  "pack": "bearing-genai",
+                  "does": "An eval-backed decision to train, the dataset, LoRA, DPO or distillation, a GPU check, a smoke run, vLLM serving and a model card.",
+                  "output": "The trained adapter, docs/genai/model-card-<name>.md and its eval results",
+                  "why": "Training is chosen only when the eval shows prompting and retrieval fall short."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "kind": "step",
+          "id": "g-prompts",
+          "title": "Version the prompts",
+          "skill": "prompt-registry",
+          "pack": "bearing-genai",
+          "does": "Prompts in prompts/<name>/vN.md loaded by one module, with typed variables, fixture tests and eval scores per version.",
+          "output": "prompts/ with a CHANGELOG per prompt",
+          "why": "A prompt edit becomes a reviewed, scored version instead of a string in the code."
+        },
+        {
+          "kind": "phase",
+          "title": "Every call"
+        },
+        {
+          "kind": "step",
+          "id": "g-gateway",
+          "title": "Put every call behind the gateway",
+          "skill": "llm-gateway",
+          "pack": "bearing-genai",
+          "does": "Finds every model call, then routes them through one gateway with tiers, retries, timeouts, rate limits, caching, cost and fallbacks.",
+          "output": "The gateway module and llm/routing.yaml",
+          "why": "Cost, retries and tracing live in one place, so no call escapes them."
+        },
+        {
+          "kind": "step",
+          "id": "g-route",
+          "title": "Pick the cheapest model that passes",
+          "skill": "model-routing",
+          "pack": "bearing-genai",
+          "does": "Runs the eval per candidate model or cascade, draws the frontier of score and cost, writes the route, the budget and the alert.",
+          "output": "llm/routing.yaml routes and docs/genai/routing.md",
+          "why": "The choice rests on measured scores and prices, not on a default tier."
+        },
+        {
+          "kind": "phase",
+          "title": "Prove it"
+        },
+        {
+          "kind": "step",
+          "id": "g-guard",
+          "title": "Guard the input and the output",
+          "skill": "llm-guardrails",
+          "pack": "bearing-genai",
+          "does": "Injection and jailbreak defence, PII checks, a tool-call permission gate, output checks against the sources and adversarial cases for the eval.",
+          "output": "guardrails/policy.yaml and guardrail tests",
+          "why": "A model answering on the product's behalf needs limits that a test exercises."
+        },
+        {
+          "kind": "step",
+          "id": "g-cases",
+          "title": "Write the test cases",
+          "skill": "test-cases",
+          "pack": "bearing",
+          "does": "Numbered cases per acceptance criterion with negative and boundary rows, then the oracles that prove each one.",
+          "output": "docs/testing/test-cases.md",
+          "why": "The code around the model is tested like any other code; the eval does not cover it."
+        },
+        {
+          "kind": "step",
+          "id": "g-auto",
+          "title": "Automate the cases",
+          "skill": "test-automation",
+          "pack": "bearing",
+          "does": "One test per case named by its id, an assertion per oracle, and a check that every id, label and route it uses exists.",
+          "output": "Tests in the stack's own suite",
+          "why": "It rejects invented selectors before they fail for the wrong reason."
+        },
+        {
+          "kind": "step",
+          "id": "g-run",
+          "title": "Run every suite",
+          "skill": "test-run",
+          "pack": "bearing",
+          "does": "Runs make check and every suite into one report with counts per suite.",
+          "output": "A test report: what passed, what failed, what was skipped",
+          "why": "One report shows the whole state, not the last suite that ran."
+        },
+        {
+          "kind": "step",
+          "id": "g-gate",
+          "title": "Gate the release on the eval",
+          "skill": "llm-eval",
+          "pack": "bearing-genai",
+          "does": "Runs the eval against the recorded baseline and fails on a drop beyond the interval.",
+          "output": "The eval run against the baseline, in CI",
+          "why": "The routed, guarded build is held to the bar set before it was built."
+        },
+        {
+          "kind": "step",
+          "id": "g-dod",
+          "title": "Definition of done",
+          "skill": "definition-of-done",
+          "pack": "bearing",
+          "does": "Every item with evidence: gate output, tests, eval run, guardrails, observability, scope, commits.",
+          "output": "A verdict",
+          "why": "An item without evidence is a fail."
+        },
+        {
+          "kind": "step",
+          "id": "g-review",
+          "title": "Code review",
+          "skill": "branch-review",
+          "pack": "bearing",
+          "does": "gstack /review with the stack checklists, then an independent verifier on every Critical and High.",
+          "output": "Verified findings",
+          "why": "gstack /review finds; the verifier, who never saw its reasoning, confirms each Critical and High."
+        },
+        {
+          "kind": "step",
+          "id": "g-mr",
+          "title": "Open the merge request",
+          "skill": "merge-request",
+          "pack": "bearing",
+          "does": "The gate, the commit audit and the filled template; you push.",
+          "output": "The MR description and the push command",
+          "why": "It prepares; the engineer pushes."
         }
       ]
     },
