@@ -138,6 +138,11 @@ stopped and what to do first.
    - the gate command and the documents to read first
    ```
 
+   With a `## Repos` section in the progress file, run
+   `python3 "${CLAUDE_PLUGIN_ROOT}/skills/session-handoff/scripts/progress.py" set --task <ID>`
+   and add its rows under `## Set` in the handoff; Next names the
+   repository each action is in (`${CLAUDE_PLUGIN_ROOT}/references/task-set.md`).
+
    Invent nothing: no names that are not in the repository or the request,
    no reply that has not arrived, no decision nobody took, no dates beyond
    today's and arithmetic on dates the user gave (say it is derived). A

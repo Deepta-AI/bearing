@@ -1264,7 +1264,7 @@
     "create a branch"
    ],
    "invocation": "auto",
-   "args": "<TASK-ID> [PascalName] [--type feature|bugfix|hotfix|chore|docs] [--flow site]"
+   "args": "<TASK-ID> [PascalName] [--type feature|bugfix|hotfix|chore|docs] [--repos Name,Name,...] [--flow site]"
   },
   {
    "name": "tabular-ml",

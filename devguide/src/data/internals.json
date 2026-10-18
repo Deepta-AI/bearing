@@ -10,7 +10,7 @@
   "agents": 8,
   "makeTargets": 32,
   "gates": 19,
-  "tests": 111,
+  "tests": 112,
   "fixtures": 25,
   "stacks": 13,
   "templates": 38,
@@ -26,7 +26,7 @@
    "dir": "plugins/bearing",
    "description": "A developer workflow for coding agents: skills for every stage from brief to runbook, review subagents, one guard behind every hook, and repository templates. The stack conventions come in bearing-backend and bearing-apps, and the GenAI and ML skills in bearing-genai.",
    "required": true,
-   "files": 455,
+   "files": 456,
    "skills": [
     "ab-experiment",
     "accessibility",
@@ -1390,7 +1390,7 @@
     },
     {
      "title": "Steps",
-     "lines": 44
+     "lines": 48
     },
     {
      "title": "Output contract",
@@ -1422,7 +1422,7 @@
     "Build is test first, story by story, in the order of the backlog. Read the traps in references/reviewer-checks.md first. Detail: references/build-and-after.md",
     "After the build: test-automation, the LLM stages when the profile says llm, then `test-run --changed` (the test_run stage), and design-critique until the bar holds. Detail: references/build-and-after.md",
     "Review is `branch-review --unattended`; fix every Critical and High it confirms, record each fix as `<n> <sha>` in `.scratch/review/<slug>/fixed.txt`, then `make check` again; `definition-of-done --unattended` includes the smoke run and the full test run. Read references/reviewer-checks.md again before dod. Detail: references/review-smoke-and-mr.md",
-    "The mr stage: `merge-request` prepares the description; `report` writes `docs/autopilot/<run>.md`; commit it, and let that commit be the last write (`git status` clean after it); paste its decisions table into the description with the exact push command under it. The report commit is newer than the gate marker, so run `make check` once more, then `brg-push check`; exit 0: `brg-push request` (the run's last Stop push…",
+    "The mr stage: when the repo plan has more than one entry, first write the `## Repos` section from it in merge order and list each sibling's `start-task ... --repos` line in the report (`${CLAUDE_PLUGIN_ROOT}/references/task-set.md`); the report commit carries it. Then `merge-request` prepares the description; `report` writes `docs/autopilot/<run>.md`; commit it, and let that commit be the last write (`git status` cl…",
     "Blocked or finished, the last message is the report: stages done, the decisions to review, what is not done and why, and the push line when the MR is ready (requested, or the command for the engineer)."
    ],
    "output": "",
@@ -1436,11 +1436,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 132,
+   "lines": 136,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 132
+     "lines": 136
     },
     {
      "path": "references/auto-mode-and-profile.md",
@@ -1460,7 +1460,7 @@
     },
     {
      "path": "references/review-smoke-and-mr.md",
-     "lines": 44
+     "lines": 52
     },
     {
      "path": "references/reviewer-checks.md",
@@ -3272,7 +3272,8 @@
     "Bash(bash *bin/brg-state-path*)",
     "Bash(bash *bin/brg-changed*)",
     "Bash(python3 *bin/brg-autopilot decision test_run.*)",
-    "Bash(python3 *skills/prose-lint/scripts/prose_check.py*)"
+    "Bash(python3 *skills/prose-lint/scripts/prose_check.py*)",
+    "Bash(python3 *skills/session-handoff/scripts/progress.py*)"
    ],
    "extra": {},
    "intro": "Every item gets one of `pass`, `fail`, `n/a`, and the evidence: a command and its output, or a file and line. An item without evidence is `fail`. The list below is the standard's; it needs no file in the repository.",
@@ -3283,7 +3284,7 @@
     },
     {
      "title": "Steps",
-     "lines": 136
+     "lines": 137
     },
     {
      "title": "Output contract",
@@ -3318,11 +3319,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 198,
+   "lines": 199,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 198
+     "lines": 199
     },
     {
      "path": "scripts/red_proof.sh",
@@ -8061,11 +8062,11 @@
     },
     {
      "title": "Steps",
-     "lines": 60
+     "lines": 64
     },
     {
      "title": "Output contract",
-     "lines": 11
+     "lines": 12
     },
     {
      "title": "Gotchas",
@@ -8107,11 +8108,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 150,
+   "lines": 155,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 150
+     "lines": 155
     },
     {
      "path": "templates/mr.md",
@@ -12589,7 +12590,7 @@
     },
     {
      "title": "Steps",
-     "lines": 101
+     "lines": 106
     },
     {
      "title": "Output contract",
@@ -12625,11 +12626,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 180,
+   "lines": 185,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 180
+     "lines": 185
     },
     {
      "path": "scripts/progress.py",
@@ -13007,7 +13008,7 @@
    "description": "Starts work on a ticket: creates the branch from the right base with the task id, writes state and progress notes, restates the criteria. Use when asked to \"start TASK-142\", \"pick up this ticket\" or \"create a branch\".",
    "invocation": "auto",
    "kind": "step",
-   "args": "<TASK-ID> [PascalName] [--type feature|bugfix|hotfix|chore|docs] [--flow site]",
+   "args": "<TASK-ID> [PascalName] [--type feature|bugfix|hotfix|chore|docs] [--repos Name,Name,...] [--flow site]",
    "tools": [
     "Read",
     "Write",
@@ -13045,15 +13046,15 @@
    "sections": [
     {
      "title": "Inputs",
-     "lines": 26
+     "lines": 28
     },
     {
      "title": "Steps",
-     "lines": 102
+     "lines": 108
     },
     {
      "title": "Output contract",
-     "lines": 14
+     "lines": 15
     },
     {
      "title": "Gotchas",
@@ -13068,7 +13069,8 @@
     "type: `--type`; else `hotfix` when the request is about production being wrong now, `bugfix` for other defects, else `feature`; say which.",
     "name: `$2`; else derive a two to four word PascalCase summary from the request and say so (ask only if the request gives nothing to name).",
     "acceptance criteria: as the user gave them; absent ones are \"unknown, ask\", never invented.",
-    "flow: `--flow site`, or the request names a landing page or marketing site and the user confirms with AskUserQuestion. Unattended, only `--flow site` counts; nothing is asked. It is recorded in step 7."
+    "flow: `--flow site`, or the request names a landing page or marketing site and the user confirms with AskUserQuestion. Unattended, only `--flow site` counts; nothing is asked. It is recorded in step 7.",
+    "repositories: `--repos`; with it, this is one member of a task set (`${CLAUDE_PLUGIN_ROOT}/references/task-set.md`: names, paths, order)."
    ],
    "steps": [
     "**Validate the id** against the prefix or the generic shape.",
@@ -13092,11 +13094,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 185,
+   "lines": 194,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 185
+     "lines": 194
     }
    ],
    "groups": {
@@ -18944,6 +18946,13 @@
    "lines": 340,
    "header": "tests/unit/stories_coverage.sh: plugins/bearing/skills/backlog/scripts/coverage_check.py passes a covered backlog and fails, with the reason, on an uncovered REQ, a Covers naming an unknown REQ, a story-level REQ no AC names, an epic without a journey, a missing matrix row or Why, a story missing its objective, quotes or exclusions, a bad task table, a bad question register, and on empty input. Coverage is computed from the AC Covers lines, so a matrix that claims \"covered\" does not rescue a gap. An adopted scheme (CLM-n) is kept and compared with HEAD: a renumbered or rewritten id fails, a w…",
    "asserts": 85
+  },
+  {
+   "path": "tests/unit/task_set_skills.sh",
+   "kind": "unit",
+   "lines": 31,
+   "header": "tests/unit/task_set_skills.sh: the five skills cite the task-set reference, and each stays at 200 lines or fewer. Counts the skills; fails on zero.",
+   "asserts": 10
   },
   {
    "path": "tests/unit/test_cases_refs.sh",

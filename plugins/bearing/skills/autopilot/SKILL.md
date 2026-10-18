@@ -76,7 +76,11 @@ what is on disk, never from what the model says it did.
    then `make check` again; `definition-of-done --unattended` includes the
    smoke run and the full test run. Read references/reviewer-checks.md again
    before dod. Detail: references/review-smoke-and-mr.md
-10. The mr stage: `merge-request` prepares the description; `report` writes
+10. The mr stage: when the repo plan has more than one entry, first write
+   the `## Repos` section from it in merge order and list each sibling's
+   `start-task ... --repos` line in the report
+   (`${CLAUDE_PLUGIN_ROOT}/references/task-set.md`); the report commit
+   carries it. Then `merge-request` prepares the description; `report` writes
    `docs/autopilot/<run>.md`; commit it, and let that commit be the last
    write (`git status` clean after it); paste its decisions table into the
    description with the exact push command under it. The report commit is

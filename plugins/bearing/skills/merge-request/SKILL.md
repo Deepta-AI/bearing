@@ -88,7 +88,11 @@ the standard only makes the inputs below quicker to find.
    a trimmed branch), put that under Risk and in the report as advice
    with its commands, and say whether you ran the gate on that shape;
    the description, the diff numbers, the push command and the URL stay
-   those of the current branch.
+   those of the current branch. With a `## Repos` section in the progress
+   file: run `python3 "${CLAUDE_PLUGIN_ROOT}/skills/session-handoff/scripts/progress.py" set --task <ID>`
+   and add the Task set block (each repository, its branch, its order,
+   `merge after <Name> | first`) per `${CLAUDE_PLUGIN_ROOT}/references/task-set.md`;
+   only then does the report carry its `Set:` line.
 7. Prose: no em dashes, no self-praise, no sentence that only says the
    work matches the request.
 8. Write to `.scratch/mr-<ID or branch>.md` and print it. Then
@@ -124,6 +128,7 @@ Gate: make check: passed | <native command> (improvised): passed
 Commits: N (offenders: K, listed)
 Description: .scratch/mr-<ID or branch>.md
 Ticket: trace posted to <KEY> | tracker: none
+Set: <k> of <n>; merge after: <Name> | first
 Progress: docs/progress/<ID>.md status in review (uncommitted; commit command printed)
 Push: requested (opt-in) | yours: git push -u origin <branch>   MR | PR: <url pattern>
 ```
