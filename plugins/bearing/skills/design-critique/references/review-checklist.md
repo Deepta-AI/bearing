@@ -1,13 +1,13 @@
 # Design review checklist
 
-Eleven categories. Each starts at 10. A high finding deducts 3, a medium 1,
+Twelve categories. Each starts at 10. A high finding deducts 3, a medium 1,
 a polish note 0 (it is listed, not deducted). Floor 0. A category with
 nothing to judge is `n/a: reason` and leaves the mean. Every deduction
 has an evidence line: `file:line` or a screenshot name. Grep hints are
 for source review; screenshots decide when both exist.
 
-Weights: hierarchy 10, typography 15, spacing 10, colour 10, states 10,
-responsive 10, copy 5, accessibility 10, motion 5, consistency 10, slop 5.
+Weights: hierarchy 10, typography 10, spacing 10, colour 10, states 10,
+responsive 10, copy 5, accessibility 10, motion 5, consistency 10, slop 5, task cost 5.
 The slop category is also reported on its own; any hit caps it at 3.
 
 The autopilot design_review gate reads the report: an overall of 8.0 and
@@ -25,7 +25,7 @@ screenshot present. The table rows keep the shape
 - Trunk test: product, screen, sections, way back are all visible.
 - Grep: `text-align: center` on more than one block-level rule is medium.
 
-## 2. Typography (15%)
+## 2. Typography (10%)
 
 - Three or four sizes on one ratio; count the distinct `font-size` values.
   Five or more is medium; no ratio is medium.
@@ -170,6 +170,32 @@ generic hero copy; system-ui as the primary face.
 
 Grep: `linear-gradient(`, `border-left:`, `Inter`, `Space Grotesk`,
 `system-ui`, `-apple-system`, `text-align: center`, `border-radius`.
+
+## 12. Task cost (5%)
+
+Counted, not judged. Start at 10; minus 2 per task over budget without an
+`over:` reason (from the `task paths:` line of `flows_check.py`); minus 1
+per instance of the six patterns in `ux-flows/references/task-paths.md`
+found on the screens. Floor 0. Each deduction has an evidence line naming
+the task or the screen id. No flows: `n/a: no task paths`.
+
+## Measuring colour
+
+What `scripts/pairs.py` prints: every failing text pair, field edge and
+focus ring in light, data-theme dark and prefers-color-scheme dark with
+file:line (a ring is measured on the surface it is drawn on, so the same
+button can pass on the page and fail on a panel), outlines removed with
+nothing in their place, the raw colours in page styles, dark-block parity
+gaps, fonts asked for but never loaded, and a fix colour that passes on
+every surface the colour sits on. It skips hover states and width media
+queries (it says how many), so judge those from the CSS.
+
+A framework gallery (Next.js or Vite with Tailwind v4) has no static
+stylesheet pairs.py can resolve: its colours sit in `@layer` blocks and
+runtime classes. Render the pages to static snapshots first with
+`scripts/snapshot.mjs` (run from the app's root; it uses the app's
+Playwright), then run pairs.py over the snapshots. Hover states are not in
+a snapshot; the report says so.
 
 ## Report shape
 

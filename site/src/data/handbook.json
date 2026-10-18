@@ -371,7 +371,7 @@
    "name": "design-critique",
    "plugin": "bearing",
    "category": "design",
-   "what": "Scores a UI design (design gallery, running app or HTML prototype) at three widths, both themes, eleven categories, with an AI-slop check",
+   "what": "Scores a UI design (design gallery, running app or HTML prototype) at three widths, both themes, twelve categories, with an AI-slop check",
    "when": "asked to \"critique this design\", \"review the prototype\" or \"score this\"",
    "phrases": [
     "critique this design",

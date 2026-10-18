@@ -155,10 +155,10 @@ weakest for the others. Detail: references/constraints-and-checks.md
     recommendation goes in `recommended`, never in `chosen`, and no direction
     becomes the default.
     When feedback arrives, repeat it back in one paragraph before writing it.
-    `--unattended`: score each direction with the ten categories of
-    `../design-critique/references/review-checklist.md`, write `scores`,
-    `chosen` (the highest), `chosen_by: "score"` and one line per direction on
-    why it won or lost; the user can overrule it at the merge request.
+    `--unattended`: score each direction with the categories of
+    `../design-critique/references/review-checklist.md`, task cost n/a: the
+    variants share the flows, write `scores`, `chosen` (the highest),
+    `chosen_by: "score"` and one line per direction on why it won or lost; the user can overrule it at the merge request.
 11. Round two on request (the impeccable round: as its reference says):
     variants 4 to 6 keep the chosen traits (the remix spec, or the chosen
     variant's axes) and vary the rest; steps 4 to 10 again; the board keeps

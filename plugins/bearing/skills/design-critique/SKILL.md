@@ -1,8 +1,8 @@
 ---
 name: design-critique
-description: 'Scores a UI design (design gallery, running app or HTML prototype) at three widths, both themes, eleven categories, with an AI-slop check. Use when asked to "critique this design", "review the prototype" or "score this".'
+description: 'Scores a UI design (design gallery, running app or HTML prototype) at three widths, both themes, twelve categories, with an AI-slop check. Use when asked to "critique this design", "review the prototype" or "score this".'
 argument-hint: "<folder, html file or URL> [--rounds N, default 3] [--report-only]"
-allowed-tools: Read, Write, Edit, Grep, Glob, Bash(ls:*), Bash(mkdir:*), Bash(test:*), Bash(make:*), Bash(git status:*), Bash(git diff:*), Bash(~/.claude/skills/gstack/browse/dist/browse:*), Bash(python3 -m http.server:*), Bash(kill:*), Bash(python3 *skills/design-critique/scripts/*), Bash(node *skills/design-critique/scripts/*)
+allowed-tools: Read, Write, Edit, Grep, Glob, Skill, Bash(ls:*), Bash(mkdir:*), Bash(test:*), Bash(printenv BEARING_AUTOPILOT BEARING_NONINTERACTIVE), Bash(make:*), Bash(git status:*), Bash(git diff:*), Bash(~/.claude/skills/gstack/browse/dist/browse:*), Bash(python3 -m http.server:*), Bash(kill:*), Bash(python3 *skills/design-critique/scripts/*), Bash(node *skills/design-critique/scripts/*), Bash(python3 *skills/ux-flows/scripts/flows_check.py*)
 ---
 
 # design-critique
@@ -39,7 +39,7 @@ flows is gstack `/design-review`'s job.
   edits them.
 - The request's mode: "don't change", "review", "before they see it" or
   `--report-only` is report only; "fix", "clean up", "before handoff" is
-  review then fix (step 8). Unattended with no signal: report only.
+  review then fix (step 9). Unattended with no signal: report only.
 - Checklist: `references/review-checklist.md`. Doctrine:
   `../design-directions/references/design-doctrine.md` when present, else
   the checklist's slop section.
@@ -56,23 +56,12 @@ flows is gstack `/design-review`'s job.
    that links the same token file (find them with Grep; a token change
    lands on all of them):
    `python3 "${CLAUDE_PLUGIN_ROOT}/skills/design-critique/scripts/pairs.py" <page>...`
-   A framework gallery (Next.js or Vite with Tailwind v4) has no static
-   stylesheet pairs.py can resolve: its colours sit in `@layer` blocks and
-   runtime classes. Render the gallery's pages to static snapshots first,
-   from the app's root (it uses the app's Playwright), then measure those:
+   A framework gallery has no static stylesheet for pairs.py: render its
+   pages to snapshots first, from the app's root (detail: checklist section
+   Measuring colour), then run pairs.py over `.scratch/design-snapshots/*.html`:
    `node "${CLAUDE_PLUGIN_ROOT}/skills/design-critique/scripts/snapshot.mjs" --base http://localhost:<port>/__design --out .scratch/design-snapshots <page>...`
-   and pairs.py over `.scratch/design-snapshots/*.html`. Hover states are
-   not in a snapshot; the report says so.
-   It prints every failing text pair, field edge and focus ring in light,
-   data-theme dark and prefers-color-scheme dark with file:line (a ring is
-   measured on the surface it is drawn on, so the same button can pass on
-   the page and fail on a panel), outlines removed with nothing in their
-   place, the raw colours in page styles, dark-block parity gaps, fonts
-   asked for but never loaded, and a fix colour that passes on every
-   surface the colour sits on. Its counts line goes in the report. Read
-   its output as findings to verify in the source, not as the review: it
-   skips hover states and width media queries (it says how many), so judge
-   those from the CSS.
+   Its counts line goes in the report; its output is findings to verify in
+   the source, not the review (what it prints and skips: the checklist).
    Every ratio the report states comes from a `pairs.py` line or from
    `python3 "${CLAUDE_PLUGIN_ROOT}/skills/design-critique/scripts/pairs.py" ratio <fg> <bg>...`
    run on the surface the finding is about; never a ratio remembered from
@@ -107,10 +96,23 @@ flows is gstack `/design-review`'s job.
      a count against its rows, rows in the order the flows name, the same
      record on two screens. A
      contradiction the client will read is high.
-6. Walk `references/review-checklist.md`: eleven categories, 0 to 10, one
+6. Walk `references/review-checklist.md`: twelve categories, 0 to 10, one
    evidence line per point deducted, `n/a: reason` leaves the mean. Score
    with its weights; letter A 9+, B 8, C 6 to 7, D 4 to 5, F below 4.
-7. Verdict and report. Say plainly whether the design is ready for what
+   Task cost is counted: 10, minus 2 per task over budget without a reason
+   (the `task paths:` line of `python3 "${CLAUDE_PLUGIN_ROOT}/skills/ux-flows/scripts/flows_check.py"`),
+   minus 1 per instance of the six patterns in
+   `../ux-flows/references/task-paths.md` found on the screens, floor 0;
+   each deduction names the task or screen id. No flows: `n/a`.
+7. Impeccable, per `${CLAUDE_PLUGIN_ROOT}/references/impeccable.md` (sections
+   Detect, Unattended, design-critique): `audit <target>` whenever installed;
+   `critique <target>` attended only, never when
+   `printenv BEARING_AUTOPILOT BEARING_NONINTERACTIVE` prints a value other
+   than `0`. Keep each finding with `source: impeccable audit` or
+   `impeccable critique`. Contrast, widths, themes and copy against the flows
+   stay Bearing-measured; a contradicting finding is listed with both, and
+   the measurement scores. Not installed: say so once, no step.
+8. Verdict and report. Say plainly whether the design is ready for what
    the request names (the client on Friday, handoff), then the fixes that
    must come first, ordered by what the audience will see: broken or
    unreadable first, contract breaches next, polish last. Each fix: where,
@@ -120,7 +122,7 @@ flows is gstack `/design-review`'s job.
    Report only: stop here; `git status --short --ignored` must show only
    the review and its shots, and the final message names every file the
    run added.
-8. Fix mode, up to `--rounds` (default 3). Unattended, apply without
+9. Fix mode, up to `--rounds` (default 3). Unattended, apply without
    asking every high finding whose fix keeps the approved look: labels,
    focus rings, zoom, copy from the flows, missing states as new pages
    named like the existing ones, touch targets, token values that stay in
@@ -141,7 +143,7 @@ flows is gstack `/design-review`'s job.
    `dark-media` lines, not by a `data-theme` screenshot);
    re-score the categories touched and append the round with its delta.
    A round that breaks the repo's check is reverted, not reported.
-9. Kill the server if one was started. Final message: what changed per
+10. Kill the server if one was started (a stale `http.server` confuses the next run). Final message: what changed per
    file, what was found and left (with why), the decisions for the owner,
    how the result was looked at (engine, widths, themes and dark path, or
    source only), and `git status --short --ignored`. Never commit.
@@ -155,8 +157,10 @@ Colour: <pairs.py counts line, verbatim>   Repo check: <its line>
 Verdict: ready | not ready for <what the request named>: <the blocking items>
 | Category | Score | Weight | Evidence |
 | hierarchy | 7 | 10% | list.html:42; list-1440.png |
+| task cost | 8 | 5% | flows.md task paths; S-02 confirmation on a reversible action |
 | ... ten more rows, consistency among them |
 Overall: 7.4 (B)   Slop hits: 0 | K (listed)
+Impeccable: audit N findings, critique N | critique not run (unattended) | not installed
 Fix first:
 1. <where>: change X to Y because Z (measured result)
 Decisions for the owner: <none | each with both options measured>
@@ -193,7 +197,4 @@ Report: docs/design/reviews/<feature>-review.md
 - Never rewrite a page to fix a finding. The variant's identity is the
   client's choice; fixes are surgical and named.
 - The contract files (flows, DESIGN.md, approved.json) are never edited to
-  make the prototype look compliant.
-- A board `index.html` is checked for legibility only and never scored.
-- Kill the server; a stale `http.server` on a random port confuses the
-  next run.
+  make the prototype look compliant; a board `index.html` is never scored.
