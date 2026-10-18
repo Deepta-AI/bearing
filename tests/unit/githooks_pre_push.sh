@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 # tests/unit/githooks_pre_push.sh: the committed pre-push hook refuses every
 # coding agent's push, a BEARING_AUTO_PUSH entry or not, and refuses an
-# agent's tag push even when no branch is pushed; the engineer's push runs
-# the gate; the hooks carry no opt-in code (Bearing's opt-in push runs from
-# a fresh clone and never meets this hook). bash 3.2 safe.
+# agent's tag push or branch deletion even when no branch is updated; the
+# engineer's push runs the gate and may delete a task branch; the hooks
+# carry no opt-in code (Bearing's opt-in push runs from a fresh clone and
+# never meets this hook). bash 3.2 safe.
 set -u
 . "$(dirname "$0")/../lib/assert.sh"
 H="$KIT/plugins/bearing/templates/repo/.githooks"
@@ -62,6 +63,20 @@ t_begin "an agent push to main is refused"
 setup
 t_run agent_push origin HEAD:refs/heads/main
 assert_contains "$T_OUT" "direct push to main is not allowed"
+t_end
+
+t_begin "an agent branch deletion is refused"
+setup; git -C "$repo" push -q --no-verify origin HEAD:refs/heads/feature/ABC-1-Thing 2>/dev/null
+t_run agent_push origin :refs/heads/feature/ABC-1-Thing
+assert_contains "$T_OUT" "an agent push never deletes a branch: feature/ABC-1-Thing"
+assert_eq "refs/heads/feature/ABC-1-Thing" "$(landed)" "the branch is still there"
+t_end
+
+t_begin "the engineer's branch deletion still passes"
+setup; git -C "$repo" push -q --no-verify origin HEAD:refs/heads/feature/ABC-1-Thing 2>/dev/null
+t_run bash -c "cd '$repo' && env -u CLAUDECODE -u CLAUDE_CODE_ENTRYPOINT git push origin :refs/heads/feature/ABC-1-Thing 2>&1"
+assert_contains "$T_OUT" "delete feature/ABC-1-Thing"
+assert_eq "" "$(landed)" "the branch is gone"
 t_end
 
 t_begin "with PUSH_CONFIRM=off an agent push goes through as before"

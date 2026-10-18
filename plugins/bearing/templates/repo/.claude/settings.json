@@ -23,7 +23,9 @@
     "Edit and Bash are denied that directory), chosen by matching origin's",
     "host and path. brg-push run pushes from a fresh clone of the task branch",
     "with a cleared environment, so no repository hook, Makefile or git setting",
-    "runs outside the sandbox; the pre-push hook still refuses every agent push.",
+    "runs outside the sandbox.",
+    "The pre-push hook refuses every agent push unless PUSH_CONFIRM is off",
+    "(.githooks/lib.sh): a branch update, a tag or a branch deletion.",
     "Edit is denied ~/.gitconfig and ~/.config/git too: the push reads them.",
     "The agent never merges, tags or deploys.",
     "Deny Bash(bash *bin/brg-push run*) is a first line only: any invocation",
@@ -441,6 +443,7 @@
         "~/.ssh",
         "~/.config/bearing",
         "~/.gitconfig",
+        "~/.config/git",
         "./.githooks",
         "./.git/hooks",
         "./.git/config"

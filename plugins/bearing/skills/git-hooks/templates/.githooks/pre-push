@@ -23,8 +23,9 @@ for b in $PROTECTED_BRANCHES; do
 done
 
 # A coding agent's push is refused (the confirmation below). The variable is
-# found before the ref loop so that a non-branch ref in an agent's push, a
-# tag above all, fails there instead of passing as "none a branch update".
+# found before the ref loop so that a non-branch ref or a branch deletion in
+# an agent's push, a tag above all, fails there instead of passing as "none a
+# branch update".
 # Bearing's opt-in push never comes here: brg-push pushes from a fresh clone.
 agent=""
 for v in CLAUDECODE CLAUDE_CODE_ENTRYPOINT CODEX_SANDBOX CODEX_SANDBOX_NETWORK_DISABLED GEMINI_CLI CURSOR_AGENT; do
@@ -48,7 +49,12 @@ while read -r local_ref local_sha remote_ref remote_sha; do
     [ "$local_sha" = "$zero" ] && hook_fail "deleting $rbranch on $remote is not allowed"
     hook_fail "direct push to $rbranch is not allowed (from $local_ref); open a merge request"
   fi
-  [ "$local_sha" = "$zero" ] && { hook_note "delete $rbranch"; continue; }
+  if [ "$local_sha" = "$zero" ]; then
+    if [ -n "$agent" ] && [ "$PUSH_CONFIRM" != off ]; then
+      hook_fail "an agent push never deletes a branch: $rbranch"
+    fi
+    hook_note "delete $rbranch"; continue
+  fi
   printf '%s' "$rbranch" | grep -Eq "$BRANCH_RE" \
     || hook_fail "branch '$rbranch' does not match (${BRANCH_PREFIXES})/<TASK-ID>-<ShortName> or release/vX.Y.Z"
   if [ "$remote_sha" = "$zero" ] || ! git cat-file -e "$remote_sha^{commit}" 2>/dev/null; then

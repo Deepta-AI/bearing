@@ -15,6 +15,9 @@ assert_contains "$deny" "Edit(~/.config/git/**)"
 assert_contains "$deny" "Bash(bash *bin/brg-push run*)"
 assert_contains "$deny" "Bash(git push:*)"
 assert_contains "$(cat "$KIT/plugins/bearing/templates/repo/AGENTS.md")" "BEARING_AUTO_PUSH"
+dw="$(jq -r '.sandbox.filesystem.denyWrite[]' "$S")"
+assert_contains "$dw" "~/.gitconfig"
+assert_contains "$dw" "~/.config/git"
 t_end
 
 t_begin "the run deny is described as a first line, the guard as the control"
@@ -26,6 +29,7 @@ assert_contains "$readme" "push URL"
 assert_contains "$readme" "fresh clone"
 assert_not_contains "$readme" "pre-push hook's to judge"
 assert_contains "$readme" "./bin/brg-push run"
+assert_contains "$readme" "refuses every agent push unless PUSH_CONFIRM is off"
 t_end
 
 t_begin "the hooks description names the opt-in feature branch push"

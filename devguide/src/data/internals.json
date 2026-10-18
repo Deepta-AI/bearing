@@ -5245,7 +5245,7 @@
     },
     {
      "path": "templates/.githooks/pre-push",
-     "lines": 106
+     "lines": 112
     }
    ],
    "groups": {
@@ -18542,9 +18542,9 @@
   {
    "path": "tests/unit/githooks_pre_push.sh",
    "kind": "unit",
-   "lines": 93,
-   "header": "tests/unit/githooks_pre_push.sh: the committed pre-push hook refuses every coding agent's push, a BEARING_AUTO_PUSH entry or not, and refuses an agent's tag push even when no branch is pushed; the engineer's push runs the gate; the hooks carry no opt-in code (Bearing's opt-in push runs from a fresh clone and never meets this hook). bash 3.2 safe.",
-   "asserts": 16
+   "lines": 108,
+   "header": "tests/unit/githooks_pre_push.sh: the committed pre-push hook refuses every coding agent's push, a BEARING_AUTO_PUSH entry or not, and refuses an agent's tag push or branch deletion even when no branch is updated; the engineer's push runs the gate and may delete a task branch; the hooks carry no opt-in code (Bearing's opt-in push runs from a fresh clone and never meets this hook). bash 3.2 safe.",
+   "asserts": 20
   },
   {
    "path": "tests/unit/guard_deny_table.sh",
@@ -18773,9 +18773,9 @@
   {
    "path": "tests/unit/push_settings.sh",
    "kind": "unit",
-   "lines": 36,
+   "lines": 40,
    "header": "tests/unit/push_settings.sh: the settings template denies edits to ~/.config/bearing, ~/.gitconfig and ~/.config/git and the brg-push run verb, keeps the push deny, and AGENTS.md rule 2 and the hooks description name the opt-in push.",
-   "asserts": 14
+   "asserts": 17
   },
   {
    "path": "tests/unit/route_frontier.sh",
@@ -19789,7 +19789,7 @@
   },
   {
    "path": "repo/.claude/settings.json",
-   "lines": 450
+   "lines": 453
   },
   {
    "path": "repo/.editorconfig",
@@ -19813,7 +19813,7 @@
   },
   {
    "path": "repo/.githooks/pre-push",
-   "lines": 106
+   "lines": 112
   },
   {
    "path": "repo/.github/PULL_REQUEST_TEMPLATE.md",
@@ -20783,6 +20783,7 @@
    "~/.ssh",
    "~/.config/bearing",
    "~/.gitconfig",
+   "~/.config/git",
    "./.githooks",
    "./.git/hooks",
    "./.git/config"
