@@ -2,7 +2,7 @@
 name: llm-fine-tuning
 description: 'Fine-tunes an open model when prompting and RAG fall short: eval-backed decision, dataset, LoRA, DPO or distillation, vLLM serving. Use when asked to "fine-tune a model", "train on our data" or "distil a smaller model".'
 argument-hint: "<name> [sft|dpo|distil|cpt]"
-allowed-tools: Read, Write, Edit, Grep, Glob, Bash(ls:*), Bash(wc -l:*), Bash(python3 -c:*), Bash(make eval:*), Bash(git log:*), Bash(uv run train_sft.py --smoke:*), Bash(nvidia-smi:*), Bash(python3 *skills/llm-fine-tuning/scripts/gpu_check.py*)
+allowed-tools: Read, Write, Edit, Grep, Glob, Bash(ls:*), Bash(wc -l:*), Bash(python3 -c:*), Bash(make eval:*), Bash(git log:*), Bash(uv run train_sft.py --smoke:*), Bash(nvidia-smi:*), Bash(python3 *skills/llm-fine-tuning/scripts/gpu_check.py*), Bash(python3 *skills/dataset-generation/scripts/dataset_check.py*)
 ---
 
 # llm-fine-tuning
@@ -52,11 +52,16 @@ there, and keep this skill's decision, data, eval and serving steps.
    format, LoRA SFT; judgement between candidates, DPO; cost at volume,
    distil from `claude-opus-5-5` into a small open model; domain
    vocabulary, continued pretraining (its own ADR, rarely justified).
-3. Data. Collection sources (logs with consent, owner-written, the
-   teacher model for distillation), the labelling guide
-   (`docs/genai/labelling-<name>.md`: one page, three worked examples,
-   the edge cases), PII removal with a named function and a test,
-   exact and near-duplicate removal (hash, then MinHash at 0.85), and a
+3. Data. Collection sources (logs with consent, owner-written), the
+   labelling guide (`docs/genai/labelling-<name>.md`: one page, three
+   worked examples, the edge cases) and PII removal with a named
+   function and a test. Teacher rows for distillation and any synthetic
+   rows come from `bearing-genai:dataset-generation` (kind `train` or
+   `preference`), which audits them. Duplicates and contamination are
+   that skill's gate, one threshold for both, run on every training file
+   before the split:
+   `python3 "${CLAUDE_PLUGIN_ROOT}/skills/dataset-generation/scripts/dataset_check.py" data/<name>/all.jsonl --kind train --against evals/<name>/cases.jsonl`
+   (copy its count line; `--kind preference` for DPO pairs). Then a
    split of 80/10/10 into train, validation and test with no document
    shared across splits. Format is chat messages JSONL from
    `templates/dataset.jsonl`. The test split is the golden set from

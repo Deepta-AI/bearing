@@ -137,6 +137,7 @@ CATEGORY = {
         "rag",
         "llm-eval",
         "model-routing",
+        "dataset-generation",
         "llm-fine-tuning",
         "mcp-server",
         "llm-guardrails",
@@ -491,6 +492,12 @@ STAGES = [
                 "model-routing",
                 "bearing-genai",
                 "frontier of score and cost per candidate, cascade, budget and alert",
+            ),
+            (
+                "Data when real data is short",
+                "dataset-generation",
+                "bearing-genai",
+                "taxonomy, generated rows, dedupe and contamination counts, audit, datasheet",
             ),
             (
                 "Prompting is not enough",

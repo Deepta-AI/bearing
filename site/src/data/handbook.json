@@ -313,6 +313,19 @@
    "args": ""
   },
   {
+   "name": "dataset-generation",
+   "plugin": "bearing-genai",
+   "category": "genai",
+   "what": "Generates eval, training or preference data from a real seed: taxonomy, generation, dedupe, contamination check, human audit, datasheet",
+   "when": "asked to \"make synthetic data\" or \"we need more examples\"",
+   "phrases": [
+    "make synthetic data",
+    "we need more examples"
+   ],
+   "invocation": "auto",
+   "args": "<eval|train|preference> <name> [--seed <path>] [--target N] [--unattended]"
+  },
+  {
    "name": "db-migration",
    "plugin": "bearing",
    "category": "quality",
@@ -1789,6 +1802,12 @@
      "skill": "model-routing",
      "from": "bearing-genai",
      "output": "frontier of score and cost per candidate, cascade, budget and alert"
+    },
+    {
+     "stage": "Data when real data is short",
+     "skill": "dataset-generation",
+     "from": "bearing-genai",
+     "output": "taxonomy, generated rows, dedupe and contamination counts, audit, datasheet"
     },
     {
      "stage": "Prompting is not enough",

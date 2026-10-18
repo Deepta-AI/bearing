@@ -396,6 +396,24 @@
   ]
  },
  {
+  "skill": "dataset-generation",
+  "should": [
+   "we only have 15 real intake notes, I need a few hundred more varied ones for the classifier eval",
+   "make preference pairs for DPO from our support replies",
+   "the summariser eval has nothing in Tamil or code-mixed Hinglish, can we generate cases for those from the real ones we have?"
+  ],
+  "near": [
+   {
+    "prompt": "score the new prompt against our labelled tickets",
+    "expect": "llm-eval"
+   },
+   {
+    "prompt": "forecast next month's bookings",
+    "expect": "tabular-ml"
+   }
+  ]
+ },
+ {
   "skill": "db-migration",
   "should": [
    "need a migration to add phone_verified to patients",

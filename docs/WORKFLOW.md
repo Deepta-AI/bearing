@@ -87,6 +87,7 @@ own names (`/office-hours`, `brainstorming`).
 | Every model call | `llm-gateway` | bearing | routing, retries, caching, cost, tracing |
 | Is it good enough | `llm-eval` | bearing | golden set, graders, CI regression gate |
 | Cheapest model that passes | `model-routing` | bearing-genai | frontier of score and cost per candidate, cascade, budget and alert |
+| Data when real data is short | `dataset-generation` | bearing-genai | taxonomy, generated rows, dedupe and contamination counts, audit, datasheet |
 | Prompting is not enough | `llm-fine-tuning` | bearing | data prep, recipe, GPU check, smoke run, vLLM serving, model card |
 | Speech and voice | `speech` | bearing | WER per language, latency per stage, barge-in, audio privacy |
 | Vision | `computer-vision` | bearing | group-safe splits, AUROC or mAP, threshold from costs, serving latency |

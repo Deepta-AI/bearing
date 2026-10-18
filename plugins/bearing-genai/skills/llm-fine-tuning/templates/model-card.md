@@ -48,9 +48,10 @@ Owner: <person>. Task: <PREFIX>-<n>. ADR: docs/adr/NNNN-<title>.md
 <!-- What: the counts at every stage, the sources and their proportions,
      the labelling guide, the PII removal function and the licence or
      consent covering each source.
-     Good: counts shrink stage by stage and add up; dedup is exact then
-     near (MinHash at 0.85) and by document across splits, so the test
-     split cannot leak; the test split is the llm-eval golden set.
+     Good: counts shrink stage by stage and add up; dedup and
+     contamination come from dataset-generation's dataset_check.py (exact,
+     then 5-gram Jaccard at 0.8) and split by document, so the test split
+     cannot leak; the test split is the llm-eval golden set.
      Example: "After dedup (exact, near) | 4,212 (exact 180 removed, near
      96 removed)" -->
 

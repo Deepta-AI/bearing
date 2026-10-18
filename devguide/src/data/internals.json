@@ -1,24 +1,24 @@
 {
  "version": "0.8.0",
  "counts": {
-  "skills": 108,
+  "skills": 109,
   "commandSkills": 0,
   "stackSkills": 12,
-  "scripts": 97,
-  "scriptLines": 31058,
+  "scripts": 98,
+  "scriptLines": 31481,
   "hooks": 8,
   "agents": 8,
   "makeTargets": 32,
   "gates": 19,
-  "tests": 106,
+  "tests": 107,
   "fixtures": 25,
   "stacks": 13,
   "templates": 38,
   "ciJobs": 16,
   "ghJobs": 6,
   "ghWorkflows": 2,
-  "evals": 108,
-  "skillFiles": 1059
+  "evals": 109,
+  "skillFiles": 1063
  },
  "plugins": [
   {
@@ -148,9 +148,10 @@
    "dir": "plugins/bearing-genai",
    "description": "Bearing skills for GenAI and ML products: solution design, RAG, agents, MCP servers, model gateway and routing, guardrails, prompt registry, evals, fine-tuning, datasets, speech, computer vision and tabular ML. Needs the bearing plugin.",
    "required": false,
-   "files": 65,
+   "files": 69,
    "skills": [
     "computer-vision",
+    "dataset-generation",
     "genai-design",
     "llm-agent",
     "llm-eval",
@@ -3013,6 +3014,115 @@
     "On a foreign layout",
     "Rules that matter most",
     "Commands",
+    "Gotchas"
+   ]
+  },
+  {
+   "name": "dataset-generation",
+   "plugin": "bearing-genai",
+   "category": "genai",
+   "what": "Generates eval, training or preference data from a real seed: taxonomy, generation, dedupe, contamination check, human audit, datasheet",
+   "when": "asked to \"make synthetic data\" or \"we need more examples\"",
+   "description": "Generates eval, training or preference data from a real seed: taxonomy, generation, dedupe, contamination check, human audit, datasheet. Use when asked to \"make synthetic data\" or \"we need more examples\".",
+   "invocation": "auto",
+   "kind": "step",
+   "args": "<eval|train|preference> <name> [--seed <path>] [--target N] [--unattended]",
+   "tools": [
+    "Read",
+    "Write",
+    "Edit",
+    "Grep",
+    "Glob",
+    "Skill",
+    "AskUserQuestion",
+    "Bash(ls:*)",
+    "Bash(wc -l:*)",
+    "Bash(mkdir:*)",
+    "Bash(uv run python datasets/*)",
+    "Bash(python3 *skills/dataset-generation/scripts/dataset_check.py*)",
+    "Bash(printenv BEARING_AUTOPILOT BEARING_NONINTERACTIVE)"
+   ],
+   "extra": {},
+   "intro": "Synthetic rows are cheap and easy to fool yourself with. This skill grows a real seed into more rows along the dimensions that matter, removes duplicates and anything that leaks the golden set, and has a person audit a sample before a row counts. `scripts/dataset_check.py` is the gate.",
+   "sections": [
+    {
+     "title": "Inputs",
+     "lines": 20
+    },
+    {
+     "title": "Steps",
+     "lines": 64
+    },
+    {
+     "title": "Output contract",
+     "lines": 11
+    },
+    {
+     "title": "Gotchas",
+     "lines": 17
+    }
+   ],
+   "inputs": [
+    "Kind and name: `$1` (`eval`, `train` or `preference`) and `$2`.",
+    "Seed: `--seed <path>`, else the rows of `evals/<name>/cases.jsonl` whose `source` is not synthetic, else `datasets/<name>/seed.jsonl`. Row shapes are the ones `llm-eval` and `llm-fine-tuning` write: `input` a string or an object, or chat `messages`; any `source` string.",
+    "Cells: `docs/genai/<name>-solution.md` (inputs, users, languages, edge cases) and the three worst cases in `docs/genai/evals.md`.",
+    "Model under test and candidate generators: `llm/routing.yaml` (`routes.<name>` and the `models:` table); eval scores per model from `docs/genai/evals.md` for choosing a teacher.",
+    "Golden set to check against: `evals/<name>/cases.jsonl`, for every kind.",
+    "Methods, prompts and the audit sample: `references/generation.md`.",
+    "Unattended: `--unattended`, or `printenv BEARING_AUTOPILOT BEARING_NONINTERACTIVE` prints a value other than `0`. The skill then asks nothing: the generator takes the recommended default from step 3 when one exists; rows are generated, filtered and the audit sample drawn, but nothing is promoted or handed to training, because the audit is a person's step. It stops with one line, `dataset-generation: unattended, miss…"
+   ],
+   "steps": [
+    "Seed. Count it: `python3 \"${CLAUDE_PLUGIN_ROOT}/skills/dataset-generation/scripts/dataset_check.py\" <seed> --kind <kind>` and read real plus owner from its count line. Fewer than 10 stops the skill with \"synthetic data with no real seed measures the generator; give me at least 10 real rows\" and generates nothing. Seed rows with PII are cleaned first (`bearing:privacy-review` names the fields).",
+    "Taxonomy in `datasets/<name>/taxonomy.json`, `{\"dimensions\": {dim: [values]}}`: the dimensions that matter (intent, difficulty, language including code-mixed, length, edge case, adversarial), values from the solution doc and the worst cases. Keep it to what the product sees; every cell needs a reason. Target per cell from `--target` (default: the larger of 100 and 5 times the seed) divided by the cells, more for the…",
+    "Generator. For `eval` rows, a model of a different family or tier from the model under test (`routes.<name>` in `llm/routing.yaml`); for `train` and `preference`, a teacher whose eval score in `docs/genai/evals.md` beats the model being trained. Ask with AskUserQuestion (as the bearing plugin's `references/console.md` says), options \"<the strongest `models:` key that is not the model under test> (Recommended)\" (for…",
+    "Generate. `datasets/<name>/generate.py` from `references/generation.md`: a versioned prompt from `bearing-genai:prompt-registry` (`<name>-generate` v1, a new version for every change), one call per cell batch through the gateway (`llm/`) on a `dataset-<name>` route set to the generator, seed rows rotated as examples, each row written with `source: synthetic`, its `cell`, the `expected` or `rubric` the generator prop…",
+    "Filter. Run `python3 \"${CLAUDE_PLUGIN_ROOT}/skills/dataset-generation/scripts/dataset_check.py\" datasets/<name>/generated.jsonl --kind <kind> --against evals/<name>/cases.jsonl --taxonomy datasets/<name>/taxonomy.json`. Drop every row it names (exact or near duplicate at 5-gram Jaccard 0.8, contaminated, missing a field) into `datasets/<name>/rows.jsonl` and run it again on that file until only the audit problem is…",
+    "Audit. Draw the sample in `references/generation.md` (the gate's required count: 10 percent or 30 rows, whichever is larger, capped at the synthetic rows; for rows promoted to the golden set, at least 20 percent, `llm-eval`'s labelling rule) into `datasets/<name>/audit-sample.jsonl`. A person writes `datasets/<name>/audit.jsonl`, one row per checked row with `id`, `verdict` (`accept` or `reject`), `by` and `why`; th…",
+    "Use and record. `datasets/<name>/DATASHEET.md` from `templates/DATASHEET.md`, every section filled, the filtering counts copied from the gate. Then by kind: - `eval`: on `dataset-check: passed`, append the batch less its rejected rows to `evals/<name>/cases.jsonl` with `source: synthetic`, `labelled_by` the auditor and `labelled_at`. The gate already holds synthetic rows to at most half of rows plus golden set; rows…"
+   ],
+   "output": "Stopped early: the contract's first line, then the stop line (seed rows N of 10, or the unattended `missing:` list) in place of the rest.",
+   "gotchas": [
+    "Synthetic data with no real seed measures the generator, not the product. The seed rule is not negotiable.",
+    "The model under test generating its own eval rows writes cases it finds easy. A different family or tier generates; a person audits.",
+    "Contamination hides behind shape. A chat row and an object case with the same words are the same case; the gate compares both forms.",
+    "One near-duplicate threshold (0.8) for the set and for contamination. `llm-fine-tuning` uses this gate instead of its own.",
+    "A filled taxonomy is not a varied one. Read 20 rows of the biggest cell; templated phrasing shows there first.",
+    "Unaudited synthetic rows never join a golden set and never train a model, in any mode.",
+    "Generating from customer data needs the consent the seed had, and a teacher's outputs used for training need the provider's usage policy checked (`llm-fine-tuning` records it in its ADR).",
+    "Above 20,000 rows the gate checks exact duplicates only and says so; dedupe a batch that size per cell first."
+   ],
+   "layout": "",
+   "commands": [],
+   "lines": 137,
+   "files": [
+    {
+     "path": "SKILL.md",
+     "lines": 137
+    },
+    {
+     "path": "references/generation.md",
+     "lines": 107
+    },
+    {
+     "path": "scripts/dataset_check.py",
+     "lines": 416
+    },
+    {
+     "path": "templates/DATASHEET.md",
+     "lines": 78
+    }
+   ],
+   "groups": {
+    ".": 1,
+    "references": 1,
+    "scripts": 1,
+    "templates": 1
+   },
+   "evals": true,
+   "hasSections": [
+    "Inputs",
+    "Steps",
+    "Output contract",
     "Gotchas"
    ]
   },
@@ -7119,7 +7229,8 @@
     "Bash(git log:*)",
     "Bash(uv run train_sft.py --smoke:*)",
     "Bash(nvidia-smi:*)",
-    "Bash(python3 *skills/llm-fine-tuning/scripts/gpu_check.py*)"
+    "Bash(python3 *skills/llm-fine-tuning/scripts/gpu_check.py*)",
+    "Bash(python3 *skills/dataset-generation/scripts/dataset_check.py*)"
    ],
    "extra": {},
    "intro": "Anthropic models are used through the API and are not fine-tuned by us. Training means an open model, and it is the last lever, pulled only when an eval shows the gap that prompting, retrieval and a stronger model could not close. This skill writes the plan, the data and runnable training code, proves the pipeline with a smoke run of a few minutes, and serves the result behind the gateway. The full run is started by a person on the hardware the plan names.",
@@ -7130,7 +7241,7 @@
     },
     {
      "title": "Steps",
-     "lines": 59
+     "lines": 64
     },
     {
      "title": "Output contract",
@@ -7150,7 +7261,7 @@
    "steps": [
     "Name from `$1`, goal from `$2` or asked. Read `docs/genai/evals.md` for `<name>`. No eval, or no accepted baseline: the Inputs fallback (ask, else the minimal path). Training without a number to beat is not allowed, so the minimal run happens before step 2.",
     "The decision, written as an ADR (`bearing:adr Train <name> with <recipe>`, or a file in `docs/adr/`) with the evidence table: score with the current prompt, with the prompt tuned (`prompt-registry`), with RAG (`rag`), with `claude-opus-5-5` at higher effort, and the cost per 1K requests of each. Training is justified when the best of those misses the target, or hits it at a cost per request the product cannot carry.…",
-    "Data. Collection sources (logs with consent, owner-written, the teacher model for distillation), the labelling guide (`docs/genai/labelling-<name>.md`: one page, three worked examples, the edge cases), PII removal with a named function and a test, exact and near-duplicate removal (hash, then MinHash at 0.85), and a split of 80/10/10 into train, validation and test with no document shared across splits. Format is cha…",
+    "Data. Collection sources (logs with consent, owner-written), the labelling guide (`docs/genai/labelling-<name>.md`: one page, three worked examples, the edge cases) and PII removal with a named function and a test. Teacher rows for distillation and any synthetic rows come from `bearing-genai:dataset-generation` (kind `train` or `preference`), which audits them. Duplicates and contamination are that skill's gate, one…",
     "Run plan in `docs/genai/training-<name>.md`: base model (current open families: Qwen3, Llama 4, Gemma 3; pick the size the serving budget allows and name the exact checkpoint), toolchain (Hugging Face TRL with PEFT by default: plain Python, testable, one file per recipe; Axolotl when the team already runs it and wants YAML-driven multi-GPU jobs), hyperparameters with the defaults from the recipe, compute estimate (t…",
     "Hardware and smoke run. Run `python3 \"${CLAUDE_PLUGIN_ROOT}/skills/llm-fine-tuning/scripts/gpu_check.py\" --params-b <p> --method <lora|qlora|full>` and copy its `gpu-check:` line; when it does not fit, pick QLoRA, a smaller base, or name the cloud GPU in the plan. Then `uv run train_sft.py --smoke` (20 steps on 64 examples; the tiny base on CPU when there is no GPU). It must finish, save an adapter and report an eva…",
     "Evaluation: the same eval run (`make eval EVAL=<name>`, or the harness directly) on the test split before (base model, prompt-only path) and after. Report both. A post-training score that does not beat the prompt-only path by more than the noise floor means the model does not ship.",
@@ -7172,11 +7283,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 139,
+   "lines": 144,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 139
+     "lines": 144
     },
     {
      "path": "references/recipes.md",
@@ -7192,7 +7303,7 @@
     },
     {
      "path": "templates/model-card.md",
-     "lines": 142
+     "lines": 143
     },
     {
      "path": "templates/serve-vllm.md",
@@ -15902,7 +16013,7 @@
    "name": "gen-guide.py",
    "lang": "python",
    "group": "generators",
-   "lines": 1393,
+   "lines": 1400,
    "header": "Generate the documents that derive from the skills in this repository:\n\n  site/src/data/handbook.json   everything the handbook site renders\n  docs/WORKFLOW.md              the stage tables between the markers\n\nEvery table comes from one source: the skill frontmatter (name,\ndescription, invocation), CATEGORY and STAGES below, plus one reviewed\nfile: docs/flows.json (the four task flows). Fails when zero skills are\nfound, when a skill has no category, when a row names more than one skill,\nor when a row or a flow names a skill that is neither a Bearing skill nor\nlisted in docs/known-skills.txt.\n\n    gen-guide.py                        write every document\n    gen-guide.py --write-known-skills   rewrite docs/known-skills.txt from\n                                        the skills installed on this\n                                        machine, then continue\n    gen-guide.py --check-names          the default; kept as a flag so a\n                                        caller can name the intent",
    "functions": [
     "scan_installed",
@@ -16528,6 +16639,32 @@
     "named_checks",
     "read_dictionary",
     "check_needs",
+    "main"
+   ],
+   "env": [],
+   "calls": []
+  },
+  {
+   "path": "plugins/bearing-genai/skills/dataset-generation/scripts/dataset_check.py",
+   "name": "dataset_check.py",
+   "lang": "python",
+   "group": "skill",
+   "skill": "dataset-generation",
+   "lines": 416,
+   "header": "dataset_check: the gate a generated dataset passes before anyone uses it.\n\nUsage:\n  dataset_check.py <rows.jsonl> --kind eval|train|preference\n                   [--against <cases.jsonl>] [--taxonomy <taxonomy.json>]\n                   [--audit <audit.jsonl>] [--near 0.8] [--max-near 0.02]\n\nRows (JSON Lines) come in the shapes llm-eval and llm-fine-tuning write:\n  {\"id\", \"input\": str | object, \"source\": str, \"cell\": {dim: value}, ...}\nplus `expected` or `rubric` (eval), `output` or chat `messages` with an\nassistant turn (train), `chosen` and `rejected` (preference). A chat row\n(`messages`, or `prompt` for a preference pair) takes its input from the\nuser turns; the system prompt is shared by every row and is not compared.\n`source` is any non-empty string: `owner` and `synthetic` (or\n`synthetic:<generator>`) are counted by name, every other value as real.\n\nComparison text: a string as is; an object as canonical JSON with sorted\nkeys; then lower-cased with whitespace collapsed. Contamination also\ncompares the object's string values alone, so a chat row or a string row\nthat repeats an object case is caught. Near duplicate: character 5-gram\nJaccard at or above --near (one threshold for duplicates and for\ncontamination). Above 20,000 rows only exact matches are checked.\n\nTaxonomy: {\"dimensions\": {dim: [values]}}; cells are the product of the\nvalues. Audit rows: {\"id\", \"verdict\": \"accept\"|\"reject\", \"by\"}; a row\nwithout `by` is not a person's audit and does not count. Required audit is\nmin(synthetic, max(30, ceil(0.1 x synthetic))); acceptance must be at\nleast 90%. For kind eval the synthetic share of the rows plus --against\ncases is at most 0.5.\n\nOutput: one count line, then `dataset-check: passed` (exit 0) or\n`dataset-check: X problems` and one line per problem (exit 1). Zero rows,\nor a file that cannot be read, prints `nothing checked` and exits 2.",
+   "functions": [
+    "die",
+    "read_jsonl",
+    "norm",
+    "leaves",
+    "user_turns",
+    "texts",
+    "grams",
+    "jaccard",
+    "frequency",
+    "source_kind",
+    "has_assistant",
+    "filled",
     "main"
    ],
    "env": [],
@@ -18205,6 +18342,13 @@
    "asserts": 50
   },
   {
+   "path": "tests/unit/dataset_check.sh",
+   "kind": "unit",
+   "lines": 176,
+   "header": "tests/unit/dataset_check.sh: dataset-generation's dataset_check.py. It counts rows by source, taxonomy cells filled, exact and near duplicates, contamination against a golden set and the person audit of synthetic rows; exit 1 on any problem, exit 2 when it checked nothing. Rows come in the shapes llm-eval and llm-fine-tuning already write: `input` a string or an object, chat `messages`, any `source` string.",
+   "asserts": 46
+  },
+  {
    "path": "tests/unit/deliverables_pack.sh",
    "kind": "unit",
    "lines": 187,
@@ -19753,6 +19897,7 @@
   "data-model",
   "data-pipeline",
   "database",
+  "dataset-generation",
   "db-migration",
   "definition-of-done",
   "dependency-audit",

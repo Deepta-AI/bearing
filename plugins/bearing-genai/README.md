@@ -5,13 +5,14 @@ a model, retrieve over documents, run agents, or train and serve ML models.
 
 ## What it contains
 
-`skills/`: 13 skills (the GenAI flow's later tasks add more):
+`skills/`: 14 skills (the GenAI flow's later tasks add more):
 
 - `genai-design`: the solution design for a product that calls a model
 - `rag`: retrieval over documents
 - `llm-agent`: agents and their tools
 - `llm-eval`: evaluation sets, graders and judges
 - `llm-fine-tuning`: when and how to tune a model
+- `dataset-generation`: more eval, training or preference rows from a real seed, gated and audited
 - `llm-gateway`: one place every model call goes through
 - `model-routing`: the cheapest model or cascade that still passes the eval
 - `llm-guardrails`: input and output checks

@@ -1,0 +1,43 @@
+# llm/routing.yaml. Prices are USD per million tokens.
+# Prices: claude-api skill shared/models.md, as_of 2026-10-15.
+
+version: 1
+
+models:
+  claude-opus-5-5:
+    provider: anthropic
+    input_per_m: 4.00
+    output_per_m: 20.00
+  claude-sonnet-5-5:
+    provider: anthropic
+    input_per_m: 2.00
+    output_per_m: 10.00
+  claude-haiku-4-5:
+    provider: anthropic
+    input_per_m: 1.00
+    output_per_m: 5.00
+
+tiers:
+  fast:
+    model: claude-haiku-4-5
+    effort: null
+    max_tokens: 256
+  balanced:
+    model: claude-sonnet-5-5
+    effort: low
+    max_tokens: 256
+  deep:
+    model: claude-opus-5-5
+    effort: medium
+    max_tokens: 1024
+
+defaults:
+  tier: balanced
+  enabled: true
+  fallback: null
+
+routes:
+  # the model under test for the intake eval
+  intake:
+    tier: balanced
+    cacheable: true
