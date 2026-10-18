@@ -164,4 +164,98 @@ elsewhere="$(tmpdir)"; rm -r -f "$repo/.bearing/state"; ln -s "$elsewhere" "$rep
 assert_eq "" "$(ls -A "$elsewhere")" "nothing written into a symlinked state directory"
 t_end
 
+t_begin "optin-record never moves its file into a directory a .push-optin link points at"
+setup; victim="$(tmpdir)"
+rm -f "$repo/.bearing/state/.push-optin"; ln -s "$victim" "$repo/.bearing/state/.push-optin"
+( cd "$repo" && bash "$P" optin-record )
+assert_eq "" "$(ls -A "$victim")" "the linked directory is untouched"
+assert_eq on "$(cat "$repo/.bearing/state/.push-optin")"
+if [ -L "$repo/.bearing/state/.push-optin" ]; then assert_eq file link ".push-optin type"; else assert_eq ok ok; fi
+t_end
+
+t_begin "optin-record never writes into a state directory swapped for a link while it decides"
+setup; elsewhere="$(tmpdir)"; sw="$(tmpdir)"
+P2="$(tmpdir)/brg-push"; sed '$d' "$KIT/plugins/bearing/bin/brg-push" > "$P2"
+# The seam's second passwd_home call is entry_for's, after any check of the
+# state directory and before the write: swap the directory for a link there.
+cat >> "$P2" <<EOF
+passwd_home() {
+  local c; c="\$(cat '$sw/n' 2>/dev/null || echo 0)"; c=\$((c+1)); echo "\$c" > '$sw/n'
+  if [ "\$c" -eq 2 ]; then mv '$repo/.bearing/state' '$repo/.bearing/state.real'; ln -s '$elsewhere' '$repo/.bearing/state'; fi
+  printf '%s\n' '$home'
+}
+main "\$@"
+EOF
+( cd "$repo" && bash "$P2" optin-record )
+assert_eq 2 "$(cat "$sw/n")" "passwd_home calls"
+assert_eq "" "$(ls -A "$elsewhere")" "nothing written through the swapped link"
+assert_eq absent "$(cat "$repo/.bearing/state.real/.push-optin" 2>/dev/null || echo absent)" "the stale on was removed before deciding"
+t_end
+
+t_begin "state_write refuses a linked state directory and removes a link, not its target"
+setup; elsewhere="$(tmpdir)"; victim="$(tmpdir)/v"; printf 'keep\n' > "$victim"
+sfn() { ( cd "$repo" && root="$repo" bash -c '. "$1"; shift; printf "x\n" | state_write "$@"' _ "$fns" "$@" ); }
+ln -s "$victim" "$repo/.bearing/state/push-result"
+assert_exit 0 sfn rm push-result
+assert_eq "keep" "$(cat "$victim")" "the link target survives rm"
+assert_eq gone "$( [ -e "$repo/.bearing/state/push-result" ] || [ -L "$repo/.bearing/state/push-result" ] || echo gone)"
+assert_exit 0 sfn put push-result
+assert_eq x "$(cat "$repo/.bearing/state/push-result")"
+assert_exit 1 sfn put ../escape
+mv "$repo/.bearing/state" "$repo/.bearing/state.real"; ln -s "$elsewhere" "$repo/.bearing/state"
+assert_exit 1 sfn put push-result
+assert_exit 1 sfn rm .push-optin
+assert_eq "" "$(ls -A "$elsewhere")" "nothing written into the linked directory"
+t_end
+
+t_begin "optin-record with no .git leaves no stale on"
+setup; mv "$repo/.git" "$repo/.git.away"
+( cd "$repo" && bash "$P" optin-record )
+assert_eq absent "$(cat "$repo/.bearing/state/.push-optin" 2>/dev/null || echo absent)"
+t_end
+
+# within <seconds> <cmd...>: exit 0 when the command ended in time, 1 when it
+# had to be killed. Its output goes nowhere, so a stuck child cannot hold the
+# test's pipe open.
+within() {
+  local s="$1" p i=0; shift
+  "$@" < /dev/null > /dev/null 2>&1 & p=$!
+  while kill -0 "$p" 2>/dev/null; do
+    if [ "$i" -ge $((s*10)) ]; then kill "$p" 2>/dev/null; wait "$p" 2>/dev/null; return 1; fi
+    sleep 0.1; i=$((i+1))
+  done
+  wait "$p" 2>/dev/null; return 0
+}
+
+t_begin "optin-record does not hang on a FIFO config and clears a stale on"
+setup; fake="$(tmpdir)"; mkfifo "$fake/config"
+mv "$repo/.git" "$repo/.git.real"; printf 'gitdir: %s\n' "$fake" > "$repo/.git"
+assert_exit 0 within 10 bash -c "cd '$repo' && bash '$P' optin-record"
+( exec 3<> "$fake/config" ) 2>/dev/null   # releases a reader left blocked on the FIFO
+assert_eq absent "$(cat "$repo/.bearing/state/.push-optin" 2>/dev/null | grep -x on || echo absent)"
+t_end
+
+t_begin "bounded stops a command that runs past its time"
+assert_exit 124 bash -c '. "$1"; bounded 1 sleep 20' _ "$fns"
+assert_exit 3 bash -c '. "$1"; bounded 5 sh -c "exit 3"' _ "$fns"
+t_end
+
+t_begin "optin-record ignores a repository above its temp directory"
+setup; above="$(tmpdir)"
+printf 'gitdir: /nonexistent\n' > "$above/.git"   # git stops with "not a git repository" if it looks here
+mkdir -p "$above/t"; ( cd "$repo" && TMPDIR="$above/t" bash "$P" optin-record )
+assert_eq on "$(cat "$repo/.bearing/state/.push-optin")"
+t_end
+
+t_begin "a tracked .bearing file changed after make check makes the gate stale"
+setup; sleep 1; printf '{}\n' > "$repo/.bearing/config.json"
+git -C "$repo" add .bearing/config.json; git -C "$repo" commit -q -m "chore: config [ABC-1]"
+assert_exit 1 in_repo check; assert_contains "$T_OUT" "no gate: 1 of 2 file(s) newer than the last make check"
+t_end
+
+t_begin "clean fails closed when git status fails"
+setup; printf 'garbage' > "$repo/.git/index"
+assert_exit 1 in_repo check; assert_contains "$T_OUT" "no clean:"
+t_end
+
 t_summary

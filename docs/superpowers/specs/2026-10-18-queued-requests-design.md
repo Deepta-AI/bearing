@@ -228,8 +228,9 @@ engineer whether a request can succeed, and `run` re-judges what matters.
    (`origin/develop`, else `origin/main`, else `origin/master`).
 7. `gate`: `.bearing/state/.check-passed` exists and no file in the
    branch diff (`git diff -z --name-only <base>...HEAD`) or the working
-   tree (`git status -z`) is newer than it, paths under `.bearing/`
-   skipped (R3); `-z` so a name with a space or a non-ASCII byte is
+   tree (`git status -z`) is newer than it, paths under
+   `.bearing/state/` skipped (R3 as narrowed by Task 2 fix round 1: a
+   tracked `.bearing/` file changed after `make check` counts); `-z` so a name with a space or a non-ASCII byte is
    counted, not dropped. The line prints how many files it compared;
    zero files compared is `no gate: 0 files on the branch`.
 8. `fast-forward`: `origin/<branch>` absent, or an ancestor of HEAD

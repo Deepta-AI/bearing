@@ -19,7 +19,9 @@
 # check, request and status run in the agent's Bash, inside the sandbox.
 # optin-record and run run outside the sandbox and run no git command in the
 # working repository: origin's url is read as text from the git common dir's
-# config file, under a cleared environment, in an empty directory. run is for
+# config file, under a cleared environment, in an empty directory, every read
+# of the repository bounded in time, and every write to .bearing/state goes
+# through state_write, which never follows a link the agent planted. run is for
 # the Stop hook; the guard refuses it from Bash. The opt-in is read from
 # <passwd home>/.config/bearing/bearing.env only, never from BEARING_ENV,
 # XDG_CONFIG_HOME, HOME or an exported BEARING_AUTO_PUSH: the agent controls
@@ -79,17 +81,34 @@ passwd_home() {
   printf '%s\n' "$h"
 }
 
+# bounded <seconds> <command...>: the command, killed when it runs longer
+# (exit 124), so a FIFO an agent plants where a file should be cannot hang a
+# hook. It runs as one process, the one the timer kills: an external command
+# is exec'd, and cleanenv execs env when bounded_exec is set.
+bounded() {
+  local s="$1" p w rc; shift
+  ( bounded_exec=1
+    case "$(type -t "$1")" in (function) "$@" ;; (*) exec "$@" ;; esac ) &
+  p=$!
+  ( sleep "$s"; kill "$p" 2>/dev/null ) < /dev/null > /dev/null 2>&1 &
+  w=$!
+  wait "$p"; rc=$?
+  if kill -0 "$w" 2>/dev/null; then kill "$w" 2>/dev/null; else rc=124; fi
+  return "$rc"
+}
+
 # git_common_dir: the git common directory of $root, found by reading
 # <root>/.git as text: a directory is the answer; a "gitdir: <p>" file gives
-# <p>, then <p>/commondir when present (relative to <p>). No git command.
+# <p>, then <p>/commondir when present (relative to <p>). No git command;
+# each file read is of a regular file and bounded in time.
 git_common_dir() {
   local g="$root/.git" p c
   [ -d "$g" ] && { printf '%s\n' "$g"; return 0; }
   [ -f "$g" ] || return 1
-  p="$(sed -n 's/^gitdir: //p' "$g" | head -1)"; [ -n "$p" ] || return 1
+  p="$(bounded 5 sed -n '1s/^gitdir: //p' "$g")"; [ -n "$p" ] || return 1
   case "$p" in (/*) ;; (*) p="$root/$p" ;; esac
   if [ -f "$p/commondir" ]; then
-    c="$(head -1 "$p/commondir")"
+    c="$(bounded 5 head -1 "$p/commondir")" || return 1
     case "$c" in (/*) p="$c" ;; (*) p="$p/$c" ;; esac
   fi
   printf '%s\n' "$p"
@@ -97,18 +116,24 @@ git_common_dir() {
 
 # cleanenv <cmd>: run a command with nothing of the caller's environment but
 # SSH_AUTH_SOCK: PATH is /usr/bin:/bin and HOME the passwd home, so no GIT_*
-# variable, wrapper earlier on PATH or self-supplied HOME takes part.
+# variable, wrapper earlier on PATH or self-supplied HOME takes part. Call it
+# from the temporary directory git is to work in: GIT_CEILING_DIRECTORIES is
+# that directory's parent, so git never finds a repository above it.
 cleanenv() {
-  env -i PATH=/usr/bin:/bin HOME="$home" ${SSH_AUTH_SOCK:+SSH_AUTH_SOCK="$SSH_AUTH_SOCK"} GIT_TERMINAL_PROMPT=0 "$@"
+  local up
+  up="$(pwd -P)"; up="${up%/*}"
+  ${bounded_exec:+exec} env -i PATH=/usr/bin:/bin HOME="$home" ${SSH_AUTH_SOCK:+SSH_AUTH_SOCK="$SSH_AUTH_SOCK"} \
+    GIT_TERMINAL_PROMPT=0 GIT_CEILING_DIRECTORIES="${up:-/}" "$@"
 }
 
 # origin_url: remote.origin.url read from the config file as text, in an
 # empty directory under the cleared environment; includes are not followed.
+# The config must be a regular file, and the read is bounded in time.
 origin_url() {
   local d
   d="$(git_common_dir)" || return 1
-  [ -n "$empty" ] || return 1
-  ( cd "$empty" && cleanenv git config --no-includes --file "$d/config" --get remote.origin.url )
+  [ -n "$empty" ] && [ -f "$d/config" ] || return 1
+  ( cd "$empty" && bounded 5 cleanenv git config --no-includes --file "$d/config" --get remote.origin.url )
 }
 
 # entry_for: prints the BEARING_AUTO_PUSH entry whose url_key is origin's, or
@@ -173,15 +198,16 @@ status_paths() {
 }
 
 # gate_count <marker>: reads NUL-separated paths on stdin and prints
-# "<compared> <newer>": each path once, paths under .bearing/ skipped (state
-# files are newer than the marker by construction), existing paths only, and
-# how many of them are newer than the marker.
+# "<compared> <newer>": each path once, paths under .bearing/state/ skipped
+# (state files are newer than the marker by construction; any other .bearing/
+# file counts), existing paths only, and how many of them are newer than the
+# marker.
 gate_count() {
   local f k=0 j=0 nl='
 ' seen='
 '
   while IFS= read -r -d '' f; do
-    case "$f" in (''|.bearing/*) continue ;; esac
+    case "$f" in (''|.bearing/state/*) continue ;; esac
     case "$seen" in (*"$nl$f$nl"*) continue ;; esac
     seen="$seen$f$nl"
     [ -e "$root/$f" ] || [ -L "$root/$f" ] || continue
@@ -213,9 +239,10 @@ check_conditions() {
   if [ -z "$b" ]; then cond not-protected 1 detached
   elif protected "$b"; then cond not-protected 1 "$b is protected"
   else cond not-protected 0 "$b"; fi
-  c="$(git -C "$root" status --porcelain --untracked-files=no 2>/dev/null | grep -c .)"
-  if [ "$c" -eq 0 ]; then cond clean 0 "no uncommitted change"
-  else cond clean 1 "$c uncommitted change(s)"; fi
+  if ! c="$(git -C "$root" status --porcelain --untracked-files=no 2>/dev/null)"; then
+    cond clean 1 "git status failed"
+  elif [ -z "$c" ]; then cond clean 0 "no uncommitted change"
+  else cond clean 1 "$(printf '%s\n' "$c" | grep -c .) uncommitted change(s)"; fi
   base="$(base_ref)" || base=""
   if [ -z "$base" ]; then cond ahead 1 "no origin/develop, origin/main or origin/master"
   else
@@ -239,17 +266,48 @@ check_conditions() {
   else cond fast-forward 1 "origin/$b has commits HEAD does not (a push is never forced)"; fi
 }
 
+# state_write put|rm <name>: the one way brg-push changes a file in
+# .bearing/state, safe outside the sandbox against links the agent plants.
+# It enters the state directory one name at a time (put makes a missing one
+# with mkdir, never mkdir -p, which follows a linked .bearing) and goes on
+# only when `pwd -P` is the real <root>/.bearing/state, root resolved with
+# pwd -P. From there it uses relative names only, so a link swapped in later
+# is never followed. put: stdin goes to a new file under an unused random
+# name, created with noclobber (O_EXCL: never through a link); then whatever
+# <name> is gets removed (rm -rf removes a link, not its target) and the file
+# renamed onto it (mv -T, or -h on BSD: never into a linked directory). rm:
+# removes <name> of any type; a missing state directory is nothing to do.
+# There is no append: opening an existing name could follow a link, so a log
+# is written whole with put. Exit 0 done, 1 refused or failed. The body is a
+# subshell, so the cd stays in it.
+state_write() (
+  op="$1"; name="$2"
+  case "$op" in (put|rm) ;; (*) exit 1 ;; esac
+  case "$name" in (''|.|..|*/*) exit 1 ;; esac
+  real="$(cd "$root" 2>/dev/null && pwd -P)" && cd "$real" || exit 1
+  for c in .bearing state; do
+    if [ "$op" = put ]; then mkdir "$c" 2>/dev/null; fi
+    if [ "$op" = rm ] && [ ! -e "$c" ] && [ ! -L "$c" ]; then exit 0; fi
+    cd "$c" 2>/dev/null || exit 1
+  done
+  [ "$(pwd -P)" = "$real/.bearing/state" ] || exit 1
+  if [ "$op" = rm ]; then rm -r -f "./$name"; exit $?; fi
+  t="$(mktemp -u "./$name.XXXXXX")" || exit 1
+  set -C
+  if ! cat > "$t"; then rm -f "$t"; exit 1; fi
+  rm -r -f "./$name"
+  mv -f -T "$t" "./$name" 2>/dev/null || mv -f -h "$t" "./$name" 2>/dev/null || { rm -f "$t"; exit 1; }
+)
+
 # optin_record: .push-optin is on when an entry's key is origin's key, else
-# off. Written through mktemp and mv, so a planted symlink is replaced, never
-# written through; a symlinked .bearing or state directory is left alone.
+# off. Any old .push-optin goes first, so a run that stops early (no .git, a
+# read that times out) leaves no stale on; both writes are state_write.
 optin_record() {
-  local v t
+  local v=off
+  state_write rm .push-optin || return 0
   [ -e "$root/.git" ] || return 0
-  if [ -L "$root/.bearing" ] || [ -L "$st" ]; then return 0; fi
-  mkdir -p "$st" 2>/dev/null || return 0
-  if entry_for >/dev/null 2>&1; then v=on; else v=off; fi
-  t="$(mktemp "$st/.push-optin.XXXXXX" 2>/dev/null)" || return 0
-  if printf '%s\n' "$v" > "$t"; then mv -f "$t" "$st/.push-optin" || rm -f "$t"; else rm -f "$t"; fi
+  if entry_for >/dev/null 2>&1; then v=on; fi
+  printf '%s\n' "$v" | state_write put .push-optin
 }
 
 usage() {
