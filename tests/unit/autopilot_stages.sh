@@ -715,6 +715,17 @@ assert_exit 0 ap "done" test_run
 assert_contains "$T_OUT" "4 tests in 1 suites (ui), 0 failed; left to CI: integration"
 t_end
 
+t_begin "a test_run decision that keeps a suite local does not leave it to CI"
+at test_run; git -C "$d" switch -qc feat/x
+ev changed '{"not_run": ["integration"]}'
+ap decision test_run.integration "run locally" "left to CI job test-integration" "Docker is up" >/dev/null
+assert_exit 1 ap "done" test_run
+assert_contains "$T_OUT" "not run with no decision: integration"
+ap decision test_run.integration "left to CI job test-integration" "run locally" "no Docker" >/dev/null
+assert_exit 0 ap "done" test_run
+assert_contains "$T_OUT" "left to CI: integration"
+t_end
+
 # Review Focus 3: a run killed mid-write leaves a truncated file
 t_begin "a truncated evidence file fails the gate and names the file"
 at test_run; git -C "$d" switch -qc feat/x
@@ -876,6 +887,24 @@ assert_contains "$T_OUT" "not run with no decision: integration"
 ap decision test_run.integration "left to CI job test-integration" "run locally" "no Docker" >/dev/null
 assert_exit 0 ap "done" dod
 assert_contains "$T_OUT" "full run: 1 suites, 4 tests, 0 failed; left to CI: integration"
+t_end
+
+t_begin "dod passes when every suite beyond unit is left to CI by a decision"
+dodat
+ev full '{"except": ["unit"], "suites": [{"name": "e2e", "status": "not run", "reason": "no browser", "passed": 0, "failed": 0, "skipped": 0}], "tests": 0, "not_run": ["e2e"]}'
+assert_exit 1 ap "done" dod; assert_contains "$T_OUT" "not run with no decision: e2e"
+ap decision test_run.e2e "left to CI job test-e2e" "run locally" "no browser in the sandbox" >/dev/null
+assert_exit 0 ap "done" dod
+assert_contains "$T_OUT" "full run: 0 suites, 0 tests, 0 failed; left to CI: e2e"
+t_end
+
+t_begin "the test_run and dod stage text names the docs-only and left-to-CI passes"
+at test_run
+assert_exit 0 ap next
+assert_contains "$T_OUT" "a docs-only change passes with 0 layers when the diff has files"
+at dod
+assert_exit 0 ap next
+assert_contains "$T_OUT" "every suite beyond unit left to CI by decisions passes"
 t_end
 
 t_begin "dod accepts a unit-only repository only with the n/a item 14 writes"

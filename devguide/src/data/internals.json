@@ -5,7 +5,7 @@
   "commandSkills": 0,
   "stackSkills": 12,
   "scripts": 94,
-  "scriptLines": 30404,
+  "scriptLines": 30412,
   "hooks": 8,
   "agents": 8,
   "makeTargets": 31,
@@ -1793,7 +1793,7 @@
    "inputs": [
     "Target, the first argument or what the request names: - a commit range: reviewed as given; - a patch or diff file (`mr-51.patch`): the change is that file on top of `HEAD`; - a path (\"look over app/webhooks\"): the files as they stand and what they call, with no diff; the checklists apply to the whole path; - nothing: `origin/develop...HEAD`, else `origin/main...HEAD`, else (no remote) `HEAD~1` plus the working tree…",
     "Checklists: `bash \"${CLAUDE_PLUGIN_ROOT}/bin/brg-checklists\" --range <range>` prints the universal checklist and one per stack the diff touches (react, nextjs, react-native, node, go, python, data-pipeline, android, ios, flutter, infra, database). For a patch file or a path, pick the checklists by the stacks of the files it touches. If the plugin root is unknown, the universal checklist at `references/universal-chec…",
-    "Engine: `--engine`; if absent, `gstack` when `~/.claude/skills/gstack/review/SKILL.md` exists, else `bearing` (the `reviewer` agent: Read, Grep and Glob, no shell). Unattended (`--unattended`; `printenv BEARING_AUTOPILOT BEARING_NONINTERACTIVE` prints other than `0`; `bash \"${CLAUDE_PLUGIN_ROOT}/bin/brg-config\" get noninteractive --user` prints `1`): always `bearing`, as gstack `/review` can ask.",
+    "Engine: `--engine`; if absent, `gstack` when `~/.claude/skills/gstack/review/SKILL.md` exists, else `bearing` (the `reviewer` agent: Read, Grep and Glob, no shell). Unattended (`--unattended`; `printenv BEARING_AUTOPILOT BEARING_NONINTERACTIVE` prints a value other than `0`; `bash \"${CLAUDE_PLUGIN_ROOT}/bin/brg-config\" get noninteractive --user` prints `1`): always `bearing`, as gstack `/review` can ask.",
     "Collected change: `.scratch/review/<slug>/`, written by step 2 before any agent runs, where `<slug>` is the range, patch name or path with every character outside `A-Za-z0-9._` turned into `-`. The agents have no shell, so this folder is how they see the change.",
     "Project check: the make target the README, Makefile or CONTRIBUTING names (check, test); none named means \"not run: no check command in the repository\".",
     "Merge rules: `AGENTS.md`, `CONTRIBUTING.md` and the ADRs the change touches; commit conventions from the same files, else the universal items (Conventional Commits, a task id, no AI trailer)."
@@ -1807,7 +1807,7 @@
     "Reproduce what you can. For each confirmed Critical and High, when the throwaway copy from step 3 runs, write a short probe under `.scratch/review/<slug>/` that drives the failure through the public entry point with the repository's own fixtures, and run it against the copy (`python3 .scratch/review/<slug>/probe.py`, the probe putting `tree/` first on its import path); record the output line that shows the failure.…",
     "Check the commits in the range (for a patch file, its Subject line) against the conventions. Verdict: any confirmed Critical or High, or a broken merge rule, means not ready. Print the contract. Write `.scratch/review/<slug>/verdict.txt`: ``` review: <range> @ <head sha>, <N> files Verdict: ready to merge | ready after <items> | not ready to merge findings: <C> critical, <H> high, <M> medium, <L> low; verified <V>:…"
    ],
-   "output": "For a path review, \"merge\" reads as the step the user named (\"switch on\", \"release\"). verdict.txt (autopilot's review gate parses it), rewritten each run, is step 7's four lines: `<range>` may hold spaces and `...`; `<head sha>` is the 40-hex sha of `git rev-parse HEAD`, never the word HEAD; 0 files is never a pass; `<items>` and `blocking:` are finding numbers, space separated.",
+   "output": "For a path review, \"merge\" reads as the step the user named (\"switch on\", \"release\"). verdict.txt (autopilot's review gate parses it), rewritten each run, is step 7's four lines: `<range>` may hold spaces and `...`; `<head sha>` is the 40-hex sha of the range's head (`git rev-parse <head of the range>`; HEAD for a patch, path or working tree), never a ref name; 0 files is never a pass; `<items>` and `blocking:` are finding numbers, space separated.",
    "gotchas": [
     "`reviewer` and `verifier` have no shell (plugin agents cannot carry a hook, so Read, Grep and Glob is the only read-only guarantee). Anything they need from git is collected in step 2; an agent sent a range without the folder reviews nothing.",
     "The verifier sees one finding, not the conversation. Passing it the engine's reasoning turns verification back into agreement.",
@@ -14979,7 +14979,7 @@
    "name": "brg-autopilot",
    "lang": "python",
    "group": "workflow",
-   "lines": 1806,
+   "lines": 1814,
    "header": "brg-autopilot: the state, the gates and the report of an unattended run from\none requirement statement to a prepared merge request.\n\nThe autopilot skill drives the stages; this script is the part that cannot\nbe talked around: which stage is next, whether its gate holds (checked on\ndisk, never taken from the model's word), how many attempts are left, the\ndigest of every decision taken on the user's behalf, and the report. Nothing\nhere pushes, merges or deploys; the run stops at a prepared merge request.\n\n  brg-autopilot start \"<statement>\" [--dir D]   begin a run (refuses when one is open)\n  brg-autopilot next [--dir D]                  the next stage, its skill and its gate\n  brg-autopilot done <stage> [--dir D]          check the gate; mark done or say what is missing\n  brg-autopilot fail <stage> \"<why>\" [--dir D]  count a failed attempt (3 and the stage is blocked)\n  brg-autopilot decision <key> <choice> <alternatives> <why> [--adr PATH] [--dir D]\n                                                one row of the decision digest\n  brg-autopilot report [--dir D]                write docs/autopilot/<run>.md (the MR carries it)\n  brg-autopilot status [--dir D]                the stages, attempts and decisions so far\n  brg-autopilot profile --ui|--data|--api|--deploy yes|no [--llm yes|no] [--scope lean|full] --why W [--dir D]\n                                                what the product has; decides which stages apply\n                                                and how much document each one needs\n  brg-autopilot stages                          the stage names, in order\n  brg-autopilot launch \"<statement>\" [--dir D] [--print]\n                                                run it headless: claude -p with autopilot,\n                                                then any smoke it asked for, outside the sandbox\n  brg-autopilot smoke-request [--id ID] [--dir D]\n                                                headless dod: ask the launcher to run the smoke\n  brg-autopilot repos-request [--dir D]         headless repos: ask the launcher to scaffold the\n                                                repo plan's missing repositories beside this one\n\nState lives in <dir>/.bearing/state/autopilot.json. Every command prints what it\nchecked and exits 1 when a gate fails or there is nothing to act on.",
    "functions": [
     "sh",
@@ -17953,16 +17953,16 @@
   {
    "path": "tests/unit/autopilot_stages.sh",
    "kind": "unit",
-   "lines": 890,
+   "lines": 919,
    "header": "tests/unit/autopilot_stages.sh: the stages brg-autopilot gained after the first real run skipped every skill no gate checked. The decide gate needs a product profile (ui, data, api, deploy). architecture needs a C4 file with a diagram and an architecture.json whose SVGs pass diagram_check. design adds, by profile, a deployment architecture with its diagram after arch_check passes. ux runs the flows, contrast, screen-state and design-bundle checkers for a UI. contract, after the screens, needs the data model, API contract and threat model, checked against the screens' data needs. test_cases ru…",
-   "asserts": 310
+   "asserts": 322
   },
   {
    "path": "tests/unit/autopilot_state.sh",
    "kind": "unit",
-   "lines": 327,
+   "lines": 332,
    "header": "tests/unit/autopilot_state.sh: plugins/bearing/bin/brg-autopilot keeps the order and checks every gate on disk. A new run starts at repo; done on a stage whose gate is not met fails and says what is missing; stages run in order; an ADR this run wrote as Accepted fails the decide gate; three failed attempts block a stage; an upstream on the branch fails the mr gate (the run never pushes); the report carries the digest; a second start on an open run is refused.",
-   "asserts": 95
+   "asserts": 98
   },
   {
    "path": "tests/unit/changed_files.sh",
@@ -20437,7 +20437,7 @@
    {
     "name": "test_run",
     "skill": "test-run --changed",
-    "gate": "a .scratch/test-run/<branch>-changed.json for HEAD with at least one suite run, 0 failed, and every suite not run left to CI by a recorded decision"
+    "gate": "a .scratch/test-run/<branch>-changed.json for HEAD with at least one suite run, 0 failed, and every suite not run left to CI by a recorded decision; a docs-only change passes with 0 layers when the diff has files (layers [] and files above 0)"
    },
    {
     "name": "design_review",
@@ -20452,7 +20452,7 @@
    {
     "name": "dod",
     "skill": "definition-of-done",
-    "gate": "make check passed after the last change, every change committed on the branch, when the repository ships something runnable a .scratch/smoke-*.md newer than the last commit with 'smoke: N requests checked, 0 failed' (N > 0), and a .scratch/test-run/<branch>-full.json with 0 failed whose sha differs from HEAD only by docs/testing/reports/"
+    "gate": "make check passed after the last change, every change committed on the branch, when the repository ships something runnable a .scratch/smoke-*.md newer than the last commit with 'smoke: N requests checked, 0 failed' (N > 0), and a .scratch/test-run/<branch>-full.json with 0 failed whose sha differs from HEAD only by docs/testing/reports/ (every suite beyond unit left to CI by decisions passes; a unit-only repository needs the item 14 n/a)"
    },
    {
     "name": "mr",

@@ -41,7 +41,7 @@ skips the independent verification. Detail: references/engine-and-scope.md
 - Engine: `--engine`; if absent, `gstack` when
   `~/.claude/skills/gstack/review/SKILL.md` exists, else `bearing` (the
   `reviewer` agent: Read, Grep and Glob, no shell). Unattended (`--unattended`;
-  `printenv BEARING_AUTOPILOT BEARING_NONINTERACTIVE` prints other than `0`;
+  `printenv BEARING_AUTOPILOT BEARING_NONINTERACTIVE` prints a value other than `0`;
   `bash "${CLAUDE_PLUGIN_ROOT}/bin/brg-config" get noninteractive --user` prints `1`): always `bearing`, as gstack `/review` can ask.
 - Collected change: `.scratch/review/<slug>/`, written by step 2 before any
   agent runs, where `<slug>` is the range, patch name or path with every
@@ -169,11 +169,11 @@ Verified: C confirmed, R refuted, U uncertain of V Critical and High (K not veri
 - .scratch/review/<slug>/ (notes and verdict.txt) | nothing
 ```
 
-For a path review, "merge" reads as the step the user named ("switch on",
-"release"). verdict.txt (autopilot's review gate parses it), rewritten each run,
-is step 7's four lines: `<range>` may hold spaces and `...`; `<head sha>` is the
-40-hex sha of `git rev-parse HEAD`, never the word HEAD; 0 files is never a
-pass; `<items>` and `blocking:` are finding numbers, space separated.
+For a path review, "merge" reads as the step the user named ("switch on", "release").
+verdict.txt (autopilot's review gate parses it), rewritten each run, is step 7's four lines:
+`<range>` may hold spaces and `...`; `<head sha>` is the 40-hex sha of the range's head
+(`git rev-parse <head of the range>`; HEAD for a patch, path or working tree), never a ref
+name; 0 files is never a pass; `<items>` and `blocking:` are finding numbers, space separated.
 
 ## Gotchas
 

@@ -311,12 +311,17 @@ assert_contains "$T_OUT" "next: repos"
 assert_not_contains "$T_OUT" "carried"
 t_end
 
-t_begin "a run from before the test_run stage, past test_automation, is not pulled back to it"
+t_begin "a run from before the test_run stage, past a stage after it, is not pulled back to it"
 od="$(tmpdir)/old-run2"; mkdir -p "$od/.bearing/state"
+oldrun "$od/.bearing/state/autopilot.json" design_review
+assert_exit 0 python3 "$AP" next --dir "$od"
+assert_contains "$T_OUT" "next: review"
+assert_contains "$T_OUT" "test_run carried: the run was past test_automation"
+# a run that stopped right after test_automation runs the new test_run gate next
 oldrun "$od/.bearing/state/autopilot.json" test_automation
 assert_exit 0 python3 "$AP" next --dir "$od"
-assert_contains "$T_OUT" "next: design_review"
-assert_contains "$T_OUT" "test_run carried: the run was past test_automation"
+assert_contains "$T_OUT" "next: test_run"
+assert_not_contains "$T_OUT" "test_run carried"
 # a run not yet past test_automation runs the new test_run gate in its turn
 oldrun "$od/.bearing/state/autopilot.json" build
 assert_exit 0 python3 "$AP" next --dir "$od"

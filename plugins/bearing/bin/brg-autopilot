@@ -114,7 +114,8 @@ STAGES = [
      "docs/genai/evals.md"),
     ("test_run", "test-run --changed",
      "a .scratch/test-run/<branch>-changed.json for HEAD with at least one suite run, 0 failed, and every "
-     "suite not run left to CI by a recorded decision"),
+     "suite not run left to CI by a recorded decision; a docs-only change passes with 0 layers when the "
+     "diff has files (layers [] and files above 0)"),
     ("design_review", "profile ui: design-critique --unattended on the design gallery of the running app",
      "profile ui: a review scoring overall 8.0 with no category below 7 and every screenshot present; "
      "otherwise nothing"),
@@ -125,7 +126,8 @@ STAGES = [
      "make check passed after the last change, every change committed on the branch, when the "
      "repository ships something runnable a .scratch/smoke-*.md newer than the last commit with "
      "'smoke: N requests checked, 0 failed' (N > 0), and a .scratch/test-run/<branch>-full.json with "
-     "0 failed whose sha differs from HEAD only by docs/testing/reports/"),
+     "0 failed whose sha differs from HEAD only by docs/testing/reports/ (every suite beyond unit left to "
+     "CI by decisions passes; a unit-only repository needs the item 14 n/a)"),
     ("mr", "merge-request, then brg-autopilot report",
      "a merge request description in .scratch/, docs/autopilot/<run>.md committed, nothing pushed"),
 ]
@@ -188,12 +190,17 @@ TEST_RUN_CARRIED = ("carried: the run was past test_automation before the test_r
 
 
 def carry_test_run(st):
-    """A run from before the test_run stage, resumed with test_automation done:
-    the stage it would rejoin as pending sits behind where the run stood, so
-    it is marked done rather than pulling the run back a stage. The dod gate's
-    full run still holds every suite to 0 failed."""
+    """A run from before the test_run stage, resumed with test_automation done
+    and a stage after test_run done: the stage it would rejoin as pending sits
+    behind where the run stood, so it is marked done rather than pulling the
+    run back, as carry_contract does. A run that stopped right after
+    test_automation runs the new gate in its turn. The dod gate's full run
+    still holds every suite to 0 failed."""
     stages = st.get("stages") or {}
     if "test_run" in stages or (stages.get("test_automation") or {}).get("status") != "done":
+        return
+    later = NAMES[NAMES.index("test_run") + 1:]
+    if not any((stages.get(n) or {}).get("status") == "done" for n in later):
         return
     stages["test_run"] = {"status": "done", "attempts": 0, "checked": TEST_RUN_CARRIED, "notes": [TEST_RUN_CARRIED]}
     print(f"brg-autopilot: test_run {TEST_RUN_CARRIED}", file=sys.stderr)
@@ -897,9 +904,10 @@ def evidence(d, scope):
 
 def not_run_split(st, ev):
     """The suites the run did not run (its not_run list and any suite marked
-    "not run"), split into those a test_run.<suite> decision left to CI and
-    those with none."""
-    decided = {x.get("key") for x in st.get("decisions") or []}
+    "not run"), split into those a test_run.<suite> decision left to CI (its
+    choice starts "left to CI") and those with none."""
+    decided = {x.get("key") for x in st.get("decisions") or []
+               if str(x.get("choice") or "").startswith("left to CI")}
     names = list(ev.get("not_run") or [])
     names += [s.get("name") for s in ev["suites"] if s.get("status") == "not run" and s.get("name") not in names]
     return ([n for n in names if f"test_run.{n}" in decided],
