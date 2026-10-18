@@ -1,5 +1,5 @@
 {
-  "description": "Bearing hooks. Fast, file-scoped, and each prints what it did. The engineer pushes and deploys; the agent does not.",
+  "description": "Bearing hooks. Fast, file-scoped, and each prints what it did. The engineer pushes and deploys; the agent does not, except a feature branch push the Stop hook makes where the engineer opted the repository in.",
   "hooks": {
     "SessionStart": [
       {

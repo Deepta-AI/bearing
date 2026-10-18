@@ -10,7 +10,7 @@
   "agents": 8,
   "makeTargets": 32,
   "gates": 19,
-  "tests": 108,
+  "tests": 109,
   "fixtures": 25,
   "stacks": 13,
   "templates": 38,
@@ -17543,7 +17543,7 @@
    "calls": []
   }
  ],
- "hookDescription": "Bearing hooks. Fast, file-scoped, and each prints what it did. The engineer pushes and deploys; the agent does not.",
+ "hookDescription": "Bearing hooks. Fast, file-scoped, and each prints what it did. The engineer pushes and deploys; the agent does not, except a feature branch push the Stop hook makes where the engineer opted the repository in.",
  "hooks": [
   {
    "event": "SessionStart",
@@ -18730,6 +18730,13 @@
    "asserts": 38
   },
   {
+   "path": "tests/unit/push_settings.sh",
+   "kind": "unit",
+   "lines": 29,
+   "header": "tests/unit/push_settings.sh: the settings template denies edits to the engineer's Bearing config and the brg-push run verb, keeps the push deny, and AGENTS.md rule 2 and the hooks description name the opt-in push.",
+   "asserts": 8
+  },
+  {
    "path": "tests/unit/route_frontier.sh",
    "kind": "unit",
    "lines": 256,
@@ -19741,7 +19748,7 @@
   },
   {
    "path": "repo/.claude/settings.json",
-   "lines": 430
+   "lines": 445
   },
   {
    "path": "repo/.editorconfig",
@@ -19789,7 +19796,7 @@
   },
   {
    "path": "repo/AGENTS.md",
-   "lines": 55
+   "lines": 57
   },
   {
    "path": "repo/CLAUDE.md",
@@ -20697,7 +20704,7 @@
  "settings": {
   "allow": 92,
   "ask": 20,
-  "deny": 186,
+  "deny": 188,
   "defaultMode": "acceptEdits",
   "askSamples": [
    "Bash(pnpm add:*)",
@@ -20751,11 +20758,11 @@
    "security.md"
   ],
   "sessionBytes": {
-   "agents": 2864,
+   "agents": 3032,
    "claude": 1265,
    "unscopedRules": 840
   },
-  "sessionTokens": 1242
+  "sessionTokens": 1284
  },
  "autopilot": {
   "maxAttempts": 3,
