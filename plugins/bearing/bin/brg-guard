@@ -6,7 +6,9 @@ BEARING_GUARD_VERSION="__VERSION__"
 #                                         publishes, rewrites history, deploys
 #                                         or destroys; exit 2 when the command
 #                                         cannot be read (fail closed)
-#   brg-guard format <file>               format one file with the repo's formatter
+#   brg-guard format <file>               format one file with an allow-listed
+#                                         formatter from fixed directories, in
+#                                         a cleared environment
 #   brg-guard task-id ["<prompt>"]        print "Task: <ID> ..." when the branch
 #                                         carries a ticket id the prompt lacks
 #   brg-guard session                     print branch, task, changes, handoff state
@@ -17,13 +19,16 @@ BEARING_GUARD_VERSION="__VERSION__"
 #                                         check last passed; --active (the
 #                                         harness already continued once) only
 #                                         reminds, so it never loops
-#   brg-guard check-file <file>           lint one edited file (make check-file
-#                                         when the Makefile has it); exit 2 and
-#                                         the problems on stderr
+#   brg-guard check-file <file>           print that no hook runs the per-file
+#                                         check (make check-file runs in the
+#                                         session); exit 0
 #   brg-guard precompact [<transcript>]   write .bearing/state/<branch>.compact.md
 #   brg-guard session [--id <session>] [--source startup|resume|compact]
 #   brg-guard stats                       what the gates decided here, how often
 #                                         and at what cost (.bearing/state/gates.log)
+#   brg-guard log <gate> <outcome> [label] [ms]
+#                                         append one gates.log line, never
+#                                         through a link or into a FIFO
 #   brg-guard readonly "<shell command>"  exit 2 unless every program in the
 #                                         command is a read-only tool (git
 #                                         diff|log|show|status|blame|ls-files,
@@ -41,15 +46,33 @@ BEARING_GUARD_VERSION="__VERSION__"
 set -u
 sub="${1:-}"; shift || true
 READONLY=0
-# Hooks run outside the sandbox. A repository's core.fsmonitor names a
-# program git runs whenever it reads the index, and its core.hooksPath (or
-# .git/hooks) holds hooks git status runs when it refreshes the index
-# (post-index-change). So every git this script starts, and every git those
-# start, runs as with -c core.fsmonitor=false -c core.hooksPath=/dev/null:
-# git hands -c settings to its children through GIT_CONFIG_PARAMETERS, and so
-# does this. Last wins, so the values appended here hold.
-# shellcheck disable=SC2089,SC2090 # the quotes are git's own format, kept literally
-export GIT_CONFIG_PARAMETERS="${GIT_CONFIG_PARAMETERS:+$GIT_CONFIG_PARAMETERS }'core.fsmonitor=false' 'core.hooksPath=/dev/null'"
+# Hooks run outside the sandbox, and git runs programs the repository names
+# (core.fsmonitor, hooks, filter drivers, diff.external, the pager,
+# gpg.program under log.showSignature). git_lockdown turns each off for every
+# git this script starts and every git those start; it is the same function
+# as in hooks/scripts/lib.sh, which says how. The command and readonly
+# checks run no git, so they skip it.
+git_lockdown() {
+  local p k n nl='
+' seen='
+' q="'\\''"
+  p="'core.fsmonitor=false' 'core.hooksPath=/dev/null' 'core.pager=cat' 'diff.external=' 'log.showSignature=false'"
+  while IFS= read -r k; do
+    [ -n "$k" ] || continue
+    n="${k#filter.}"; n="${n%.*}"
+    case "$seen" in (*"$nl$n$nl"*) continue ;; esac
+    seen="$seen$n$nl"
+    n=${n//\'/$q}
+    p="$p 'filter.$n.clean'='' 'filter.$n.smudge'='' 'filter.$n.process'='' 'filter.$n.required'='false'"
+  done <<EOF
+$(git config --name-only --get-regexp '^filter\..*\.(clean|smudge|process)$' 2>/dev/null)
+EOF
+  # shellcheck disable=SC2089,SC2090 # the quotes are git's own format, kept literally
+  export GIT_CONFIG_PARAMETERS="${GIT_CONFIG_PARAMETERS:+$GIT_CONFIG_PARAMETERS }$p"
+  export GIT_PAGER=cat
+  unset GIT_EXTERNAL_DIFF
+}
+case "$sub" in (command|readonly|--verbs|--version|stats|log) ;; (*) git_lockdown ;; esac
 # brg-push beside this script, as an absolute path (no cd: CDPATH plays no
 # part), so it still resolves after a cd to the repository root.
 case "$0" in (/*) BRG_PUSH="${0%/*}/brg-push" ;; (*) BRG_PUSH="$PWD/$(dirname "$0")/brg-push" ;; esac
@@ -282,7 +305,19 @@ refuse() { # refuse <reason>: the command could not be read
 # gate decision appends one tab-separated line to .bearing/state/gates.log:
 # time, gate, outcome, milliseconds, a short label. Never the command text.
 # brg-guard stats reads it back; BEARING_NO_GATE_LOG=1 turns it off. The log
-# rotates to gates.log.1 at 512 KB.
+# rotates to gates.log.1 at 512 KB. The hooks run outside the sandbox and
+# .bearing/state is the agent's to write, so the append is GATE_LOG_PY in
+# python3 -I -S (no current directory or site path, no PYTHON* variable),
+# the way brg-push's state_write appends: each directory opened with
+# O_NOFOLLOW from the one before, so a linked .bearing or state is refused;
+# the log opened O_NOFOLLOW and O_NONBLOCK, so a link is never followed and
+# a FIFO never blocks; and kept only as a regular file with one link, else
+# its name is removed and a fresh log started (a hard link's other name is
+# never written). Each field is printable ASCII (anything else a space) and
+# the label 120 bytes at most. Without python3 nothing is logged.
+# `brg-guard log <gate> <outcome> [label] [ms]` is the same append for the
+# other scripts the hooks run (brg-session, brg-learn, brg-update-check,
+# session-end.sh).
 now_ms() {
   if [ -n "${EPOCHREALTIME:-}" ]; then local t="${EPOCHREALTIME/./}"; echo "${t:0:$((${#t}-3))}"
   else local s; s="$(date +%s 2>/dev/null)"; echo "${s:-0}000"; fi # bash 3.2 has no EPOCHREALTIME; a bare PATH may lack date
@@ -297,17 +332,48 @@ bearing_root() { # the nearest directory upward holding .bearing/, without spawn
   done
 }
 guard_gate() { if [ "${READONLY:-0}" -eq 1 ]; then echo readonly; else echo command; fi; }
-gate_log() { # gate_log <gate> <outcome> [label]
+GATE_LOG_PY='import os, sys, time
+root, gate, outcome, ms, label = sys.argv[1:6]
+def field(s, n):
+    return bytes(b if 32 <= b < 127 else 32 for b in os.fsencode(s))[:n]
+line = b"\t".join([time.strftime("%Y-%m-%dT%H:%M:%S").encode(), field(gate, 40),
+                   field(outcome, 40), field(ms, 20), field(label, 120)]) + b"\n"
+DIR = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW
+def opened(d):
+    fd = os.open("gates.log", os.O_WRONLY | os.O_APPEND | os.O_CREAT | os.O_NOFOLLOW | os.O_NONBLOCK, 0o644, dir_fd=d)
+    st = os.fstat(fd)
+    if st.st_mode & 0o170000 != 0o100000 or st.st_nlink != 1:
+        os.close(fd)
+        raise OSError("not a regular file with one link")
+    return fd
+try:
+    d = os.open(".bearing", DIR, dir_fd=os.open(root, os.O_RDONLY | os.O_DIRECTORY))
+    try:
+        os.mkdir("state", 0o755, dir_fd=d)
+    except FileExistsError:
+        pass
+    d = os.open("state", DIR, dir_fd=d)
+    try:
+        if os.stat("gates.log", dir_fd=d, follow_symlinks=False).st_size > 524288:
+            os.rename("gates.log", "gates.log.1", src_dir_fd=d, dst_dir_fd=d)
+    except FileNotFoundError:
+        pass
+    try:
+        fd = opened(d)
+    except OSError:
+        os.unlink("gates.log", dir_fd=d)
+        fd = opened(d)
+    os.write(fd, line)
+except OSError:
+    pass
+'
+gate_log() { # gate_log <gate> <outcome> [label] [ms]
   [ -z "${BEARING_NO_GATE_LOG:-}" ] || return 0
-  local root log
+  local root
   root="$(bearing_root)" || return 0
-  log="$root/.bearing/state/gates.log"
-  mkdir -p "$root/.bearing/state" 2>/dev/null || return 0
-  if [ -f "$log" ] && [ "$(wc -c < "$log" | tr -d ' ')" -gt 524288 ]; then mv -f "$log" "$log.1" 2>/dev/null; fi
-  local label="${3:-}"
-  label="${label//$'\t'/ }"; label="${label//$'\n'/ }"   # one line, no tabs; pure bash, so no tool can be missing
-  printf '%s\t%s\t%s\t%s\t%s\n' "$(date +%Y-%m-%dT%H:%M:%S 2>/dev/null)" "$1" "$2" "$(( $(now_ms) - GATE_T0 ))" \
-    "${label:0:120}" >> "$log" 2>/dev/null || true
+  command -v python3 >/dev/null 2>&1 || return 0
+  python3 -I -S -c "$GATE_LOG_PY" "$root" "$1" "$2" "${4:-$(( $(now_ms) - GATE_T0 ))}" "${3:-}" \
+    < /dev/null > /dev/null 2>&1 || true
 }
 
 load_rules() {
@@ -1502,6 +1568,67 @@ EOF_GUARD
   STRIPPED="$hd_out"
 }
 
+# --- the edit hook's formatters. A hook runs outside the sandbox, so a
+# formatter is taken only from the allow-list in the format subcommand (gofmt,
+# prettier, ruff format, ktlint, swiftformat, terraform fmt, shfmt), only from
+# fmt_dirs (never the inherited PATH, never node_modules/.bin or anything else
+# in the working tree, never `uv run`, which builds the project), and runs in
+# a cleared environment (env -i: HOME, LANG, TMPDIR and PATH set to fmt_dirs).
+fmt_dirs() {
+  printf '%s\n' /opt/homebrew/bin /usr/local/bin /usr/local/go/bin /usr/bin /bin "${HOME:-/nonexistent}/.local/bin" "${HOME:-/nonexistent}/go/bin"
+}
+fmt_bin() { # fmt_bin <tool>: FB is the first <dir>/<tool> from fmt_dirs outside the repository; rc 1 when none
+  local d
+  FB=""
+  while IFS= read -r d; do
+    [ -n "$d" ] && [ -f "$d/$1" ] && [ -x "$d/$1" ] || continue
+    case "$(cd -P "$d" 2>/dev/null && pwd -P)/" in ("$root"/*) continue ;; esac
+    FB="$d/$1"; return 0
+  done <<EOF
+$(fmt_dirs)
+EOF
+  return 1
+}
+# prettier_config_ok <file>: 0 when the prettier config that applies to the
+# file (the nearest directory up to the repository root holding one) is data
+# that loads no code; 1 for a JS or TS config, plugins, a parser given as a
+# module path, a shared config named by a string, or anything unreadable.
+# Prettier reads its config and loads what it names; ruff, shfmt, ktlint,
+# swiftformat, gofmt and terraform fmt read only data.
+prettier_config_ok() {
+  local d f cfg found
+  case "$1" in (*/*) d="${1%/*}" ;; (*) d=. ;; esac
+  d="$(cd -P "$d" 2>/dev/null && pwd -P)" || return 1
+  while :; do
+    found=0
+    for f in "$d"/.prettierrc* "$d"/prettier.config.* "$d/package.json" "$d/package.yaml"; do
+      [ -e "$f" ] || [ -L "$f" ] || continue
+      case "${f##*/}" in
+        (*.js|*.cjs|*.mjs|*.ts|*.cts|*.mts) return 1 ;;
+        (package.json|package.yaml|.prettierrc|.prettierrc.json|.prettierrc.json5|.prettierrc.yaml|.prettierrc.yml|.prettierrc.toml) ;;
+        (*) continue ;;
+      esac
+      [ -f "$f" ] && [ ! -L "$f" ] || return 1
+      case "${f##*/}" in
+        (package.json)
+          command -v jq >/dev/null 2>&1 || return 1
+          jq -e 'has("prettier")' "$f" >/dev/null 2>&1 || continue
+          jq -e '.prettier | type == "object"' "$f" >/dev/null 2>&1 || return 1
+          cfg="$(jq -c '.prettier' "$f")" ;;
+        (package.yaml) grep -q '^prettier:' "$f" || continue; return 1 ;;
+        (*) cfg="$(head -c 65536 "$f")" ;;
+      esac
+      found=1
+      case "$cfg" in (*plugins*) return 1 ;; esac
+      case "$cfg" in (*[:=\{]*) ;; (*) return 1 ;; esac
+      printf '%s' "$cfg" | grep -Eq "parser[\"']?[[:space:]]*[:=][[:space:]]*[\"']?[^\"' ,}]*[./]" && return 1
+    done
+    [ "$found" -eq 0 ] || return 0
+    [ "$d" != "$root" ] && [ "$d" != / ] && [ -n "$d" ] || return 0
+    d="${d%/*}"; [ -n "$d" ] || d=/
+  done
+}
+
 guard_command() {
   local cmd="$1"
   set -f
@@ -1537,30 +1664,29 @@ case "$sub" in
     if [ "$v" = "__VERSION__" ] && [ -f "$pj" ]; then v="$(sed -n 's/^ *"version": *"\([^"]*\)".*/\1/p' "$pj" | head -1)"; fi
     echo "brg-guard $v"; exit 0;;
   format)
-    file="${1:-}"; [ -n "$file" ] && [ -f "$file" ] || exit 0
+    file="${1:-}"; [ -n "$file" ] && [ -f "$file" ] && [ ! -L "$file" ] || exit 0
     root="$(git rev-parse --show-toplevel 2>/dev/null || dirname "$file")"; cd "$root" || exit 0
+    root="$(pwd -P)"
     fmt_outcome=skipped
+    FMT_PATH="$(fmt_dirs | tr '\n' ':')"; FMT_PATH="${FMT_PATH%:}"
     note() { echo "bearing format: $*"; }
-    run() { if "$@" >/dev/null 2>&1; then fmt_outcome=formatted; note "$1 formatted ${file##*/}"; else fmt_outcome=failed; note "$1 failed on ${file##*/} (left as written)"; fi; }
+    run() { # run <tool> <args...>: the tool from fmt_dirs only, in a cleared environment
+      local t="$1"; shift
+      fmt_bin "$t" || { note "$t not installed"; return 0; }
+      if /usr/bin/env -i HOME="${HOME:-/}" PATH="$FMT_PATH" LANG="${LANG:-C}" TMPDIR="${TMPDIR:-/tmp}" "$FB" "$@" >/dev/null 2>&1; then
+        fmt_outcome=formatted; note "$t formatted ${file##*/}"
+      else fmt_outcome=failed; note "$t failed on ${file##*/} (left as written)"; fi
+    }
     case "$file" in
-  *.go)
-    if command -v gofmt >/dev/null; then run gofmt -w "$file"; else note "gofmt not installed"; fi;;
+  *.go) run gofmt -w "$file";;
   *.ts|*.tsx|*.js|*.jsx|*.json|*.css|*.md|*.yml|*.yaml)
-    if [ -x node_modules/.bin/prettier ]; then run node_modules/.bin/prettier --log-level silent --write "$file";
-    elif command -v prettier >/dev/null; then run prettier --log-level silent --write "$file";
-    else note "prettier not installed"; fi;;
-  *.py)
-    if command -v ruff >/dev/null; then run ruff format --quiet "$file";
-    elif command -v uv >/dev/null && [ -f pyproject.toml ]; then run uv run --quiet ruff format --quiet "$file";
-    else note "ruff not installed"; fi;;
-  *.kt|*.kts)
-    if command -v ktlint >/dev/null; then run ktlint -F "$file"; else note "ktlint not installed"; fi;;
-  *.swift)
-    if command -v swiftformat >/dev/null; then run swiftformat --quiet "$file"; else note "swiftformat not installed"; fi;;
-  *.tf|*.tfvars)
-    if command -v terraform >/dev/null; then run terraform fmt "$file"; else note "terraform not installed"; fi;;
-  *.sh)
-    if command -v shfmt >/dev/null; then run shfmt -w -i 2 "$file"; else note "shfmt not installed"; fi;;
+    if prettier_config_ok "$file"; then run prettier --log-level silent --write "$file"
+    else fmt_outcome=not-run; note "prettier not run: the repository's prettier config can load code (a JS or TS config, plugins, a parser module or a shared config); format ${file##*/} in the session"; fi;;
+  *.py) run ruff format --quiet "$file";;
+  *.kt|*.kts) run ktlint -F "$file";;
+  *.swift) run swiftformat --quiet "$file";;
+  *.tf|*.tfvars) run terraform fmt "$file";;
+  *.sh) run shfmt -w -i 2 "$file";;
 esac
     gate_log format "$fmt_outcome" "${file##*.}"
     exit 0;;
@@ -1606,7 +1732,7 @@ esac
     fi
     branch="$(git branch --show-current 2>/dev/null)"
     task="$(printf '%s' "$branch" | grep -oE '[A-Z][A-Z0-9]*(-[0-9]+)+' | head -1)"
-    changed="$(git -C "$root" status --porcelain 2>/dev/null | wc -l | tr -d ' ')"
+    changed="$(git -C "$root" status --porcelain --ignore-submodules=dirty 2>/dev/null | wc -l | tr -d ' ')"
     echo "bearing session: branch=${branch:-detached} task=${task:-none} changed_files=${changed}"
     # Nobody to ask in a non-interactive session: brg-autopilot's claude -p
     # child (BEARING_AUTOPILOT), or BEARING_NONINTERACTIVE=1 in the
@@ -1725,9 +1851,15 @@ EOF
     bash "$(dirname "$0")/brg-learn" log --kind gate-block --skill stop-gate --key "$target" --insight "stop gate blocked; ${target} needed" >/dev/null 2>&1
     exit 2;;
   check-file)
+    # The per-file check runs the repository's own Makefile or linters
+    # (make check-file, eslint from node_modules, go vet), all of which the
+    # agent can write, and a hook runs outside the sandbox. So no hook runs
+    # it: it runs in the session (make check-file FILE=<path>), and the Stop
+    # gate holds the session to make check. This prints the one line that
+    # says so; exit 0 always.
     file="${1:-}"
     [ -n "$file" ] && [ "$file" != "$SENTINEL" ] && [ -f "$file" ] || exit 0
-    root="$(git rev-parse --show-toplevel 2>/dev/null || dirname "$file")"; cd "$root" || exit 0
+    root="$(git rev-parse --show-toplevel 2>/dev/null || dirname "$file")"
     case "$file" in /*) rel="${file#"$root"/}";; *) rel="$file";; esac
     # git prints the physical top level; on macOS a temp path under /var is
     # /private/var there, so compare against the file's physical directory.
@@ -1735,77 +1867,13 @@ EOF
       phys="$(cd "$(dirname "$file")" 2>/dev/null && pwd -P)/${file##*/}"
       rel="${phys#"$root"/}";;
     esac
-    ! git check-ignore -q -- "$rel" 2>/dev/null || exit 0   # scratch the repository ignores
-    capped() { if command -v timeout >/dev/null 2>&1; then timeout 25 "$@"; else "$@"; fi; }
-    # Test first: a test written before its module imports a relative path
-    # that does not exist yet, and the linter then reports every use of it as
-    # unsafe. That is the expected red, not a broken file; say so and let the
-    # edit stand. The test still fails when it runs.
-    case "$rel" in
-      *.test.ts|*.test.tsx|*.spec.ts|*.spec.tsx|*.test.js|*.test.jsx)
-        missing=""
-        for spec in $(grep -oE "from ['\"]\.{1,2}/[^'\"]+['\"]" "$rel" 2>/dev/null | sed -E "s/^from ['\"]//; s/['\"]$//"); do
-          base="$(dirname "$rel")/$spec"
-          found_one=0
-          for cand in "$base" "$base.ts" "$base.tsx" "$base.js" "$base.jsx" "$base/index.ts" "$base/index.tsx"; do
-            [ -f "$cand" ] && { found_one=1; break; }
-          done
-          [ "$found_one" -eq 1 ] || missing="$missing $spec"
-        done
-        if [ -n "$missing" ]; then
-          gate_log check-file not-checked "test first, module missing"
-          echo "bearing check: $rel imports$missing, which does not exist yet: the expected red of a test written first; not linted until it does"
-          exit 0
-        fi;;
-    esac
-    tool=""; st=0; found=""
-    if [ -f Makefile ] && grep -q '^check-file:' Makefile; then
-      tool="make check-file"; found="$(capped make -s check-file FILE="$rel" 2>&1)"; st=$?
+    if [ -f "$root/Makefile" ] && grep -q '^check-file:' "$root/Makefile" 2>/dev/null; then
+      echo "bearing check-file: not run by the hook (hooks run no repository command); run make check-file FILE=$rel in the session"
     else
-      case "$rel" in
-        *.go)
-          command -v go >/dev/null || exit 0
-          tool="go vet"; found="$(GOPROXY=off capped go vet "./$(dirname "$rel")" 2>&1)"; st=$?;;
-        *.ts|*.tsx|*.js|*.jsx|*.mjs|*.cjs)
-          [ -x node_modules/.bin/eslint ] || exit 0
-          tool="eslint"; found="$(capped node_modules/.bin/eslint --max-warnings 0 "$rel" 2>&1)"; st=$?;;
-        *.py)
-          command -v ruff >/dev/null || exit 0
-          tool="ruff"; found="$(capped ruff check --quiet --force-exclude "$rel" 2>&1)"; st=$?;;
-        *.sh|*.bash)
-          command -v shellcheck >/dev/null || exit 0
-          tool="shellcheck"; found="$(capped shellcheck -S warning "$rel" 2>&1)"; st=$?;;
-        *.kt|*.kts)
-          command -v ktlint >/dev/null || exit 0
-          tool="ktlint"; found="$(capped ktlint "$rel" 2>&1)"; st=$?;;
-        *.swift)
-          command -v swiftlint >/dev/null || exit 0
-          tool="swiftlint"; found="$(capped swiftlint lint --quiet "$rel" 2>&1)"; st=$?;;
-        tsconfig*.json|*/tsconfig*.json|jsconfig*.json|*/jsconfig*.json|.vscode/*|*/.devcontainer/*|.devcontainer/*) exit 0;;
-        *.json)
-          command -v jq >/dev/null || exit 0
-          tool="jq"; found="$(jq empty "$rel" 2>&1)"; st=$?;;
-        *) exit 0;;
-      esac
+      echo "bearing check-file: not run by the hook (hooks run no repository command); lint ${rel##*/} in the session"
     fi
-    [ "$st" -ne 0 ] || { gate_log check-file clean "$tool"; exit 0; }
-    if [ "$st" -eq 124 ]; then gate_log check-file not-checked "$tool timed out"; echo "bearing check: $tool on $rel timed out after 25 s; not checked"; exit 0; fi
-    # A tool that could not run (no config, no network, an ignored file) found
-    # nothing wrong with the edit; say so instead of blaming the file.
-    case "$found" in
-      *"find a configuration"*|*"No ESLint configuration"*|*"File ignored"*|*"GOPROXY=off"*|*"cannot find module"*|*"no Go files"*|*"go.mod file not found"*)
-        gate_log check-file not-checked "$tool could not run"
-        echo "bearing check: $tool could not check $rel here (see its message); not checked"; exit 0;;
-    esac
-    n="$(printf '%s\n' "$found" | wc -l | tr -d ' ')"
-    {
-      echo "bearing check: $tool found problems in $rel. Fix them before moving on:"
-      printf '%s\n' "$found" | head -40
-      [ "$n" -le 40 ] || echo "... $((n-40)) more line(s)"
-    } >&2
-    gate_log check-file problems "$tool"
-    bash "$(dirname "$0")/brg-learn" log --kind gate-block --skill check-file --key "${file##*.}" --insight "check-file problems on *.${file##*.} via $tool" >/dev/null 2>&1
-    exit 2;;
+    gate_log check-file not-run "hook"
+    exit 0;;
   precompact)
     transcript="${1:-}"; [ "$transcript" != "$SENTINEL" ] || transcript=""
     root="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 0
@@ -1821,7 +1889,7 @@ EOF
       echo "Branch: ${branch:-detached}   Task: ${task:-none}"
       echo
       echo "## Uncommitted changes"
-      st="$(git -C "$root" status --short 2>/dev/null | head -30)"
+      st="$(git -C "$root" status --short --ignore-submodules=dirty 2>/dev/null | head -30)"
       printf '%s\n' "${st:-none}"
       if [ -n "$base" ]; then
         echo
@@ -1831,7 +1899,7 @@ EOF
       fi
       echo
       echo "## make check"
-      newest="$(git -C "$root" status --porcelain 2>/dev/null | sed 's/^...//; s/.* -> //' | while IFS= read -r f; do [ -e "$root/$f" ] && { [ -f "$marker" ] && ! [ "$root/$f" -nt "$marker" ] || echo x; }; done | wc -l | tr -d ' ')"
+      newest="$(git -C "$root" status --porcelain --ignore-submodules=dirty 2>/dev/null | sed 's/^...//; s/.* -> //' | while IFS= read -r f; do [ -e "$root/$f" ] && { [ -f "$marker" ] && ! [ "$root/$f" -nt "$marker" ] || echo x; }; done | wc -l | tr -d ' ')"
       if [ "$newest" -eq 0 ]; then echo "passed after the last change (or nothing changed)"; else echo "not passed since ${newest} file(s) last changed"; fi
       if [ -n "$transcript" ] && [ -f "$transcript" ] && command -v jq >/dev/null 2>&1; then
         asks="$(tail -n 4000 "$transcript" | jq -c 'select(.type == "user" and ((.isMeta // false) | not) and ((.isCompactSummary // false) | not) and (.message.content | type) == "string") | .message.content | select(startswith("<") | not) | .[0:800]' 2>/dev/null | tail -3)"
@@ -1844,6 +1912,10 @@ EOF
     } > "$snap.tmp" && mv "$snap.tmp" "$snap"
     echo "bearing: compaction snapshot written to ${snap#"$root"/}"
     gate_log precompact written
+    exit 0;;
+  log)
+    [ -n "${1:-}" ] && [ -n "${2:-}" ] || { echo "brg-guard log: a gate and an outcome are required" >&2; exit 1; }
+    gate_log "$1" "$2" "${3:-}" "${4:-0}"
     exit 0;;
   stats)
     root="$(bearing_root)" || { echo "brg-guard stats: not a Bearing repository (no .bearing/), nothing logged" >&2; exit 1; }
@@ -1861,11 +1933,11 @@ EOF
     exit 0;;
   stop)
     root="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 0
-    changed="$(git -C "$root" status --porcelain 2>/dev/null | wc -l | tr -d ' ')"
+    changed="$(git -C "$root" status --porcelain --ignore-submodules=dirty 2>/dev/null | wc -l | tr -d ' ')"
     [ "$changed" -gt 0 ] || exit 0
     marker="$root/.bearing/state/.check-passed"
     if [ -f "$marker" ]; then
-      newer="$(git -C "$root" status --porcelain | sed 's/^...//' | while read -r f; do [ "$root/$f" -nt "$marker" ] && echo x; done | wc -l | tr -d ' ')"
+      newer="$(git -C "$root" status --porcelain --ignore-submodules=dirty | sed 's/^...//' | while read -r f; do [ "$root/$f" -nt "$marker" ] && echo x; done | wc -l | tr -d ' ')"
       [ "$newer" -gt 0 ] || exit 0
     fi
     echo "bearing: ${changed} changed file(s) and make check has not passed since. Run make check (or definition-of-done) before calling this done."
@@ -1874,6 +1946,6 @@ EOF
       echo "bearing: make check here does not record a pass, so this is a reminder, not a gate; onboard-repo proposes the one line that makes it one."
     fi
     exit 0;;
-  -h|--help|"") sed -n '3,34p' "$0" | sed 's/^# \{0,1\}//'; exit 2;;
+  -h|--help|"") sed -n '3,39p' "$0" | sed 's/^# \{0,1\}//'; exit 2;;
   *) echo "brg-guard: unknown subcommand $sub" >&2; exit 2;;
 esac

@@ -9,8 +9,9 @@ per story with the task id. Where the Makefile records a build pass
 stage is done: a page that cannot prerender passes every check and
 fails only the build. Those templates' build also holds the bundle
 budget, so an app that grew past it fails here, not first in CI; cut
-the bundle, never raise the budget to the measurement. The edit hook's lint findings are fixed
-when they arrive; the Stop hook's `make check` demand is met, not
+the bundle, never raise the budget to the measurement. The edit hook runs no lint, so run
+`make check-file FILE=<path>` after each edit and fix what it finds
+then; the Stop hook's `make check` demand is met, not
 argued with. No test asserts on wall-clock time: it passes on the
 laptop and flakes in CI. Before the first line of code, read the
 traps in references/reviewer-checks.md and put the ones that apply into the tests.

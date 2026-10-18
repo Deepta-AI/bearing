@@ -26,6 +26,10 @@ root="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 0
 [ -d "$root/.bearing" ] || exit 0
 case "$sub" in timeline-start|timeline-close|timeline-recent|not-run|checkpoint|next-step|resume) ;; *) exit 0;; esac
 st="$root/.bearing/state"; mkdir -p "$st"; tl="$st/timeline.jsonl"
+# glog <gate> <outcome> [label] [ms]: a gates.log line through brg-guard log,
+# which never writes through a link or into a FIFO (this runs from hooks).
+bindir="$(cd "$(dirname "$0")" && pwd)"
+glog() { ( cd "$root" && bash "$bindir/brg-guard" log "$@" ) >/dev/null 2>&1; }
 [ -n "$branch" ] || branch="$(git -C "$root" branch --show-current 2>/dev/null)"; branch="${branch:-detached}"
 esc() { # JSON string body: escape \ and ", encode \n \r \t, drop other control characters
   local s="$1"
@@ -68,7 +72,7 @@ case "$sub" in
     cat "$tl.1" "$tl" 2>/dev/null | grep -F "\"branch\":\"$(esc "$branch")\"" | grep -F '"event":"end"' |
       skill_of | tail -n "$n";;
   not-run) # not-run --skill <reason>: same line format as brg-guard gate_log
-    printf '%s\ttimeline\tnot-run\t0\t%s\n' "$(date +%Y-%m-%dT%H:%M:%S)" "$(printf '%s' "$skill" | tr '\t\n' '  ' | cut -c1-120)" >> "$st/gates.log";;
+    glog timeline not-run "$skill";;
   checkpoint)
     t0="$(date +%s)"
     task=""; re='[A-Z][A-Z0-9]*(-[0-9]+)+'
@@ -81,7 +85,7 @@ case "$sub" in
     done
     ab=""
     [ "$base" = none ] || ab="$(git -C "$root" rev-list --left-right --count "$base...HEAD" 2>/dev/null | awk '{print $2"/"$1}')"
-    unc="$(git -C "$root" status --porcelain 2>/dev/null | wc -l | tr -d ' ')"
+    unc="$(git -C "$root" status --porcelain --ignore-submodules=dirty 2>/dev/null | wc -l | tr -d ' ')"
     recent="$(bash "$0" timeline-recent --branch "$branch" --n 3 2>/dev/null | tr '\n' ',' | sed 's/,$//; s/,/, /g')"
     if [ "$has_next" = 1 ]; then nxt="$nextarg"; else nxt="$(bash "$0" next-step --branch "$branch" 2>/dev/null)"; fi
     bf="$(printf '%s' "$branch" | tr '/' '_')"
@@ -99,7 +103,7 @@ case "$sub" in
       echo "Next flow step: ${nxt:-unknown}"
       echo "Next (from state file): ${sn:-none}"
     } > "$out.tmp" && mv "$out.tmp" "$out"
-    printf '%s\tcheckpoint\twritten\t%s\t\n' "$(date +%Y-%m-%dT%H:%M:%S)" "$(( ($(date +%s) - t0) * 1000 ))" >> "$st/gates.log";;
+    glog checkpoint written "" "$(( ($(date +%s) - t0) * 1000 ))";;
   next-step)
     steps="$(dirname "$0")/flow-steps.tsv"; [ -f "$steps" ] || exit 0
     # A site repository (.bearing/config.json "flow": "site", written by

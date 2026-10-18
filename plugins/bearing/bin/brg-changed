@@ -125,7 +125,7 @@ if [ "$layers" = 1 ]; then
   exit 0
 fi
 
-git -C "$root" status --porcelain -z --untracked-files=all 2>/dev/null |
+git -C "$root" status --porcelain --ignore-submodules=dirty -z --untracked-files=all 2>/dev/null |
   tr '\0' '\n' | awk -v notes="$notes" -v prog="$prog" '
     skip { skip=0; next }
     { code=substr($0,1,2); path=substr($0,4) }

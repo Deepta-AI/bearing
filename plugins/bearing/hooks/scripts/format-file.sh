@@ -1,14 +1,17 @@
 #!/usr/bin/env bash
-# PostToolUse (Edit|Write|MultiEdit): format the file, then lint it
-# (bin/brg-guard format, then check-file). Problems go back to Claude as
-# {"decision": "block"} with the tool's output, so it fixes them now rather
-# than at make check; the edit itself has already happened. The formatter's
-# note goes to stderr: Claude Code only reads stdout as a decision when the
-# JSON is all of it.
+# PostToolUse (Edit|Write|MultiEdit): format the file with an allow-listed
+# formatter (bin/brg-guard format), then print the one line brg-guard
+# check-file gives: the per-file check was not run. Hooks run outside the
+# sandbox and the working tree is the agent's, so this hook runs no
+# repository command (no Makefile target, no node_modules binary); make
+# check-file runs in the session, and the Stop gate holds the session to
+# make check. The formatter's note goes to stderr, the check-file line to
+# stdout.
 set -u
 # shellcheck source=lib.sh
 . "$(dirname "$0")/lib.sh"
 guard="$(dirname "$0")/../../bin/brg-guard"
 file="$(json_field tool_input.file_path)"
 bash "$guard" format "$file" >&2
-block_or_print "$guard" check-file "$file"
+bash "$guard" check-file "$file"
+exit 0

@@ -117,8 +117,48 @@ All notable changes to Bearing. Keep a Changelog format, semantic versions.
   an unfiltered run (`selection` null or `{"except": ["unit"]}`) with more
   than 0 tests. Autopilot calls `branch-review --unattended` and
   `definition-of-done --unattended`.
+- Hooks run outside the sandbox while the working tree is the agent's to
+  write, so no hook runs anything the repository defines:
+  - The PostToolUse edit hook runs only an allow-listed formatter (gofmt,
+    prettier, ruff format, ktlint, swiftformat, terraform fmt, shfmt) taken
+    from fixed system directories (`/opt/homebrew/bin`, `/usr/local/bin`,
+    `/usr/local/go/bin`, `/usr/bin`, `/bin`, `~/.local/bin`, `~/go/bin`),
+    never `node_modules/.bin`, the inherited PATH or `uv run`, in a cleared
+    environment. Prettier runs only when the config that applies is data
+    that loads no code (no JS or TS config, plugins, parser module or shared
+    config by name); otherwise it says it did not run. A linked file is not
+    formatted.
+  - `brg-guard check-file` no longer runs `make check-file`, eslint, go vet
+    or any linter. It prints one line saying the hook ran no check and
+    naming `make check-file FILE=<path>` to run in the session, and never
+    blocks.
+  - Every gates.log append (the guard, brg-session, brg-learn,
+    brg-update-check, session-end.sh) goes through `brg-guard log`, which
+    refuses a linked `.bearing` or state directory, never follows a link,
+    never blocks on a FIFO, starts a fresh log over a hard link, and records
+    printable ASCII only with the label capped at 120 bytes. It needs
+    python3; without it nothing is logged.
+  - Every git a hook starts runs with no filter driver (each one any config
+    defines gets an empty clean, smudge and process), no external diff, no
+    pager (`GIT_PAGER=cat`) and `log.showSignature=false`, beside the
+    existing `core.fsmonitor=false` and `core.hooksPath=/dev/null`; the
+    hooks' `git status` runs with `--ignore-submodules=dirty`, so no git
+    starts inside a submodule.
 
 ### Notes for existing repositories
+- The edit hook no longer runs `make check-file` after each edit; that
+  per-file feedback moves to the session. Run
+  `make check-file FILE=<path>` after an edit (the repository template's
+  CLAUDE.md now says so; an onboarded repository's own CLAUDE.md keeps the
+  old line until you change it). The Stop gate still holds the session to
+  `make check`.
+- A formatter installed only outside the fixed directories (under nvm, in
+  a project's `node_modules` or virtualenv) is now reported as not
+  installed by the edit hook; `make format` or `make fix` formats in the
+  session.
+- In a repository with filter drivers (Git LFS among them), a hook's change
+  count may include a file whose timestamp changed but whose content did
+  not, since the hooks no longer run the clean filter to compare it.
 - Add a `## Task paths` table to every `docs/design/flows/*/flows.md`
   (columns Task, Story, Kind, Entry, Path, Screens, Interactions, Over; the
   `ux-flows` skill's `references/task-paths.md` has the format), then run

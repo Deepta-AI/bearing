@@ -89,7 +89,7 @@ check: ## The gate: every gate in GATES, then the tally. CI runs exactly this.
 	elif [ "$${BEARING_ALLOW_SKIP:-0}" = "1" ] && [ -z "$$CI" ]; then sed 's/^/  skipped: /' $(SKIPPED); echo "check: passed with skips (BEARING_ALLOW_SKIP=1 is a local convenience; CI never sets it)"; \
 	else sed 's/^/  skipped: /' $(SKIPPED); echo "check: FAILED, $$s gate(s) skipped; run make setup, or BEARING_ALLOW_SKIP=1 make check locally" >&2; exit 1; fi
 
-check-file: ## Lint one edited file, FILE=path (the Bearing edit hook runs this)
+check-file: ## Lint one edited file, FILE=path (run it in the session after an edit; no Bearing hook runs it)
 	@[ -n "$(FILE)" ] || { echo "check-file: FILE is empty, nothing checked" >&2; exit 1; }; \
 	[ -f "$(FILE)" ] || { echo "check-file: $(FILE) does not exist, nothing checked" >&2; exit 1; }; \
 	case "$(FILE)" in \

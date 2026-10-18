@@ -289,7 +289,7 @@ def gate(p, branch):
         names.update((git(p, "diff", "--name-only", base + "..." + branch) or "").split("\n"))
     names.update(
         line[3:].split(" -> ")[-1]
-        for line in (git(p, "status", "--porcelain", "--untracked-files=all") or "").split("\n")
+        for line in (git(p, "status", "--porcelain", "--ignore-submodules=dirty", "--untracked-files=all") or "").split("\n")
         if len(line) > 3
     )
     names = sorted(n for n in names if n and not n.startswith(".bearing/"))
@@ -347,7 +347,7 @@ def cmd_set(a):
         else:
             dirty = [
                 l
-                for l in (git(p, "status", "--porcelain", "--untracked-files=no") or "").split("\n")
+                for l in (git(p, "status", "--porcelain", "--ignore-submodules=dirty", "--untracked-files=no") or "").split("\n")
                 if l
             ]
             reason = f"{len(dirty)} uncommitted" if dirty else gate(p, branch)

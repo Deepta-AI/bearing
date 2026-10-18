@@ -9,10 +9,10 @@ set -u
 root="$(repo_root)" || exit 0
 [ -n "$root" ] || exit 0
 [ -d "$root/.bearing" ] || exit 0
-skip() { # skip <reason>
+guard="$(cd "$(dirname "$0")/../../bin" && pwd)/brg-guard"
+skip() { # skip <reason>: a gates.log line through brg-guard log (never through a link or into a FIFO)
   [ -d "$root/.bearing/state" ] || exit 0
-  printf '%s\tsession-end\tnot-run\t0\t%s\n' "$(date +%Y-%m-%dT%H:%M:%S)" \
-    "$(printf '%s' "$1" | tr '\t\n' '  ' | cut -c1-120)" >> "$root/.bearing/state/gates.log"
+  ( cd "$root" && bash "$guard" log session-end not-run "$1" ) >/dev/null 2>&1
   exit 0
 }
 branch="$(current_branch)"

@@ -42,8 +42,7 @@ log_fail() { # log_fail <reason>: one gates.log line when this is a Bearing repo
   local r
   [ "$1" = bad-remote ] || write_cache - "$1"
   if [ -z "${BEARING_NO_GATE_LOG:-}" ] && r="$(git rev-parse --show-toplevel 2>/dev/null)" && [ -d "$r/.bearing" ]; then
-    mkdir -p "$r/.bearing/state" 2>/dev/null &&
-      printf '%s\tupdate-check\tnot-run\t0\t%s\n' "$(date +%Y-%m-%dT%H:%M:%S 2>/dev/null)" "$1" >> "$r/.bearing/state/gates.log" 2>/dev/null
+    ( cd "$r" && bash "$here/brg-guard" log update-check not-run "$1" ) >/dev/null 2>&1
   fi
   exit 0
 }
