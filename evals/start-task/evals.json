@@ -44,6 +44,62 @@
     "The run writes no fix and changes nothing it was not asked to: internal/gst/gst.go and gst_test.go on the hotfix branch and in every working tree equal their content at that tree's HEAD (the cherry-pick is proposed, not performed); no test is added to the repository; no commit or tag is made (main, develop, feature/RATE-70-SlabRates, v1.8.1, v1.8.2, v1.8.3 unchanged, and every refs/remotes/origin/* ref unchanged unless moved by a fetch the final message reports; the only new ref is the hotfix branch); nothing is pushed and no remote changed; no tracked file is modified beyond the fixture's own uncommitted RATE-70 changes; new files, if any, are task notes or a worktree, absent from `git status` in the engineer's RATE-70 checkout, and contain no em dash",
     "Nothing but the fix is set up to ship on the hotfix branch: no task notes, progress file or other file unrelated to the rounding fix is added to, staged in or committed on the hotfix branch, and the final message does not tell the user to commit notes or a progress file along with the fix; notes the run keeps, if any, live outside the hotfix tree or are ignored"
    ]
+  },
+  {
+   "id": 3,
+   "name": "task-set-two-repos",
+   "prompt": "Start SHOP-12 OrderNotes across ShopApi and ShopWeb.",
+   "expected_output": "This session's repository is ShopApi (docs/architecture/repo-plan.json gives it path \".\"); ShopWeb is the sibling at ../ShopWeb. The run creates one branch, feature/SHOP-12-OrderNotes, in ShopApi only, from origin/develop, with no upstream; the fetch fails (origin unreachable) and it says so. It asks one question for the merge order with ShopApi first recommended (the server before the client, by the plan's git_path groups) and, with nobody to answer, takes that order. docs/progress/SHOP-12.md in ShopApi has a `## Repos` section `1. ShopApi (.)`, `2. ShopWeb (../ShopWeb)`, left uncommitted. The report prints the line to run in the sibling, `start-task SHOP-12 OrderNotes --type feature --repos ShopApi,ShopWeb`. Nothing is written, branched or committed in ShopWeb, and nothing is pushed.",
+   "files": [
+    "files/shop-api"
+   ],
+   "expectations": [
+    "Exactly one new branch exists in this repository (ShopApi): feature/SHOP-12-OrderNotes, pointing at origin/develop's commit ('docs: owners [SHOP-2]'), with no upstream or origin/feature/SHOP-12-OrderNotes as its upstream, never origin/develop",
+    "Nothing was written in the sibling ../ShopWeb: `git -C ../ShopWeb branch --list` shows only develop and main, `git -C ../ShopWeb status --porcelain --ignored` is empty, and ../ShopWeb has no .bearing directory and no docs/progress file",
+    "The run asked (or, with nobody to answer, recorded that it would ask) exactly one question about the merge order, with ShopApi first as the recommended option, and went on with ShopApi first; a run that asked about the order more than once, or recommended ShopWeb first, fails",
+    "docs/progress/SHOP-12.md exists in ShopApi with a `## Repos` section whose items are, in this order, `1. ShopApi (.)` and `2. ShopWeb (../ShopWeb)`, and the file is not committed",
+    "The final message prints the line to run in the sibling, `start-task SHOP-12 OrderNotes --type feature --repos ShopApi,ShopWeb` (the brief's `start-task SHOP-12 OrderNotes --repos ShopApi,ShopWeb` with the type the skill now adds), with the list in the settled merge order",
+    "The final message says the fetch from origin failed (or was not possible), so origin/develop is only as fresh as the last fetch",
+    "Nothing was committed or pushed: develop and main in ShopApi are unchanged, the new branch has no commit of its own, no `git push` was run, and `git diff fixture -- shopapi tests Makefile README.md docs/architecture` is empty",
+    "No file written or edited contains an em dash character"
+   ]
+  },
+  {
+   "id": 4,
+   "name": "bugfix-task-set-sibling-type",
+   "prompt": "Orders with a discount show the pre-discount total on the order page because the API sends the wrong total. Start SHOP-15 DiscountTotals as a bugfix across ShopWeb and ShopApi.",
+   "expected_output": "A bugfix task set: one branch bugfix/SHOP-15-DiscountTotals in this repository (ShopApi) from origin/develop, with no upstream. The repo plan puts the server (ShopApi, Shop/Server) before the client (ShopWeb, Shop/Client) although the request names ShopWeb first, so the one merge order question recommends ShopApi first and the run takes it. docs/progress/SHOP-15.md has `## Repos` with `1. ShopApi (.)` and `2. ShopWeb (../ShopWeb)`. The sibling line carries the type, `start-task SHOP-15 DiscountTotals --type bugfix --repos ShopApi,ShopWeb`, so ShopWeb starts the same bugfix/ branch rather than a feature/ one. Nothing is written in ShopWeb, nothing committed or pushed.",
+   "files": [
+    "files/shop-api"
+   ],
+   "expectations": [
+    "Exactly one new branch exists in ShopApi: bugfix/SHOP-15-DiscountTotals (a bugfix/ branch, not feature/), pointing at origin/develop's commit ('docs: owners [SHOP-2]'), never tracking origin/develop",
+    "The final message prints the sibling line with the set's type: `start-task SHOP-15 DiscountTotals --type bugfix --repos ShopApi,ShopWeb`; a sibling line without `--type bugfix` (which would start ShopWeb on feature/SHOP-15-DiscountTotals) fails",
+    "The merge order puts ShopApi first, from the repo plan's git_path groups (Server before Client), although the request named ShopWeb first; the one merge order question (asked or recorded) recommends ShopApi first, and the final message says why (the API provides what the web page consumes, or the plan's groups)",
+    "docs/progress/SHOP-15.md exists in ShopApi, uncommitted, with a `## Repos` section `1. ShopApi (.)` then `2. ShopWeb (../ShopWeb)`",
+    "Nothing was written in the sibling ../ShopWeb: its branches are still develop and main, `git -C ../ShopWeb status --porcelain --ignored` is empty and it has no .bearing directory",
+    "No fix was written and nothing was committed or pushed: `git diff fixture -- shopapi tests Makefile README.md docs/architecture` is empty, the new branch has no commit of its own, and no `git push` was run",
+    "No file written or edited contains an em dash character"
+   ]
+  },
+  {
+   "id": 5,
+   "name": "site-flow-recorded-in-task-branch",
+   "prompt": "/start-task WEB-7 PricingPage --flow site\n\nA pricing page for the marketing site: three plans side by side and a contact form for larger orders.",
+   "expected_output": "One branch feature/WEB-7-PricingPage from origin/main (the README's trunk rule; there is no develop), with no upstream; the fetch fails and the run says so. `--flow site` is given, so nothing is asked about the flow: the run records it with brg-config in the new branch's tree, leaving .bearing/config.json holding \"flow\": \"site\" uncommitted on feature/WEB-7-PricingPage, to be committed with the first change; main does not gain it. The baseline make check is reported as printed (check: 2 pages, check: passed). The next step is the site flow's page brief (Superpowers brainstorming), not a PRD or a design document. No page is written, nothing is committed or pushed.",
+   "files": [
+    "files/marketing-site"
+   ],
+   "expectations": [
+    "Exactly one new branch exists: feature/WEB-7-PricingPage, pointing at origin/main's commit ('feat(about): about page [WEB-3]'), with no upstream or origin/feature/WEB-7-PricingPage as its upstream, never origin/main",
+    "With feature/WEB-7-PricingPage checked out (in this checkout, or a worktree whose path the final message gives), .bearing/config.json parses as JSON and its \"flow\" is \"site\"; the transcript shows it written with `brg-config set flow site` (or the file has exactly that content)",
+    "The flow is recorded in the task branch only and is not committed: .bearing/config.json is untracked (or uncommitted) on feature/WEB-7-PricingPage, `git log --all -- .bearing/config.json` lists no commit, and main is still 'feat(about): about page [WEB-3]'",
+    "No question was asked (or recorded) about whether this is a site: `--flow site` was given",
+    "The run ran make check on the new branch and reports what it printed (2 pages, check: passed), not a result it did not see",
+    "The final message names the site flow's next step: the page brief with Superpowers brainstorming (goal, audience, primary action, sections); it does not send the engineer to prd, high-level-design or openapi-spec",
+    "No page or component was written and nothing was committed or pushed: `git diff fixture -- src scripts Makefile package.json README.md` is empty, the new branch has no commit of its own, and no `git push` was run",
+    "No file written or edited contains an em dash character"
+   ]
   }
  ]
 }
