@@ -15,12 +15,13 @@ user turns (a string, or a list of content blocks whose `text` is
 read); the system prompt is shared by every row and is not compared.
 `source` is any non-empty string: `owner` is counted by name; `synthetic`,
 `teacher`, and any `<generator>:` prefix (`synthetic:x`, `teacher:<model>`,
-`<model>:<tag>` such as `claude-opus-5-5:v2`) count as synthetic; every
-other value is real.
+`<model>:<tag>` such as `claude-opus-5-5:v2`, `llama3:8b` or `gpt4o`) count
+as synthetic; every other value is real.
 
 Comparison text: a string as is; an object as canonical JSON with sorted
-keys; then lower-cased with whitespace collapsed. Contamination targets of
-a case: its input as canonical JSON, its string values joined, and each
+keys; then NFKC-normalised, format characters (Unicode category Cf, such
+as zero-width spaces) removed, lower-cased, whitespace collapsed.
+Contamination targets of a case: its input as canonical JSON, its string values joined, and each
 string value of 20 or more characters on its own, so a chat row, a string
 row, or a row that repeats one field (a question without its context) is
 caught. A row is contaminated by an exact match of any target, a near
@@ -52,13 +53,18 @@ import json
 import math
 import re
 import sys
+import unicodedata
 
 NEAR_CAP = 20000
 GRAM = 5
 LONG = 20  # a case string value this long is a contamination target alone
 SYN_HEADS = {"synthetic", "teacher", "generated", "distilled"}
+# A model family, then nothing, a version digit (llama3, gpt4o, qwen2.5) or a
+# separator (claude-opus-5-5). The o-series already ends in its digit, so it
+# takes a separator only and a real source such as `o365` stays real.
 MODEL_HEAD = re.compile(
-    r"^(claude|gpt|o[134]|gemini|gemma|llama|qwen|mistral|mixtral|deepseek|phi|command|grok)([-_.][\w.-]*)?$"
+    r"^(?:(claude|gpt|gemini|gemma|llama|qwen|mistral|mixtral|deepseek|phi|command|grok)"
+    r"(\d[\w.-]*|[-_.][\w.-]*)?|o[134]([-_.][\w.-]*)?)$"
 )
 
 
@@ -90,6 +96,10 @@ def read_jsonl(path, what, problems):
 
 
 def norm(s):
+    """NFKC, drop format characters (zero-width space and joiner, BOM, soft
+    hyphen: category Cf), lower-case, collapse whitespace."""
+    s = unicodedata.normalize("NFKC", s)
+    s = "".join(c for c in s if unicodedata.category(c) != "Cf")
     return " ".join(s.lower().split())
 
 

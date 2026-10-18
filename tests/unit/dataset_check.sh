@@ -94,6 +94,12 @@ write("wrapped.jsonl", train[:3] + [{"id": "w", "input": "Classify this support 
 write("teacher.jsonl", [dict(r, source=s) for r, s in zip(train[:4], ("teacher:claude-opus-5-5", "claude-sonnet-5-5:v2", "teacher", "user-log"))])
 syn200 = sentences(6, 200)
 write("syn200.jsonl", [{"id": f"y{i}", "input": t, "expected": "x", "output": "x", "source": "synthetic"} for i, t in enumerate(syn200)])
+# Task 6 fix round 2 fixtures: model ids with no separator after the family,
+# real sources that only resemble a family, and a case hidden by format characters
+write("modelid.jsonl", [dict(r, source=s) for r, s in zip(train[:4], ("llama3:8b", "gpt4o", "qwen2.5:7b", "user-log"))])
+write("lookalike.jsonl", [dict(r, source=s) for r, s in zip(train[:5], ("commander", "o365", "gptzero", "phish-reports", "claudette"))])
+zw = golden[2].replace(" ", " \u200b").replace("a", "a\u200d", 1)
+write("zerowidth.jsonl", train[:3] + [{"id": "zw", "input": "\ufeff" + zw, "output": "x", "source": "owner"}])
 with open(f"{d}/big.jsonl", "w") as f:
     for i in range(20001):
         f.write(json.dumps({"id": f"b{i}", "input": f"row number {i}", "output": "x", "source": "user-log"}) + "\n")
@@ -226,6 +232,21 @@ assert_exit 2 python3 "$DC" "$d/train.jsonl" --kind train --against "$d/absent.j
 assert_exit 2 python3 "$DC" "$d/train.jsonl" --kind train --audit "$d/absent.jsonl"; assert_contains "$T_OUT" "0 rows"
 assert_exit 2 python3 "$DC" "$d/train.jsonl" --kind train --taxonomy "$d/absent.json"; assert_contains "$T_OUT" "0 rows"
 assert_not_contains "$T_OUT" "  cell "
+t_end
+
+t_begin "model ids with no separator after the family count as synthetic"
+assert_exit 1 python3 "$DC" "$d/modelid.jsonl" --kind train
+assert_contains "$T_OUT" "4 rows (real 1, owner 0, synthetic 3)"
+t_end
+
+t_begin "real sources that only resemble a model family stay real"
+assert_exit 0 python3 "$DC" "$d/lookalike.jsonl" --kind train
+assert_contains "$T_OUT" "5 rows (real 5, owner 0, synthetic 0)"
+t_end
+
+t_begin "zero-width and format characters do not hide a case"
+assert_exit 1 python3 "$DC" "$d/zerowidth.jsonl" --kind train --against "$d/cases.jsonl"
+assert_contains "$T_OUT" "zw: contaminated"
 t_end
 
 t_summary
