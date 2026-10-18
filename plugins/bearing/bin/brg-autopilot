@@ -89,9 +89,10 @@ STAGES = [
     ("contract", "scope full: data-model (profile data), openapi-spec (profile api), then threat-model, "
      "all from docs/design/screens/*/data-needs.md; lean: the design note covers the contract",
      "scope full: docs/security/threat-model-*.md passing threats_check; by profile, "
-     "docs/design/data-model.md passing model_check (with --needs) and api/openapi.yaml; profile ui and "
-     "api: docs/design/screens/*/data-needs.md passing states_check --needs and api_doc.py needs; "
-     "lean: nothing"),
+     "docs/design/data-model.md passing model_check (with --needs) and api/openapi.yaml; profile ui with "
+     "data or api: a docs/design/screens/<feature>/data-needs.md for every feature whose flows list "
+     "screens, passing states_check --needs against the newest flows file, and (profile api) "
+     "api_doc.py needs; lean: nothing"),
     # after the contract, as in the handbook's greenfield order (screens, then
     # data model, API and threat model, then low-level design): a front-end
     # component's design names the screens, a server component's design needs
@@ -151,11 +152,29 @@ def load(d):
         print("brg-autopilot: no run here; start one with: brg-autopilot start \"<statement>\"", file=sys.stderr)
         sys.exit(1)
     st = json.load(open(p))
+    carry_contract(st)
     # a run started by an older brg-autopilot lacks the stages added since;
     # they join as pending so the run continues instead of failing on a key
     for n in NAMES:
         st["stages"].setdefault(n, {"status": "pending", "attempts": 0, "checked": "", "notes": []})
     return st
+
+
+CARRIED = "carried from the old design gate, which checked the data model, API contract and threat models"
+
+
+def carry_contract(st):
+    """A run from before the contract stage, resumed with design done and a
+    stage after ux done: its old design gate already held the data model,
+    API contract and threat models, so contract is marked done rather than
+    pulling the run back behind its low-level design."""
+    stages = st.get("stages") or {}
+    if "contract" in stages or (stages.get("design") or {}).get("status") != "done":
+        return
+    later = NAMES[NAMES.index("contract") + 1:]
+    if any((stages.get(n) or {}).get("status") == "done" for n in later):
+        stages["contract"] = {"status": "done", "attempts": 0, "checked": CARRIED, "notes": [CARRIED]}
+        print(f"brg-autopilot: contract {CARRIED}", file=sys.stderr)
 
 
 def save(d, st):
@@ -385,6 +404,16 @@ def g_design(d, st):
     return True, ", ".join(parts) + ("" if wants(st, "deploy") else "; profile: deploy=no")
 
 
+SCREEN_ROW = re.compile(r"^\|\s*S-\d+\s*\|", re.M)
+
+
+def screened_features(d):
+    """Feature folders under docs/design/flows whose newest flows file lists
+    at least one screen (an S-nn row)."""
+    return [os.path.basename(os.path.dirname(f)) for f in newest_flows(rels(d, "docs/design/flows/*/flows*.md"))
+            if SCREEN_ROW.search(read(d, f))]
+
+
 def g_contract(d, st):
     """The data model, the API contract and the threat model, after the
     screens: each screen's data-needs.md says what it shows and what it asks
@@ -404,26 +433,34 @@ def g_contract(d, st):
         if not ok:
             return False, f"threats_check failed for {t}: {last}"
     needs = rels(d, "docs/design/screens/*/data-needs.md")
-    from_screens = wants(st, "ui") and wants(st, "api")
-    if from_screens and not needs:
-        return False, ("no docs/design/screens/*/data-needs.md (screen-design: the API and data model "
-                       "derive from the screens' data needs)")
+    # the data model and the API both derive from the screens: a UI product
+    # with either owes every screened feature's data-needs.md
+    if wants(st, "ui") and (wants(st, "data") or wants(st, "api")):
+        if not needs:
+            return False, ("no docs/design/screens/*/data-needs.md (screen-design: the API and data model "
+                           "derive from the screens' data needs)")
+        lacking = [f for f in screened_features(d)
+                   if not os.path.isfile(os.path.join(d, f"docs/design/screens/{f}/data-needs.md"))]
+        if lacking:
+            return False, ("features with screens but no data needs: "
+                           + ", ".join(f"{f} (docs/design/screens/{f}/data-needs.md, screen-design)" for f in lacking))
     if wants(st, "data"):
         ok, last = checker(d, "data-model/scripts/model_check.py", "--dir", os.path.join(d, "docs/design"),
                            *(["--needs", *[os.path.join(d, n) for n in needs]] if needs else []))
         if not ok:
             return False, f"model_check failed: {last}"
-    needs_line = ""
-    if from_screens:
+    if wants(st, "ui"):
         for n in needs:
             feature = os.path.basename(os.path.dirname(n))
-            fl = rels(d, f"docs/design/flows/{feature}/flows*.md")
+            fl = feature_flows(d, feature)
             if not fl:
                 return False, f"no docs/design/flows/{feature}/flows*.md for {n} (ux-flows)"
             ok, last = checker(d, "screen-design/scripts/states_check.py", "--needs", os.path.join(d, n),
-                               "--flows", os.path.join(d, fl[-1]))
+                               "--flows", os.path.join(d, fl))
             if not ok:
                 return False, f"data needs check failed for {n}: {last}"
+    needs_line = ""
+    if wants(st, "api") and needs:
         ok, needs_line = checker(d, "openapi-spec/scripts/api_doc.py", "needs",
                                  "--spec", os.path.join(d, "api/openapi.yaml"),
                                  "--needs", *[os.path.join(d, n) for n in needs])
@@ -535,8 +572,8 @@ def g_ux(d, st):
         return False, "no docs/design/screens/<feature>/*.html (screen-design)"
     for feat in features:
         name = os.path.basename(feat)
-        fl = sorted(rels(d, f"docs/design/flows/{name}/flows*.md"))
-        args = ["--screens", os.path.join(d, feat)] + (["--flows", os.path.join(d, fl[-1])] if fl else [])
+        fl = feature_flows(d, name)
+        args = ["--screens", os.path.join(d, feat)] + (["--flows", os.path.join(d, fl)] if fl else [])
         ok, last = checker(d, "screen-design/scripts/states_check.py", *args)
         if not ok:
             return False, f"states_check failed for {feat}: {last}"
@@ -548,12 +585,31 @@ def g_ux(d, st):
                   f"screens: {len(features)} feature(s) passed; {last}")
 
 
+FLOWS_FILE = re.compile(r"^flows(?:-v(\d+))?\.md$")
+
+
+def flows_version(path):
+    """flows.md is version 1, flows-v<n>.md version n; any other name is None.
+    ux-flows writes flows-v<n+1>.md beside the old file, and a text sort put
+    flows.md after flows-v2.md and flows-v2.md after flows-v10.md."""
+    m = FLOWS_FILE.match(os.path.basename(path))
+    return (int(m.group(1)) if m.group(1) else 1) if m else None
+
+
 def newest_flows(flows):
-    """The newest flows file per feature folder (flows-v2.md over flows.md)."""
+    """The newest flows file per feature folder, by version number
+    (flows-v10.md over flows-v2.md over flows.md); flows-notes.md is not one."""
     by_feature = {}
     for f in flows:
-        by_feature.setdefault(os.path.dirname(f), []).append(f)
-    return [sorted(v)[-1] for _, v in sorted(by_feature.items())]
+        if flows_version(f) is not None:
+            by_feature.setdefault(os.path.dirname(f), []).append(f)
+    return [max(v, key=flows_version) for _, v in sorted(by_feature.items())]
+
+
+def feature_flows(d, feature):
+    """The newest flows file of one feature folder, or ""."""
+    fl = newest_flows(rels(d, f"docs/design/flows/{feature}/flows*.md"))
+    return fl[0] if fl else ""
 
 
 def ux_screens_as_code(d, flows):
@@ -572,9 +628,15 @@ def ux_screens_as_code(d, flows):
         return False, f"{approved[-1]} does not parse: {e}"
     chosen = rec.get("chosen") or ""
     if rec.get("source") == "impeccable":
-        rivals = [c for c in (rec.get("challengers") or []) if c]
+        rivals = rec.get("challengers")
         if not chosen:
             return False, f"{approved[-1]}: no direction picked yet (impeccable round; chosen is empty)"
+        if rivals is None:
+            rivals = []
+        if not isinstance(rivals, list) or not all(isinstance(c, str) and c.strip() for c in rivals):
+            return False, f"{approved[-1]}: challengers must be a list of direction names, got {json.dumps(rivals)}"
+        if chosen in rivals:
+            return False, f"{approved[-1]}: {chosen} is both chosen and a challenger"
         if not rivals:
             return False, f"{approved[-1]}: {chosen} picked over no challenger; an impeccable pick names its challengers"
         picked = f"direction: {chosen}, an impeccable pick over {len(rivals)} challenger(s)"

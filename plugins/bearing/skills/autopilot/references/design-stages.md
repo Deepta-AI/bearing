@@ -22,7 +22,9 @@ and screen-design (on react-shadcn every screen a *.screen.tsx in
 the design gallery, composed from src/components/ui, every state from
 fixtures, responsive at 375, 768 and 1440), which also writes each
 feature's docs/design/screens/<feature>/data-needs.md: what every
-screen shows and what every action asks the server; the build wires
+screen shows and what every action asks the server (the contract gate
+wants one for every feature whose flows list screens, checked against
+its newest flows file, flows-v<n>.md by number); the build wires
 those same components to data. Then contract runs data-model and
 openapi-spec as the profile names, from those data needs, then
 threat-model (it needs the entry points and stored fields those
