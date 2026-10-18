@@ -37,7 +37,8 @@ case "$val" in
   *"
 "*) echo "brg-config: a value cannot span lines" >&2; exit 2;;
 esac
-if [ "$op" = set ] && [ "BEARING_$(printf '%s' "$key" | tr 'a-z.-' 'A-Z__')" = BEARING_AUTO_PUSH ]; then
+nk="$(printf '%s' "$key" | tr 'a-z.-' 'A-Z__')"
+if [ "$op" = set ] && { [ "BEARING_$nk" = BEARING_AUTO_PUSH ] || [ "$nk" = BEARING_AUTO_PUSH ]; }; then
   echo "brg-config: BEARING_AUTO_PUSH is set by hand in bearing.env, never by a tool" >&2; exit 2
 fi
 

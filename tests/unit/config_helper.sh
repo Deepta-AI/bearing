@@ -94,6 +94,26 @@ for k in auto-push auto_push AUTO.PUSH Auto-Push; do
   assert_exit 2 run set "$k" on
 done
 assert_eq "BEARING_TRACKER=none" "$(cat "$envf")" "bearing.env unchanged"
+printf '{"a":"b"}\n' > "$repo/.bearing/config.json"
+assert_exit 2 run set auto-push on
+assert_contains "$T_OUT" "BEARING_AUTO_PUSH is set by hand in bearing.env, never by a tool"
+assert_exit 2 run set BEARING_AUTO_PUSH on
+assert_contains "$T_OUT" "BEARING_AUTO_PUSH is set by hand"
+assert_exit 2 run set BEARING_AUTO_PUSH on --user
+assert_contains "$T_OUT" "BEARING_AUTO_PUSH is set by hand"
+assert_eq '{"a":"b"}' "$(cat "$repo/.bearing/config.json")" "config.json unchanged"
+assert_eq "BEARING_TRACKER=none" "$(cat "$envf")" "bearing.env still unchanged"
+t_end
+
+t_begin "get ignores a BEARING_AUTO_PUSH environment variable"
+printf 'BEARING_TRACKER=none\n' > "$envf"
+for k in auto-push auto_push AUTO.PUSH; do
+  assert_exit 0 env BEARING_AUTO_PUSH=/some/path bash -c "cd '$repo' && XDG_CONFIG_HOME='$cfg' bash '$C' get $k --user"
+  assert_eq "" "$T_OUT" "env var not read ($k)"
+done
+printf 'BEARING_AUTO_PUSH=Shop/Api\n' > "$envf"
+assert_exit 0 env BEARING_AUTO_PUSH=/some/path bash -c "cd '$repo' && XDG_CONFIG_HOME='$cfg' bash '$C' get auto-push --user"
+assert_eq "Shop/Api" "$T_OUT" "file value wins"
 t_end
 
 t_begin "get reads the auto-push key"
