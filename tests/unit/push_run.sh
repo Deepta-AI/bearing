@@ -99,7 +99,7 @@ git -C "$repo" config core.fsmonitor "touch $canary/fsmonitor"
 git -C "$repo" config core.alternateRefsCommand "touch $canary/alternaterefs"
 git -C "$repo" config uploadpack.packObjectsHook "touch $canary/packobjectshook"
 git -C "$repo" config core.pager "touch $canary/pager"
-alt="$(tmpdir)/alt.git"; git init -q --bare "$alt"; printf '%s/objects\n' "$alt" > "$repo/.git/objects/info/alternates"
+# objects/info/alternates now refuses the push: its own case below (fix round 3).
 evil="$(tmpdir)/evil.git"; git init -q --bare "$evil"
 git -C "$repo" config "url.file://$evil.pushInsteadOf" "file://$remote"
 git -C "$repo" config "url.file://$evil.insteadOf" "file://$remote"
@@ -473,6 +473,93 @@ assert_eq present "$(absent "$pt/brg-push.lnk444")" "a link stays"
 assert_eq keep "$(cat "$out/keep")" "nothing behind a link is touched"
 assert_eq present "$(absent "$pt/brg-push.file555")" "a file stays"
 rm -rf "$pt"
+t_end
+
+t_begin "a partial-clone or promisor source refuses before the clone, naming the key"
+# A lazy fetch in upload-pack runs the promisor remote's uploadpack or
+# sshCommand from the source config (CVE-2024-32004): the source config is
+# read as text first. The traps go in after the request.
+for c in partialclone promisor include includeif worktree; do
+  setup; sleep 1; mark; in_repo request >/dev/null
+  cf="$repo/.git/config"; inc="$(tmpdir)/inc.cfg"
+  case "$c" in
+    (partialclone) printf '[extensions]\n\tpartialclone = origin\n' >> "$cf"; want=extensions.partialclone ;;
+    (promisor) printf '[remote "origin"]\n\tpromisor = true\n\tuploadpack = touch %s/uploadpack\n' "$canary" >> "$cf"; want=remote.origin.promisor ;;
+    (include) printf '[remote "lazy"]\n\tpromisor = true\n' > "$inc"; printf '[include]\n\tpath = %s\n' "$inc" >> "$cf"; want=remote.lazy.promisor ;;
+    (includeif) printf '[remote "lazy"]\n\tpromisor = true\n' > "$inc"; printf '[includeIf "gitdir:%s/"]\n\tpath = %s\n' "$repo/.git" "$inc" >> "$cf"; want=includeif.gitdir: ;;
+    (worktree) printf '[remote "origin"]\n\tpromisor = true\n' > "$repo/.git/config.worktree"; want=remote.origin.promisor ;;
+  esac
+  assert_exit 1 in_repo run --id s1 --foreground
+  assert_contains "$T_OUT" "no clone: the source repository's config holds $want"
+  assert_eq "" "$(git -C "$remote" branch --list 'feature/*')" "nothing pushed ($c)"
+  assert_contains "$(cat "$repo/.bearing/state/push-result")" "push refused: clone: the source repository's config holds $want"
+done
+none_ran
+t_end
+
+t_begin "a source that borrows objects through alternates refuses, naming the file"
+for f in alternates http-alternates; do
+  setup; sleep 1; mark; in_repo request >/dev/null
+  alt="$(tmpdir)/alt.git"; git init -q --bare "$alt"; printf '%s/objects\n' "$alt" > "$repo/.git/objects/info/$f"
+  assert_exit 1 in_repo run --id s1 --foreground
+  assert_contains "$T_OUT" "no clone: the source repository has objects/info/$f"
+  assert_eq "" "$(git -C "$remote" branch --list 'feature/*')" "nothing pushed ($f)"
+done
+# A link at the name counts too, even a dangling one.
+setup; sleep 1; mark; in_repo request >/dev/null
+ln -s "$(tmpdir)/nowhere" "$repo/.git/objects/info/alternates"
+assert_exit 1 in_repo run --id s1 --foreground
+assert_contains "$T_OUT" "no clone: the source repository has objects/info/alternates"
+t_end
+
+t_begin "a git older than the patched releases refuses, naming its version and the minimum"
+gm() { bash -c '. "$1"; git_min "$2"; echo "rc=$?"' _ "$fns" "$1"; }
+for v in "git version 2.45.1" "git version 2.45.1.windows.1" "git version 2.46.0" "git version 3.0.0" \
+         "git version 2.43.4" "git version 2.44.1" "git version 2.42.2" "git version 2.41.1" "git version 2.40.2" \
+         "git version 2.39.4 (Apple Git-154)" "git version 2.47.0.vfs.0.0"; do
+  assert_eq "rc=0" "$(gm "$v")" "$v is patched"
+done
+assert_eq "2.43.4 rc=1" "$(gm "git version 2.43.0" | tr '\n' ' ' | sed 's/ $//')" "2.43.0"
+assert_eq "2.39.4 rc=1" "$(gm "git version 2.39.3 (Apple Git-146)" | tr '\n' ' ' | sed 's/ $//')" "Apple 2.39.3"
+assert_eq "2.44.1 rc=1" "$(gm "git version 2.44" | tr '\n' ' ' | sed 's/ $//')" "2.44 with no patch number"
+assert_eq "2.40.2 rc=1" "$(gm "git version 2.40.1" | tr '\n' ' ' | sed 's/ $//')" "2.40.1"
+for v in "git version 2.45.0" "git version 2.38.5" "git version 1.9.0" "git version x" ""; do
+  assert_eq "2.45.1 rc=1" "$(gm "$v" | tr '\n' ' ' | sed 's/ $//')" "[$v]"
+done
+# This machine's git honours GIT_NO_LAZY_FETCH (every patched release does).
+lt="$(tmpdir)"
+assert_exit 0 bash -c '. "$1"; tmp="$2"; home="$3"; lazy_fetch_honoured' _ "$fns" "$lt" "$home"
+# A seamed brg-push that reports an old git: refused with the version, unless
+# the git honours GIT_NO_LAZY_FETCH (a distribution build of the base version).
+po="$(tmpdir)/old-brg-push"; sed '$d' "$P" > "$po"
+printf 'git_version() { echo "git version 2.43.0"; }\nlazy_fetch_honoured() { return 1; }\nmain "$@"\n' >> "$po"
+setup; sleep 1; mark; in_repo request >/dev/null
+assert_exit 1 bash -c "cd '$repo' && bash '$po' run --id s1 --foreground"
+assert_contains "$T_OUT" "no clone: git 2.43.0 is older than the patched release 2.43.4 (or 2.45.1)"
+assert_eq "" "$(git -C "$remote" branch --list 'feature/*')" "nothing pushed with an unpatched git"
+pb2="$(tmpdir)/base-brg-push"; sed '$d' "$P" > "$pb2"
+printf 'git_version() { echo "git version 2.43.0"; }\nmain "$@"\n' >> "$pb2"
+setup; sleep 1; mark; in_repo request >/dev/null
+assert_exit 0 bash -c "cd '$repo' && bash '$pb2' run --id s1 --foreground"
+assert_contains "$T_OUT" "push-run: 8 conditions, 8 met"
+t_end
+
+t_begin "the background run holds no descriptor the Stop hook was given"
+# The detached run lasts 4 s longer (a prune_tmp seam); the caller's fd 3,
+# a FIFO, must reach EOF when the hook returns, not when the push ends.
+ps="$(tmpdir)/slow-brg-push"; sed '$d' "$P" > "$ps"
+printf 'prune_tmp() { if [ "$fg" -eq 1 ]; then sleep 4; fi; return 0; }\nmain "$@"\n' >> "$ps"
+setup; sleep 1; mark; in_repo request >/dev/null
+fd="$(tmpdir)"; mkfifo "$fd/f3"
+( cat "$fd/f3" > /dev/null; touch "$fd/eof" ) & reader=$!
+( cd "$repo" && bash "$ps" run --id s1 3>"$fd/f3" ) > "$fd/out" 2>&1
+assert_contains "$(cat "$fd/out")" "bearing push: started for feature/ABC-1-Thing"
+for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do [ -e "$fd/eof" ] && break; sleep 0.1; done
+assert_eq present "$(absent "$fd/eof")" "the caller's fd 3 closed when the hook returned"
+assert_eq absent "$(absent "$repo/.bearing/state/push-result")" "while the push still ran"
+for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do [ -f "$repo/.bearing/state/push-result" ] && break; sleep 1; done
+assert_contains "$(cat "$repo/.bearing/state/push-result" 2>/dev/null)" "pushed feature/ABC-1-Thing"
+kill "$reader" 2>/dev/null; wait "$reader" 2>/dev/null
 t_end
 
 t_summary

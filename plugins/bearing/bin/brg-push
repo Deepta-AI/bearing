@@ -130,16 +130,22 @@ bounded() {
   return "$rc"
 }
 
-# git_common_dir: the git common directory of $root, found by reading
-# <root>/.git as text: a directory is the answer; a "gitdir: <p>" file gives
-# <p>, then <p>/commondir when present (relative to <p>). No git command;
-# each file read is of a regular file and bounded in time.
-git_common_dir() {
-  local g="$root/.git" p c
+# git_dir: the git directory of $root, found by reading <root>/.git as
+# text: a directory is the answer; a "gitdir: <p>" file gives <p> (relative
+# to root). git_common_dir: that, or <p>/commondir when present (relative to
+# <p>). No git command; each file read is of a regular file and bounded in
+# time.
+git_dir() {
+  local g="$root/.git" p
   [ -d "$g" ] && { printf '%s\n' "$g"; return 0; }
   [ -f "$g" ] || return 1
   p="$(bounded 5 sed -n '1s/^gitdir: //p' "$g")"; [ -n "$p" ] || return 1
   case "$p" in (/*) ;; (*) p="$root/$p" ;; esac
+  printf '%s\n' "$p"
+}
+git_common_dir() {
+  local p c
+  p="$(git_dir)" || return 1
   if [ -f "$p/commondir" ]; then
     c="$(bounded 5 head -1 "$p/commondir")" || return 1
     case "$c" in (/*) p="$c" ;; (*) p="$p/$c" ;; esac
@@ -317,13 +323,16 @@ check_conditions() {
   else cond not-protected 0 "$b"; fi
   # The push sends committed history only: this task's uncommitted progress
   # file and .scratch/ (uncommitted_ok) count for neither clean nor gate.
+  # Every git status passes --ignore-submodules=dirty: looking inside a
+  # submodule refreshes its index, which runs the filter driver its own
+  # .git/config defines. A submodule moved to another commit still counts.
   progress=""; id="$(task_id "$b")"; [ -z "$id" ] || progress="docs/progress/$id.md"
-  if ! c="$(git -C "$root" status -z --untracked-files=no 2>/dev/null | status_paths | tr -cd '\000' | wc -c
+  if ! c="$(git -C "$root" status -z --ignore-submodules=dirty --untracked-files=no 2>/dev/null | status_paths | tr -cd '\000' | wc -c
             exit "${PIPESTATUS[0]}")"; then
     cond clean 1 "git status failed"
   elif [ "$c" -eq 0 ]; then cond clean 0 "no uncommitted change"
   else cond clean 1 "$((c)) uncommitted change(s)"; fi
-  skipped="$nl$(git -C "$root" status -z --untracked-files=all 2>/dev/null | status_paths skipped | tr '\000' '\n')$nl"
+  skipped="$nl$(git -C "$root" status -z --ignore-submodules=dirty --untracked-files=all 2>/dev/null | status_paths skipped | tr '\000' '\n')$nl"
   base="$(base_ref)" || base=""
   if [ -z "$base" ]; then cond ahead 1 "no origin/develop, origin/main or origin/master"
   else
@@ -333,7 +342,7 @@ check_conditions() {
   fi
   m="$st/.check-passed"
   counts="$( { [ -z "$base" ] || git -C "$root" diff -z --name-only "$base...HEAD" --
-              git -C "$root" status -z --untracked-files=all | status_paths; } | gate_count "$m" )"
+              git -C "$root" status -z --ignore-submodules=dirty --untracked-files=all | status_paths; } | gate_count "$m" )"
   k="${counts% *}"; j="${counts#* }"
   if [ ! -f "$m" ]; then cond gate 1 "make check has never passed"
   elif [ "$j" -gt 0 ]; then cond gate 1 "$j of $k file(s) newer than the last make check"
@@ -636,18 +645,122 @@ gen_global() {
 
 # pgit <args>: git as the clone and the push run it: under cleanenv, no
 # system config (GIT_CONFIG_NOSYSTEM=1), the generated global config
-# ($tmp/global) and no hook (core.hooksPath=/dev/null). Bounded by the caller.
+# ($tmp/global), no hook (core.hooksPath=/dev/null) and no lazy fetch
+# (GIT_NO_LAZY_FETCH=1, which a patched upload-pack sets by itself).
+# Bounded by the caller.
 pgit() {
-  cleanenv GIT_CONFIG_NOSYSTEM=1 GIT_CONFIG_GLOBAL="$tmp/global" git -c core.hooksPath=/dev/null "$@"
+  cleanenv GIT_CONFIG_NOSYSTEM=1 GIT_CONFIG_GLOBAL="$tmp/global" GIT_NO_LAZY_FETCH=1 \
+    git -c core.hooksPath=/dev/null "$@"
 }
 
-# push_env: writes $tmp/global with gen_global, then asks git, in the empty
+# git_version: the `git --version` line of the git the clone runs (a seam
+# for tests, like passwd_home).
+git_version() { ( cd "$tmp" && bounded 10 cleanenv git --version ) 2>/dev/null; }
+
+# git_min <git --version line>: exit 0 when the version is at or above the
+# release that fixed the clone of a hostile local repository (CVE-2024-32004:
+# upload-pack lazily fetched from a promisor remote the source config names,
+# running its commands): 2.45.1, or 2.39.4, 2.40.2, 2.41.1, 2.42.2, 2.43.4
+# or 2.44.1 on those lines. Otherwise prints that minimum and exits 1; a
+# line it cannot read needs 2.45.1.
+git_min() {
+  local v ma mi pa need
+  v="$(printf '%s\n' "$1" | sed -n 's/^git version \([0-9][0-9]*\)\.\([0-9][0-9]*\)\(\.\([0-9][0-9]*\)\)\{0,1\}.*/\1 \2 \4/p')"
+  set -- $v
+  ma="${1:-0}"; mi="${2:-0}"; pa="${3:-0}"
+  if [ "$ma" -gt 2 ] || { [ "$ma" -eq 2 ] && [ "$mi" -gt 45 ]; }; then return 0; fi
+  need=""
+  if [ "$ma" -eq 2 ]; then
+    case "$mi" in (39|43) need=4 ;; (40|42) need=2 ;; (41|44|45) need=1 ;; esac
+  fi
+  if [ -n "$need" ] && [ "$pa" -ge "$need" ]; then return 0; fi
+  if [ -n "$need" ]; then echo "2.$mi.$need"; else echo 2.45.1; fi
+  return 1
+}
+
+# lazy_fetch_honoured: exit 0 when this git honours GIT_NO_LAZY_FETCH, the
+# variable the fix brought, so a distribution build that backported the fix
+# and reports its base version (Ubuntu's 2.43.0) still passes. Judged on a
+# throwaway promisor repository in the protected temporary directory, never
+# on the source, whose promisor remote's uploadpack is a script brg-push
+# writes there that only records that it ran: asked for a missing object,
+# git must not start it with GIT_NO_LAZY_FETCH=1 set, and must start it
+# without (the control, so a probe that never fetches proves nothing). The
+# warning a patched git prints is not used: newer releases print none.
+lazy_fetch_honoured() {
+  local pr="$tmp/probe" up="$tmp/probe-up"
+  rm -r -f "$pr" "$up" "$up.ran"
+  ( cd "$tmp" && bounded 10 cleanenv GIT_CONFIG_NOSYSTEM=1 GIT_CONFIG_GLOBAL=/dev/null \
+      git -c core.hooksPath=/dev/null init -q "$pr" ) > /dev/null 2>&1 || return 1
+  printf '#!/bin/sh\n: > "$0.ran"\nexit 1\n' > "$up" && chmod 700 "$up" || return 1
+  printf '[core]\n\trepositoryformatversion = 1\n[extensions]\n\tpartialclone = origin\n[remote "origin"]\n\turl = %s/absent\n\tpromisor = true\n\tuploadpack = %s\n' \
+    "$tmp" "$up" >> "$pr/.git/config" || return 1
+  probe_fetch GIT_NO_LAZY_FETCH=1
+  if [ -e "$up.ran" ]; then rm -r -f "$pr" "$up" "$up.ran"; return 1; fi
+  probe_fetch GIT_TRACE=0
+  if [ -e "$up.ran" ]; then rm -r -f "$pr" "$up" "$up.ran"; return 0; fi
+  rm -r -f "$pr" "$up"
+  return 1
+}
+# probe_fetch <VAR=value>: the probe's object read, with that variable set.
+probe_fetch() {
+  ( cd "$tmp/probe" && bounded 10 cleanenv GIT_CONFIG_NOSYSTEM=1 GIT_CONFIG_GLOBAL=/dev/null "$1" \
+      git -c core.hooksPath=/dev/null cat-file -e 0123456789abcdef0123456789abcdef01234567 ) > /dev/null 2>&1
+}
+
+# git_patched: prints why and exits 1 when the git the clone runs is older
+# than the patched releases (git_min) and does not honour GIT_NO_LAZY_FETCH.
+git_patched() {
+  local line v need
+  line="$(git_version)"
+  need="$(git_min "$line")" && return 0
+  lazy_fetch_honoured && return 0
+  v="${line#git version }"; v="${v%% *}"
+  echo "git ${v:-of unknown version} is older than the patched release $need (or 2.45.1); upgrade git"
+  return 1
+}
+
+# source_risk: prints why and exits 0 when the source repository could make
+# the clone run or read what it should not. Read as text before the clone,
+# with no git command in the repository: objects/info/alternates or
+# http-alternates in the common git directory (objects from outside the
+# repository; a link or any file at the name counts), or, in its config
+# (includes followed) or a config.worktree, extensions.partialclone, any
+# remote.<name>.promisor (a lazy fetch runs that remote's uploadpack or
+# sshCommand) or an includeIf section, whose condition a text read cannot
+# judge. Exit 1 when there is none.
+source_risk() {
+  local gd d f k rc
+  if ! gd="$(git_dir)" || ! d="$(git_common_dir)"; then echo "no git directory to read"; return 0; fi
+  for f in alternates http-alternates; do
+    if [ -e "$d/objects/info/$f" ] || [ -L "$d/objects/info/$f" ]; then
+      echo "the source repository has objects/info/$f"; return 0
+    fi
+  done
+  for f in "$d/config" "$d/config.worktree" "$gd/config.worktree"; do
+    [ -e "$f" ] || [ -L "$f" ] || continue
+    if [ ! -f "$f" ] || [ -L "$f" ]; then echo "the source repository's ${f##*/} is not a regular file"; return 0; fi
+    k="$( cd "$tmp" && bounded 5 cleanenv git config --file "$f" --includes --name-only \
+          --get-regexp '^(extensions\.partialclone|remote\..*\.promisor|includeif\..*)$' 2>/dev/null )"
+    rc=$?
+    if [ "$rc" -gt 1 ]; then echo "the source repository's ${f##*/} could not be read"; return 0; fi
+    if [ -n "$k" ]; then
+      echo "the source repository's config holds $(printf '%s\n' "$k" | head -1 | tr -d '\r' | cut -c1-120)"
+      return 0
+    fi
+  done
+  return 1
+}
+
+# push_env: refuses a git older than the patched releases (git_patched),
+# writes $tmp/global with gen_global, then asks git, in the empty
 # temporary directory, where each setting it sees comes from: every one must
 # come from $tmp/global or the command line, so a git that ignores
 # GIT_CONFIG_NOSYSTEM or GIT_CONFIG_GLOBAL (older than 2.32) is refused
 # rather than reading the real files. Prints why on failure.
 push_env() {
   local rec o=1
+  git_patched || return 1
   gen_global "$tmp/global" || { echo "the global git config could not be read for its credential keys"; return 1; }
   ( cd "$tmp" && bounded 10 pgit config --null --show-origin --list ) > "$tmp/origins" 2>/dev/null \
     || { echo "git could not list the push's config"; return 1; }
@@ -687,7 +800,9 @@ clone_config_extra() {
   return 1
 }
 
-# push_clone: the eighth condition and the push. The branch is cloned from
+# push_clone: the eighth condition and the push. The git must be patched
+# (push_env) and the source must carry no alternates and no promisor
+# (source_risk), both judged before the clone. The branch is cloned from
 # the repository path into the protected temporary directory (upload-pack is
 # the only git that runs there), no hook anywhere, no checkout; its HEAD must
 # be the requested sha. Then that clone pushes the one branch to the listed
@@ -696,6 +811,7 @@ clone_config_extra() {
 push_clone() {
   local head r why
   if ! why="$(push_env)"; then cond clone 1 "$why"
+  elif why="$(source_risk)"; then cond clone 1 "$why"
   elif ( cd "$tmp" && bounded 600 pgit clone -q --no-local --single-branch \
          --branch "$b" --no-tags --no-checkout -- "$root" "$tmp/c" ) > "$tmp/clone.err" 2>&1; then
     head="$( cd "$tmp" && bounded 30 pgit -C "$tmp/c" rev-parse -q --verify HEAD 2>/dev/null )"
@@ -755,11 +871,26 @@ run_foreground() {
   return 1
 }
 
+# close_fds: closes every descriptor from 3 up in this (sub)shell: those
+# /dev/fd lists (Linux, macOS), then 3 to 255 one by one where it lists
+# nothing. bash 3.2 has no {fd} syntax, hence eval.
+close_fds() {
+  local f n
+  for f in /dev/fd/*; do
+    n="${f#/dev/fd/}"
+    case "$n" in (''|*[!0-9]*|0|1|2) continue ;; esac
+    eval "exec $n>&-" 2>/dev/null
+  done
+  n=3
+  while [ "$n" -le 255 ]; do eval "exec $n>&-" 2>/dev/null; n=$((n+1)); done
+}
+
 # run_main [--id <sid>] [--foreground]: the Stop hook's entry. Root is
 # CLAUDE_PROJECT_DIR, else the working directory; no git rev-parse. Without
 # --foreground it judges the seven conditions and, when they hold, starts the
-# foreground run detached (nohup, stdin from /dev/null, output to /dev/null:
-# nothing it inherits keeps the hook open) and returns inside the hook's
+# foreground run detached (nohup, stdin from /dev/null, output to /dev/null,
+# every descriptor from 3 up closed by close_fds: nothing it inherits keeps
+# the hook or its caller open) and returns inside the hook's
 # timeout. A .git gitfile can point the origin read and the clone source at
 # another repository; the push still goes only to a URL the engineer listed
 # (accepted, amendment ruling Q4).
@@ -794,7 +925,8 @@ run_main() {
   fi
   case "$0" in (/*) self="$0" ;; (*) self="$PWD/$0" ;; esac   # no cd: CDPATH plays no part
   printf '%s push started for %s\n' "$(utc)" "$b" | state_write add push.log
-  CLAUDE_PROJECT_DIR="$root" nohup bash "$self" run --id "$sid" --foreground < /dev/null > /dev/null 2>&1 &
+  ( close_fds; CLAUDE_PROJECT_DIR="$root" exec nohup bash "$self" run --id "$sid" --foreground ) \
+    < /dev/null > /dev/null 2>&1 &
   echo "bearing push: started for $b"
   exit 0
 }

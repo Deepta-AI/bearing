@@ -232,7 +232,11 @@ engineer whether a request can succeed, and `run` re-judges what matters.
    fix round 2) The Stop gate skips the same records (`brg-changed
    --skip-notes`), so the progress file merge-request writes after
    `make check` no longer blocks the stop that would run the push; a
-   staged change still counts there.
+   staged change still counts there. (Task 3 fix round 3) Every
+   `git status` here and in `gate` passes `--ignore-submodules=dirty`:
+   looking inside a submodule refreshes its index, which runs the filter
+   driver the submodule's own config defines. A submodule moved to
+   another commit still counts.
 6. `ahead`: at least one commit on the branch not on the base
    (`origin/develop`, else `origin/main`, else `origin/master`).
 7. `gate`: `.bearing/state/.check-passed` exists and no file in the
@@ -281,6 +285,23 @@ the opt-in) is gone: no repository hook takes part in the push.
    Environment variables need no check: the environment is cleared.
 8. `clone`: the clone succeeded and its `HEAD` is the request's `sha`
    (a commit made after the request refuses; the agent requests again).
+   (Task 3 fix round 3) Before the clone, it refuses a git older than the
+   releases that fixed the clone of a hostile local repository
+   (CVE-2024-32004): 2.45.1, or 2.39.4, 2.40.2, 2.41.1, 2.42.2, 2.43.4 or
+   2.44.1 on those lines, naming the version found and the minimum. A
+   distribution build reports its base version (Ubuntu's 2.43.0 carries the
+   fix), so a git that honours `GIT_NO_LAZY_FETCH` passes too, judged on a
+   throwaway promisor repository in the protected temporary directory
+   (with the variable set, a patched git warns "lazy fetching disabled"),
+   never on the source. The clone and the push also run with
+   `GIT_NO_LAZY_FETCH=1`. It then reads the source as text, with no git
+   command in it, and refuses, naming what it found:
+   `objects/info/alternates` or `objects/info/http-alternates` in the
+   common git directory (any file or link at the name), and, in the config
+   (includes followed) or a `config.worktree`, `extensions.partialclone`,
+   any `remote.<name>.promisor` (a lazy fetch runs that remote's
+   `uploadpack` or `sshCommand`) or an `includeIf` section, whose condition
+   a text read cannot judge.
 
 Besides the `git config --file` reads and a `rev-parse HEAD` inside the
 clone, the clone and the push are the only git commands `run` runs. Every
@@ -343,7 +364,8 @@ refreshes the index.
 
 `run` checks conditions 1 to 7 at the Stop and prints
 `push-run: 7 conditions before the clone, M met`; when all hold it
-detaches (`nohup ... &`, R7) so the Stop hook returns inside its 15 s
+detaches (`nohup ... &`, R7; every descriptor from 3 up closed first, fix
+round 3, so it holds nothing the hook's caller gave it) so the Stop hook returns inside its 15 s
 timeout (`plugins/bearing/hooks/hooks.json`), and the detached
 `run --foreground` judges all eight again and pushes. It writes
 `.bearing/state/push.log` and one line to `.bearing/state/push-result`

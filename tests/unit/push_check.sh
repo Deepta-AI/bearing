@@ -360,4 +360,24 @@ setup; sleep 1; mkdir -p "$repo/docs/progress"; printf 'p\n' > "$repo/docs/progr
 assert_exit 1 in_repo check; assert_contains "$T_OUT" "no gate: 1 of 2 file(s) newer than the last make check"
 t_end
 
+t_begin "a submodule's own filter driver never runs from check's git status"
+# git status looks inside a submodule for changes and refreshes its index,
+# which runs the clean filter its .git/config defines on a stat-dirty file:
+# every git status brg-push runs passes --ignore-submodules=dirty.
+setup; canary="$(tmpdir)"
+sub="$(tmpdir)/sub"; git -C "$(tmpdir)" init -q "$sub"
+git -C "$sub" config user.email t@example.com; git -C "$sub" config user.name t
+printf 's\n' > "$sub/s"; printf 's filter=canary\n' > "$sub/.gitattributes"
+git -C "$sub" add s .gitattributes; git -C "$sub" commit -q -m "chore: sub"
+git -C "$repo" -c protocol.file.allow=always submodule -q add "$sub" sm 2>/dev/null
+git -C "$repo" commit -q -m "chore: sm [ABC-1]"
+git config --file "$repo/.git/modules/sm/config" filter.canary.clean "touch $canary/filter; cat"
+git config --file "$repo/.git/modules/sm/config" filter.canary.smudge cat
+sleep 1; touch "$repo/.bearing/state/.check-passed"; sleep 1; touch "$repo/sm/s"
+assert_exit 0 in_repo check
+assert_contains "$T_OUT" "ok clean: no uncommitted change"
+assert_contains "$T_OUT" "push-check: 8 conditions, 8 met"
+assert_eq "" "$(ls -A "$canary")" "the submodule's filter never ran"
+t_end
+
 t_summary

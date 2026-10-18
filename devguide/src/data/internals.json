@@ -5,7 +5,7 @@
   "commandSkills": 0,
   "stackSkills": 12,
   "scripts": 99,
-  "scriptLines": 32886,
+  "scriptLines": 33018,
   "hooks": 8,
   "agents": 8,
   "makeTargets": 32,
@@ -15754,12 +15754,13 @@
    "name": "brg-push",
    "lang": "bash",
    "group": "quality",
-   "lines": 873,
+   "lines": 1005,
    "header": "brg-push: the one way Bearing pushes a task branch, and only where the\nengineer opted the repository in with BEARING_AUTO_PUSH (full push URLs) in\nthe personal bearing.env under the passwd home. The only git push Bearing\nruns, from a fresh clone, never from the working tree.\n\n  brg-push check            the eight conditions, one \"ok|no <name>: <detail>\"\n                            line each, then \"push-check: 8 conditions, M met\";\n                            exit 0 all met, 1 any unmet, 2 usage or not a git\n                            repository\n  brg-push request          check; when it passes, write\n                            .bearing/state/push-request (branch, sha, time);\n                            exit 0 or 1\n  brg-push run --id <sid> [--foreground]\n                            the Stop hook only: judge the request, the opt-in,\n                            the session mark, the gate marker and the global\n                            git transport (\"push-run: 7 conditions before the\n                            clone, M met\"), then start itself with\n                            --foreground, detached, which judges them again,\n                            clones the branch fresh, checks the clone's HEAD\n                            (\"push-run: 8 conditions, M met\") and pushes it;\n                            writes push-result, push.log and a gates.log\n                            line; exit 0 started or pushed, 1 refused or\n                            failed, 2 usage\n  brg-push status [--unseen]\n                            the last result line, or \"push: none\"; with\n                            --unseen (the hooks) \"bearing push: <line>\" once\n                            per new result; exit 0\n  brg-push optin-record     SessionStart only: write .bearing/state/.push-optin\n                            (on|off) for this repository; exit 0 always\n\ncheck, request and status run in the agent's Bash, inside the sandbox.\noptin-record and run run outside the sandbox and run no git command in the\nworking repository: origin's url is read as text from the git common dir's\nconfig file, under a cleared environment, in an empty directory, every read\nof the repository bounded in time, and every write to .bearing/state goes\nthrough state_write, which never follows a link the agent planted. run is for\nthe Stop hook; the guard refuses it from Bash. The opt-in is read from\n<passwd home>/.config/bearing/bearing.env only, never from BEARING_ENV,\nXDG_CONFIG_HOME, HOME or an exported BEARING_AUTO_PUSH: the agent controls\nits own environment. The temporary directory of optin-record and run, and\nso the clone, is a fresh mktemp -d inside <passwd home>/.config/bearing/tmp\n(mode 700, hidden from the sandbox), never TMPDIR; the clone and the push\nread no system config and a generated global config holding only the\nengineer's credential.* keys, and the clone's own config is re-read before\nthe push and refused if it holds a key git clone does not write. An entry\nis never printed (an https entry may carry a token), only its key. A .git\nfile (gitdir:) can point the origin read and the clone source at another\nrepository; the push still goes only to a URL the engineer listed for that\norigin (accepted, amendment ruling Q4). Needs git and python3 (the reads\nand appends in .bearing/state that must not follow a link). The script\nends with the single line `main \"$@\"`, the seam tests use to replace\npasswd_home. bash 3.2 safe.",
    "functions": [
     "url_key",
     "passwd_home",
     "bounded",
+    "git_dir",
     "git_common_dir",
     "cleanenv",
     "origin_url",
@@ -15788,11 +15789,18 @@
     "prune_tmp",
     "gen_global",
     "pgit",
+    "git_version",
+    "git_min",
+    "lazy_fetch_honoured",
+    "probe_fetch",
+    "git_patched",
+    "source_risk",
     "push_env",
     "clone_config_extra",
     "push_clone",
     "refuse",
     "run_foreground",
+    "close_fds",
     "run_main",
     "request_main",
     "status_main",
@@ -18806,9 +18814,9 @@
   {
    "path": "tests/unit/push_check.sh",
    "kind": "unit",
-   "lines": 363,
+   "lines": 383,
    "header": "tests/unit/push_check.sh: brg-push check prints one line per condition and the count, refuses outside a repository, and names each unmet condition; optin-record writes on or off from the passwd-home bearing.env, matching a full push URL entry to origin by url_key, never from the environment. bash 3.2 safe.",
-   "asserts": 109
+   "asserts": 114
   },
   {
    "path": "tests/unit/push_claims.sh",
@@ -18820,9 +18828,9 @@
   {
    "path": "tests/unit/push_run.sh",
    "kind": "unit",
-   "lines": 478,
+   "lines": 565,
    "header": "tests/unit/push_run.sh: brg-push request, run and status, and the hooks that drive them. request writes the request only when check passes; run, from the Stop hook, re-judges the request, the opt-in, the session mark, the gate marker and the engineer's global transport settings, then clones the branch fresh and pushes it to the URL listed in bearing.env, never running a repository hook, Makefile, git config key or exported variable; every file it writes in .bearing/state goes through state_write, never through a planted link. The Stop gate starts it when it passes, and a core.fsmonitor in .gi…",
-   "asserts": 149
+   "asserts": 174
   },
   {
    "path": "tests/unit/push_settings.sh",
