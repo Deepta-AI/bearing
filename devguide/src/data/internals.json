@@ -5,12 +5,12 @@
   "commandSkills": 0,
   "stackSkills": 12,
   "scripts": 99,
-  "scriptLines": 33618,
+  "scriptLines": 33706,
   "hooks": 8,
   "agents": 8,
   "makeTargets": 32,
   "gates": 19,
-  "tests": 116,
+  "tests": 117,
   "fixtures": 25,
   "stacks": 13,
   "templates": 38,
@@ -15508,8 +15508,8 @@
    "name": "brg-guard",
    "lang": "bash",
    "group": "guard",
-   "lines": 2107,
-   "header": "brg-guard: the harness-neutral guard logic behind every hook adapter.\n\n  brg-guard command \"<shell command>\"   exit 2 and a message when the command\n                                        publishes, rewrites history, deploys\n                                        or destroys; exit 2 when the command\n                                        cannot be read (fail closed)\n  brg-guard format <file>               format one file with an allow-listed\n                                        formatter from fixed directories, in\n                                        a cleared environment\n  brg-guard task-id [\"<prompt>\"]        print \"Task: <ID> ...\" when the branch\n                                        carries a ticket id the prompt lacks\n  brg-guard session                     print branch, task, changes, handoff state\n  brg-guard stop                        print a reminder when changes are unchecked\n  brg-guard stop-gate --id <session> [--active]\n                                        exit 2 (reason on stderr) when files\n                                        changed in this session since make\n                                        check last passed; --active (the\n                                        harness already continued once) only\n                                        reminds, so it never loops\n  brg-guard check-file <file>           print that no hook runs the per-file\n                                        check (make check-file runs in the\n                                        session); exit 0\n  brg-guard precompact [<transcript>]   write .bearing/state/<branch>.compact.md\n  brg-guard session [--id <session>] [--source startup|resume|compact]\n  brg-guard stats                       what the gates decided here, how often\n                                        and at what cost (.bearing/state/gates.log)\n  brg-guard log <gate> <outcome> [label] [ms]\n                                        append one gates.log line, never\n                                        through a link or into a FIFO\n  brg-guard state-write put|add <name> [cap]\n                                        write stdin to .bearing/state/<name>\n                                        (put: replace; add: append, rotating\n                                        to <name>.1 over cap bytes), never\n                                        through a link or into a FIFO\n  brg-guard readonly \"<shell command>\"  exit 2 unless every program in the\n                                        command is a read-only tool (git\n                                        diff|log|show|status|blame|ls-files,\n                                        ls, cat, grep, rg, find without -exec,\n                                        sed without -i, jq and similar);\n                                        used by the read-only subagents\n  brg-guard --verbs                     the blocked verb table (tool, pattern,\n                                        label; tab-separated) for generators\n  brg-guard --version                   the version stamp\n\nClaude Code hooks, Cursor hooks and any other harness adapter call these\nsubcommands and translate their own event JSON into arguments. One logic,\none behaviour on every harness. Runs on bash 3.2 (macOS) and needs no tool\nbeyond git for the session subcommands.",
+   "lines": 2165,
+   "header": "Hooks run outside the sandbox with the harness's environment, so the first\nthing done is to drop what in it could run another program: PATH becomes\n/usr/bin:/bin plus the system tool directories (jq, git and python3 on\nmacOS live under /usr/local/bin or /opt/homebrew/bin), never a directory\nthe environment put first; BASH_ENV and ENV (sourced by every bash started\nlater), CDPATH (redirects cd), PYTHON* (python3 also runs -I everywhere),\nLD_* and DYLD_* (preloaded libraries) are unset. BASH_ENV in the harness's\nown environment is sourced by bash before this line runs, which no script\ncan prevent; the settings template denies Edit and Write on the settings\nfiles whose env could set it.",
    "functions": [
     "git_lockdown",
     "verb_table",
@@ -15764,7 +15764,7 @@
    "name": "brg-push",
    "lang": "bash",
    "group": "quality",
-   "lines": 1005,
+   "lines": 1010,
    "header": "brg-push: the one way Bearing pushes a task branch, and only where the\nengineer opted the repository in with BEARING_AUTO_PUSH (full push URLs) in\nthe personal bearing.env under the passwd home. The only git push Bearing\nruns, from a fresh clone, never from the working tree.\n\n  brg-push check            the eight conditions, one \"ok|no <name>: <detail>\"\n                            line each, then \"push-check: 8 conditions, M met\";\n                            exit 0 all met, 1 any unmet, 2 usage or not a git\n                            repository\n  brg-push request          check; when it passes, write\n                            .bearing/state/push-request (branch, sha, time);\n                            exit 0 or 1\n  brg-push run --id <sid> [--foreground]\n                            the Stop hook only: judge the request, the opt-in,\n                            the session mark, the gate marker and the global\n                            git transport (\"push-run: 7 conditions before the\n                            clone, M met\"), then start itself with\n                            --foreground, detached, which judges them again,\n                            clones the branch fresh, checks the clone's HEAD\n                            (\"push-run: 8 conditions, M met\") and pushes it;\n                            writes push-result, push.log and a gates.log\n                            line; exit 0 started or pushed, 1 refused or\n                            failed, 2 usage\n  brg-push status [--unseen]\n                            the last result line, or \"push: none\"; with\n                            --unseen (the hooks) \"bearing push: <line>\" once\n                            per new result; exit 0\n  brg-push optin-record     SessionStart only: write .bearing/state/.push-optin\n                            (on|off) for this repository; exit 0 always\n\ncheck, request and status run in the agent's Bash, inside the sandbox.\noptin-record and run run outside the sandbox and run no git command in the\nworking repository: origin's url is read as text from the git common dir's\nconfig file, under a cleared environment, in an empty directory, every read\nof the repository bounded in time, and every write to .bearing/state goes\nthrough state_write, which never follows a link the agent planted. run is for\nthe Stop hook; the guard refuses it from Bash. The opt-in is read from\n<passwd home>/.config/bearing/bearing.env only, never from BEARING_ENV,\nXDG_CONFIG_HOME, HOME or an exported BEARING_AUTO_PUSH: the agent controls\nits own environment. The temporary directory of optin-record and run, and\nso the clone, is a fresh mktemp -d inside <passwd home>/.config/bearing/tmp\n(mode 700, hidden from the sandbox), never TMPDIR; the clone and the push\nread no system config and a generated global config holding only the\nengineer's credential.* keys, and the clone's own config is re-read before\nthe push and refused if it holds a key git clone does not write. An entry\nis never printed (an https entry may carry a token), only its key. A .git\nfile (gitdir:) can point the origin read and the clone source at another\nrepository; the push still goes only to a URL the engineer listed for that\norigin (accepted, amendment ruling Q4). Needs git and python3 (the reads\nand appends in .bearing/state that must not follow a link). The script\nends with the single line `main \"$@\"`, the seam tests use to replace\npasswd_home. bash 3.2 safe.",
    "functions": [
     "url_key",
@@ -16427,7 +16427,7 @@
    "name": "block-publish.sh",
    "lang": "bash",
    "group": "hooks",
-   "lines": 6,
+   "lines": 7,
    "header": "PreToolUse (Bash): adapter over bin/brg-guard command. Exit 2 blocks.",
    "functions": [],
    "env": [],
@@ -16440,7 +16440,7 @@
    "name": "format-file.sh",
    "lang": "bash",
    "group": "hooks",
-   "lines": 17,
+   "lines": 18,
    "header": "PostToolUse (Edit|Write|MultiEdit): format the file with an allow-listed\nformatter (bin/brg-guard format), then print the one line brg-guard\ncheck-file gives: the per-file check was not run. Hooks run outside the\nsandbox and the working tree is the agent's, so this hook runs no\nrepository command (no Makefile target, no node_modules binary); make\ncheck-file runs in the session, and the Stop gate holds the session to\nmake check. The formatter's note goes to stderr, the check-file line to\nstdout.",
    "functions": [],
    "env": [],
@@ -16453,7 +16453,7 @@
    "name": "inject-task-id.sh",
    "lang": "bash",
    "group": "hooks",
-   "lines": 6,
+   "lines": 7,
    "header": "UserPromptSubmit: adapter over bin/brg-guard task-id.",
    "functions": [],
    "env": [],
@@ -16466,8 +16466,8 @@
    "name": "lib.sh",
    "lang": "bash",
    "group": "hooks",
-   "lines": 107,
-   "header": "Shared helpers for Bearing hook scripts. Sourced, not executed.\n\nEvery hook reads one JSON object on stdin. We read it once into $HOOK_JSON\nand pull fields with jq. jq is required: without it a field cannot be read\nreliably, so json_field prints the sentinel __BRG_UNPARSED__ and the guard\ntreats a command it cannot read as blocked (fail closed). The other\nsubcommands (format, task-id, session, stop) are hints, not safety\ncontrols, and simply do nothing on the sentinel.",
+   "lines": 124,
+   "header": "Shared helpers for Bearing hook scripts. Sourced, not executed.\n\nHooks run outside the sandbox with the harness's environment, so the first\nthing done is to drop what in it could run another program: PATH becomes\n/usr/bin:/bin plus the system tool directories (jq, git and python3 on\nmacOS live under /usr/local/bin or /opt/homebrew/bin), never a directory\nthe environment put first; BASH_ENV and ENV (sourced by every bash started\nlater), CDPATH (redirects cd), PYTHON* (python3 also runs -I everywhere),\nLD_* and DYLD_* (preloaded libraries) are unset. BASH_ENV in the harness's\nown environment is sourced by bash before this line runs, which no script\ncan prevent; the settings template denies Edit and Write on the settings\nfiles whose env could set it.",
    "functions": [
     "git_lockdown",
     "json_field",
@@ -16491,7 +16491,7 @@
    "name": "precompact.sh",
    "lang": "bash",
    "group": "hooks",
-   "lines": 9,
+   "lines": 10,
    "header": "PreCompact (manual, auto): adapter over bin/brg-guard precompact, which\nwrites the branch, changes, check state and the user's last requests to\n.bearing/state/<branch>.compact.md; SessionStart (compact) reads it back.",
    "functions": [],
    "env": [],
@@ -16505,7 +16505,7 @@
    "name": "session-end.sh",
    "lang": "bash",
    "group": "hooks",
-   "lines": 78,
+   "lines": 79,
    "header": "SessionEnd: refresh docs/progress/<ID>.md from the checkpoint so a teammate\nsees where this task stands after the engineer commits and pushes. Never\ncommits. Branches without a task id are left alone. Always exits 0; a skip\nor failure is logged as `session-end not-run <reason>` when a state dir exists.",
    "functions": [
     "skip",
@@ -16522,7 +16522,7 @@
    "name": "session-start.sh",
    "lang": "bash",
    "group": "hooks",
-   "lines": 8,
+   "lines": 9,
    "header": "SessionStart (startup, resume, compact): adapter over bin/brg-guard session.\nAfter a compaction the guard also prints the snapshot precompact wrote, and\nClaude Code adds this output to the model's context.",
    "functions": [],
    "env": [],
@@ -16535,7 +16535,7 @@
    "name": "skill-start.sh",
    "lang": "bash",
    "group": "hooks",
-   "lines": 11,
+   "lines": 12,
    "header": "PreToolUse (Skill): record which skill started, for resume and the menu.",
    "functions": [],
    "env": [],
@@ -16548,7 +16548,7 @@
    "name": "stop-summary.sh",
    "lang": "bash",
    "group": "hooks",
-   "lines": 14,
+   "lines": 15,
    "header": "Stop: adapter over bin/brg-guard stop-gate. When files this session changed\nhave not passed make check, Claude is sent back once with the reason\n({\"decision\": \"block\"}); on the second stop (stop_hook_active) the guard\nonly reminds, so the hook can never loop.",
    "functions": [],
    "env": [],
@@ -17660,7 +17660,7 @@
    "guard": [
     "session"
    ],
-   "body": "#!/usr/bin/env bash\n# SessionStart (startup, resume, compact): adapter over bin/brg-guard session.\n# After a compaction the guard also prints the snapshot precompact wrote, and\n# Claude Code adds this output to the model's context.\nset -u\n# shellcheck source=lib.sh\n. \"$(dirname \"$0\")/lib.sh\"\nexec bash \"$(dirname \"$0\")/../../bin/brg-guard\" session --id \"$(json_field session_id)\" --source \"$(json_field source)\""
+   "body": "#!/usr/bin/env bash\n# SessionStart (startup, resume, compact): adapter over bin/brg-guard session.\n# After a compaction the guard also prints the snapshot precompact wrote, and\n# Claude Code adds this output to the model's context.\nset -u\n# No program runs before lib.sh resets the environment, so no dirname here.\n# shellcheck source=lib.sh\ncase \"$0\" in (*/*) . \"${0%/*}/lib.sh\" ;; (*) . ./lib.sh ;; esac\nexec bash \"$(dirname \"$0\")/../../bin/brg-guard\" session --id \"$(json_field session_id)\" --source \"$(json_field source)\""
   },
   {
    "event": "UserPromptSubmit",
@@ -17670,7 +17670,7 @@
    "guard": [
     "task-id"
    ],
-   "body": "#!/usr/bin/env bash\n# UserPromptSubmit: adapter over bin/brg-guard task-id.\nset -u\n# shellcheck source=lib.sh\n. \"$(dirname \"$0\")/lib.sh\"\nexec bash \"$(dirname \"$0\")/../../bin/brg-guard\" task-id \"$(json_field prompt)\""
+   "body": "#!/usr/bin/env bash\n# UserPromptSubmit: adapter over bin/brg-guard task-id.\nset -u\n# No program runs before lib.sh resets the environment, so no dirname here.\n# shellcheck source=lib.sh\ncase \"$0\" in (*/*) . \"${0%/*}/lib.sh\" ;; (*) . ./lib.sh ;; esac\nexec bash \"$(dirname \"$0\")/../../bin/brg-guard\" task-id \"$(json_field prompt)\""
   },
   {
    "event": "PreToolUse",
@@ -17680,7 +17680,7 @@
    "guard": [
     "command"
    ],
-   "body": "#!/usr/bin/env bash\n# PreToolUse (Bash): adapter over bin/brg-guard command. Exit 2 blocks.\nset -u\n# shellcheck source=lib.sh\n. \"$(dirname \"$0\")/lib.sh\"\nexec bash \"$(dirname \"$0\")/../../bin/brg-guard\" command \"$(json_field tool_input.command)\""
+   "body": "#!/usr/bin/env bash\n# PreToolUse (Bash): adapter over bin/brg-guard command. Exit 2 blocks.\nset -u\n# No program runs before lib.sh resets the environment, so no dirname here.\n# shellcheck source=lib.sh\ncase \"$0\" in (*/*) . \"${0%/*}/lib.sh\" ;; (*) . ./lib.sh ;; esac\nexec bash \"$(dirname \"$0\")/../../bin/brg-guard\" command \"$(json_field tool_input.command)\""
   },
   {
    "event": "PreToolUse",
@@ -17688,7 +17688,7 @@
    "script": "skill-start.sh",
    "timeout": 5,
    "guard": [],
-   "body": "#!/usr/bin/env bash\n# PreToolUse (Skill): record which skill started, for resume and the menu.\nset -u\n# shellcheck source=lib.sh\n. \"$(dirname \"$0\")/lib.sh\"\ns=\"$(json_field tool_input.skill)\"\nif [ \"$s\" = \"__BRG_UNPARSED__\" ]; then\n  bash \"$(dirname \"$0\")/../../bin/brg-session\" not-run --skill unparsed >/dev/null 2>&1\n  exit 0\nfi\nexec bash \"$(dirname \"$0\")/../../bin/brg-session\" timeline-start --id \"$(json_field session_id)\" --skill \"$s\""
+   "body": "#!/usr/bin/env bash\n# PreToolUse (Skill): record which skill started, for resume and the menu.\nset -u\n# No program runs before lib.sh resets the environment, so no dirname here.\n# shellcheck source=lib.sh\ncase \"$0\" in (*/*) . \"${0%/*}/lib.sh\" ;; (*) . ./lib.sh ;; esac\ns=\"$(json_field tool_input.skill)\"\nif [ \"$s\" = \"__BRG_UNPARSED__\" ]; then\n  bash \"$(dirname \"$0\")/../../bin/brg-session\" not-run --skill unparsed >/dev/null 2>&1\n  exit 0\nfi\nexec bash \"$(dirname \"$0\")/../../bin/brg-session\" timeline-start --id \"$(json_field session_id)\" --skill \"$s\""
   },
   {
    "event": "PostToolUse",
@@ -17699,7 +17699,7 @@
     "file",
     "format"
    ],
-   "body": "#!/usr/bin/env bash\n# PostToolUse (Edit|Write|MultiEdit): format the file with an allow-listed\n# formatter (bin/brg-guard format), then print the one line brg-guard\n# check-file gives: the per-file check was not run. Hooks run outside the\n# sandbox and the working tree is the agent's, so this hook runs no\n# repository command (no Makefile target, no node_modules binary); make\n# check-file runs in the session, and the Stop gate holds the session to\n# make check. The formatter's note goes to stderr, the check-file line to\n# stdout.\nset -u\n# shellcheck source=lib.sh\n. \"$(dirname \"$0\")/lib.sh\"\nguard=\"$(dirname \"$0\")/../../bin/brg-guard\"\nfile=\"$(json_field tool_input.file_path)\"\nbash \"$guard\" format \"$file\" >&2\nbash \"$guard\" check-file \"$file\"\nexit 0"
+   "body": "#!/usr/bin/env bash\n# PostToolUse (Edit|Write|MultiEdit): format the file with an allow-listed\n# formatter (bin/brg-guard format), then print the one line brg-guard\n# check-file gives: the per-file check was not run. Hooks run outside the\n# sandbox and the working tree is the agent's, so this hook runs no\n# repository command (no Makefile target, no node_modules binary); make\n# check-file runs in the session, and the Stop gate holds the session to\n# make check. The formatter's note goes to stderr, the check-file line to\n# stdout.\nset -u\n# No program runs before lib.sh resets the environment, so no dirname here.\n# shellcheck source=lib.sh\ncase \"$0\" in (*/*) . \"${0%/*}/lib.sh\" ;; (*) . ./lib.sh ;; esac\nguard=\"$(dirname \"$0\")/../../bin/brg-guard\"\nfile=\"$(json_field tool_input.file_path)\"\nbash \"$guard\" format \"$file\" >&2\nbash \"$guard\" check-file \"$file\"\nexit 0"
   },
   {
    "event": "PreCompact",
@@ -17709,7 +17709,7 @@
    "guard": [
     "precompact"
    ],
-   "body": "#!/usr/bin/env bash\n# PreCompact (manual, auto): adapter over bin/brg-guard precompact, which\n# writes the branch, changes, check state and the user's last requests to\n# .bearing/state/<branch>.compact.md; SessionStart (compact) reads it back.\nset -u\n# shellcheck source=lib.sh\n. \"$(dirname \"$0\")/lib.sh\"\nbash \"$(dirname \"$0\")/../../bin/brg-session\" checkpoint >/dev/null 2>&1\nexec bash \"$(dirname \"$0\")/../../bin/brg-guard\" precompact \"$(json_field transcript_path)\""
+   "body": "#!/usr/bin/env bash\n# PreCompact (manual, auto): adapter over bin/brg-guard precompact, which\n# writes the branch, changes, check state and the user's last requests to\n# .bearing/state/<branch>.compact.md; SessionStart (compact) reads it back.\nset -u\n# No program runs before lib.sh resets the environment, so no dirname here.\n# shellcheck source=lib.sh\ncase \"$0\" in (*/*) . \"${0%/*}/lib.sh\" ;; (*) . ./lib.sh ;; esac\nbash \"$(dirname \"$0\")/../../bin/brg-session\" checkpoint >/dev/null 2>&1\nexec bash \"$(dirname \"$0\")/../../bin/brg-guard\" precompact \"$(json_field transcript_path)\""
   },
   {
    "event": "SessionEnd",
@@ -17721,7 +17721,7 @@
     "skip",
     "state-write"
    ],
-   "body": "#!/usr/bin/env bash\n# SessionEnd: refresh docs/progress/<ID>.md from the checkpoint so a teammate\n# sees where this task stands after the engineer commits and pushes. Never\n# commits. Branches without a task id are left alone. Always exits 0; a skip\n# or failure is logged as `session-end not-run <reason>` when a state dir exists.\nset -u\n# shellcheck source=lib.sh\n. \"$(dirname \"$0\")/lib.sh\"\nroot=\"$(repo_root)\" || exit 0\n[ -n \"$root\" ] || exit 0\n[ -d \"$root/.bearing\" ] || exit 0\nguard=\"$(cd \"$(dirname \"$0\")/../../bin\" && pwd)/brg-guard\"\nskip() { # skip <reason>: a gates.log line through brg-guard log (never through a link or into a FIFO)\n  [ -d \"$root/.bearing/state\" ] || exit 0\n  ( cd \"$root\" && bash \"$guard\" log session-end not-run \"$1\" ) >/dev/null 2>&1\n  exit 0\n}\n# Hooks run outside the sandbox and the working tree is the agent's: every\n# read here is a regular file opened without following a link and without\n# blocking on a FIFO (safe_cat, progress.py show), every write goes through\n# progress.py write (docs/progress opened link-free, temp plus rename) or\n# brg-guard state-write, and nothing is copied: the rehearsal is a dry run\n# that prints the new text.\nsafe_cat() { # safe_cat <file>: its text when it is a regular file; nothing otherwise\n  python3 -I -S -c 'import os, sys\ntry:\n    fd = os.open(sys.argv[1], os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)\n    if os.fstat(fd).st_mode & 0o170000 == 0o100000:\n        sys.stdout.write(os.read(fd, 65536).decode(\"utf-8\", \"replace\"))\nexcept OSError:\n    pass' \"$1\" 2>/dev/null\n}\nbranch=\"$(current_branch)\"\ntask=\"$(task_id_from_branch)\"; [ -n \"$task\" ] || skip \"no task id on branch\"\nkit=\"$(dirname \"$0\")/../..\"\nprog=\"$kit/skills/session-handoff/scripts/progress.py\"\nbash \"$kit/bin/brg-session\" checkpoint >/dev/null 2>&1\nbf=\"$(printf '%s' \"$branch\" | tr '/' '_')\"\ncp_text=\"$(safe_cat \"$root/.bearing/state/$bf.checkpoint.md\")\"\n[ -n \"$cp_text\" ] || skip \"no checkpoint\"\nnxt=\"$(printf '%s\\n' \"$cp_text\" | sed -n 's/^Next (from state file): //p')\"\nif [ -z \"$nxt\" ] || [ \"$nxt\" = none ]; then nxt=\"$(printf '%s\\n' \"$cp_text\" | sed -n 's/^Next flow step: //p')\"; fi\nif [ -z \"$nxt\" ] || [ \"$nxt\" = none ] || [ \"$nxt\" = unknown ]; then skip \"no next step\"; fi\ncd \"$root\" || skip \"cannot enter repo root\"\nmark=\"$bf.progress-next\"\ncur_text=\"$(python3 \"$prog\" show --task \"$task\" 2>/dev/null)\"; rc=$?\ncase \"$rc\" in\n  (0) ;;\n  (3) cur_text=\"\" ;;\n  (*) skip \"progress file is not a regular file\" ;;\nesac\nif [ \"$rc\" -eq 0 ]; then\n  status=\"$(printf '%s\\n' \"$cur_text\" | sed -n 's/^- Status: *//p' | head -1)\"\n  case \"$status\" in merged|abandoned) skip \"closed task\";; esac\n  cur=\"$(printf '%s\\n' \"$cur_text\" | awk '/^## Next/{f=1;next} /^## /{f=0} f && !/^<!--/ && NF {sub(/^- /,\"\"); print; exit}')\"\n  last=\"$(safe_cat \"$root/.bearing/state/$mark\")\"; last=\"${last%\n}\"\n  # keep a person-written Next: overwrite only a placeholder or our own last value\n  case \"$cur\" in ''|none|unknown) ;; *) [ \"$cur\" = \"$last\" ] || exit 0;; esac\n  # progress.py re-renders from the template, so a line a person added outside\n  # its fields would be lost. Rehearse with --dry-run (it prints the new text);\n  # if any non-empty line (other than the Next items, Branch and Updated, which\n  # the write replaces) is missing from it, leave the file alone.\n  new_text=\"$(python3 \"$prog\" write --task \"$task\" --branch \"$branch\" --next \"$nxt\" --dry-run 2>/dev/null)\" \\\n    || skip \"progress.py write failed\"\n  lost=0\n  while IFS= read -r line; do\n    [ -n \"$line\" ] || continue\n    printf '%s\\n' \"$new_text\" | grep -qxF -- \"$line\" || { lost=1; break; }\n  done <<EOF\n$(printf '%s\\n' \"$cur_text\" | awk '/^## /{nx=($0 ~ /^## Next[[:space:]]*$/)} nx && !/^## / {next} /^- (Updated|Branch):/ {next} NF')\nEOF\n  [ \"$lost\" -eq 0 ] || skip \"would drop lines\"\nfi\npython3 \"$prog\" write --task \"$task\" --branch \"$branch\" --next \"$nxt\" >/dev/null 2>&1 \\\n  || skip \"progress.py write failed\"\nprintf '%s\\n' \"$nxt\" | bash \"$guard\" state-write put \"$mark\" >/dev/null 2>&1\nexit 0"
+   "body": "#!/usr/bin/env bash\n# SessionEnd: refresh docs/progress/<ID>.md from the checkpoint so a teammate\n# sees where this task stands after the engineer commits and pushes. Never\n# commits. Branches without a task id are left alone. Always exits 0; a skip\n# or failure is logged as `session-end not-run <reason>` when a state dir exists.\nset -u\n# No program runs before lib.sh resets the environment, so no dirname here.\n# shellcheck source=lib.sh\ncase \"$0\" in (*/*) . \"${0%/*}/lib.sh\" ;; (*) . ./lib.sh ;; esac\nroot=\"$(repo_root)\" || exit 0\n[ -n \"$root\" ] || exit 0\n[ -d \"$root/.bearing\" ] || exit 0\nguard=\"$(cd \"$(dirname \"$0\")/../../bin\" && pwd)/brg-guard\"\nskip() { # skip <reason>: a gates.log line through brg-guard log (never through a link or into a FIFO)\n  [ -d \"$root/.bearing/state\" ] || exit 0\n  ( cd \"$root\" && bash \"$guard\" log session-end not-run \"$1\" ) >/dev/null 2>&1\n  exit 0\n}\n# Hooks run outside the sandbox and the working tree is the agent's: every\n# read here is a regular file opened without following a link and without\n# blocking on a FIFO (safe_cat, progress.py show), every write goes through\n# progress.py write (docs/progress opened link-free, temp plus rename) or\n# brg-guard state-write, and nothing is copied: the rehearsal is a dry run\n# that prints the new text.\nsafe_cat() { # safe_cat <file>: its text when it is a regular file; nothing otherwise\n  python3 -I -S -c 'import os, sys\ntry:\n    fd = os.open(sys.argv[1], os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)\n    if os.fstat(fd).st_mode & 0o170000 == 0o100000:\n        sys.stdout.write(os.read(fd, 65536).decode(\"utf-8\", \"replace\"))\nexcept OSError:\n    pass' \"$1\" 2>/dev/null\n}\nbranch=\"$(current_branch)\"\ntask=\"$(task_id_from_branch)\"; [ -n \"$task\" ] || skip \"no task id on branch\"\nkit=\"$(dirname \"$0\")/../..\"\nprog=\"$kit/skills/session-handoff/scripts/progress.py\"\nbash \"$kit/bin/brg-session\" checkpoint >/dev/null 2>&1\nbf=\"$(printf '%s' \"$branch\" | tr '/' '_')\"\ncp_text=\"$(safe_cat \"$root/.bearing/state/$bf.checkpoint.md\")\"\n[ -n \"$cp_text\" ] || skip \"no checkpoint\"\nnxt=\"$(printf '%s\\n' \"$cp_text\" | sed -n 's/^Next (from state file): //p')\"\nif [ -z \"$nxt\" ] || [ \"$nxt\" = none ]; then nxt=\"$(printf '%s\\n' \"$cp_text\" | sed -n 's/^Next flow step: //p')\"; fi\nif [ -z \"$nxt\" ] || [ \"$nxt\" = none ] || [ \"$nxt\" = unknown ]; then skip \"no next step\"; fi\ncd \"$root\" || skip \"cannot enter repo root\"\nmark=\"$bf.progress-next\"\ncur_text=\"$(python3 -I \"$prog\" show --task \"$task\" 2>/dev/null)\"; rc=$?\ncase \"$rc\" in\n  (0) ;;\n  (3) cur_text=\"\" ;;\n  (*) skip \"progress file is not a regular file\" ;;\nesac\nif [ \"$rc\" -eq 0 ]; then\n  status=\"$(printf '%s\\n' \"$cur_text\" | sed -n 's/^- Status: *//p' | head -1)\"\n  case \"$status\" in merged|abandoned) skip \"closed task\";; esac\n  cur=\"$(printf '%s\\n' \"$cur_text\" | awk '/^## Next/{f=1;next} /^## /{f=0} f && !/^<!--/ && NF {sub(/^- /,\"\"); print; exit}')\"\n  last=\"$(safe_cat \"$root/.bearing/state/$mark\")\"; last=\"${last%\n}\"\n  # keep a person-written Next: overwrite only a placeholder or our own last value\n  case \"$cur\" in ''|none|unknown) ;; *) [ \"$cur\" = \"$last\" ] || exit 0;; esac\n  # progress.py re-renders from the template, so a line a person added outside\n  # its fields would be lost. Rehearse with --dry-run (it prints the new text);\n  # if any non-empty line (other than the Next items, Branch and Updated, which\n  # the write replaces) is missing from it, leave the file alone.\n  new_text=\"$(python3 -I \"$prog\" write --task \"$task\" --branch \"$branch\" --next \"$nxt\" --dry-run 2>/dev/null)\" \\\n    || skip \"progress.py write failed\"\n  lost=0\n  while IFS= read -r line; do\n    [ -n \"$line\" ] || continue\n    printf '%s\\n' \"$new_text\" | grep -qxF -- \"$line\" || { lost=1; break; }\n  done <<EOF\n$(printf '%s\\n' \"$cur_text\" | awk '/^## /{nx=($0 ~ /^## Next[[:space:]]*$/)} nx && !/^## / {next} /^- (Updated|Branch):/ {next} NF')\nEOF\n  [ \"$lost\" -eq 0 ] || skip \"would drop lines\"\nfi\npython3 -I \"$prog\" write --task \"$task\" --branch \"$branch\" --next \"$nxt\" >/dev/null 2>&1 \\\n  || skip \"progress.py write failed\"\nprintf '%s\\n' \"$nxt\" | bash \"$guard\" state-write put \"$mark\" >/dev/null 2>&1\nexit 0"
   },
   {
    "event": "Stop",
@@ -17732,7 +17732,7 @@
     "set",
     "stop-gate"
    ],
-   "body": "#!/usr/bin/env bash\n# Stop: adapter over bin/brg-guard stop-gate. When files this session changed\n# have not passed make check, Claude is sent back once with the reason\n# ({\"decision\": \"block\"}); on the second stop (stop_hook_active) the guard\n# only reminds, so the hook can never loop.\nset -u\n# shellcheck source=lib.sh\n. \"$(dirname \"$0\")/lib.sh\"\nguard=\"$(dirname \"$0\")/../../bin/brg-guard\"\nset -- --id \"$(json_field session_id)\"\n[ \"$(json_field stop_hook_active)\" = \"true\" ] && set -- \"$@\" --active\nbash \"$(dirname \"$0\")/../../bin/brg-session\" timeline-close --id \"$(json_field session_id)\" >/dev/null 2>&1\nbash \"$(dirname \"$0\")/../../bin/brg-session\" checkpoint >/dev/null 2>&1\nblock_or_print \"$guard\" stop-gate \"$@\""
+   "body": "#!/usr/bin/env bash\n# Stop: adapter over bin/brg-guard stop-gate. When files this session changed\n# have not passed make check, Claude is sent back once with the reason\n# ({\"decision\": \"block\"}); on the second stop (stop_hook_active) the guard\n# only reminds, so the hook can never loop.\nset -u\n# No program runs before lib.sh resets the environment, so no dirname here.\n# shellcheck source=lib.sh\ncase \"$0\" in (*/*) . \"${0%/*}/lib.sh\" ;; (*) . ./lib.sh ;; esac\nguard=\"$(dirname \"$0\")/../../bin/brg-guard\"\nset -- --id \"$(json_field session_id)\"\n[ \"$(json_field stop_hook_active)\" = \"true\" ] && set -- \"$@\" --active\nbash \"$(dirname \"$0\")/../../bin/brg-session\" timeline-close --id \"$(json_field session_id)\" >/dev/null 2>&1\nbash \"$(dirname \"$0\")/../../bin/brg-session\" checkpoint >/dev/null 2>&1\nblock_or_print \"$guard\" stop-gate \"$@\""
   }
  ],
  "agents": [
@@ -18332,7 +18332,7 @@
   {
    "path": "tests/integration/harness_each.sh",
    "kind": "integration",
-   "lines": 344,
+   "lines": 346,
    "header": "tests/integration/harness_each.sh: generate every harness into a temporary git repository with plugins/bearing/bin/brg-harness, assert the file set and modes, pipe the recorded hook fixtures (blocked command substituted at run time) into the matching adapter and assert deny; hostile and missing-key inputs must deny rather than allow; every JSON file parses; the OpenCode plugin loads. Copilot's toolArgs is exercised as an object and as a JSON string. The summary counts a harness wired only when its config references every adapter and nothing is left as .bearing-new (exit 1 otherwise); the env…",
    "asserts": 180
   },
@@ -18353,7 +18353,7 @@
   {
    "path": "tests/lib/assert.sh",
    "kind": "lib",
-   "lines": 114,
+   "lines": 126,
    "header": "tests/lib/assert.sh: sourced by every test file. bash 3.2 safe (macOS). t_begin <case> open a named case (counted; a case that runs no t_end assertion is a failure, so an empty test cannot pass) t_run <cmd...> run with $T_IN on stdin; sets T_RC and T_OUT (stdout+stderr) assert_exit <rc> <cmd...> t_run and check the exit code assert_eq <expected> <actual> [what] assert_contains <haystack> <needle> [what] assert_not_contains <haystack> <needle> [what] assert_file <path> [mode] the file exists (and has that octal mode) tmpdir print a fresh directory, removed at exit minimal_path <tool>... print…",
    "asserts": 11
   },
@@ -18633,9 +18633,9 @@
   {
    "path": "tests/unit/guard_format.sh",
    "kind": "unit",
-   "lines": 142,
+   "lines": 168,
    "header": "tests/unit/guard_format.sh: brg-guard format dispatches each extension to the right formatter, taken only from the guard's fixed directories (here a copy of the guard whose fmt_dirs names a stub directory, the one seam), in a cleared environment; it prints a note, exit 0, when the formatter is not installed; and it runs prettier only when the prettier config that applies is data that loads no code.",
-   "asserts": 38
+   "asserts": 46
   },
   {
    "path": "tests/unit/guard_harness_gates.sh",
@@ -18687,6 +18687,13 @@
    "asserts": 34
   },
   {
+   "path": "tests/unit/hook_env.sh",
+   "kind": "unit",
+   "lines": 111,
+   "header": "tests/unit/hook_env.sh: hooks run outside the sandbox with the harness's environment. Once lib.sh (or brg-guard) starts, PATH is /usr/bin:/bin plus the trusted tool directories, and BASH_ENV, ENV, CDPATH, PYTHON*, LD_* and DYLD_* are gone, so no later bash sources an agent's script, no tool comes from a directory the agent put first on PATH, and every python3 runs -I. BASH_ENV is still sourced by the harness's own bash before the first line of the entry script (outside Bearing's reach; the settings denies close the agent's route to it), so the canary records which script sourced it and only a…",
+   "asserts": 13
+  },
+  {
    "path": "tests/unit/hook_hardening.sh",
    "kind": "unit",
    "lines": 235,
@@ -18696,9 +18703,9 @@
   {
    "path": "tests/unit/hook_untrusted.sh",
    "kind": "unit",
-   "lines": 257,
+   "lines": 291,
    "header": "tests/unit/hook_untrusted.sh: the hooks run outside the sandbox, and the working tree, .git/config and the agent's environment are the agent's to write. So no hook writes through a link the agent planted or copies a linked file anywhere (SessionEnd, progress.py write); brg-update-check runs git ls-remote outside the repository with nothing of the repository's config or the caller's environment; and no hook runs a git command that reads file contents (status, diff, add), so a filter driver that appears between the hook's start and its git (a background loop toggling it in an included file) nev…",
-   "asserts": 43
+   "asserts": 50
   },
   {
    "path": "tests/unit/impeccable_reference.sh",
@@ -18878,9 +18885,9 @@
   {
    "path": "tests/unit/push_settings.sh",
    "kind": "unit",
-   "lines": 48,
-   "header": "tests/unit/push_settings.sh: the settings template denies edits to ~/.config/bearing, ~/.gitconfig and ~/.config/git, Edit and Write to .git, ~/.local/bin, ~/go/bin and ~/.config/git, and the brg-push run verb, keeps the push deny, and AGENTS.md rule 2 and the hooks description name the opt-in push.",
-   "asserts": 18
+   "lines": 65,
+   "header": "tests/unit/push_settings.sh: the settings template denies edits to ~/.config/bearing, ~/.gitconfig and ~/.config/git, Edit and Write to .git, ~/.local/bin, ~/go/bin and ~/.config/git, Edit, Write and Bash writes to the project and user Claude Code settings files, and the brg-push run verb, keeps the push deny, and AGENTS.md rule 2 and the hooks description name the opt-in push.",
+   "asserts": 21
   },
   {
    "path": "tests/unit/route_frontier.sh",
@@ -19908,7 +19915,7 @@
   },
   {
    "path": "repo/.claude/settings.json",
-   "lines": 466
+   "lines": 479
   },
   {
    "path": "repo/.editorconfig",
@@ -20046,7 +20053,7 @@
     "Notes for existing repositories",
     "Noted"
    ],
-   "entries": 59,
+   "entries": 63,
    "summary": "- impeccable is pinned (`plugins/bearing/bin/pinned-packs.txt`) and installed in the standard profile; `doctor` reports it, and `install` takes `--skip-impeccable` (held on the full profile too). - design-directions: one impeccable direction round when impeccable is installed and the run is attended, recorded in `approved.json` as the locked `direction`. Without impeccable it prints `impeccable not installed` once and runs the three-variant path as before. - design-system derives `tokens.json` from the `DESIGN.md` frontmatter when it has tokens, else from the approved direction, and records which (`source: design-md | approved-direction`) with the hash of that source. The hash check is the…"
   },
   {
@@ -20870,7 +20877,7 @@
  "settings": {
   "allow": 92,
   "ask": 20,
-  "deny": 199,
+  "deny": 207,
   "defaultMode": "acceptEdits",
   "askSamples": [
    "Bash(pnpm add:*)",
@@ -20911,7 +20918,9 @@
    "~/.config/git",
    "./.githooks",
    "./.git/hooks",
-   "./.git/config"
+   "./.git/config",
+   "./.claude/settings.json",
+   "./.claude/settings.local.json"
   ],
   "rules": [
    "analytics.md",

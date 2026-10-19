@@ -4,8 +4,9 @@
 # ({"decision": "block"}); on the second stop (stop_hook_active) the guard
 # only reminds, so the hook can never loop.
 set -u
+# No program runs before lib.sh resets the environment, so no dirname here.
 # shellcheck source=lib.sh
-. "$(dirname "$0")/lib.sh"
+case "$0" in (*/*) . "${0%/*}/lib.sh" ;; (*) . ./lib.sh ;; esac
 guard="$(dirname "$0")/../../bin/brg-guard"
 set -- --id "$(json_field session_id)"
 [ "$(json_field stop_hook_active)" = "true" ] && set -- "$@" --active

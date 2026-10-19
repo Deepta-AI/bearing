@@ -31,6 +31,9 @@
     "and ~/go/bin: the sandbox covers Bash only, and the hooks, which run",
     "outside it, read .git/config and take a formatter from those two bin",
     "directories. A deny outranks any allow, autopilot's --allowedTools too.",
+    "Edit and Write are denied the project and user settings files, and the",
+    "sandbox denies Bash writes to the project ones: a settings env (BASH_ENV,",
+    "PATH) is the environment every hook starts with. Change settings by hand.",
     "The agent never merges, tags or deploys.",
     "Deny Bash(bash *bin/brg-push run*) is a first line only: any invocation",
     "not of the form bash ...bin/brg-push run (./bin/brg-push run, sh",
@@ -193,6 +196,14 @@
       "Write(~/.local/bin/**)",
       "Edit(~/go/bin/**)",
       "Write(~/go/bin/**)",
+      "Edit(./.claude/settings.json)",
+      "Write(./.claude/settings.json)",
+      "Edit(./.claude/settings.local.json)",
+      "Write(./.claude/settings.local.json)",
+      "Edit(~/.claude/settings.json)",
+      "Write(~/.claude/settings.json)",
+      "Edit(~/.claude/settings.local.json)",
+      "Write(~/.claude/settings.local.json)",
       "Bash(git commit --amend:*)",
       "Bash(git rebase:*)",
       "Bash(git reset --hard:*)",
@@ -459,7 +470,9 @@
         "~/.config/git",
         "./.githooks",
         "./.git/hooks",
-        "./.git/config"
+        "./.git/config",
+        "./.claude/settings.json",
+        "./.claude/settings.local.json"
       ]
     }
   }

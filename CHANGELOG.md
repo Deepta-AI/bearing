@@ -258,6 +258,31 @@ All notable changes to Bearing. Keep a Changelog format, semantic versions.
 - The edit hook's prettier check parses the config: an escaped
   `"\u0070lugins"` key passed the old text match and loaded a repository
   plugin.
+- The hooks no longer take programs from the environment they start with.
+  The first lines of `hooks/scripts/lib.sh` and `brg-guard` set `PATH` to
+  `/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin` and unset `BASH_ENV`,
+  `ENV`, `CDPATH` and every `PYTHON*`, `LD_*` and `DYLD_*` variable, the
+  hook entry scripts run no program before that, and every `python3` a
+  hook runs uses `-I`. So no bash a hook starts sources a `BASH_ENV`
+  script, and no `jq`, `git`, `python3` or `bash` comes from a directory
+  put first on `PATH`. What remains: a `BASH_ENV` or `PATH` in the
+  harness's own environment acts before the first line of a hook script
+  runs (bash sources `BASH_ENV` at startup, and the harness finds `bash`
+  on its `PATH`), which is outside Bearing's reach. The agent's route to
+  it was a settings file's `env`; the settings template now denies Edit
+  and Write on `./.claude/settings.json`, `./.claude/settings.local.json`,
+  `~/.claude/settings.json` and `~/.claude/settings.local.json`, and the
+  sandbox denies Bash writes to the two project files.
+- The edit hook's prettier check walks the path prettier walks (the edited
+  file's directory up to the repository root, no link resolved) and skips
+  prettier with a note when any directory on it is a link or resolves
+  outside the root: a linked directory let prettier find a JS config the
+  check never saw.
+- SessionStart creates `.bearing/state`, prunes old session marks and
+  writes the new one without following a link: a linked `.bearing` or
+  `.bearing/state` is refused, so no directory or file is made, and none
+  removed, in its target. `brg-push` no longer makes `state` inside a
+  linked `.bearing` before refusing it.
 
 ### Notes for existing repositories
 - The edit hook no longer runs `make check-file` or any linter after each
@@ -287,6 +312,15 @@ All notable changes to Bearing. Keep a Changelog format, semantic versions.
   `filesystem.denyWrite`. Without them the agent's Edit tool can write
   `BEARING_AUTO_PUSH` into bearing.env and opt the repository in from the
   next session.
+- Copy the template's settings denies into each onboarded repository's
+  `.claude/settings.json` too: `Edit` and `Write` on
+  `./.claude/settings.json`, `./.claude/settings.local.json`,
+  `~/.claude/settings.json` and `~/.claude/settings.local.json`, and the
+  two project files in the sandbox's `filesystem.denyWrite`. Without them
+  the agent can set `BASH_ENV` or `PATH` in a settings `env`, and every
+  hook after that starts with it, outside the sandbox. Afterwards change
+  those settings files by hand; Claude is denied them. `onboard-repo`
+  proposes the new template as `.claude/settings.json.bearing-new`.
 - Add a `## Task paths` table to every `docs/design/flows/*/flows.md`
   (columns Task, Story, Kind, Entry, Path, Screens, Interactions, Over; the
   `ux-flows` skill's `references/task-paths.md` has the format), then run

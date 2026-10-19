@@ -11,6 +11,9 @@
 #   assert_file <path> [mode]  the file exists (and has that octal mode)
 #   tmpdir                    print a fresh directory, removed at exit
 #   minimal_path <tool>...    print a PATH holding only those tools (symlinks)
+#   hook_kit <PATH>           print a copy of the bearing plugin whose hooks (lib.sh and
+#                             brg-guard) set PATH to <PATH> instead of the fixed directories;
+#                             the one seam for a test that watches or removes a tool
 #   replace_in <file> <old> <new>  replace one literal occurrence in a fixture (python3,
 #                             which every CI image has; perl and GNU sed -i are not portable);
 #                             fails unless old occurs exactly once
@@ -88,6 +91,15 @@ tmpdir() {
 }
 _t_cleanup() { [ -z "$T_TMPS" ] || rm -rf $T_TMPS; }
 trap _t_cleanup EXIT
+
+hook_kit() { # hook_kit <PATH>: a plugin copy whose hooks reset PATH to <PATH>
+  local k line
+  k="$(tmpdir)"; cp -R "$KIT/plugins/bearing/." "$k/" || return 1
+  line='PATH=/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin; export PATH'
+  replace_in "$k/hooks/scripts/lib.sh" "$line" "PATH='$1'; export PATH" || return 1
+  replace_in "$k/bin/brg-guard" "$line" "PATH='$1'; export PATH" || return 1
+  printf '%s' "$k"
+}
 
 minimal_path() { # minimal_path <tool>...: a directory of symlinks to exactly these tools
   local d t p

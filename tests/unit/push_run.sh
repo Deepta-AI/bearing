@@ -354,7 +354,7 @@ n=0
 for f in "$KIT"/plugins/bearing/hooks/scripts/*.sh; do
   [ "${f##*/}" = lib.sh ] && continue
   n=$((n+1))
-  assert_contains "$(cat "$f")" '. "$(dirname "$0")/lib.sh"' "${f##*/} sources lib.sh"
+  assert_contains "$(cat "$f")" 'case "$0" in (*/*) . "${0%/*}/lib.sh" ;; (*) . ./lib.sh ;; esac' "${f##*/} sources lib.sh"
 done
 assert_eq 1 "$([ "$n" -ge 7 ] && echo 1)" "hook scripts checked: $n"
 assert_contains "$(cat "$KIT/plugins/bearing/hooks/scripts/lib.sh")" "'core.fsmonitor=false' 'core.hooksPath=/dev/null'"

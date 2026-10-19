@@ -1,5 +1,21 @@
 #!/usr/bin/env bash
 BEARING_GUARD_VERSION="__VERSION__"
+# Hooks run outside the sandbox with the harness's environment, so the first
+# thing done is to drop what in it could run another program: PATH becomes
+# /usr/bin:/bin plus the system tool directories (jq, git and python3 on
+# macOS live under /usr/local/bin or /opt/homebrew/bin), never a directory
+# the environment put first; BASH_ENV and ENV (sourced by every bash started
+# later), CDPATH (redirects cd), PYTHON* (python3 also runs -I everywhere),
+# LD_* and DYLD_* (preloaded libraries) are unset. BASH_ENV in the harness's
+# own environment is sourced by bash before this line runs, which no script
+# can prevent; the settings template denies Edit and Write on the settings
+# files whose env could set it.
+PATH=/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin; export PATH
+unset BASH_ENV ENV CDPATH
+for _brg_v in $(compgen -e 2>/dev/null); do
+  case "$_brg_v" in (PYTHON*|LD_*|DYLD_*) unset "$_brg_v" 2>/dev/null ;; esac
+done
+unset _brg_v
 # brg-guard: the harness-neutral guard logic behind every hook adapter.
 #
 #   brg-guard command "<shell command>"   exit 2 and a message when the command
@@ -439,6 +455,34 @@ try:
             os.unlink(name, dir_fd=d)
             fd = opened(d)
         write_all(fd)
+except OSError:
+    sys.exit(1)
+'
+# The session mark. guard session creates .bearing/state, prunes marks older
+# than seven days and makes .session-<id> (first mark kept) with the same
+# opens: .bearing and state opened O_NOFOLLOW (a linked directory is refused),
+# old marks unlinked by name (a link is removed, never followed), the mark
+# created O_EXCL|O_NOFOLLOW only when nothing has its name.
+SESSION_MARK_PY='import os, sys, time
+root, sid = sys.argv[1:3]
+DIR = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW
+try:
+    d = os.open(".bearing", DIR, dir_fd=os.open(root, os.O_RDONLY | os.O_DIRECTORY))
+    try:
+        os.mkdir("state", 0o755, dir_fd=d)
+    except FileExistsError:
+        pass
+    d = os.open("state", DIR, dir_fd=d)
+    now = time.time()
+    for n in os.listdir(d):
+        if not n.startswith(".session-"):
+            continue
+        try:
+            if (now - os.stat(n, dir_fd=d, follow_symlinks=False).st_mtime) // 86400 > 7:
+                os.unlink(n, dir_fd=d)
+        except OSError:
+            pass
+    os.close(os.open(".session-" + sid, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o644, dir_fd=d))
 except OSError:
     sys.exit(1)
 '
@@ -1744,9 +1788,24 @@ def load(path):
         return json.loads(os.read(fd, 1048577).decode("utf-8"))
     finally:
         os.close(fd)
-d = os.path.realpath(start)
 root = os.path.realpath(root)
-while True:
+def inside(p):
+    return p == root or p.startswith(root.rstrip("/") + "/")
+# prettier walks the path it is given, so this walks the same one: from the
+# directory of the file (os.path.abspath, no link resolved) up to the directory
+# that is the root. A link on that walk, or a directory that resolves outside
+# the root, could put a config the agent chose on the walk prettier takes.
+walk = []
+d = os.path.abspath(start)
+while os.path.realpath(d) != root:
+    if os.path.islink(d) or not inside(os.path.realpath(d)):
+        sys.exit(2)
+    walk.append(d)
+    if os.path.dirname(d) == d:
+        sys.exit(2)
+    d = os.path.dirname(d)
+walk.append(root)
+for d in walk:
     found = False
     for n in sorted(os.listdir(d)) if os.path.isdir(d) else []:
         if n not in NAMES:
@@ -1769,11 +1828,11 @@ while True:
         if not config_ok(c):
             sys.exit(1)
         found = True
-    if found or d == root or d == os.path.dirname(d):
+    if found:
         sys.exit(0)
-    d = os.path.dirname(d)
+sys.exit(0)
 '
-prettier_config_ok() {
+prettier_config_ok() { # rc 0 run prettier; 2 a link on the walk; 1 any other refusal
   local d
   case "$1" in (*/*) d="${1%/*}" ;; (*) d=. ;; esac
   command -v python3 >/dev/null 2>&1 || return 1
@@ -1831,7 +1890,9 @@ case "$sub" in
     case "$file" in
   *.go) run gofmt -w "$file";;
   *.ts|*.tsx|*.js|*.jsx|*.json|*.css|*.md|*.yml|*.yaml)
-    if prettier_config_ok "$file"; then run prettier --log-level silent --write "$file"
+    prettier_config_ok "$file"; prc=$?
+    if [ "$prc" -eq 0 ]; then run prettier --log-level silent --write "$file"
+    elif [ "$prc" -eq 2 ]; then fmt_outcome=not-run; note "prettier not run: a directory between ${file##*/} and the repository root is a link or leads outside it, so prettier could load a config from anywhere; format ${file##*/} in the session"
     else fmt_outcome=not-run; note "prettier not run: the repository's prettier config is not .prettierrc.json or a package.json prettier object of plain formatting options, so it could load code; format ${file##*/} in the session"; fi;;
   *.py) run ruff format --quiet "$file";;
   *.kt|*.kts) run ktlint -F "$file";;
@@ -1866,14 +1927,11 @@ esac
     root="$(git rev-parse --show-toplevel 2>/dev/null)" || { echo "bearing: not a git repository, nothing to report."; exit 0; }
     # Mark when this session began, so stop-gate only holds a session to
     # files it changed; resume and compact keep the first mark. Old marks go.
-    # The mark is created with noclobber (O_EXCL), so a link planted at its
-    # name is never written through; an id that is not a plain name is none.
+    # SESSION_MARK_PY makes, prunes and marks through no link (a linked
+    # .bearing or state is refused); an id that is not a plain name is none.
     case "$sid" in (.*|*[!A-Za-z0-9._-]*) sid="";; esac
-    if [ -n "$sid" ] && [ -d "$root/.bearing" ]; then
-      mkdir -p "$root/.bearing/state"
-      find "$root/.bearing/state" -name '.session-*' -mtime +7 -exec rm -f {} + 2>/dev/null
-      [ -e "$root/.bearing/state/.session-$sid" ] || [ -L "$root/.bearing/state/.session-$sid" ] \
-        || ( set -C; : > "$root/.bearing/state/.session-$sid" ) 2>/dev/null
+    if [ -n "$sid" ] && [ -d "$root/.bearing" ] && command -v python3 >/dev/null 2>&1; then
+      python3 -I -S -c "$SESSION_MARK_PY" "$root" "$sid" < /dev/null > /dev/null 2>&1
     fi
     # Auto push: record whether bearing.env opts this repository in (the
     # sandbox hides bearing.env from the agent), and show a result not yet seen.

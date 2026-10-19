@@ -369,14 +369,19 @@ in_state_dir() { [ "$(/bin/pwd -P)" = "$1/.bearing/state" ]; }
 # (put and add make a missing one with mkdir, never mkdir -p, which follows a
 # linked .bearing), each cd `cd -P -- ./<name>` so CDPATH plays no part, root
 # resolved with /bin/pwd -P, and where it lands judged by in_state_dir.
+# Each step is judged too, so a linked .bearing is refused before state is
+# made inside its target.
 # Return 0 there, 1 refused, 2 when the directory does not exist.
 state_cd() {
-  local real c
+  local real c want
   real="$(cd -P -- "$root" 2>/dev/null && /bin/pwd -P)" && cd -P -- "$real" || return 1
+  want="$real"
   for c in .bearing state; do
+    want="$want/$c"
     case "$1" in (put|add) mkdir "./$c" 2>/dev/null ;; esac
     if [ ! -e "./$c" ] && [ ! -L "./$c" ]; then return 2; fi
     cd -P -- "./$c" 2>/dev/null || return 1
+    [ "$(/bin/pwd -P)" = "$want" ] || return 1
   done
   in_state_dir "$real" || return 1
 }

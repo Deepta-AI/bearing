@@ -94,7 +94,8 @@ printf -- '- Status: started\nTOPSECRET-0042\n' > "$out/secret.md"; ln -s "$out/
 wrap="$(tmpdir)"; tmpd="$(tmpdir)"
 printf '#!/bin/sh\nfor a in "$@"; do [ -L "$a" ] && echo "$a" >> %s/cp-of-link; done\nexec /bin/cp "$@"\n' "$canary" > "$wrap/cp"; chmod 755 "$wrap/cp"
 printf '%s' '{"session_id":"s1"}' > "$canary.in"
-( cd "$repo" && PATH="$wrap:$PATH" TMPDIR="$tmpd" bash "$HS/session-end.sh" < "$canary.in" ) >/dev/null 2>&1
+wk="$(hook_kit "$wrap:/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin")"
+( cd "$repo" && TMPDIR="$tmpd" bash "$wk/hooks/scripts/session-end.sh" < "$canary.in" ) >/dev/null 2>&1
 assert_eq "" "$(grep -rl TOPSECRET "$tmpd" "$repo/.bearing" 2>/dev/null)" "the secret is in no file the hook wrote"
 none_ran "a hook copied a linked file"
 assert_eq "- Status: started
@@ -173,6 +174,8 @@ done
 exec '$realgit' "\$@"
 EOF
 chmod 755 "$gitwrap/git"
+# the hooks reset PATH, so the watched git goes in through the test seam
+gk="$(hook_kit "$gitwrap:/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin")"
 stir() { touch -t "$1" "$repo/f.txt" "$repo/g.txt" 2>/dev/null; }
 
 t_begin "no hook runs a git command that reads file contents"
@@ -194,7 +197,7 @@ for _ in 1 2; do
       (*) j='{"session_id":"s1","source":"startup","trigger":"auto"}' ;;
     esac
     printf '%s' "$j" > "$canary.in"
-    ( cd "$repo" && PATH="$gitwrap:$PATH" HOME="$repo/home" bash "$HS/$s" < "$canary.in" ) >/dev/null 2>&1
+    ( cd "$repo" && HOME="$repo/home" bash "$gk/hooks/scripts/$s" < "$canary.in" ) >/dev/null 2>&1
   done
 done
 subs="$(sort -u "$gitlog" | tr '\n' ' ')"
@@ -252,6 +255,37 @@ assert_exit 0 bash "$KIT/plugins/bearing/bin/brg-changed" --root "$repo" --short
 assert_contains "$T_OUT" " M f.txt"
 assert_contains "$T_OUT" "?? new file.txt"
 assert_contains "$T_OUT" "A  staged.txt"
+t_end
+
+# ------------------------------------------------------------ M5 guard session
+t_begin "guard session creates, prunes and marks .bearing state through no link"
+sess() { ( cd "$repo" && bash "$GUARD" session --id "$1" --source startup ) >/dev/null 2>&1; }
+n=0
+# .bearing a link to a directory without state: no state dir is made there
+newrepo; rm -f "$repo/.bearing/state/"*; rmdir "$repo/.bearing/state"; rmdir "$repo/.bearing"
+mkdir -p "$out/b1"; ln -s "$out/b1" "$repo/.bearing"
+sess s9
+assert_eq "" "$(ls -A "$out/b1")" "nothing made in a linked .bearing"; n=$((n+1))
+# .bearing a link to a directory whose state holds an old mark: it is not pruned
+mkdir -p "$out/b1/state"; : > "$out/b1/state/.session-old"; touch -t 202001010000 "$out/b1/state/.session-old"
+sess s9
+assert_eq ".session-old" "$(ls -A "$out/b1/state")" "an old mark behind a linked .bearing is kept, no new mark"; n=$((n+1))
+# state a link: the same
+newrepo; rmdir "$repo/.bearing/state" 2>/dev/null || { rm -f "$repo/.bearing/state/"*; rmdir "$repo/.bearing/state"; }
+mkdir -p "$out/st"; : > "$out/st/.session-old"; touch -t 202001010000 "$out/st/.session-old"
+ln -s "$out/st" "$repo/.bearing/state"
+sess s9
+assert_eq ".session-old" "$(ls -A "$out/st")" "an old mark behind a linked state is kept, no new mark"; n=$((n+1))
+# a real .bearing: the mark is made, an old one goes, a link named like a mark is removed, not followed
+newrepo
+: > "$repo/.bearing/state/.session-old"; touch -t 202001010000 "$repo/.bearing/state/.session-old"
+printf 'kept\n' > "$out/target"; ln -s "$out/target" "$repo/.bearing/state/.session-s9"
+sess s8
+assert_eq 1 "$([ -f "$repo/.bearing/state/.session-s8" ] && [ ! -L "$repo/.bearing/state/.session-s8" ] && echo 1)" "the mark is a regular file"; n=$((n+1))
+assert_eq absent "$(absent "$repo/.bearing/state/.session-old")" "an old mark is pruned"; n=$((n+1))
+sess s9
+assert_eq "kept" "$(cat "$out/target")" "a link at the mark's name is not written through"; n=$((n+1))
+assert_eq 6 "$n" "state cases checked"
 t_end
 
 t_summary

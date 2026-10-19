@@ -328,17 +328,19 @@ t_end
 # ---- without jq the adapters fail closed
 t_begin "no jq: sentinel, warning, deny"
 nojq="$(minimal_path bash git sed grep head tail tr wc cat dirname basename mktemp cmp mv rm mkdir ls awk cut sort uniq env printf)"
+# the hooks reset PATH to fixed directories; a copy whose hooks keep $nojq is the seam
+nk="$(hook_kit "$nojq")"
 T_IN="$(fixture claude/pre-tool-use-allow.json)"
-assert_exit 2 env PATH="$nojq" bash "$KIT/plugins/bearing/hooks/scripts/block-publish.sh"
+assert_exit 2 env PATH="$nojq" bash "$nk/hooks/scripts/block-publish.sh"
 assert_contains "$T_OUT" "jq is required by the hooks"
 assert_contains "$T_OUT" "could not read the command"
 assert_exit 2 env PATH="$nojq" bash "$repo/.bearing/hooks/codex-pretool.sh"
 assert_contains "$T_OUT" "jq is required by the hooks"
 T_IN="$(fixture claude/user-prompt-submit.json)"
-assert_exit 0 env PATH="$nojq" bash "$KIT/plugins/bearing/hooks/scripts/inject-task-id.sh"
+assert_exit 0 env PATH="$nojq" bash "$nk/hooks/scripts/inject-task-id.sh"
 T_IN="$(fixture claude/post-tool-use.json)"
-assert_exit 0 env PATH="$nojq" bash "$KIT/plugins/bearing/hooks/scripts/format-file.sh"
-assert_exit 0 env PATH="$nojq" bash "$KIT/plugins/bearing/hooks/scripts/stop-summary.sh"
+assert_exit 0 env PATH="$nojq" bash "$nk/hooks/scripts/format-file.sh"
+assert_exit 0 env PATH="$nojq" bash "$nk/hooks/scripts/stop-summary.sh"
 t_end
 
 t_summary

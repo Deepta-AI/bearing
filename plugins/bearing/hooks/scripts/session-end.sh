@@ -4,8 +4,9 @@
 # commits. Branches without a task id are left alone. Always exits 0; a skip
 # or failure is logged as `session-end not-run <reason>` when a state dir exists.
 set -u
+# No program runs before lib.sh resets the environment, so no dirname here.
 # shellcheck source=lib.sh
-. "$(dirname "$0")/lib.sh"
+case "$0" in (*/*) . "${0%/*}/lib.sh" ;; (*) . ./lib.sh ;; esac
 root="$(repo_root)" || exit 0
 [ -n "$root" ] || exit 0
 [ -d "$root/.bearing" ] || exit 0
@@ -43,7 +44,7 @@ if [ -z "$nxt" ] || [ "$nxt" = none ]; then nxt="$(printf '%s\n' "$cp_text" | se
 if [ -z "$nxt" ] || [ "$nxt" = none ] || [ "$nxt" = unknown ]; then skip "no next step"; fi
 cd "$root" || skip "cannot enter repo root"
 mark="$bf.progress-next"
-cur_text="$(python3 "$prog" show --task "$task" 2>/dev/null)"; rc=$?
+cur_text="$(python3 -I "$prog" show --task "$task" 2>/dev/null)"; rc=$?
 case "$rc" in
   (0) ;;
   (3) cur_text="" ;;
@@ -61,7 +62,7 @@ if [ "$rc" -eq 0 ]; then
   # its fields would be lost. Rehearse with --dry-run (it prints the new text);
   # if any non-empty line (other than the Next items, Branch and Updated, which
   # the write replaces) is missing from it, leave the file alone.
-  new_text="$(python3 "$prog" write --task "$task" --branch "$branch" --next "$nxt" --dry-run 2>/dev/null)" \
+  new_text="$(python3 -I "$prog" write --task "$task" --branch "$branch" --next "$nxt" --dry-run 2>/dev/null)" \
     || skip "progress.py write failed"
   lost=0
   while IFS= read -r line; do
@@ -72,7 +73,7 @@ $(printf '%s\n' "$cur_text" | awk '/^## /{nx=($0 ~ /^## Next[[:space:]]*$/)} nx 
 EOF
   [ "$lost" -eq 0 ] || skip "would drop lines"
 fi
-python3 "$prog" write --task "$task" --branch "$branch" --next "$nxt" >/dev/null 2>&1 \
+python3 -I "$prog" write --task "$task" --branch "$branch" --next "$nxt" >/dev/null 2>&1 \
   || skip "progress.py write failed"
 printf '%s\n' "$nxt" | bash "$guard" state-write put "$mark" >/dev/null 2>&1
 exit 0

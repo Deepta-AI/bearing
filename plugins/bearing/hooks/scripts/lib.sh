@@ -1,6 +1,23 @@
 #!/usr/bin/env bash
 # Shared helpers for Bearing hook scripts. Sourced, not executed.
 #
+# Hooks run outside the sandbox with the harness's environment, so the first
+# thing done is to drop what in it could run another program: PATH becomes
+# /usr/bin:/bin plus the system tool directories (jq, git and python3 on
+# macOS live under /usr/local/bin or /opt/homebrew/bin), never a directory
+# the environment put first; BASH_ENV and ENV (sourced by every bash started
+# later), CDPATH (redirects cd), PYTHON* (python3 also runs -I everywhere),
+# LD_* and DYLD_* (preloaded libraries) are unset. BASH_ENV in the harness's
+# own environment is sourced by bash before this line runs, which no script
+# can prevent; the settings template denies Edit and Write on the settings
+# files whose env could set it.
+PATH=/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin; export PATH
+unset BASH_ENV ENV CDPATH
+for _brg_v in $(compgen -e 2>/dev/null); do
+  case "$_brg_v" in (PYTHON*|LD_*|DYLD_*) unset "$_brg_v" 2>/dev/null ;; esac
+done
+unset _brg_v
+
 # Every hook reads one JSON object on stdin. We read it once into $HOOK_JSON
 # and pull fields with jq. jq is required: without it a field cannot be read
 # reliably, so json_field prints the sentinel __BRG_UNPARSED__ and the guard

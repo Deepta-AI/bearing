@@ -122,6 +122,32 @@ assert_contains "$(cat "$log")" "prettier" "the nearest config decides"
 rm -rf "$repo/web"
 t_end
 
+t_begin "prettier is not run when a directory between the file and the root is a link"
+# prettier looks for its config along the path it is given (src2, then the
+# root, where a JS config waits); the check must walk that same path, not the
+# link's target outside the repository.
+out="$(tmpdir)"; mkdir -p "$out/inner"; : > "$out/app.ts"; : > "$out/inner/app.ts"
+printf 'module.exports = {}\n' > "$repo/prettier.config.js"
+ln -s "$out" "$repo/src2"
+n=0
+for f in src2/app.ts src2/inner/app.ts; do
+  : > "$log"; T_IN=''; assert_exit 0 fmt_with "$base" "$repo/$f"
+  assert_eq "" "$(cat "$log")" "$f: prettier not run"
+  assert_contains "$T_OUT" "prettier not run" "$f: a note says so"
+  n=$((n+1))
+done
+# a link inside the repository is refused too: prettier would still walk the given path
+mkdir -p "$repo/real"; : > "$repo/real/app.ts"; ln -s "$repo/real" "$repo/alias"; rm -f "$repo/prettier.config.js"
+: > "$log"; T_IN=''; assert_exit 0 fmt_with "$base" "$repo/alias/app.ts"
+assert_eq "" "$(cat "$log")" "alias/app.ts: prettier not run"
+n=$((n+1))
+assert_eq 3 "$n" "linked paths checked"
+# the same file through its real path still formats
+: > "$log"; fmt_with "$base" "$repo/real/app.ts" >/dev/null 2>&1
+assert_contains "$(cat "$log")" "prettier" "real/app.ts: prettier runs"
+rm -f "$repo/alias" "$repo/src2" "$repo/real/app.ts"; rmdir "$repo/real"
+t_end
+
 t_begin "a failing formatter leaves the file and says so"
 printf '#!/bin/sh\nexit 1\n' > "$stubs/gofmt"
 assert_exit 0 fmt_with "$base" "$repo/main.go"

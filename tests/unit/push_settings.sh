@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # tests/unit/push_settings.sh: the settings template denies edits to
 # ~/.config/bearing, ~/.gitconfig and ~/.config/git, Edit and Write to .git,
-# ~/.local/bin, ~/go/bin and ~/.config/git, and the brg-push run
+# ~/.local/bin, ~/go/bin and ~/.config/git, Edit, Write and Bash writes to
+# the project and user Claude Code settings files, and the brg-push run
 # verb, keeps the push deny, and AGENTS.md rule 2 and the hooks description
 # name the opt-in push.
 set -u
@@ -26,6 +27,22 @@ assert_contains "$(cat "$KIT/plugins/bearing/templates/repo/AGENTS.md")" "BEARIN
 dw="$(jq -r '.sandbox.filesystem.denyWrite[]' "$S")"
 assert_contains "$dw" "~/.gitconfig"
 assert_contains "$dw" "~/.config/git"
+t_end
+
+t_begin "the settings files whose env reaches the hooks are denied to Edit, Write and Bash"
+# A settings file's env (BASH_ENV, PATH) is the hooks' environment, and hooks
+# run outside the sandbox: the agent edits none of them.
+n=0
+for p in ./.claude/settings.json ./.claude/settings.local.json "~/.claude/settings.json" "~/.claude/settings.local.json"; do
+  for tool in Edit Write; do
+    assert_eq 1 "$(printf '%s\n' "$deny" | grep -cxF "$tool($p)")" "$tool($p) denied"
+    n=$((n+1))
+  done
+done
+assert_eq 8 "$n" "settings denies checked"
+for p in ./.claude/settings.json ./.claude/settings.local.json; do
+  assert_eq 1 "$(printf '%s\n' "$dw" | grep -cxF "$p")" "$p in sandbox denyWrite"
+done
 t_end
 
 t_begin "the run deny is described as a first line, the guard as the control"
