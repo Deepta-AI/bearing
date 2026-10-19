@@ -3654,9 +3654,9 @@
      "title": "Open the merge request",
      "skill": "merge-request",
      "pack": "bearing",
-     "does": "The gate, the commit audit and the filled template; you push.",
+     "does": "The gate, the commit audit and the filled template; you push, or the Stop hook does where you opted the repository in.",
      "output": "The MR description and the push command",
-     "why": "It prepares; the engineer pushes."
+     "why": "It prepares; the engineer pushes, or the Stop hook where the repository opts in."
     }
    ]
   },
