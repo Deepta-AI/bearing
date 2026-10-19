@@ -4,16 +4,17 @@
 # commits. Branches without a task id are left alone. Always exits 0; a skip
 # or failure is logged as `session-end not-run <reason>` when a state dir exists.
 set -u
-# No program runs before lib.sh resets the environment, so no dirname here.
+# No program runs before lib.sh resets the environment, so no dirname here;
+# the next script starts with "$BASH" from ${0%/*}, never found on PATH.
 # shellcheck source=lib.sh
 case "$0" in (*/*) . "${0%/*}/lib.sh" ;; (*) . ./lib.sh ;; esac
 root="$(repo_root)" || exit 0
 [ -n "$root" ] || exit 0
 [ -d "$root/.bearing" ] || exit 0
-guard="$(cd "$(dirname "$0")/../../bin" && pwd)/brg-guard"
+guard="$(cd "${0%/*}/../../bin" && pwd)/brg-guard"
 skip() { # skip <reason>: a gates.log line through brg-guard log (never through a link or into a FIFO)
   [ -d "$root/.bearing/state" ] || exit 0
-  ( cd "$root" && bash "$guard" log session-end not-run "$1" ) >/dev/null 2>&1
+  ( cd "$root" && "$BASH" "$guard" log session-end not-run "$1" ) >/dev/null 2>&1
   exit 0
 }
 # Hooks run outside the sandbox and the working tree is the agent's: every
@@ -33,9 +34,9 @@ except OSError:
 }
 branch="$(current_branch)"
 task="$(task_id_from_branch)"; [ -n "$task" ] || skip "no task id on branch"
-kit="$(dirname "$0")/../.."
+kit="${0%/*}/../.."
 prog="$kit/skills/session-handoff/scripts/progress.py"
-bash "$kit/bin/brg-session" checkpoint >/dev/null 2>&1
+"$BASH" "$kit/bin/brg-session" checkpoint >/dev/null 2>&1
 bf="$(printf '%s' "$branch" | tr '/' '_')"
 cp_text="$(safe_cat "$root/.bearing/state/$bf.checkpoint.md")"
 [ -n "$cp_text" ] || skip "no checkpoint"
@@ -75,5 +76,5 @@ EOF
 fi
 python3 -I "$prog" write --task "$task" --branch "$branch" --next "$nxt" >/dev/null 2>&1 \
   || skip "progress.py write failed"
-printf '%s\n' "$nxt" | bash "$guard" state-write put "$mark" >/dev/null 2>&1
+printf '%s\n' "$nxt" | "$BASH" "$guard" state-write put "$mark" >/dev/null 2>&1
 exit 0

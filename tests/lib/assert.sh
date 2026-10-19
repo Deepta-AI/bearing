@@ -13,7 +13,8 @@
 #   minimal_path <tool>...    print a PATH holding only those tools (symlinks)
 #   hook_kit <PATH>           print a copy of the bearing plugin whose hooks (lib.sh and
 #                             brg-guard) set PATH to <PATH> instead of the fixed directories;
-#                             the one seam for a test that watches or removes a tool
+#                             the one seam for a test that watches or removes a tool;
+#                             removed at exit; a caller fails when it prints nothing
 #   replace_in <file> <old> <new>  replace one literal occurrence in a fixture (python3,
 #                             which every CI image has; perl and GNU sed -i are not portable);
 #                             fails unless old occurs exactly once
@@ -92,10 +93,20 @@ tmpdir() {
 _t_cleanup() { [ -z "$T_TMPS" ] || rm -rf $T_TMPS; }
 trap _t_cleanup EXIT
 
+# hook_kit runs in $(...), where a tmpdir it made would never reach T_TMPS,
+# so every copy goes under T_KITS, made here in the test's own shell (not
+# through $(tmpdir), whose T_TMPS line would be lost the same way) and
+# removed at exit with the rest.
+T_KITS="${TMPDIR:-/tmp}"; T_KITS="${T_KITS%/}"
+T_KITS="$(mktemp -d "${T_KITS:-/tmp}/brg-kits.XXXXXX")" && T_TMPS="$T_TMPS $T_KITS"
 hook_kit() { # hook_kit <PATH>: a plugin copy whose hooks reset PATH to <PATH>
   local k line
-  k="$(tmpdir)"; cp -R "$KIT/plugins/bearing/." "$k/" || return 1
-  line='PATH=/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin; export PATH'
+  [ -d "$T_KITS" ] || return 1
+  k="$(mktemp -d "$T_KITS/kit.XXXXXX")" || return 1
+  cp -R "$KIT/plugins/bearing/." "$k/" || return 1
+  # the hook PATH line, read from lib.sh (brg-guard holds the same line)
+  line="$(grep '^PATH=' "$KIT/plugins/bearing/hooks/scripts/lib.sh" | head -1)"
+  [ -n "$line" ] || return 1
   replace_in "$k/hooks/scripts/lib.sh" "$line" "PATH='$1'; export PATH" || return 1
   replace_in "$k/bin/brg-guard" "$line" "PATH='$1'; export PATH" || return 1
   printf '%s' "$k"

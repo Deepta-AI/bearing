@@ -8,11 +8,12 @@
 # make check. The formatter's note goes to stderr, the check-file line to
 # stdout.
 set -u
-# No program runs before lib.sh resets the environment, so no dirname here.
+# No program runs before lib.sh resets the environment, so no dirname here;
+# the next script starts with "$BASH" from ${0%/*}, never found on PATH.
 # shellcheck source=lib.sh
 case "$0" in (*/*) . "${0%/*}/lib.sh" ;; (*) . ./lib.sh ;; esac
-guard="$(dirname "$0")/../../bin/brg-guard"
+guard="${0%/*}/../../bin/brg-guard"
 file="$(json_field tool_input.file_path)"
-bash "$guard" format "$file" >&2
-bash "$guard" check-file "$file"
+"$BASH" "$guard" format "$file" >&2
+"$BASH" "$guard" check-file "$file"
 exit 0

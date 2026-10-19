@@ -4,14 +4,22 @@
 # Hooks run outside the sandbox with the harness's environment, so the first
 # thing done is to drop what in it could run another program: PATH becomes
 # /usr/bin:/bin plus the system tool directories (jq, git and python3 on
-# macOS live under /usr/local/bin or /opt/homebrew/bin), never a directory
-# the environment put first; BASH_ENV and ENV (sourced by every bash started
+# macOS live under /usr/local/bin or /opt/homebrew/bin; on Linux under
+# Linuxbrew or a Nix profile), never a directory the environment put first
+# (brg-doctor checks the BRG_HOOK_TOOLS below resolve on it, reading both
+# lines from lib.sh, and the settings template denies Edit and Write on the
+# user-owned ones); BASH_ENV and ENV (sourced by every bash started
 # later), CDPATH (redirects cd), PYTHON* (python3 also runs -I everywhere),
 # LD_* and DYLD_* (preloaded libraries) are unset. BASH_ENV in the harness's
 # own environment is sourced by bash before this line runs, which no script
 # can prevent; the settings template denies Edit and Write on the settings
 # files whose env could set it.
-PATH=/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin; export PATH
+PATH=/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin:/home/linuxbrew/.linuxbrew/bin:/run/current-system/sw/bin:/nix/var/nix/profiles/default/bin; export PATH
+BRG_HOOK_TOOLS='jq python3 git bash'
+# An entry script execs the next with "$BASH" (no PATH lookup); execfail
+# makes a failed exec return, so the script exits 2 (fail closed) instead
+# of ending with 126 or 127, which the harness reads as "let it through".
+shopt -s execfail
 unset BASH_ENV ENV CDPATH
 for _brg_v in $(compgen -e 2>/dev/null); do
   case "$_brg_v" in (PYTHON*|LD_*|DYLD_*) unset "$_brg_v" 2>/dev/null ;; esac
@@ -75,7 +83,7 @@ json_field() {
     printf '%s' "$HOOK_JSON" | jq -r ".${path} // empty" 2>/dev/null
   else
     if [ "$BEARING_JQ_WARNED" -eq 0 ]; then
-      echo "bearing: jq is required by the hooks; install jq" >&2
+      echo "bearing: jq not found in $PATH; run brg-doctor" >&2
       BEARING_JQ_WARNED=1
     fi
     printf '%s' "__BRG_UNPARSED__"
@@ -111,7 +119,7 @@ state_file() {
 block_or_print() {
   local err out rc
   err="$(mktemp)"
-  out="$(bash "$@" 2>"$err")"; rc=$?
+  out="$("$BASH" "$@" 2>"$err")"; rc=$?
   if [ "$rc" -eq 2 ]; then
     if command -v jq >/dev/null 2>&1; then
       jq -n --arg r "$(cat "$err")" '{decision: "block", reason: $r}'

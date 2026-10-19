@@ -95,6 +95,7 @@ wrap="$(tmpdir)"; tmpd="$(tmpdir)"
 printf '#!/bin/sh\nfor a in "$@"; do [ -L "$a" ] && echo "$a" >> %s/cp-of-link; done\nexec /bin/cp "$@"\n' "$canary" > "$wrap/cp"; chmod 755 "$wrap/cp"
 printf '%s' '{"session_id":"s1"}' > "$canary.in"
 wk="$(hook_kit "$wrap:/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin")"
+[ -n "$wk" ] && [ -f "$wk/hooks/scripts/lib.sh" ] || { echo "FAIL hook_untrusted.sh: hook_kit printed no kit" >&2; exit 1; }
 ( cd "$repo" && TMPDIR="$tmpd" bash "$wk/hooks/scripts/session-end.sh" < "$canary.in" ) >/dev/null 2>&1
 assert_eq "" "$(grep -rl TOPSECRET "$tmpd" "$repo/.bearing" 2>/dev/null)" "the secret is in no file the hook wrote"
 none_ran "a hook copied a linked file"
@@ -176,6 +177,7 @@ EOF
 chmod 755 "$gitwrap/git"
 # the hooks reset PATH, so the watched git goes in through the test seam
 gk="$(hook_kit "$gitwrap:/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin")"
+[ -n "$gk" ] && [ -f "$gk/hooks/scripts/lib.sh" ] || { echo "FAIL hook_untrusted.sh: hook_kit printed no kit" >&2; exit 1; }
 stir() { touch -t "$1" "$repo/f.txt" "$repo/g.txt" 2>/dev/null; }
 
 t_begin "no hook runs a git command that reads file contents"

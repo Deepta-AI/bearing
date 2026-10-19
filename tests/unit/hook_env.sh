@@ -95,7 +95,7 @@ assert_contains "$lib" "PATH=/usr/bin:/bin:" "lib.sh sets PATH from /usr/bin:/bi
 assert_contains "$(head -20 "$GUARD")" "PATH=/usr/bin:/bin:" "brg-guard sets PATH at the top"
 # every python3 a hook script or brg-guard runs is isolated (-I)
 bad="$(grep -n 'python3 ' "$HS"/*.sh "$GUARD" "$KIT/plugins/bearing/bin/brg-changed" "$KIT/plugins/bearing/bin/brg-session" \
-  | grep -v '^[^:]*:[0-9]*: *#' | grep -v 'command -v python3' | grep -v 'python3 -I' | grep -v '# a bare PATH' || true)"
+  | grep -v '^[^:]*:[0-9]*: *#' | grep -v 'command -v python3' | grep -v 'python3 -I' | grep -v '# a bare PATH' | grep -v ':BRG_HOOK_TOOLS=' || true)"
 assert_eq "" "$bad" "python3 without -I"
 # no entry script runs a program before lib.sh resets the environment
 n=0
@@ -106,6 +106,52 @@ for f in "$HS"/*.sh; do
   n=$((n+1))
 done
 assert_eq 1 "$([ "$n" -ge 8 ] && echo 1)" "entry scripts checked ($n)"
+t_end
+
+t_begin "block-publish fails closed with no tool on the hook PATH and no PATH at all"
+# An empty hook PATH (the copy's lib.sh and brg-guard) and a cleared
+# environment: no bash, jq or dirname can be found, and the guard still
+# refuses git push with exit 2 (anything else lets the command through).
+ek="$(hook_kit "")"
+assert_eq 1 "$([ -f "$ek/hooks/scripts/block-publish.sh" ] && echo 1)" "hook_kit made a kit"
+cwd="$(tmpdir)"
+printf '%s' '{"tool_input":{"command":"git push origin main"}}' > "$canary/push.in"
+out="$(cd "$cwd" && env -i "$REALBASH" "$ek/hooks/scripts/block-publish.sh" < "$canary/push.in" 2>&1)"; rc=$?
+assert_eq 2 "$rc" "git push through block-publish with no tools"
+assert_contains "$out" "jq not found in "
+assert_contains "$out" "run brg-doctor"
+assert_contains "$out" "refusing (fail closed)"
+t_end
+
+t_begin "every entry script starts its next script with \$BASH from \${0%/*} and exits 2 when the exec fails"
+n=0
+for f in "$HS"/*.sh; do
+  [ "${f##*/}" = lib.sh ] && continue
+  body="$(grep -v '^ *#' "$f")"
+  assert_not_contains "$body" 'dirname' "${f##*/}: no dirname"
+  assert_eq "" "$(printf '%s\n' "$body" | grep -E '(^|[^A-Za-z_$"])bash ' || true)" "${f##*/}: no bash found on PATH"
+  if printf '%s\n' "$body" | grep -q '^exec '; then
+    assert_eq "" "$(printf '%s\n' "$body" | grep '^exec ' | grep -v '^exec "\$BASH" "\${0%/\*}/' || true)" "${f##*/}: exec \"\$BASH\" \"\${0%/*}/...\""
+    assert_eq "exit 2" "$(printf '%s\n' "$body" | grep -A1 '^exec ' | tail -1)" "${f##*/}: exit 2 after the exec"
+  fi
+  n=$((n+1))
+done
+assert_eq 1 "$([ "$n" -ge 8 ] && echo 1)" "entry scripts checked ($n)"
+assert_eq "" "$(grep -rln 'exec bash "\$(dirname' "$KIT/plugins" || true)" "no adapter execs bash from dirname"
+assert_contains "$(cat "$HS/lib.sh")" "shopt -s execfail" "a failed exec returns instead of ending the hook with 126 or 127"
+t_end
+
+t_begin "the hook PATH adds the Linuxbrew and Nix directories after the system ones"
+want='PATH=/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin:/home/linuxbrew/.linuxbrew/bin:/run/current-system/sw/bin:/nix/var/nix/profiles/default/bin; export PATH'
+assert_eq "$want" "$(grep '^PATH=' "$HS/lib.sh")" "lib.sh hook PATH"
+assert_eq "$want" "$(grep '^PATH=' "$GUARD")" "brg-guard hook PATH"
+assert_eq "BRG_HOOK_TOOLS='jq python3 git bash'" "$(grep '^BRG_HOOK_TOOLS=' "$HS/lib.sh")" "the tools the hooks need, in lib.sh"
+t_end
+
+t_begin "hook_kit copies are removed when the test exits"
+kp="$(T_FILE="$KIT/tests/unit/x.sh" "$REALBASH" -c '. "$1"; hook_kit /nowhere' _ "$KIT/tests/lib/assert.sh")"
+assert_eq 1 "$([ -n "$kp" ] && echo 1)" "hook_kit printed a kit"
+assert_eq 1 "$([ ! -e "$kp" ] && echo 1)" "the kit is gone after exit"
 t_end
 
 t_summary

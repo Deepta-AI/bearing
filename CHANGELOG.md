@@ -103,6 +103,15 @@ All notable changes to Bearing. Keep a Changelog format, semantic versions.
   repository.
 
 ### Changed
+- Hooks resolve tools on a fixed PATH, which now also holds the Linuxbrew
+  and Nix directories (`/home/linuxbrew/.linuxbrew/bin`,
+  `/run/current-system/sw/bin`, `/nix/var/nix/profiles/default/bin`); each
+  hook script starts the next with `"$BASH"` from its own directory (no
+  PATH lookup, no `dirname`) and exits 2 when that fails, so the Bash guard
+  blocks rather than exiting 127. `brg-doctor` checks jq, python3, git and
+  bash on that PATH and prints the fix, and the settings template denies
+  Edit and Write on `/opt/homebrew/bin`, `/usr/local/bin` and the Linuxbrew
+  bin.
 - `flows_check.py` requires `## Task paths`: a flows file without it now
   fails. Existing repositories add the section to each flows file (see
   Notes for existing repositories).
@@ -285,6 +294,9 @@ All notable changes to Bearing. Keep a Changelog format, semantic versions.
   linked `.bearing` before refusing it.
 
 ### Notes for existing repositories
+- Copy the six Edit and Write denies on `//opt/homebrew/bin/**`,
+  `//usr/local/bin/**` and `//home/linuxbrew/.linuxbrew/bin/**` from the
+  settings template into `.claude/settings.json`, then run `brg-doctor`.
 - The edit hook no longer runs `make check-file` or any linter after each
   edit; that per-file feedback moves to the session. Run
   `make check-file FILE=<path>` after an edit (the repository template's

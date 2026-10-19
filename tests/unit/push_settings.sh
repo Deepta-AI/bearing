@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # tests/unit/push_settings.sh: the settings template denies edits to
 # ~/.config/bearing, ~/.gitconfig and ~/.config/git, Edit and Write to .git,
-# ~/.local/bin, ~/go/bin and ~/.config/git, Edit, Write and Bash writes to
+# ~/.local/bin, ~/go/bin, ~/.config/git and the user-owned hook PATH
+# directories (Homebrew, /usr/local/bin, Linuxbrew), Edit, Write and Bash writes to
 # the project and user Claude Code settings files, and the brg-push run
 # verb, keeps the push deny, and AGENTS.md rule 2 and the hooks description
 # name the opt-in push.
@@ -11,6 +12,7 @@ set -u
 t_begin "the settings template denies edits to the user config and the run verb"
 S="$KIT/plugins/bearing/templates/repo/.claude/settings.json"
 deny="$(jq -r '.permissions.deny[]' "$S")"
+readme_all="$(jq -r '._readme[]' "$S")"
 assert_contains "$deny" "Edit(~/.config/bearing/**)"
 assert_contains "$deny" "Edit(~/.gitconfig)"
 assert_contains "$deny" "Edit(~/.config/git/**)"
@@ -43,6 +45,20 @@ assert_eq 8 "$n" "settings denies checked"
 for p in ./.claude/settings.json ./.claude/settings.local.json; do
   assert_eq 1 "$(printf '%s\n' "$dw" | grep -cxF "$p")" "$p in sandbox denyWrite"
 done
+t_end
+
+t_begin "the directories on the hook PATH that a user owns are denied to Edit and Write"
+# Hooks find jq, git and python3 on a fixed PATH; Homebrew and Linuxbrew
+# directories are often the user's own, so the agent writes none of them.
+n=0
+for p in "//opt/homebrew/bin/**" "//usr/local/bin/**" "//home/linuxbrew/.linuxbrew/bin/**"; do
+  for tool in Edit Write; do
+    assert_eq 1 "$(printf '%s\n' "$deny" | grep -cxF "$tool($p)")" "$tool($p) denied"
+    n=$((n+1))
+  done
+done
+assert_eq 6 "$n" "hook PATH denies checked"
+assert_contains "$readme_all" "hook PATH"
 t_end
 
 t_begin "the run deny is described as a first line, the guard as the control"

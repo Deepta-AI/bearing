@@ -4,12 +4,13 @@
 # ({"decision": "block"}); on the second stop (stop_hook_active) the guard
 # only reminds, so the hook can never loop.
 set -u
-# No program runs before lib.sh resets the environment, so no dirname here.
+# No program runs before lib.sh resets the environment, so no dirname here;
+# the next script starts with "$BASH" from ${0%/*}, never found on PATH.
 # shellcheck source=lib.sh
 case "$0" in (*/*) . "${0%/*}/lib.sh" ;; (*) . ./lib.sh ;; esac
-guard="$(dirname "$0")/../../bin/brg-guard"
+guard="${0%/*}/../../bin/brg-guard"
 set -- --id "$(json_field session_id)"
 [ "$(json_field stop_hook_active)" = "true" ] && set -- "$@" --active
-bash "$(dirname "$0")/../../bin/brg-session" timeline-close --id "$(json_field session_id)" >/dev/null 2>&1
-bash "$(dirname "$0")/../../bin/brg-session" checkpoint >/dev/null 2>&1
+"$BASH" "${0%/*}/../../bin/brg-session" timeline-close --id "$(json_field session_id)" >/dev/null 2>&1
+"$BASH" "${0%/*}/../../bin/brg-session" checkpoint >/dev/null 2>&1
 block_or_print "$guard" stop-gate "$@"

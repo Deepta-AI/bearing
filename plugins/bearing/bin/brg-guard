@@ -3,14 +3,17 @@ BEARING_GUARD_VERSION="__VERSION__"
 # Hooks run outside the sandbox with the harness's environment, so the first
 # thing done is to drop what in it could run another program: PATH becomes
 # /usr/bin:/bin plus the system tool directories (jq, git and python3 on
-# macOS live under /usr/local/bin or /opt/homebrew/bin), never a directory
-# the environment put first; BASH_ENV and ENV (sourced by every bash started
+# macOS live under /usr/local/bin or /opt/homebrew/bin; on Linux under
+# Linuxbrew or a Nix profile), never a directory the environment put first
+# (this line matches hooks/scripts/lib.sh, where brg-doctor reads it and
+# the tools the hooks need, and the settings template denies Edit and Write
+# on the user-owned ones); BASH_ENV and ENV (sourced by every bash started
 # later), CDPATH (redirects cd), PYTHON* (python3 also runs -I everywhere),
 # LD_* and DYLD_* (preloaded libraries) are unset. BASH_ENV in the harness's
 # own environment is sourced by bash before this line runs, which no script
 # can prevent; the settings template denies Edit and Write on the settings
 # files whose env could set it.
-PATH=/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin; export PATH
+PATH=/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin:/home/linuxbrew/.linuxbrew/bin:/run/current-system/sw/bin:/nix/var/nix/profiles/default/bin; export PATH
 unset BASH_ENV ENV CDPATH
 for _brg_v in $(compgen -e 2>/dev/null); do
   case "$_brg_v" in (PYTHON*|LD_*|DYLD_*) unset "$_brg_v" 2>/dev/null ;; esac
@@ -1845,7 +1848,11 @@ guard_command() {
   # bytes, not characters: lengths are byte counts and the scanners index in O(1)
   LC_ALL=C; export LC_ALL
   case "$cmd" in *[![:space:]]*) ;; *) refuse "could not read the command";; esac
-  case "$cmd" in *"$SENTINEL"*) refuse "could not read the command";; esac
+  case "$cmd" in *"$SENTINEL"*)
+    # the adapter could not read the event; name the tool when it is jq
+    command -v jq >/dev/null 2>&1 || refuse "could not read the command: jq not found in $PATH; run brg-doctor"
+    refuse "could not read the command";;
+  esac
   case "$cmd" in *"$RD"*|*"$SUBST"*|*'__BRG_INPUT'*) refuse "the command holds a guard marker";; esac
   [ "${#cmd}" -le "$MAX_LEN" ] || refuse "command too long to check (${#cmd} bytes, limit $MAX_LEN); run it yourself"
   case "$cmd" in *':(){'*|*':() {'*) deny "fork bomb";; esac
@@ -2024,7 +2031,7 @@ esac
     # Hold the session only to files it changed after its own start and after
     # the last passing check. Without a start mark, or in a repository whose
     # Makefile never writes the marker, there is nothing fair to hold it to.
-    [ -n "$sid" ] && [ -f "$start" ] && grep -qs 'check-passed' "$root/Makefile" || { gate_log stop-gate reminder-only "no session mark or marker"; exec bash "$0" stop; }
+    [ -n "$sid" ] && [ -f "$start" ] && grep -qs 'check-passed' "$root/Makefile" || { gate_log stop-gate reminder-only "no session mark or marker"; exec "$BASH" "$0" stop; }
     [ -f "$(dirname "$0")/brg-changed" ] || { gate_log stop-gate not-run "missing brg-changed"; exit 0; }
     cc="$state/.check-changed-passed"
     newest="$marker"; [ -f "$cc" ] && { [ ! -f "$marker" ] || [ "$cc" -nt "$marker" ]; } && newest="$cc"
