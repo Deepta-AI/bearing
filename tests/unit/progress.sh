@@ -117,4 +117,81 @@ assert_contains "$T_OUT" "problem: docs/progress/ABC-14.md: missing Owner"
 assert_contains "$T_OUT" "progress check: 4 files, 2 problems"
 t_end
 
+t_begin "write --repo adds the Repos section; without it there is none"
+d="$(repo ABC-30-Set)"
+assert_exit 0 python3 "$P" write --root "$d" --task ABC-30 --title Set --criteria 1 --next "start"
+assert_not_contains "$(cat "$d/docs/progress/ABC-30.md")" "## Repos"
+assert_exit 0 python3 "$P" write --root "$d" --task ABC-30 --repo "1. ShopApi (../ShopApi)" --repo "2. ShopWeb (.)"
+body="$(cat "$d/docs/progress/ABC-30.md")"
+assert_contains "$body" "## Repos"
+assert_contains "$body" "- 1. ShopApi (../ShopApi)"
+assert_exit 0 python3 "$P" check --root "$d"
+t_end
+
+t_begin "check rejects a duplicate order number"
+assert_exit 0 python3 "$P" write --root "$d" --task ABC-30 --repo "1. ShopApi (../ShopApi)" --repo "1. ShopWeb (.)"
+assert_exit 1 python3 "$P" check --root "$d"
+assert_contains "$T_OUT" "repos: order numbers must be 1..N, each once"
+t_end
+
+t_begin "set reads every repository and counts"
+parent="$(tmpdir)"; api="$parent/ShopApi"; web="$parent/ShopWeb"
+for r in "$api" "$web"; do
+  git -C "$parent" init -q -b develop "$(basename "$r")"
+  git -C "$r" config user.name t; git -C "$r" config user.email t@example.com
+  git -C "$r" commit -q --allow-empty -m init; git -C "$r" switch -q -c feature/ABC-31-Set
+done
+printf 'x\n' > "$api/a.go"; git -C "$api" add a.go; git -C "$api" commit -q -m "feat: a [ABC-31]"
+mkdir -p "$api/.bearing/state"; sleep 1; touch "$api/.bearing/state/.check-passed"
+python3 "$P" write --root "$web" --task ABC-31 --title Set --criteria 1 --next s --repo "1. ShopApi (../ShopApi)" --repo "2. ShopWeb (.)" >/dev/null
+assert_exit 0 python3 "$P" set --root "$web" --task ABC-31
+assert_contains "$T_OUT" "1. ShopApi ../ShopApi: ready"
+assert_contains "$T_OUT" "2. ShopWeb .: not ready: make check has never passed"
+assert_contains "$T_OUT" "(this repository)"
+assert_contains "$T_OUT" "set: 2 repos, 1 ready, 0 merged, 1 not ready; merge order ShopApi, ShopWeb"
+t_end
+
+t_begin "set reports stale files and an empty branch in the R12 order"
+sleep 1; printf 'y\n' >> "$api/a.go"; git -C "$api" commit -q -am "feat: a2 [ABC-31]"
+assert_exit 0 python3 "$P" set --root "$web" --task ABC-31
+assert_contains "$T_OUT" "1. ShopApi ../ShopApi: not ready: 1 of 1 file(s) newer than the last make check"
+git -C "$parent" init -q -b develop Clean
+git -C "$parent/Clean" config user.name t; git -C "$parent/Clean" config user.email t@example.com
+git -C "$parent/Clean" commit -q --allow-empty -m init; git -C "$parent/Clean" switch -q -c feature/ABC-31-Set
+mkdir -p "$parent/Clean/.bearing/state"; touch "$parent/Clean/.bearing/state/.check-passed"
+python3 "$P" write --root "$web" --task ABC-31 --repo "1. Clean (../Clean)" --repo "2. ShopApi (../ShopApi)" >/dev/null
+assert_exit 0 python3 "$P" set --root "$web" --task ABC-31
+assert_contains "$T_OUT" "1. Clean ../Clean: not ready: 0 files on the branch"
+t_end
+
+t_begin "set counts a new file named with a space and a tracked .bearing file"
+api2="$parent/Api2"
+git -C "$parent" init -q -b develop Api2
+git -C "$api2" config user.name t; git -C "$api2" config user.email t@example.com
+git -C "$api2" commit -q --allow-empty -m init; git -C "$api2" switch -q -c feature/ABC-31-Set
+printf 'x\n' > "$api2/a.go"; git -C "$api2" add a.go; git -C "$api2" commit -q -m "feat: a [ABC-31]"
+mkdir -p "$api2/.bearing/state"; sleep 1; touch "$api2/.bearing/state/.check-passed"
+python3 "$P" write --root "$web" --task ABC-31 --repo "1. Api2 (../Api2)" --repo "2. ShopWeb (.)" >/dev/null
+assert_exit 0 python3 "$P" set --root "$web" --task ABC-31
+assert_contains "$T_OUT" "1. Api2 ../Api2: ready" "ready before"
+sleep 1; printf 'n\n' > "$api2/new file.go"
+assert_exit 0 python3 "$P" set --root "$web" --task ABC-31
+assert_contains "$T_OUT" "1. Api2 ../Api2: not ready: 1 of 2 file(s) newer than the last make check" "a new file named with a space counts"
+rm -f "$api2/new file.go"
+printf '{"flow":"x"}\n' > "$api2/.bearing/config.json"; git -C "$api2" add .bearing/config.json; git -C "$api2" commit -q -m "chore: config [ABC-31]"
+assert_exit 0 python3 "$P" set --root "$web" --task ABC-31
+assert_contains "$T_OUT" "1. Api2 ../Api2: not ready: 1 of 2 file(s) newer than the last make check" "a tracked .bearing file counts"
+t_end
+
+t_begin "set fails on zero repositories and on a missing path"
+assert_exit 1 python3 "$P" set --root "$d" --task ABC-99
+assert_contains "$T_OUT" "no docs/progress/ABC-99.md"
+python3 "$P" write --root "$web" --task ABC-31 --repo "1. Gone (../Gone)" --repo "2. ShopWeb (.)" >/dev/null
+assert_exit 1 python3 "$P" set --root "$web" --task ABC-31
+assert_contains "$T_OUT" "1. Gone ../Gone: missing"
+python3 "$P" write --root "$web" --task ABC-31 --repo none >/dev/null
+assert_exit 1 python3 "$P" set --root "$web" --task ABC-31
+assert_contains "$T_OUT" "set: 0 repos, nothing checked"
+t_end
+
 t_summary

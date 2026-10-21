@@ -1,6 +1,6 @@
 ---
 name: autopilot
-description: 'Runs unattended from one requirement statement to a prepared merge request, taking each decision as Proposed for review; never pushes. Use when asked to "autopilot this", "run it end to end" or "build this unattended".'
+description: 'Runs unattended from one requirement statement to a prepared merge request, deciding as Proposed for review; pushes only where opted in. Use when asked to "autopilot this", "run it end to end" or "build this unattended".'
 argument-hint: "\"<requirement statement>\" [--resume]"
 allowed-tools: Read, Write, Edit, Grep, Glob, Skill, Agent, Bash
 ---
@@ -10,9 +10,11 @@ allowed-tools: Read, Write, Edit, Grep, Glob, Skill, Agent, Bash
 One statement in, one prepared merge request out, with nobody answering
 questions in between. Every decision a stage would put to the user is taken
 with the recommended option, written as Proposed and listed in one
-digest the user reviews at the end. The run never pushes, merges or
-deploys: the guard, the sandbox and, where the repository has it, the
-pre-push hook stop it if it tries, and the last stage prints the push command for the engineer.
+digest the user reviews at the end. The run never merges or deploys,
+and pushes only through `brg-push` where the engineer opted the
+repository in: the guard, the sandbox and the pre-push hook stop any
+other push, and the last stage prints the push command when there is no
+opt-in.
 
 `bin/brg-autopilot` holds the order, the gates and the digest. The
 skill does the work; the script decides whether a stage is done, from
@@ -67,31 +69,40 @@ what is on disk, never from what the model says it did.
    the traps in references/reviewer-checks.md first. Detail:
    references/build-and-after.md
 8. After the build: test-automation, the LLM stages when the profile says
-   llm, and design-critique until the bar holds. Detail:
-   references/build-and-after.md
-9. Review is `branch-review`; fix every Critical and High it confirms, then
-   `make check` again; `definition-of-done` includes the smoke run. Read references/reviewer-checks.md again before
-   dod. Detail: references/review-smoke-and-mr.md
-10. The mr stage: `merge-request` prepares the description; `report` writes
+   llm, then `test-run --changed` (the test_run stage), and design-critique
+   until the bar holds. Detail: references/build-and-after.md
+9. Review is `branch-review --unattended`; fix every Critical and High it
+   confirms, record each fix as `<n> <sha>` in `.scratch/review/<slug>/fixed.txt`,
+   then `make check` again; `definition-of-done --unattended` includes the
+   smoke run and the full test run. Read references/reviewer-checks.md again
+   before dod. Detail: references/review-smoke-and-mr.md
+10. The mr stage: when the repo plan has more than one entry, first write
+   the `## Repos` section from it in merge order and list each sibling's
+   `start-task <ID> <Name> --type <type> --repos <list>` line in the report
+   (`${CLAUDE_PLUGIN_ROOT}/references/task-set.md`); the report commit
+   carries it. Then `merge-request` prepares the description; `report` writes
    `docs/autopilot/<run>.md`; commit it, and let that commit be the last
    write (`git status` clean after it); paste its decisions table into the
-   description with the exact push command under it, and print the same
-   command in the last message. Do not run it. Detail: references/review-smoke-and-mr.md
+   description with the exact push command under it. The report commit is
+   newer than the gate marker, so run `make check` once more, then
+   `brg-push check`; exit 0: `brg-push request` (the run's last Stop
+   pushes); else print the command for the engineer in the last message.
+   Never run `git push`. Detail: references/review-smoke-and-mr.md
 11. Blocked or finished, the last message is the report: stages done,
-   the decisions to review, what is not done and why, and the push
-   command when the MR is ready.
+   the decisions to review, what is not done and why, and the push line
+   when the MR is ready (requested, or the command for the engineer).
 
 ## Output contract
 
 ```
 ## Autopilot <run>: <statement>
-Stages: <n> of 18 done   Blocked: <stage (why)> | none
+Stages: <n> of <N> done   Blocked: <stage (why)> | none
 Decisions to review: N (all Proposed)  docs/autopilot/<run>.md
 Profile: ui=<yes|no> data=<yes|no> api=<yes|no> deploy=<yes|no>
 | Key | Choice | Alternatives | Why |
 Branch: <branch>  Commits: N  make check: passed | not passed
 MR description: .scratch/mr-<id>.md
-Push (yours): git push -u origin <branch>
+Push: requested (opt-in) | yours: git push -u origin <branch>
 Not done: <list> | none
 ```
 
@@ -119,7 +130,7 @@ Read before the first line of code. Detail: references/reviewer-checks.md
   touch is reported, not fixed here, unless the change itself caused it.
 - Long runs survive compaction through the snapshot hook and resume
   from `.bearing/state/autopilot.json`; `--resume` continues at the
-  next stage.
+  next stage. `<N>` in the output is the line count of `stages`.
 - Unattended from a script: `python3 bin/brg-autopilot launch "<statement>"`
   runs `claude -p` in the directory with the repository's settings, so
   the sandbox and the guard apply.

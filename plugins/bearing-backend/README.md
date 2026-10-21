@@ -28,7 +28,7 @@ Inside Claude Code:
 ```
 
 `bearing` is required; this plugin needs it. `bearing-backend` and
-`bearing-apps` are optional: install the ones your repositories use.
+`bearing-apps` and `bearing-genai` are optional: install the ones your repositories use.
 
 ## More
 

@@ -1,19 +1,19 @@
 # Templates that are code or generated scaffolding, not documents a person fills
 # section by section. One per line: path|reason.
-plugins/bearing/skills/llm-agent/templates/agent-python.md|agent loop code for the Python stack
-plugins/bearing/skills/llm-agent/templates/agent-typescript.md|agent loop code for the TypeScript stack
-plugins/bearing/skills/llm-agent/templates/tool-registry.md|tool registry code and its tests
-plugins/bearing/skills/llm-gateway/templates/gateway-python.md|gateway module code
-plugins/bearing/skills/llm-gateway/templates/gateway-typescript.md|gateway module code
-plugins/bearing/skills/mcp-server/templates/server-python.md|MCP server code
-plugins/bearing/skills/mcp-server/templates/server-typescript.md|MCP server code
-plugins/bearing/skills/mcp-server/templates/client.md|MCP client code
-plugins/bearing/skills/prompt-registry/templates/prompts-module.md|prompt registry code
-plugins/bearing/skills/prompt-registry/templates/prompt.md|a prompt file in the registry's format, filled by code
-plugins/bearing/skills/rag/templates/ingest.md|ingestion code
-plugins/bearing/skills/rag/templates/retriever.md|retriever code
-plugins/bearing/skills/llm-eval/templates/graders.md|grader code
-plugins/bearing/skills/llm-guardrails/templates/test-guardrails.md|guardrail test code
+plugins/bearing-genai/skills/llm-agent/templates/agent-python.md|agent loop code for the Python stack
+plugins/bearing-genai/skills/llm-agent/templates/agent-typescript.md|agent loop code for the TypeScript stack
+plugins/bearing-genai/skills/llm-agent/templates/tool-registry.md|tool registry code and its tests
+plugins/bearing-genai/skills/llm-gateway/templates/gateway-python.md|gateway module code
+plugins/bearing-genai/skills/llm-gateway/templates/gateway-typescript.md|gateway module code
+plugins/bearing-genai/skills/mcp-server/templates/server-python.md|MCP server code
+plugins/bearing-genai/skills/mcp-server/templates/server-typescript.md|MCP server code
+plugins/bearing-genai/skills/mcp-server/templates/client.md|MCP client code
+plugins/bearing-genai/skills/prompt-registry/templates/prompts-module.md|prompt registry code
+plugins/bearing-genai/skills/prompt-registry/templates/prompt.md|a prompt file in the registry's format, filled by code
+plugins/bearing-genai/skills/rag/templates/ingest.md|ingestion code
+plugins/bearing-genai/skills/rag/templates/retriever.md|retriever code
+plugins/bearing-genai/skills/llm-eval/templates/graders.md|grader code
+plugins/bearing-genai/skills/llm-guardrails/templates/test-guardrails.md|guardrail test code
 plugins/bearing/skills/test-automation/templates/screen-object.md|test helper code
 plugins/bearing/skills/test-automation/templates/test-data-builder.md|test helper code
 plugins/bearing/skills/logging/templates/http-logging/go.md|middleware code
@@ -38,4 +38,4 @@ plugins/bearing-backend/skills/python/templates/README.md|the scaffold writes th
 plugins/bearing-backend/skills/python/templates-cli/README.md|the scaffold writes this README with its content already filled; guidance comments would land in every new repository
 plugins/bearing-apps/skills/react/templates/README.md|the scaffold writes this README with its content already filled; guidance comments would land in every new repository
 plugins/bearing-apps/skills/react-native/templates/README.md|the scaffold writes this README with its content already filled; guidance comments would land in every new repository
-plugins/bearing/skills/llm-fine-tuning/templates/serve-vllm.md|vLLM serving commands and the gateway entry, copied as is
+plugins/bearing-genai/skills/llm-fine-tuning/templates/serve-vllm.md|vLLM serving commands and the gateway entry, copied as is

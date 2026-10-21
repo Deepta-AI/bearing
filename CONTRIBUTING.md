@@ -66,15 +66,17 @@ A team that keeps its own fork, for company skills or a pinned version:
 
 ## Where things live
 
-The repository is a marketplace of three plugins, and only what a plugin
+The repository is a marketplace of four plugins, and only what a plugin
 needs at run time sits inside one:
 
 - `plugins/bearing/`: the workflow skills, `agents/`, `hooks/`, `bin/`
-  (the `brg-` scripts, with `brg-kit-paths`, which finds the other two
+  (the `brg-` scripts, with `brg-kit-paths`, which finds the other
   plugins) and `templates/`. Required.
 - `plugins/bearing-backend/skills/`: go, python, node, data-pipeline, infra.
 - `plugins/bearing-apps/skills/`: react, nextjs, react-native, flutter,
   ios, android.
+- `plugins/bearing-genai/skills/`: the GenAI and ML skills (genai-design, rag,
+  llm-agent, llm-eval, llm-gateway, speech, and the rest).
 - Outside every plugin: `evals/`, `tests/`, `site/`, `devguide/`, `docs/`
   and `bin/` at the root (generators, lints, the eval harnesses, and
   `bin/kit_paths.py`, which asks `brg-kit-paths` where the skills are).
@@ -86,7 +88,7 @@ an install each plugin sits in its own cache folder, and a missing stack
 plugin must be named, not tripped over. A skill that mentions a skill of
 another plugin uses that plugin's prefix (`bearing:tech-decision` from a
 stack skill, `bearing-backend:go` from a workflow skill); `make
-lint-skills` resolves all three prefixes. `make lint-plugin-size` keeps
+lint-skills` resolves all four prefixes. `make lint-plugin-size` keeps
 each plugin under 512 files and every non-image file under 256 KiB, the
 plugin directory's limits.
 
@@ -100,7 +102,7 @@ plugin directory's limits.
   "Use when" with at least two quoted phrases, the sections Inputs, Steps,
   Output contract and Gotchas (stack skills use their own set), every
   backticked `templates/` or `references/` path existing, every
-  `bearing:<name>`, `bearing-backend:<name>` or `bearing-apps:<name>` it
+  `bearing:<name>`, `bearing-backend:<name>`, `bearing-apps:<name>` or `bearing-genai:<name>` it
   mentions resolving to a skill (or, for bearing, an agent), and `Skill`
   in `allowed-tools` for any skill that runs the decision protocol.
 - Lead the description with the job and the phrases a user says. Claude
@@ -117,8 +119,11 @@ plugin directory's limits.
   exempt on their own.
 - A skill works on its own: every input names a fallback. Never make a
   skill depend on another skill having run.
-- A skill never pushes, merges, tags, deploys or opens an MR. It prints
-  the command for the engineer.
+- A skill never pushes, merges, tags, deploys or opens an MR, except the
+  opt-in push: merge-request and autopilot may run `brg-push request`
+  where the engineer listed the repository in `BEARING_AUTO_PUSH`, and the
+  Stop hook then pushes the task branch from a fresh clone after the gate.
+  Otherwise the skill prints the command for the engineer.
 - Place the skill in the stage map in `bin/gen-guide.py`: a `CATEGORY`
   entry and, where the workflow runs it for a stage, a `STAGES` row.
   `make docs` regenerates `docs/WORKFLOW.md`, `docs/SKILLS.md` and the
@@ -157,7 +162,7 @@ written, a count printed, a refusal on empty input).
 - `make trigger-eval` checks that a plain request loads the right skill.
   Each skill has three requests that should load it and two near misses
   that should not, in `evals/triggers.json`. Each request runs in a fresh
-  headless session with only the three plugins loaded;
+  headless session with only the four plugins loaded;
   `SOURCES=user,project,local` runs with everything installed on your
   machine instead. `make lint-triggers` (part of `make check`) holds the
   file to every skill and refuses a request that copies a phrase quoted

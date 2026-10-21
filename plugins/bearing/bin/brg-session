@@ -25,7 +25,17 @@ done
 root="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 0
 [ -d "$root/.bearing" ] || exit 0
 case "$sub" in timeline-start|timeline-close|timeline-recent|not-run|checkpoint|next-step|resume) ;; *) exit 0;; esac
-st="$root/.bearing/state"; mkdir -p "$st"; tl="$st/timeline.jsonl"
+st="$root/.bearing/state"; tl="$st/timeline.jsonl"
+# This runs from hooks, outside the sandbox, and .bearing/state is the
+# agent's to write. glog <gate> <outcome> [label] [ms]: a gates.log line
+# through brg-guard log; swrite put|add <name> [cap] < content: a state file
+# through brg-guard state-write. Neither writes through a link (at the name
+# or at a linked .bearing/state) or into a FIFO. A state file is read only
+# when it is a regular file and not a link (rf), so a FIFO never blocks a read.
+bindir="$(cd "$(dirname "$0")" && pwd)"
+glog() { ( cd "$root" && bash "$bindir/brg-guard" log "$@" ) >/dev/null 2>&1; }
+swrite() { ( cd "$root" && bash "$bindir/brg-guard" state-write "$@" ) >/dev/null 2>&1; }
+rf() { [ -f "$1" ] && [ ! -L "$1" ]; }
 [ -n "$branch" ] || branch="$(git -C "$root" branch --show-current 2>/dev/null)"; branch="${branch:-detached}"
 esc() { # JSON string body: escape \ and ", encode \n \r \t, drop other control characters
   local s="$1"
@@ -37,20 +47,20 @@ skill_of() { # skill field of each JSON line on stdin
   if command -v jq >/dev/null 2>&1; then jq -r '.skill' 2>/dev/null
   else sed 's/.*"skill":"\([^"]*\)".*/\1/'; fi
 }
-event() { # <skill> <start|end>
-  [ -f "$tl" ] && [ "$(wc -c < "$tl" | tr -d ' ')" -gt 524288 ] && mv -f "$tl" "$tl.1"
+event() { # <skill> <start|end>: one line appended; over 512 KB the log moves to .1 first
   printf '{"ts":"%s","epoch":%s,"session":"%s","branch":"%s","skill":"%s","event":"%s"}\n' \
-    "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$(date +%s)" "$(esc "$id")" "$(esc "$branch")" "$(esc "$1")" "$2" >> "$tl"
+    "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$(date +%s)" "$(esc "$id")" "$(esc "$branch")" "$(esc "$1")" "$2" |
+    swrite add timeline.jsonl 524288
 }
 open_skill() { # the skill this session started and has not ended
-  [ -f "$tl" ] || return 0
+  rf "$tl" || return 0
   grep -F "\"session\":\"$(esc "$id")\"" "$tl" | tail -1 | grep -F '"event":"start"' | skill_of
 }
 case "$sub" in
   timeline-start)
     [ -n "$skill" ] || exit 0
     # One read of this session's events: the open skill, and the last start for rerun detection.
-    sess=""; [ ! -f "$tl" ] || sess="$(grep -F "\"session\":\"$(esc "$id")\"" "$tl")"
+    sess=""; ! rf "$tl" || sess="$(grep -F "\"session\":\"$(esc "$id")\"" "$tl")"
     prev="$(printf '%s\n' "$sess" | tail -1 | grep -F '"event":"start"' | skill_of)"; [ -z "$prev" ] || event "$prev" end
     # The same skill starting again in this session within ten minutes is a rerun.
     last="$(printf '%s\n' "$sess" | grep -F '"event":"start"' | tail -1)"
@@ -64,11 +74,11 @@ case "$sub" in
   timeline-close)
     prev="$(open_skill)"; [ -z "$prev" ] || event "$prev" end;;
   timeline-recent)
-    [ -f "$tl" ] || [ -f "$tl.1" ] || exit 0
-    cat "$tl.1" "$tl" 2>/dev/null | grep -F "\"branch\":\"$(esc "$branch")\"" | grep -F '"event":"end"' |
+    rf "$tl.1" || rf "$tl" || exit 0
+    { ! rf "$tl.1" || cat "$tl.1"; ! rf "$tl" || cat "$tl"; } 2>/dev/null | grep -F "\"branch\":\"$(esc "$branch")\"" | grep -F '"event":"end"' |
       skill_of | tail -n "$n";;
   not-run) # not-run --skill <reason>: same line format as brg-guard gate_log
-    printf '%s\ttimeline\tnot-run\t0\t%s\n' "$(date +%Y-%m-%dT%H:%M:%S)" "$(printf '%s' "$skill" | tr '\t\n' '  ' | cut -c1-120)" >> "$st/gates.log";;
+    glog timeline not-run "$skill";;
   checkpoint)
     t0="$(date +%s)"
     task=""; re='[A-Z][A-Z0-9]*(-[0-9]+)+'
@@ -81,13 +91,14 @@ case "$sub" in
     done
     ab=""
     [ "$base" = none ] || ab="$(git -C "$root" rev-list --left-right --count "$base...HEAD" 2>/dev/null | awk '{print $2"/"$1}')"
-    unc="$(git -C "$root" status --porcelain 2>/dev/null | wc -l | tr -d ' ')"
+    # brg-changed, never git status: the hooks run this outside the sandbox,
+    # and status re-reads changed files through any filter driver.
+    unc=0; [ -f "$(dirname "$0")/brg-changed" ] && unc="$(bash "$(dirname "$0")/brg-changed" --root "$root" --short | wc -l | tr -d ' ')"
     recent="$(bash "$0" timeline-recent --branch "$branch" --n 3 2>/dev/null | tr '\n' ',' | sed 's/,$//; s/,/, /g')"
     if [ "$has_next" = 1 ]; then nxt="$nextarg"; else nxt="$(bash "$0" next-step --branch "$branch" 2>/dev/null)"; fi
     bf="$(printf '%s' "$branch" | tr '/' '_')"
     sf="$st/$bf.md"; sn=""
     [ -f "$sf" ] && sn="$(grep -m1 '^Next:' "$sf" | sed 's/^Next: *//')"
-    out="$st/$bf.checkpoint.md"
     {
       echo "# Checkpoint $(date -u '+%Y-%m-%d %H:%M') UTC"
       echo "Task: ${task:-none}"
@@ -98,16 +109,34 @@ case "$sub" in
       echo "Recent skills: ${recent:-none}"
       echo "Next flow step: ${nxt:-unknown}"
       echo "Next (from state file): ${sn:-none}"
-    } > "$out.tmp" && mv "$out.tmp" "$out"
-    printf '%s\tcheckpoint\twritten\t%s\t\n' "$(date +%Y-%m-%dT%H:%M:%S)" "$(( ($(date +%s) - t0) * 1000 ))" >> "$st/gates.log";;
+    } | swrite put "$bf.checkpoint.md" || { glog checkpoint failed; exit 0; }
+    glog checkpoint written "" "$(( ($(date +%s) - t0) * 1000 ))";;
   next-step)
     steps="$(dirname "$0")/flow-steps.tsv"; [ -f "$steps" ] || exit 0
-    case "$branch" in bugfix/*|fix/*|hotfix/*) flow=bugfix;; *) flow=feature;; esac
+    # A site repository (.bearing/config.json "flow": "site", written by
+    # start-task through brg-config, one key per line) follows the site flow;
+    # a fix branch still follows bugfix. sed, not jq: bash 3.2 CI lacks jq.
+    case "$branch" in
+      bugfix/*|fix/*|hotfix/*) flow=bugfix;;
+      *) flow=feature
+         cf="$root/.bearing/config.json"
+         [ -f "$cf" ] && [ "$(sed -n 's/.*"flow"[[:space:]]*:[[:space:]]*"\([a-z]*\)".*/\1/p' "$cf" | head -1)" = site ] && flow=site;;
+    esac
+    # A branch step (column 4 "branch": taken on one answer only) whose
+    # condition already holds is skipped: new-repo once the repository has a
+    # commit; design-system once docs/design/tokens.json exists, the file
+    # the design-system skill finds and updates in place.
+    met=" "
+    git -C "$root" rev-parse -q --verify HEAD >/dev/null 2>&1 && met="${met}new-repo "
+    [ -f "$root/docs/design/tokens.json" ] && met="${met}design-system "
     done_list="$(bash "$0" timeline-recent --branch "$branch" --n 200 | sed 's/.*://; s|^/||')"
-    printf '%s\n' "$done_list" | awk -F'\t' -v f="$flow" '
-      FNR==NR { if ($1==f) { name[$2]=$3; ord[$3]=$2; if ($2+0>max) max=$2+0 } next }
+    [ "$flow" = feature ] && printf '%s\n' "$done_list" | grep -qx 'genai-design' && flow=genai
+    printf '%s\n' "$done_list" | awk -F'\t' -v f="$flow" -v met="$met" '
+      FNR==NR { if ($1==f) { name[$2]=$3; kind[$2]=$4; ord[$3]=$2; if ($2+0>max) max=$2+0 } next }
       ($0 in ord) && ord[$0]+0>best { best=ord[$0]+0 }
-      END { if (best+1 in name) print name[best+1] }' "$steps" -;;
+      END { for (k=best+1; k<=max; k++) {
+              if (kind[k]=="branch" && index(met, " " name[k] " ")) continue
+              print name[k]; break } }' "$steps" -;;
   resume)
     bf="$(printf '%s' "$branch" | tr '/' '_')"
     last="$(bash "$0" timeline-recent --branch "$branch" --n 1)"

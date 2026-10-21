@@ -1,0 +1,11 @@
+{
+ "version": "a41c9e2+answers-v2",
+ "cases": 40,
+ "truncated": 0,
+ "score": 0.8,
+ "cost_usd": 0.2815,
+ "p95_latency_ms": 2857,
+ "accepted": true,
+ "accepted_by": "support-lead",
+ "accepted_at": "2026-09-29"
+}

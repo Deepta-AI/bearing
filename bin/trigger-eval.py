@@ -39,13 +39,13 @@ import time
 KIT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PLUGINS = [
     os.path.join(KIT, "plugins", p)
-    for p in ("bearing", "bearing-backend", "bearing-apps")
+    for p in ("bearing", "bearing-backend", "bearing-apps", "bearing-genai")
 ]
 CASES = os.environ.get("BRG_TRIGGER_CASES", os.path.join(KIT, "evals", "triggers.json"))
 CLAUDE = os.environ.get("BRG_CLAUDE", "claude")
 TIMEOUT = 150
 MAX_OTHER_TOOLS = 3
-PLUGIN_NAMES = {"bearing", "bearing-backend", "bearing-apps"}
+PLUGIN_NAMES = {"bearing", "bearing-backend", "bearing-apps", "bearing-genai"}
 
 # Enough of a repository that the requests read naturally; nothing runs.
 FIXTURE = {

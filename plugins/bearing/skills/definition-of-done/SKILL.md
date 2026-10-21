@@ -1,8 +1,8 @@
 ---
 name: definition-of-done
 description: 'Checks a branch or ticket against the Definition of Done, with evidence per item: gate, tests, docs, scope, commits, smoke run. Use when asked "am I done", "is this story complete" or "ready to merge?"'
-argument-hint: "[base branch, default: the state file's Base line, else develop, else main]"
-allowed-tools: Read, Grep, Glob, Write, Skill, AskUserQuestion, Bash(make:*), Bash(docker compose:*), Bash(curl:*), Bash(playwright-cli:*), Bash(pnpm exec playwright:*), Bash(git status:*), Bash(git am:*), Bash(git checkout:*), Bash(git switch:*), Bash(git branch:*), Bash(git worktree:*), Bash(git diff:*), Bash(git log:*), Bash(git remote:*), Bash(git rev-parse:*), Bash(git show:*), Bash(go vet:*), Bash(go test:*), Bash(go run:*), Bash(go build:*), Bash(pnpm test:*), Bash(uv run pytest:*), Bash(pytest:*), Bash(python3 -m pytest:*), Bash(./gradlew test:*), Bash(swift test:*), Bash(tail -40), Bash(bash *skills/definition-of-done/scripts/red_proof.sh *), Bash(bash *bin/brg-state-path*), Bash(python3 *skills/prose-lint/scripts/prose_check.py*)
+argument-hint: "[base branch, default: the state file's Base line, else develop, else main] [--unattended]"
+allowed-tools: Read, Grep, Glob, Write, Skill, AskUserQuestion, Bash(make:*), Bash(docker compose:*), Bash(curl:*), Bash(playwright-cli:*), Bash(pnpm exec playwright:*), Bash(git status:*), Bash(git am:*), Bash(git checkout:*), Bash(git switch:*), Bash(git branch:*), Bash(git worktree:*), Bash(git diff:*), Bash(git log:*), Bash(git remote:*), Bash(git rev-parse:*), Bash(git show:*), Bash(go vet:*), Bash(go test:*), Bash(go run:*), Bash(go build:*), Bash(pnpm test:*), Bash(uv run pytest:*), Bash(pytest:*), Bash(python3 -m pytest:*), Bash(./gradlew test:*), Bash(swift test:*), Bash(maestro test:*), Bash(xcodebuild test:*), Bash(./gradlew connectedDebugAndroidTest:*), Bash(printenv BEARING_AUTOPILOT BEARING_NONINTERACTIVE), Bash(bash *bin/brg-config get noninteractive --user), Bash(tail -40), Bash(bash *skills/definition-of-done/scripts/red_proof.sh *), Bash(bash *bin/brg-state-path*), Bash(bash *bin/brg-changed*), Bash(python3 *bin/brg-autopilot decision test_run.*), Bash(python3 *skills/prose-lint/scripts/prose_check.py*), Bash(python3 *skills/session-handoff/scripts/progress.py*)
 ---
 
 # definition-of-done
@@ -30,7 +30,7 @@ The list below is the standard's; it needs no file in the repository.
   `./gradlew test`, `swift test`); item 1 then
   says "improvised gate" (`new-repo` or `onboard-repo` install the
   Makefile).
-- the list: the thirteen items in step 3, which are the standard's and
+- the list: the items in step 3, which are the standard's and
   need no file in the repository; a "Definition of done additions" section
   in AGENTS.md, when present, may add items to them and never removes one.
 - event sheet: `docs/analytics/EVENT_SHEET.md`; if absent and the diff
@@ -150,6 +150,31 @@ The list below is the standard's; it needs no file in the repository.
        `brg-autopilot smoke-request --id <ID>` and end the turn; the
        launcher runs it and writes `.scratch/smoke-<ID>.md`. Nothing
        runnable: `n/a: nothing to run` naming what was looked for.
+   14. suites: every suite beyond unit, in full, on HEAD. Reuse
+       `.scratch/test-run/<branch with / as _>-full.json` when `dirty` is
+       false, `selection` is null or `{"except": ["unit"]}` (never a run
+       with `--suite`, `--tag` or `--tc`), and its `sha` is HEAD or
+       `git diff --name-only <sha> HEAD` lists only `docs/testing/reports/` files. Else run `test-run --except unit` with the Skill tool
+       (refused: follow `${CLAUDE_PLUGIN_ROOT}/skills/test-run/SKILL.md`);
+       `${CLAUDE_PLUGIN_ROOT}/skills/test-run/references/runners.md` says
+       how the database starts and stops and gives the evidence schema.
+       Evidence: its `test-run:` line. `pass`: every selected suite ran, 0
+       failed; tell the author to commit the new `docs/testing/reports/`
+       report before the MR. `fail`: each failed test as file:line and
+       message, each suite not run with its reason. Unit the only suite:
+       `n/a`; write the evidence with `"n_a": "no suite beyond unit"` as that
+       schema says. A suite that ran and failed is never offered to CI; one
+       that cannot run here (no device, simulator or Docker) may go to CI
+       only when a job in `.gitlab-ci.yml` or `.github/workflows/` runs it,
+       else `fail`. Unattended is any of: called with `--unattended`;
+       `printenv BEARING_AUTOPILOT BEARING_NONINTERACTIVE` prints a value other than `0`;
+       `bash "${CLAUDE_PLUGIN_ROOT}/bin/brg-config" get noninteractive --user` prints `1`.
+       Then never ask: with a job take the leave, run `python3 "${CLAUDE_PLUGIN_ROOT}/bin/brg-autopilot" decision test_run.<suite> "left to CI job <job>" "run locally" "<why it cannot run here>"`.
+       Attended: ask once with AskUserQuestion, "Leave <suite> to CI job
+       <job>" (recommended) or "I will start what it needs and rerun"; on
+       yes add `CI-accepted: <suite> (<job>)` to the state file and the row
+       reads `pass (<suite> left to CI job <job>, accepted)`.
+   15. task set: `n/a` without `## Repos` in `docs/progress/<ID>.md`; else `python3 "${CLAUDE_PLUGIN_ROOT}/skills/session-handoff/scripts/progress.py" set --task <ID>`, judged as `${CLAUDE_PLUGIN_ROOT}/references/task-set.md` says.
 4. Print the table, then the verdict: `done` only if no `fail`. Each
    failing row names the file and the function, route or line, so the
    author can act without searching, and says what was run to show it.

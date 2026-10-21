@@ -9,7 +9,7 @@ const LAYERS = [
     name: "The plugin manifest",
     path: ".claude-plugin/",
     kind: "declares",
-    text: "marketplace.json names a marketplace called bearing that holds three plugins; each plugin's own plugin.json names it and its version. Claude Code finds skills/, agents/ and hooks/hooks.json by convention inside each plugin folder. Nothing else registers anything.",
+    text: "marketplace.json names a marketplace called bearing that holds four plugins; each plugin's own plugin.json names it and its version. Claude Code finds skills/, agents/ and hooks/hooks.json by convention inside each plugin folder. Nothing else registers anything.",
     to: "/install",
   },
   {
@@ -47,10 +47,10 @@ const LAYERS = [
 ];
 
 const WALLS = [
-  { key: "agents", name: "AGENTS.md, rule 2", kind: "prose", says: "Never push, open a merge request, merge, tag or deploy.", where: "plugins/bearing/templates/repo/AGENTS.md" },
-  { key: "deny", name: "settings.json deny", kind: "the harness", says: "Bash(git push:*) is in the deny list, so Claude Code refuses the call whatever the model intends.", where: "plugins/bearing/templates/repo/.claude/settings.json" },
-  { key: "guard", name: "PreToolUse guard", kind: "the hook", says: "brg-guard takes the command apart, so env, &&, $( ) or an alias do not hide it. Exit 2.", where: "plugins/bearing/hooks/scripts/block-publish.sh" },
-  { key: "prepush", name: ".githooks/pre-push", kind: "git", says: "A person must confirm at a terminal within 60 seconds. An agent has no terminal, so the read fails.", where: "plugins/bearing/templates/repo/.githooks/pre-push" },
+  { key: "agents", name: "AGENTS.md, rule 2", kind: "prose", says: "Never push, open a merge request, merge, tag or deploy. The one exception: where the engineer opted the repository in (BEARING_AUTO_PUSH), merge-request may request a task branch push, which the Stop hook makes.", where: "plugins/bearing/templates/repo/AGENTS.md" },
+  { key: "deny", name: "settings.json deny", kind: "the harness", says: "Bash(git push:*) is in the deny list, so Claude Code refuses the call whatever the model intends. It also refuses an agent's brg-push run; only the Stop hook, outside the harness, runs it.", where: "plugins/bearing/templates/repo/.claude/settings.json" },
+  { key: "guard", name: "PreToolUse guard", kind: "the hook", says: "brg-guard takes the command apart, so env, &&, $( ) or an alias do not hide it. Exit 2. It also refuses an agent's brg-push run; only the Stop hook, outside the harness, runs it.", where: "plugins/bearing/hooks/scripts/block-publish.sh" },
+  { key: "prepush", name: ".githooks/pre-push", kind: "git", says: "A person must confirm at a terminal within 60 seconds. An agent has no terminal, so the read fails. It refuses every agent push and tag, opted in or not, unless the repository sets PUSH_CONFIRM=off; the opt-in push is brg-push's, from a fresh clone that runs no repository hook.", where: "plugins/bearing/templates/repo/.githooks/pre-push" },
 ];
 
 function Walls() {
@@ -204,7 +204,11 @@ export function Architecture() {
       </div>
 
       <H2 id="depth">Defence in depth</H2>
-      <p>Take the most important rule: the agent never pushes. It is written four times, in four layers that fail independently.</p>
+      <p>
+        Take the most important rule: the agent never pushes. It is written four times, in four layers that fail independently. Where the engineer lists a
+        repository in <code>BEARING_AUTO_PUSH</code>, the Stop hook clones the task branch fresh and pushes it to the listed URL; that push runs no hook,
+        Makefile or config from the repository.
+      </p>
       <Walls />
 
       <H2 id="neutral">Company-neutral by construction</H2>

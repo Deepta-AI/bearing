@@ -1,0 +1,1010 @@
+#!/usr/bin/env bash
+# brg-push: the one way Bearing pushes a task branch, and only where the
+# engineer opted the repository in with BEARING_AUTO_PUSH (full push URLs) in
+# the personal bearing.env under the passwd home. The only git push Bearing
+# runs, from a fresh clone, never from the working tree.
+#
+#   brg-push check            the eight conditions, one "ok|no <name>: <detail>"
+#                             line each, then "push-check: 8 conditions, M met";
+#                             exit 0 all met, 1 any unmet, 2 usage or not a git
+#                             repository
+#   brg-push request          check; when it passes, write
+#                             .bearing/state/push-request (branch, sha, time);
+#                             exit 0 or 1
+#   brg-push run --id <sid> [--foreground]
+#                             the Stop hook only: judge the request, the opt-in,
+#                             the session mark, the gate marker and the global
+#                             git transport ("push-run: 7 conditions before the
+#                             clone, M met"), then start itself with
+#                             --foreground, detached, which judges them again,
+#                             clones the branch fresh, checks the clone's HEAD
+#                             ("push-run: 8 conditions, M met") and pushes it;
+#                             writes push-result, push.log and a gates.log
+#                             line; exit 0 started or pushed, 1 refused or
+#                             failed, 2 usage
+#   brg-push status [--unseen]
+#                             the last result line, or "push: none"; with
+#                             --unseen (the hooks) "bearing push: <line>" once
+#                             per new result; exit 0
+#   brg-push optin-record     SessionStart only: write .bearing/state/.push-optin
+#                             (on|off) for this repository; exit 0 always
+#
+# check, request and status run in the agent's Bash, inside the sandbox.
+# optin-record and run run outside the sandbox and run no git command in the
+# working repository: origin's url is read as text from the git common dir's
+# config file, under a cleared environment, in an empty directory, every read
+# of the repository bounded in time, and every write to .bearing/state goes
+# through state_write, which never follows a link the agent planted. run is for
+# the Stop hook; the guard refuses it from Bash. The opt-in is read from
+# <passwd home>/.config/bearing/bearing.env only, never from BEARING_ENV,
+# XDG_CONFIG_HOME, HOME or an exported BEARING_AUTO_PUSH: the agent controls
+# its own environment. The temporary directory of optin-record and run, and
+# so the clone, is a fresh mktemp -d inside <passwd home>/.config/bearing/tmp
+# (mode 700, hidden from the sandbox), never TMPDIR; the clone and the push
+# read no system config and a generated global config holding only the
+# engineer's credential.* keys, and the clone's own config is re-read before
+# the push and refused if it holds a key git clone does not write. An entry
+# is never printed (an https entry may carry a token), only its key. A .git
+# file (gitdir:) can point the origin read and the clone source at another
+# repository; the push still goes only to a URL the engineer listed for that
+# origin (accepted, amendment ruling Q4). Needs git and python3 (the reads
+# and appends in .bearing/state that must not follow a link). The script
+# ends with the single line `main "$@"`, the seam tests use to replace
+# passwd_home. bash 3.2 safe.
+set -u
+TASK_RE='^(feature|bugfix|hotfix|chore|docs)/[A-Z][A-Z0-9]*(-[0-9]+)+-[A-Za-z0-9]+$'
+
+# url_key <url>: <host>/<path> for a git URL, so an ssh, scp-style or https
+# spelling of one repository gives one key: scheme, user and password
+# dropped, host lower-cased, leading slashes, a trailing slash and .git
+# removed. ssh://git@host:22/group/repo.git, git@host:group/repo.git and
+# https://host/group/repo all give host/group/repo. A port other than the
+# scheme's default (ssh 22, https 443) stays: ssh://git@host:2222/g/r gives
+# host:2222/g/r. Only ssh://, scp-style and https:// are keyed: http://,
+# git://, any other scheme and a <helper>::<address> form exit 1, as do a
+# relative path and no path. A local path or file:// URL gives
+# localhost/<path> (the form tests use; no agent pushes to one in practice).
+url_key() {
+  local u="$1" h p port="" dport
+  case "$u" in
+    (*::*) return 1 ;;
+    (file://*) h=localhost; p="${u#file://}" ;;
+    (ssh://*|https://*)
+      case "$u" in (ssh://*) dport=22;; (*) dport=443;; esac
+      u="${u#*://}"; h="${u%%/*}"; [ "$h" != "$u" ] || return 1
+      p="${u#"$h"}"; h="${h##*@}"
+      case "$h" in (*:*) port="${h##*:}"; h="${h%:*}";; esac
+      case "$port" in (*[!0-9]*) return 1;; esac
+      [ "$port" != "$dport" ] || port="" ;;
+    (*://*) return 1 ;;
+    (/*) h=localhost; p="$u" ;;
+    (*:*) h="${u%%:*}"; case "$h" in (*/*) return 1;; esac
+          p="${u#*:}"; h="${h##*@}" ;;
+    (*) return 1 ;;
+  esac
+  case "$h" in (''|*[!A-Za-z0-9.-]*) return 1;; esac
+  h="$(printf '%s' "$h" | tr 'A-Z' 'a-z')"
+  while :; do case "$p" in (/*) p="${p#/}";; (*/) p="${p%/}";; (*) break;; esac; done
+  p="${p%.git}"
+  [ -n "$p" ] || return 1
+  printf '%s%s/%s\n' "$h" "${port:+:$port}" "$p"
+}
+
+# passwd_home: the current user's home directory from the passwd entry, not
+# from $HOME, which whoever runs git controls. Portable (no getent): tilde
+# expansion of a validated user name, and the directory must belong to the
+# effective user.
+passwd_home() {
+  local u h
+  u="$(id -un 2>/dev/null)" || return 1
+  case "$u" in (''|[-+]*|*[!A-Za-z0-9._-]*) return 1;; esac
+  eval "h=~$u"
+  case "$h" in (''|'~'*) return 1;; esac
+  [ -d "$h" ] && [ -O "$h" ] || return 1
+  printf '%s\n' "$h"
+}
+
+# bounded <seconds> <command...>: the command, killed when it runs longer
+# (exit 124), so a FIFO an agent plants where a file should be cannot hang a
+# hook. It runs as one process, the one the timer kills: an external command
+# is exec'd, and cleanenv execs env when bounded_exec is set.
+# The timer says whether it fired by its own exit status (3), so the answer
+# does not depend on which of the two processes the scheduler ends first:
+# once it fires it ignores TERM, and before that TERM ends it (and its sleep)
+# with status 0.
+bounded() {
+  local s="$1" p w rc; shift
+  ( bounded_exec=1
+    case "$(type -t "$1")" in (function) "$@" ;; (*) exec "$@" ;; esac ) &
+  p=$!
+  ( sleep "$s" & sp=$!
+    trap 'kill "$sp" 2>/dev/null; exit 0' TERM
+    wait "$sp"
+    trap '' TERM
+    kill "$p" 2>/dev/null && exit 3
+    exit 0 ) < /dev/null > /dev/null 2>&1 &
+  w=$!
+  wait "$p"; rc=$?
+  kill "$w" 2>/dev/null; wait "$w"
+  if [ $? -eq 3 ]; then rc=124; fi
+  return "$rc"
+}
+
+# git_dir: the git directory of $root, found by reading <root>/.git as
+# text: a directory is the answer; a "gitdir: <p>" file gives <p> (relative
+# to root). git_common_dir: that, or <p>/commondir when present (relative to
+# <p>). No git command; each file read is of a regular file and bounded in
+# time.
+git_dir() {
+  local g="$root/.git" p
+  [ -d "$g" ] && { printf '%s\n' "$g"; return 0; }
+  [ -f "$g" ] || return 1
+  p="$(bounded 5 sed -n '1s/^gitdir: //p' "$g")"; [ -n "$p" ] || return 1
+  case "$p" in (/*) ;; (*) p="$root/$p" ;; esac
+  printf '%s\n' "$p"
+}
+git_common_dir() {
+  local p c
+  p="$(git_dir)" || return 1
+  if [ -f "$p/commondir" ]; then
+    c="$(bounded 5 head -1 "$p/commondir")" || return 1
+    case "$c" in (/*) p="$c" ;; (*) p="$p/$c" ;; esac
+  fi
+  printf '%s\n' "$p"
+}
+
+# cleanenv <cmd>: run a command with nothing of the caller's environment but
+# SSH_AUTH_SOCK: PATH is /usr/bin:/bin and HOME the passwd home, so no GIT_*
+# variable, wrapper earlier on PATH or self-supplied HOME takes part. Call it
+# from the temporary directory git is to work in: GIT_CEILING_DIRECTORIES is
+# that directory's parent, so git never finds a repository above it.
+cleanenv() {
+  local up
+  up="$(pwd -P)"; up="${up%/*}"
+  ${bounded_exec:+exec} env -i PATH=/usr/bin:/bin HOME="$home" ${SSH_AUTH_SOCK:+SSH_AUTH_SOCK="$SSH_AUTH_SOCK"} \
+    GIT_TERMINAL_PROMPT=0 GIT_CEILING_DIRECTORIES="${up:-/}" "$@"
+}
+
+# origin_url: remote.origin.url read from the config file as text, in an
+# empty directory under the cleared environment; includes are not followed.
+# The config must be a regular file, and the read is bounded in time.
+origin_url() {
+  local d
+  d="$(git_common_dir)" || return 1
+  [ -n "$empty" ] && [ -f "$d/config" ] || return 1
+  ( cd "$empty" && bounded 5 cleanenv git config --no-includes --file "$d/config" --get remote.origin.url )
+}
+
+# entry_for: prints the BEARING_AUTO_PUSH entry whose url_key is origin's, or
+# exits 1. The file only: last line wins, quotes stripped, commas as spaces.
+# An entry with no key (a <host>/<path>, an http:// URL) matches nothing.
+entry_for() {
+  local envf line v x k ok=1
+  home="$(passwd_home)" || return 1
+  envf="$home/.config/bearing/bearing.env"
+  k="$(url_key "$(origin_url)")" || return 1
+  [ -f "$envf" ] || return 1
+  line="$(grep -E '^BEARING_AUTO_PUSH[[:space:]]*=' "$envf" | tail -1)"
+  [ -n "$line" ] || return 1
+  v="${line#*=}"; v="${v%%#*}"; v="$(printf '%s' "$v" | tr -d "\"'" | tr ',' ' ')"
+  set -f
+  for x in $v; do
+    [ "$(url_key "$x")" = "$k" ] && { printf '%s\n' "$x"; ok=0; break; }
+  done
+  set +f
+  return "$ok"
+}
+
+n=0; met=0; first=""
+cond() { # cond <name> <0 met|1 unmet> <detail>; first holds the first unmet
+  n=$((n+1))
+  if [ "$2" -eq 0 ]; then met=$((met+1)); echo "ok $1: $3"
+  else [ -n "$first" ] || first="$1: $3"; echo "no $1: $3"; fi
+}
+
+# base_ref: the first of origin/develop, origin/main, origin/master that exists
+# as a remote-tracking ref (a local branch of that name does not count).
+base_ref() {
+  local b
+  for b in develop main master; do
+    git -C "$root" rev-parse -q --verify "refs/remotes/origin/$b" >/dev/null && { echo "origin/$b"; return 0; }
+  done
+  return 1
+}
+
+# protected <branch>: exit 0 when the branch is main, master, develop,
+# release/*, or a word of PROTECTED_BRANCHES in .githooks/lib.sh (read as
+# text, never sourced).
+protected() {
+  local w ws=""
+  case "$1" in (main|master|develop|release/*) return 0 ;; esac
+  [ -f "$root/.githooks/lib.sh" ] && ws="$(bounded 5 sed -n "s/^PROTECTED_BRANCHES='\(.*\)'.*/\1/p" "$root/.githooks/lib.sh" | head -1)"
+  set -f
+  for w in $ws; do [ "$w" = "$1" ] && { set +f; return 0; }; done
+  set +f
+  return 1
+}
+
+# task_id <branch>: the <ID> of a task branch (feature/ABC-12-slug gives
+# ABC-12); nothing for any other name.
+task_id() {
+  printf '%s\n' "$1" | sed -n -E 's#^(feature|bugfix|hotfix|chore|docs)/([A-Z][A-Z0-9]*(-[0-9]+)+)-[A-Za-z0-9]+$#\2#p'
+}
+
+# uncommitted_ok <XY> <path>: exit 0 when a `git status` record is an
+# uncommitted file the push never sends and merge-request writes after
+# make check by design: untracked (??) or changed in the work tree only
+# ( M, the index as HEAD), and either this task's progress file
+# ($progress, docs/progress/<ID>.md) or a path under .scratch/. A staged
+# change, another task's progress file or any other path is not.
+progress=""
+uncommitted_ok() {
+  case "$1" in ('??'|' M') ;; (*) return 1 ;; esac
+  case "$2" in (.scratch/*) return 0 ;; esac
+  [ -n "$progress" ] && [ "$2" = "$progress" ]
+}
+
+# status_paths [kept|skipped]: the paths of the NUL-separated `git status -z`
+# records on stdin, NUL-separated; a rename or copy record's second path
+# (the old name) is skipped. kept (the default) leaves out the records
+# uncommitted_ok accepts; skipped prints only those.
+status_paths() {
+  local rec skip=0 want="${1:-kept}" ok
+  while IFS= read -r -d '' rec; do
+    if [ "$skip" -eq 1 ]; then skip=0; continue; fi
+    case "$rec" in ([RC]*) skip=1 ;; esac
+    if uncommitted_ok "${rec:0:2}" "${rec:3}"; then ok=skipped; else ok=kept; fi
+    [ "$ok" = "$want" ] || continue
+    printf '%s\0' "${rec:3}"
+  done
+}
+
+# committed_newer <path> <marker>: exit 0 when the last commit on HEAD that
+# touched <path> is newer than the marker (to the second: the commit time is
+# set on a scratch file with touch -t, which BSD and GNU both read).
+committed_newer() {
+  local ct f
+  ct="$(git -C "$root" log -1 --format=%cd --date=format-local:%Y%m%d%H%M.%S HEAD -- "$1" 2>/dev/null)"
+  [ -n "$ct" ] || return 1
+  f="$(mktemp "${TMPDIR:-/tmp}/brg-push.XXXXXX")" || return 0
+  touch -t "$ct" "$f" 2>/dev/null || { rm -f "$f"; return 0; }
+  if [ "$f" -nt "$2" ]; then rm -f "$f"; return 0; fi
+  rm -f "$f"; return 1
+}
+
+# gate_count <marker>: reads NUL-separated paths on stdin and prints
+# "<compared> <newer>": each path once, paths under .bearing/state/ skipped
+# (state files are newer than the marker by construction; any other .bearing/
+# file counts), existing paths only, and how many of them are newer than the
+# marker. A path in $skipped (newline-separated: an uncommitted change
+# uncommitted_ok accepts, which reaches here from the branch diff) is judged
+# by the time of its last commit instead, so its committed change still
+# counts and its uncommitted one does not.
+skipped=""
+gate_count() {
+  local f k=0 j=0 nl='
+' seen='
+'
+  while IFS= read -r -d '' f; do
+    case "$f" in (''|.bearing/state/*) continue ;; esac
+    case "$seen" in (*"$nl$f$nl"*) continue ;; esac
+    seen="$seen$f$nl"
+    [ -e "$root/$f" ] || [ -L "$root/$f" ] || continue
+    k=$((k+1))
+    case "$skipped" in
+      (*"$nl$f$nl"*) if committed_newer "$f" "$1"; then j=$((j+1)); fi; continue ;;
+    esac
+    if [ "$root/$f" -nt "$1" ]; then j=$((j+1)); fi
+  done
+  echo "$k $j"
+}
+
+# check_conditions: the eight conditions, in order, as cond lines. Runs in the
+# sandbox, where any git command in the working repository is harmless.
+check_conditions() {
+  local url key b base c m counts k j id
+  if [ "$(cat "$st/.push-optin" 2>/dev/null)" = on ]; then
+    cond opt-in 0 "bearing.env lists origin's url (recorded at session start)"
+  elif [ -f "$st/.push-optin" ]; then
+    cond opt-in 1 "origin's url is not listed in BEARING_AUTO_PUSH in the personal bearing.env"
+  else
+    cond opt-in 1 "not recorded at session start (no .bearing/state/.push-optin)"
+  fi
+  url="$(git -C "$root" config --get remote.origin.url 2>/dev/null)"
+  if [ -z "$url" ]; then cond origin 1 "no remote named origin"
+  elif key="$(url_key "$url")"; then cond origin 0 "$key"
+  else cond origin 1 "origin's url is not an ssh, scp-style or https URL"; fi
+  b="$(git -C "$root" symbolic-ref -q --short HEAD 2>/dev/null)"
+  if [ -z "$b" ]; then cond branch 1 detached
+  elif printf '%s\n' "$b" | grep -Eq "$TASK_RE"; then cond branch 0 "$b"
+  else cond branch 1 "$b is not a task branch (feature|bugfix|hotfix|chore|docs/<ID>-<slug>)"; fi
+  if [ -z "$b" ]; then cond not-protected 1 detached
+  elif protected "$b"; then cond not-protected 1 "$b is protected"
+  else cond not-protected 0 "$b"; fi
+  # The push sends committed history only: this task's uncommitted progress
+  # file and .scratch/ (uncommitted_ok) count for neither clean nor gate.
+  # Every git status passes --ignore-submodules=dirty: looking inside a
+  # submodule refreshes its index, which runs the filter driver its own
+  # .git/config defines. A submodule moved to another commit still counts.
+  progress=""; id="$(task_id "$b")"; [ -z "$id" ] || progress="docs/progress/$id.md"
+  if ! c="$(git -C "$root" status -z --ignore-submodules=dirty --untracked-files=no 2>/dev/null | status_paths | tr -cd '\000' | wc -c
+            exit "${PIPESTATUS[0]}")"; then
+    cond clean 1 "git status failed"
+  elif [ "$c" -eq 0 ]; then cond clean 0 "no uncommitted change"
+  else cond clean 1 "$((c)) uncommitted change(s)"; fi
+  skipped="$nl$(git -C "$root" status -z --ignore-submodules=dirty --untracked-files=all 2>/dev/null | status_paths skipped | tr '\000' '\n')$nl"
+  base="$(base_ref)" || base=""
+  if [ -z "$base" ]; then cond ahead 1 "no origin/develop, origin/main or origin/master"
+  else
+    c="$(git -C "$root" rev-list --count "$base..HEAD" 2>/dev/null)" || c=0
+    if [ "${c:-0}" -ge 1 ]; then cond ahead 0 "$c commit(s) not on $base"
+    else cond ahead 1 "0 commits not on $base"; fi
+  fi
+  m="$st/.check-passed"
+  counts="$( { [ -z "$base" ] || git -C "$root" diff -z --name-only "$base...HEAD" --
+              git -C "$root" status -z --ignore-submodules=dirty --untracked-files=all | status_paths; } | gate_count "$m" )"
+  k="${counts% *}"; j="${counts#* }"
+  if [ ! -f "$m" ]; then cond gate 1 "make check has never passed"
+  elif [ "$j" -gt 0 ]; then cond gate 1 "$j of $k file(s) newer than the last make check"
+  elif [ "$k" -eq 0 ]; then cond gate 1 "0 files on the branch"
+  else cond gate 0 "$k file(s) compared"; fi
+  if [ -z "$b" ]; then cond fast-forward 1 detached
+  elif ! git -C "$root" rev-parse -q --verify "refs/remotes/origin/$b" >/dev/null; then
+    cond fast-forward 0 "no origin/$b yet"
+  elif git -C "$root" merge-base --is-ancestor "refs/remotes/origin/$b" HEAD 2>/dev/null; then
+    cond fast-forward 0 "origin/$b is an ancestor of HEAD"
+  else cond fast-forward 1 "origin/$b has commits HEAD does not (a push is never forced)"; fi
+}
+
+# in_state_dir <real root>: exit 0 when the working directory is
+# <real root>/.bearing/state. It asks the kernel (/bin/pwd -P is getcwd on
+# Linux and macOS), never the shell: bash's builtin pwd -P resolves the path
+# string it remembers, so an agent that swaps a link for a real directory
+# right after the cd would pass it while the process sits in the link's
+# target. Once this holds, the directory stays the one checked, whatever is
+# renamed later.
+in_state_dir() { [ "$(/bin/pwd -P)" = "$1/.bearing/state" ]; }
+
+# state_cd <op>: enter the real <root>/.bearing/state one name at a time
+# (put and add make a missing one with mkdir, never mkdir -p, which follows a
+# linked .bearing), each cd `cd -P -- ./<name>` so CDPATH plays no part, root
+# resolved with /bin/pwd -P, and where it lands judged by in_state_dir.
+# Each step is judged too, so a linked .bearing is refused before state is
+# made inside its target.
+# Return 0 there, 1 refused, 2 when the directory does not exist.
+state_cd() {
+  local real c want
+  real="$(cd -P -- "$root" 2>/dev/null && /bin/pwd -P)" && cd -P -- "$real" || return 1
+  want="$real"
+  for c in .bearing state; do
+    want="$want/$c"
+    case "$1" in (put|add) mkdir "./$c" 2>/dev/null ;; esac
+    if [ ! -e "./$c" ] && [ ! -L "./$c" ]; then return 2; fi
+    cd -P -- "./$c" 2>/dev/null || return 1
+    [ "$(/bin/pwd -P)" = "$want" ] || return 1
+  done
+  in_state_dir "$real" || return 1
+}
+
+# The two file opens state_write add and state_read make, in python3 -I (no
+# current directory on the module path, no PYTHON* variable): O_NOFOLLOW, so
+# a link at the name is refused; O_NONBLOCK, so a FIFO cannot hang the hook;
+# and the opened file must be a regular file with one link, so a hard link to
+# a file the sandbox hides is neither read nor appended to.
+PY_OPEN='import os, sys
+def opened(flags):
+    try:
+        fd = os.open(sys.argv[1], flags | os.O_NOFOLLOW | os.O_NONBLOCK, 0o644)
+    except OSError:
+        sys.exit(1)
+    st = os.fstat(fd)
+    if st.st_mode & 0o170000 != 0o100000 or st.st_nlink != 1:
+        sys.exit(1)
+    return fd, st
+'
+PY_APPEND="$PY_OPEN"'fd, st = opened(os.O_WRONLY | os.O_APPEND | os.O_CREAT)
+if st.st_size > 1048576:
+    sys.exit(1)
+os.write(fd, sys.stdin.buffer.read(65536))
+'
+PY_READ="$PY_OPEN"'fd, st = opened(os.O_RDONLY)
+sys.stdout.buffer.write(os.read(fd, 65536))
+'
+
+# state_write put|rm|add <name>: the one way brg-push changes a file in
+# .bearing/state, safe outside the sandbox against links the agent plants.
+# It enters the state directory with state_cd and uses relative names only
+# from there, so a link swapped in later is never followed. put: stdin goes
+# to a new file under an unused random name, created with noclobber (O_EXCL:
+# never through a link); then whatever <name> is gets removed (rm -rf removes
+# a link, not its target) and the file renamed onto it (mv -T, or -h on BSD:
+# never into a linked directory). rm: removes <name> of any type; a missing
+# state directory is nothing to do. add: appends stdin (64 KiB at most) to a
+# regular, singly linked <name> of 1 MiB or less, or creates it, through
+# PY_APPEND; never a `>>` through a path; anything else at <name> (a link, a
+# FIFO, a hard link, a log over 1 MiB) is removed and a fresh file started.
+# Exit 0 done, 1 refused or failed.
+# The body is a subshell, so the cd stays in it.
+state_write() (
+  op="$1"; name="$2"
+  case "$op" in (put|rm|add) ;; (*) exit 1 ;; esac
+  case "$name" in (''|.|..|*/*) exit 1 ;; esac
+  state_cd "$op"; rc=$?
+  if [ "$rc" -eq 2 ] && [ "$op" = rm ]; then exit 0; fi
+  [ "$rc" -eq 0 ] || exit 1
+  if [ "$op" = rm ]; then rm -r -f "./$name"; exit $?; fi
+  if [ "$op" = add ]; then
+    body="$(cat)"
+    printf '%s\n' "$body" | python3 -I -c "$PY_APPEND" "./$name" 2>/dev/null && exit 0
+    # A link, a FIFO, a hard link or an oversized log: start a fresh file.
+    rm -r -f "./$name"
+    printf '%s\n' "$body" | python3 -I -c "$PY_APPEND" "./$name" 2>/dev/null; exit $?
+  fi
+  t="$(mktemp -u "./$name.XXXXXX")" || exit 1
+  set -C
+  if ! cat > "$t"; then rm -f "$t"; exit 1; fi
+  rm -r -f "./$name"
+  mv -f -T "$t" "./$name" 2>/dev/null || mv -f -h "$t" "./$name" 2>/dev/null || { rm -f "$t"; exit 1; }
+)
+
+# state_read <name>: prints <name> from .bearing/state (64 KiB at most) when
+# it is a regular file with one link, opened without following a link and
+# without blocking (PY_READ); exit 1 otherwise. A read from a hook must not
+# hand the agent a file the sandbox hides from it.
+state_read() (
+  case "$1" in (''|.|..|*/*) exit 1 ;; esac
+  state_cd read || exit 1
+  exec python3 -I -c "$PY_READ" "./$1"
+)
+
+# optin_record: .push-optin is on when an entry's key is origin's key, else
+# off. Any old .push-optin goes first, so a run that stops early (no .git, a
+# read that times out) leaves no stale on; both writes are state_write.
+optin_record() {
+  local v=off
+  state_write rm .push-optin || return 0
+  [ -e "$root/.git" ] || return 0
+  if entry_for >/dev/null 2>&1; then v=on; fi
+  printf '%s\n' "$v" | state_write put .push-optin
+}
+
+# is_task_branch <value>: one line matching TASK_RE (a value with a newline
+# never passes, whatever its first line is).
+is_task_branch() {
+  case "$1" in (''|*"$nl"*) return 1 ;; esac
+  printf '%s\n' "$1" | grep -Eq "$TASK_RE"
+}
+nl='
+'
+
+# tgit <args>: git in the empty temporary directory (or in tgdir, the fresh
+# clone) under the cleared environment, bounded, so it reads only the system
+# and global config (the engineer's, which the sandbox and the Edit denies keep
+# from the agent) and, in the clone, the config clone wrote itself.
+tgdir=""
+tgit() { ( cd "${tgdir:-$tmp}" && bounded 10 cleanenv git "$@" ); }
+
+# transport_redirect <entry URL>: prints the first system or global git
+# setting that could send this push somewhere other than the entry, or exits
+# 1 when there is none: core.sshCommand other than ssh; a non-empty
+# core.gitProxy, http.proxy, https.proxy, http.<url>.proxy or
+# http.curloptResolve; http.sslVerify or http.<url>.sslVerify false; a
+# url.<base>.insteadOf or pushInsteadOf whose value is a prefix of the entry;
+# any key of a remote named by the entry URL itself (remote.<entry>.pushurl,
+# .url, .receivepack, .push ...), which `git push <entry>` would apply, named
+# as remote.<entry>.<key> (an entry is never printed). The push itself sees
+# none of these (push_env), so this is the early, named refusal.
+# The environment needs no check: every git run runs under cleanenv. A config
+# git cannot read is refused too ("git config").
+transport_redirect() {
+  local e="$1" k val o keys rc sub
+  keys="$(tgit config --name-only --get-regexp '^(core\.(sshcommand|gitproxy)|https?\.(.*\.)?proxy|http\.(.*\.)?(sslverify|curloptresolve)|url\..*\.(push)?insteadof|remote\..*\.[a-z0-9-]*)$' 2>/dev/null)"
+  rc=$?
+  if [ "$rc" -gt 1 ]; then echo "git config"; return 0; fi
+  while IFS= read -r k; do
+    [ -n "$k" ] || continue
+    case "$k" in
+      (core.sshcommand) [ "$(tgit config --get "$k")" != ssh ] || continue ;;
+      (*.sslverify) [ "$(tgit config --bool --get "$k" 2>/dev/null)" = false ] || continue ;;
+      (url.*) o=1
+        while IFS= read -r val; do
+          case "$e" in ("$val"*) o=0 ;; esac
+        done <<EOF
+$(tgit config --get-all "$k")
+EOF
+        [ "$o" -eq 0 ] || continue ;;
+      (remote.*) sub="${k#remote.}"; sub="${sub%.*}"
+        [ -n "$e" ] && [ "$sub" = "$e" ] || continue
+        k="remote.<entry>.${k##*.}" ;;
+      (*) [ -n "$(tgit config --get "$k")" ] || continue ;;
+    esac
+    printf '%s\n' "$k"; return 0
+  done <<EOF
+$(printf '%s\n' "$keys" | sort -u)
+EOF
+  return 1
+}
+
+# redact <entry> <key>: stdin with every copy of the entry replaced by its
+# key and any user:password@ after a :// dropped, so no line brg-push writes
+# holds a token an https entry may carry.
+redact() {
+  local line
+  while IFS= read -r line || [ -n "$line" ]; do
+    if [ -n "$1" ]; then line="${line//"$1"/$2}"; fi
+    printf '%s\n' "$line"
+  done | sed 's#://[^/@[:space:]]*@#://#g'
+}
+
+utc() { date -u +%Y-%m-%dT%H:%M:%SZ; }
+
+# result <line>: the one-line push-result, written whole.
+result() { printf '%s\n' "$1" | state_write put push-result; }
+
+# log_gate <outcome> <label>: a gates.log line in the guard's format (time,
+# gate, outcome, ms, label), appended through state_write add.
+log_gate() {
+  local label
+  label="$(printf '%s' "$2" | tr '\t\r\n' '   ' | cut -c1-120)"
+  printf '%s\tpush\t%s\t%s\t%s\n' "$(date +%Y-%m-%dT%H:%M:%S)" "$1" "$(( ($(date +%s) - t0) * 1000 ))" "$label" \
+    | state_write add gates.log
+}
+
+# run_conditions: the seven conditions run judges before the clone, from
+# files only: no git command in the working repository. Sets b, sha, entry,
+# key. The request is agent-written, so the branch is judged before any use
+# and only a value that passed reaches a command line.
+run_conditions() {
+  local req envf mark ok=1 r
+  b=""; sha=""; entry=""; key=""
+  if [ ! -e "$st/push-request" ] && [ ! -L "$st/push-request" ]; then
+    cond request 1 none
+  elif ! req="$(state_read push-request)"; then
+    cond request 1 "not a regular file with one link"
+  else
+    b="$(printf '%s\n' "$req" | sed -n 's/^branch=//p')"
+    sha="$(printf '%s\n' "$req" | sed -n 's/^sha=//p')"
+    case "$sha" in
+      (*[!0-9a-f]*|'') cond request 1 "needs a branch= line and a 40-hex sha= line" ;;
+      (*) if [ "${#sha}" -eq 40 ] && [ -n "$b" ]; then cond request 0 "sha ${sha:0:7}"
+          else cond request 1 "needs a branch= line and a 40-hex sha= line"; fi ;;
+    esac
+  fi
+  if [ -z "$b" ]; then cond branch 1 "none requested"
+  elif is_task_branch "$b"; then ok=0; cond branch 0 "$b"
+  else cond branch 1 "not a task branch (feature|bugfix|hotfix|chore|docs/<ID>-<slug>)"; fi
+  if [ "$ok" -ne 0 ]; then b=""; cond not-protected 1 "no task branch to judge"
+  elif protected "$b"; then cond not-protected 1 "$b is protected"
+  else cond not-protected 0 "$b"; fi
+  if entry="$(entry_for)" && key="$(url_key "$entry")"; then cond opt-in 0 "$key"
+  else entry=""; key=""; cond opt-in 1 "origin's url is not listed in BEARING_AUTO_PUSH in the personal bearing.env"; fi
+  envf="${home:+$home/.config/bearing/bearing.env}"
+  case "$sid" in
+    (''|.*|*[!A-Za-z0-9._-]*) cond opt-in-age 1 "no usable session id" ;;
+    (*) mark="$st/.session-$sid"
+      if [ ! -f "$mark" ]; then cond opt-in-age 1 "no session mark for this session"
+      elif [ -z "$envf" ] || [ ! -f "$envf" ]; then cond opt-in-age 1 "no bearing.env"
+      elif [ "$envf" -nt "$mark" ]; then cond opt-in-age 1 "bearing.env changed during this session; it counts from the next one"
+      else cond opt-in-age 0 "bearing.env predates the session"; fi ;;
+  esac
+  if [ -f "$st/.check-passed" ]; then cond marker 0 "make check passed (judged by request and the Stop gate)"
+  else cond marker 1 "make check has never passed"; fi
+  if [ -z "$home" ]; then cond transport 1 "no passwd home"
+  elif r="$(transport_redirect "$entry")"; then cond transport 1 "$r could redirect the push (the system or global git config)"
+  else cond transport 0 "nothing in the system or global git config redirects it"; fi
+}
+
+# prot_tmp: a fresh directory for one run, made with mktemp -d inside
+# <passwd home>/.config/bearing/tmp, never TMPDIR: the sandbox denies the
+# agent reads and writes under ~/.config/bearing, so nothing the agent runs
+# can write the clone's config (or the generated global config) between the
+# clone and the push. tmp itself is made mode 700 and must be a directory,
+# not a link, owned by the effective user; it is set back to 700 each run.
+prot_tmp() {
+  local d
+  [ -n "$home" ] && [ -d "$home/.config/bearing" ] || return 1
+  d="$home/.config/bearing/tmp"
+  mkdir -m 700 "$d" 2>/dev/null
+  [ -d "$d" ] && [ ! -L "$d" ] && [ -O "$d" ] && chmod 700 "$d" || return 1
+  mktemp -d "$d/brg-push.XXXXXX"
+}
+
+# prune_tmp: removes this script's own leftovers in the protected tmp (a run
+# killed before its cleanup): directories named brg-push.*, directly under
+# it, owned by the effective user, last changed more than a day ago. find
+# never follows a link (-type d is false for one), and rm -r removes a link
+# inside, not what it points at.
+prune_tmp() {
+  local d="$home/.config/bearing/tmp"
+  [ -n "$home" ] && [ -d "$d" ] && [ ! -L "$d" ] && [ -O "$d" ] || return 0
+  find "$d" -mindepth 1 -maxdepth 1 -type d -name 'brg-push.*' -user "$(id -u)" -mmin +1440 \
+    -exec rm -r -f -- {} + 2>/dev/null
+  return 0
+}
+
+# gen_global <file>: the global git config the clone and the push use,
+# holding only the credential.* keys (helper, username, useHttpPath, per-URL
+# sections) of the system config, then of the engineer's global config
+# (~/.gitconfig and ~/.config/git/config), includes not followed, in git's
+# own order; a key with no value is written as true. The system file is
+# admin-owned and the sandbox cannot write it; its credential keys keep
+# Apple git's credential.helper=osxkeychain working. cleanenv clears
+# GIT_CONFIG_NOSYSTEM for that read only (the push itself runs with it set).
+# Nothing else (no remote.*, url.*, push.*, core.* or transport key) from
+# any file reaches the push. Exit 1 when either config cannot be read or the
+# file cannot be written.
+sysfile=""   # a test seam, like passwd_home: GIT_CONFIG_SYSTEM for the system read
+gen_global() {
+  local rec k v rc
+  : > "$1" || return 1
+  ( cd "$tmp" && bounded 10 cleanenv ${sysfile:+GIT_CONFIG_SYSTEM="$sysfile"} git config --system --null --get-regexp '^credential\.' ) > "$tmp/cred.list" 2>/dev/null
+  rc=$?; [ "$rc" -le 1 ] || return 1
+  ( cd "$tmp" && bounded 10 cleanenv git config --global --null --get-regexp '^credential\.' ) >> "$tmp/cred.list" 2>/dev/null
+  rc=$?; [ "$rc" -le 1 ] || return 1
+  while IFS= read -r -d '' rec; do
+    case "$rec" in (*"$nl"*) k="${rec%%"$nl"*}"; v="${rec#*"$nl"}" ;; (*) k="$rec"; v=true ;; esac
+    case "$k" in (credential.*) ;; (*) continue ;; esac
+    ( cd "$tmp" && bounded 10 cleanenv git config --file "$1" --add "$k" "$v" ) || return 1
+  done < "$tmp/cred.list"
+}
+
+# pgit <args>: git as the clone and the push run it: under cleanenv, no
+# system config (GIT_CONFIG_NOSYSTEM=1), the generated global config
+# ($tmp/global), no hook (core.hooksPath=/dev/null) and no lazy fetch
+# (GIT_NO_LAZY_FETCH=1, which a patched upload-pack sets by itself).
+# Bounded by the caller.
+pgit() {
+  cleanenv GIT_CONFIG_NOSYSTEM=1 GIT_CONFIG_GLOBAL="$tmp/global" GIT_NO_LAZY_FETCH=1 \
+    git -c core.hooksPath=/dev/null "$@"
+}
+
+# git_version: the `git --version` line of the git the clone runs (a seam
+# for tests, like passwd_home).
+git_version() { ( cd "$tmp" && bounded 10 cleanenv git --version ) 2>/dev/null; }
+
+# git_min <git --version line>: exit 0 when the version is at or above the
+# release that fixed the clone of a hostile local repository (CVE-2024-32004:
+# upload-pack lazily fetched from a promisor remote the source config names,
+# running its commands): 2.45.1, or 2.39.4, 2.40.2, 2.41.1, 2.42.2, 2.43.4
+# or 2.44.1 on those lines. Otherwise prints that minimum and exits 1; a
+# line it cannot read needs 2.45.1.
+git_min() {
+  local v ma mi pa need
+  v="$(printf '%s\n' "$1" | sed -n 's/^git version \([0-9][0-9]*\)\.\([0-9][0-9]*\)\(\.\([0-9][0-9]*\)\)\{0,1\}.*/\1 \2 \4/p')"
+  set -- $v
+  ma="${1:-0}"; mi="${2:-0}"; pa="${3:-0}"
+  if [ "$ma" -gt 2 ] || { [ "$ma" -eq 2 ] && [ "$mi" -gt 45 ]; }; then return 0; fi
+  need=""
+  if [ "$ma" -eq 2 ]; then
+    case "$mi" in (39|43) need=4 ;; (40|42) need=2 ;; (41|44|45) need=1 ;; esac
+  fi
+  if [ -n "$need" ] && [ "$pa" -ge "$need" ]; then return 0; fi
+  if [ -n "$need" ]; then echo "2.$mi.$need"; else echo 2.45.1; fi
+  return 1
+}
+
+# lazy_fetch_honoured: exit 0 when this git honours GIT_NO_LAZY_FETCH, the
+# variable the fix brought, so a distribution build that backported the fix
+# and reports its base version (Ubuntu's 2.43.0) still passes. Judged on a
+# throwaway promisor repository in the protected temporary directory, never
+# on the source, whose promisor remote's uploadpack is a script brg-push
+# writes there that only records that it ran: asked for a missing object,
+# git must not start it with GIT_NO_LAZY_FETCH=1 set, and must start it
+# without (the control, so a probe that never fetches proves nothing). The
+# warning a patched git prints is not used: newer releases print none.
+lazy_fetch_honoured() {
+  local pr="$tmp/probe" up="$tmp/probe-up"
+  rm -r -f "$pr" "$up" "$up.ran"
+  ( cd "$tmp" && bounded 10 cleanenv GIT_CONFIG_NOSYSTEM=1 GIT_CONFIG_GLOBAL=/dev/null \
+      git -c core.hooksPath=/dev/null init -q "$pr" ) > /dev/null 2>&1 || return 1
+  printf '#!/bin/sh\n: > "$0.ran"\nexit 1\n' > "$up" && chmod 700 "$up" || return 1
+  printf '[core]\n\trepositoryformatversion = 1\n[extensions]\n\tpartialclone = origin\n[remote "origin"]\n\turl = %s/absent\n\tpromisor = true\n\tuploadpack = %s\n' \
+    "$tmp" "$up" >> "$pr/.git/config" || return 1
+  probe_fetch GIT_NO_LAZY_FETCH=1
+  if [ -e "$up.ran" ]; then rm -r -f "$pr" "$up" "$up.ran"; return 1; fi
+  probe_fetch GIT_TRACE=0
+  if [ -e "$up.ran" ]; then rm -r -f "$pr" "$up" "$up.ran"; return 0; fi
+  rm -r -f "$pr" "$up"
+  return 1
+}
+# probe_fetch <VAR=value>: the probe's object read, with that variable set.
+probe_fetch() {
+  ( cd "$tmp/probe" && bounded 10 cleanenv GIT_CONFIG_NOSYSTEM=1 GIT_CONFIG_GLOBAL=/dev/null "$1" \
+      git -c core.hooksPath=/dev/null cat-file -e 0123456789abcdef0123456789abcdef01234567 ) > /dev/null 2>&1
+}
+
+# git_patched: prints why and exits 1 when the git the clone runs is older
+# than the patched releases (git_min) and does not honour GIT_NO_LAZY_FETCH.
+git_patched() {
+  local line v need
+  line="$(git_version)"
+  need="$(git_min "$line")" && return 0
+  lazy_fetch_honoured && return 0
+  v="${line#git version }"; v="${v%% *}"
+  echo "git ${v:-of unknown version} is older than the patched release $need (or 2.45.1); upgrade git"
+  return 1
+}
+
+# source_risk: prints why and exits 0 when the source repository could make
+# the clone run or read what it should not. Read as text before the clone,
+# with no git command in the repository: objects/info/alternates or
+# http-alternates in the common git directory (objects from outside the
+# repository; a link or any file at the name counts), or, in its config
+# (includes followed) or a config.worktree, extensions.partialclone, any
+# remote.<name>.promisor (a lazy fetch runs that remote's uploadpack or
+# sshCommand) or an includeIf section, whose condition a text read cannot
+# judge. Exit 1 when there is none.
+source_risk() {
+  local gd d f k rc
+  if ! gd="$(git_dir)" || ! d="$(git_common_dir)"; then echo "no git directory to read"; return 0; fi
+  for f in alternates http-alternates; do
+    if [ -e "$d/objects/info/$f" ] || [ -L "$d/objects/info/$f" ]; then
+      echo "the source repository has objects/info/$f"; return 0
+    fi
+  done
+  for f in "$d/config" "$d/config.worktree" "$gd/config.worktree"; do
+    [ -e "$f" ] || [ -L "$f" ] || continue
+    if [ ! -f "$f" ] || [ -L "$f" ]; then echo "the source repository's ${f##*/} is not a regular file"; return 0; fi
+    k="$( cd "$tmp" && bounded 5 cleanenv git config --file "$f" --includes --name-only \
+          --get-regexp '^(extensions\.partialclone|remote\..*\.promisor|includeif\..*)$' 2>/dev/null )"
+    rc=$?
+    if [ "$rc" -gt 1 ]; then echo "the source repository's ${f##*/} could not be read"; return 0; fi
+    if [ -n "$k" ]; then
+      echo "the source repository's config holds $(printf '%s\n' "$k" | head -1 | tr -d '\r' | cut -c1-120)"
+      return 0
+    fi
+  done
+  return 1
+}
+
+# push_env: refuses a git older than the patched releases (git_patched),
+# writes $tmp/global with gen_global, then asks git, in the empty
+# temporary directory, where each setting it sees comes from: every one must
+# come from $tmp/global or the command line, so a git that ignores
+# GIT_CONFIG_NOSYSTEM or GIT_CONFIG_GLOBAL (older than 2.32) is refused
+# rather than reading the real files. Prints why on failure.
+push_env() {
+  local rec o=1
+  git_patched || return 1
+  gen_global "$tmp/global" || { echo "the global git config could not be read for its credential keys"; return 1; }
+  ( cd "$tmp" && bounded 10 pgit config --null --show-origin --list ) > "$tmp/origins" 2>/dev/null \
+    || { echo "git could not list the push's config"; return 1; }
+  while IFS= read -r -d '' rec; do
+    o=$((1-o))
+    [ "$o" -eq 0 ] || continue   # origin, then key and value, alternate
+    case "$rec" in ("file:$tmp/global"|"command line:") ;;
+      (*) echo "this git reads config the push must not see (needs git 2.32 or later)"; return 1 ;; esac
+  done < "$tmp/origins"
+}
+
+# clone_config_extra: re-reads the clone's .git/config (includes not
+# followed) just before the push and prints the first key git clone did not
+# write itself, "no config keys" for an empty one, or why it could not be
+# read; exit 0 then, so the caller refuses. Exit 1 when every key is one
+# clone writes: core.repositoryformatversion, core.filemode, core.bare,
+# core.logallrefupdates, core.ignorecase, core.precomposeunicode,
+# core.symlinks, extensions.objectformat, extensions.refstorage,
+# remote.origin.url, remote.origin.fetch, remote.origin.tagopt,
+# branch.<branch>.remote and branch.<branch>.merge; ckeys holds the count.
+ckeys=0
+clone_config_extra() {
+  local k
+  ckeys=0
+  ( cd "$tmp" && bounded 10 cleanenv git config --file "$tmp/c/.git/config" --no-includes --null --name-only --list ) \
+    > "$tmp/clone.keys" 2>/dev/null || { echo "an unreadable config"; return 0; }
+  while IFS= read -r -d '' k; do
+    case "$k" in
+      (core.repositoryformatversion|core.filemode|core.bare|core.logallrefupdates|core.ignorecase) ;;
+      (core.precomposeunicode|core.symlinks|extensions.objectformat|extensions.refstorage) ;;
+      (remote.origin.url|remote.origin.fetch|remote.origin.tagopt|"branch.$b.remote"|"branch.$b.merge") ;;
+      (*) printf '%s\n' "$k"; return 0 ;;
+    esac
+    ckeys=$((ckeys+1))
+  done < "$tmp/clone.keys"
+  [ "$ckeys" -gt 0 ] || { echo "no config keys"; return 0; }
+  return 1
+}
+
+# push_clone: the eighth condition and the push. The git must be patched
+# (push_env) and the source must carry no alternates and no promisor
+# (source_risk), both judged before the clone. The branch is cloned from
+# the repository path into the protected temporary directory (upload-pack is
+# the only git that runs there), no hook anywhere, no checkout; its HEAD must
+# be the requested sha. Then that clone pushes the one branch to the listed
+# entry: no force, no tags, never origin's configured url. The clone, its
+# rev-parse and the push run through pgit: the generated global config only.
+push_clone() {
+  local head r why
+  if ! why="$(push_env)"; then cond clone 1 "$why"
+  elif why="$(source_risk)"; then cond clone 1 "$why"
+  elif ( cd "$tmp" && bounded 600 pgit clone -q --no-local --single-branch \
+         --branch "$b" --no-tags --no-checkout -- "$root" "$tmp/c" ) > "$tmp/clone.err" 2>&1; then
+    head="$( cd "$tmp" && bounded 30 pgit -C "$tmp/c" rev-parse -q --verify HEAD 2>/dev/null )"
+    # The transport again, as git sees the real global config inside the
+    # clone, where an includeIf (gitdir:, onbranch:) may apply. Then the
+    # clone's own config, re-read last, right before the push.
+    if [ "$head" != "$sha" ]; then cond clone 1 "the branch is at ${head:0:7}, not the requested ${sha:0:7}; request again"
+    elif r="$(tgdir="$tmp/c" transport_redirect "$entry")"; then cond clone 1 "$r could redirect the push (config seen inside the clone)"
+    elif clone_config_extra > "$tmp/clone.extra"; then
+      cond clone 1 "the clone's config holds $(head -1 "$tmp/clone.extra"), which git clone did not write"
+    else cond clone 0 "HEAD is ${sha:0:7}; $ckeys config keys, each one git clone writes"; fi
+  else
+    cond clone 1 "the clone failed: $(redact "$entry" "$key" < "$tmp/clone.err" | grep . | tail -1)"
+  fi
+  echo "push-run: $n conditions, $met met"
+  [ "$met" -eq "$n" ] || return 1
+  ( cd "$tmp" && bounded 600 pgit -C "$tmp/c" push --no-follow-tags \
+      "$entry" "HEAD:refs/heads/$b" ) > "$tmp/push.err" 2>&1
+  pushrc=$?
+  redact "$entry" "$key" < "$tmp/push.err"
+  return 0
+}
+
+# refuse: the request is deleted, so a refused request never fires later.
+refuse() {
+  state_write rm push-request
+  result "push refused: $(printf '%s' "$first" | tr '\t\r\n' '   ')"
+  log_gate refused "$first"
+  echo "bearing push: refused: $first"
+}
+
+# run_foreground: judge all eight, push, record. Output goes to the caller
+# and, redacted, to push.log.
+run_foreground() {
+  local why
+  run_conditions
+  if [ -z "$first" ]; then state_write rm push-request; fi
+  if [ -n "$first" ]; then
+    cond clone 1 "not tried"
+    echo "push-run: $n conditions, $met met"
+    # No request at all: nothing to refuse, and no result over the last one.
+    if [ -n "$b$sha" ] || [ -e "$st/push-request" ] || [ -L "$st/push-request" ]; then refuse; fi
+    return 1
+  fi
+  pushrc=1
+  push_clone || { refuse; return 1; }
+  if [ "$pushrc" -eq 0 ]; then
+    result "pushed $b $sha to $key $(utc)"
+    log_gate pushed "$b"
+    echo "bearing push: pushed $b ${sha:0:7} to $key"
+    return 0
+  fi
+  why="$(redact "$entry" "$key" < "$tmp/push.err" | tr -d '\r' | grep . | tail -1 | tr '\t' ' ')"
+  result "push failed: ${why:-git push exited $pushrc}"
+  log_gate failed "$why"
+  echo "bearing push: failed: ${why:-git push exited $pushrc}"
+  return 1
+}
+
+# close_fds: closes every descriptor from 3 up in this (sub)shell: those
+# /dev/fd lists (Linux, macOS), then 3 to 255 one by one where it lists
+# nothing. bash 3.2 has no {fd} syntax, hence eval.
+close_fds() {
+  local f n
+  for f in /dev/fd/*; do
+    n="${f#/dev/fd/}"
+    case "$n" in (''|*[!0-9]*|0|1|2) continue ;; esac
+    eval "exec $n>&-" 2>/dev/null
+  done
+  n=3
+  while [ "$n" -le 255 ]; do eval "exec $n>&-" 2>/dev/null; n=$((n+1)); done
+}
+
+# run_main [--id <sid>] [--foreground]: the Stop hook's entry. Root is
+# CLAUDE_PROJECT_DIR, else the working directory; no git rev-parse. Without
+# --foreground it judges the seven conditions and, when they hold, starts the
+# foreground run detached (nohup, stdin from /dev/null, output to /dev/null,
+# every descriptor from 3 up closed by close_fds: nothing it inherits keeps
+# the hook or its caller open) and returns inside the hook's
+# timeout. A .git gitfile can point the origin read and the clone source at
+# another repository; the push still goes only to a URL the engineer listed
+# (accepted, amendment ruling Q4).
+run_main() {
+  local fg=0 rc self
+  sid=""
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      (--id) sid="${2:-}"; shift; [ $# -gt 0 ] && shift ;;
+      (--foreground) fg=1; shift ;;
+      (*) usage ;;
+    esac
+  done
+  root="${CLAUDE_PROJECT_DIR:-$PWD}"
+  case "$root" in (/*) ;; (*) echo "brg-push: no absolute project directory; 0 conditions checked" >&2; exit 2 ;; esac
+  st="$root/.bearing/state"
+  t0="$(date +%s)"
+  tmp="$(prot_tmp)" || { echo "brg-push: no temporary directory under <passwd home>/.config/bearing/tmp; 0 conditions checked" >&2; exit 2; }
+  empty="$tmp"   # origin_url reads in it; cleanup removes it and the clone
+  prune_tmp
+  if [ "$fg" -eq 1 ]; then
+    run_foreground > "$tmp/out" 2>&1; rc=$?
+    cat "$tmp/out"
+    { printf '%s push run --foreground\n' "$(utc)"; redact "$entry" "$key" < "$tmp/out"; } | state_write add push.log
+    exit "$rc"
+  fi
+  run_conditions
+  echo "push-run: $n conditions before the clone, $met met"
+  if [ -n "$first" ]; then
+    if [ -n "$b$sha" ] || [ -e "$st/push-request" ] || [ -L "$st/push-request" ]; then refuse; fi
+    exit 1
+  fi
+  case "$0" in (/*) self="$0" ;; (*) self="$PWD/$0" ;; esac   # no cd: CDPATH plays no part
+  printf '%s push started for %s\n' "$(utc)" "$b" | state_write add push.log
+  ( close_fds; CLAUDE_PROJECT_DIR="$root" exec nohup bash "$self" run --id "$sid" --foreground ) \
+    < /dev/null > /dev/null 2>&1 &
+  echo "bearing push: started for $b"
+  exit 0
+}
+
+# request_main: check, then the request (branch, HEAD sha, time) written
+# whole through state_write. Runs in the agent's Bash, in the sandbox.
+request_main() {
+  local b sha
+  check_conditions
+  echo "push-check: $n conditions, $met met"
+  [ "$n" -gt 0 ] && [ "$met" -eq "$n" ] || exit 1
+  b="$(git -C "$root" symbolic-ref -q --short HEAD)" && sha="$(git -C "$root" rev-parse -q --verify HEAD)" || exit 1
+  printf 'branch=%s\nsha=%s\ntime=%s\n' "$b" "$sha" "$(utc)" | state_write put push-request \
+    || { echo "brg-push: could not write .bearing/state/push-request" >&2; exit 1; }
+  echo "push: requested $b $(git -C "$root" rev-parse --short HEAD)"
+  exit 0
+}
+
+# status_main [--unseen]: the push-result line, or "push: none". With
+# --unseen (the hooks): "bearing push: <line>" only when it differs from the
+# line last shown, which .push-result-seen then holds. No git command when
+# the hooks pass CLAUDE_PROJECT_DIR.
+status_main() {
+  local line seen unseen=0
+  [ "${1:-}" = --unseen ] && unseen=1
+  root="${CLAUDE_PROJECT_DIR:-}"
+  if [ -z "$root" ]; then root="$(git -c core.fsmonitor=false rev-parse --show-toplevel 2>/dev/null)" || exit 0; fi
+  st="$root/.bearing/state"
+  line="$(state_read push-result 2>/dev/null | head -1)"
+  if [ "$unseen" -eq 0 ]; then echo "${line:-push: none}"; exit 0; fi
+  [ -n "$line" ] || exit 0
+  seen="$(state_read .push-result-seen 2>/dev/null | head -1)"
+  [ "$seen" != "$line" ] || exit 0
+  echo "bearing push: $line"
+  printf '%s\n' "$line" | state_write put .push-result-seen
+  exit 0
+}
+
+usage() {
+  echo "usage: brg-push check | request | run --id <sid> [--foreground] | status | optin-record" >&2
+  exit 2
+}
+
+cleanup() { if [ -n "$empty" ]; then rm -r -f "$empty"; fi; }
+empty=""; entry=""; key=""; b=""; sha=""; sid=""; tmp=""; t0=0; pushrc=1
+
+main() {
+  local sub="${1:-}"
+  [ $# -gt 0 ] && shift
+  empty=""
+  trap cleanup EXIT
+  home="$(passwd_home 2>/dev/null)" || home=""
+  case "$sub" in
+    (optin-record) root="${CLAUDE_PROJECT_DIR:-$PWD}"   # no git rev-parse: outside the sandbox
+      # No protected directory: empty stays unset, origin_url fails, and
+      # optin_record writes off.
+      empty="$(prot_tmp)" || empty="" ;;
+    (check|request) root="$(git rev-parse --show-toplevel 2>/dev/null)" || {
+        echo "brg-push: not a git repository; 0 conditions checked" >&2; exit 2; } ;;
+    (run) run_main "$@" ;;
+    (status) status_main "$@" ;;
+    (*) usage ;;
+  esac
+  st="$root/.bearing/state"
+  case "$sub" in
+    (check)
+      check_conditions
+      echo "push-check: $n conditions, $met met"
+      if [ "$n" -gt 0 ] && [ "$met" -eq "$n" ]; then exit 0; fi
+      exit 1 ;;
+    (request) request_main ;;
+    (optin-record) optin_record; exit 0 ;;
+  esac
+}
+
+main "$@"

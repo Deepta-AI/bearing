@@ -1,0 +1,6 @@
+{
+  "name": "storefront",
+  "private": true,
+  "scripts": { "test": "vitest run" },
+  "devDependencies": { "vitest": "2.1.0", "@playwright/test": "1.48.0" }
+}

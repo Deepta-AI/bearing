@@ -37,4 +37,12 @@ cite "$other" 'references/no-such-either.md'
 assert_exit 2 mk -s -C "$w" lint-skills
 assert_contains "$T_OUT" "missing reference in react: references/no-such-either.md"
 t_end
+t_begin "a bearing-genai: skill name resolves and an unknown one fails"
+cp "$KIT/plugins/bearing-apps/skills/react/SKILL.md" "$other"
+printf '\nSee bearing-genai:rag.\n' >> "$other"
+assert_exit 0 mk -s -C "$w" lint-skills
+printf '\nSee bearing-genai:no-such-skill.\n' >> "$other"
+assert_exit 2 mk -s -C "$w" lint-skills
+assert_contains "$T_OUT" "unknown name 'bearing-genai:no-such-skill'"
+t_end
 t_summary

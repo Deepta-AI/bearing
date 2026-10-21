@@ -1,0 +1,21 @@
+{
+  "project": "Shop",
+  "group": "Shop",
+  "repos": [
+    {
+      "name": "ShopWeb",
+      "git_path": "Shop/Client/ShopWeb",
+      "stack": "next-app",
+      "tech": "Next.js, TypeScript",
+      "responsibility": "The storefront: browsing, the cart and order pages, over the ShopApi order API"
+    },
+    {
+      "name": "ShopApi",
+      "git_path": "Shop/Server/ShopApi",
+      "stack": "python-api",
+      "tech": "Python",
+      "responsibility": "Orders and totals; owns the order API and the database",
+      "path": "."
+    }
+  ]
+}

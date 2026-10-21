@@ -59,8 +59,10 @@ repository settings template turns on.
 
 Three gates run over the same guard subcommands: `stop-gate` (a session
 that changed files and has not passed `make check` since is sent back
-once, never in a loop), `check-file` (the edited file is linted and the
-problems go back to the agent) and `precompact` with `session --source compact`
+once, never in a loop), `check-file` (one line saying no hook ran the
+per-file check, since hooks run outside the sandbox and run no repository
+command; the agent runs the Makefile's check-file target in the session) and
+`precompact` with `session --source compact`
 (branch, changes, check state and the user's last requests
 survive compaction).
 

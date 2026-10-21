@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """lint-version: VERSION matches every plugin's plugin.json, the marketplace
-metadata and every marketplace entry. The three Bearing plugins (bearing,
-bearing-backend, bearing-apps) are released together, so one number holds for
+metadata and every marketplace entry. The four Bearing plugins (bearing,
+bearing-backend, bearing-apps, bearing-genai) are released together, so one number holds for
 all of them. Fails on an empty VERSION, on zero plugins and on any difference;
 prints the number of fields it compared.
 """

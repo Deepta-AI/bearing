@@ -88,7 +88,7 @@ def slug(s):
 
 def bearing_skills():
     """The Bearing skills: every directory holding a SKILL.md under a Bearing
-    plugin's skills/ (bearing, bearing-backend, bearing-apps)."""
+    plugin's skills/ (bearing, bearing-backend, bearing-apps, bearing-genai)."""
     return [d.name for d in kit_paths.skill_dirs()]
 
 
@@ -239,7 +239,7 @@ The request:
         proot = sdir.parent.parent
         how = f"""How to work: read {sdir}/SKILL.md and follow it as your procedure, reading the
 files it points to. Wherever it says ${{CLAUDE_PLUGIN_ROOT}}, use {proot}. Do not use the Skill tool
-for any Bearing skill (bearing:<name>, bearing-backend:<name> or bearing-apps:<name>; the installed
+for any Bearing skill (bearing:<name>, bearing-backend:<name>, bearing-apps:<name> or bearing-genai:<name>; the installed
 copy is an older version); read the file under {KIT}/plugins instead. Do not load any
 other skill. Never open anything under {KIT}/evals/: it holds the grading for this
 run, and reading it spoils the run."""
@@ -254,7 +254,7 @@ run, and reading it spoils the run."""
             else ""
         )
         how = f"""How to work: load the skill `{alt}` with the Skill tool and follow it as your procedure.{fallback} Do not
-load or read any Bearing skill (bearing:, bearing-backend: or bearing-apps:<name>), and do not read
+load or read any Bearing skill (bearing:, bearing-backend:, bearing-apps: or bearing-genai:<name>), and do not read
 anything under {KIT}."""
     else:
         how = f"""How to work: use your own judgement. Do not use the Skill tool, and do not read any SKILL.md

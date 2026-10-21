@@ -78,18 +78,20 @@ own names (`/office-hours`, `brainstorming`).
 
 | Stage | Skill | From | Output |
 | --- | --- | --- | --- |
-| Problem statement to approach | `genai-design` | bearing | solution doc, ADR stub, cost and risk |
-| Prompts | `prompt-registry` | bearing | versioned registry with tests and eval scores |
-| Retrieval | `rag` | bearing | ingestion, pgvector schema, retriever with citations |
-| Agents | `llm-agent` | bearing | tool registry, bounded loop, kill switch |
-| Tools for models | `mcp-server` | bearing | MCP server with schema-checked tools, both transports, auth, a test per tool, the harness registration |
-| Safety | `llm-guardrails` | bearing | policy file, input, tool and output checks |
-| Every model call | `llm-gateway` | bearing | routing, retries, caching, cost, tracing |
-| Is it good enough | `llm-eval` | bearing | golden set, graders, CI regression gate |
-| Prompting is not enough | `llm-fine-tuning` | bearing | data prep, recipe, GPU check, smoke run, vLLM serving, model card |
-| Speech and voice | `speech` | bearing | WER per language, latency per stage, barge-in, audio privacy |
-| Vision | `computer-vision` | bearing | group-safe splits, AUROC or mAP, threshold from costs, serving latency |
-| Classical ML and forecasting | `tabular-ml` | bearing | leakage check, baseline gate, calibration, explanations, drift |
+| Problem statement to approach | `genai-design` | bearing-genai | solution doc, ADR stub, cost and risk |
+| Prompts | `prompt-registry` | bearing-genai | versioned registry with tests and eval scores |
+| Retrieval | `rag` | bearing-genai | ingestion, pgvector schema, retriever with citations |
+| Agents | `llm-agent` | bearing-genai | tool registry, bounded loop, kill switch |
+| Tools for models | `mcp-server` | bearing-genai | MCP server with schema-checked tools, both transports, auth, a test per tool, the harness registration |
+| Safety | `llm-guardrails` | bearing-genai | policy file, input, tool and output checks |
+| Every model call | `llm-gateway` | bearing-genai | routing, retries, caching, cost, tracing |
+| Is it good enough | `llm-eval` | bearing-genai | golden set, graders, CI regression gate |
+| Cheapest model that passes | `model-routing` | bearing-genai | frontier of score and cost per candidate, cascade, budget and alert |
+| Data when real data is short | `dataset-generation` | bearing-genai | taxonomy, generated rows, dedupe and contamination counts, audit, datasheet |
+| Prompting is not enough | `llm-fine-tuning` | bearing-genai | data prep, recipe, GPU check, smoke run, vLLM serving, model card |
+| Speech and voice | `speech` | bearing-genai | WER per language, latency per stage, barge-in, audio privacy |
+| Vision | `computer-vision` | bearing-genai | group-safe splits, AUROC or mAP, threshold from costs, serving latency |
+| Classical ML and forecasting | `tabular-ml` | bearing-genai | leakage check, baseline gate, calibration, explanations, drift |
 
 ## 7. Set up the repository
 
@@ -133,7 +135,7 @@ own names (`/office-hours`, `brainstorming`).
 | Stage | Skill | From | Output |
 | --- | --- | --- | --- |
 | Automated tests | `test-automation` | bearing | suite per stack, generated tests by TC id |
-| Run tests, pass/fail report | `test-run` | bearing | docs/testing/reports/<date>.md and .json |
+| Run tests: scoped to the change while you work, in full at definition of done | `test-run` | bearing | .scratch/test-run/ for a scoped run; docs/testing/reports/<date>-<branch>.md and .json for a full run |
 | Docs still match the code | `docs-drift` | bearing | a drift report with counts: broken paths, make targets and config names, docs older than their code; code is the truth for what it does, the doc for what was intended |
 | Self-heal tests | `test-heal` | bearing | healed tests, quarantine, healing log, regressions kept red |
 | Load and performance | `load-test` | bearing | k6 scripts with thresholds |
@@ -141,7 +143,7 @@ own names (`/office-hours`, `brainstorming`).
 | Accessibility | `accessibility` | bearing | findings fixed or listed |
 | Privacy review | `privacy-review` | bearing | data map, deletion wired to it, DSAR paths, a DPIA, a PII lint |
 | Open-source compliance | `license-compliance` | bearing | CycloneDX SBOM, licence inventory gated by policy with counts, NOTICE-THIRD-PARTY.md |
-| Definition of done | `definition-of-done` | bearing | verdict with evidence |
+| Definition of done | `definition-of-done` | bearing | verdict with evidence; every suite run on HEAD |
 | Code review | `branch-review` | bearing | gstack /review with the stack checklists, then an independent verifier on every Critical and High |
 | Security review | `/cso` | gstack | a verified report under .gstack/security-reports/ (use --diff on a branch) |
 | Browser QA | `/qa` | gstack | QA report |
@@ -153,7 +155,7 @@ own names (`/office-hours`, `brainstorming`).
 
 | Stage | Skill | From | Output |
 | --- | --- | --- | --- |
-| Merge request or pull request | `merge-request` | bearing | description in .scratch, push command; the engineer pushes |
+| Merge request or pull request | `merge-request` | bearing | description in .scratch, push command; the engineer pushes, or the Stop hook where the repository opts in |
 | Ticket update (optional) | `tracker-sync` | bearing | ticket moved, MR linked; skipped with a note when BEARING_TRACKER is none |
 | Release | `release` | bearing | CHANGELOG, version, tag command |
 | Publish a package or CLI | `release` | bearing | with --package: API diff since the last tag, semver from the diff, pack check, provenance, the publish command printed |
@@ -183,7 +185,7 @@ own names (`/office-hours`, `brainstorming`).
 
 | Stage | Skill | From | Output |
 | --- | --- | --- | --- |
-| One statement to a prepared MR, unattended | `autopilot` | bearing | a task branch first, then PRD, stories, Proposed decisions and a product profile in one digest, C4 and deployment diagrams, HLD, threat model, data model, API contract, GenAI design (llm profile), UX flows, design system, screens, LLD, test cases, test-first build (make check, and make build where the Makefile records it), test automation with guardrails and evals (llm profile), design review, code review, a smoke run, MR description; never pushed |
+| One statement to a prepared MR, unattended | `autopilot` | bearing | a task branch first, then PRD, stories, Proposed decisions and a product profile in one digest, C4 and deployment diagrams, HLD, threat model, data model, API contract, GenAI design (llm profile), UX flows, design system, screens, LLD, test cases, test-first build (make check, and make build where the Makefile records it), test automation with guardrails and evals (llm profile), design review, code review, a smoke run, MR description; pushed only where the repository opts in |
 | Not sure what comes next | `workflow` | bearing | the stage you are in, what is in flight (docs/progress/), the next skill, and whether the work is one agent, bounded tasks or parallel subagents |
 | Something missing | `doctor` | bearing | checks with counts and fixes |
 | Update the packs | `upgrade-tools` | bearing | versions before and after |
@@ -230,7 +232,7 @@ TASK-142: "Lock the account after five failed OTP attempts."
 7. `definition-of-done`, then `branch-review`, then the harness's security review (auth
    changed), then `traceability` (zero gaps).
 8. `merge-request` fills the merge request or pull request; the engineer pushes
-   and opens it. `tracker-sync update TASK-142 --status "In Review"` and
+   (or the Stop hook, where the repository opts in) and opens it. `tracker-sync update TASK-142 --status "In Review"` and
    `tracker-sync trace TASK-142 --mr <url>` link it, or print
    `tracker: none` and skip.
 9. Merge. `runbook OtpLockoutSpike` before the alert goes live.
@@ -241,7 +243,11 @@ is rendered into the handbook's "Worked example" section by `make docs`.
 ## Rules the workflow never bends
 
 - The agent never pushes, merges, tags, deploys or opens a merge request
-  or pull request. Hooks and permissions enforce it.
+  or pull request (the one opt-in push is below). Hooks and permissions
+  enforce it. Where the engineer lists a repository's push URL in
+  `BEARING_AUTO_PUSH`, the Stop hook pushes the task branch (feature,
+  bugfix, hotfix, chore or docs) from a fresh clone after the gate; never
+  main, master, develop or release, a tag, a force or a deletion.
 - No technology is chosen silently. `tech-decision` shows the options and a
   recommendation; the user decides; an ADR records it.
 - Every gate fails on empty input and prints what it checked.

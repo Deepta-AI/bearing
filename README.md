@@ -3,14 +3,16 @@
 Bearing is a development workflow for teams that build software with
 coding agents. Every stage of a product, from the brief to the runbook,
 has one skill that runs the checklist, and the rules that must not bend
-(the agent never pushes, every gate prints a count, everything traces)
-are enforced by hooks and git rather than by prose. It is for engineers on
-any harness (Claude Code as a plugin; Cursor, Codex, Gemini CLI, Copilot
-and others through `harness-setup`), for tech leads who want one standard
-across repositories, for PMs and designers who want the PRD, the backlog
-and the screens to come out in a known shape, and for solo developers who
-want the discipline without a team to supply it. Nothing in the kit names
-a company, a git host or a tracker: those are yours to configure.
+(the agent never pushes, and only where you opt a repository in does the
+Stop hook push its task branch, after the gate; every gate prints a count;
+everything traces) are enforced by hooks and git rather than by prose.
+It is for engineers on any harness (Claude Code as a plugin; Cursor,
+Codex, Gemini CLI, Copilot and others through `harness-setup`), for tech
+leads who want one standard across repositories, for PMs and designers
+who want the PRD, the backlog and the screens to come out in a known
+shape, and for solo developers who want the discipline without a team to
+supply it. Nothing in the kit names a company, a git host or a tracker:
+those are yours to configure.
 
 Bearing is open source under the MIT licence. Its home is
 <https://github.com/Deepta-AI/bearing>. Two sites are built from this
@@ -21,13 +23,14 @@ inside).
 
 ## Install
 
-Bearing is one marketplace with three plugins:
+Bearing is one marketplace with four plugins:
 
 | Plugin | What it holds | Needed |
 | --- | --- | --- |
 | `bearing` | the workflow skills, the eight subagents, the hooks and the guard behind them, the scripts (`bin/`) and the repository templates | required |
 | `bearing-backend` | the stack skills and scaffold templates for Go, Python, Node, data pipelines (dbt, Airflow) and infrastructure (Terraform, Kubernetes) | optional |
 | `bearing-apps` | the stack skills and scaffold templates for React, Next.js, React Native, Flutter, iOS and Android | optional |
+| `bearing-genai` | GenAI and ML skills: RAG, agents, MCP, gateway and routing, evals, datasets, speech, vision, tabular ML | optional; `install.sh` installs it by default |
 
 **The plugins only.** Inside Claude Code:
 
@@ -36,11 +39,13 @@ Bearing is one marketplace with three plugins:
 /plugin install bearing@bearing
 /plugin install bearing-backend@bearing   # optional
 /plugin install bearing-apps@bearing      # optional
+/plugin install bearing-genai@bearing     # optional
 ```
 
-Install the stack plugins your repositories use. Without one, its stack
-skills are absent, and scaffolding, adopting or reviewing that stack stops
-with the line that installs it (`/plugin install bearing-backend@bearing`)
+Install the stack plugins your repositories use. `bearing-genai` holds the
+GenAI and ML skills, and the full install below installs it by default.
+Without a stack plugin, its stack skills are absent, and scaffolding,
+adopting or reviewing that stack stops with the line that installs it (`/plugin install bearing-backend@bearing`)
 instead of failing on a missing path. The plugins write no configuration
 file, install no companion packs and leave no checkout on disk, so the
 tracker stays `none` until you create `~/.config/bearing/bearing.env`
@@ -54,9 +59,9 @@ git clone https://github.com/Deepta-AI/bearing ~/bearing
 bash ~/bearing/install.sh
 ```
 
-It registers the checkout as the marketplace and installs all three
-plugins, then writes `~/.config/bearing/bearing.env` (mode 600, never
-overwritten), a personal `~/.claude/CLAUDE.md` starter if you have none,
+It registers the checkout as the marketplace and installs all four
+plugins (`bearing-genai` included by default), then writes
+`~/.config/bearing/bearing.env` (mode 600, never overwritten), a personal `~/.claude/CLAUDE.md` starter if you have none,
 the companion packs for the profile (Superpowers, gstack, GSD Core and impeccable by
 default; `--profile full` adds the open-source packs the workflow names),
 then runs the doctor. The commands in these docs that start with
@@ -80,18 +85,22 @@ event JSON with `jq` and calls one subcommand of
 | `SessionStart` (startup, resume, compact) | `session-start.sh` | `brg-guard session`: prints the branch, the task id, the count of changed files, the handoff state from `.bearing/state/`, the review checklists for the repository's stacks and, after a compaction, the snapshot `PreCompact` wrote | no |
 | `UserPromptSubmit` | `inject-task-id.sh` | `brg-guard task-id`: prints `Task: <ID>` when the branch carries a ticket id the prompt lacks | no |
 | `PreToolUse` (Bash) | `block-publish.sh` | `brg-guard command`: refuses the commands listed below, and any command it cannot read (fail closed, which is every command when `jq` is missing) | yes, exit 2 |
-| `PostToolUse` (Edit, Write, MultiEdit) | `format-file.sh` | `brg-guard format`: formats the edited file with the repository's own formatter when one is installed (gofmt, prettier, ruff or `uv run ruff`, ktlint, swiftformat and the like); then `brg-guard check-file`: `make check-file FILE=<file>` when the repository's Makefile has that target, else `bash -n` and shellcheck, a JSON parse or `py_compile` | sends Claude back with the problems; the edit stands |
+| `PostToolUse` (Edit, Write, MultiEdit) | `format-file.sh` | `brg-guard format`: formats the edited file with an allow-listed formatter (gofmt, prettier, ruff format, ktlint, swiftformat, terraform fmt, shfmt) taken only from fixed system directories, never `node_modules/.bin`, the inherited PATH or `uv run`, in a cleared environment; prettier only under a `.prettierrc.json` or `package.json` `prettier` object of plain formatting options, parsed as JSON. Then `brg-guard check-file` prints one line saying the per-file check was not run: hooks run outside the sandbox and run no repository command, so `make check-file FILE=<file>` runs in the session | no |
 | `PreCompact` | `precompact.sh` | `brg-guard precompact`: writes `.bearing/state/<branch>.compact.md` (branch, changes, check state, the last requests) | no |
-| `Stop` | `stop-summary.sh` | `brg-guard stop-gate`: when files changed in this session since `make check` last passed, sends Claude back once with the reason; the second stop only reminds, so it cannot loop | once |
+| `Stop` | `stop-summary.sh` | `brg-guard stop-gate`: when files changed in this session since `make check` last passed, sends Claude back once with the reason; the second stop only reminds, so it cannot loop. On a stop that passes, when merge-request or autopilot requested it and the engineer opted the repository in, `brg-push run` pushes the task branch from a fresh clone, in the background | once |
 
 The hooks write only under the repository's `.bearing/state/` (the
 handoff and compaction snapshots, and `gates.log` with what each gate
-decided). They make no network call of their own; the one indirect case
-is the format hook in a Python repository without `ruff` on PATH, where
-`uv run ruff` lets uv install the project's own locked dependencies.
+decided) and, at session end, the task's `docs/progress/<ID>.md`, never
+through a link. They run no git command that reads file contents, and
+their network calls are two: at startup, once a day, `brg-update-check`
+runs `git ls-remote` for the marketplace from `/` with no repository or
+user git config; and under the opt-in (`BEARING_AUTO_PUSH`), the Stop hook
+clones the task branch into a protected directory under
+`~/.config/bearing` and pushes it to the listed URL.
 
 **What `brg-guard` blocks.** `bash plugins/bearing/bin/brg-guard --verbs`
-prints the table: 135 rules over 54 programs, matched after wrappers such
+prints the table: 136 rules over 55 programs, matched after wrappers such
 as `env`, `sudo` and `bash -c` and any path are stripped.
 
 - git that publishes or rewrites history: `push`, `commit --amend`,
@@ -117,7 +126,13 @@ as `env`, `sudo` and `bash -c` and any path are stripped.
   `chown -R /`, `shutdown`, `reboot`, `killall`, `pkill -f`, `ssh`, and
   `scp` or `rsync` to a remote.
 
-The engineer runs these; the agent prints the command instead.
+The engineer runs these; the agent prints the command instead. The one
+exception is opt-in: list a repository's push URL in `BEARING_AUTO_PUSH`
+and merge-request (or autopilot) can ask the Stop hook to push its task
+branch (feature, bugfix, hotfix, chore or docs) after the gate
+(`brg-push`, from a fresh clone). That push is never to main, master,
+develop or release, never a tag, a force or a deletion, and the pre-push
+hook still refuses every agent push.
 
 **External fetches.** The plugins download nothing when they install or
 load. The steps below do, and every version or commit they fetch is set
@@ -129,7 +144,7 @@ fetch without one.
 
 | What | When | Fetches | Pinned |
 | --- | --- | --- | --- |
-| `install.sh` | you run it | the marketplace from GitHub (or your checkout) and the three plugins | the commit you install from |
+| `install.sh` | you run it | the marketplace from GitHub (or your checkout) and the four plugins | the commit you install from |
 | `install.sh`, profile standard or full | you run it | gstack: `git fetch --depth 1 https://github.com/garrytan/gstack.git 2a113ae7e623f590095bcaaa0cc581c9a10a6632` into `~/.claude/skills/gstack`, then its own `./setup`, which installs gstack's dependencies from its `bun.lock` and Playwright's Chromium; an existing gstack checkout is left as it is | commit `2a113ae7e623` (`--skip-gstack`) |
 | | | GSD Core: `npx --yes @opengsd/gsd-core@1.14.0 --global --claude` | `1.14.0` (`--skip-gsd`) |
 | | | impeccable: `npx --yes skills@1.7.0 add pbakaus/impeccable#08d5b470495d242ca0470f4aeae1956c3a074f83 -a claude-code -g -y`; an existing `~/.claude/skills/impeccable` or `~/.agents/skills/impeccable` is left as it is | the skills CLI at `1.7.0`, the repository at commit `08d5b470495d`, version 4.6.0 (at 08d5b47) (`--skip-impeccable`, which holds on `--profile full` too) |
@@ -177,8 +192,8 @@ loads the matching skill. Every skill can also be called directly as
 `dod`) because on a machine with hundreds of skills Claude Code may list
 some by name only; see
 [Keep the skill listing lean](docs/INSTALL.md#keep-the-skill-listing-lean).
-The stack skills live in the other two plugins and carry their prefix:
-`/bearing-backend:go`, `/bearing-apps:react`. The subagents are called
+The stack skills and the GenAI and ML skills live in the other plugins and carry their prefix:
+`/bearing-backend:go`, `/bearing-apps:react`, `/bearing-genai:rag`. The subagents are called
 the same way, `bearing:reviewer`, `bearing:critic` and so on; the skills
 start them for you. The scripts behind the skills keep a `brg-` prefix
 (`plugins/bearing/bin/brg-guard`, `plugins/bearing/bin/brg-tracker`).
@@ -212,14 +227,15 @@ start them for you. The scripts behind the skills keep a `brg-` prefix
   repository commits.
 
 The complete map, one skill for every row, is
-[docs/WORKFLOW.md](docs/WORKFLOW.md). The handbook is a site with the four
-task flows (greenfield, bug fix, feature addition, inherited codebase), every stage, and a page
+[docs/WORKFLOW.md](docs/WORKFLOW.md). The handbook is a site with the six
+task flows (greenfield, bug fix, feature addition, GenAI feature or
+product, inherited codebase, marketing site), every stage, and a page
 per skill with when to use it and where it fits. It is built from
 `site/` (`make site`) and deployed to Vercel by the `docs` GitHub workflow
 (or the `handbook:vercel` job on a GitLab mirror); see
 [docs/INSTALL.md](docs/INSTALL.md#the-handbook-site-on-vercel). On a
 GitLab host without Vercel, the `pages` job publishes it to GitLab Pages,
-and `make wiki` exports the same docs and the four flows as wiki pages
+and `make wiki` exports the same docs and the six flows as wiki pages
 (see [docs/INSTALL.md](docs/INSTALL.md#the-docs-as-wiki-pages)).
 
 ## Other harnesses
@@ -239,7 +255,9 @@ enforces is in
 
 One file, `~/.config/bearing/bearing.env` (mode 600, never inside a
 repository): the tracker and its credentials, the git host, the kit
-remote, the org id. Every key is explained in
+remote, the org id, and `BEARING_AUTO_PUSH`, the push URLs of the
+repositories whose task branch the Stop hook may push (empty by default,
+so nothing is pushed). Every key is explained in
 [docs/INSTALL.md](docs/INSTALL.md) and the adapters in
 [docs/TRACKERS.md](docs/TRACKERS.md).
 
@@ -292,8 +310,8 @@ guide to Vercel). `.gitlab-ci.yml` is the twin of both for a GitLab
 mirror.
 
 The repository is the marketplace: `.claude-plugin/marketplace.json`
-lists `plugins/bearing`, `plugins/bearing-backend` and
-`plugins/bearing-apps`. Evals (`evals/`), tests (`tests/`), the sites and
+lists `plugins/bearing`, `plugins/bearing-backend`,
+`plugins/bearing-apps` and `plugins/bearing-genai`. Evals (`evals/`), tests (`tests/`), the sites and
 the repository's own tools (`bin/`: generators, lints, the eval
 harnesses) sit outside every plugin and never ship. `make
 lint-plugin-size` keeps each plugin under 512 files and every non-image

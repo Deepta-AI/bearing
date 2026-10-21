@@ -155,13 +155,12 @@ ts adr; ts adr
 assert_eq "$((n+1))" "$(wc -l < "$c3/bearing/learnings.jsonl" | tr -d ' ')" "a switch of skill is not a rerun; only the repeat adds a key"
 t_end
 
-t_begin "a blocked check-file logs a gate block and keeps its exit code"
+t_begin "check-file runs no Makefile target from a hook, so it never blocks or logs a gate block"
 c4="$(tmpdir)"; mkdir -p "$c4/bearing"; echo BEARING_LEARNING=on > "$c4/bearing/bearing.env"
 r4="$(tmpdir)"; git -C "$r4" init -q -b main
 printf 'check-file:\n\t@echo "bad thing"; exit 1\n' > "$r4/Makefile"; echo x > "$r4/a.zz"
 ( cd "$r4" && XDG_CONFIG_HOME="$c4" bash "$GUARD" check-file "$r4/a.zz" ) >/dev/null 2>&1; rc=$?
-assert_eq 2 "$rc" "exit 2 kept"
-assert_contains "$(cat "$c4/bearing/learnings.jsonl")" '"skill":"check-file"'
-assert_contains "$(cat "$c4/bearing/learnings.jsonl")" '*.zz'
+assert_eq 0 "$rc" "exit 0: nothing was checked"
+assert_not_contains "$(cat "$c4/bearing/learnings.jsonl" 2>/dev/null)" '"skill":"check-file"'
 t_end
 t_summary

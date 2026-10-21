@@ -65,11 +65,12 @@ echo "profile: ${profile:-unset} ($profile_src; standard or full makes superpowe
 command -v claude >/dev/null && pass "claude $(claude --version 2>/dev/null | head -1)" || fail "claude CLI not on PATH"
 plugins="$(claude plugin list 2>/dev/null || true)"
 # bearing is required; bearing-backend and bearing-apps carry the stack
-# conventions and templates and are optional.
+# conventions and templates, bearing-genai the GenAI and ML skills; all optional.
 printf '%s' "$plugins" | grep -Eq '(^|[^a-z-])bearing@' && pass "plugin Bearing installed" || fail "plugin Bearing not installed (claude plugin install bearing@bearing, or bash install.sh from the Bearing checkout)"
-for sp_name in bearing-backend bearing-apps; do
+for sp_name in bearing-backend bearing-apps bearing-genai; do
+  case "$sp_name" in (bearing-genai) sp_what="its GenAI and ML skills are unavailable";; (*) sp_what="its stack skills and templates are unavailable";; esac
   if printf '%s' "$plugins" | grep -q "$sp_name@"; then pass "plugin $sp_name installed"
-  else optional "plugin $sp_name not installed; its stack skills and templates are unavailable (claude plugin install $sp_name@bearing)"; fi
+  else optional "plugin $sp_name not installed; $sp_what (claude plugin install $sp_name@bearing)"; fi
 done
 sp=0; printf '%s' "$plugins" | grep -q 'superpowers' && sp=1
 pack_check "$sp" "plugin superpowers installed" "superpowers not installed (claude plugin install superpowers@claude-plugins-official)"
@@ -92,6 +93,29 @@ else optional "bearing.env missing (cp $KIT/templates/user/bearing.env ~/.config
 for t in git make jq python3; do
   if command -v "$t" >/dev/null; then v="$(ver_of "$t")"; pass "$t ${v:-on PATH}"; else fail "$t not on PATH"; fi
 done
+# The hooks run with a fixed PATH and need these tools on it, not on this
+# shell's PATH; both come from hooks/scripts/lib.sh, the one place they are set.
+hlib="$KIT/hooks/scripts/lib.sh"
+hpath="$(sed -n 's/^PATH=\([^;]*\); export PATH$/\1/p' "$hlib" 2>/dev/null | head -1)"; hpath="${hpath#\'}"; hpath="${hpath%\'}"
+htools="$(sed -n "s/^BRG_HOOK_TOOLS='\\(.*\\)'\$/\\1/p" "$hlib" 2>/dev/null | head -1)"
+hn=0
+if [ -z "$hpath" ] || [ -z "$htools" ]; then
+  fail "hook PATH or hook tools unreadable from $hlib (reinstall the plugin)"
+else
+  for t in $htools; do
+    hn=$((hn+1))
+    hp_t="$(PATH="$hpath"; command -v "$t" 2>/dev/null)"
+    case "$hp_t" in
+      (/*) pass "$t on the hook PATH ($hp_t)" ;;
+      (*) mine="$(command -v "$t" 2>/dev/null)"
+          case "$mine" in
+            (/*) fail "$t not found on the hook PATH ($hpath), so the hooks cannot run it; link the one this shell finds: sudo ln -s $mine /usr/local/bin/$t" ;;
+            (*) fail "$t not found on the hook PATH ($hpath) or on PATH; install it (brew, apt or dnf install $t) into one of those directories" ;;
+          esac ;;
+    esac
+  done
+  echo "hook PATH: $hn tools checked"
+fi
 bmaj="${BASH_VERSINFO[0]:-0}"; bmin="${BASH_VERSINFO[1]:-0}"
 if [ "$bmaj" -lt 3 ] || { [ "$bmaj" -eq 3 ] && [ "$bmin" -lt 2 ]; }; then optional "bash $BASH_VERSION is below 3.2; the kit's scripts are untested there"
 elif [ "$bmaj" -lt 4 ]; then pass "bash $BASH_VERSION (below 4; the kit still works, it uses no bash 4 features)"

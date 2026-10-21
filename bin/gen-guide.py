@@ -6,7 +6,7 @@
 
 Every table comes from one source: the skill frontmatter (name,
 description, invocation), CATEGORY and STAGES below, plus one reviewed
-file: docs/flows.json (the four task flows). Fails when zero skills are
+file: docs/flows.json (the six task flows). Fails when zero skills are
 found, when a skill has no category, when a row names more than one skill,
 or when a row or a flow names a skill that is neither a Bearing skill nor
 listed in docs/known-skills.txt.
@@ -136,6 +136,8 @@ CATEGORY = {
         "llm-agent",
         "rag",
         "llm-eval",
+        "model-routing",
+        "dataset-generation",
         "llm-fine-tuning",
         "mcp-server",
         "llm-guardrails",
@@ -171,7 +173,7 @@ CATEGORY = {
 CAT_OF = {s: c for c, names in CATEGORY.items() for s in names}
 
 # The Bearing skills: every directory under a Bearing plugin's skills/ that
-# holds a SKILL.md (plugins/bearing, plugins/bearing-backend, plugins/bearing-apps).
+# holds a SKILL.md (plugins/bearing, plugins/bearing-backend, plugins/bearing-apps, plugins/bearing-genai).
 # Membership in this set, not a name prefix, is what makes a name a Bearing skill.
 existing = {p.name for p in SKILL_DIRS}
 absent = [s for s in CAT_OF if s not in existing]
@@ -440,73 +442,85 @@ STAGES = [
             (
                 "Problem statement to approach",
                 "genai-design",
-                "bearing",
+                "bearing-genai",
                 "solution doc, ADR stub, cost and risk",
             ),
             (
                 "Prompts",
                 "prompt-registry",
-                "bearing",
+                "bearing-genai",
                 "versioned registry with tests and eval scores",
             ),
             (
                 "Retrieval",
                 "rag",
-                "bearing",
+                "bearing-genai",
                 "ingestion, pgvector schema, retriever with citations",
             ),
             (
                 "Agents",
                 "llm-agent",
-                "bearing",
+                "bearing-genai",
                 "tool registry, bounded loop, kill switch",
             ),
             (
                 "Tools for models",
                 "mcp-server",
-                "bearing",
+                "bearing-genai",
                 "MCP server with schema-checked tools, both transports, auth, a test per tool, the harness registration",
             ),
             (
                 "Safety",
                 "llm-guardrails",
-                "bearing",
+                "bearing-genai",
                 "policy file, input, tool and output checks",
             ),
             (
                 "Every model call",
                 "llm-gateway",
-                "bearing",
+                "bearing-genai",
                 "routing, retries, caching, cost, tracing",
             ),
             (
                 "Is it good enough",
                 "llm-eval",
-                "bearing",
+                "bearing-genai",
                 "golden set, graders, CI regression gate",
+            ),
+            (
+                "Cheapest model that passes",
+                "model-routing",
+                "bearing-genai",
+                "frontier of score and cost per candidate, cascade, budget and alert",
+            ),
+            (
+                "Data when real data is short",
+                "dataset-generation",
+                "bearing-genai",
+                "taxonomy, generated rows, dedupe and contamination counts, audit, datasheet",
             ),
             (
                 "Prompting is not enough",
                 "llm-fine-tuning",
-                "bearing",
+                "bearing-genai",
                 "data prep, recipe, GPU check, smoke run, vLLM serving, model card",
             ),
             (
                 "Speech and voice",
                 "speech",
-                "bearing",
+                "bearing-genai",
                 "WER per language, latency per stage, barge-in, audio privacy",
             ),
             (
                 "Vision",
                 "computer-vision",
-                "bearing",
+                "bearing-genai",
                 "group-safe splits, AUROC or mAP, threshold from costs, serving latency",
             ),
             (
                 "Classical ML and forecasting",
                 "tabular-ml",
-                "bearing",
+                "bearing-genai",
                 "leakage check, baseline gate, calibration, explanations, drift",
             ),
         ],
@@ -693,10 +707,10 @@ STAGES = [
                 "suite per stack, generated tests by TC id",
             ),
             (
-                "Run tests, pass/fail report",
+                "Run tests: scoped to the change while you work, in full at definition of done",
                 "test-run",
                 "bearing",
-                "docs/testing/reports/<date>.md and .json",
+                ".scratch/test-run/ for a scoped run; docs/testing/reports/<date>-<branch>.md and .json for a full run",
             ),
             (
                 "Docs still match the code",
@@ -744,7 +758,7 @@ STAGES = [
                 "Definition of done",
                 "definition-of-done",
                 "bearing",
-                "verdict with evidence",
+                "verdict with evidence; every suite run on HEAD",
             ),
             (
                 "Code review",
@@ -791,7 +805,7 @@ STAGES = [
                 "Merge request or pull request",
                 "merge-request",
                 "bearing",
-                "description in .scratch, push command; the engineer pushes",
+                "description in .scratch, push command; the engineer pushes, or the Stop hook where the repository opts in",
             ),
             (
                 "Ticket update (optional)",
@@ -921,7 +935,7 @@ STAGES = [
                 "One statement to a prepared MR, unattended",
                 "autopilot",
                 "bearing",
-                "a task branch first, then PRD, stories, Proposed decisions and a product profile in one digest, C4 and deployment diagrams, HLD, threat model, data model, API contract, GenAI design (llm profile), UX flows, design system, screens, LLD, test cases, test-first build (make check, and make build where the Makefile records it), test automation with guardrails and evals (llm profile), design review, code review, a smoke run, MR description; never pushed",
+                "a task branch first, then PRD, stories, Proposed decisions and a product profile in one digest, C4 and deployment diagrams, HLD, threat model, data model, API contract, GenAI design (llm profile), UX flows, design system, screens, LLD, test cases, test-first build (make check, and make build where the Makefile records it), test automation with guardrails and evals (llm profile), design review, code review, a smoke run, MR description; pushed only where the repository opts in",
             ),
             (
                 "Not sure what comes next",
@@ -1264,7 +1278,7 @@ if wf.exists():
 
 # ---------------------------------------------------------------------------
 # THE SITE'S DATA. The handbook site (site/) renders from one JSON file that is
-# a pure function of the kit: the skills, the stage map and the four task
+# a pure function of the kit: the skills, the stage map and the six task
 # flows (docs/flows.json). The flows file is validated here, so a flow that
 # names a skill that does not exist fails make docs and make check rather
 # than rendering a broken page.

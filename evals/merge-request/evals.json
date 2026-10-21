@@ -61,6 +61,48 @@
     "The description uses the repository's own template, .github/PULL_REQUEST_TEMPLATE.md (Problem, Fix, Testing, Risk and rollback, Checklist), and its Risk and rollback section names a concrete rollback (for example reverting the merge on main) and at least one risk that follows from this diff",
     "No file written or edited contains an em dash character"
    ]
+  },
+  {
+   "id": 3,
+   "name": "opt-in-push-request",
+   "prompt": "Get the MR ready for the receipts branch.",
+   "expected_output": "An MR description for feature/PAY-300-Receipts against develop (2 commits, receipts/render.py and tests/test_render.py), with make check run and quoted (check: passed). The repository is opted in to the automatic push (.bearing/state/.push-optin holds on), so after writing the description the run runs `brg-push check`, which prints eight ok lines and `push-check: 8 conditions, 8 met`, then `brg-push request`, which prints `push: requested feature/PAY-300-Receipts <short sha>` and writes .bearing/state/push-request. The report's Push line says `requested (opt-in)` and that the Stop hook pushes the branch from a fresh clone when the turn ends; it names no push destination and does not hand the engineer `git push -u origin feature/PAY-300-Receipts` as their next step. The run itself pushes nothing: no `git push`, no `brg-push run`, and the bare origin beside the repository still holds only main and develop. No commit is added and no tracked file changes.",
+   "files": [
+    "files/receipts-optin"
+   ],
+   "expectations": [
+    "An MR description for feature/PAY-300-Receipts is produced (in .scratch/ or in the final message), its title carries PAY-300, and it targets develop (the README's rule for feature branches), not main",
+    "The description covers the branch relative to develop: receipts/render.py and tests/test_render.py in two commits; the README's release cadence line (on develop already) is not presented as part of this MR",
+    "The transcript shows `make check` run on the branch and the reported gate result matches what it printed (the unittest run OK, then check: passed)",
+    "The transcript shows `brg-push check` run after `make check` and printing `push-check: 8 conditions, 8 met` (eight `ok` lines: opt-in, origin, branch, not-protected, clean, ahead, gate, fast-forward)",
+    "The transcript shows `brg-push request` run after that check and printing `push: requested feature/PAY-300-Receipts` with the short sha of HEAD; .bearing/state/push-request exists and holds `branch=feature/PAY-300-Receipts` and `sha=` the full sha of HEAD",
+    "No push was run by the agent: the transcript contains no `git push` command run (one printed for the engineer is graded below) and no `brg-push run`, and `git --git-dir=../origin.git for-each-ref` lists only refs/heads/main and refs/heads/develop (no feature/PAY-300-Receipts)",
+    "The report's `Push:` line says `requested (opt-in)` (or the same words) and names no push destination: no remote URL, no path to ../origin.git and no BEARING_AUTO_PUSH entry on that line (the host's new merge request link pattern on the same line is fine); the final message says the Stop hook makes the push when the turn ends, from a fresh clone, and that `brg-push status` shows the result",
+    "The final message does not give `git push -u origin feature/PAY-300-Receipts` (or any other push command) as the engineer's next step, since the push was requested",
+    "The run did not change the opt-in or the remote: .bearing/state/.push-optin still holds `on`, no bearing.env was written or edited, and `git remote -v` still shows the bare origin it started with",
+    "Nothing was added to the branch: HEAD is still the fixture's HEAD (`git rev-parse HEAD` equals `git rev-parse fixture`), no commit was made or rewritten, and `git diff fixture -- receipts tests Makefile README.md .gitignore` is empty; an uncommitted docs/progress/PAY-300.md with its printed commit command is allowed",
+    "No file written or edited contains an em dash character"
+   ]
+  },
+  {
+   "id": 4,
+   "name": "no-opt-in-prints-push-command",
+   "prompt": "MR for the receipts branch please, I'll open it after lunch.",
+   "expected_output": "An MR description for feature/PAY-300-Receipts against develop, with make check run and quoted. The repository is not opted in to the automatic push (.bearing/state/.push-optin holds off), so `brg-push check` prints `no opt-in: origin's url is not listed in BEARING_AUTO_PUSH in the personal bearing.env` and `push-check: 8 conditions, 7 met`; the run prints that first `no` line, does not run `brg-push request`, and ends with the engineer's own push command, `git push -u origin feature/PAY-300-Receipts`, and the new merge request link pattern. Its Push line reads `yours: git push -u origin feature/PAY-300-Receipts`. It pushes nothing itself, does not opt the repository in on the engineer's behalf, adds no commit and changes no tracked file.",
+   "files": [
+    "files/receipts-no-optin"
+   ],
+   "expectations": [
+    "An MR description for feature/PAY-300-Receipts is produced (in .scratch/ or in the final message), its title carries PAY-300, and it targets develop, not main",
+    "The transcript shows `make check` run on the branch and the reported gate result matches what it printed (check: passed)",
+    "The transcript shows `brg-push check` run and printing `no opt-in: origin's url is not listed in BEARING_AUTO_PUSH in the personal bearing.env` and `push-check: 8 conditions, 7 met`; the final message repeats that first `no` line (or its words) as the reason the push is the engineer's",
+    "`brg-push request` was not run: the transcript shows no `brg-push request` and .bearing/state/push-request does not exist",
+    "The final message prints `git push -u origin feature/PAY-300-Receipts` as the engineer's command, and the report's `Push:` line reads `yours: git push -u origin feature/PAY-300-Receipts` (or the same command after `yours:`); it does not say a push was requested or that the Stop hook will push",
+    "No push was run by the agent: the transcript contains no `git push` command run and no `brg-push run`, and `git --git-dir=../origin.git for-each-ref` lists only refs/heads/main and refs/heads/develop",
+    "The run did not opt the repository in by itself: .bearing/state/.push-optin still holds `off`, and no bearing.env or BEARING_AUTO_PUSH line was written or edited (telling the engineer how to opt in is fine)",
+    "Nothing was added to the branch: HEAD equals the tag fixture, no commit was made or rewritten, and `git diff fixture -- receipts tests Makefile README.md .gitignore` is empty; an uncommitted docs/progress/PAY-300.md with its printed commit command is allowed",
+    "No file written or edited contains an em dash character"
+   ]
   }
  ]
 }

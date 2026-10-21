@@ -1,15 +1,16 @@
 ---
 name: merge-request
-description: 'Prepares the merge request for the current branch: gate run, commit audit, diff summary, description, ticket link, push command; never pushes. Use when asked to "prepare the MR", "write the PR description".'
+description: 'Prepares the merge request for the current branch: gate run, commit audit, diff summary, description, ticket link; pushes only where opted in. Use when asked to "prepare the MR", "write the PR description".'
 argument-hint: "[target branch, default develop]"
-allowed-tools: Read, Write, Grep, Glob, Bash(bash *bin/brg-tracker *), Bash(make:*), Bash(git status:*), Bash(git diff:*), Bash(git log:*), Bash(git branch:*), Bash(git fetch:*), Bash(git remote:*), Bash(mkdir -p .scratch), Bash(tail -40), Bash(go test:*), Bash(pnpm test:*), Bash(uv run pytest:*), Bash(./gradlew test:*), Bash(swift test:*), Bash(bash *bin/brg-state-path*), Bash(python3 *skills/session-handoff/scripts/progress.py*), AskUserQuestion
+allowed-tools: Read, Write, Grep, Glob, Bash(bash *bin/brg-tracker *), Bash(make:*), Bash(git status:*), Bash(git diff:*), Bash(git log:*), Bash(git branch:*), Bash(git fetch:*), Bash(git remote:*), Bash(mkdir -p .scratch), Bash(tail -40), Bash(go test:*), Bash(pnpm test:*), Bash(uv run pytest:*), Bash(./gradlew test:*), Bash(swift test:*), Bash(bash *bin/brg-state-path*), Bash(python3 *skills/session-handoff/scripts/progress.py*), Bash(bash *bin/brg-push check*), Bash(bash *bin/brg-push request*), Bash(bash *bin/brg-push status*), AskUserQuestion
 ---
 
 # merge-request
 
 The engineer pushes and opens the MR in under a minute with what this
-produces. It works in any git repository; a repository on the standard
-only makes the inputs below quicker to find.
+produces, or, where they opted the repository in, the Stop hook pushes
+the branch for them. It works in any git repository; a repository on
+the standard only makes the inputs below quicker to find.
 
 ## Inputs
 
@@ -87,12 +88,22 @@ only makes the inputs below quicker to find.
    a trimmed branch), put that under Risk and in the report as advice
    with its commands, and say whether you ran the gate on that shape;
    the description, the diff numbers, the push command and the URL stay
-   those of the current branch.
+   those of the current branch. With a `## Repos` section in the progress
+   file: run `python3 "${CLAUDE_PLUGIN_ROOT}/skills/session-handoff/scripts/progress.py" set --task <ID>`
+   and add the Task set block (each repository, its branch, its order,
+   `merge after <Name> | first`) per `${CLAUDE_PLUGIN_ROOT}/references/task-set.md`;
+   only then does the report carry its `Set:` line. `set` exits 1 while a
+   sibling is not cloned yet (its row says `missing`); that is expected,
+   and the Task set block is still written from the rows it printed.
 7. Prose: no em dashes, no self-praise, no sentence that only says the
    work matches the request.
-8. Write to `.scratch/mr-<ID or branch>.md`, print it, then the output
-   contract, and last: `git push -u origin <branch>` and the host's "new
-   change" URL pattern: GitLab
+8. Write to `.scratch/mr-<ID or branch>.md` and print it. Then
+   `bash "${CLAUDE_PLUGIN_ROOT}/bin/brg-push" check`. Exit 0:
+   `bash "${CLAUDE_PLUGIN_ROOT}/bin/brg-push" request` and print
+   `Push: requested; the Stop hook pushes <branch> from a fresh clone to the URL listed for origin when this turn ends and the gate holds (brg-push status shows the result)`.
+   Otherwise print its first `no` line and the push command as below.
+   Then the output contract, and last: `git push -u origin <branch>`
+   (unless requested) and the host's "new change" URL pattern: GitLab
    `<remote web url>/-/merge_requests/new?merge_request[source_branch]=<branch>`;
    GitHub `<remote web url>/compare/<target>...<branch>?expand=1` (or the
    `gh pr create --fill --base <target>` line, printed, never run).
@@ -119,15 +130,18 @@ Gate: make check: passed | <native command> (improvised): passed
 Commits: N (offenders: K, listed)
 Description: .scratch/mr-<ID or branch>.md
 Ticket: trace posted to <KEY> | tracker: none
+Set: <k> of <n>; merge after: <Name> | first
 Progress: docs/progress/<ID>.md status in review (uncommitted; commit command printed)
-Push: git push -u origin <branch>   MR | PR: <url pattern>
+Push: requested (opt-in) | yours: git push -u origin <branch>   MR | PR: <url pattern>
 ```
 
 ## Gotchas
 
 - Never run `git push`, `glab mr create`, `gh pr create`, `git commit`
   (plain or `--amend`), `git rebase` or `git reset`. If asked, decline in
-  one line and print the command.
+  one line and print the command. The only push path is
+  `brg-push request` after a passing `brg-push check`; the Stop hook
+  makes the push, never this skill.
 - Change no tracked file to make a checklist item true (unskipping a
   test, adding a variable to `.env.example`): leave the item unticked and
   name the fix under Not done.

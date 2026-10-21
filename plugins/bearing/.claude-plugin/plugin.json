@@ -1,7 +1,7 @@
 {
   "name": "bearing",
-  "version": "0.8.0",
-  "description": "A developer workflow for coding agents: skills for every stage from brief to runbook, review subagents, one guard behind every hook, and repository templates. The stack conventions come in bearing-backend and bearing-apps.",
+  "version": "0.9.0",
+  "description": "A developer workflow for coding agents: skills for every stage from brief to runbook, review subagents, one guard behind every hook, and repository templates. The stack conventions come in bearing-backend and bearing-apps, and the GenAI and ML skills in bearing-genai.",
   "author": {
     "name": "Ravi Teja Akella"
   },

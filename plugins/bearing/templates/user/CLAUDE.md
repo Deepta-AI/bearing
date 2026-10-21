@@ -9,7 +9,9 @@ loaded into every session.
   which step comes next, run `workflow`.
 - One task per session. `start-task` to start, `session-handoff` to pause,
   `definition-of-done` then `merge-request` to finish.
-- I push, merge and deploy. You prepare and print the command.
+- I push, merge and deploy. You prepare and print the command. The one
+  exception: a repository I list in BEARING_AUTO_PUSH, where the Stop hook
+  pushes the task branch after the gate.
 
 ## Standing rules
 

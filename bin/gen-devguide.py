@@ -30,8 +30,8 @@ sys.path.insert(0, str(ROOT / "bin"))
 import kit_paths  # noqa: E402
 
 # The bearing plugin holds the agents, hooks, runtime bin and templates; the
-# skills are spread over plugins/bearing, plugins/bearing-backend and
-# plugins/bearing-apps.
+# skills are spread over plugins/bearing, plugins/bearing-backend,
+# plugins/bearing-apps and plugins/bearing-genai.
 KITP = kit_paths.BEARING
 SKILL_DIRS = kit_paths.skill_dirs()
 
@@ -494,7 +494,7 @@ def build_tests():
 
 # ---------------------------------------------------------------- plugins
 def build_plugins():
-    """The three plugins the marketplace lists: name, folder, files, skills."""
+    """The four plugins the marketplace lists: name, folder, files, skills."""
     out = []
     for name, root in kit_paths.plugins().items():
         manifest = json.loads((root / ".claude-plugin" / "plugin.json").read_text())

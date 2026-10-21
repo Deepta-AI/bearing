@@ -80,7 +80,7 @@ assert_exit 0 bash -c "cd '$repo' && bash .bearing/hooks/cursor-stop.sh"
 assert_eq '{}' "$T_OUT" "cursor stop never loops"
 T_IN="{\"tool_name\":\"Write\",\"tool_input\":{\"file_path\":\"$repo/bad.json\"}}"
 assert_exit 0 bash -c "cd '$repo' && bash .bearing/hooks/cursor-check.sh"
-assert_contains "$(printf '%s' "$T_OUT" | jq -r .additional_context)" "jq found problems in bad.json"
+assert_eq '{}' "$T_OUT" "cursor check runs no linter: hooks run no repository command"
 assert_contains "$GEN_OUT" "cursor: 5 of 5 adapters"
 t_end
 
@@ -105,9 +105,7 @@ assert_exit 0 bash -c "cd '$repo' && bash .bearing/hooks/codex-stop.sh"
 assert_eq '{}' "$T_OUT" "codex stop never loops, and prints JSON"
 T_IN="$(jq -n --arg p "$(printf '*** Begin Patch\n*** Update File: bad.json\n@@\n-x\n+y\n*** Add File: ok.json\n+{}\n*** End Patch')" '{tool_name: "apply_patch", tool_input: {command: $p}}')"
 assert_exit 0 bash -c "cd '$repo' && bash .bearing/hooks/codex-edit.sh"
-assert_eq "block" "$(printf '%s' "$T_OUT" | jq -r .decision)" "codex edit check blocks"
-assert_contains "$(printf '%s' "$T_OUT" | jq -r .reason)" "jq found problems in bad.json"
-assert_not_contains "$T_OUT" "ok.json" "a clean file in the same patch is not reported"
+assert_eq "" "$T_OUT" "codex edit runs no linter, so nothing blocks"
 T_IN="{\"session_id\":\"X1\",\"trigger\":\"auto\",\"transcript_path\":\"\"}"
 assert_exit 0 bash -c "cd '$repo' && bash .bearing/hooks/codex-precompact.sh"
 assert_eq "" "$T_OUT" "codex ignores precompact stdout; nothing printed"
@@ -330,17 +328,20 @@ t_end
 # ---- without jq the adapters fail closed
 t_begin "no jq: sentinel, warning, deny"
 nojq="$(minimal_path bash git sed grep head tail tr wc cat dirname basename mktemp cmp mv rm mkdir ls awk cut sort uniq env printf)"
+# the hooks reset PATH to fixed directories; a copy whose hooks keep $nojq is the seam
+nk="$(hook_kit "$nojq")"
+[ -n "$nk" ] && [ -f "$nk/hooks/scripts/lib.sh" ] || { echo "FAIL harness_each.sh: hook_kit printed no kit" >&2; exit 1; }
 T_IN="$(fixture claude/pre-tool-use-allow.json)"
-assert_exit 2 env PATH="$nojq" bash "$KIT/plugins/bearing/hooks/scripts/block-publish.sh"
-assert_contains "$T_OUT" "jq is required by the hooks"
+assert_exit 2 env PATH="$nojq" bash "$nk/hooks/scripts/block-publish.sh"
+assert_contains "$T_OUT" "jq not found in $nojq; run brg-doctor"
 assert_contains "$T_OUT" "could not read the command"
 assert_exit 2 env PATH="$nojq" bash "$repo/.bearing/hooks/codex-pretool.sh"
 assert_contains "$T_OUT" "jq is required by the hooks"
 T_IN="$(fixture claude/user-prompt-submit.json)"
-assert_exit 0 env PATH="$nojq" bash "$KIT/plugins/bearing/hooks/scripts/inject-task-id.sh"
+assert_exit 0 env PATH="$nojq" bash "$nk/hooks/scripts/inject-task-id.sh"
 T_IN="$(fixture claude/post-tool-use.json)"
-assert_exit 0 env PATH="$nojq" bash "$KIT/plugins/bearing/hooks/scripts/format-file.sh"
-assert_exit 0 env PATH="$nojq" bash "$KIT/plugins/bearing/hooks/scripts/stop-summary.sh"
+assert_exit 0 env PATH="$nojq" bash "$nk/hooks/scripts/format-file.sh"
+assert_exit 0 env PATH="$nojq" bash "$nk/hooks/scripts/stop-summary.sh"
 t_end
 
 t_summary

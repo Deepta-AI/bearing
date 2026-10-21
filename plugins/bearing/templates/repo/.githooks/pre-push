@@ -22,6 +22,16 @@ for b in $PROTECTED_BRANCHES; do
   git rev-parse -q --verify "refs/heads/$b" >/dev/null && known+=("refs/heads/$b")
 done
 
+# A coding agent's push is refused (the confirmation below). The variable is
+# found before the ref loop so that a non-branch ref or a branch deletion in
+# an agent's push, a tag above all, fails there instead of passing as "none a
+# branch update".
+# Bearing's opt-in push never comes here: brg-push pushes from a fresh clone.
+agent=""
+for v in CLAUDECODE CLAUDE_CODE_ENTRYPOINT CODEX_SANDBOX CODEX_SANDBOX_NETWORK_DISABLED GEMINI_CLI CURSOR_AGENT; do
+  [ -n "${!v:-}" ] && { agent="$v"; break; }
+done
+
 # git feeds one line per ref on stdin:
 #   <local ref> <local sha> <remote ref> <remote sha>
 refs=0; commits=0; checked=0; dest=""; pushed_shas=""
@@ -30,13 +40,21 @@ while read -r local_ref local_sha remote_ref remote_sha; do
   refs=$((refs+1))
   case "$remote_ref" in
     refs/heads/*) rbranch="${remote_ref#refs/heads/}" ;;
-    *) hook_note "$remote_ref: not a branch, branch rules not applied"; continue ;;
+    *) if [ -n "$agent" ] && [ "$PUSH_CONFIRM" != off ]; then
+         hook_fail "an agent push carries only branches: $remote_ref"
+       fi
+       hook_note "$remote_ref: not a branch, branch rules not applied"; continue ;;
   esac
   if is_protected "$rbranch"; then
     [ "$local_sha" = "$zero" ] && hook_fail "deleting $rbranch on $remote is not allowed"
     hook_fail "direct push to $rbranch is not allowed (from $local_ref); open a merge request"
   fi
-  [ "$local_sha" = "$zero" ] && { hook_note "delete $rbranch"; continue; }
+  if [ "$local_sha" = "$zero" ]; then
+    if [ -n "$agent" ] && [ "$PUSH_CONFIRM" != off ]; then
+      hook_fail "an agent push never deletes a branch: $rbranch"
+    fi
+    hook_note "delete $rbranch"; continue
+  fi
   printf '%s' "$rbranch" | grep -Eq "$BRANCH_RE" \
     || hook_fail "branch '$rbranch' does not match (${BRANCH_PREFIXES})/<TASK-ID>-<ShortName> or release/vX.Y.Z"
   if [ "$remote_sha" = "$zero" ] || ! git cat-file -e "$remote_sha^{commit}" 2>/dev/null; then
@@ -59,10 +77,6 @@ done
 
 # Confirmation (lib.sh PUSH_CONFIRM). The engineer pushes; a coding agent
 # does not.
-agent=""
-for v in CLAUDECODE CLAUDE_CODE_ENTRYPOINT CODEX_SANDBOX CODEX_SANDBOX_NETWORK_DISABLED GEMINI_CLI CURSOR_AGENT; do
-  [ -n "${!v:-}" ] && { agent="$v"; break; }
-done
 case "$PUSH_CONFIRM" in
   off) ;;
   agents) [ -z "$agent" ] || hook_fail "a coding agent is pushing ($agent is set); the engineer runs git push" ;;

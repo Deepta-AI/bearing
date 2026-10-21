@@ -3,7 +3,7 @@
 # every gate on disk. A new run starts at repo; done on a stage whose gate is
 # not met fails and says what is missing; stages run in order; an ADR this
 # run wrote as Accepted fails the decide gate; three failed attempts block a
-# stage; an upstream on the branch fails the mr gate (the run never pushes);
+# stage; an upstream on the branch fails the mr gate unless brg-push pushed it at HEAD (the run never pushes itself);
 # the report carries the digest; a second start on an open run is refused.
 set -u
 . "$(dirname "$0")/../lib/assert.sh"
@@ -13,6 +13,16 @@ AP="$KIT/plugins/bearing/bin/brg-autopilot"; export AP
 d="$(tmpdir)/run"
 ap() { python3 "$AP" "$@" --dir "$d"; }
 commit() { git -C "$d" add -A >/dev/null 2>&1; git -C "$d" -c user.email=t@e -c user.name=t commit -qm "$1" >/dev/null 2>&1; }
+# fullrun: definition-of-done item 14's passing full-run evidence for HEAD
+# (runners.md schema), dated in the past so it is never newer than make check.
+fullrun() {
+  local f
+  f="$d/.scratch/test-run/$(git -C "$d" branch --show-current | tr / _)-full.json"
+  mkdir -p "$d/.scratch/test-run"
+  printf '{"scope": "full", "sha": "%s", "dirty": false, "base": "", "files": null, "layers": [], "except": ["unit"], "suites": [{"name": "e2e", "status": "run", "reason": "", "passed": 2, "failed": 0, "skipped": 0}], "tests": 2, "failed": 0, "not_run": [], "failures": [], "selection": {"except": ["unit"]}}\n' \
+    "$(git -C "$d" rev-parse HEAD)" > "$f"
+  touch -t 200101010000 "$f"
+}
 
 t_begin "start refuses an untrusted workspace and names the allow entries it would ignore"
 ud="$(tmpdir)/untrusted"; mkdir -p "$ud/.claude"; git init -q -b main "$ud"
@@ -33,7 +43,7 @@ t_end
 
 t_begin "a run starts at the repo stage and refuses a second start"
 assert_exit 0 ap start "a word counter"
-assert_contains "$T_OUT" "18 stages"
+assert_contains "$T_OUT" "$(python3 "$AP" stages | wc -l | tr -d ' ') stages"
 assert_contains "$T_OUT" "next: repo"
 assert_exit 1 ap start "another"
 assert_contains "$T_OUT" "is open at stage repo"
@@ -117,7 +127,7 @@ rep="$(cat "$d/docs/autopilot/$run.md")"
 assert_contains "$rep" "| language | Python | Go, Node | stdlib only, no build step |"
 assert_contains "$rep" "| architecture | blocked | 3 |"
 assert_contains "$rep" "- architecture: gave up"
-assert_contains "$rep" "Nothing was pushed, merged or deployed."
+assert_contains "$rep" "Nothing was merged or deployed; the push is the engineer's, or brg-push's where"
 t_end
 
 t_begin "sandbox placeholders and the run's report are not uncommitted work"
@@ -125,7 +135,7 @@ d3="$(tmpdir)/run3"; d_keep="$d"; d="$d3"
 git init -q -b main "$d"; printf 'check:\n\t@mkdir -p .bearing/state && touch .bearing/state/.check-passed\n' > "$d/Makefile"
 printf '.bearing/state/\n' > "$d/.gitignore"; commit init
 git -C "$d" checkout -q -b feature/T-2-y; printf 'x\n' > "$d/tool.txt"; mkdir -p "$d/web"; printf 'w\n' > "$d/web/app.txt"; commit feat
-( cd "$d" && make -s check )
+( cd "$d" && make -s check ); fullrun
 mkdir -p "$d/.bearing/state"
 python3 - "$d/.bearing/state/autopilot.json" <<'PY'
 import json, sys, time
@@ -152,7 +162,7 @@ git init -q -b main "$d"; printf 'check:\n\t@mkdir -p .bearing/state && touch .b
 printf '.bearing/state/\n.scratch/\n' > "$d/.gitignore"; commit init
 git -C "$d" checkout -q -b feature/T-5-app
 printf 'services:\n  web:\n    image: nginx\n' > "$d/docker-compose.yml"; commit feat
-( cd "$d" && make -s check )
+( cd "$d" && make -s check ); fullrun
 mkdir -p "$d/.bearing/state"
 python3 - "$d/.bearing/state/autopilot.json" <<'PY'
 import json, sys, time
@@ -186,7 +196,7 @@ d6="$(tmpdir)/run6"; d_keep="$d"; d="$d6"
 git init -q -b main "$d"; printf 'check:\n\t@mkdir -p .bearing/state && touch .bearing/state/.check-passed\n' > "$d/Makefile"
 printf '.bearing/state/\n' > "$d/.gitignore"; commit init
 git -C "$d" checkout -q -b feature/T-6-lib; printf 'x\n' > "$d/lib.txt"; commit feat
-( cd "$d" && make -s check )
+( cd "$d" && make -s check ); fullrun
 mkdir -p "$d/.bearing/state"
 python3 - "$d/.bearing/state/autopilot.json" <<'PY'
 import json, sys, time
@@ -206,7 +216,7 @@ d4="$(tmpdir)/run4"; d_keep="$d"; d="$d4"
 git init -q -b main "$d"; printf 'check:\n\t@mkdir -p .bearing/state && touch .bearing/state/.check-passed\n' > "$d/Makefile"
 printf '.bearing/state/\n' > "$d/.gitignore"; commit init
 git -C "$d" checkout -q -b feature/T-3-z; printf 'x\n' > "$d/tool.txt"; mkdir -p "$d/web"; printf 'w\n' > "$d/web/app.txt"; commit feat
-mkdir -p "$d/.bearing/state"
+fullrun; mkdir -p "$d/.bearing/state"
 python3 - "$d/.bearing/state/autopilot.json" <<'PY'
 import json, sys, time
 import os, subprocess
@@ -237,6 +247,41 @@ st = {"run": "r", "statement": "s", "started": "t", "started_epoch": time.time()
       "stages": {n: {"status": "done" if n != "mr" else "pending", "attempts": 0, "checked": "", "notes": []} for n in names}}
 json.dump(st, open(p, "w"))
 PY
+assert_exit 1 ap "done" mr
+assert_contains "$T_OUT" "the run must not push"
+d="$d_save"
+t_end
+
+# The opt-in push (brg-push, from the Stop hook) is the one push a run may cause. Its clone sets no upstream, so this
+# path fires only after a fetch; any other upstream at HEAD still fails.
+t_begin "the mr gate accepts an upstream brg-push pushed at HEAD, and nothing else"
+d8="$(tmpdir)/run8"; d_save="$d"; d="$d8"
+git init -q -b main "$d"; printf 'check:\n\t@mkdir -p .bearing/state && touch .bearing/state/.check-passed\n' > "$d/Makefile"; commit init
+bare="$(tmpdir)/remote8.git"; git init -q --bare "$bare"; git -C "$d" remote add origin "$bare"
+git -C "$d" checkout -q -b feature/T-8-x
+python3 - "$d/.bearing/state/autopilot.json" <<'PY'
+import json, sys, time
+p = sys.argv[1]
+import os; os.makedirs(os.path.dirname(p), exist_ok=True)
+import os, subprocess
+names = subprocess.check_output(["python3", os.environ["AP"], "stages"], text=True).split()
+st = {"run": "r", "statement": "s", "started": "t", "started_epoch": time.time(), "decisions": [],
+      "stages": {n: {"status": "done" if n != "mr" else "pending", "attempts": 0, "checked": "", "notes": []} for n in names}}
+json.dump(st, open(p, "w"))
+PY
+mkdir -p "$d/.scratch" "$d/docs/autopilot"; printf 'mr\n' > "$d/.scratch/mr-T-8.md"; printf 'r\n' > "$d/docs/autopilot/r.md"; git -C "$d" add docs; commit report
+git -C "$d" push -q -u origin feature/T-8-x 2>/dev/null
+printf 'pushed feature/T-8-x %s to git.example.test/group/shop 2026-10-18T10:00:00Z\n' "$(git -C "$d" rev-parse HEAD)" > "$d/.bearing/state/push-result"
+assert_exit 0 ap "done" mr
+assert_contains "$T_OUT" "pushed by brg-push"
+python3 - "$d/.bearing/state/autopilot.json" <<'PY'
+import json, sys
+p = sys.argv[1]; st = json.load(open(p)); st["stages"]["mr"]["status"] = "pending"; json.dump(st, open(p, "w"))
+PY
+printf 'pushed feature/T-8-x %s to git.example.test/group/shop 2026-10-18T10:00:00Z\n' "0000000000000000000000000000000000000000" > "$d/.bearing/state/push-result"
+assert_exit 1 ap "done" mr
+assert_contains "$T_OUT" "the run must not push"
+printf 'push failed: remote refused\n' > "$d/.bearing/state/push-result"
 assert_exit 1 ap "done" mr
 assert_contains "$T_OUT" "the run must not push"
 d="$d_save"
@@ -299,6 +344,24 @@ oldrun "$od/.bearing/state/autopilot.json" design
 assert_exit 0 python3 "$AP" next --dir "$od"
 assert_contains "$T_OUT" "next: repos"
 assert_not_contains "$T_OUT" "carried"
+t_end
+
+t_begin "a run from before the test_run stage, past a stage after it, is not pulled back to it"
+od="$(tmpdir)/old-run2"; mkdir -p "$od/.bearing/state"
+oldrun "$od/.bearing/state/autopilot.json" design_review
+assert_exit 0 python3 "$AP" next --dir "$od"
+assert_contains "$T_OUT" "next: review"
+assert_contains "$T_OUT" "test_run carried: the run was past test_automation"
+# a run that stopped right after test_automation runs the new test_run gate next
+oldrun "$od/.bearing/state/autopilot.json" test_automation
+assert_exit 0 python3 "$AP" next --dir "$od"
+assert_contains "$T_OUT" "next: test_run"
+assert_not_contains "$T_OUT" "test_run carried"
+# a run not yet past test_automation runs the new test_run gate in its turn
+oldrun "$od/.bearing/state/autopilot.json" build
+assert_exit 0 python3 "$AP" next --dir "$od"
+assert_contains "$T_OUT" "next: test_automation"
+assert_not_contains "$T_OUT" "test_run carried"
 t_end
 
 t_summary

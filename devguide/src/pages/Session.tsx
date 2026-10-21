@@ -69,26 +69,29 @@ const FILM: { frame: Omit<Frame, "visual">; rows: Row[] }[] = [
   },
   {
     frame: {
-      title: "PostToolUse, a problem",
+      title: "PostToolUse, after an edit",
       where: "plugins/bearing/hooks/scripts/format-file.sh → brg-guard format, then brg-guard check-file",
       body: (
         <>
           <p>
-            The model writes <code>csv.go</code>. The hook runs <code>gofmt -w</code> on it (a note to stderr, never a block), then lints that one file. This
-            Makefile has no <code>check-file</code> target, so the guard picks by extension: <code>go vet</code> on the package, capped at 25 seconds.
+            The model writes <code>csv.go</code>. The hook runs <code>gofmt -w</code> on it (a note to stderr, never a block): gofmt from a fixed system
+            directory, never the inherited PATH or anything in the working tree, in a cleared environment.
           </p>
           <p>
-            vet finds a problem, the guard exits 2, and <code>block_or_print</code> in <code>lib.sh</code> turns that into <code>{'{"decision": "block"}'}</code>{" "}
-            with the output as the reason. The edit already happened; the block sends the model back to fix it now.
+            The hook runs outside the sandbox and the Makefile is the agent's to write, so it runs no repository command: no{" "}
+            <code>make check-file</code>, no <code>go vet</code>. It prints one line saying so, and the model runs the per-file check in the session,
+            where the sandbox holds it.
           </p>
         </>
       ),
     },
     rows: [
       { who: "model", text: "Write: internal/export/csv.go" },
-      { who: "hook", tag: "PostToolUse", text: "bearing check: go vet found problems in internal/export/csv.go. Fix them before moving on:\ninternal/export/csv.go:27:3: fmt.Sprintf format %d has arg total of wrong type string", tone: "bad" },
-      { who: "model", text: "Edit: internal/export/csv.go (use %s)" },
-      { who: "hook", tag: "PostToolUse", text: "(clean: nothing printed, check-file clean logged)", tone: "good" },
+      { who: "hook", tag: "PostToolUse", text: "bearing check-file: not run by the hook (hooks run no repository command); run make check-file FILE=internal/export/csv.go in the session" },
+      { who: "model", text: "Bash: make check-file FILE=internal/export/csv.go" },
+      { who: "tool", text: "internal/export/csv.go:27:3: fmt.Sprintf format %d has arg total of wrong type string", tone: "bad" },
+      { who: "model", text: "Edit: internal/export/csv.go (use %s), then make check-file again" },
+      { who: "tool", text: "check-file: 1 file checked", tone: "good" },
     ],
   },
   {

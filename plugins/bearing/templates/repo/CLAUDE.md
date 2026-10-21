@@ -16,9 +16,11 @@ Tracker:      __TRACKER__ (BEARING_TRACKER; none is valid)
 Trunk:        main (name develop here if this repository keeps one)
 ```
 
-The Bearing plugin's hooks format and lint each edited file (`make
-check-file` when the Makefile has it), add the task id from the branch,
-refuse push, amend, rebase, merge, release and deploy commands, send you
+The Bearing plugin's hooks format each edited file with an allow-listed
+formatter and run no repository command, so after an edit run
+`make check-file FILE=<path>` yourself; they add the task id from the branch,
+refuse push, amend, rebase, merge, release and deploy commands (the one
+push is the Stop hook's `brg-push`, where the engineer opted in), send you
 back once when files you changed have not passed `make check`, and restore
 the branch state and the user's last requests after compaction.
 Permissions are in `.claude/settings.json`; `.claude/settings.local.json` may

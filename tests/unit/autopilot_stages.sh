@@ -10,7 +10,9 @@
 # against the screens' data needs. test_cases runs cases_check.
 # build needs make build too when the Makefile records it. test_automation
 # needs every automatable TC id named by a test. design_review
-# needs a review for a UI. dod refuses a profile the code contradicts.
+# needs a review for a UI. test_run needs a scoped run of HEAD. review
+# reads branch-review's verdict.txt and ties each blocking finding to a
+# fix. dod refuses a profile the code contradicts and needs the full run.
 set -u
 . "$(dirname "$0")/../lib/assert.sh"
 # the trust check reads $HOME/.claude.json; a test never reads the real one
@@ -88,7 +90,7 @@ datamodel() { cp "$KIT/plugins/bearing/skills/data-model/templates/"{schema.sql,
 
 t_begin "the stage list runs architecture, ux, test cases and test automation in order"
 assert_exit 0 python3 "$AP" stages
-assert_eq "repo branch prd stories decide architecture design repos ux contract lld test_cases build test_automation design_review review dod mr" "$(printf '%s' "$T_OUT" | tr '\n' ' ' | sed 's/ $//')" "stage order"
+assert_eq "repo branch prd stories decide architecture design repos ux contract lld test_cases build test_automation test_run design_review review dod mr" "$(printf '%s' "$T_OUT" | tr '\n' ' ' | sed 's/ $//')" "stage order"
 t_end
 
 t_begin "decide needs the product profile, recorded in the digest"
@@ -280,6 +282,14 @@ assert_contains "$T_OUT" "docs/security/threat-model-*.md (threat-model"
 threats "$d"
 assert_exit 0 ap "done" contract
 assert_contains "$T_OUT" "threat models 1"
+t_end
+
+t_begin "an llm profile without bearing-genai is refused before it is recorded"
+at design
+assert_exit 2 env BEARING_PLUGIN_DIRS=/nonexistent python3 "$AP" profile --ui no --data no --api no --deploy no --llm yes --scope full --why fixture --dir "$d"
+assert_contains "$T_OUT" "genai-design is in the bearing-genai plugin, which is not installed: /plugin install bearing-genai@bearing"
+assert_contains "$T_OUT" "no profile recorded"
+assert_not_contains "$(ap status)" "llm=yes"
 t_end
 
 t_begin "a full-scope profile without data or API needs only the threat model at contract"
@@ -660,6 +670,324 @@ printf 'create table t (id int);\n' > "$d/migrations/0001_init.sql"; commit feat
 assert_exit 1 ap "done" dod
 assert_contains "$T_OUT" "the profile says ui=no, but web/package.json is a UI"
 assert_contains "$T_OUT" "the profile says data=no, but migrations/0001_init.sql is a schema"
+t_end
+
+# ev <scope> [json overrides]: test-run's evidence for HEAD on the current
+# branch (runners.md schema): one e2e suite run, 4 tests, 0 failed, clean,
+# unfiltered (selection null). An override of "__absent__" drops the key.
+ev() {
+  mkdir -p "$d/.scratch/test-run"
+  python3 - "$d/.scratch/test-run/$(git -C "$d" branch --show-current | tr / _)-$1.json" "$1" \
+    "$(git -C "$d" rev-parse HEAD)" "${2:-}" <<'PY'
+import json, sys
+path, scope, sha, over = sys.argv[1:5]
+changed = scope == "changed"
+e = {"scope": scope, "sha": sha, "dirty": False, "base": "main" if changed else "",
+     "files": 3 if changed else None, "layers": ["ui"] if changed else [], "except": [],
+     "suites": [{"name": "e2e", "status": "run", "reason": "", "passed": 4, "failed": 0, "skipped": 0}],
+     "tests": 4, "failed": 0, "not_run": [], "failures": [], "selection": None}
+e.update(json.loads(over or "{}"))
+e = {k: v for k, v in e.items() if v != "__absent__"}
+json.dump(e, open(path, "w"))
+PY
+}
+EVF() { printf '%s' "$d/.scratch/test-run/feat_x-$1.json"; }
+
+t_begin "test_run needs evidence for HEAD on the branch"
+at test_run; profile yes no no no; git -C "$d" switch -qc feat/x
+assert_exit 1 ap "done" test_run
+assert_contains "$T_OUT" "no test-run evidence (.scratch/test-run/feat_x-changed.json; test-run --changed)"
+t_end
+
+t_begin "test_run fails on 0 suites, a failure, another sha and a dirty tree"
+at test_run; git -C "$d" switch -qc feat/x
+ev changed '{"suites": [], "tests": 0}'; assert_exit 1 ap "done" test_run; assert_contains "$T_OUT" "0 suites ran"
+ev changed '{"failed": 1}'; assert_exit 1 ap "done" test_run; assert_contains "$T_OUT" "1 failed"
+ev changed '{"sha": "0000000"}'; assert_exit 1 ap "done" test_run
+assert_contains "$T_OUT" "the run is on 0000000, HEAD is"; assert_contains "$T_OUT" "run test-run again"
+ev changed '{"dirty": true}'; assert_exit 1 ap "done" test_run
+assert_contains "$T_OUT" "the run was on an uncommitted tree: commit, then run again"
+t_end
+
+t_begin "test_run fails a suite that ran 0 tests when nothing is covered"
+at test_run; git -C "$d" switch -qc feat/x
+ev changed '{"suites": [{"name": "e2e", "status": "run", "reason": "", "passed": 0, "failed": 0, "skipped": 0}], "tests": 0}'
+assert_exit 1 ap "done" test_run; assert_contains "$T_OUT" "0 tests ran"
+t_end
+
+t_begin "a suite not run needs a decision leaving it to CI, then test_run passes"
+at test_run; git -C "$d" switch -qc feat/x
+ev changed '{"not_run": ["integration"]}'
+assert_exit 1 ap "done" test_run
+assert_contains "$T_OUT" "not run with no decision: integration"
+ap decision test_run.integration "left to CI job test-integration" "start Docker and rerun" "no Docker in the sandbox" >/dev/null
+assert_exit 0 ap "done" test_run
+assert_contains "$T_OUT" "4 tests in 1 suites (ui), 0 failed; left to CI: integration"
+t_end
+
+t_begin "a test_run decision that keeps a suite local does not leave it to CI"
+at test_run; git -C "$d" switch -qc feat/x
+ev changed '{"not_run": ["integration"]}'
+ap decision test_run.integration "run locally" "left to CI job test-integration" "Docker is up" >/dev/null
+assert_exit 1 ap "done" test_run
+assert_contains "$T_OUT" "not run with no decision: integration"
+ap decision test_run.integration "left to CI job test-integration" "run locally" "no Docker" >/dev/null
+assert_exit 0 ap "done" test_run
+assert_contains "$T_OUT" "left to CI: integration"
+t_end
+
+# Review Focus 3: a run killed mid-write leaves a truncated file
+t_begin "a truncated evidence file fails the gate and names the file"
+at test_run; git -C "$d" switch -qc feat/x
+mkdir -p "$d/.scratch/test-run"; printf '{"scope":' > "$(EVF changed)"
+assert_exit 1 ap "done" test_run
+assert_contains "$T_OUT" ".scratch/test-run/feat_x-changed.json: not valid JSON"
+printf '{"scope": "changed"}' > "$(EVF changed)"
+assert_exit 1 ap "done" test_run
+assert_contains "$T_OUT" "feat_x-changed.json: no \"sha\" key"
+t_end
+
+t_begin "a unit suite covered by make check counts as run only while nothing changed since"
+at test_run; git -C "$d" switch -qc feat/x
+ev changed '{"suites": [{"name": "unit", "status": "covered", "reason": "covered by make check", "marker": ".bearing/state/.check-passed", "passed": null, "failed": null, "skipped": null}], "tests": 0, "layers": ["unit"]}'
+assert_exit 1 ap "done" test_run
+assert_contains "$T_OUT" "unit covered by make check, but make check has not passed since"
+( cd "$d" && make -s check ); sleep 1; echo x > "$d/x.go"
+assert_exit 1 ap "done" test_run
+assert_contains "$T_OUT" "x.go"
+rm "$d/x.go"
+assert_exit 0 ap "done" test_run
+assert_contains "$T_OUT" "0 tests in 1 suites (unit), 0 failed"
+t_end
+
+t_begin "a documentation-only change passes test_run with the files it counted, never with 0"
+at test_run; git -C "$d" switch -qc feat/x
+ev changed '{"suites": [], "tests": 0, "layers": [], "files": 0}'
+assert_exit 1 ap "done" test_run; assert_contains "$T_OUT" "0 layers and 0 files"
+ev changed '{"suites": [], "tests": 0, "layers": [], "files": 2}'
+assert_exit 0 ap "done" test_run; assert_contains "$T_OUT" "0 layers touched by 2 files: nothing to test"
+t_end
+
+t_begin "test_run reads the full run when there is no scoped one"
+at test_run; git -C "$d" switch -qc feat/x
+ev full '{"except": ["unit"]}'
+assert_exit 0 ap "done" test_run
+assert_contains "$T_OUT" "4 tests in 1 suites (full), 0 failed"
+t_end
+
+t_begin "a covered unit suite fails when a change was committed after make check"
+at test_run; git -C "$d" switch -qc feat/x
+( cd "$d" && make -s check ); sleep 1; echo y > "$d/y.go"; commit y
+ev changed '{"suites": [{"name": "unit", "status": "covered", "reason": "covered by make check", "marker": ".bearing/state/.check-passed", "passed": null, "failed": null, "skipped": null}], "tests": 0, "layers": ["unit"]}'
+assert_exit 1 ap "done" test_run
+assert_contains "$T_OUT" "unit covered by make check, but make check has not passed since: y.go"
+( cd "$d" && make -s check )
+assert_exit 0 ap "done" test_run
+t_end
+
+t_begin "test_run refuses a filtered run and evidence with no selection"
+at test_run; git -C "$d" switch -qc feat/x
+ev changed '{"selection": {"tc": ["TC-0231"]}}'
+assert_exit 1 ap "done" test_run
+assert_contains "$T_OUT" "feat_x-changed.json: a filtered run (tc TC-0231)"
+rm "$(EVF changed)"; ev full '{"selection": {"suite": ["visual"]}}'
+assert_exit 1 ap "done" test_run
+assert_contains "$T_OUT" "feat_x-full.json: a filtered run (suite visual)"
+ev full '{"selection": "__absent__"}'
+assert_exit 1 ap "done" test_run
+assert_contains "$T_OUT" "feat_x-full.json: no \"selection\" key"
+t_end
+
+# verdict <slug> <verdict> <blocking> [touch -t stamp]: branch-review's
+# verdict.txt for HEAD, 3 files; a range with spaces and ... as it may hold.
+verdict() {
+  mkdir -p "$d/.scratch/review/$1"
+  { printf 'review: main...feat/x (and the working tree) @ %s, 3 files\n' "$(git -C "$d" rev-parse HEAD)"
+    printf 'Verdict: %s\n' "$2"
+    printf 'findings: 1 critical, 1 high, 0 medium, 2 low; verified 2: 2 confirmed, 0 refuted, 0 uncertain\n'
+    printf 'blocking: %s\n' "$3"
+  } > "$d/.scratch/review/$1/verdict.txt"
+  [ -z "${4:-}" ] || touch -t "$4" "$d/.scratch/review/$1/verdict.txt"
+}
+VF() { printf '%s' "$d/.scratch/review/$1/verdict.txt"; }
+# revat: a fresh run at review on feat/x with one commit of its own.
+revat() { at review; git -C "$d" switch -qc feat/x; echo w > "$d/w.txt"; commit work; }
+
+t_begin "review needs branch-review's verdict, not just a folder"
+revat
+mkdir -p "$d/.scratch/review/empty"
+assert_exit 1 ap "done" review
+assert_contains "$T_OUT" "no .scratch/review/*/verdict.txt (branch-review)"
+t_end
+
+t_begin "review ties each blocking finding to a fix committed after the reviewed commit"
+revat
+verdict r1 "not ready to merge" "1 3"; reviewed="$(git -C "$d" rev-parse HEAD)"
+assert_exit 1 ap "done" review; assert_contains "$T_OUT" "finding 1"
+printf '1 %s\n' "$reviewed" > "$d/.scratch/review/r1/fixed.txt"
+assert_exit 1 ap "done" review; assert_contains "$T_OUT" "finding 1"
+echo fix > "$d/f.txt"; commit fix; fix="$(git -C "$d" rev-parse HEAD)"
+printf '1 %s\n' "$fix" > "$d/.scratch/review/r1/fixed.txt"
+assert_exit 1 ap "done" review; assert_contains "$T_OUT" "finding 3"
+printf '1 %s\n3 %s\n' "$fix" "$fix" > "$d/.scratch/review/r1/fixed.txt"
+assert_exit 0 ap "done" review
+assert_contains "$T_OUT" "review of 3 files: not ready to merge; 2 confirmed, 2 fixed"
+t_end
+
+# Review Focus 4: a merge rule broken with no finding has nothing to tie a fix to
+t_begin "not ready to merge with no blocking finding fails"
+revat
+verdict r2 "not ready to merge" "none"
+assert_exit 1 ap "done" review
+assert_contains "$T_OUT" "not ready to merge with no blocking finding to fix"
+t_end
+
+t_begin "a 0-file review never passes"
+revat
+verdict r3 "ready to merge" "none"; replace_in "$(VF r3)" ", 3 files" ", 0 files"
+assert_exit 1 ap "done" review
+assert_contains "$T_OUT" "0 files"
+t_end
+
+t_begin "ready after its items passes and counts them"
+revat
+verdict r4 "ready after 2 4" "none"
+assert_exit 0 ap "done" review
+assert_contains "$T_OUT" "review of 3 files: ready after 2 items (2 4); 2 confirmed, 0 fixed"
+t_end
+
+t_begin "review reads the newest verdict by mtime, a tie broken by name"
+revat
+verdict r9 "not ready to merge" "1" 202001010000
+verdict r1 "ready to merge" "none" 202101010000
+assert_exit 0 ap "done" review
+assert_contains "$T_OUT" "review of 3 files: ready to merge"
+revat
+verdict r1 "ready to merge" "none" 202101010000
+verdict r9 "not ready to merge" "1" 202101010000
+assert_exit 1 ap "done" review
+assert_contains "$T_OUT" "r9/verdict.txt"; assert_contains "$T_OUT" "finding 1"
+t_end
+
+t_begin "review fails a malformed verdict, a missing findings line and a commit not on the branch"
+revat
+mkdir -p "$d/.scratch/review/r5"; printf 'review: main...feat/x\n' > "$(VF r5)"
+assert_exit 1 ap "done" review
+assert_contains "$T_OUT" ".scratch/review/r5/verdict.txt: no first line"
+verdict r5 "ready to merge" "none"; replace_in "$(VF r5)" "findings: " "found: "
+assert_exit 1 ap "done" review
+assert_contains "$T_OUT" "no findings: line"
+verdict r5 "ready to merge" "none"; replace_in "$(VF r5)" "$(git -C "$d" rev-parse HEAD)" "1111111111111111111111111111111111111111"
+assert_exit 1 ap "done" review
+assert_contains "$T_OUT" "1111111 is not an ancestor of HEAD"
+t_end
+
+t_begin "review refuses a leftover verdict whose commit is on the base branch"
+at review; git -C "$d" switch -qc feat/old; echo o > "$d/o.txt"; commit old
+verdict old "ready to merge" "none"; touch -t 202001010000 "$(VF old)"
+git -C "$d" switch -q main
+git -C "$d" -c user.email=t@e -c user.name=t merge -q --no-ff -m merge feat/old >/dev/null 2>&1
+git -C "$d" switch -qc feat/x; echo w > "$d/w.txt"; commit work
+assert_exit 1 ap "done" review
+assert_contains "$T_OUT" "is on main, not on this branch; review this branch"
+verdict new "ready to merge" "none"
+assert_exit 0 ap "done" review
+t_end
+
+t_begin "review refuses a verdict at the branch point when the branch has no commit of its own"
+at review; git -C "$d" switch -qc feat/x
+verdict r0 "ready to merge" "none"
+assert_exit 1 ap "done" review
+assert_contains "$T_OUT" "is on main, not on this branch"
+t_end
+
+# dodat: a fresh run at dod on feat/x with one committed change and make check passed.
+dodat() {
+  at dod; profile no no no no; git -C "$d" switch -qc feat/x
+  echo a > "$d/a.go"; commit a; ( cd "$d" && make -s check )
+}
+
+t_begin "dod needs the full run"
+dodat
+assert_exit 1 ap "done" dod
+assert_contains "$T_OUT" "no full test-run evidence (.scratch/test-run/feat_x-full.json; definition-of-done item 14)"
+t_end
+
+# Review Focus 5: the full report is committed after the run
+t_begin "dod accepts a full run followed only by its committed report"
+dodat; ev full '{"except": ["unit"]}'
+mkdir -p "$d/docs/testing/reports"; echo r > "$d/docs/testing/reports/r.md"; commit report; ( cd "$d" && make -s check )
+assert_exit 0 ap "done" dod
+assert_contains "$T_OUT" "full run: 1 suites, 4 tests, 0 failed"
+t_end
+
+t_begin "dod refuses a full run that code changed after"
+dodat; ev full '{"except": ["unit"]}'
+mkdir -p "$d/docs/testing/reports"; echo r > "$d/docs/testing/reports/r.md"
+echo b > "$d/b.go"; commit code; ( cd "$d" && make -s check )
+assert_exit 1 ap "done" dod
+assert_contains "$T_OUT" "b.go"
+assert_not_contains "$T_OUT" "r.md"
+t_end
+
+t_begin "dod refuses a partial, failed or dirty full run, and a suite not run without a decision"
+dodat
+ev full '{"except": ["e2e"]}'; assert_exit 1 ap "done" dod; assert_contains "$T_OUT" "except e2e"
+ev full '{"failed": 2}'; assert_exit 1 ap "done" dod; assert_contains "$T_OUT" "2 failed"
+ev full '{"dirty": true}'; assert_exit 1 ap "done" dod; assert_contains "$T_OUT" "uncommitted tree"
+ev full '{"suites": [], "tests": 0}'; assert_exit 1 ap "done" dod; assert_contains "$T_OUT" "0 suites ran"
+ev full '{"not_run": ["integration"]}'; assert_exit 1 ap "done" dod
+assert_contains "$T_OUT" "not run with no decision: integration"
+ap decision test_run.integration "left to CI job test-integration" "run locally" "no Docker" >/dev/null
+assert_exit 0 ap "done" dod
+assert_contains "$T_OUT" "full run: 1 suites, 4 tests, 0 failed; left to CI: integration"
+t_end
+
+t_begin "dod passes when every suite beyond unit is left to CI by a decision"
+dodat
+ev full '{"except": ["unit"], "suites": [{"name": "e2e", "status": "not run", "reason": "no browser", "passed": 0, "failed": 0, "skipped": 0}], "tests": 0, "not_run": ["e2e"]}'
+assert_exit 1 ap "done" dod; assert_contains "$T_OUT" "not run with no decision: e2e"
+ap decision test_run.e2e "left to CI job test-e2e" "run locally" "no browser in the sandbox" >/dev/null
+assert_exit 0 ap "done" dod
+assert_contains "$T_OUT" "full run: 0 suites, 0 tests, 0 failed; left to CI: e2e"
+t_end
+
+t_begin "dod accepts only an unfiltered full run, or one that left out unit alone"
+dodat
+ev full '{"except": ["unit"], "selection": {"tc": ["TC-0231"]}}'
+assert_exit 1 ap "done" dod
+assert_contains "$T_OUT" "feat_x-full.json: a filtered run (tc TC-0231) is not the full run"
+ev full '{"selection": {"suite": ["visual"], "tag": ["@P1"]}}'
+assert_exit 1 ap "done" dod; assert_contains "$T_OUT" "a filtered run (suite visual; tag @P1)"
+ev full '{"selection": "__absent__"}'
+assert_exit 1 ap "done" dod; assert_contains "$T_OUT" "no \"selection\" key"
+ev full '{"except": ["unit"], "selection": {"except": ["unit"]}}'
+assert_exit 0 ap "done" dod; assert_contains "$T_OUT" "full run: 1 suites, 4 tests, 0 failed"
+t_end
+
+t_begin "dod fails a full run that ran 0 tests"
+dodat
+ev full '{"except": ["unit"], "suites": [{"name": "e2e", "status": "run", "reason": "", "passed": 0, "failed": 0, "skipped": 0}], "tests": 0}'
+assert_exit 1 ap "done" dod
+assert_contains "$T_OUT" "feat_x-full.json: 0 tests ran in 1 suite(s)"
+t_end
+
+t_begin "the test_run and dod stage text names the docs-only and left-to-CI passes"
+at test_run
+assert_exit 0 ap next
+assert_contains "$T_OUT" "a docs-only change passes with 0 layers when the diff has files"
+at dod
+assert_exit 0 ap next
+assert_contains "$T_OUT" "every suite beyond unit left to CI by decisions passes"
+t_end
+
+t_begin "dod accepts a unit-only repository only with the n/a item 14 writes"
+dodat
+ev full '{"except": ["unit"], "suites": [], "tests": 0, "n_a": "something else"}'
+assert_exit 1 ap "done" dod; assert_contains "$T_OUT" "0 suites ran"
+ev full '{"except": ["unit"], "suites": [], "tests": 0, "n_a": "no suite beyond unit"}'
+assert_exit 0 ap "done" dod
+assert_contains "$T_OUT" "full run: 0 suites beyond unit"
 t_end
 
 t_summary

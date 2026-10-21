@@ -2,7 +2,10 @@
 """gen-flow-steps: docs/flows.json -> plugins/bearing/bin/flow-steps.tsv.
 
 One line per skill step, depth first through branch options in file order,
-so brg-session can tell the next step without shipping the whole handbook.
+so brg-session can tell the next step without shipping the whole handbook:
+flow, order, skill, and "branch" for a step inside a branch option (taken
+only on one answer, so brg-session may skip it when its condition already
+holds) or "step" for one on the main line.
 """
 import json
 import pathlib
@@ -15,14 +18,14 @@ def bare(skill):
     return skill.split(":")[-1].lstrip("/")
 
 
-def walk(steps, acc):
+def walk(steps, acc, kind="step"):
     for s in steps:
         if s.get("kind") == "step" and s.get("skill"):
             name = bare(s["skill"])
-            if name not in acc:
-                acc.append(name)
+            if name not in [a[0] for a in acc]:
+                acc.append((name, kind))
         for opt in s.get("options", []):
-            walk(opt.get("steps", []), acc)
+            walk(opt.get("steps", []), acc, "branch")
 
 
 def main():
@@ -33,7 +36,7 @@ def main():
         walk(f.get("steps", []), acc)
         if not acc:
             raise SystemExit(f"gen-flow-steps: flow {f['id']} has 0 steps")
-        lines += [f"{f['id']}\t{i}\t{s}" for i, s in enumerate(acc, 1)]
+        lines += [f"{f['id']}\t{i}\t{s}\t{k}" for i, (s, k) in enumerate(acc, 1)]
     if not lines:
         raise SystemExit("gen-flow-steps: 0 steps found in docs/flows.json")
     OUT.write_text("\n".join(lines) + "\n")

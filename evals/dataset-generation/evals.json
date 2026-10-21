@@ -1,0 +1,39 @@
+{
+ "skill_name": "dataset-generation",
+ "evals": [
+  {
+   "id": 1,
+   "name": "short-seed-stops",
+   "prompt": "We need a few hundred more intake notes for the intake eval. Generate them from what we have in evals/intake.",
+   "expected_output": "The skill counts the seed in evals/intake/cases.jsonl (6 real rows, real 6 on dataset_check.py's count line), stops with the seed rule (synthetic data with no real seed measures the generator) and asks for at least 10 real rows; it writes no taxonomy, no generate.py and no generated rows.",
+   "files": [
+    "files/short-seed"
+   ],
+   "expectations": [
+    "The transcript counts the seed as 6 real rows, from dataset_check.py's count line or the file itself",
+    "It stops and asks for at least 10 real rows, saying synthetic data with no real seed measures the generator",
+    "It generates nothing: no datasets/intake/ rows, no generate.py, no model call, and evals/intake/cases.jsonl is unchanged",
+    "No file written or edited contains an em dash character"
+   ]
+  },
+  {
+   "id": 2,
+   "name": "intake-eval-rows-from-golden-set",
+   "prompt": "The intake classifier eval only has short English notes. Make me a few hundred varied intake notes for the eval (languages, long multi-problem notes, the edge cases in the solution doc). Use our model setup in llm/.",
+   "expected_output": "The seed is the 40 real labelled rows; datasets/intake/taxonomy.json takes its dimensions from docs/genai/intake-solution.md (language with Hinglish and Tamil, length, multi-problem, edge cases including prompt injection); the generator is a models: key other than claude-sonnet-5-5, the intake route's model under test (claude-opus-5-5 recommended), asked with AskUserQuestion or stated as the default; datasets/intake/generate.py uses a versioned prompt from prompt-registry through the gateway; dataset_check.py runs with --against evals/intake/cases.jsonl and --taxonomy; an audit sample of at least 30 rows is drawn for a person and the skill writes no verdicts; DATASHEET.md records the counts and the audit status; no generated row is appended to evals/intake/cases.jsonl before a person's audit passes.",
+   "files": [
+    "files/intake-notes"
+   ],
+   "expectations": [
+    "It chooses a generator other than the model under test: not claude-sonnet-5-5, the model of the intake route in llm/routing.yaml",
+    "It runs dataset_check.py with --against the golden set evals/intake/cases.jsonl (and copies its count line)",
+    "The taxonomy in datasets/intake/taxonomy.json names dimensions from the solution doc, including language with code-mixed Hinglish and Tamil",
+    "Generation goes through a versioned prompt (prompt-registry) and the gateway route, from datasets/intake/generate.py",
+    "It writes datasets/intake/DATASHEET.md with the audit counts (required, audited, accepted, or pending a person)",
+    "It does not promote unaudited rows: evals/intake/cases.jsonl gains no synthetic row unless a person's audit file shows 90 percent or more accepted",
+    "The skill never writes accept or reject verdicts itself",
+    "No file written or edited contains an em dash character"
+   ]
+  }
+ ]
+}

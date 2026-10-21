@@ -1,0 +1,167 @@
+# llm/routing.yaml. Validated at startup against llm/routing_schema.
+# A feature not listed here fails its call with UnknownFeature.
+# Prices are USD per million tokens; the gateway derives cost from the
+# usage in each response, never from the request.
+# Prices: claude-api skill shared/models.md, as_of 2026-10-18. Re-read them there; never from memory.
+#
+# A `models:` row names one model the gateway can call: `provider`, `id` (the
+# model id the provider gets; the key when absent), prices, and the leg
+# settings a call on it takes when an eval override or a static `leg:` does
+# not set them (`effort`, `max_tokens`, `timeout_s`). `effort: null` marks a
+# model that rejects effort (Haiku 4.5): the gateway never sends it one.
+
+version: 1
+
+models:
+  claude-opus-5-5:
+    provider: anthropic
+    input_per_m: 4.00
+    output_per_m: 20.00
+    cache_write_multiplier: 1.25
+    cache_read_multiplier: 0.05
+    context_window: 1000000
+    effort: high                   # Opus 5.5 default is medium; thinking cannot be disabled
+    max_tokens: 16000
+    timeout_s: 300
+  claude-sonnet-5-5:
+    provider: anthropic
+    input_per_m: 2.00
+    output_per_m: 10.00
+    cache_write_multiplier: 1.25
+    cache_read_multiplier: 0.10
+    context_window: 1000000
+    effort: medium
+    max_tokens: 4096
+    timeout_s: 60
+  claude-haiku-4-5:
+    provider: anthropic
+    input_per_m: 1.00
+    output_per_m: 5.00
+    cache_write_multiplier: 1.25
+    cache_read_multiplier: 0.10   # the generic 0.1x in the claude-api skill's shared/prompt-caching.md; it has no Haiku-specific row
+    context_window: 200000
+    effort: null                   # rejects effort: never sent, whatever the tier says
+    max_tokens: 1024
+    timeout_s: 20
+  # The larger model at a lower effort, a candidate of its own before a
+  # cascade (model-routing references/strategies.md):
+  # sonnet-low:
+  #   provider: anthropic
+  #   id: claude-sonnet-5-5
+  #   input_per_m: 2.00
+  #   output_per_m: 10.00
+  #   cache_write_multiplier: 1.25
+  #   cache_read_multiplier: 0.10
+  #   effort: low
+  #   max_tokens: 4096
+  #   timeout_s: 60
+  # OpenRouter: one key (OPENROUTER_API_KEY) with a spend limit, many vendors.
+  # Model ids are vendor/model; prices are OpenRouter's, per million tokens.
+  # or-sonnet:
+  #   provider: openrouter
+  #   id: anthropic/claude-sonnet-5-5
+  #   input_per_m: 2.00
+  #   output_per_m: 10.00
+  # A trained open model served by vLLM (llm-fine-tuning) joins here.
+  # support-classifier-v1:
+  #   provider: vllm
+  #   base_url: ${LLM_VLLM_URL}
+  #   input_per_m: 0.05
+  #   output_per_m: 0.10
+
+tiers:
+  fast:
+    model: claude-haiku-4-5        # classification, routing, short extraction
+    effort: null                   # Haiku 4.5 rejects effort; thinking, if wanted, is budget_tokens
+    max_tokens: 1024
+    timeout_s: 20
+  balanced:
+    model: claude-sonnet-5-5         # bulk generation, RAG answers, short-output judges
+    effort: medium                 # Sonnet 5.5 default is high; thinking-off is between_tools, never disabled
+    max_tokens: 4096
+    timeout_s: 60
+  deep:
+    model: claude-opus-5-5           # the default: reasoning, planning, anything a user reads
+    effort: high                   # Opus 5.5 default is medium; thinking cannot be disabled
+    max_tokens: 16000
+    timeout_s: 300
+
+defaults:
+  tier: deep
+  strategy: static                 # static | cascade (model-routing writes cascade from evals)
+  budget_usd_month: null           # model-routing sets it; alert at 80 percent of it
+  cacheable: false
+  enabled: true
+  canary: 0
+  fallback: null
+  rate_limit:
+    per_tenant_per_minute: 60
+    burst: 20
+
+routes:
+  support_classify:
+    tier: fast
+    cacheable: true                # closed label set, no tools, no time
+    fallback: null
+    rate_limit: { per_tenant_per_minute: 600, burst: 100 }
+
+  rag_answer:
+    tier: balanced
+    max_tokens: 2048
+    cacheable: false               # retrieved context changes
+    fallback: { tier: fast }       # answer with Haiku when Sonnet is unavailable
+    prompt_cache: true             # long grounding system prompt
+
+  rag_rerank:
+    tier: fast
+    max_tokens: 256
+    cacheable: true
+
+  plan_generation:
+    tier: deep
+    effort: xhigh
+    max_tokens: 32000
+    stream: true
+    fallback: { tier: balanced }
+    prompt_cache: true
+
+  # Written by model-routing, strategy static: one leg, which names a key
+  # of `models:` and carries its own effort, max_tokens and timeout_s; the
+  # tier is not read, so a Haiku 4.5 route never inherits a tier's effort.
+  # evidence: <the route-frontier line, verbatim>, <date>, eval <version>
+  ticket_triage:
+    strategy: static
+    leg: { model: claude-haiku-4-5, effort: null, max_tokens: 1024, timeout_s: 20 }
+    budget_usd_month: 60           # alert at 80 percent (bearing:observability)
+    fallback: null
+
+  # Written by model-routing. The small model answers; when its answer fails
+  # a check the gateway can run, the large one answers once, both are billed
+  # (each call under its own model's prices), and llm_escalation_total{feature}
+  # counts it. Each leg names a key of `models:` and carries its own effort,
+  # max_tokens and timeout_s; nothing is inherited from the route's tier,
+  # because Haiku 4.5 rejects effort with a 400. The fallback runs first,
+  # before the cascade judges.
+  # evidence: <the route-frontier line, verbatim>, <date>, eval <version>;
+  # re-run when a model id or a price changes, or by <date + 90 days>
+  invoice_extract:
+    strategy: cascade
+    cascade:
+      first: { model: claude-haiku-4-5, effort: null, max_tokens: 2048, timeout_s: 20 }
+      then: { model: claude-sonnet-5-5, effort: medium, max_tokens: 2048, timeout_s: 60 }
+    escalate_on: [invalid, refusal, max_tokens]   # invalid: schema parse or a format check
+    budget_usd_month: 400          # alert at 80 percent (bearing:observability)
+    fallback: null
+
+  eval_judge:
+    tier: deep                     # judge stronger than the model under test
+    max_tokens: 4096
+    cacheable: true
+    enabled: true
+
+  # Canary for a trained model: 5 percent of traffic, the API model stays
+  # the fallback until the eval on sampled traffic clears the bar.
+  # support_classify_v2:
+  #   model: support-classifier-v1
+  #   canary: 5
+  #   fallback: { route: support_classify }

@@ -476,6 +476,16 @@ assert_exit 2 bash "$GUARD" command "terraform apply"
 assert_contains "$T_OUT" "blocked 'terraform apply'"
 t_end
 
+t_begin "brg-push run is the Stop hook's, never the agent's"
+assert_exit 2 bash "$GUARD" command 'bash "/x/plugins/bearing/bin/brg-push" run --id s'
+assert_contains "$T_OUT" "blocked 'brg-push run (the Stop hook runs it)'"
+assert_exit 2 bash "$GUARD" command '/x/bin/brg-push run'
+assert_exit 2 bash "$GUARD" command 'cd /x && sh ./brg-push run --foreground --id s'
+assert_exit 0 bash "$GUARD" command 'bash "/x/plugins/bearing/bin/brg-push" check'
+assert_exit 0 bash "$GUARD" command 'bash "/x/plugins/bearing/bin/brg-push" request'
+assert_exit 0 bash "$GUARD" command 'bash "/x/plugins/bearing/bin/brg-push" status'
+t_end
+
 t_begin "verb table and version"
 assert_exit 0 bash "$GUARD" --verbs
 nverbs="$(printf '%s\n' "$T_OUT" | grep -c "$(printf '\t')")"

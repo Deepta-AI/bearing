@@ -1,8 +1,8 @@
 ---
 name: test-run
 description: 'Runs every test suite present into one report: failures at file:line, slowest, flaky, coverage; a suite that did not run never passes. Use when asked to "run the tests", "what is failing" or "run TC-0231".'
-argument-hint: "[--suite unit|integration|e2e|matrix|visual|ui|load|synthetic] [--tag @P1] [--tc TC-0231] [--changed] [--timeout 20m]"
-allowed-tools: Read, Write, Edit, Grep, Glob, Bash(make -n:*), Bash(make synthetic:*), Bash(git status:*), Bash(git diff:*), Bash(git log:*), Bash(git rev-parse:*), Bash(git merge-base:*), Bash(git rev-list:*), Bash(git worktree:*), Bash(git archive:*), Bash(go test:*), Bash(pnpm exec:*), Bash(uv run pytest:*), Bash(uv run --offline pytest:*), Bash(python3 -m pytest:*), Bash(pytest:*), Bash(.venv/bin/python -m pytest:*), Bash(python3 -c:*), Bash(./gradlew:*), Bash(swift test:*), Bash(xcodebuild test:*), Bash(maestro test:*), Bash(k6 run:*), Bash(bash *bin/brg-state-path*)
+argument-hint: "[--suite <s>[,<s>] | all[,matrix]] [--except <s>[,<s>]] [--tag @P1] [--tc TC-0231] [--changed] [--timeout 20m]"
+allowed-tools: Read, Write, Edit, Grep, Glob, Bash(make -n:*), Bash(make test:*), Bash(make test-integration:*), Bash(make test-e2e:*), Bash(make test-ui:*), Bash(make test-visual:*), Bash(make test-e2e-matrix:*), Bash(make synthetic:*), Bash(make db), Bash(make migrate), Bash(docker compose down:*), Bash(git status:*), Bash(git diff:*), Bash(git log:*), Bash(git rev-parse:*), Bash(git merge-base:*), Bash(git rev-list:*), Bash(git branch:*), Bash(git worktree:*), Bash(git archive:*), Bash(go test:*), Bash(pnpm exec:*), Bash(uv run pytest:*), Bash(uv run --offline pytest:*), Bash(python3 -m pytest:*), Bash(pytest:*), Bash(.venv/bin/python -m pytest:*), Bash(python3 -c:*), Bash(./gradlew:*), Bash(swift test:*), Bash(xcodebuild test:*), Bash(maestro test:*), Bash(k6 run:*), Bash(bash *bin/brg-state-path*), Bash(bash *bin/brg-changed*)
 ---
 
 # test-run
@@ -20,8 +20,8 @@ the table; this only runs what exists and reports.
 
 - Stack: looks in the Makefile and `stack.json`; if absent, detects from `package.json` (react, expo), `go.mod`, `pyproject.toml`, `build.gradle.kts`, `Package.swift` or `project.yml`. None of these: stop with "provide a repository with a package manifest".
 - Suites: looks in the Makefile targets `test`, `test-integration`, `test-e2e`, `test-e2e-matrix` (matrix), `test-visual` (visual), `test-ui`, `load-test`, `synthetic` (`make -n <target>` shows the real command); if absent, the test folders (`*_test.go`, `tests/`, `tests/integration/`, `e2e/`, `.maestro/`, `androidTest/`, `UITests/`, `tests/load/`, `tests/synthetic/`).
-- Selection: `$ARGUMENTS` as in the hint; if absent, every suite present except `matrix`, `load` and `synthetic`, which run only when named with `--suite` (the matrix repeats e2e on every browser and phone; CI runs it after merge).
-- Base for `--changed`: looks in `.bearing/state/<branch with / as _>.md` (`bash "${CLAUDE_PLUGIN_ROOT}/bin/brg-state-path"` prints it) (`Base:` line); if absent, every one of `origin/develop`, `develop`, `origin/main`, `main`, `origin/master`, `master` that `git rev-parse --verify` finds is a candidate, and the base is the candidate whose merge base with HEAD leaves the fewest branch commits (`git rev-list --count <merge-base>..HEAD`), develop before main on a tie. The diff is `git diff <merge-base>` so commits that landed on the base after the branch point are not the branch's; the working tree diff is always included. Print the base and why it was chosen.
+- Selection: `$ARGUMENTS` as in the hint. `--suite` takes a comma list; `all` is every suite present except `matrix`, `load` and `synthetic`, and `all,matrix` adds the matrix, which replaces `e2e` (it repeats e2e on every browser and phone; CI runs it after merge). `--except` drops named suites. Absent: scope full, as `all`. `--changed` is scope changed.
+- Base for `--changed`: a base the user names wins; else looks in `.bearing/state/<branch with / as _>.md` (`bash "${CLAUDE_PLUGIN_ROOT}/bin/brg-state-path"` prints it) (`Base:` line); if absent, every one of `origin/develop`, `develop`, `origin/main`, `main`, `origin/master`, `master` that `git rev-parse --verify` finds is a candidate, and the base is the candidate whose merge base with HEAD leaves the fewest branch commits (`git rev-list --count <merge-base>..HEAD`), develop before main on a tie. The diff is `git diff <merge-base>` so commits that landed on the base after the branch point are not the branch's; the working tree diff is always included. Print the base and why it was chosen.
 - Case table: `docs/testing/test-cases.md` for the TC to story map; if absent, the story column says "no case table" (the table comes from `test-cases`).
 - Earlier reports: `docs/testing/reports/*.json` for flaky candidates across runs; if absent, flaky candidates come from retries in this run only.
 - Production host for `--suite load`: `.gitlab-ci.yml` `deploy-production` environment; if absent, the `prod` substring in `BASE_URL`. A match refuses the suite.
@@ -40,16 +40,27 @@ the table; this only runs what exists and reports.
    without `pipefail`. Each one goes in the report as "target <name>
    exits 0 on failure (<file:line>)": that is why a pipeline can be green
    over failing tests. Never take a result from such a target; run the
-   native command.
-2. Resolve the selection. `--suite` limits the suites; `--tag` and `--tc`
-   become the runner's own filter from `references/runners.md` (`--grep`,
-   `-run`, `-k`, `-m`, `--tests`, `--filter`, `--include-tags`);
-   `--changed` selects tests whose file is in the diff, tests in the
-   feature folder of a changed source file, and tests named with a TC id
-   whose row changed in the case table. Zero tests selected: report the
-   diff files and exit non-zero.
-3. Run each selected suite with the native command and reporter from
-   `references/runners.md`, raw output under
+   native command. Read the branch with `git branch --show-current` now:
+   empty is a detached HEAD, stop with "detached HEAD: no branch name for
+   the evidence file".
+2. Resolve the selection. `--suite` and `--except` limit the suites; a
+   name not in the inventory stops with "suite <x> not found (<P> suites
+   present)", and a selection left empty stops with "0 suites selected
+   (<P> present)", both non-zero;
+   `--tag` and `--tc` become the runner's own filter from
+   `references/runners.md` (`--grep`, `-run`, `-k`, `-m`, `--tests`,
+   `--filter`, `--include-tags`). `--changed` runs `bash "${CLAUDE_PLUGIN_ROOT}/bin/brg-changed" --layers --base <base>`
+   and runs only the suites of the layers it prints. The layer table, the
+   selection inside a layer, the unit reuse, and what each exit means (a
+   non-zero exit is a failure: quote its line and stop; exit 0 without a
+   `brg-changed:` counts line is an older copy) are in `references/runners.md`,
+   "Layers and scoped selection". Zero tests selected: report the diff
+   files and exit non-zero.
+3. Run each selected suite through its Makefile target when one exists
+   and step 1 found nothing in it that swallows a failure (`make test`,
+   `make test-integration`, `make test-e2e`, `make test-ui`,
+   `make test-visual`, `make test-e2e-matrix`), else the native command
+   and reporter from `references/runners.md`, raw output under
    `.scratch/test-run/<date>-<branch>/<suite>.<ext>`, the timeout from
    `--timeout` (default 20 minutes per suite) passed through the runner's
    own flag. Check the runner offline first (the Python fallbacks are in
@@ -64,7 +75,8 @@ the table; this only runs what exists and reports.
    status, duration, retries, message. Extract `TC-nnnn` from the name;
    look up the story id in the case table. A suite in which every test
    skipped itself for a missing precondition (`DATABASE_URL not set`, an
-   `importorskip`, no device) is "not run (<reason>)": it examined nothing.
+   `importorskip`, no device) is "not run (<reason>)": it examined nothing;
+   a suite that reports 0 tests is "not run (0 tests)".
    Its tests stay out of the headline counts, which cover run suites only,
    so the headline and the per-suite table agree.
 5. Compute the summary counts, the per-suite table, the failures with the
@@ -107,11 +119,18 @@ the table; this only runs what exists and reports.
      a comment defends the code ("raised with the pricing change") is a
      decision for the user: name both values and the source behind each;
      do not call either one the bug.
-8. Write `docs/testing/reports/<date>-<branch>.md` from
-   `templates/report.md` (slashes in the branch become `-`) and the same
-   data as `docs/testing/reports/<date>-<branch>.json`. Print the summary
-   line. Exit non-zero when any test failed or any selected suite did not
-   run.
+8. Every run writes the evidence file `.scratch/test-run/<branch with / as _>-<scope>.json`
+   (keys in `references/runners.md`), its `selection` null when no
+   `--suite`, `--tag`, `--tc` or `--except` narrowed it (`--suite all`
+   and `all,matrix` do not). Any other selection writes `<branch>-filtered.json`
+   instead, so it never replaces the full or changed evidence; only
+   `--except unit` alone still writes `-full.json`. Scope full also writes
+   `docs/testing/reports/<date>-<branch>.md` from `templates/report.md`
+   (slashes in the branch become `-`) and the same data as `.json`; scope
+   changed writes only under `.scratch/test-run/`, so it never dirties the
+   tree. Print the summary line and end the message with the counts line
+   `test-run: scope <changed|full>, <S> of <P> suites run, <T> tests, <F> failed, <N> not run`.
+   Exit non-zero when any test failed or any selected suite did not run.
 9. Sort the failures into hints: "element not found", "timeout waiting",
    "strict mode violation", a 4xx from a fixture or a unique constraint
    are heal candidates for `test-heal`; a screenshot mismatch is a
@@ -124,6 +143,8 @@ the table; this only runs what exists and reports.
 
 ```
 ## Test run: <branch> @ <sha>[+dirty] (<stack>)
+Scope: changed (layers <layers>, base <base>) | full (except <suites>)
+brg-changed: <the counts line, scope changed only>
 Suites: N present, R run, M not run (<suite>: runner missing | on demand | timed out | refused)
 tests: N run, P passed, F failed, S skipped, coverage C%
 Per suite: unit P/F/S  integration P/F/S  e2e P/F/S
@@ -135,7 +156,9 @@ Quarantine: N rows, K overdue (<test> past <deadline>, ...) | no quarantine file
 Not proven: <each skipped, not-run or placeholder test and what it leaves unverified>
 Beyond the tests: <each defect found by reading or computing, "not covered by any test">
 Commands: <every command run, in full with its files and flags, so the user can repeat it>
-Report: docs/testing/reports/<date>-<branch>.md (+ .json)
+Report: docs/testing/reports/<date>-<branch>.md (+ .json) | none (scope changed)
+Evidence: .scratch/test-run/<branch>-<scope|filtered>.json
+test-run: scope <changed|full>, <S> of <P> suites run, <T> tests, <F> failed, <N> not run
 ```
 
 The final message is the deliverable; the report file is the archive.

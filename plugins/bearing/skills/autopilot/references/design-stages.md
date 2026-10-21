@@ -6,7 +6,7 @@ Read at step 6: the design, repos, ux, contract and test-cases stages in lean an
 (the risk register and the case table only). In full scope:
 architecture-diagram writes the C4 file; design
 runs high-level-design, then deployment-architecture when the profile
-says deploy and genai-design when it says llm;
+says deploy and bearing-genai:genai-design when it says llm;
 repos runs new-repo once for each entry of
 docs/architecture/repo-plan.json, in `<parent>/<Name>` beside this
 repository (an entry named like this repository is this repository

@@ -194,9 +194,9 @@ team; Unleash when several services and environments need one console.
 Options: Anthropic Claude via the API, a cloud gateway (Vertex, Bedrock),
 OpenRouter (one key and one spend limit across vendors), open models
 self-hosted (vLLM) or via a host.
-Default: Anthropic Claude through `llm-gateway`, tiered by task;
+Default: Anthropic Claude through `bearing-genai:llm-gateway`, tiered by task;
 Bedrock or Vertex when the data must stay in a specific cloud contract;
-open models only when `llm-fine-tuning` shows a cost or privacy case;
+open models only when `bearing-genai:llm-fine-tuning` shows a cost or privacy case;
 OpenRouter for prototypes, hackathons and multi-vendor comparisons where
 one capped key beats several accounts. The product's calls are billed to
 this key, never to anyone's Claude Code subscription.

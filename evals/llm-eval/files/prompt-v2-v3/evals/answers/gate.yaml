@@ -1,0 +1,4 @@
+# Regression gate for the answers eval (llm-eval step 6).
+metric: rubric_score
+cases: 40
+delta: 0.02

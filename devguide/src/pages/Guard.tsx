@@ -191,7 +191,7 @@ scp|@remote|scp to a remote          scp with any host:path argument`}</Code>
             <tr><td><code>command "&lt;cmd&gt;"</code></td><td>PreToolUse (Bash)</td><td>0 run it, 2 refused</td></tr>
             <tr><td><code>readonly "&lt;cmd&gt;"</code></td><td>read-only adapters</td><td>0, 2</td></tr>
             <tr><td><code>format &lt;file&gt;</code></td><td>PostToolUse, first</td><td>always 0</td></tr>
-            <tr><td><code>check-file &lt;file&gt;</code></td><td>PostToolUse, second</td><td>0 clean or not checkable, 2 problems</td></tr>
+            <tr><td><code>check-file &lt;file&gt;</code></td><td>PostToolUse, second</td><td>always 0: prints that make check-file runs in the session</td></tr>
             <tr><td><code>task-id "&lt;prompt&gt;"</code></td><td>UserPromptSubmit</td><td>always 0</td></tr>
             <tr><td><code>session --id --source</code></td><td>SessionStart</td><td>always 0</td></tr>
             <tr><td><code>precompact &lt;transcript&gt;</code></td><td>PreCompact</td><td>always 0</td></tr>

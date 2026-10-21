@@ -1,17 +1,21 @@
 # Runners: the exact command and report format per stack
 
-One row per suite. The Makefile target tells you the suite exists
-(`make -n <target>` shows its real command); the native command below is
-what `test-run` executes, because it produces a file the skill can
-parse. `<t>` is the timeout, `<out>` is
+One row per suite. When the repository's Makefile has the suite's
+target (`test`, `test-integration`, `test-e2e`, `test-ui`, `test-visual`,
+`test-e2e-matrix`), `test-run` runs `make <target>` and reads the report
+file the recipe writes (`make -n <target>` shows it), else the runner's
+summary on stdout. A target that swallows a failure (SKILL.md step 1), or
+no target at all, means the native command below, which writes a file
+the skill can parse. The load suite always runs its k6 command. `<t>` is the timeout, `<out>` is
 `.scratch/test-run/<date>-<branch>/<suite>`.
 
-| Stack | Suite | Make target | Native command | Output |
+| Stack | Suite | Make target (runs when present) | Native command (no target, or one that swallows a failure) | Output |
 | --- | --- | --- | --- | --- |
 | Go | unit | `test` | `go test -json -race -count=1 -cover -timeout <t> ./... > <out>.jsonl` | JSON lines |
 | Go | integration | `test-integration` | `DATABASE_URL=... go test -json -race -count=1 -tags=integration -timeout <t> ./internal/store/... > <out>.jsonl` | JSON lines |
 | React | unit | `test` | `pnpm exec vitest run --reporter=json --outputFile=<out>.json --coverage --coverage.reporter=json-summary --testTimeout=<ms>` | JSON + `coverage/coverage-summary.json` |
 | React | e2e | `test-e2e` | `PLAYWRIGHT_JSON_OUTPUT_NAME=<out>.json pnpm exec playwright test --reporter=json --global-timeout=<ms>` | JSON + `test-results/` traces |
+| React | visual | `test-visual` | `PLAYWRIGHT_JSON_OUTPUT_NAME=<out>.json pnpm exec playwright test e2e/visual --reporter=json --global-timeout=<ms>` | JSON + diff images under `test-results/` |
 | React Native | unit | `test` | `pnpm exec jest --ci --json --outputFile=<out>.json --coverage --coverageReporters=json-summary --testTimeout=<ms>` | JSON + `coverage/coverage-summary.json` |
 | React Native | e2e | `test-e2e` | `maestro test --format junit --output <out>.xml .maestro` | JUnit XML + `~/.maestro/tests/` screenshots |
 | Python | unit | `test` | `uv run pytest -m "not integration" --junitxml=<out>.xml --cov --cov-report=json:<out>-cov.json` | JUnit XML + coverage JSON |
@@ -22,6 +26,138 @@ parse. `<t>` is the timeout, `<out>` is
 | iOS | ui | `test-ui` | `xcodebuild test -project <p> -scheme <s> -destination '<d>' -resultBundlePath build/TestResults.xcresult` | stdout lines + xcresult bundle |
 | any | load | `load-test` | `k6 run --summary-export <out>.json -e STAGE=smoke -e BASE_URL=<url> tests/load/<flow>.js` | summary JSON |
 | any | synthetic | `synthetic` | `make synthetic` (from `health-checks`) | JUnit XML when the target writes one, else exit code and the probe count on stdout |
+
+## Layers and scoped selection
+
+`--changed` (scope changed) maps the diff to layers and runs the suites of
+those layers. The layers and their suites:
+
+| Layer | Suites (Makefile target) |
+| --- | --- |
+| `unit` | `test` |
+| `api` | `test-integration` (responses checked against `api/openapi.yaml` where `test-automation` wired it) |
+| `ui` | `test-e2e` (Playwright, Maestro), `test-ui` (Android, iOS) |
+| `visual` | `test-visual` |
+
+A layer whose suite the repository lacks is printed "api: no integration
+suite here"; the suite is absent, not unrun, and is not counted. Scope
+full is every suite present (a regression is scope full plus `matrix` at
+a release); the matrix replaces `e2e` when selected.
+
+### The call and what its result means
+
+`bash "${CLAUDE_PLUGIN_ROOT}/bin/brg-changed" --layers --base <base>`
+prints `<layer>\t<file>` lines, then
+`brg-changed: <N> files, layers: <list|none>[ (toolchain changed: <file>)]`.
+Skip the `none` lines. Read the exit code and the counts line together:
+
+| Result | Meaning | What the run does |
+| --- | --- | --- |
+| exit 0, counts line, layers listed | normal | run the listed layers; a toolchain change lists all four |
+| exit 0, counts line, `layers: none` | documentation only, N files | write the evidence with `layers: []` and `files: N`, print "0 layers touched by N changed files: nothing to test", exit non-zero |
+| exit 1, `0 files changed against <base>` or `against the working tree` | nothing changed | print it, exit non-zero, no suite runs |
+| exit 1, any other line (`base ... does not resolve`, `has no merge base`, `not a git repository`) | an error | quote the line, exit non-zero, no suite runs; never fall back to the whole tree |
+| exit 0, no `brg-changed:` counts line | an older copy that ignores `--layers` and prints plain file names | say "brg-changed lacks --layers" in the report, select as before over every suite present |
+
+Every exit 1 line goes to stderr; read both streams. Deleted files count
+as changed. The flag is detected from the counts line,
+never from the exit code alone: an old copy exits 0 on any flag.
+
+### Inside a layer
+
+Within a selected suite run the test files in the diff, test files in the
+feature folder of a changed source file, and tests naming a TC whose row
+changed in the case table. When that selects zero tests in a layer the
+diff touched, run the whole suite: a touched layer never runs zero tests.
+The `visual` layer always runs the whole visual suite, since a shared
+style or token reaches every screen.
+
+### Unit reuse
+
+When `.bearing/state/.check-changed-passed` or `.bearing/state/.check-passed`
+is newer than every changed file, the unit suite is not rerun. The report
+says `unit: covered by make check-changed at <time>`, status `covered`,
+with the counts that target printed when it printed them, else
+`unit: covered, counts n/a`. Reuse needs both: the marker is newer than
+every changed file now, and no file changed after it. The autopilot
+test_run gate checks the mtimes again: the marker (`.check-changed-passed`
+for `covered by make check-changed`, else `.check-passed`) must be newer
+than every uncommitted file and every file the branch changed since its
+merge base, so a commit made after the check passed fails there.
+
+### The evidence file
+
+Every unfiltered run writes `.scratch/test-run/<branch>-<scope>.json`,
+overwriting the last; a filtered run writes `<branch>-filtered.json`
+(see `selection` below), with the branch from `git branch --show-current` and `/` turned into
+`_` (empty output is a detached HEAD: stop, "detached HEAD: no branch name
+for the evidence file"). It is a superset of the report JSON, so
+`test-heal` can read it:
+
+```json
+{"scope": "changed", "sha": "<HEAD>", "dirty": false, "base": "origin/develop",
+ "files": 3, "layers": ["unit", "ui", "visual"], "except": [], "selection": null,
+ "suites": [{"name": "e2e", "status": "run", "reason": "", "passed": 4, "failed": 0, "skipped": 0}],
+ "tests": 9, "failed": 0, "not_run": ["integration"],
+ "failures": [{"suite": "e2e", "test": "TC-0012 rejects an expired token", "tc": "TC-0012",
+   "file": "e2e/auth/login.spec.ts", "line": 41, "message": "expected visible, received hidden"}]}
+```
+
+`status` is `run`, `covered` or `not run`. `reason` is `""` for `run`;
+`covered by make check-changed` or `covered by make check` for `covered`;
+for `not run` one of `runner missing`, `timed out`, `on demand`,
+`refused`, `no database`, `0 tests` (a suite that examined zero tests),
+or `precondition: <text>` (every test skipped itself, as
+`precondition: DATABASE_URL not set`). `not_run` lists the selected suites that did not run, each
+with its reason in `suites`. `tests` and `failed` count only suites with
+status `run`. A `covered` suite carries `name`, `status`, `reason`,
+`marker` (the marker file's path) and `passed`, `failed`, `skipped` as
+the target printed them, each `null` when it printed none. In `failures`,
+`line` is an integer, `null` when the runner gives none. Scope full has
+`files` `null` (no diff is taken), `layers` and `base` empty and `except`
+as given. `selection` is `null` when no `--suite`, `--tag`, `--tc` or
+`--except` narrowed the run (`--suite all` and `--suite all,matrix` count
+as unfiltered); otherwise an object holding only the flags given, each a
+list, as `{"tc": ["TC-0231"]}` or `{"suite": ["visual"], "tag": ["@P1"]}`.
+Only a `null` selection, or exactly `{"except": ["unit"]}` (definition of
+done item 14), writes `-full.json` or `-changed.json`; any other writes
+`-filtered.json`, which no gate reads. Every reader of full evidence
+(definition of done item 14, the autopilot test_run and dod gates)
+refuses any other selection, so a single test or suite never stands in
+for the full run. Counts line: `S` is the suites with status `run` or `covered`,
+`P` the suites selected and present, `N` the suites not run.
+
+When unit is the only suite, `--except unit` selects none and writes no
+evidence, so definition of done item 14 writes the full file itself:
+
+```json
+{"scope": "full", "sha": "<HEAD>", "dirty": false, "files": null,
+ "layers": [], "base": "", "except": ["unit"], "selection": {"except": ["unit"]},
+ "suites": [], "tests": 0,
+ "failed": 0, "not_run": [], "failures": [], "n_a": "no suite beyond unit"}
+```
+
+`n_a` appears only there; the autopilot dod gate accepts empty `suites`
+only with that exact value.
+
+A run that stops before any suite (zero files changed, a `brg-changed`
+error, a detached HEAD, 0 suites selected or a suite not found) writes
+no evidence and leaves the last file in place. A reader (a gate,
+definition of done, `test-heal`) therefore compares the file's `sha` to
+HEAD and its `scope` to the one it needs before trusting it.
+
+## Integration database for a full run
+
+Definition of done item 14 runs `--except unit`, which includes the
+integration suite. When the inventory has that suite and the Makefile has
+`db` and `migrate` targets, run `make db` then `make migrate` before it,
+and note in the report that this run started the database. After the run,
+stop only what this run started: `docker compose down` when the
+repository has a compose file and nothing in it was up before the run
+(never the db-reset target, which drops the data), then show the port is
+free. A database that was already up stays up. No `db` target: the suite
+runs with the `DATABASE_URL` the environment gives it, and a suite that
+cannot connect is "not run (no database)", never a pass.
 
 ## Python: choosing the command offline
 

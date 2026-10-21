@@ -30,8 +30,8 @@ for skill in sorted(glob.glob("plugins/*/skills/*/")):
         files += sorted(p for p in glob.glob(f"{skill}{sub}/**/*", recursive=True)
                         if os.path.isfile(p) and "__pycache__" not in p)
 files += ["plugins/bearing/skills/openapi-spec/templates/api-conformance.mk",
-          "plugins/bearing/skills/mcp-server/templates/server-typescript.md",
-          "plugins/bearing/skills/mcp-server/templates/server-python.md"]
+          "plugins/bearing-genai/skills/mcp-server/templates/server-typescript.md",
+          "plugins/bearing-genai/skills/mcp-server/templates/server-python.md"]
 EXEMPT_NPX = {"expo"}
 # English words after npx or uvx in prose ("npx not found", "its npx installer").
 PROSE = {"not", "installer", "is", "and", "or", "to", "the", "found", "call", "calls", "fetch", "tool"}

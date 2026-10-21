@@ -162,8 +162,9 @@ brg-autopilot launch "<statement>"     run it headless: claude -p with autopilot
       <H2 id="refuses">What it never does</H2>
       <Note tone="signal">
         <p>
-          It never pushes, merges, tags or deploys. The mr gate requires that nothing was pushed. The run ends at a prepared merge request description and the
-          push command, printed for you, and the same four walls that stop any agent stop this one.
+          It never runs git push, merges, tags or deploys. Where you opted the repository in (<code>BEARING_AUTO_PUSH</code>), its last stage requests a push
+          of the task branch, which the Stop hook makes from a fresh clone after the gate; the mr gate fails on any other push. The run ends at a prepared
+          merge request description and the push command, printed for you, and the same four walls that stop any agent stop this one.
         </p>
       </Note>
     </Page>

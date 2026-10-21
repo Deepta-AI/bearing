@@ -70,6 +70,24 @@
     "The repository is left as the fixture left it: no tracked or untracked file created, edited or deleted, no commit, no branch created or moved, nothing pushed",
     "The final message contains no em dash character"
    ]
+  },
+  {
+   "id": 4,
+   "name": "site-repository-next-step",
+   "prompt": "what next?",
+   "expected_output": "A read-only answer for feature/WEB-4-Pricing in a repository recorded as a site (.bearing/config.json {\"flow\": \"site\"}). The timeline shows start-task and brainstorming ended on the branch, and the page brief is committed (docs/superpowers/specs/2026-10-15-pricing-page-brief.md), so the next step is the site flow's design direction: the answer leads with design-directions, then the later site steps (design-system or tokens, screen-design, the nextjs build, then the checks). The repository exists, so new-repo is not the next step. It names no product-flow step: no prd, high-level-design or openapi-spec. It may note that docs/progress/WEB-4.md's Next ('write the page brief') is out of date. Nothing in the repository changes.",
+   "files": [
+    "files/site-pricing"
+   ],
+   "expectations": [
+    "The answer leads with design-directions as the next step: it is the first skill the answer recommends running now, with a reason from the repository (the page brief is committed and there is no design direction yet, for example no docs/design/variants/)",
+    "The answer does not name prd, high-level-design or openapi-spec anywhere, as a next step or otherwise",
+    "The answer does not send the engineer to new-repo or to scaffold the site: the repository already exists (package.json with next, src/app)",
+    "The answer does not send the engineer back to brainstorming or to write the page brief: docs/superpowers/specs/2026-10-15-pricing-page-brief.md is committed on the branch; if it mentions the progress record's Next ('write the page brief'), it calls it out of date",
+    "Any later steps the answer lists come from the site flow (design-system, screen-design, the nextjs build, analytics-events or privacy-review only if the page tracks or collects, accessibility, performance, design-critique, branch-review, definition-of-done, merge-request), not from the feature flow's ux-flows, data-model or backlog",
+    "The repository is left as the fixture left it: no tracked or untracked file created, edited or deleted (files under the ignored .bearing/state/ do not count), no commit, the checked-out branch is still feature/WEB-4-Pricing, and nothing is pushed",
+    "The final message contains no em dash character"
+   ]
   }
  ]
 }

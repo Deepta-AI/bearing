@@ -1,15 +1,15 @@
 # bearing. `make help` lists targets; `make check` validates the marketplace
-# and its three plugins: plugins/bearing (required), plugins/bearing-backend
-# and plugins/bearing-apps (the stack skills).
+# and its four plugins: plugins/bearing (required), plugins/bearing-backend,
+# plugins/bearing-apps (the stack skills) and plugins/bearing-genai (GenAI and ML).
 SHELL := /bin/bash
 KITP := plugins/bearing
 .DEFAULT_GOAL := help
-.PHONY: help hooks gate ci-bash32 site devguide wiki check check-file validate lint-skills lint-tools lint-skill-size lint-questions lint-evals lint-triggers lint-neutral lint-docs lint-json lint-shell lint-portable lint-prose lint-version lint-budget lint-templates lint-plugin-size test install doctor docs harness-eval trigger-eval
+.PHONY: help hooks gate ci-bash32 site devguide wiki check check-file validate lint-skills lint-tools lint-skill-size lint-questions lint-evals lint-triggers lint-neutral lint-docs lint-json lint-shell lint-portable lint-prose lint-version lint-budget lint-templates lint-plugin-size lint-model-ids test install doctor docs harness-eval trigger-eval
 
 help: ## List targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-14s %s\n", $$1, $$2}'
 
-check: validate lint-skills lint-skill-size lint-questions lint-tools lint-evals lint-triggers lint-json lint-shell lint-portable lint-prose lint-docs lint-neutral lint-version lint-budget lint-templates lint-plugin-size test ## The gate for this repository
+check: validate lint-skills lint-skill-size lint-questions lint-tools lint-evals lint-triggers lint-json lint-shell lint-portable lint-prose lint-docs lint-neutral lint-version lint-budget lint-templates lint-plugin-size lint-model-ids test ## The gate for this repository
 	@echo "check: passed"
 
 validate: ## claude plugin validate --strict: the marketplace, then each plugin, its skills and (bearing) its agents
@@ -22,7 +22,7 @@ validate: ## claude plugin validate --strict: the marketplace, then each plugin,
 	[ "$$p" -gt 0 ] || { echo "validate: 0 plugins under plugins/, nothing checked" >&2; exit 1; }; \
 	echo "validate: $$n targets passed (strict): the marketplace and $$p plugins with their skills and agents"
 
-lint-skills: ## Every skill in every plugin: hyphenated name (64 max) equal to its frontmatter name, sections, description 220 chars max, references exist, bearing:, bearing-backend: and bearing-apps: names resolve
+lint-skills: ## Every skill in every plugin: hyphenated name (64 max) equal to its frontmatter name, sections, description 220 chars max, references exist, bearing:, bearing-backend:, bearing-apps: and bearing-genai: names resolve
 	@n=0; bad=0; per=""; \
 	for pl in plugins/*/; do pl="$${pl%/}"; [ -f "$$pl/.claude-plugin/plugin.json" ] || continue; c=$$(ls -d "$$pl"/skills/*/ 2>/dev/null | wc -l | tr -d ' '); per="$$per $$(basename $$pl)=$$c"; done; \
 	for d in plugins/*/skills/*/; do \
@@ -50,7 +50,7 @@ lint-skills: ## Every skill in every plugin: hyphenated name (64 max) equal to i
 	  for ref in $$(grep -oE '`(\$$\{CLAUDE_PLUGIN_ROOT\}/)?(references|templates)/[A-Za-z0-9_./-]+`' "$$f" | tr -d '`' | sort -u); do \
 	    case "$$ref" in */) ;; '$${CLAUDE_PLUGIN_ROOT}'/*) [ -e "$$pr/$${ref#*/}" ] || { echo "missing reference in $$b: $$ref (not in $$pr)"; bad=$$((bad+1)); };; *) [ -e "$$s/$$ref" ] || [ -e "$$pr/$$ref" ] || [ -e "$(KITP)/$$ref" ] || [ -e "$$ref" ] || { echo "missing reference in $$b: $$ref"; bad=$$((bad+1)); };; esac; \
 	  done; \
-	  for tok in $$(grep -oE '\bbearing(-backend|-apps)?:[a-z0-9]+(-[a-z0-9]+)*' "$$f" | sort -u); do \
+	  for tok in $$(grep -oE '\bbearing(-backend|-apps|-genai)?:[a-z0-9]+(-[a-z0-9]+)*' "$$f" | sort -u); do \
 	    tp="$${tok%%:*}"; tn="$${tok#*:}"; \
 	    [ -f "plugins/$$tp/skills/$$tn/SKILL.md" ] || { [ "$$tp" = bearing ] && [ -f "$(KITP)/agents/$$tn.md" ]; } || { echo "unknown name '$$tok' referenced in: $$b"; bad=$$((bad+1)); }; \
 	  done; \
@@ -131,7 +131,7 @@ lint-shell: ## bash -n on every script (shellcheck when installed)
 	if command -v shellcheck >/dev/null; then shellcheck -S warning -e SC2034,SC2010,SC2088 $$files && echo "lint-shell: $$n scripts, shellcheck clean"; \
 	else echo "lint-shell: $$n scripts parsed (shellcheck not installed, static analysis SKIPPED)"; fi
 
-check-file: ## Lint one edited file, FILE=path (the edit hook runs this; the same flags as lint-shell and lint-json)
+check-file: ## Lint one edited file, FILE=path (run it in the session after an edit; the same flags as lint-shell and lint-json)
 	@[ -n "$(FILE)" ] || { echo "check-file: FILE is empty, nothing checked" >&2; exit 1; }; \
 	[ -f "$(FILE)" ] || { echo "check-file: $(FILE) does not exist, nothing checked" >&2; exit 1; }; \
 	case "$(FILE)" in \
@@ -163,8 +163,11 @@ lint-budget: ## What every session loads stays small: AGENTS.md, CLAUDE.md and t
 	[ "$$bad" -eq 0 ] || exit 1; \
 	echo "lint-budget: $$n files checked; AGENTS.md $$(wc -c < $(KITP)/templates/repo/AGENTS.md | tr -d ' ') and CLAUDE.md $$(wc -c < $(KITP)/templates/repo/CLAUDE.md | tr -d ' ') bytes, unscoped rules $$unscoped bytes (about $$(( ($$(wc -c < $(KITP)/templates/repo/AGENTS.md) + $$(wc -c < $(KITP)/templates/repo/CLAUDE.md) + $$unscoped) / 4 )) tokens a session)"
 
-lint-version: ## VERSION matches every plugin.json, the marketplace metadata and every marketplace entry (the three plugins move in lockstep)
+lint-version: ## VERSION matches every plugin.json, the marketplace metadata and every marketplace entry (the four plugins move in lockstep)
 	@python3 bin/lint-version.py
+
+lint-model-ids: ## Every Claude model id under plugins/ is listed in bin/model-ids.txt (the claude-api skill's ids); prints files scanned and ids found, fails on zero files
+	@python3 bin/lint-model-ids.py
 
 lint-plugin-size: ## Each plugin folder holds under 512 files and no non-image, non-font file of 256 KiB or more (the plugin directory's limits); prints the count per plugin
 	@python3 bin/lint-plugin-size.py

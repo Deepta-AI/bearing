@@ -8,8 +8,9 @@
 #
 # Idempotent. Steps, by profile:
 #   minimal   the Bearing marketplace from this checkout (or --remote) and its
-#             three plugins: bearing (required), bearing-backend and
-#             bearing-apps (the stack conventions); the user env file
+#             four plugins: bearing (required), bearing-backend and
+#             bearing-apps (the stack conventions) and bearing-genai (GenAI
+#             and ML skills); the user env file
 #             ~/.config/bearing/bearing.env (from plugins/bearing/templates/user,
 #             mode 600, never overwritten), the personal CLAUDE.md if absent,
 #             then brg-doctor
@@ -21,7 +22,7 @@
 # --dry-run prints every action and touches nothing. --no-claude skips every
 # claude CLI step and the plugin install: it only refreshes the kit checkout,
 # writes the env file and prints the brg-harness instruction for other
-# coding harnesses. --uninstall removes the three plugins and the
+# coding harnesses. --uninstall removes the four plugins and the
 # marketplace, asks before removing the env file, removes ~/.claude/CLAUDE.md only while it is
 # still the untouched template, and prints how to unhook each repository.
 # Prints a count of what it installed, what was already present, what it
@@ -73,8 +74,8 @@ plugin_present() {
     *) claude plugin list 2>/dev/null | grep -q "$1";;
   esac
 }
-# The marketplace's plugins: bearing is required, the stack plugins optional.
-PLUGINS="bearing bearing-backend bearing-apps"
+# The marketplace's plugins: bearing is required, the stack and GenAI plugins optional.
+PLUGINS="bearing bearing-backend bearing-apps bearing-genai"
 PK="$KIT/plugins/bearing"
 # pin <kind> <source>: the pin column of that row in pinned-packs.txt (every
 # external fetch is pinned there), or empty.
@@ -98,7 +99,7 @@ if [ "$uninstall" -eq 1 ]; then
     printf '%s [y/N] ' "$1"; read -r ans </dev/tty || true
     [ "$ans" = y ] || [ "$ans" = Y ]
   }
-  ask "Remove the Bearing plugins (bearing, bearing-backend, bearing-apps) and their marketplace from Claude Code?" || { echo "uninstall: cancelled, nothing removed"; exit 0; }
+  ask "Remove the Bearing plugins (bearing, bearing-backend, bearing-apps, bearing-genai) and their marketplace from Claude Code?" || { echo "uninstall: cancelled, nothing removed"; exit 0; }
   if [ "$no_claude" -eq 1 ] || ! command -v claude >/dev/null; then skip "claude CLI steps (no claude)"; else
     for p in $PLUGINS; do
       if plugin_present "$p@bearing"; then runq claude plugin uninstall "$p@bearing" && { echo "removed    plugin $p@bearing"; removed=$((removed+1)); } || fail "claude plugin uninstall $p@bearing"; else echo "absent     plugin $p@bearing"; fi
