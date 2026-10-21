@@ -20,6 +20,9 @@
 #                             fails unless old occurs exactly once
 #   t_summary                 print "<file>: N assertions, M failed" and exit
 set -u
+# A test that runs git in a temp folder must not reach a repository named by
+# the caller's environment (a git hook from a linked worktree exports these).
+unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_COMMON_DIR GIT_OBJECT_DIRECTORY GIT_ALTERNATE_OBJECT_DIRECTORIES GIT_NAMESPACE GIT_PREFIX
 T_FILE="${T_FILE:-$0}"
 T_RUN=0; T_FAIL=0; T_CASES=0; T_CASE=''; T_CASE_ASSERTS=0
 T_IN=''; T_RC=0; T_OUT=''
