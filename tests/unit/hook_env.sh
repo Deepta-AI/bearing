@@ -42,8 +42,13 @@ for h in $HOOKS; do
   input "$h" > "$canary/in"
   ( cd "$repo" && BASH_ENV="$canary/benv.sh" ENV="$canary/benv.sh" HOME="$repo/home" "$REALBASH" "$HS/$h" < "$canary/in" ) >/dev/null 2>&1
   # The entry script's own bash sources it before line 1 (the harness's route);
-  # every other line is a nested bash after lib.sh started.
-  assert_eq "$h" "$(sort -u "$canary/bash-env" | tr '\n' ' ' | sed 's/ $//')" "$h: only the entry bash sourced BASH_ENV"
+  # every other line is a nested bash after lib.sh started. bash 3.2 sets $0
+  # to "bash" while it reads BASH_ENV, so the line count is the check there
+  # and the script name is checked only from bash 4.
+  assert_eq 1 "$(wc -l < "$canary/bash-env" | tr -d ' ')" "$h: BASH_ENV sourced once, by the entry bash"
+  if [ "${BASH_VERSINFO[0]}" -ge 4 ]; then
+    assert_eq "$h" "$(cat "$canary/bash-env")" "$h: only the entry bash sourced BASH_ENV"
+  fi
   n=$((n+1))
 done
 assert_eq 3 "$n" "hooks exercised"
