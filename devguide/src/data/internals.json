@@ -18698,9 +18698,9 @@
   {
    "path": "tests/unit/hook_env.sh",
    "kind": "unit",
-   "lines": 157,
+   "lines": 162,
    "header": "tests/unit/hook_env.sh: hooks run outside the sandbox with the harness's environment. Once lib.sh (or brg-guard) starts, PATH is /usr/bin:/bin plus the trusted tool directories, and BASH_ENV, ENV, CDPATH, PYTHON*, LD_* and DYLD_* are gone, so no later bash sources an agent's script, no tool comes from a directory the agent put first on PATH, and every python3 runs -I. BASH_ENV is still sourced by the harness's own bash before the first line of the entry script (outside Bearing's reach; the settings denies close the agent's route to it), so the canary records which script sourced it and only a…",
-   "asserts": 30
+   "asserts": 32
   },
   {
    "path": "tests/unit/hook_hardening.sh",
