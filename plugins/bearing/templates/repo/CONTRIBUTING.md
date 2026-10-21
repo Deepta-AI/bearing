@@ -31,9 +31,12 @@ How work moves through this repository. The standards themselves are in
 6. `branch-review` for a stack-aware review; the harness's security review
    if you touched auth, payments, PII or external input.
 7. `merge-request` runs `make check`, audits the commits and fills the merge
-   request or pull request template into `.scratch/`. You push and open
-   the request yourself; the pre-push hook asks you to type the branch
-   name.
+   request or pull request template into `.scratch/`. You push, unless you
+   opted this repository in by listing its push URL in `BEARING_AUTO_PUSH`
+   (your personal bearing.env): then the Stop hook pushes the task branch
+   for you after the gate, from a fresh clone. Either way you open the
+   request yourself, and your own push makes the pre-push hook ask you to
+   type the branch name.
 8. One peer and one lead approve. Address every thread; resolve none of
    your own.
 9. Squash-merge with the Conventional subject. Delete the branch.

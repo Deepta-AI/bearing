@@ -3,7 +3,7 @@
 # every gate on disk. A new run starts at repo; done on a stage whose gate is
 # not met fails and says what is missing; stages run in order; an ADR this
 # run wrote as Accepted fails the decide gate; three failed attempts block a
-# stage; an upstream on the branch fails the mr gate (the run never pushes);
+# stage; an upstream on the branch fails the mr gate unless brg-push pushed it at HEAD (the run never pushes itself);
 # the report carries the digest; a second start on an open run is refused.
 set -u
 . "$(dirname "$0")/../lib/assert.sh"
@@ -127,7 +127,7 @@ rep="$(cat "$d/docs/autopilot/$run.md")"
 assert_contains "$rep" "| language | Python | Go, Node | stdlib only, no build step |"
 assert_contains "$rep" "| architecture | blocked | 3 |"
 assert_contains "$rep" "- architecture: gave up"
-assert_contains "$rep" "Nothing was pushed, merged or deployed."
+assert_contains "$rep" "Nothing was merged or deployed; the push is the engineer's, or brg-push's where"
 t_end
 
 t_begin "sandbox placeholders and the run's report are not uncommitted work"
@@ -247,6 +247,41 @@ st = {"run": "r", "statement": "s", "started": "t", "started_epoch": time.time()
       "stages": {n: {"status": "done" if n != "mr" else "pending", "attempts": 0, "checked": "", "notes": []} for n in names}}
 json.dump(st, open(p, "w"))
 PY
+assert_exit 1 ap "done" mr
+assert_contains "$T_OUT" "the run must not push"
+d="$d_save"
+t_end
+
+# The opt-in push (brg-push, from the Stop hook) is the one push a run may cause. Its clone sets no upstream, so this
+# path fires only after a fetch; any other upstream at HEAD still fails.
+t_begin "the mr gate accepts an upstream brg-push pushed at HEAD, and nothing else"
+d8="$(tmpdir)/run8"; d_save="$d"; d="$d8"
+git init -q -b main "$d"; printf 'check:\n\t@mkdir -p .bearing/state && touch .bearing/state/.check-passed\n' > "$d/Makefile"; commit init
+bare="$(tmpdir)/remote8.git"; git init -q --bare "$bare"; git -C "$d" remote add origin "$bare"
+git -C "$d" checkout -q -b feature/T-8-x
+python3 - "$d/.bearing/state/autopilot.json" <<'PY'
+import json, sys, time
+p = sys.argv[1]
+import os; os.makedirs(os.path.dirname(p), exist_ok=True)
+import os, subprocess
+names = subprocess.check_output(["python3", os.environ["AP"], "stages"], text=True).split()
+st = {"run": "r", "statement": "s", "started": "t", "started_epoch": time.time(), "decisions": [],
+      "stages": {n: {"status": "done" if n != "mr" else "pending", "attempts": 0, "checked": "", "notes": []} for n in names}}
+json.dump(st, open(p, "w"))
+PY
+mkdir -p "$d/.scratch" "$d/docs/autopilot"; printf 'mr\n' > "$d/.scratch/mr-T-8.md"; printf 'r\n' > "$d/docs/autopilot/r.md"; git -C "$d" add docs; commit report
+git -C "$d" push -q -u origin feature/T-8-x 2>/dev/null
+printf 'pushed feature/T-8-x %s to git.example.test/group/shop 2026-10-18T10:00:00Z\n' "$(git -C "$d" rev-parse HEAD)" > "$d/.bearing/state/push-result"
+assert_exit 0 ap "done" mr
+assert_contains "$T_OUT" "pushed by brg-push"
+python3 - "$d/.bearing/state/autopilot.json" <<'PY'
+import json, sys
+p = sys.argv[1]; st = json.load(open(p)); st["stages"]["mr"]["status"] = "pending"; json.dump(st, open(p, "w"))
+PY
+printf 'pushed feature/T-8-x %s to git.example.test/group/shop 2026-10-18T10:00:00Z\n' "0000000000000000000000000000000000000000" > "$d/.bearing/state/push-result"
+assert_exit 1 ap "done" mr
+assert_contains "$T_OUT" "the run must not push"
+printf 'push failed: remote refused\n' > "$d/.bearing/state/push-result"
 assert_exit 1 ap "done" mr
 assert_contains "$T_OUT" "the run must not push"
 d="$d_save"

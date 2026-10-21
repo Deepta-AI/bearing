@@ -266,8 +266,8 @@ export function Change() {
     >
       <H2 id="loop">The loop for any change</H2>
       <Code>{`git switch -c feat/<Name>               # or fix/, chore/, docs/ (feat/DevGuide)
-# edit; the edit hook lints each file as you go
-make check-file FILE=<path>             # what the hook ran, by hand
+# edit; the edit hook formats, and runs no repository command
+make check-file FILE=<path>             # the per-file check, after each edit
 make check                              # the gate, about three minutes
 make docs                               # when skills, flows or docs sources changed
 make harness-eval ONLY=<scenario>       # when a hook or the guard changed

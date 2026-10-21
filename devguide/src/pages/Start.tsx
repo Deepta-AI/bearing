@@ -51,7 +51,7 @@ make help        # every target, one line each
 make install     # install the plugin from this checkout (runs install.sh)
 make doctor      # what this machine has and lacks`}</Code>
       <Code cap="every change">{`make check                        # the gate: ${c.gates} steps, about three minutes
-make check-file FILE=plugins/bearing/bin/brg-guard   # what the edit hook runs on one file
+make check-file FILE=plugins/bearing/bin/brg-guard   # the per-file check, run after an edit
 make docs                          # regenerate docs/ and both sites' data
 make harness-eval ONLY=push        # a real Claude session against the hooks (not in check)`}</Code>
       <Note title="After changing a hook or the guard">
@@ -131,8 +131,9 @@ make harness-eval ONLY=push        # a real Claude session against the hooks (no
       <p>These hold for every file in the repository. The lints enforce most of them, so breaking one usually fails <code>make check</code>.</p>
       <ul>
         <li>
-          <strong>The agent prepares; the engineer pushes, merges, tags and deploys.</strong> No skill or script does any of the four. A skill prints the
-          command.
+          <strong>The agent prepares; the engineer pushes, merges, tags and deploys.</strong> No skill or script does any of the four, with one opt-in
+          exception: where the engineer lists a repository's push URL in <code>BEARING_AUTO_PUSH</code>, the Stop hook's <code>brg-push</code> pushes the
+          task branch after the gate. A skill prints the command.
         </li>
         <li>
           <strong>A gate that examined nothing did not pass.</strong> Every check prints what it counted and fails on zero. <code>tests/lint/gate_selfaudit.sh</code>{" "}

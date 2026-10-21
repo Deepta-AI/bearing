@@ -251,8 +251,9 @@ rm -f "$err"
 EOF
     putx ".bearing/hooks/cursor-check.sh" <<'EOF'
 #!/usr/bin/env bash
-# cursor-check.sh (postToolUse, Write): lint the file just written and hand
-# the problems to the agent as additional_context.
+# cursor-check.sh (postToolUse, Write): brg-guard check-file on the file just
+# written. It runs no linter (hooks run no repository command; make
+# check-file runs in the session), so nothing comes back as additional_context.
 here="$(cd "$(dirname "$0")/.." && pwd)"
 f="$(cat | bash "$here/hooks/read-json.sh" tool_input.file_path tool_input.path file_path)"
 err="$(mktemp)"; bash "$here/bin/brg-guard" check-file "$f" >/dev/null 2>"$err"; rc=$?
@@ -286,8 +287,9 @@ rm -f "$err"
 EOF
     putx ".bearing/hooks/codex-edit.sh" <<'EOF'
 #!/usr/bin/env bash
-# codex-edit.sh (PostToolUse, apply_patch): format and lint every file the
-# patch adds or updates; problems go back as {"decision": "block"}.
+# codex-edit.sh (PostToolUse, apply_patch): format every file the patch adds
+# or updates. brg-guard check-file runs no linter (hooks run no repository
+# command; make check-file runs in the session), so nothing blocks.
 here="$(cd "$(dirname "$0")/.." && pwd)"
 patch="$(cat | bash "$here/hooks/read-json.sh" tool_input.command tool_input.input)"
 root="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"

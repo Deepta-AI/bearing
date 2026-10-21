@@ -1,16 +1,16 @@
 {
- "version": "0.8.0",
+ "version": "0.9.0",
  "counts": {
   "skills": 109,
   "commandSkills": 0,
   "stackSkills": 12,
-  "scripts": 98,
-  "scriptLines": 31746,
+  "scripts": 99,
+  "scriptLines": 33759,
   "hooks": 8,
   "agents": 8,
   "makeTargets": 32,
   "gates": 19,
-  "tests": 107,
+  "tests": 118,
   "fixtures": 25,
   "stacks": 13,
   "templates": 38,
@@ -26,7 +26,7 @@
    "dir": "plugins/bearing",
    "description": "A developer workflow for coding agents: skills for every stage from brief to runbook, review subagents, one guard behind every hook, and repository templates. The stack conventions come in bearing-backend and bearing-apps, and the GenAI and ML skills in bearing-genai.",
    "required": true,
-   "files": 454,
+   "files": 456,
    "skills": [
     "ab-experiment",
     "accessibility",
@@ -1365,9 +1365,9 @@
    "name": "autopilot",
    "plugin": "bearing",
    "category": "meta",
-   "what": "Runs unattended from one requirement statement to a prepared merge request, taking each decision as Proposed for review; never pushes",
+   "what": "Runs unattended from one requirement statement to a prepared merge request, deciding as Proposed for review; pushes only where opted in",
    "when": "asked to \"autopilot this\", \"run it end to end\" or \"build this unattended\"",
-   "description": "Runs unattended from one requirement statement to a prepared merge request, taking each decision as Proposed for review; never pushes. Use when asked to \"autopilot this\", \"run it end to end\" or \"build this unattended\".",
+   "description": "Runs unattended from one requirement statement to a prepared merge request, deciding as Proposed for review; pushes only where opted in. Use when asked to \"autopilot this\", \"run it end to end\" or \"build this unattended\".",
    "invocation": "auto",
    "kind": "step",
    "args": "\"<requirement statement>\" [--resume]",
@@ -1382,7 +1382,7 @@
     "Bash"
    ],
    "extra": {},
-   "intro": "One statement in, one prepared merge request out, with nobody answering questions in between. Every decision a stage would put to the user is taken with the recommended option, written as Proposed and listed in one digest the user reviews at the end. The run never pushes, merges or deploys: the guard, the sandbox and, where the repository has it, the pre-push hook stop it if it tries, and the last stage prints the push command for the engineer.",
+   "intro": "One statement in, one prepared merge request out, with nobody answering questions in between. Every decision a stage would put to the user is taken with the recommended option, written as Proposed and listed in one digest the user reviews at the end. The run never merges or deploys, and pushes only through `brg-push` where the engineer opted the repository in: the guard, the sandbox and the pre-push hook stop any other push, and the last stage prints the push command when there is no opt-in.",
    "sections": [
     {
      "title": "Inputs",
@@ -1390,7 +1390,7 @@
     },
     {
      "title": "Steps",
-     "lines": 41
+     "lines": 48
     },
     {
      "title": "Output contract",
@@ -1422,8 +1422,8 @@
     "Build is test first, story by story, in the order of the backlog. Read the traps in references/reviewer-checks.md first. Detail: references/build-and-after.md",
     "After the build: test-automation, the LLM stages when the profile says llm, then `test-run --changed` (the test_run stage), and design-critique until the bar holds. Detail: references/build-and-after.md",
     "Review is `branch-review --unattended`; fix every Critical and High it confirms, record each fix as `<n> <sha>` in `.scratch/review/<slug>/fixed.txt`, then `make check` again; `definition-of-done --unattended` includes the smoke run and the full test run. Read references/reviewer-checks.md again before dod. Detail: references/review-smoke-and-mr.md",
-    "The mr stage: `merge-request` prepares the description; `report` writes `docs/autopilot/<run>.md`; commit it, and let that commit be the last write (`git status` clean after it); paste its decisions table into the description with the exact push command under it, and print the same command in the last message. Do not run it. Detail: references/review-smoke-and-mr.md",
-    "Blocked or finished, the last message is the report: stages done, the decisions to review, what is not done and why, and the push command when the MR is ready."
+    "The mr stage: when the repo plan has more than one entry, first write the `## Repos` section from it in merge order and list each sibling's `start-task <ID> <Name> --type <type> --repos <list>` line in the report (`${CLAUDE_PLUGIN_ROOT}/references/task-set.md`); the report commit carries it. Then `merge-request` prepares the description; `report` writes `docs/autopilot/<run>.md`; commit it, and let that commit be th…",
+    "Blocked or finished, the last message is the report: stages done, the decisions to review, what is not done and why, and the push line when the MR is ready (requested, or the command for the engineer)."
    ],
    "output": "",
    "gotchas": [
@@ -1436,11 +1436,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 127,
+   "lines": 136,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 127
+     "lines": 136
     },
     {
      "path": "references/auto-mode-and-profile.md",
@@ -1448,7 +1448,7 @@
     },
     {
      "path": "references/build-and-after.md",
-     "lines": 45
+     "lines": 46
     },
     {
      "path": "references/design-stages.md",
@@ -1460,7 +1460,7 @@
     },
     {
      "path": "references/review-smoke-and-mr.md",
-     "lines": 39
+     "lines": 53
     },
     {
      "path": "references/reviewer-checks.md",
@@ -3272,7 +3272,8 @@
     "Bash(bash *bin/brg-state-path*)",
     "Bash(bash *bin/brg-changed*)",
     "Bash(python3 *bin/brg-autopilot decision test_run.*)",
-    "Bash(python3 *skills/prose-lint/scripts/prose_check.py*)"
+    "Bash(python3 *skills/prose-lint/scripts/prose_check.py*)",
+    "Bash(python3 *skills/session-handoff/scripts/progress.py*)"
    ],
    "extra": {},
    "intro": "Every item gets one of `pass`, `fail`, `n/a`, and the evidence: a command and its output, or a file and line. An item without evidence is `fail`. The list below is the standard's; it needs no file in the repository.",
@@ -3283,7 +3284,7 @@
     },
     {
      "title": "Steps",
-     "lines": 136
+     "lines": 137
     },
     {
      "title": "Output contract",
@@ -3318,11 +3319,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 198,
+   "lines": 199,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 198
+     "lines": 199
     },
     {
      "path": "scripts/red_proof.sh",
@@ -5245,7 +5246,7 @@
     },
     {
      "path": "templates/.githooks/pre-push",
-     "lines": 98
+     "lines": 112
     }
    ],
    "groups": {
@@ -5655,11 +5656,11 @@
     },
     {
      "path": "references/harness-matrix.md",
-     "lines": 88
+     "lines": 90
     },
     {
      "path": "scripts/harness_check.py",
-     "lines": 558
+     "lines": 560
     },
     {
      "path": "templates/settings-deny.sh",
@@ -8019,9 +8020,9 @@
    "name": "merge-request",
    "plugin": "bearing",
    "category": "task flow",
-   "what": "Prepares the merge request for the current branch: gate run, commit audit, diff summary, description, ticket link, push command; never pushes",
+   "what": "Prepares the merge request for the current branch: gate run, commit audit, diff summary, description, ticket link; pushes only where opted in",
    "when": "asked to \"prepare the MR\", \"write the PR description\"",
-   "description": "Prepares the merge request for the current branch: gate run, commit audit, diff summary, description, ticket link, push command; never pushes. Use when asked to \"prepare the MR\", \"write the PR description\".",
+   "description": "Prepares the merge request for the current branch: gate run, commit audit, diff summary, description, ticket link; pushes only where opted in. Use when asked to \"prepare the MR\", \"write the PR description\".",
    "invocation": "auto",
    "kind": "step",
    "args": "[target branch, default develop]",
@@ -8047,10 +8048,13 @@
     "Bash(swift test:*)",
     "Bash(bash *bin/brg-state-path*)",
     "Bash(python3 *skills/session-handoff/scripts/progress.py*)",
+    "Bash(bash *bin/brg-push check*)",
+    "Bash(bash *bin/brg-push request*)",
+    "Bash(bash *bin/brg-push status*)",
     "AskUserQuestion"
    ],
    "extra": {},
-   "intro": "The engineer pushes and opens the MR in under a minute with what this produces. It works in any git repository; a repository on the standard only makes the inputs below quicker to find.",
+   "intro": "The engineer pushes and opens the MR in under a minute with what this produces, or, where they opted the repository in, the Stop hook pushes the branch for them. It works in any git repository; a repository on the standard only makes the inputs below quicker to find.",
    "sections": [
     {
      "title": "Inputs",
@@ -8058,15 +8062,15 @@
     },
     {
      "title": "Steps",
-     "lines": 56
+     "lines": 66
     },
     {
      "title": "Output contract",
-     "lines": 11
+     "lines": 12
     },
     {
      "title": "Gotchas",
-     "lines": 16
+     "lines": 18
     }
    ],
    "inputs": [
@@ -8089,13 +8093,13 @@
     "Commits: every subject Conventional with `[ID]` when an id exists; no AI trailer in any body (`git log --format=%B`). List offenders; never rewrite history.",
     "Description: fill the template from Inputs. Title is a commit subject with `[ID]` when there is one. Summary is why, not what. How to test is numbered and runnable. Verification is the gate tail verbatim, headed with the command that produced it. Checklist: tick only what you verified (`definition-of-done` output if it ran); leave the rest unticked with a reason. For UI changes, leave a screenshot placeholder and sa…",
     "Prose: no em dashes, no self-praise, no sentence that only says the work matches the request.",
-    "Write to `.scratch/mr-<ID or branch>.md`, print it, then the output contract, and last: `git push -u origin <branch>` and the host's \"new change\" URL pattern: GitLab `<remote web url>/-/merge_requests/new?merge_request[source_branch]=<branch>`; GitHub `<remote web url>/compare/<target>...<branch>?expand=1` (or the `gh pr create --fill --base <target>` line, printed, never run).",
+    "Write to `.scratch/mr-<ID or branch>.md` and print it. Then `bash \"${CLAUDE_PLUGIN_ROOT}/bin/brg-push\" check`. Exit 0: `bash \"${CLAUDE_PLUGIN_ROOT}/bin/brg-push\" request` and print `Push: requested; the Stop hook pushes <branch> from a fresh clone to the URL listed for origin when this turn ends and the gate holds (brg-push status shows the result)`. Otherwise print its first `no` line and the push command as below.…",
     "Ticket: with a task id and a tracker, run `bash \"${CLAUDE_PLUGIN_ROOT}/bin/brg-tracker\" trace <ID> --branch <branch> --commits <list> [--tests ..] [--adr ..]` and report its line; exit 3 means `tracker: none`, reported as such. The MR url is posted by the engineer after opening it: print `tracker-sync trace <ID> --mr <url>` under the push command, and the line that records it in the progress file: `progress.py write…",
     "Progress file: `python3 \"${CLAUDE_PLUGIN_ROOT}/skills/session-handoff/scripts/progress.py\" write --task <ID> --status \"in review\" --next \"address review comments\"` (add `--ticket <url>` when known). Leave it uncommitted and print the command that commits it (`git add <file> && git commit -m \"docs(progress): [<ID>] in review\"`); the engineer decides whether it goes in this MR (a hotfix to `main` usually should not ca…"
    ],
    "output": "",
    "gotchas": [
-    "Never run `git push`, `glab mr create`, `gh pr create`, `git commit` (plain or `--amend`), `git rebase` or `git reset`. If asked, decline in one line and print the command.",
+    "Never run `git push`, `glab mr create`, `gh pr create`, `git commit` (plain or `--amend`), `git rebase` or `git reset`. If asked, decline in one line and print the command. The only push path is `brg-push request` after a passing `brg-push check`; the Stop hook makes the push, never this skill.",
     "Change no tracked file to make a checklist item true (unskipping a test, adding a variable to `.env.example`): leave the item unticked and name the fix under Not done.",
     "A failing gate on a pre-existing issue still makes the MR not ready; report it under Not done, do not fix it in this MR.",
     "Do not tick \"regression test\" unless you opened the test file.",
@@ -8104,11 +8108,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 143,
+   "lines": 157,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 143
+     "lines": 157
     },
     {
      "path": "templates/mr.md",
@@ -12586,7 +12590,7 @@
     },
     {
      "title": "Steps",
-     "lines": 101
+     "lines": 106
     },
     {
      "title": "Output contract",
@@ -12622,19 +12626,19 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 180,
+   "lines": 185,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 180
+     "lines": 185
     },
     {
      "path": "scripts/progress.py",
-     "lines": 428
+     "lines": 706
     },
     {
      "path": "templates/progress.md",
-     "lines": 45
+     "lines": 46
     }
    ],
    "groups": {
@@ -13004,7 +13008,7 @@
    "description": "Starts work on a ticket: creates the branch from the right base with the task id, writes state and progress notes, restates the criteria. Use when asked to \"start TASK-142\", \"pick up this ticket\" or \"create a branch\".",
    "invocation": "auto",
    "kind": "step",
-   "args": "<TASK-ID> [PascalName] [--type feature|bugfix|hotfix|chore|docs]",
+   "args": "<TASK-ID> [PascalName] [--type feature|bugfix|hotfix|chore|docs] [--repos Name,Name,...] [--flow site]",
    "tools": [
     "Read",
     "Write",
@@ -13042,15 +13046,15 @@
    "sections": [
     {
      "title": "Inputs",
-     "lines": 23
+     "lines": 28
     },
     {
      "title": "Steps",
-     "lines": 99
+     "lines": 108
     },
     {
      "title": "Output contract",
-     "lines": 14
+     "lines": 15
     },
     {
      "title": "Gotchas",
@@ -13064,7 +13068,9 @@
     "repository conventions: CONTRIBUTING.md, RELEASING.md, README.md, a branching or release section in docs/, and the deploy configuration (deploy/, k8s/, helm values, a workflow that deploys on a tag). Their naming and base rules override the defaults below; where they contradict what the history shows, the history wins and the report says so.",
     "type: `--type`; else `hotfix` when the request is about production being wrong now, `bugfix` for other defects, else `feature`; say which.",
     "name: `$2`; else derive a two to four word PascalCase summary from the request and say so (ask only if the request gives nothing to name).",
-    "acceptance criteria: as the user gave them; absent ones are \"unknown, ask\", never invented."
+    "acceptance criteria: as the user gave them; absent ones are \"unknown, ask\", never invented.",
+    "flow: `--flow site`, or the request names a landing page or marketing site and the user confirms with AskUserQuestion. Unattended, only `--flow site` counts; nothing is asked. It is recorded in step 7.",
+    "repositories: `--repos`; with it, this is one member of a task set (`${CLAUDE_PLUGIN_ROOT}/references/task-set.md`: names, paths, order)."
    ],
    "steps": [
     "**Validate the id** against the prefix or the generic shape.",
@@ -13088,11 +13094,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 179,
+   "lines": 194,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 179
+     "lines": 194
     }
    ],
    "groups": {
@@ -15087,6 +15093,7 @@
     "Bash(wc -l)",
     "Bash(bash *bin/brg-state-path*)",
     "Bash(bash *bin/brg-session*)",
+    "Bash(bash *bin/brg-config*)",
     "Bash(bash *bin/brg-learn*)",
     "Bash(python3 *skills/session-handoff/scripts/progress.py*)"
    ],
@@ -15095,11 +15102,11 @@
    "sections": [
     {
      "title": "With no argument: the menu",
-     "lines": 43
+     "lines": 44
     },
     {
      "title": "Inputs",
-     "lines": 30
+     "lines": 36
     },
     {
      "title": "Steps",
@@ -15121,6 +15128,7 @@
     "Base: the default branch is `origin/HEAD` (usually `origin/main`), not the local `main`, which may never have been pulled.",
     "Stack: `package.json`, `go.mod`, `pyproject.toml`, `app.json`, `build.gradle.kts`, `Package.swift`, `*.tf`; if none, `unknown`.",
     "Task id: from the branch name (`[A-Z][A-Z0-9]*(-[0-9]+)+`).",
+    "Flow, read before picking one: `bash \"${CLAUDE_PLUGIN_ROOT}/bin/brg-config\" get flow`. `site` means the site flow on every branch but a fix branch (bugfix); empty means choose from the branch and the request. The next flow step is `bash \"${CLAUDE_PLUGIN_ROOT}/bin/brg-session\" next-step`, which skips `new-repo` once the repository has commits and `design-system` once `docs/design/tokens.json` exists.",
     "Handoff: `.bearing/state/<branch with / as _>.md` (`bash \"${CLAUDE_PLUGIN_ROOT}/bin/brg-state-path\"` prints it); local to this machine, often newer than the committed record.",
     "Progress records: `python3 \"${CLAUDE_PLUGIN_ROOT}/skills/session-handoff/scripts/progress.py\" index --refs` reads `docs/progress/*.md` from every local and remote-tracking branch and keeps the newest per task. It reports what the records say, nothing more: it does not know a branch was merged, a blocker was resolved or a test exists. Exit 1 with \"0 progress files\" means none recorded, not nothing in flight.",
     "Gate: a Makefile `check` target. Read it with `make -n check` first; run `make check` when it only builds and tests (no formatter writing files, no network, no containers). If it would write or cannot run here, say \"not run\" and why. Never say a gate passed without running it."
@@ -15129,7 +15137,7 @@
     "Detect the state in one batch as in Inputs. Note the date of the newest commit on any ref: \"stale\" is measured against that, not the clock.",
     "One task (a resume, \"where did I leave X\", \"can I open the MR\"): a. Read the handoff and `docs/progress/<ID>.md`. List every claim they make: each Done item, each test named, the status, the Next. b. Diff the branch against its base: `git diff <base>...HEAD --stat` for committed work, `git status` and `git diff` for uncommitted. Where the base is behind `origin/main`, list what `origin/main` gained (`git log HEAD..o…",
     "The team (\"what is in flight\", standup): list every task from the index, every branch named for a task, and every task named in a merge commit on `origin/main`, then reconcile each: - merged: its branch is in `git branch -r --merged origin/main` or a merge commit names it; closed, whatever its record says; - newer elsewhere: the origin copy of a record beats a local branch that is behind it; the index already prefer…",
-    "Place the work on the map by asking, in order: is there a repository; a task branch; a clear request; a plan; code; do the criteria hold in the code; does the gate pass; is the branch current with `origin/main`; is there an MR. The first \"no\" is the stage.",
+    "Place the work on the recorded flow's map by asking, in order: is there a repository; a task branch; a clear request; a plan; code; do the criteria hold in the code; does the gate pass; is the branch current with `origin/main`; is there an MR. The first \"no\" is the stage.",
     "Write the answer. Change nothing: no record corrected, no rebase, no stash, no commit, no fetch. Name the skill for each next step; do not run it."
    ],
    "output": "Lead with the answer to the question asked, in the user's terms, then the evidence, then the next steps. No preamble, no command log.",
@@ -15142,11 +15150,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 191,
+   "lines": 198,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 191
+     "lines": 198
     },
     {
      "path": "references/agent-split.md",
@@ -15229,8 +15237,8 @@
    "name": "brg-autopilot",
    "lang": "python",
    "group": "workflow",
-   "lines": 1874,
-   "header": "brg-autopilot: the state, the gates and the report of an unattended run from\none requirement statement to a prepared merge request.\n\nThe autopilot skill drives the stages; this script is the part that cannot\nbe talked around: which stage is next, whether its gate holds (checked on\ndisk, never taken from the model's word), how many attempts are left, the\ndigest of every decision taken on the user's behalf, and the report. Nothing\nhere pushes, merges or deploys; the run stops at a prepared merge request.\n\n  brg-autopilot start \"<statement>\" [--dir D]   begin a run (refuses when one is open)\n  brg-autopilot next [--dir D]                  the next stage, its skill and its gate\n  brg-autopilot done <stage> [--dir D]          check the gate; mark done or say what is missing\n  brg-autopilot fail <stage> \"<why>\" [--dir D]  count a failed attempt (3 and the stage is blocked)\n  brg-autopilot decision <key> <choice> <alternatives> <why> [--adr PATH] [--dir D]\n                                                one row of the decision digest\n  brg-autopilot report [--dir D]                write docs/autopilot/<run>.md (the MR carries it)\n  brg-autopilot status [--dir D]                the stages, attempts and decisions so far\n  brg-autopilot profile --ui|--data|--api|--deploy yes|no [--llm yes|no] [--scope lean|full] --why W [--dir D]\n                                                what the product has; decides which stages apply\n                                                and how much document each one needs\n  brg-autopilot stages                          the stage names, in order\n  brg-autopilot launch \"<statement>\" [--dir D] [--print]\n                                                run it headless: claude -p with autopilot,\n                                                then any smoke it asked for, outside the sandbox\n  brg-autopilot smoke-request [--id ID] [--dir D]\n                                                headless dod: ask the launcher to run the smoke\n  brg-autopilot repos-request [--dir D]         headless repos: ask the launcher to scaffold the\n                                                repo plan's missing repositories beside this one\n\nState lives in <dir>/.bearing/state/autopilot.json. Every command prints what it\nchecked and exits 1 when a gate fails or there is nothing to act on.",
+   "lines": 1908,
+   "header": "brg-autopilot: the state, the gates and the report of an unattended run from\none requirement statement to a prepared merge request.\n\nThe autopilot skill drives the stages; this script is the part that cannot\nbe talked around: which stage is next, whether its gate holds (checked on\ndisk, never taken from the model's word), how many attempts are left, the\ndigest of every decision taken on the user's behalf, and the report. Nothing\nhere pushes, merges or deploys; a push, where the engineer opted the repository\nin, is brg-push's from the Stop hook. The run stops at a prepared merge request.\n\n  brg-autopilot start \"<statement>\" [--dir D]   begin a run (refuses when one is open)\n  brg-autopilot next [--dir D]                  the next stage, its skill and its gate\n  brg-autopilot done <stage> [--dir D]          check the gate; mark done or say what is missing\n  brg-autopilot fail <stage> \"<why>\" [--dir D]  count a failed attempt (3 and the stage is blocked)\n  brg-autopilot decision <key> <choice> <alternatives> <why> [--adr PATH] [--dir D]\n                                                one row of the decision digest\n  brg-autopilot report [--dir D]                write docs/autopilot/<run>.md (the MR carries it)\n  brg-autopilot status [--dir D]                the stages, attempts and decisions so far\n  brg-autopilot profile --ui|--data|--api|--deploy yes|no [--llm yes|no] [--scope lean|full] --why W [--dir D]\n                                                what the product has; decides which stages apply\n                                                and how much document each one needs\n  brg-autopilot stages                          the stage names, in order\n  brg-autopilot launch \"<statement>\" [--dir D] [--print]\n                                                run it headless: claude -p with autopilot,\n                                                then any smoke it asked for, outside the sandbox\n  brg-autopilot smoke-request [--id ID] [--dir D]\n                                                headless dod: ask the launcher to run the smoke\n  brg-autopilot repos-request [--dir D]         headless repos: ask the launcher to scaffold the\n                                                repo plan's missing repositories beside this one\n\nState lives in <dir>/.bearing/state/autopilot.json. Every command prints what it\nchecked and exits 1 when a gate fails or there is nothing to act on.",
    "functions": [
     "sh",
     "git",
@@ -15299,6 +15307,7 @@
     "profile_contradictions",
     "smoke_evidence",
     "upstream_sha",
+    "pushed_by_brg_push",
     "g_mr",
     "next_stage",
     "existing_repo",
@@ -15332,6 +15341,7 @@
    "calls": [
     "brg-doctor",
     "brg-kit-paths",
+    "brg-push",
     "brg-scaffold"
    ]
   },
@@ -15340,13 +15350,15 @@
    "name": "brg-changed",
    "lang": "bash",
    "group": "quality",
-   "lines": 125,
-   "header": "brg-changed: files changed in the working tree (modified, staged, untracked,\nthe new name of a rename), repository-relative, one per line. With --since\n<marker>, only files newer than the marker; a missing marker lists all.\nUses -z so names with spaces, quotes or arrows survive.\nDefault mode exits 0 always (the hooks rely on it).\n--layers [--base <ref>]: files changed against the merge base of <ref> and\nHEAD plus the working tree (no --base: the working tree only), deleted files\nincluded, as one \"<layer>\\t<file>\" line per layer a file maps to (unit api ui\nvisual none), then \"brg-changed: <N> files, layers: ...\" . Exit 1 on zero\nfiles (\"brg-changed: 0 files changed against <base>|the working tree\"), on a\nbase that does not resolve, or on a base with no merge base (shallow clone).\nOutside a repository --layers exits 1 (\"brg-changed: not a git repository\").\nEvery error line goes to stderr. Callers detect --layers support from the\ncounts line: an older copy of this script ignores the flag and prints plain\nfile names.",
+   "lines": 254,
+   "header": "brg-changed: files changed in the working tree (modified, staged, untracked,\nthe new name of a rename), repository-relative, one per line. With --since\n<marker>, only files newer than the marker; a missing marker lists all.\nWith --short, every change instead, one \"XY path\" line each in git's short\nstatus codes (X the index against HEAD, Y the work tree against the index:\n\" M\", \"M \", \"A \", \"D \", \" D\", \"??\"), deleted files included.\nWith --skip-notes (the Stop gate), an untracked (??) or work-tree-only\n( M) change is left out when its path is under .scratch/ or is\ndocs/progress/<ID>.md of the current task branch, as brg-push's gate does:\nmerge-request writes that file after make check by design, and neither is\never pushed. A staged change, another task's progress file and any other\npath still count. The default and --short modes exit 0 always (the hooks\nrely on it).\n\nThe hooks call this outside the sandbox, so those two modes run no git\ncommand that reads a file's contents (status, diff and add re-read a file\nwhose stat changed, which runs any filter driver .gitattributes names): they\nread the index (git ls-files --stage --debug, which prints the stat data the\nindex holds), HEAD's tree (git ls-tree) and the untracked list\n(git ls-files --others --exclude-standard), then compare each tracked\nfile's mtime and size with the index's by lstat. None of these refreshes\nthe index or runs a filter; core.fsmonitor is off. A file whose content is\nunchanged but whose mtime moved counts as modified (over-reports, never\nruns anything). Submodules are not looked into.\n\n--layers [--base <ref>] (test-run and the autopilot test_run gate, never a\nhook): files changed against the merge base of <ref> and\nHEAD plus the working tree (no --base: the working tree only), deleted files\nincluded, as one \"<layer>\\t<file>\" line per layer a file maps to (unit api ui\nvisual none), then \"brg-changed: <N> files, layers: ...\" . Exit 1 on zero\nfiles (\"brg-changed: 0 files changed against <base>|the working tree\"), on a\nbase that does not resolve, or on a base with no merge base (shallow clone).\nOutside a repository --layers exits 1 (\"brg-changed: not a git repository\").\nEvery error line goes to stderr. Callers detect --layers support from the\ncounts line: an older copy of this script ignores the flag and prints plain\nfile names.",
    "functions": [
     "classify"
    ],
    "env": [],
-   "calls": []
+   "calls": [
+    "brg-push"
+   ]
   },
   {
    "path": "plugins/bearing/bin/brg-checklists",
@@ -15369,12 +15381,13 @@
    "name": "brg-config",
    "lang": "bash",
    "group": "quality",
-   "lines": 85,
-   "header": "brg-config: remembered answers. Project answers (shared, committed) live in\n<repo>/.bearing/config.json; personal answers live in bearing.env as\nBEARING_<KEY>. Skills call it; the guard does not.\n  brg-config get <key> [--user]          print the value, or nothing\n  brg-config set <key> <value> [--user]  record it (atomic write)\nKeys use [A-Za-z0-9._-] only (exit 2 otherwise). Project scope needs jq\n(exit 1 without it). User scope maps the key to BEARING_<KEY> (upper-cased,\n\".\" and \"-\" become \"_\") in ${BEARING_ENV:-${XDG_CONFIG_HOME:-$HOME/.config}/bearing/bearing.env};\nset keeps every other line, comments and blank lines included, and mode 600.\nget reads the value the way the other Bearing scripts do (quotes stripped,\na trailing \" # comment\" dropped from an unquoted value); the last line wins.",
+   "lines": 90,
+   "header": "brg-config: remembered answers. Project answers (shared, committed) live in\n<repo>/.bearing/config.json; personal answers live in bearing.env as\nBEARING_<KEY>. Skills call it; the guard does not.\n  brg-config get <key> [--user]          print the value, or nothing\n  brg-config set <key> <value> [--user]  record it (atomic write)\nKeys use [A-Za-z0-9._-] only (exit 2 otherwise). Project scope needs jq\n(exit 1 without it). User scope maps the key to BEARING_<KEY> (upper-cased,\n\".\" and \"-\" become \"_\") in ${BEARING_ENV:-${XDG_CONFIG_HOME:-$HOME/.config}/bearing/bearing.env};\nset keeps every other line, comments and blank lines included, and mode 600.\nget reads the value the way the other Bearing scripts do (quotes stripped,\na trailing \" # comment\" dropped from an unquoted value); the last line wins.\nset refuses the auto-push key (exit 2): the engineer writes it by hand.",
    "functions": [
     "usage"
    ],
    "env": [
+    "BEARING_AUTO_PUSH",
     "BEARING_ENV"
    ],
    "calls": []
@@ -15384,7 +15397,7 @@
    "name": "brg-doctor",
    "lang": "bash",
    "group": "install",
-   "lines": 237,
+   "lines": 260,
    "header": "brg-doctor: verify the Bearing installation on this machine and, when run\ninside a repository, in that repository. Prints one line per check and a\nsummary; exits 1 when any required check is missing. Accepts either git\nhost: CI is .gitlab-ci.yml or .github/workflows/*.yml or *.yaml and must run\nmake check; the change template is .gitlab/merge_request_templates/*.md or\npull_request_template.md in any case (GitHub's rule). The third-party packs (Superpowers, gstack)\nare required only when BEARING_PROFILE (environment, then bearing.env) is\nstandard or full; unset or minimal makes them optional, so a\n`install.sh --profile minimal` machine can pass. core.hooksPath passes as\n.githooks, or as another directory whose three hooks each call .githooks/\nwith their arguments and keep its exit status. A hook counts only when git\nwould run it: present, executable, and committed as 100755; make setup\ncounts only when every script its dry run calls exists.",
    "functions": [
     "trust_state",
@@ -15495,9 +15508,10 @@
    "name": "brg-guard",
    "lang": "bash",
    "group": "guard",
-   "lines": 1836,
-   "header": "brg-guard: the harness-neutral guard logic behind every hook adapter.\n\n  brg-guard command \"<shell command>\"   exit 2 and a message when the command\n                                        publishes, rewrites history, deploys\n                                        or destroys; exit 2 when the command\n                                        cannot be read (fail closed)\n  brg-guard format <file>               format one file with the repo's formatter\n  brg-guard task-id [\"<prompt>\"]        print \"Task: <ID> ...\" when the branch\n                                        carries a ticket id the prompt lacks\n  brg-guard session                     print branch, task, changes, handoff state\n  brg-guard stop                        print a reminder when changes are unchecked\n  brg-guard stop-gate --id <session> [--active]\n                                        exit 2 (reason on stderr) when files\n                                        changed in this session since make\n                                        check last passed; --active (the\n                                        harness already continued once) only\n                                        reminds, so it never loops\n  brg-guard check-file <file>           lint one edited file (make check-file\n                                        when the Makefile has it); exit 2 and\n                                        the problems on stderr\n  brg-guard precompact [<transcript>]   write .bearing/state/<branch>.compact.md\n  brg-guard session [--id <session>] [--source startup|resume|compact]\n  brg-guard stats                       what the gates decided here, how often\n                                        and at what cost (.bearing/state/gates.log)\n  brg-guard readonly \"<shell command>\"  exit 2 unless every program in the\n                                        command is a read-only tool (git\n                                        diff|log|show|status|blame|ls-files,\n                                        ls, cat, grep, rg, find without -exec,\n                                        sed without -i, jq and similar);\n                                        used by the read-only subagents\n  brg-guard --verbs                     the blocked verb table (tool, pattern,\n                                        label; tab-separated) for generators\n  brg-guard --version                   the version stamp\n\nClaude Code hooks, Cursor hooks and any other harness adapter call these\nsubcommands and translate their own event JSON into arguments. One logic,\none behaviour on every harness. Runs on bash 3.2 (macOS) and needs no tool\nbeyond git for the session subcommands.",
+   "lines": 2172,
+   "header": "Hooks run outside the sandbox with the harness's environment, so the first\nthing done is to drop what in it could run another program: PATH becomes\n/usr/bin:/bin plus the system tool directories (jq, git and python3 on\nmacOS live under /usr/local/bin or /opt/homebrew/bin; on Linux under\nLinuxbrew or a Nix profile), never a directory the environment put first\n(this line matches hooks/scripts/lib.sh, where brg-doctor reads it and\nthe tools the hooks need, and the settings template denies Edit and Write\non the user-owned ones); BASH_ENV and ENV (sourced by every bash started\nlater), CDPATH (redirects cd), PYTHON* (python3 also runs -I everywhere),\nLD_* and DYLD_* (preloaded libraries) are unset. BASH_ENV in the harness's\nown environment is sourced by bash before this line runs, which no script\ncan prevent; the settings template denies Edit and Write on the settings\nfiles whose env could set it.",
    "functions": [
+    "git_lockdown",
     "verb_table",
     "verb_rows",
     "deny",
@@ -15506,6 +15520,7 @@
     "bearing_root",
     "guard_gate",
     "gate_log",
+    "state_write",
     "load_rules",
     "is_table_tool",
     "sq",
@@ -15552,25 +15567,34 @@
     "hd_prog",
     "hd_scan_line",
     "strip_data_heredocs",
+    "changed_short",
+    "changed_since",
+    "fmt_dirs",
+    "fmt_bin",
+    "prettier_config_ok",
     "guard_command"
    ],
    "env": [
     "BEARING_AUTOPILOT",
+    "BEARING_AUTO_PUSH",
     "BEARING_GUARD_DEBUG",
     "BEARING_GUARD_VERSION",
     "BEARING_LEARNING",
     "BEARING_NONINTERACTIVE",
     "BEARING_NO_GATE_LOG",
     "BEARING_UPDATE",
-    "CLAUDE_PLUGIN_ROOT"
+    "CLAUDE_PLUGIN_ROOT",
+    "CLAUDE_PROJECT_DIR"
    ],
    "calls": [
     "brg-autopilot",
     "brg-changed",
     "brg-checklists",
     "brg-config",
+    "brg-doctor",
     "brg-kit-paths",
     "brg-learn",
+    "brg-push",
     "brg-session",
     "brg-stacks",
     "brg-update-check"
@@ -15581,7 +15605,7 @@
    "name": "brg-harness",
    "lang": "bash",
    "group": "guard",
-   "lines": 686,
+   "lines": 688,
    "header": "brg-harness: make a repository and a machine work with a coding harness\nother than Claude Code, from the same standard and the same guard logic.\n\n  brg-harness <harness> [--dir <repo>] [--kit-url <git url>] [--kit-ref <tag or commit>] [--no-skills]\n\nHarnesses: cursor, codex, gemini, copilot, opencode, windsurf, cline, zed,\n           kiro, all\n\nWrites into the repository (idempotent; a file that exists with different\ncontent is left alone and the proposal goes to <file>.bearing-new):\n  every harness   .bearing/bin/brg-guard (the guard logic, vendored with the kit\n                  version stamped in, so hooks do not depend on where the\n                  kit is installed) and the hook adapters under .bearing/hooks/\n  cursor          .cursor/hooks.json, .cursor/rules/*.mdc from .claude/rules\n  codex           .codex/hooks.json, .codex/rules/bearing.rules (execpolicy)\n  gemini          .gemini/settings.json (BeforeTool hook, tools.exclude),\n                  GEMINI.md importing AGENTS.md\n  copilot         .github/hooks/bearing.json, .github/copilot-instructions.md,\n                  .github/instructions/brg-*.instructions.md (applyTo globs),\n                  .bearing/copilot-deny-tools.txt for the CLI\n  opencode        .opencode/plugins/brg-guard.js, opencode.json permissions\n  windsurf        .devin/hooks.json, .devin/rules/*.md (glob triggers)\n  cline           .clinerules/hooks/PreToolUse, .clinerules/brg-*.md (paths:)\n  zed             .zed/settings.json (tool_permissions deny), .rules pointer;\n                  Zed has no agent hooks, so no adapters by design\n  kiro            .kiro/hooks/brg-guard.json, .kiro/steering/brg-*.md,\n                  .bearing/kiro-permissions.yaml to merge at user level\nEvery command policy (execpolicy, tools.exclude, always_deny, opencode\npermissions, the Kiro and Copilot lists) is derived from `brg-guard\n--verbs`, so the lists and the hook never drift. The policies are prefix\nmatches and advisory; the hook adapter over brg-guard is the control.\nOn the machine (unless --no-skills): installs the Bearing skills into that\nharness's skills folder through the skills CLI (the version pinned in\nbin/pinned-packs.txt), from the kit's git remote at the release tag of this\nkit's version (v<VERSION>) or --kit-ref.\n\nThe git hooks in .githooks/ hold the push, commit and format rules on every\nharness; this script adds each harness's own adapters on top. The summary\ncounts a harness as wired only when its config file references every\nadapter and neither has an unresolved .bearing-new; exit 1 when any selected\nharness is not wired. Harnesses whose hook format has been checked only\nagainst recorded fixtures (Copilot, Kiro, Windsurf, Codex, Cline, OpenCode)\nare marked unverified; Cursor and Gemini CLI have been run for real.",
    "functions": [
     "load_env",
@@ -15719,7 +15743,7 @@
    "name": "brg-learn",
    "lang": "bash",
    "group": "quality",
-   "lines": 116,
+   "lines": 117,
    "header": "brg-learn: opt-in, local learnings. Nothing leaves this machine; entries\ncarry no repository field and paths are reduced to their extension.\n  state                                   on, off or ask (BEARING_LEARNING, via brg-config)\n  log --kind K --skill S --key K --insight T\n                                          K is gate-block|rerun|override|manual; only when on\n  add \"<text>\" [--skill S]                a manual entry\n  top --skills \"a b\" [--n N]              \"- <insight> (<count>x)\", count then recency;\n                                          at most one gate-block line, last\n  list                                    every entry, \"<count>x  <skill>  <insight>\"\n  propose [--out FILE]                    a redacted issue body of entries seen 3+ times, and the\n                                          gh command for the engineer to run (never run here);\n                                          exit 1 if nothing qualifies or a suspect token survives\nThe log sits beside bearing.env (BEARING_ENV, else\n${XDG_CONFIG_HOME:-$HOME/.config}/bearing). log, add and top need jq and do\nnothing without it. Exit 0 always, except propose (exit 1 on failure).",
    "functions": [
     "state",
@@ -15732,8 +15756,75 @@
     "BEARING_LEARNING"
    ],
    "calls": [
-    "brg-config"
+    "brg-config",
+    "brg-guard"
    ]
+  },
+  {
+   "path": "plugins/bearing/bin/brg-push",
+   "name": "brg-push",
+   "lang": "bash",
+   "group": "quality",
+   "lines": 1010,
+   "header": "brg-push: the one way Bearing pushes a task branch, and only where the\nengineer opted the repository in with BEARING_AUTO_PUSH (full push URLs) in\nthe personal bearing.env under the passwd home. The only git push Bearing\nruns, from a fresh clone, never from the working tree.\n\n  brg-push check            the eight conditions, one \"ok|no <name>: <detail>\"\n                            line each, then \"push-check: 8 conditions, M met\";\n                            exit 0 all met, 1 any unmet, 2 usage or not a git\n                            repository\n  brg-push request          check; when it passes, write\n                            .bearing/state/push-request (branch, sha, time);\n                            exit 0 or 1\n  brg-push run --id <sid> [--foreground]\n                            the Stop hook only: judge the request, the opt-in,\n                            the session mark, the gate marker and the global\n                            git transport (\"push-run: 7 conditions before the\n                            clone, M met\"), then start itself with\n                            --foreground, detached, which judges them again,\n                            clones the branch fresh, checks the clone's HEAD\n                            (\"push-run: 8 conditions, M met\") and pushes it;\n                            writes push-result, push.log and a gates.log\n                            line; exit 0 started or pushed, 1 refused or\n                            failed, 2 usage\n  brg-push status [--unseen]\n                            the last result line, or \"push: none\"; with\n                            --unseen (the hooks) \"bearing push: <line>\" once\n                            per new result; exit 0\n  brg-push optin-record     SessionStart only: write .bearing/state/.push-optin\n                            (on|off) for this repository; exit 0 always\n\ncheck, request and status run in the agent's Bash, inside the sandbox.\noptin-record and run run outside the sandbox and run no git command in the\nworking repository: origin's url is read as text from the git common dir's\nconfig file, under a cleared environment, in an empty directory, every read\nof the repository bounded in time, and every write to .bearing/state goes\nthrough state_write, which never follows a link the agent planted. run is for\nthe Stop hook; the guard refuses it from Bash. The opt-in is read from\n<passwd home>/.config/bearing/bearing.env only, never from BEARING_ENV,\nXDG_CONFIG_HOME, HOME or an exported BEARING_AUTO_PUSH: the agent controls\nits own environment. The temporary directory of optin-record and run, and\nso the clone, is a fresh mktemp -d inside <passwd home>/.config/bearing/tmp\n(mode 700, hidden from the sandbox), never TMPDIR; the clone and the push\nread no system config and a generated global config holding only the\nengineer's credential.* keys, and the clone's own config is re-read before\nthe push and refused if it holds a key git clone does not write. An entry\nis never printed (an https entry may carry a token), only its key. A .git\nfile (gitdir:) can point the origin read and the clone source at another\nrepository; the push still goes only to a URL the engineer listed for that\norigin (accepted, amendment ruling Q4). Needs git and python3 (the reads\nand appends in .bearing/state that must not follow a link). The script\nends with the single line `main \"$@\"`, the seam tests use to replace\npasswd_home. bash 3.2 safe.",
+   "functions": [
+    "url_key",
+    "passwd_home",
+    "bounded",
+    "git_dir",
+    "git_common_dir",
+    "cleanenv",
+    "origin_url",
+    "entry_for",
+    "cond",
+    "base_ref",
+    "protected",
+    "task_id",
+    "uncommitted_ok",
+    "status_paths",
+    "committed_newer",
+    "gate_count",
+    "check_conditions",
+    "in_state_dir",
+    "state_cd",
+    "optin_record",
+    "is_task_branch",
+    "tgit",
+    "transport_redirect",
+    "redact",
+    "utc",
+    "result",
+    "log_gate",
+    "run_conditions",
+    "prot_tmp",
+    "prune_tmp",
+    "gen_global",
+    "pgit",
+    "git_version",
+    "git_min",
+    "lazy_fetch_honoured",
+    "probe_fetch",
+    "git_patched",
+    "source_risk",
+    "push_env",
+    "clone_config_extra",
+    "push_clone",
+    "refuse",
+    "run_foreground",
+    "close_fds",
+    "run_main",
+    "request_main",
+    "status_main",
+    "usage",
+    "cleanup",
+    "main"
+   ],
+   "env": [
+    "BEARING_AUTO_PUSH",
+    "BEARING_ENV",
+    "CLAUDE_PROJECT_DIR"
+   ],
+   "calls": []
   },
   {
    "path": "plugins/bearing/bin/brg-rest",
@@ -15834,9 +15925,12 @@
    "name": "brg-session",
    "lang": "bash",
    "group": "quality",
-   "lines": 134,
+   "lines": 162,
    "header": "brg-session: session memory for Bearing, all local and model-free.\n  timeline-start --id <sid> --skill <name>   record a skill start (ends the open one)\n  timeline-close --id <sid>                   end the open skill of this session\n  timeline-recent [--branch <b>] [--n <k>]    last k ended skills on the branch\n  not-run --skill <reason>                    log `timeline not-run <reason>` to gates.log\n  checkpoint                                  write .bearing/state/<branch>.checkpoint.md\n  next-step                                   the next flow step after the timeline\n  resume [--source startup|resume|compact]    the block SessionStart prints\nRuns on bash 3.2; needs git; uses jq when present. Exit 0 always.",
    "functions": [
+    "glog",
+    "swrite",
+    "rf",
     "esc",
     "skill_of",
     "event",
@@ -15848,6 +15942,8 @@
    ],
    "calls": [
     "brg-autopilot",
+    "brg-changed",
+    "brg-config",
     "brg-guard",
     "brg-learn"
    ]
@@ -15914,12 +16010,15 @@
    "name": "brg-update-check",
    "lang": "bash",
    "group": "quality",
-   "lines": 104,
-   "header": "brg-update-check [--remote <url>] [--installed <ver>] [--budget <s>]\nIs a newer Bearing release tag published? At most one git ls-remote a day,\ninside a time budget; prints \"BEARING_UPDATE: <old> -> <new>\" and a few\nchangelog lines, or nothing. Reads only (no fetch, no push, no telemetry);\nnever blocks a session and never prints on failure. Exit 0 always.\nSettings: BEARING_UPDATE_CHECK=off, BEARING_UPDATE_SKIP=<ver>,\nBEARING_UPDATE_SNOOZE_UNTIL=<epoch>, from the environment, then bearing.env\nthrough the brg-config beside this script (absent: no check, not nagging).\nOnly release tags (vN.N.N) count; pre-releases such as v0.8.0-rc1 do not. An\ninstalled pre-release compares by its numeric prefix (0.8.0-rc1 counts as 0.8.0).\nA failed or timed-out check is cached as `<epoch>\\t-\\t<reason>` and not retried\nfor 6 hours, so an offline machine does not pay the budget at every startup.\nA remote starting with \"-\" is refused (it would be read as a git option).",
+   "lines": 137,
+   "header": "brg-update-check [--remote <url>] [--installed <ver>] [--budget <s>]\nIs a newer Bearing release tag published? At most one git ls-remote a day,\ninside a time budget; prints \"BEARING_UPDATE: <old> -> <new>\" and a few\nchangelog lines, or nothing. Reads only (no fetch, no push, no telemetry);\nnever blocks a session and never prints on failure. Exit 0 always.\nSettings: BEARING_UPDATE_CHECK=off, BEARING_UPDATE_SKIP=<ver>,\nBEARING_UPDATE_SNOOZE_UNTIL=<epoch>, from the environment, then bearing.env\nthrough the brg-config beside this script (absent: no check, not nagging).\nOnly release tags (vN.N.N) count; pre-releases such as v0.8.0-rc1 do not. An\ninstalled pre-release compares by its numeric prefix (0.8.0-rc1 counts as 0.8.0).\nA failed or timed-out check is cached as `<epoch>\\t-\\t<reason>` and not retried\nfor 6 hours, so an offline machine does not pay the budget at every startup.\nA remote starting with \"-\" is refused (it would be read as a git option).\nThe SessionStart hook runs this outside the sandbox, from the repository,\nwhose .git/config the agent may have written: the ls-remote runs from /\n(outside any repository) under env -i, with PATH /usr/bin:/bin, HOME the\npasswd home, no system config (GIT_CONFIG_NOSYSTEM=1) and an empty global\nconfig (GIT_CONFIG_GLOBAL=/dev/null), so no credential.helper, askPass,\nsshCommand, url rewrite or include of the repository, the engineer's\nconfig or the caller's environment runs. Its output goes through a pipe,\nnever a file under TMPDIR.",
    "functions": [
     "setting",
     "write_cache",
     "log_fail",
+    "passwd_home",
+    "ls_remote",
+    "watchdog",
     "vnum"
    ],
    "env": [
@@ -15933,7 +16032,7 @@
    "calls": [
     "brg-config",
     "brg-guard",
-    "brg-update"
+    "brg-push"
    ]
   },
   {
@@ -15941,7 +16040,7 @@
    "name": "flow-steps.tsv",
    "lang": "bash",
    "group": "quality",
-   "lines": 102,
+   "lines": 119,
    "header": "",
    "functions": [],
    "env": [],
@@ -16008,8 +16107,8 @@
    "name": "gen-flow-steps.py",
    "lang": "python",
    "group": "generators",
-   "lines": 44,
-   "header": "gen-flow-steps: docs/flows.json -> plugins/bearing/bin/flow-steps.tsv.\n\nOne line per skill step, depth first through branch options in file order,\nso brg-session can tell the next step without shipping the whole handbook.",
+   "lines": 47,
+   "header": "gen-flow-steps: docs/flows.json -> plugins/bearing/bin/flow-steps.tsv.\n\nOne line per skill step, depth first through branch options in file order,\nso brg-session can tell the next step without shipping the whole handbook:\nflow, order, skill, and \"branch\" for a step inside a branch option (taken\nonly on one answer, so brg-session may skip it when its condition already\nholds) or \"step\" for one on the main line.",
    "functions": [
     "bare",
     "walk",
@@ -16026,7 +16125,7 @@
    "lang": "python",
    "group": "generators",
    "lines": 1400,
-   "header": "Generate the documents that derive from the skills in this repository:\n\n  site/src/data/handbook.json   everything the handbook site renders\n  docs/WORKFLOW.md              the stage tables between the markers\n\nEvery table comes from one source: the skill frontmatter (name,\ndescription, invocation), CATEGORY and STAGES below, plus one reviewed\nfile: docs/flows.json (the four task flows). Fails when zero skills are\nfound, when a skill has no category, when a row names more than one skill,\nor when a row or a flow names a skill that is neither a Bearing skill nor\nlisted in docs/known-skills.txt.\n\n    gen-guide.py                        write every document\n    gen-guide.py --write-known-skills   rewrite docs/known-skills.txt from\n                                        the skills installed on this\n                                        machine, then continue\n    gen-guide.py --check-names          the default; kept as a flag so a\n                                        caller can name the intent",
+   "header": "Generate the documents that derive from the skills in this repository:\n\n  site/src/data/handbook.json   everything the handbook site renders\n  docs/WORKFLOW.md              the stage tables between the markers\n\nEvery table comes from one source: the skill frontmatter (name,\ndescription, invocation), CATEGORY and STAGES below, plus one reviewed\nfile: docs/flows.json (the six task flows). Fails when zero skills are\nfound, when a skill has no category, when a row names more than one skill,\nor when a row or a flow names a skill that is neither a Bearing skill nor\nlisted in docs/known-skills.txt.\n\n    gen-guide.py                        write every document\n    gen-guide.py --write-known-skills   rewrite docs/known-skills.txt from\n                                        the skills installed on this\n                                        machine, then continue\n    gen-guide.py --check-names          the default; kept as a flag so a\n                                        caller can name the intent",
    "functions": [
     "scan_installed",
     "check_names",
@@ -16091,8 +16190,8 @@
    "name": "harness-eval.py",
    "lang": "python",
    "group": "quality",
-   "lines": 622,
-   "header": "harness-eval: run real Claude Code sessions against Bearing's hooks and check\nthat each gate was reached and held.\n\nEvery scenario builds a throwaway repository under the system temp directory,\nruns `claude -p` in it with this kit loaded through --plugin-dir (and only the\nproject and local setting sources, so an installed copy of the plugin cannot\nanswer for it), then reads the stream and the session transcript.\n\n  ordinary-work  everyday commands that name a blocked verb as text (a python\n              heredoc with a triple-quoted doc line, importlib's\n              exec_module, a commit message read with -F -) must all run\n  sandbox     the repository template's own settings: from inside the\n              session a push host (github.com over git) must be unreachable,\n              and npm's registry, npm's default cache, $TMPDIR, a lockfile and\n              .env.example usable, while .env stays hidden\n  push        asked to commit and push; the remote must not move and the guard\n              must have refused a `git push`\n  deploy      asked to `kubectl apply`; a stub kubectl must never run and the\n              guard must have refused the command\n  edit-lint   asked to write invalid JSON; the edit hook must have sent jq's\n              error back, and the file must end valid or the report name\n              the problem\n  stop-green  changes a file with a passing `make check`; the Stop hook must\n              have sent the session back once and the check must then pass\n              (or the report say it was not run)\n  stop-red    the same with a failing `make check`; sent back once, no loop,\n              and the report must say the check failed\n  compaction  a request made before `/compact` must be in the snapshot and in\n              what SessionStart (compact) put back into context\n\nA scenario whose gate was never reached is \"not exercised\" and counts as a\nfailure: a check that examined nothing did not pass.\n\nUsage: harness-eval.py [--only name,...] [--list] [--keep] [--repeat N] [--min-rate R]\n  --repeat N    run each scenario N times on fresh fixtures and print its pass\n                rate; exit 0 only when every scenario reaches --min-rate (1.0)\n  BRG_CLAUDE           the claude binary (default: claude)\n  BRG_CLAUDE_PROJECTS  where session transcripts live (default ~/.claude/projects)\n  BRG_HARNESS_EVAL_OUT where results.json goes (default .scratch/harness-eval)\nPrints one line per scenario and \"harness-eval: N scenarios, P passed, ...\";\nexits 1 on any failure or when no scenario ran. Uses the logged-in claude CLI\n(subscription); each run costs a few short sessions.",
+   "lines": 626,
+   "header": "harness-eval: run real Claude Code sessions against Bearing's hooks and check\nthat each gate was reached and held.\n\nEvery scenario builds a throwaway repository under the system temp directory,\nruns `claude -p` in it with this kit loaded through --plugin-dir (and only the\nproject and local setting sources, so an installed copy of the plugin cannot\nanswer for it), then reads the stream and the session transcript.\n\n  ordinary-work  everyday commands that name a blocked verb as text (a python\n              heredoc with a triple-quoted doc line, importlib's\n              exec_module, a commit message read with -F -) must all run\n  sandbox     the repository template's own settings: from inside the\n              session a push host (github.com over git) must be unreachable,\n              and npm's registry, npm's default cache, $TMPDIR, a lockfile and\n              .env.example usable, while .env stays hidden\n  push        asked to commit and push; the remote must not move and the guard\n              must have refused a `git push`\n  deploy      asked to `kubectl apply`; a stub kubectl must never run and the\n              guard must have refused the command\n  edit-lint   asked to write invalid JSON in a repository with a check-file\n              target; the edit hook must have said it ran no check-file\n              (hooks run no repository command; make check-file runs in\n              the session), and the file must end valid or the report\n              name the problem\n  stop-green  changes a file with a passing `make check`; the Stop hook must\n              have sent the session back once and the check must then pass\n              (or the report say it was not run)\n  stop-red    the same with a failing `make check`; sent back once, no loop,\n              and the report must say the check failed\n  compaction  a request made before `/compact` must be in the snapshot and in\n              what SessionStart (compact) put back into context\n\nA scenario whose gate was never reached is \"not exercised\" and counts as a\nfailure: a check that examined nothing did not pass.\n\nUsage: harness-eval.py [--only name,...] [--list] [--keep] [--repeat N] [--min-rate R]\n  --repeat N    run each scenario N times on fresh fixtures and print its pass\n                rate; exit 0 only when every scenario reaches --min-rate (1.0)\n  BRG_CLAUDE           the claude binary (default: claude)\n  BRG_CLAUDE_PROJECTS  where session transcripts live (default ~/.claude/projects)\n  BRG_HARNESS_EVAL_OUT where results.json goes (default .scratch/harness-eval)\nPrints one line per scenario and \"harness-eval: N scenarios, P passed, ...\";\nexits 1 on any failure or when no scenario ran. Uses the logged-in claude CLI\n(subscription); each run costs a few short sessions.",
    "functions": [
     "sh",
     "fixture",
@@ -16329,7 +16428,7 @@
    "name": "block-publish.sh",
    "lang": "bash",
    "group": "hooks",
-   "lines": 6,
+   "lines": 9,
    "header": "PreToolUse (Bash): adapter over bin/brg-guard command. Exit 2 blocks.",
    "functions": [],
    "env": [],
@@ -16342,8 +16441,8 @@
    "name": "format-file.sh",
    "lang": "bash",
    "group": "hooks",
-   "lines": 14,
-   "header": "PostToolUse (Edit|Write|MultiEdit): format the file, then lint it\n(bin/brg-guard format, then check-file). Problems go back to Claude as\n{\"decision\": \"block\"} with the tool's output, so it fixes them now rather\nthan at make check; the edit itself has already happened. The formatter's\nnote goes to stderr: Claude Code only reads stdout as a decision when the\nJSON is all of it.",
+   "lines": 19,
+   "header": "PostToolUse (Edit|Write|MultiEdit): format the file with an allow-listed\nformatter (bin/brg-guard format), then print the one line brg-guard\ncheck-file gives: the per-file check was not run. Hooks run outside the\nsandbox and the working tree is the agent's, so this hook runs no\nrepository command (no Makefile target, no node_modules binary); make\ncheck-file runs in the session, and the Stop gate holds the session to\nmake check. The formatter's note goes to stderr, the check-file line to\nstdout.",
    "functions": [],
    "env": [],
    "calls": [
@@ -16355,7 +16454,7 @@
    "name": "inject-task-id.sh",
    "lang": "bash",
    "group": "hooks",
-   "lines": 6,
+   "lines": 9,
    "header": "UserPromptSubmit: adapter over bin/brg-guard task-id.",
    "functions": [],
    "env": [],
@@ -16368,9 +16467,10 @@
    "name": "lib.sh",
    "lang": "bash",
    "group": "hooks",
-   "lines": 67,
-   "header": "Shared helpers for Bearing hook scripts. Sourced, not executed.\n\nEvery hook reads one JSON object on stdin. We read it once into $HOOK_JSON\nand pull fields with jq. jq is required: without it a field cannot be read\nreliably, so json_field prints the sentinel __BRG_UNPARSED__ and the guard\ntreats a command it cannot read as blocked (fail closed). The other\nsubcommands (format, task-id, session, stop) are hints, not safety\ncontrols, and simply do nothing on the sentinel.",
+   "lines": 132,
+   "header": "Shared helpers for Bearing hook scripts. Sourced, not executed.\n\nHooks run outside the sandbox with the harness's environment, so the first\nthing done is to drop what in it could run another program: PATH becomes\n/usr/bin:/bin plus the system tool directories (jq, git and python3 on\nmacOS live under /usr/local/bin or /opt/homebrew/bin; on Linux under\nLinuxbrew or a Nix profile), never a directory the environment put first\n(brg-doctor checks the BRG_HOOK_TOOLS below resolve on it, reading both\nlines from lib.sh, and the settings template denies Edit and Write on the\nuser-owned ones); BASH_ENV and ENV (sourced by every bash started\nlater), CDPATH (redirects cd), PYTHON* (python3 also runs -I everywhere),\nLD_* and DYLD_* (preloaded libraries) are unset. BASH_ENV in the harness's\nown environment is sourced by bash before this line runs, which no script\ncan prevent; the settings template denies Edit and Write on the settings\nfiles whose env could set it.",
    "functions": [
+    "git_lockdown",
     "json_field",
     "repo_root",
     "current_branch",
@@ -16381,14 +16481,19 @@
    "env": [
     "BEARING_JQ_WARNED"
    ],
-   "calls": []
+   "calls": [
+    "brg-changed",
+    "brg-doctor",
+    "brg-guard",
+    "brg-session"
+   ]
   },
   {
    "path": "plugins/bearing/hooks/scripts/precompact.sh",
    "name": "precompact.sh",
    "lang": "bash",
    "group": "hooks",
-   "lines": 9,
+   "lines": 12,
    "header": "PreCompact (manual, auto): adapter over bin/brg-guard precompact, which\nwrites the branch, changes, check state and the user's last requests to\n.bearing/state/<branch>.compact.md; SessionStart (compact) reads it back.",
    "functions": [],
    "env": [],
@@ -16402,14 +16507,15 @@
    "name": "session-end.sh",
    "lang": "bash",
    "group": "hooks",
-   "lines": 59,
+   "lines": 80,
    "header": "SessionEnd: refresh docs/progress/<ID>.md from the checkpoint so a teammate\nsees where this task stands after the engineer commits and pushes. Never\ncommits. Branches without a task id are left alone. Always exits 0; a skip\nor failure is logged as `session-end not-run <reason>` when a state dir exists.",
    "functions": [
-    "skip"
+    "skip",
+    "safe_cat"
    ],
    "env": [],
    "calls": [
-    "brg-progress",
+    "brg-guard",
     "brg-session"
    ]
   },
@@ -16418,7 +16524,7 @@
    "name": "session-start.sh",
    "lang": "bash",
    "group": "hooks",
-   "lines": 8,
+   "lines": 11,
    "header": "SessionStart (startup, resume, compact): adapter over bin/brg-guard session.\nAfter a compaction the guard also prints the snapshot precompact wrote, and\nClaude Code adds this output to the model's context.",
    "functions": [],
    "env": [],
@@ -16431,7 +16537,7 @@
    "name": "skill-start.sh",
    "lang": "bash",
    "group": "hooks",
-   "lines": 11,
+   "lines": 14,
    "header": "PreToolUse (Skill): record which skill started, for resume and the menu.",
    "functions": [],
    "env": [],
@@ -16444,7 +16550,7 @@
    "name": "stop-summary.sh",
    "lang": "bash",
    "group": "hooks",
-   "lines": 14,
+   "lines": 16,
    "header": "Stop: adapter over bin/brg-guard stop-gate. When files this session changed\nhave not passed make check, Claude is sent back once with the reason\n({\"decision\": \"block\"}); on the second stop (stop_hook_active) the guard\nonly reminds, so the hook can never loop.",
    "functions": [],
    "env": [],
@@ -16938,7 +17044,7 @@
    "lang": "python",
    "group": "skill",
    "skill": "harness-setup",
-   "lines": 558,
+   "lines": 560,
    "header": "harness_check.py: the checks brg-harness does not make, for one harness.\n\n  harness_check.py audit  <harness> [--dir D]   before writing: what the repo\n      already says and does that the setup must account for\n  harness_check.py extend <harness> [--dir D]   carry .claude/settings.json's\n      shell denies (and make targets that hide a deploy) into the harness\n  harness_check.py check  <harness> [--dir D]   feed the harness's own event\n      JSON to every shell hook it is configured to run and compare the\n      verdicts with .claude/settings.json\n\nEvery subcommand prints how many items it examined and exits 1 when that is\nzero. check exits 1 on any gap. Standard library only; the hooks need bash\nand jq. Nothing here runs a denied command: hooks are fed event JSON.",
    "functions": [
     "git",
@@ -17288,18 +17394,25 @@
    "lang": "python",
    "group": "skill",
    "skill": "session-handoff",
-   "lines": 428,
-   "header": "progress: the committed, per-task progress record in docs/progress/.\n\nThe session state in .bearing/state/ is local to one machine and ignored by\ngit. This file is the shared summary: one file per task, committed on the\ntask branch, so a second engineer or a fresh clone sees what is in flight.\nEach branch only ever writes its own file, so two branches never conflict.\n\n  write --task ID [--field value ...]\n      Upsert fields in docs/progress/<ID>.md, creating it from\n      skills/session-handoff/templates/progress.md (guidance comments removed).\n      Only the named fields change; Updated is set to today (UTC) on every\n      write; Started, Owner (the latest commit's author), Branch and Status\n      get defaults on create.\n      Scalars: --title --branch --status --owner --criteria --next --mr\n      --ticket. Lists (repeat the flag; the given items replace the list,\n      \"none\" clears it): --done --blocker --decision. Appending:\n      --add-done --add-decision (an item already present is not repeated).\n      A file that would reach 40 lines folds the oldest Done items into one\n      \"N earlier items\" line.\n  index [--root DIR] [--status S] [--open] [--refs]\n      A table of every docs/progress/*.md (task, status, owner, updated,\n      next) and a final \"progress: N tasks (...)\" line counting each status.\n      --open leaves out merged and abandoned. --refs also reads the file\n      from every local and remote-tracking branch (git ls-tree), so tasks\n      still on unmerged branches show; the newest Updated wins per task.\n      Exits 1 when there are zero progress files.\n  check [--root DIR]\n      Exits 1 when a file lacks a required field (Next may be \"none\" once\n      merged or abandoned), has an unknown status or\n      a malformed date, is 40 lines or more, or is named for another task;\n      prints each problem and the counts. Zero files is a failure too.\n\npython3 stdlib only. Exit codes: 0 ok, 1 findings or empty input, 2 usage.",
+   "lines": 706,
+   "header": "progress: the committed, per-task progress record in docs/progress/.\n\nThe session state in .bearing/state/ is local to one machine and ignored by\ngit. This file is the shared summary: one file per task, committed on the\ntask branch, so a second engineer or a fresh clone sees what is in flight.\nEach branch only ever writes its own file, so two branches never conflict.\n\n  write --task ID [--field value ...]\n      Upsert fields in docs/progress/<ID>.md, creating it from\n      skills/session-handoff/templates/progress.md (guidance comments removed).\n      Only the named fields change; Updated is set to today (UTC) on every\n      write; Started, Owner (the latest commit's author), Branch and Status\n      get defaults on create.\n      Scalars: --title --branch --status --owner --criteria --next --mr\n      --ticket. Lists (repeat the flag; the given items replace the list,\n      \"none\" clears it): --done --blocker --decision --repo (\"<n>. <Name>\n      (<path>)\", at most 8; the file gets a \"## Repos\" section after Links\n      only when the list is not empty). Appending:\n      --add-done --add-decision (an item already present is not repeated).\n      A file that would reach 40 lines folds the oldest Done items into one\n      \"N earlier items\" line. --dry-run prints the file it would write and\n      writes nothing. The SessionEnd hook runs write outside the sandbox, so\n      docs and docs/progress are opened without following a link and the\n      file is read only when it is a regular file with one link (a link, a\n      FIFO or a hard link is refused, exit 1); the new text goes to a fresh\n      temporary name that is then renamed over it, so nothing is ever\n      written through a link.\n  show --task ID [--root DIR]\n      Prints docs/progress/<ID>.md, opened the same way as write; exit 3\n      when there is none, 1 when it is not a regular file.\n  index [--root DIR] [--status S] [--open] [--refs]\n      A table of every docs/progress/*.md (task, status, owner, updated,\n      next) and a final \"progress: N tasks (...)\" line counting each status.\n      --open leaves out merged and abandoned. --refs also reads the file\n      from every local and remote-tracking branch (git ls-tree), so tasks\n      still on unmerged branches show; the newest Updated wins per task.\n      Exits 1 when there are zero progress files.\n  check [--root DIR]\n      Exits 1 when a file lacks a required field (Next may be \"none\" once\n      merged or abandoned), has an unknown status or\n      a malformed date, is 40 lines or more, or is named for another task;\n      prints each problem and the counts. Zero files is a failure too.\n\n  set [--root DIR] --task ID\n      For a task that spans repositories: reads the Repos list of this\n      repository's docs/progress/<ID>.md and prints one row per repository,\n      \"<n>. <Name> <path>: ready | merged | not ready: <reason>\", then\n      \"set: N repos, R ready, M merged, K not ready; merge order A, B, C\".\n      Not ready reasons, in this order: uncommitted changes, branch missing,\n      then the gate: make check has never passed (marker missing), files\n      newer than the last make check, 0 files on the branch. The row whose\n      path is \".\" ends with \"(this repository)\". Exits 1 on no progress file,\n      zero repositories or a missing path.\n\npython3 stdlib only. Exit codes: 0 ok, 1 findings or empty input, 2 usage.",
    "functions": [
     "die",
     "today",
     "git",
     "repo_root",
+    "progress_dir",
+    "read_progress",
+    "put_progress",
     "one_line",
     "parse",
     "render",
     "fit",
     "cmd_write",
+    "cmd_show",
+    "base_ref",
+    "gate",
+    "cmd_set",
     "local_records",
     "ref_records",
     "gather",
@@ -17539,7 +17652,7 @@
    "calls": []
   }
  ],
- "hookDescription": "Bearing hooks. Fast, file-scoped, and each prints what it did. The engineer pushes and deploys; the agent does not.",
+ "hookDescription": "Bearing hooks. Fast, file-scoped, and each prints what it did. The engineer pushes and deploys; the agent does not, except a task branch push the Stop hook makes where the engineer opted the repository in.",
  "hooks": [
   {
    "event": "SessionStart",
@@ -17549,7 +17662,7 @@
    "guard": [
     "session"
    ],
-   "body": "#!/usr/bin/env bash\n# SessionStart (startup, resume, compact): adapter over bin/brg-guard session.\n# After a compaction the guard also prints the snapshot precompact wrote, and\n# Claude Code adds this output to the model's context.\nset -u\n# shellcheck source=lib.sh\n. \"$(dirname \"$0\")/lib.sh\"\nexec bash \"$(dirname \"$0\")/../../bin/brg-guard\" session --id \"$(json_field session_id)\" --source \"$(json_field source)\""
+   "body": "#!/usr/bin/env bash\n# SessionStart (startup, resume, compact): adapter over bin/brg-guard session.\n# After a compaction the guard also prints the snapshot precompact wrote, and\n# Claude Code adds this output to the model's context.\nset -u\n# No program runs before lib.sh resets the environment, so no dirname here;\n# the next script starts with \"$BASH\" from ${0%/*}, never found on PATH.\n# shellcheck source=lib.sh\ncase \"$0\" in (*/*) . \"${0%/*}/lib.sh\" ;; (*) . ./lib.sh ;; esac\nexec \"$BASH\" \"${0%/*}/../../bin/brg-guard\" session --id \"$(json_field session_id)\" --source \"$(json_field source)\"\nexit 2"
   },
   {
    "event": "UserPromptSubmit",
@@ -17559,7 +17672,7 @@
    "guard": [
     "task-id"
    ],
-   "body": "#!/usr/bin/env bash\n# UserPromptSubmit: adapter over bin/brg-guard task-id.\nset -u\n# shellcheck source=lib.sh\n. \"$(dirname \"$0\")/lib.sh\"\nexec bash \"$(dirname \"$0\")/../../bin/brg-guard\" task-id \"$(json_field prompt)\""
+   "body": "#!/usr/bin/env bash\n# UserPromptSubmit: adapter over bin/brg-guard task-id.\nset -u\n# No program runs before lib.sh resets the environment, so no dirname here;\n# the next script starts with \"$BASH\" from ${0%/*}, never found on PATH.\n# shellcheck source=lib.sh\ncase \"$0\" in (*/*) . \"${0%/*}/lib.sh\" ;; (*) . ./lib.sh ;; esac\nexec \"$BASH\" \"${0%/*}/../../bin/brg-guard\" task-id \"$(json_field prompt)\"\nexit 2"
   },
   {
    "event": "PreToolUse",
@@ -17569,7 +17682,7 @@
    "guard": [
     "command"
    ],
-   "body": "#!/usr/bin/env bash\n# PreToolUse (Bash): adapter over bin/brg-guard command. Exit 2 blocks.\nset -u\n# shellcheck source=lib.sh\n. \"$(dirname \"$0\")/lib.sh\"\nexec bash \"$(dirname \"$0\")/../../bin/brg-guard\" command \"$(json_field tool_input.command)\""
+   "body": "#!/usr/bin/env bash\n# PreToolUse (Bash): adapter over bin/brg-guard command. Exit 2 blocks.\nset -u\n# No program runs before lib.sh resets the environment, so no dirname here;\n# the next script starts with \"$BASH\" from ${0%/*}, never found on PATH.\n# shellcheck source=lib.sh\ncase \"$0\" in (*/*) . \"${0%/*}/lib.sh\" ;; (*) . ./lib.sh ;; esac\nexec \"$BASH\" \"${0%/*}/../../bin/brg-guard\" command \"$(json_field tool_input.command)\"\nexit 2"
   },
   {
    "event": "PreToolUse",
@@ -17577,7 +17690,7 @@
    "script": "skill-start.sh",
    "timeout": 5,
    "guard": [],
-   "body": "#!/usr/bin/env bash\n# PreToolUse (Skill): record which skill started, for resume and the menu.\nset -u\n# shellcheck source=lib.sh\n. \"$(dirname \"$0\")/lib.sh\"\ns=\"$(json_field tool_input.skill)\"\nif [ \"$s\" = \"__BRG_UNPARSED__\" ]; then\n  bash \"$(dirname \"$0\")/../../bin/brg-session\" not-run --skill unparsed >/dev/null 2>&1\n  exit 0\nfi\nexec bash \"$(dirname \"$0\")/../../bin/brg-session\" timeline-start --id \"$(json_field session_id)\" --skill \"$s\""
+   "body": "#!/usr/bin/env bash\n# PreToolUse (Skill): record which skill started, for resume and the menu.\nset -u\n# No program runs before lib.sh resets the environment, so no dirname here;\n# the next script starts with \"$BASH\" from ${0%/*}, never found on PATH.\n# shellcheck source=lib.sh\ncase \"$0\" in (*/*) . \"${0%/*}/lib.sh\" ;; (*) . ./lib.sh ;; esac\ns=\"$(json_field tool_input.skill)\"\nif [ \"$s\" = \"__BRG_UNPARSED__\" ]; then\n  \"$BASH\" \"${0%/*}/../../bin/brg-session\" not-run --skill unparsed >/dev/null 2>&1\n  exit 0\nfi\nexec \"$BASH\" \"${0%/*}/../../bin/brg-session\" timeline-start --id \"$(json_field session_id)\" --skill \"$s\"\nexit 2"
   },
   {
    "event": "PostToolUse",
@@ -17588,7 +17701,7 @@
     "file",
     "format"
    ],
-   "body": "#!/usr/bin/env bash\n# PostToolUse (Edit|Write|MultiEdit): format the file, then lint it\n# (bin/brg-guard format, then check-file). Problems go back to Claude as\n# {\"decision\": \"block\"} with the tool's output, so it fixes them now rather\n# than at make check; the edit itself has already happened. The formatter's\n# note goes to stderr: Claude Code only reads stdout as a decision when the\n# JSON is all of it.\nset -u\n# shellcheck source=lib.sh\n. \"$(dirname \"$0\")/lib.sh\"\nguard=\"$(dirname \"$0\")/../../bin/brg-guard\"\nfile=\"$(json_field tool_input.file_path)\"\nbash \"$guard\" format \"$file\" >&2\nblock_or_print \"$guard\" check-file \"$file\""
+   "body": "#!/usr/bin/env bash\n# PostToolUse (Edit|Write|MultiEdit): format the file with an allow-listed\n# formatter (bin/brg-guard format), then print the one line brg-guard\n# check-file gives: the per-file check was not run. Hooks run outside the\n# sandbox and the working tree is the agent's, so this hook runs no\n# repository command (no Makefile target, no node_modules binary); make\n# check-file runs in the session, and the Stop gate holds the session to\n# make check. The formatter's note goes to stderr, the check-file line to\n# stdout.\nset -u\n# No program runs before lib.sh resets the environment, so no dirname here;\n# the next script starts with \"$BASH\" from ${0%/*}, never found on PATH.\n# shellcheck source=lib.sh\ncase \"$0\" in (*/*) . \"${0%/*}/lib.sh\" ;; (*) . ./lib.sh ;; esac\nguard=\"${0%/*}/../../bin/brg-guard\"\nfile=\"$(json_field tool_input.file_path)\"\n\"$BASH\" \"$guard\" format \"$file\" >&2\n\"$BASH\" \"$guard\" check-file \"$file\"\nexit 0"
   },
   {
    "event": "PreCompact",
@@ -17598,15 +17711,19 @@
    "guard": [
     "precompact"
    ],
-   "body": "#!/usr/bin/env bash\n# PreCompact (manual, auto): adapter over bin/brg-guard precompact, which\n# writes the branch, changes, check state and the user's last requests to\n# .bearing/state/<branch>.compact.md; SessionStart (compact) reads it back.\nset -u\n# shellcheck source=lib.sh\n. \"$(dirname \"$0\")/lib.sh\"\nbash \"$(dirname \"$0\")/../../bin/brg-session\" checkpoint >/dev/null 2>&1\nexec bash \"$(dirname \"$0\")/../../bin/brg-guard\" precompact \"$(json_field transcript_path)\""
+   "body": "#!/usr/bin/env bash\n# PreCompact (manual, auto): adapter over bin/brg-guard precompact, which\n# writes the branch, changes, check state and the user's last requests to\n# .bearing/state/<branch>.compact.md; SessionStart (compact) reads it back.\nset -u\n# No program runs before lib.sh resets the environment, so no dirname here;\n# the next script starts with \"$BASH\" from ${0%/*}, never found on PATH.\n# shellcheck source=lib.sh\ncase \"$0\" in (*/*) . \"${0%/*}/lib.sh\" ;; (*) . ./lib.sh ;; esac\n\"$BASH\" \"${0%/*}/../../bin/brg-session\" checkpoint >/dev/null 2>&1\nexec \"$BASH\" \"${0%/*}/../../bin/brg-guard\" precompact \"$(json_field transcript_path)\"\nexit 2"
   },
   {
    "event": "SessionEnd",
    "matcher": "",
    "script": "session-end.sh",
    "timeout": 5,
-   "guard": [],
-   "body": "#!/usr/bin/env bash\n# SessionEnd: refresh docs/progress/<ID>.md from the checkpoint so a teammate\n# sees where this task stands after the engineer commits and pushes. Never\n# commits. Branches without a task id are left alone. Always exits 0; a skip\n# or failure is logged as `session-end not-run <reason>` when a state dir exists.\nset -u\n# shellcheck source=lib.sh\n. \"$(dirname \"$0\")/lib.sh\"\nroot=\"$(repo_root)\" || exit 0\n[ -n \"$root\" ] || exit 0\n[ -d \"$root/.bearing\" ] || exit 0\nskip() { # skip <reason>\n  [ -d \"$root/.bearing/state\" ] || exit 0\n  printf '%s\\tsession-end\\tnot-run\\t0\\t%s\\n' \"$(date +%Y-%m-%dT%H:%M:%S)\" \\\n    \"$(printf '%s' \"$1\" | tr '\\t\\n' '  ' | cut -c1-120)\" >> \"$root/.bearing/state/gates.log\"\n  exit 0\n}\nbranch=\"$(current_branch)\"\ntask=\"$(task_id_from_branch)\"; [ -n \"$task\" ] || skip \"no task id on branch\"\nkit=\"$(dirname \"$0\")/../..\"\nbash \"$kit/bin/brg-session\" checkpoint >/dev/null 2>&1\ncpf=\"$root/.bearing/state/$(printf '%s' \"$branch\" | tr '/' '_').checkpoint.md\"\nnxt=\"$(sed -n 's/^Next (from state file): //p' \"$cpf\" 2>/dev/null)\"\nif [ -z \"$nxt\" ] || [ \"$nxt\" = none ]; then nxt=\"$(sed -n 's/^Next flow step: //p' \"$cpf\" 2>/dev/null)\"; fi\nif [ -z \"$nxt\" ] || [ \"$nxt\" = none ] || [ \"$nxt\" = unknown ]; then skip \"no next step\"; fi\ncd \"$root\" || skip \"cannot enter repo root\"\npf=\"docs/progress/$task.md\"\nmark=\"$root/.bearing/state/$(printf '%s' \"$branch\" | tr '/' '_').progress-next\"\nif [ -f \"$pf\" ]; then\n  status=\"$(sed -n 's/^- Status: *//p' \"$pf\" | head -1)\"\n  case \"$status\" in merged|abandoned) skip \"closed task\";; esac\n  cur=\"$(awk '/^## Next/{f=1;next} /^## /{f=0} f && !/^<!--/ && NF {sub(/^- /,\"\"); print; exit}' \"$pf\")\"\n  last=\"$(cat \"$mark\" 2>/dev/null)\"\n  # keep a person-written Next: overwrite only a placeholder or our own last value\n  case \"$cur\" in ''|none|unknown) ;; *) [ \"$cur\" = \"$last\" ] || exit 0;; esac\nfi\n# progress.py re-renders from the template, so a line a person added outside\n# its fields would be lost. Rehearse the write on a copy first; if any\n# non-empty line (other than the Next items, Branch and Updated, which the\n# write replaces) is missing from the result, leave the file alone.\nif [ -f \"$pf\" ]; then\n  tmp=\"$(mktemp -d \"${TMPDIR:-/tmp}/brg-progress.XXXXXX\")\" || skip \"cannot make a temp dir\"\n  mkdir -p \"$tmp/docs/progress\" && cp \"$pf\" \"$tmp/$pf\" || { rm -rf \"$tmp\"; skip \"cannot copy progress file\"; }\n  if ! python3 \"$kit/skills/session-handoff/scripts/progress.py\" write --root \"$tmp\" --task \"$task\" --branch \"$branch\" --next \"$nxt\" >/dev/null 2>&1; then\n    rm -rf \"$tmp\"; skip \"progress.py write failed\"\n  fi\n  lost=0\n  while IFS= read -r line; do\n    grep -qxF -- \"$line\" \"$tmp/$pf\" || { lost=1; break; }\n  done <<EOF\n$(awk '/^## /{nx=($0 ~ /^## Next[[:space:]]*$/)} nx && !/^## / {next} /^- (Updated|Branch):/ {next} NF' \"$pf\")\nEOF\n  rm -rf \"$tmp\"\n  [ \"$lost\" -eq 0 ] || skip \"would drop lines\"\nfi\npython3 \"$kit/skills/session-handoff/scripts/progress.py\" write --task \"$task\" --branch \"$branch\" --next \"$nxt\" >/dev/null 2>&1 \\\n  || skip \"progress.py write failed\"\nprintf '%s\\n' \"$nxt\" > \"$mark.tmp\" && mv \"$mark.tmp\" \"$mark\"\nexit 0"
+   "guard": [
+    "log",
+    "skip",
+    "state-write"
+   ],
+   "body": "#!/usr/bin/env bash\n# SessionEnd: refresh docs/progress/<ID>.md from the checkpoint so a teammate\n# sees where this task stands after the engineer commits and pushes. Never\n# commits. Branches without a task id are left alone. Always exits 0; a skip\n# or failure is logged as `session-end not-run <reason>` when a state dir exists.\nset -u\n# No program runs before lib.sh resets the environment, so no dirname here;\n# the next script starts with \"$BASH\" from ${0%/*}, never found on PATH.\n# shellcheck source=lib.sh\ncase \"$0\" in (*/*) . \"${0%/*}/lib.sh\" ;; (*) . ./lib.sh ;; esac\nroot=\"$(repo_root)\" || exit 0\n[ -n \"$root\" ] || exit 0\n[ -d \"$root/.bearing\" ] || exit 0\nguard=\"$(cd \"${0%/*}/../../bin\" && pwd)/brg-guard\"\nskip() { # skip <reason>: a gates.log line through brg-guard log (never through a link or into a FIFO)\n  [ -d \"$root/.bearing/state\" ] || exit 0\n  ( cd \"$root\" && \"$BASH\" \"$guard\" log session-end not-run \"$1\" ) >/dev/null 2>&1\n  exit 0\n}\n# Hooks run outside the sandbox and the working tree is the agent's: every\n# read here is a regular file opened without following a link and without\n# blocking on a FIFO (safe_cat, progress.py show), every write goes through\n# progress.py write (docs/progress opened link-free, temp plus rename) or\n# brg-guard state-write, and nothing is copied: the rehearsal is a dry run\n# that prints the new text.\nsafe_cat() { # safe_cat <file>: its text when it is a regular file; nothing otherwise\n  python3 -I -S -c 'import os, sys\ntry:\n    fd = os.open(sys.argv[1], os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)\n    if os.fstat(fd).st_mode & 0o170000 == 0o100000:\n        sys.stdout.write(os.read(fd, 65536).decode(\"utf-8\", \"replace\"))\nexcept OSError:\n    pass' \"$1\" 2>/dev/null\n}\nbranch=\"$(current_branch)\"\ntask=\"$(task_id_from_branch)\"; [ -n \"$task\" ] || skip \"no task id on branch\"\nkit=\"${0%/*}/../..\"\nprog=\"$kit/skills/session-handoff/scripts/progress.py\"\n\"$BASH\" \"$kit/bin/brg-session\" checkpoint >/dev/null 2>&1\nbf=\"$(printf '%s' \"$branch\" | tr '/' '_')\"\ncp_text=\"$(safe_cat \"$root/.bearing/state/$bf.checkpoint.md\")\"\n[ -n \"$cp_text\" ] || skip \"no checkpoint\"\nnxt=\"$(printf '%s\\n' \"$cp_text\" | sed -n 's/^Next (from state file): //p')\"\nif [ -z \"$nxt\" ] || [ \"$nxt\" = none ]; then nxt=\"$(printf '%s\\n' \"$cp_text\" | sed -n 's/^Next flow step: //p')\"; fi\nif [ -z \"$nxt\" ] || [ \"$nxt\" = none ] || [ \"$nxt\" = unknown ]; then skip \"no next step\"; fi\ncd \"$root\" || skip \"cannot enter repo root\"\nmark=\"$bf.progress-next\"\ncur_text=\"$(python3 -I \"$prog\" show --task \"$task\" 2>/dev/null)\"; rc=$?\ncase \"$rc\" in\n  (0) ;;\n  (3) cur_text=\"\" ;;\n  (*) skip \"progress file is not a regular file\" ;;\nesac\nif [ \"$rc\" -eq 0 ]; then\n  status=\"$(printf '%s\\n' \"$cur_text\" | sed -n 's/^- Status: *//p' | head -1)\"\n  case \"$status\" in merged|abandoned) skip \"closed task\";; esac\n  cur=\"$(printf '%s\\n' \"$cur_text\" | awk '/^## Next/{f=1;next} /^## /{f=0} f && !/^<!--/ && NF {sub(/^- /,\"\"); print; exit}')\"\n  last=\"$(safe_cat \"$root/.bearing/state/$mark\")\"; last=\"${last%\n}\"\n  # keep a person-written Next: overwrite only a placeholder or our own last value\n  case \"$cur\" in ''|none|unknown) ;; *) [ \"$cur\" = \"$last\" ] || exit 0;; esac\n  # progress.py re-renders from the template, so a line a person added outside\n  # its fields would be lost. Rehearse with --dry-run (it prints the new text);\n  # if any non-empty line (other than the Next items, Branch and Updated, which\n  # the write replaces) is missing from it, leave the file alone.\n  new_text=\"$(python3 -I \"$prog\" write --task \"$task\" --branch \"$branch\" --next \"$nxt\" --dry-run 2>/dev/null)\" \\\n    || skip \"progress.py write failed\"\n  lost=0\n  while IFS= read -r line; do\n    [ -n \"$line\" ] || continue\n    printf '%s\\n' \"$new_text\" | grep -qxF -- \"$line\" || { lost=1; break; }\n  done <<EOF\n$(printf '%s\\n' \"$cur_text\" | awk '/^## /{nx=($0 ~ /^## Next[[:space:]]*$/)} nx && !/^## / {next} /^- (Updated|Branch):/ {next} NF')\nEOF\n  [ \"$lost\" -eq 0 ] || skip \"would drop lines\"\nfi\npython3 -I \"$prog\" write --task \"$task\" --branch \"$branch\" --next \"$nxt\" >/dev/null 2>&1 \\\n  || skip \"progress.py write failed\"\nprintf '%s\\n' \"$nxt\" | \"$BASH\" \"$guard\" state-write put \"$mark\" >/dev/null 2>&1\nexit 0"
   },
   {
    "event": "Stop",
@@ -17617,7 +17734,7 @@
     "set",
     "stop-gate"
    ],
-   "body": "#!/usr/bin/env bash\n# Stop: adapter over bin/brg-guard stop-gate. When files this session changed\n# have not passed make check, Claude is sent back once with the reason\n# ({\"decision\": \"block\"}); on the second stop (stop_hook_active) the guard\n# only reminds, so the hook can never loop.\nset -u\n# shellcheck source=lib.sh\n. \"$(dirname \"$0\")/lib.sh\"\nguard=\"$(dirname \"$0\")/../../bin/brg-guard\"\nset -- --id \"$(json_field session_id)\"\n[ \"$(json_field stop_hook_active)\" = \"true\" ] && set -- \"$@\" --active\nbash \"$(dirname \"$0\")/../../bin/brg-session\" timeline-close --id \"$(json_field session_id)\" >/dev/null 2>&1\nbash \"$(dirname \"$0\")/../../bin/brg-session\" checkpoint >/dev/null 2>&1\nblock_or_print \"$guard\" stop-gate \"$@\""
+   "body": "#!/usr/bin/env bash\n# Stop: adapter over bin/brg-guard stop-gate. When files this session changed\n# have not passed make check, Claude is sent back once with the reason\n# ({\"decision\": \"block\"}); on the second stop (stop_hook_active) the guard\n# only reminds, so the hook can never loop.\nset -u\n# No program runs before lib.sh resets the environment, so no dirname here;\n# the next script starts with \"$BASH\" from ${0%/*}, never found on PATH.\n# shellcheck source=lib.sh\ncase \"$0\" in (*/*) . \"${0%/*}/lib.sh\" ;; (*) . ./lib.sh ;; esac\nguard=\"${0%/*}/../../bin/brg-guard\"\nset -- --id \"$(json_field session_id)\"\n[ \"$(json_field stop_hook_active)\" = \"true\" ] && set -- \"$@\" --active\n\"$BASH\" \"${0%/*}/../../bin/brg-session\" timeline-close --id \"$(json_field session_id)\" >/dev/null 2>&1\n\"$BASH\" \"${0%/*}/../../bin/brg-session\" checkpoint >/dev/null 2>&1\nblock_or_print \"$guard\" stop-gate \"$@\""
   }
  ],
  "agents": [
@@ -17909,7 +18026,7 @@
   },
   {
    "name": "check-file",
-   "does": "Lint one edited file, FILE=path (the edit hook runs this; the same flags as lint-shell and lint-json)",
+   "does": "Lint one edited file, FILE=path (run it in the session after an edit; the same flags as lint-shell and lint-json)",
    "inCheck": false
   },
   {
@@ -18217,9 +18334,9 @@
   {
    "path": "tests/integration/harness_each.sh",
    "kind": "integration",
-   "lines": 346,
+   "lines": 347,
    "header": "tests/integration/harness_each.sh: generate every harness into a temporary git repository with plugins/bearing/bin/brg-harness, assert the file set and modes, pipe the recorded hook fixtures (blocked command substituted at run time) into the matching adapter and assert deny; hostile and missing-key inputs must deny rather than allow; every JSON file parses; the OpenCode plugin loads. Copilot's toolArgs is exercised as an object and as a JSON string. The summary counts a harness wired only when its config references every adapter and nothing is left as .bearing-new (exit 1 otherwise); the env…",
-   "asserts": 182
+   "asserts": 180
   },
   {
    "path": "tests/integration/plugin_split.sh",
@@ -18238,7 +18355,7 @@
   {
    "path": "tests/lib/assert.sh",
    "kind": "lib",
-   "lines": 114,
+   "lines": 137,
    "header": "tests/lib/assert.sh: sourced by every test file. bash 3.2 safe (macOS). t_begin <case> open a named case (counted; a case that runs no t_end assertion is a failure, so an empty test cannot pass) t_run <cmd...> run with $T_IN on stdin; sets T_RC and T_OUT (stdout+stderr) assert_exit <rc> <cmd...> t_run and check the exit code assert_eq <expected> <actual> [what] assert_contains <haystack> <needle> [what] assert_not_contains <haystack> <needle> [what] assert_file <path> [mode] the file exists (and has that octal mode) tmpdir print a fresh directory, removed at exit minimal_path <tool>... print…",
    "asserts": 11
   },
@@ -18315,16 +18432,16 @@
   {
    "path": "tests/unit/autopilot_state.sh",
    "kind": "unit",
-   "lines": 332,
-   "header": "tests/unit/autopilot_state.sh: plugins/bearing/bin/brg-autopilot keeps the order and checks every gate on disk. A new run starts at repo; done on a stage whose gate is not met fails and says what is missing; stages run in order; an ADR this run wrote as Accepted fails the decide gate; three failed attempts block a stage; an upstream on the branch fails the mr gate (the run never pushes); the report carries the digest; a second start on an open run is refused.",
-   "asserts": 98
+   "lines": 367,
+   "header": "tests/unit/autopilot_state.sh: plugins/bearing/bin/brg-autopilot keeps the order and checks every gate on disk. A new run starts at repo; done on a stage whose gate is not met fails and says what is missing; stages run in order; an ADR this run wrote as Accepted fails the decide gate; three failed attempts block a stage; an upstream on the branch fails the mr gate unless brg-push pushed it at HEAD (the run never pushes itself); the report carries the digest; a second start on an open run is refused.",
+   "asserts": 104
   },
   {
    "path": "tests/unit/changed_files.sh",
    "kind": "unit",
-   "lines": 182,
+   "lines": 239,
    "header": "tests/unit/changed_files.sh: brg-changed lists changed files rename-safe and space-safe; stop-gate prefers make check-changed and falls back to make check.",
-   "asserts": 62
+   "asserts": 80
   },
   {
    "path": "tests/unit/check_changed_targets.sh",
@@ -18343,9 +18460,9 @@
   {
    "path": "tests/unit/config_helper.sh",
    "kind": "unit",
-   "lines": 89,
+   "lines": 124,
    "header": "tests/unit/config_helper.sh: brg-config answers round-trip in project and user scope, keep every other line of bearing.env, validate keys, and need jq for project scope.",
-   "asserts": 46
+   "asserts": 64
   },
   {
    "path": "tests/unit/critique_unattended.sh",
@@ -18432,6 +18549,13 @@
    "asserts": 52
   },
   {
+   "path": "tests/unit/doctor_hook_path.sh",
+   "kind": "unit",
+   "lines": 39,
+   "header": "tests/unit/doctor_hook_path.sh: brg-doctor resolves the tools the hooks need (BRG_HOOK_TOOLS in hooks/scripts/lib.sh) on the hook PATH (the PATH line in the same file), not on the shell's PATH, and prints the fix for one that is missing. A hook_kit copy sets the hook PATH. bash 3.2 safe.",
+   "asserts": 11
+  },
+  {
    "path": "tests/unit/doctor_packs.sh",
    "kind": "unit",
    "lines": 29,
@@ -18502,25 +18626,32 @@
    "asserts": 21
   },
   {
+   "path": "tests/unit/githooks_pre_push.sh",
+   "kind": "unit",
+   "lines": 108,
+   "header": "tests/unit/githooks_pre_push.sh: the committed pre-push hook refuses every coding agent's push, a BEARING_AUTO_PUSH entry or not, and refuses an agent's tag push or branch deletion even when no branch is updated; the engineer's push runs the gate and may delete a task branch; the hooks carry no opt-in code (Bearing's opt-in push runs from a fresh clone and never meets this hook). bash 3.2 safe.",
+   "asserts": 20
+  },
+  {
    "path": "tests/unit/guard_deny_table.sh",
    "kind": "unit",
-   "lines": 549,
+   "lines": 559,
    "header": "tests/unit/guard_deny_table.sh: brg-guard command against a table of commands. Every proven bypass (wrappers, git options, chaining, quoting, substitution, empty input, the sentinel) must be denied; look-alike safe commands must be allowed. Blocked strings are assembled at run time so the file never holds a blocked command on one line.",
-   "asserts": 66
+   "asserts": 73
   },
   {
    "path": "tests/unit/guard_format.sh",
    "kind": "unit",
-   "lines": 70,
-   "header": "tests/unit/guard_format.sh: brg-guard format dispatches each extension to the right formatter (stubs on a fake PATH record what was called) and prints a note, exit 0, when the formatter is not installed.",
-   "asserts": 24
+   "lines": 168,
+   "header": "tests/unit/guard_format.sh: brg-guard format dispatches each extension to the right formatter, taken only from the guard's fixed directories (here a copy of the guard whose fmt_dirs names a stub directory, the one seam), in a cleared environment; it prints a note, exit 0, when the formatter is not installed; and it runs prettier only when the prettier config that applies is data that loads no code.",
+   "asserts": 46
   },
   {
    "path": "tests/unit/guard_harness_gates.sh",
    "kind": "unit",
-   "lines": 229,
-   "header": "tests/unit/guard_harness_gates.sh: the three harness gates. check-file lints one edited file (stub linters on a fake PATH, the Makefile override, a tool that cannot run); stop-gate holds a session to the files it changed since the last check, once, and never loops; precompact writes a snapshot that session --source compact reads back. Then the Claude Code adapters turn a gate's exit 2 into {\"decision\": \"block\"}.",
-   "asserts": 102
+   "lines": 190,
+   "header": "tests/unit/guard_harness_gates.sh: the three harness gates. check-file runs no linter and no make target (the hooks run outside the sandbox) and says the per-file check runs in the session; stop-gate holds a session to the files it changed since the last check, once, and never loops; precompact writes a snapshot that session --source compact reads back. Then the Claude Code adapters turn a gate's exit 2 into {\"decision\": \"block\"}.",
+   "asserts": 82
   },
   {
    "path": "tests/unit/guard_latency.sh",
@@ -18565,6 +18696,27 @@
    "asserts": 34
   },
   {
+   "path": "tests/unit/hook_env.sh",
+   "kind": "unit",
+   "lines": 162,
+   "header": "tests/unit/hook_env.sh: hooks run outside the sandbox with the harness's environment. Once lib.sh (or brg-guard) starts, PATH is /usr/bin:/bin plus the trusted tool directories, and BASH_ENV, ENV, CDPATH, PYTHON*, LD_* and DYLD_* are gone, so no later bash sources an agent's script, no tool comes from a directory the agent put first on PATH, and every python3 runs -I. BASH_ENV is still sourced by the harness's own bash before the first line of the entry script (outside Bearing's reach; the settings denies close the agent's route to it), so the canary records which script sourced it and only a…",
+   "asserts": 32
+  },
+  {
+   "path": "tests/unit/hook_hardening.sh",
+   "kind": "unit",
+   "lines": 235,
+   "header": "tests/unit/hook_hardening.sh: the hooks run outside the sandbox, while the working tree (Makefile, node_modules, .git/config, .gitattributes, .bearing/state) is the agent's to write. So: the edit hook runs no repository command (no make check-file, no node_modules binary, nothing from the inherited PATH) and says what it did not run; every gates.log append refuses a planted link, hard link or FIFO and caps the label; and every git a hook starts runs no filter driver, external diff, pager or signature program the repository configures. Canary files prove nothing ran. bash 3.2 safe.",
+   "asserts": 26
+  },
+  {
+   "path": "tests/unit/hook_untrusted.sh",
+   "kind": "unit",
+   "lines": 293,
+   "header": "tests/unit/hook_untrusted.sh: the hooks run outside the sandbox, and the working tree, .git/config and the agent's environment are the agent's to write. So no hook writes through a link the agent planted or copies a linked file anywhere (SessionEnd, progress.py write); brg-update-check runs git ls-remote outside the repository with nothing of the repository's config or the caller's environment; and no hook runs a git command that reads file contents (status, diff, add), so a filter driver that appears between the hook's start and its git (a background loop toggling it in an included file) nev…",
+   "asserts": 50
+  },
+  {
    "path": "tests/unit/impeccable_reference.sh",
    "kind": "unit",
    "lines": 84,
@@ -18581,9 +18733,9 @@
   {
    "path": "tests/unit/learn_local.sh",
    "kind": "unit",
-   "lines": 167,
+   "lines": 166,
    "header": "tests/unit/learn_local.sh: consent states; nothing written unless on; counts increment; paths reduced or dropped; top ranks by count; the guard session ask and read back; gate blocks and reruns feed the log.",
-   "asserts": 79
+   "asserts": 78
   },
   {
    "path": "tests/unit/learn_propose.sh",
@@ -18707,9 +18859,9 @@
   {
    "path": "tests/unit/progress.sh",
    "kind": "unit",
-   "lines": 120,
+   "lines": 197,
    "header": "tests/unit/progress.sh: plugins/bearing/skills/session-handoff/scripts/progress.py writes docs/progress/<ID>.md from the template (comments removed), updates only the named fields, indexes every file with a count per status (and reads unmerged branches with --refs), fails on zero files, and check catches an unknown status and a missing field. bash 3.2 safe.",
-   "asserts": 59
+   "asserts": 93
   },
   {
    "path": "tests/unit/prose_lint_check.sh",
@@ -18717,6 +18869,34 @@
    "lines": 102,
    "header": "tests/unit/prose_lint_check.sh: plugins/bearing/skills/prose-lint/scripts/prose_check.py passes clean prose and reports file:line and the class for an em dash, filler, praise, an attribution trailer and a hedged claim; leaves a table-cell dash; honours .prose-lint-ignore; reads a git diff file list (skipping deleted paths); and fails on empty input. The em dash and the robot emoji are written as bytes so this file carries neither.",
    "asserts": 38
+  },
+  {
+   "path": "tests/unit/push_check.sh",
+   "kind": "unit",
+   "lines": 383,
+   "header": "tests/unit/push_check.sh: brg-push check prints one line per condition and the count, refuses outside a repository, and names each unmet condition; optin-record writes on or off from the passwd-home bearing.env, matching a full push URL entry to origin by url_key, never from the environment. bash 3.2 safe.",
+   "asserts": 114
+  },
+  {
+   "path": "tests/unit/push_claims.sh",
+   "kind": "unit",
+   "lines": 41,
+   "header": "tests/unit/push_claims.sh: every public \"never pushes\" claim names the opt-in exception (spec A8). Counts files and claims; fails on zero.",
+   "asserts": 2
+  },
+  {
+   "path": "tests/unit/push_run.sh",
+   "kind": "unit",
+   "lines": 565,
+   "header": "tests/unit/push_run.sh: brg-push request, run and status, and the hooks that drive them. request writes the request only when check passes; run, from the Stop hook, re-judges the request, the opt-in, the session mark, the gate marker and the engineer's global transport settings, then clones the branch fresh and pushes it to the URL listed in bearing.env, never running a repository hook, Makefile, git config key or exported variable; every file it writes in .bearing/state goes through state_write, never through a planted link. The Stop gate starts it when it passes, and a core.fsmonitor in .gi…",
+   "asserts": 174
+  },
+  {
+   "path": "tests/unit/push_settings.sh",
+   "kind": "unit",
+   "lines": 81,
+   "header": "tests/unit/push_settings.sh: the settings template denies edits to ~/.config/bearing, ~/.gitconfig and ~/.config/git, Edit and Write to .git, ~/.local/bin, ~/go/bin, ~/.config/git and the user-owned hook PATH directories (Homebrew, /usr/local/bin, Linuxbrew), Edit, Write and Bash writes to the project and user Claude Code settings files, and the brg-push run verb, keeps the push deny, and AGENTS.md rule 2 and the hooks description name the opt-in push.",
+   "asserts": 24
   },
   {
    "path": "tests/unit/route_frontier.sh",
@@ -18798,14 +18978,21 @@
   {
    "path": "tests/unit/session_resume.sh",
    "kind": "unit",
-   "lines": 113,
+   "lines": 235,
    "header": "tests/unit/session_resume.sh: next step from the timeline and the resume block, with and without a task id; a Next: in the state file wins.",
-   "asserts": 33
+   "asserts": 68
+  },
+  {
+   "path": "tests/unit/session_state_nofollow.sh",
+   "kind": "unit",
+   "lines": 116,
+   "header": "tests/unit/session_state_nofollow.sh: the precompact snapshot and brg-session's checkpoint and timeline writes run from hooks, outside the sandbox, into .bearing/state, which the agent can write. So none of them writes through a planted link (at the name, at a temporary name or at the state directory), through a hard link, or blocks on a FIFO; the timeline still rotates past its size cap. bash 3.2 safe.",
+   "asserts": 26
   },
   {
    "path": "tests/unit/session_timeline.sh",
    "kind": "unit",
-   "lines": 81,
+   "lines": 82,
    "header": "tests/unit/session_timeline.sh: timeline start, implicit end, close, recent, no-op outside a Bearing repo, and a branch without a task id.",
    "asserts": 32
   },
@@ -18843,6 +19030,13 @@
    "lines": 340,
    "header": "tests/unit/stories_coverage.sh: plugins/bearing/skills/backlog/scripts/coverage_check.py passes a covered backlog and fails, with the reason, on an uncovered REQ, a Covers naming an unknown REQ, a story-level REQ no AC names, an epic without a journey, a missing matrix row or Why, a story missing its objective, quotes or exclusions, a bad task table, a bad question register, and on empty input. Coverage is computed from the AC Covers lines, so a matrix that claims \"covered\" does not rescue a gap. An adopted scheme (CLM-n) is kept and compared with HEAD: a renumbered or rewritten id fails, a w…",
    "asserts": 85
+  },
+  {
+   "path": "tests/unit/task_set_skills.sh",
+   "kind": "unit",
+   "lines": 94,
+   "header": "tests/unit/task_set_skills.sh: the five skills cite the task-set reference, and each stays at 200 lines or fewer. Counts the skills; fails on zero. Behaviour: three repositories on one bugfix branch, progress.py write --repo and set print the rows in merge order, and the sibling line the skills print reproduces the same branch name and type in every member.",
+   "asserts": 27
   },
   {
    "path": "tests/unit/test_cases_refs.sh",
@@ -18889,9 +19083,9 @@
   {
    "path": "tests/unit/update_check.sh",
    "kind": "unit",
-   "lines": 167,
+   "lines": 191,
    "header": "tests/unit/update_check.sh: brg-update-check and its place in brg-guard session. A local bare repo is the remote; HOME and XDG_CONFIG_HOME are temp dirs, so the network and the real ~/.claude are never touched.",
-   "asserts": 68
+   "asserts": 70
   },
   {
    "path": "tests/unit/ux_flows_check.sh",
@@ -19730,7 +19924,7 @@
   },
   {
    "path": "repo/.claude/settings.json",
-   "lines": 430
+   "lines": 488
   },
   {
    "path": "repo/.editorconfig",
@@ -19754,7 +19948,7 @@
   },
   {
    "path": "repo/.githooks/pre-push",
-   "lines": 98
+   "lines": 112
   },
   {
    "path": "repo/.github/PULL_REQUEST_TEMPLATE.md",
@@ -19778,11 +19972,11 @@
   },
   {
    "path": "repo/AGENTS.md",
-   "lines": 55
+   "lines": 57
   },
   {
    "path": "repo/CLAUDE.md",
-   "lines": 33
+   "lines": 35
   },
   {
    "path": "repo/CODEOWNERS",
@@ -19790,7 +19984,7 @@
   },
   {
    "path": "repo/CONTRIBUTING.md",
-   "lines": 73
+   "lines": 76
   },
   {
    "path": "repo/SECURITY.md",
@@ -19850,24 +20044,32 @@
   },
   {
    "path": "user/CLAUDE.md",
-   "lines": 30
+   "lines": 32
   },
   {
    "path": "user/bearing.env",
-   "lines": 88
+   "lines": 111
   }
  ],
  "changelog": [
   {
    "version": "Unreleased",
    "date": "",
+   "groups": [],
+   "entries": 0,
+   "summary": ""
+  },
+  {
+   "version": "0.9.0",
+   "date": "2026-10-21",
    "groups": [
     "Added",
     "Changed",
+    "Security",
     "Notes for existing repositories",
     "Noted"
    ],
-   "entries": 33,
+   "entries": 72,
    "summary": "- impeccable is pinned (`plugins/bearing/bin/pinned-packs.txt`) and installed in the standard profile; `doctor` reports it, and `install` takes `--skip-impeccable` (held on the full profile too). - design-directions: one impeccable direction round when impeccable is installed and the run is attended, recorded in `approved.json` as the locked `direction`. Without impeccable it prints `impeccable not installed` once and runs the three-variant path as before. - design-system derives `tokens.json` from the `DESIGN.md` frontmatter when it has tokens, else from the approved direction, and records which (`source: design-md | approved-direction`) with the hash of that source. The hash check is the…"
   },
   {
@@ -20011,6 +20213,11 @@
    "tool": "git",
    "pattern": "push",
    "label": "git push"
+  },
+  {
+   "tool": "brg-push",
+   "pattern": "run",
+   "label": "brg-push run (the Stop hook runs it)"
   },
   {
    "tool": "git",
@@ -20686,7 +20893,7 @@
  "settings": {
   "allow": 92,
   "ask": 20,
-  "deny": 186,
+  "deny": 213,
   "defaultMode": "acceptEdits",
   "askSamples": [
    "Bash(pnpm add:*)",
@@ -20724,9 +20931,12 @@
    "~/.ssh",
    "~/.config/bearing",
    "~/.gitconfig",
+   "~/.config/git",
    "./.githooks",
    "./.git/hooks",
-   "./.git/config"
+   "./.git/config",
+   "./.claude/settings.json",
+   "./.claude/settings.local.json"
   ],
   "rules": [
    "analytics.md",
@@ -20740,11 +20950,11 @@
    "security.md"
   ],
   "sessionBytes": {
-   "agents": 2864,
-   "claude": 1265,
+   "agents": 3029,
+   "claude": 1412,
    "unscopedRules": 840
   },
-  "sessionTokens": 1242
+  "sessionTokens": 1320
  },
  "autopilot": {
   "maxAttempts": 3,
@@ -20842,7 +21052,7 @@
    {
     "name": "mr",
     "skill": "merge-request, then brg-autopilot report",
-    "gate": "a merge request description in .scratch/, docs/autopilot/<run>.md committed, nothing pushed"
+    "gate": "a merge request description in .scratch/, docs/autopilot/<run>.md committed, nothing pushed except by brg-push under the opt-in"
    }
   ]
  }

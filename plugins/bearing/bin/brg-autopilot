@@ -6,7 +6,8 @@ The autopilot skill drives the stages; this script is the part that cannot
 be talked around: which stage is next, whether its gate holds (checked on
 disk, never taken from the model's word), how many attempts are left, the
 digest of every decision taken on the user's behalf, and the report. Nothing
-here pushes, merges or deploys; the run stops at a prepared merge request.
+here pushes, merges or deploys; a push, where the engineer opted the repository
+in, is brg-push's from the Stop hook. The run stops at a prepared merge request.
 
   brg-autopilot start "<statement>" [--dir D]   begin a run (refuses when one is open)
   brg-autopilot next [--dir D]                  the next stage, its skill and its gate
@@ -39,6 +40,7 @@ import json
 import os
 import re
 import shutil
+import stat
 import subprocess
 import sys
 import time
@@ -130,7 +132,7 @@ STAGES = [
      "unfiltered run (selection null or except unit) with more than 0 tests, 0 failed, whose sha differs from HEAD only by docs/testing/reports/ (every suite beyond unit left to "
      "CI by decisions passes; a unit-only repository needs the item 14 n/a)"),
     ("mr", "merge-request, then brg-autopilot report",
-     "a merge request description in .scratch/, docs/autopilot/<run>.md committed, nothing pushed"),
+     "a merge request description in .scratch/, docs/autopilot/<run>.md committed, nothing pushed except by brg-push under the opt-in"),
 ]
 NAMES = [s[0] for s in STAGES]
 
@@ -1271,13 +1273,44 @@ def upstream_sha(d):
     return r.stdout.strip() if r.returncode == 0 else ""
 
 
+def pushed_by_brg_push(d):
+    """The sha .bearing/state/push-result records as pushed by brg-push, or "".
+    brg-push writes `pushed <branch> <sha> to <key> <time>` after a push from a
+    fresh clone; anything else (a failure, a refusal, no file) gives "". The file
+    is agent-writable: a link or a FIFO planted there is not followed or waited on."""
+    try:
+        fd = os.open(os.path.join(d, ".bearing", "state", "push-result"),
+                     os.O_RDONLY | os.O_NONBLOCK | getattr(os, "O_NOFOLLOW", 0))
+    except OSError:
+        return ""
+    try:
+        if not stat.S_ISREG(os.fstat(fd).st_mode):
+            return ""
+        line = os.read(fd, 512).decode("utf-8", "replace").split("\n", 1)[0]
+    except OSError:
+        return ""
+    finally:
+        os.close(fd)
+    m = re.match(r"^pushed (\S+) ([0-9a-f]{40}) to \S+ ", line)
+    return m.group(2) if m else ""
+
+
 def g_mr(d, st):
     mr = glob.glob(os.path.join(d, ".scratch", "mr-*.md"))
     rep = f"docs/autopilot/{st['run']}.md"
     committed = bool(git(d, "ls-files", rep))
     upstream = git(d, "rev-parse", "--abbrev-ref", "@{upstream}")
     note = ""
-    if upstream and "fatal" not in upstream:
+    # The opt-in push (brg-push run, from the Stop hook) is the one push a run may
+    # cause. It pushes from a fresh clone, which sets no upstream and leaves the
+    # working repository's origin/<branch> where it was, so this branch fires only
+    # after a fetch (rare); it accepts the upstream only at HEAD and only when
+    # push-result records that very sha.
+    has_upstream = bool(upstream) and "fatal" not in upstream
+    pushed = pushed_by_brg_push(d) if has_upstream else ""
+    if pushed and upstream_sha(d) == git(d, "rev-parse", "HEAD") == pushed:
+        note = f"; upstream {upstream} pushed by brg-push at {pushed[:8]}"
+    elif has_upstream:
         before = st.get("upstream_at_start") or ""
         if not before:
             return False, f"the branch has an upstream ({upstream}): the run must not push"
@@ -1435,7 +1468,8 @@ def cmd_report(a):
          f"Statement: {st['statement']}", "",
          f"Started {st['started']}; branch {st.get('branch', 'none')}. Every decision below was taken on",
          "the user's behalf with the recommended option and is Proposed until the user accepts or",
-         "changes it. Nothing was pushed, merged or deployed.", "",
+         "changes it. Nothing was merged or deployed; the push is the engineer's, or brg-push's where",
+         "the repository is opted in.", "",
          "## Decisions to review", "",
          "| Key | Choice | Alternatives | Why | ADR |", "| --- | --- | --- | --- | --- |"]
     for x in st["decisions"]:

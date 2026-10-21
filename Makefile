@@ -131,7 +131,7 @@ lint-shell: ## bash -n on every script (shellcheck when installed)
 	if command -v shellcheck >/dev/null; then shellcheck -S warning -e SC2034,SC2010,SC2088 $$files && echo "lint-shell: $$n scripts, shellcheck clean"; \
 	else echo "lint-shell: $$n scripts parsed (shellcheck not installed, static analysis SKIPPED)"; fi
 
-check-file: ## Lint one edited file, FILE=path (the edit hook runs this; the same flags as lint-shell and lint-json)
+check-file: ## Lint one edited file, FILE=path (run it in the session after an edit; the same flags as lint-shell and lint-json)
 	@[ -n "$(FILE)" ] || { echo "check-file: FILE is empty, nothing checked" >&2; exit 1; }; \
 	[ -f "$(FILE)" ] || { echo "check-file: $(FILE) does not exist, nothing checked" >&2; exit 1; }; \
 	case "$(FILE)" in \

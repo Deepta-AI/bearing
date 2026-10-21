@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# tests/unit/guard_harness_gates.sh: the three harness gates. check-file lints
-# one edited file (stub linters on a fake PATH, the Makefile override, a tool
-# that cannot run); stop-gate holds a session to the files it changed since
+# tests/unit/guard_harness_gates.sh: the three harness gates. check-file runs
+# no linter and no make target (the hooks run outside the sandbox) and says
+# the per-file check runs in the session; stop-gate holds a session to the files it changed since
 # the last check, once, and never loops; precompact writes a snapshot
 # that session --source compact reads back. Then the Claude Code adapters turn
 # a gate's exit 2 into {"decision": "block"}.
@@ -19,76 +19,38 @@ in_repo() { ( cd "$repo" && bash "$GUARD" "$@" ) }
 state="$repo/.bearing/state"
 
 stubs="$(tmpdir)"
-# ruff fails on any file named bad.py; shellcheck passes; eslint reports a
-# missing configuration, which is the tool failing, not the file.
-printf '#!/usr/bin/env bash\ncase "$*" in *bad.py*) echo "bad.py:1:1: F401 os imported but unused"; exit 1;; esac\n' > "$stubs/ruff"
-printf '#!/usr/bin/env bash\nexit 0\n' > "$stubs/shellcheck"
-chmod 755 "$stubs/ruff" "$stubs/shellcheck"
-base="$(minimal_path bash git sed grep head tail tr wc cat dirname basename mktemp rm mkdir ls awk env printf jq make find date mv touch)"
+# Linters on PATH that would report a problem in any file: no hook runs them.
+for t in ruff shellcheck eslint go jq; do
+  printf '#!/usr/bin/env bash\necho "%s ran"; exit 1\n' "$t" > "$stubs/$t"; chmod 755 "$stubs/$t"
+done
+base="$(minimal_path bash git sed grep head tail tr wc cat dirname basename mktemp rm mkdir ls awk env printf jq make find date mv touch python3)"
 check_with() { ( cd "$repo" && PATH="$stubs:$base" bash "$GUARD" check-file "$1" ) }
 
-t_begin "check-file sends problems back and passes clean files"
-printf 'import os\n' > "$repo/bad.py"; printf 'x = 1\n' > "$repo/good.py"; printf 'echo hi\n' > "$repo/ok.sh"
-assert_exit 2 check_with "$repo/bad.py"
-assert_contains "$T_OUT" "bearing check: ruff found problems in bad.py"
-assert_contains "$T_OUT" "F401 os imported but unused"
-assert_exit 0 check_with "$repo/good.py"
-assert_eq "" "$T_OUT" "clean file is silent"
-assert_exit 0 check_with "$repo/ok.sh"
-assert_eq "" "$T_OUT"
+t_begin "check-file runs no linter and says the check runs in the session"
+printf 'import os\n' > "$repo/bad.py"; printf '{"a": 1,}\n' > "$repo/data.json"; printf 'echo hi\n' > "$repo/ok.sh"
+for f in bad.py data.json ok.sh; do
+  assert_exit 0 check_with "$repo/$f"
+  assert_contains "$T_OUT" "bearing check-file: not run by the hook (hooks run no repository command); lint $f in the session" "$f"
+  assert_not_contains "$T_OUT" " ran" "$f: no linter ran"
+done
 t_end
 
-t_begin "check-file on JSON, JSONC and unknown files"
-printf '{"a": 1,}\n' > "$repo/data.json"; printf '{"a": 1}\n' > "$repo/fine.json"
-printf '{ // comment\n}\n' > "$repo/tsconfig.json"; printf 'hello\n' > "$repo/notes.txt"
-assert_exit 2 check_with "$repo/data.json"
-assert_contains "$T_OUT" "jq found problems in data.json"
-assert_exit 0 check_with "$repo/fine.json"
-assert_exit 0 check_with "$repo/tsconfig.json"
-assert_eq "" "$T_OUT" "tsconfig allows comments; not checked"
-assert_exit 0 check_with "$repo/notes.txt"
-assert_eq "" "$T_OUT"
-t_end
-
-t_begin "check-file does nothing without a file or a linter"
-assert_exit 0 check_with ""
-assert_exit 0 check_with "__BRG_UNPARSED__"
-assert_exit 0 check_with "$repo/missing.py"
-printf 'package main\n' > "$repo/main.go"
-assert_exit 0 check_with "$repo/main.go"
-assert_eq "" "$T_OUT" "no go on PATH: silent"
-t_end
-
-t_begin "check-file says a tool that cannot run did not check the file"
-mkdir -p "$repo/node_modules/.bin"
-printf '#!/usr/bin/env bash\necho "ESLint couldn'"'"'t find a configuration file."; exit 2\n' > "$repo/node_modules/.bin/eslint"
-chmod 755 "$repo/node_modules/.bin/eslint"
-printf 'let a = 1\n' > "$repo/app.ts"
-assert_exit 0 check_with "$repo/app.ts"
-assert_contains "$T_OUT" "eslint could not check app.ts here"
-rm -rf "$repo/node_modules"
-t_end
-
-t_begin "check-file prefers the repository's make check-file"
+t_begin "check-file names make check-file when the Makefile has it, and never runs it"
 printf 'check:\n\t@touch .bearing/state/.check-passed\ncheck-file:\n\t@echo "custom saw $(FILE)"; exit 1\n' > "$repo/Makefile"
-assert_exit 2 check_with "$repo/good.py"
-assert_contains "$T_OUT" "make check-file found problems in good.py"
-assert_contains "$T_OUT" "custom saw good.py"
+assert_exit 0 check_with "$repo/bad.py"
+assert_contains "$T_OUT" "run make check-file FILE=bad.py in the session"
+assert_not_contains "$T_OUT" "custom saw"
 git -C "$repo" checkout -q Makefile
 t_end
 
-t_begin "check-file names a test written before its module as the expected red"
-printf 'import { slug } from "./missing";\nslug("x");\n' > "$repo/first.test.ts"
-assert_exit 0 check_with "$repo/first.test.ts"
-assert_contains "$T_OUT" "imports ./missing, which does not exist yet"
-assert_contains "$T_OUT" "the expected red of a test written first"
-printf 'export const slug = (s: string) => s;\n' > "$repo/missing.ts"
-assert_exit 0 check_with "$repo/first.test.ts"
-assert_not_contains "$T_OUT" "does not exist yet"
-rm -f "$repo/first.test.ts" "$repo/missing.ts"
+t_begin "check-file does nothing without a file"
+assert_exit 0 check_with ""
+assert_exit 0 check_with "__BRG_UNPARSED__"
+assert_exit 0 check_with "$repo/missing.py"
+assert_eq "" "$T_OUT"
 t_end
 
-rm -f "$repo"/bad.py "$repo"/good.py "$repo"/ok.sh "$repo"/data.json "$repo"/fine.json "$repo"/tsconfig.json "$repo"/notes.txt "$repo"/main.go "$repo"/app.ts
+rm -f "$repo"/bad.py "$repo"/ok.sh "$repo"/data.json
 
 t_begin "session --id marks the session start once"
 assert_exit 0 in_repo session --id S1 --source startup
@@ -183,7 +145,7 @@ assert_exit 0 at_tl stats
 assert_contains "$T_OUT" "3 gate decisions"
 assert_contains "$T_OUT" "command allowed"
 assert_contains "$T_OUT" "command refused"
-assert_contains "$T_OUT" "check-file problems"
+assert_contains "$T_OUT" "check-file not-run"
 assert_contains "$T_OUT" "most refused:"
 log="$(cat "$tl/.bearing/state/gates.log")"
 assert_not_contains "$log" "origin main" "the command text is never logged"
@@ -218,8 +180,7 @@ assert_not_contains "$T_OUT" '"decision"' "second stop never blocks"
 printf '{"a": 1,}\n' > "$repo/broken.json"
 T_IN="{\"tool_input\":{\"file_path\":\"$repo/broken.json\"}}"
 assert_exit 0 bash -c "cd '$repo' && bash '$HS/format-file.sh' 2>/dev/null"
-assert_eq "block" "$(printf '%s' "$T_OUT" | jq -r .decision)" "stdout is the JSON and nothing else"
-assert_contains "$T_OUT" "jq found problems in broken.json"
+assert_eq "bearing check-file: not run by the hook (hooks run no repository command); lint broken.json in the session" "$T_OUT" "the edit hook's stdout is that one line"
 T_IN="{\"session_id\":\"S1\",\"transcript_path\":\"$transcript\",\"trigger\":\"auto\"}"
 assert_exit 0 bash -c "cd '$repo' && bash '$HS/precompact.sh'"
 assert_contains "$T_OUT" "compaction snapshot written"

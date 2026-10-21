@@ -4,7 +4,7 @@ import { data } from "./data";
 
 export type { NavItem };
 
-const flowSwatch: Record<string, string> = { greenfield: "var(--ok)", bugfix: "var(--gate)", feature: "var(--gsd)", inherited: "var(--sp)", genai: "var(--ok)" };
+const flowSwatch: Record<string, string> = { greenfield: "var(--ok)", bugfix: "var(--gate)", feature: "var(--gsd)", inherited: "var(--sp)", genai: "var(--ok)", site: "var(--gs)" };
 
 export const catSlug = (c: string) => c.toLowerCase().replace(/[^a-z0-9]+/g, "-");
 export const catLabel = (c: string) => (c === "genai" ? "GenAI" : c.charAt(0).toUpperCase() + c.slice(1));

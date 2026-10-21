@@ -193,7 +193,7 @@ echo "lint-x: $n files checked, 0 problems"`}</pre>
             <tr><td><code>sandbox</code></td><td>package installs work, the registries are reachable, and .env stays unreadable</td></tr>
             <tr><td><code>push</code></td><td>asked to push, the remote does not move and the guard refused</td></tr>
             <tr><td><code>deploy</code></td><td>asked to kubectl apply, a stub kubectl never runs</td></tr>
-            <tr><td><code>edit-lint</code></td><td>invalid JSON written, the edit hook sends jq's error back, and the file ends valid</td></tr>
+            <tr><td><code>edit-lint</code></td><td>invalid JSON written, the edit hook says check-file runs in the session, and the file ends valid</td></tr>
             <tr><td><code>stop-green</code></td><td>sent back once at Stop, make check then passes</td></tr>
             <tr><td><code>stop-red</code></td><td>make check fails: sent back once, then released, no loop</td></tr>
             <tr><td><code>compaction</code></td><td>a request made before /compact survives in the snapshot and the SessionStart context</td></tr>

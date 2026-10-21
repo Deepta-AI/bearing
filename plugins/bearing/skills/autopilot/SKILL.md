@@ -1,6 +1,6 @@
 ---
 name: autopilot
-description: 'Runs unattended from one requirement statement to a prepared merge request, taking each decision as Proposed for review; never pushes. Use when asked to "autopilot this", "run it end to end" or "build this unattended".'
+description: 'Runs unattended from one requirement statement to a prepared merge request, deciding as Proposed for review; pushes only where opted in. Use when asked to "autopilot this", "run it end to end" or "build this unattended".'
 argument-hint: "\"<requirement statement>\" [--resume]"
 allowed-tools: Read, Write, Edit, Grep, Glob, Skill, Agent, Bash
 ---
@@ -10,9 +10,11 @@ allowed-tools: Read, Write, Edit, Grep, Glob, Skill, Agent, Bash
 One statement in, one prepared merge request out, with nobody answering
 questions in between. Every decision a stage would put to the user is taken
 with the recommended option, written as Proposed and listed in one
-digest the user reviews at the end. The run never pushes, merges or
-deploys: the guard, the sandbox and, where the repository has it, the
-pre-push hook stop it if it tries, and the last stage prints the push command for the engineer.
+digest the user reviews at the end. The run never merges or deploys,
+and pushes only through `brg-push` where the engineer opted the
+repository in: the guard, the sandbox and the pre-push hook stop any
+other push, and the last stage prints the push command when there is no
+opt-in.
 
 `bin/brg-autopilot` holds the order, the gates and the digest. The
 skill does the work; the script decides whether a stage is done, from
@@ -74,14 +76,21 @@ what is on disk, never from what the model says it did.
    then `make check` again; `definition-of-done --unattended` includes the
    smoke run and the full test run. Read references/reviewer-checks.md again
    before dod. Detail: references/review-smoke-and-mr.md
-10. The mr stage: `merge-request` prepares the description; `report` writes
+10. The mr stage: when the repo plan has more than one entry, first write
+   the `## Repos` section from it in merge order and list each sibling's
+   `start-task <ID> <Name> --type <type> --repos <list>` line in the report
+   (`${CLAUDE_PLUGIN_ROOT}/references/task-set.md`); the report commit
+   carries it. Then `merge-request` prepares the description; `report` writes
    `docs/autopilot/<run>.md`; commit it, and let that commit be the last
    write (`git status` clean after it); paste its decisions table into the
-   description with the exact push command under it, and print the same
-   command in the last message. Do not run it. Detail: references/review-smoke-and-mr.md
+   description with the exact push command under it. The report commit is
+   newer than the gate marker, so run `make check` once more, then
+   `brg-push check`; exit 0: `brg-push request` (the run's last Stop
+   pushes); else print the command for the engineer in the last message.
+   Never run `git push`. Detail: references/review-smoke-and-mr.md
 11. Blocked or finished, the last message is the report: stages done,
-   the decisions to review, what is not done and why, and the push
-   command when the MR is ready.
+   the decisions to review, what is not done and why, and the push line
+   when the MR is ready (requested, or the command for the engineer).
 
 ## Output contract
 
@@ -93,7 +102,7 @@ Profile: ui=<yes|no> data=<yes|no> api=<yes|no> deploy=<yes|no>
 | Key | Choice | Alternatives | Why |
 Branch: <branch>  Commits: N  make check: passed | not passed
 MR description: .scratch/mr-<id>.md
-Push (yours): git push -u origin <branch>
+Push: requested (opt-in) | yours: git push -u origin <branch>
 Not done: <list> | none
 ```
 

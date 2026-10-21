@@ -10,6 +10,7 @@
 # set keeps every other line, comments and blank lines included, and mode 600.
 # get reads the value the way the other Bearing scripts do (quotes stripped,
 # a trailing " # comment" dropped from an unquoted value); the last line wins.
+# set refuses the auto-push key (exit 2): the engineer writes it by hand.
 set -u
 
 usage() { echo "usage: brg-config get|set <key> [value] [--user]" >&2; exit 2; }
@@ -36,6 +37,10 @@ case "$val" in
   *"
 "*) echo "brg-config: a value cannot span lines" >&2; exit 2;;
 esac
+nk="$(printf '%s' "$key" | tr 'a-z.-' 'A-Z__')"
+if [ "$op" = set ] && { [ "BEARING_$nk" = BEARING_AUTO_PUSH ] || [ "$nk" = BEARING_AUTO_PUSH ]; }; then
+  echo "brg-config: BEARING_AUTO_PUSH is set by hand in bearing.env, never by a tool" >&2; exit 2
+fi
 
 if [ "$user" -eq 1 ]; then
   envf="${BEARING_ENV:-${XDG_CONFIG_HOME:-$HOME/.config}/bearing/bearing.env}"

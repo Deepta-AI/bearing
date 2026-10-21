@@ -1,6 +1,6 @@
 {
   "name": "bearing-genai",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "description": "Bearing skills for GenAI and ML products: solution design, RAG, agents, MCP servers, model gateway and routing, guardrails, prompt registry, evals, fine-tuning, datasets, speech, computer vision and tabular ML. Needs the bearing plugin.",
   "author": {
     "name": "Ravi Teja Akella"

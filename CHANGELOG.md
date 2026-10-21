@@ -4,6 +4,8 @@ All notable changes to Bearing. Keep a Changelog format, semantic versions.
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-10-21
+
 ### Added
 - impeccable is pinned (`plugins/bearing/bin/pinned-packs.txt`) and installed
   in the standard profile; `doctor` reports it, and `install` takes
@@ -68,8 +70,75 @@ All notable changes to Bearing. Keep a Changelog format, semantic versions.
   range, the head sha, the file count, the verdict, the findings and the
   blocking finding numbers). An unattended run uses the bearing reviewer,
   never gstack `/review`, which can ask a question.
+- Opt-in push of the task branch. `BEARING_AUTO_PUSH` in the personal
+  `bearing.env` lists full push URLs (ssh, scp-style or https); it is empty
+  by default, and then Bearing never pushes. `brg-push check` names each of
+  its eight conditions, `brg-push request` records the request after the
+  gate, and `brg-push status` prints the last result. The Stop hook pushes
+  the current task branch from a fresh clone to the listed URL whose host
+  and path match origin's: never main, master, develop, a release branch
+  or a tag, never forced, never merged, and never from the working tree.
+  CI checks the pushed branch.
+- The `site` flow for landing pages and marketing sites: a page brief from
+  brainstorming instead of a PRD and backlog, the Next.js stack
+  (`next-app`, the `nextjs` skill), optional design direction and design
+  system steps, then screens, the build, a scoped test run, the checks
+  and the review.
+  `start-task --flow site` records `"flow": "site"` in
+  `.bearing/config.json` in the new task branch, so later sessions in the
+  repository follow the site flow (a fix branch still follows bugfix).
+- Task sets: one task across repositories. `start-task --repos <list>`
+  gives every member the same branch, settles the merge order and prints
+  the line to start each sibling (with `--type`); each progress file gets
+  a `## Repos` section; `progress.py set --task <ID>` reports every
+  member's state and the merge order; the rules are in
+  `references/task-set.md`. One session per repository.
+- definition-of-done has a task-set item: `n/a` without `## Repos`, else
+  judged from `progress.py set`.
+- `brg-session next-step` (and so `resume`) skips a branch step whose
+  condition already holds: `new-repo` once the repository has a commit,
+  `design-system` once `docs/design/tokens.json` exists.
+  `flow-steps.tsv` gains a fourth column, `step` or `branch`.
+- Eval cases for the opt-in push request with and without the opt-in, a
+  two-repository task set and a bugfix sibling's type, the site flow
+  recorded at start, and the workflow skill's next step in a site
+  repository.
+
+- `bearing-genai`, a fourth plugin installed by default, holds the 12
+  GenAI and ML skills that were in `bearing` plus two new ones, 14 in all.
+  `install.sh`, `brg-doctor`, `upgrade-tools` and autopilot know it;
+  autopilot's `llm` profile refuses to start when `genai-design` is not
+  installed.
+- model-routing picks the cheapest model or cascade per LLM feature that
+  still passes its eval, from measured scores and costs, any provider.
+  Each cascade leg carries its own effort, `max_tokens` and timeout.
+- dataset-generation makes eval, training or preference data from a real
+  seed: taxonomy, generation, dedupe, a contamination check against the
+  golden set, a person's audit and a datasheet. Unattended, it stops
+  before anything is promoted.
+- llm-eval reports confidence intervals, compares two versions on paired
+  cases, and calibrates a judge against at least 30 person-labelled items
+  (kappa at least 0.6) before its scores gate anything; `eval_stats.py` is
+  vendored into `evals/tools/` with a source, version and sha256 header.
+- A GenAI task flow from genai-design through the eval baseline, the build
+  branch, prompts, the gateway, model routing, guardrails, tests and the
+  eval gate to the merge request. The "Calls to a model" options in the
+  greenfield and feature flows link to it, and `brg-session next-step`
+  follows it on a non-bugfix branch that ran genai-design.
+- `lint-model-ids` (part of `make check`) holds every Claude model id under
+  `plugins/` to `bin/model-ids.txt`: defaults `claude-opus-5-5`,
+  `claude-sonnet-5-5` and `claude-haiku-4-5`.
 
 ### Changed
+- Hooks resolve tools on a fixed PATH, which now also holds the Linuxbrew
+  and Nix directories (`/home/linuxbrew/.linuxbrew/bin`,
+  `/run/current-system/sw/bin`, `/nix/var/nix/profiles/default/bin`); each
+  hook script starts the next with `"$BASH"` from its own directory (no
+  PATH lookup, no `dirname`) and exits 2 when that fails, so the Bash guard
+  blocks rather than exiting 127. `brg-doctor` checks jq, python3, git and
+  bash on that PATH and prints the fix, and the settings template denies
+  Edit and Write on `/opt/homebrew/bin`, `/usr/local/bin` and the Linuxbrew
+  bin.
 - `flows_check.py` requires `## Task paths`: a flows file without it now
   fails. Existing repositories add the section to each flows file (see
   Notes for existing repositories).
@@ -117,8 +186,184 @@ All notable changes to Bearing. Keep a Changelog format, semantic versions.
   an unfiltered run (`selection` null or `{"except": ["unit"]}`) with more
   than 0 tests. Autopilot calls `branch-review --unattended` and
   `definition-of-done --unattended`.
+- Hooks run outside the sandbox while the working tree, `.git/config` and
+  the agent's environment are the agent's to write, so no hook runs a
+  program the repository names (a Makefile target, a working-tree binary,
+  a prettier plugin, or a git hook, filter, fsmonitor, pager, external
+  diff, credential helper, askPass or ssh command from its git config),
+  and no hook writes through a link the agent planted:
+  - The PostToolUse edit hook runs only an allow-listed formatter (gofmt,
+    prettier, ruff format, ktlint, swiftformat, terraform fmt, shfmt) taken
+    from fixed system directories (`/opt/homebrew/bin`, `/usr/local/bin`,
+    `/usr/local/go/bin`, `/usr/bin`, `/bin`, `~/.local/bin`, `~/go/bin`),
+    never `node_modules/.bin`, the inherited PATH or `uv run`, in a cleared
+    environment. Prettier runs only when the config that applies is
+    `.prettierrc.json` or a `package.json` `prettier` object, parsed as
+    JSON with `python3 -I`, every key a plain formatting option (overrides
+    of those, a built-in parser name); any other form (`.prettierrc`, YAML,
+    TOML, JSON5, JS, TS, `package.yaml`) or key, an escaped one included,
+    means it says it did not run. A linked file is not formatted.
+  - `brg-guard check-file` no longer runs `make check-file`, eslint, go vet
+    or any linter. It prints one line saying the hook ran no check and
+    naming `make check-file FILE=<path>` to run in the session, and never
+    blocks.
+  - Every gates.log append (the guard, brg-session, brg-learn,
+    brg-update-check, session-end.sh) goes through `brg-guard log`, which
+    refuses a linked `.bearing` or state directory, never follows a link,
+    never blocks on a FIFO, starts a fresh log over a hard link, and records
+    printable ASCII only with the label capped at 120 bytes. It needs
+    python3; without it nothing is logged.
+  - Every git a hook starts runs with no filter driver (each one any config
+    defines gets an empty clean, smudge and process), no external diff, no
+    pager (`GIT_PAGER=cat`) and `log.showSignature=false`, beside the
+    existing `core.fsmonitor=false` and `core.hooksPath=/dev/null`.
+  - No hook runs a git command that reads file contents (`git status`,
+    `diff`, `add`), so a filter driver that appears after the hooks list
+    them (a loop toggling it in an included file) never runs:
+    `brg-changed` counts changes from the index's stat data, HEAD's tree
+    and the untracked list (`git ls-files`, `git ls-tree`) by mtime and
+    size. The session line, the Stop gate and reminder, the precompact
+    snapshot and brg-session's checkpoint all use it; `brg-changed --short`
+    prints git's short status codes.
+  - `brg-update-check` (SessionStart) runs `git ls-remote` from `/` under
+    `env -i` with no system config and an empty global config, and reads
+    its output from a pipe, never a file under TMPDIR.
+  - The SessionEnd hook writes `docs/progress/<ID>.md` through
+    `progress.py write`, which opens `docs` and `docs/progress` without
+    following a link, reads the file only as a regular file with one link
+    (a link, a FIFO or a hard link is refused) and replaces it by rename;
+    its mark goes through `brg-guard state-write`. Its rehearsal is
+    `progress.py write --dry-run`, so it copies no file anywhere.
+    `progress.py show` prints a progress file read the same way.
+- The repository template's pre-push hook refuses every agent push: a
+  branch, a tag (even when no branch is pushed) and a deletion. The opt-in
+  push never passes through it, since it pushes from a fresh clone that
+  runs no repository hook.
+- `brg-config` refuses to set `BEARING_AUTO_PUSH` in either spelling, and
+  an exported `BEARING_AUTO_PUSH` is never read.
+- The settings template denies `Edit(~/.config/bearing/**)`,
+  `Edit(~/.gitconfig)`, `Edit(~/.config/git/**)` and
+  `Bash(bash *bin/brg-push run*)`, and the sandbox denies writes to those
+  directories; a brg-guard row refuses `brg-push run` from Bash, and that
+  row is the control. It also denies Edit and Write on `./.git/**`,
+  `**/.git/**`, `~/.local/bin/**`, `~/go/bin/**` and `~/.config/git/**`:
+  the sandbox covers Bash only, autopilot's child has Edit and Write, and
+  the hooks read `.git/config` and take a formatter from those two bin
+  directories. A deny outranks any allow, `--allowedTools` included.
+- `progress.py set` reads `git status -z`, so a name with a space counts,
+  and counts every `.bearing/` file outside `.bearing/state/`.
+- AGENTS.md rule 2 names the one exception to "never push": the opt-in
+  task branch push. merge-request and autopilot descriptions say "pushes
+  only where opted in"; merge-request requests the push after the check;
+  autopilot runs `make check` again after its report commit, then requests
+  the push, and its `mr` gate accepts a push recorded by `brg-push`. Every
+  other "never pushes" claim in the docs and the developer guide names
+  the exception.
+- The workflow skill reads the recorded flow (`brg-config get flow`)
+  before it picks one, on the question path as well as the menu.
+- The precompact snapshot and brg-session's checkpoint and timeline go
+  through `brg-guard state-write`, which refuses a linked `.bearing` or
+  state directory, never writes through a link or a hard link, never
+  blocks on a FIFO and replaces the file by rename; the timeline still
+  rotates at 512 KB. brg-session reads its timeline only as a regular
+  file.
+
+### Security
+- The opt-in push runs outside the sandbox, so it runs nothing the
+  repository defines: the clone is made under
+  `<passwd home>/.config/bearing/tmp` (mode 700, hidden from the
+  sandbox) with no checkout, no repository hooks and no system config,
+  under a cleared environment and a generated global config holding only
+  the engineer's `credential.*` keys; the clone's own config is re-read
+  and refused if it holds a key git clone does not write. A source with
+  alternates, a promisor remote, a partial clone or an `includeIf`
+  section is refused, and so is a git older than the patched releases
+  (2.45.1, or 2.39.4, 2.40.2, 2.41.1, 2.42.2, 2.43.4, 2.44.1 on those
+  lines). The push runs `--no-follow-tags`, never forced, to the URL the
+  engineer listed, and the branch and commit are checked again in the
+  clone before it. Every write `brg-push` makes in `.bearing/state` never
+  follows a link.
+- The SessionEnd hook no longer writes through a link: an agent could link
+  the mark's temporary name or `docs/progress/<ID>.md` to a file in the
+  home directory (a shell startup file) and have the hook write its next
+  step there, and the hook copied a linked progress file into TMPDIR. See
+  Changed.
+- `brg-update-check` no longer reads the repository's git config: a
+  `credential.helper`, `core.askPass` or `core.sshCommand` (through a url
+  rewrite) there ran outside the sandbox at session start.
+- The edit hook's prettier check parses the config: an escaped
+  `"\u0070lugins"` key passed the old text match and loaded a repository
+  plugin.
+- The hooks no longer take programs from the environment they start with.
+  The first lines of `hooks/scripts/lib.sh` and `brg-guard` set `PATH` to
+  `/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin` and unset `BASH_ENV`,
+  `ENV`, `CDPATH` and every `PYTHON*`, `LD_*` and `DYLD_*` variable, the
+  hook entry scripts run no program before that, and every `python3` a
+  hook runs uses `-I`. So no bash a hook starts sources a `BASH_ENV`
+  script, and no `jq`, `git`, `python3` or `bash` comes from a directory
+  put first on `PATH`. What remains: a `BASH_ENV` or `PATH` in the
+  harness's own environment acts before the first line of a hook script
+  runs (bash sources `BASH_ENV` at startup, and the harness finds `bash`
+  on its `PATH`), which is outside Bearing's reach. The agent's route to
+  it was a settings file's `env`; the settings template now denies Edit
+  and Write on `./.claude/settings.json`, `./.claude/settings.local.json`,
+  `~/.claude/settings.json` and `~/.claude/settings.local.json`, and the
+  sandbox denies Bash writes to the two project files.
+- The edit hook's prettier check walks the path prettier walks (the edited
+  file's directory up to the repository root, no link resolved) and skips
+  prettier with a note when any directory on it is a link or resolves
+  outside the root: a linked directory let prettier find a JS config the
+  check never saw.
+- SessionStart creates `.bearing/state`, prunes old session marks and
+  writes the new one without following a link: a linked `.bearing` or
+  `.bearing/state` is refused, so no directory or file is made, and none
+  removed, in its target. `brg-push` no longer makes `state` inside a
+  linked `.bearing` before refusing it.
 
 ### Notes for existing repositories
+- Upgrading from 0.8.0 or earlier: the GenAI and ML skills moved to
+  `bearing-genai`. Run `claude plugin install bearing-genai@bearing` (or
+  rerun `install.sh`, or let `upgrade-tools` offer it), and change any
+  reference written `bearing:<genai skill>` to `bearing-genai:<skill>`.
+- Copy the six Edit and Write denies on `//opt/homebrew/bin/**`,
+  `//usr/local/bin/**` and `//home/linuxbrew/.linuxbrew/bin/**` from the
+  settings template into `.claude/settings.json`, then run `brg-doctor`.
+- The edit hook no longer runs `make check-file` or any linter after each
+  edit; that per-file feedback moves to the session. Run
+  `make check-file FILE=<path>` after an edit (the repository template's
+  CLAUDE.md now says so; an onboarded repository's own CLAUDE.md keeps the
+  old line until you change it). The Stop gate still holds the session to
+  `make check`.
+- A formatter installed only outside the fixed directories (under nvm, in
+  a project's `node_modules` or virtualenv) is now reported as not
+  installed by the edit hook; `make format` or `make fix` formats in the
+  session.
+- A hook's change count now comes from timestamps and sizes, not content:
+  a file whose timestamp changed but whose content did not counts as
+  changed, until the next `git status` or commit refreshes the index.
+- Prettier runs from the edit hook only under `.prettierrc.json` or a
+  `package.json` `prettier` object of plain formatting options; a
+  repository with `.prettierrc`, a YAML, TOML, JSON5 or JS config formats
+  in the session (`make format`), or moves its options to
+  `.prettierrc.json`.
+- Before opting in to the push, copy the template's new settings into each
+  onboarded repository's `.claude/settings.json`: the denies
+  `Edit(~/.config/bearing/**)`, `Edit(~/.gitconfig)`,
+  `Edit(~/.config/git/**)`, `Write(~/.config/git/**)`, Edit and Write on
+  `./.git/**`, `**/.git/**`, `~/.local/bin/**` and `~/go/bin/**`, and
+  `Bash(bash *bin/brg-push run*)`, and `~/.config/git` in the sandbox's
+  `filesystem.denyWrite`. Without them the agent's Edit tool can write
+  `BEARING_AUTO_PUSH` into bearing.env and opt the repository in from the
+  next session.
+- Copy the template's settings denies into each onboarded repository's
+  `.claude/settings.json` too: `Edit` and `Write` on
+  `./.claude/settings.json`, `./.claude/settings.local.json`,
+  `~/.claude/settings.json` and `~/.claude/settings.local.json`, and the
+  two project files in the sandbox's `filesystem.denyWrite`. Without them
+  the agent can set `BASH_ENV` or `PATH` in a settings `env`, and every
+  hook after that starts with it, outside the sandbox. Afterwards change
+  those settings files by hand; Claude is denied them. `onboard-repo`
+  proposes the new template as `.claude/settings.json.bearing-new`.
 - Add a `## Task paths` table to every `docs/design/flows/*/flows.md`
   (columns Task, Story, Kind, Entry, Path, Screens, Interactions, Over; the
   `ux-flows` skill's `references/task-paths.md` has the format), then run
@@ -143,13 +388,29 @@ All notable changes to Bearing. Keep a Changelog format, semantic versions.
   report.
 - Evidence written by test-run before `selection` existed has no
   `selection` key and fails the test_run and dod gates; run test-run again.
+- Opt-in push (off by default; nothing changes until you opt in): add
+  `BEARING_AUTO_PUSH="<push URL> [<push URL> ...]"` (full ssh, scp-style
+  or https URLs, space-separated, no `export`) to `~/.config/bearing/bearing.env` under your
+  passwd home, never to a repository or the environment. The Stop hook
+  then pushes the task branch from a clean clone after the gate. It needs
+  git at or above the patched releases (2.45.1, or 2.39.4, 2.40.2,
+  2.41.1, 2.42.2, 2.43.4, 2.44.1 on those lines). A repository whose
+  config has an `includeIf` section, or a partial clone, cannot auto push
+  (`brg-push check` names the reason). The repository's pre-push hook,
+  once updated from the template, refuses every agent push, so an agent
+  can no longer push through it by any other route.
+- Site repositories: run `start-task --flow site` on the first task to
+  record the site flow; later tasks and `brg-session` follow it.
+- Task sets: start each member with the same id, name, type and
+  `start-task --repos <list>` line the first run prints, one session per
+  repository.
 
 ### Noted
 - impeccable `critique` asks a question at its close, so an unattended run
   (`BEARING_NONINTERACTIVE`, `BEARING_AUTOPILOT`, `--unattended`) runs only
   `audit`; design-directions skips the impeccable round when unattended and
   takes its own fallback.
-- Plugin size: `bearing` is at 511 files; the cap is under 512.
+- Plugin size: `bearing` is at 456 files; the cap is under 512.
 
 ## [0.8.0] - 2026-10-17
 

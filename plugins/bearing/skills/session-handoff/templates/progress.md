@@ -40,6 +40,7 @@ Good: "use half-even rounding: docs/adr/0007-refund-rounding.md". -->
 
 ## Links
 <!-- What: the merge request and the tracker ticket, "none" until they exist.
-Good: full URLs someone can open without asking. -->
+Good: full URLs someone can open without asking.
+Optional "## Repos" follows Links when the task spans repositories (progress.py write --repo). -->
 - MR: {mr}
 - Ticket: {ticket}

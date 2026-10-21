@@ -1,7 +1,7 @@
 ---
 name: workflow
 description: 'Says where the work stands (repository, branch, diff) and which skill or step comes next. Use when asked "what should I do next", "which skill do I use", "how do we work here" or "what is in flight".'
-allowed-tools: Read, Grep, Glob, AskUserQuestion, Bash(git status:*), Bash(git branch:*), Bash(git log:*), Bash(git rev-parse:*), Bash(git rev-list:*), Bash(git diff:*), Bash(git show:*), Bash(git ls-tree:*), Bash(git for-each-ref:*), Bash(git merge-base:*), Bash(git grep:*), Bash(make -n:*), Bash(make check:*), Bash(ls:*), Bash(wc -l), Bash(bash *bin/brg-state-path*), Bash(bash *bin/brg-session*), Bash(bash *bin/brg-learn*), Bash(python3 *skills/session-handoff/scripts/progress.py*)
+allowed-tools: Read, Grep, Glob, AskUserQuestion, Bash(git status:*), Bash(git branch:*), Bash(git log:*), Bash(git rev-parse:*), Bash(git rev-list:*), Bash(git diff:*), Bash(git show:*), Bash(git ls-tree:*), Bash(git for-each-ref:*), Bash(git merge-base:*), Bash(git grep:*), Bash(make -n:*), Bash(make check:*), Bash(ls:*), Bash(wc -l), Bash(bash *bin/brg-state-path*), Bash(bash *bin/brg-session*), Bash(bash *bin/brg-config*), Bash(bash *bin/brg-learn*), Bash(python3 *skills/session-handoff/scripts/progress.py*)
 ---
 
 # workflow
@@ -56,6 +56,7 @@ The map, one skill per stage; the full map is `docs/WORKFLOW.md`:
 | Record | `adr`, `high-level-design`, `low-level-design` |
 | Design | `ux-flows`, `design-directions` (calls impeccable when installed), `design-system`, `screen-design`, then `data-model` and `openapi-spec` from the screens' data needs |
 | GenAI | `bearing-genai:genai-design`, then `bearing-genai:rag` or `bearing-genai:llm-agent`, `bearing-genai:llm-gateway`, `bearing-genai:llm-eval`, `bearing-genai:model-routing` |
+| Site | a landing page or marketing site: the site flow (`start-task --flow site`); `screen-design`, `accessibility`, `performance`, `branch-review` |
 | Build | Superpowers `test-driven-development`; `db-migration` |
 | Debug | Superpowers `systematic-debugging`, `/investigate` |
 | Test | `test-run --changed`, `test-heal`, gstack `/qa`, `load-test` |
@@ -83,6 +84,12 @@ The map, one skill per stage; the full map is `docs/WORKFLOW.md`:
 - Stack: `package.json`, `go.mod`, `pyproject.toml`, `app.json`,
   `build.gradle.kts`, `Package.swift`, `*.tf`; if none, `unknown`.
 - Task id: from the branch name (`[A-Z][A-Z0-9]*(-[0-9]+)+`).
+- Flow, read before picking one: `bash "${CLAUDE_PLUGIN_ROOT}/bin/brg-config" get flow`.
+  `site` means the site flow on every branch but a fix branch (bugfix);
+  empty means choose from the branch and the request. The next flow step is
+  `bash "${CLAUDE_PLUGIN_ROOT}/bin/brg-session" next-step`, which skips
+  `new-repo` once the repository has commits and `design-system` once
+  `docs/design/tokens.json` exists.
 - Handoff: `.bearing/state/<branch with / as _>.md`
   (`bash "${CLAUDE_PLUGIN_ROOT}/bin/brg-state-path"` prints it); local to
   this machine, often newer than the committed record.
@@ -146,8 +153,8 @@ The map, one skill per stage; the full map is `docs/WORKFLOW.md`:
    - claimed but empty: a Done item with no code on the branch.
    Count only after reconciling; the index's own summary line counts what
    records say and must not be quoted as the answer.
-4. Place the work on the map by asking, in order: is there a repository;
-   a task branch; a clear request; a plan; code; do the criteria hold in
+4. Place the work on the recorded flow's map by asking, in order: is there
+   a repository; a task branch; a clear request; a plan; code; do the criteria hold in
    the code; does the gate pass; is the branch current with `origin/main`;
    is there an MR. The first "no" is the stage.
 5. Write the answer. Change nothing: no record corrected, no rebase, no

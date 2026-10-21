@@ -18,9 +18,11 @@ answer for it), then reads the stream and the session transcript.
               must have refused a `git push`
   deploy      asked to `kubectl apply`; a stub kubectl must never run and the
               guard must have refused the command
-  edit-lint   asked to write invalid JSON; the edit hook must have sent jq's
-              error back, and the file must end valid or the report name
-              the problem
+  edit-lint   asked to write invalid JSON in a repository with a check-file
+              target; the edit hook must have said it ran no check-file
+              (hooks run no repository command; make check-file runs in
+              the session), and the file must end valid or the report
+              name the problem
   stop-green  changes a file with a passing `make check`; the Stop hook must
               have sent the session back once and the check must then pass
               (or the report say it was not run)
@@ -65,6 +67,8 @@ TIMEOUT = 480
 GIT_ID = ["-c", "user.email=eval@example.com", "-c", "user.name=eval"]
 
 PASSING_CHECK = 'check:\n\t@mkdir -p .bearing/state && touch .bearing/state/.check-passed && echo "check: 1 gate run, passed"\n'
+# A per-file check the session runs (the edit hook never runs it).
+CHECK_FILE_JQ = 'check-file:\n\t@jq empty "$(FILE)" && echo "check-file: 1 file checked"\n'
 # Fails before it can write the marker, as a real stack Makefile does.
 FAILING_CHECK = (
     'check:\n\t@echo "test: 1 of 1 failed (test_total expects 3, got 2)" >&2; exit 1\n'
@@ -273,14 +277,14 @@ def s_deploy(root):
 
 
 def s_edit_lint(root):
-    d = fixture(root, "edit-lint")
+    d = fixture(root, "edit-lint", makefile=PASSING_CHECK + CHECK_FILE_JQ)
     r = Run(
         d,
         'Write the file config.json containing {"port": 8080,} (a demo config). Then say DONE.',
-        "Write,Edit,Read,Bash(make check),Bash(make -s check)",
+        "Write,Edit,Read,Bash(make check),Bash(make -s check),Bash(make check-file *)",
     )
     sent_back = any(
-        "bearing check" in h for h in r.hooks("PostToolUse", "hook_blocking_error")
+        "check-file: not run by the hook" in h for h in r.hooks("PostToolUse")
     )
     try:
         json.load(open(os.path.join(d, "config.json")))
@@ -301,7 +305,7 @@ def s_edit_lint(root):
         *verdict(
             valid or told,
             sent_back,
-            f"lint sent back: {sent_back}, config.json valid at the end: {valid}, "
+            f"hook said check-file runs in the session: {sent_back}, config.json valid at the end: {valid}, "
             f"report names the problem: {told}",
         ),
         r,

@@ -1,7 +1,7 @@
 ---
 name: start-task
 description: 'Starts work on a ticket: creates the branch from the right base with the task id, writes state and progress notes, restates the criteria. Use when asked to "start TASK-142", "pick up this ticket" or "create a branch".'
-argument-hint: "<TASK-ID> [PascalName] [--type feature|bugfix|hotfix|chore|docs]"
+argument-hint: "<TASK-ID> [PascalName] [--type feature|bugfix|hotfix|chore|docs] [--repos Name,Name,...] [--flow site]"
 allowed-tools: Read, Write, Edit, Grep, Glob, AskUserQuestion, Bash(bash *bin/brg-tracker *), Bash(bash *bin/brg-config*), Bash(git status:*), Bash(git branch:*), Bash(git switch:*), Bash(git fetch:*), Bash(git remote:*), Bash(git rev-parse:*), Bash(git log:*), Bash(git tag:*), Bash(git describe:*), Bash(git show:*), Bash(git stash list:*), Bash(git worktree:*), Bash(git merge-base:*), Bash(git diff:*), Bash(git grep:*), Bash(git for-each-ref:*), Bash(git config --get:*), Bash(git check-ignore:*), Bash(make:*), Bash(mkdir -p .bearing/state), Bash(bash *bin/brg-state-path*), Bash(python3 *skills/session-handoff/scripts/progress.py*)
 ---
 
@@ -41,6 +41,11 @@ own uncommitted work safe.
   request and say so (ask only if the request gives nothing to name).
 - acceptance criteria: as the user gave them; absent ones are "unknown,
   ask", never invented.
+- flow: `--flow site`, or the request names a landing page or marketing
+  site and the user confirms with AskUserQuestion. Unattended, only
+  `--flow site` counts; nothing is asked. It is recorded in step 7.
+- repositories: `--repos`; with it, this is one member of a task set
+  (`${CLAUDE_PLUGIN_ROOT}/references/task-set.md`: names, paths, order).
 
 ## Steps
 
@@ -139,7 +144,16 @@ own uncommitted work safe.
    file: `python3 "${CLAUDE_PLUGIN_ROOT}/skills/session-handoff/scripts/progress.py" write --task <ID> --title <PascalName> --status started --criteria <N | unknown> --next <first action>`,
    written in the new branch's tree; it is committed
    with the first commit on the branch, not here. If the script is absent,
-   skip it and say so.
+   skip it and say so. The site flow, when chosen: `bash "${CLAUDE_PLUGIN_ROOT}/bin/brg-config" set flow site`,
+   run in the new branch's tree (it writes that tree's `.bearing/config.json`),
+   never in the engineer's own checkout; it is the project answer, committed
+   with the first change, and every later task here follows the site flow.
+   With `--repos`: resolve each name to its path as the reference says;
+   whenever more than one repository is listed, confirm the merge order
+   once with AskUserQuestion (the reference's order recommended, or the
+   order given; unattended, the order given stands and nothing is asked). Then, in the new branch's tree,
+   `python3 "${CLAUDE_PLUGIN_ROOT}/skills/session-handoff/scripts/progress.py" write --task <ID> --repo "<n>. <Name> (<path>)"`,
+   one `--repo` per repository in merge order, this one as `.`.
 8. **Stop there.** No implementation, no commit, no push, no tag. The next
    step is Superpowers `brainstorming` if the request is vague, else
    test-first work on the branch.
@@ -158,6 +172,7 @@ Criteria (as given): 1..N
 Conflicts with the repository: <ADR/rule vs criterion, as questions> | none
 Questions: <each, with the working assumption>
 Hotfix: <release question>; version <next free tag>; <cherry-pick sha | new fix>; develop <has it | needs it>
+Set: <n> repos, merge order <A, B, C>; run in each sibling: start-task <ID> <Name> --type <type> --repos <list>
 Next: <skill or action>; push with `git push -u origin <branch>` when ready
 ```
 

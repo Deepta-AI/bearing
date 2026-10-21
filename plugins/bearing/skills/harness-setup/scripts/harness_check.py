@@ -368,7 +368,9 @@ def extend(d, harness):
     wrapper = os.path.join(d, ".bearing", "hooks", f"settings-deny-{harness}.sh")
     with open(wrapper, "w") as f:
         f.write(
-            f'#!/usr/bin/env bash\nexec bash "$(dirname "$0")/settings-deny.sh" {mode}\n'
+            # "$BASH" and ${0%/*}: no PATH lookup; a failed exec exits 2 (blocks)
+            f'#!/usr/bin/env bash\nshopt -s execfail\n'
+            f'exec "$BASH" "${{0%/*}}/settings-deny.sh" {mode}\nexit 2\n'
         )
     os.chmod(wrapper, 0o755)
     cmd = f"./.bearing/hooks/settings-deny-{harness}.sh"

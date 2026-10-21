@@ -69,8 +69,9 @@ t_end
 
 t_begin "hook without jq exits 0 silently and logs timeline not-run"
 nojq="$(tmpdir)"
-for c in bash dirname git date tr cut sed grep cat wc tail mkdir; do ln -s "$(command -v $c)" "$nojq/$c"; done
-HK="$KIT/plugins/bearing/hooks/scripts/skill-start.sh"
+for c in bash dirname git date tr cut sed grep cat wc tail mkdir python3; do ln -s "$(command -v $c)" "$nojq/$c"; done
+HK="$(hook_kit "$nojq")/hooks/scripts/skill-start.sh" # the hooks reset PATH; the copy keeps $nojq
+[ -f "$HK" ] || { echo "FAIL session_timeline.sh: hook_kit printed no kit" >&2; exit 1; }
 : > "$repo/.bearing/state/gates.log"
 T_IN='{"session_id":"z","tool_input":{"skill":"bearing:workflow"}}'
 out="$(cd "$repo" && echo "$T_IN" | PATH="$nojq" "$nojq/bash" "$HK" 2>/dev/null; echo "rc=$?")"

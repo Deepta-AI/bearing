@@ -30,10 +30,24 @@ Item 14 runs every suite beyond unit in full and, unattended, leaves a suite
 to CI only by a recorded decision; commit the report it writes
 under `docs/testing/reports/` before `done dod`, since the dod gate takes
 only that report as a change after the run's sha.
-10. The mr stage: `merge-request` prepares the description; `report` writes
+10. The mr stage: when `docs/architecture/repo-plan.json` holds more than
+one entry, first write the `## Repos` section from it in the merge order
+`${CLAUDE_PLUGIN_ROOT}/references/task-set.md` gives (unattended, that
+order stands; nothing is asked):
+`python3 "${CLAUDE_PLUGIN_ROOT}/skills/session-handoff/scripts/progress.py" write --task <ID> --repo "<n>. <Name> (<path>)"`,
+one `--repo` per entry, this repository as `.`; the report lists, for
+each sibling, the `start-task <ID> <Name> --type <type> --repos <list>`
+line to run there (this branch's type, so every member gets the same
+branch name), and the report commit carries the progress file. Then
+`merge-request` prepares the description; `report` writes
 `docs/autopilot/<run>.md`; commit it, and let that commit be the last
 write (`git status` clean after it: a progress file touched later is
 work the MR does not carry); paste its decisions table into
 the description, with the exact push command (`git push -u origin <branch>`)
-under it; print the same command in the last message. Do
-not run it.
+under it. Then, in this order: `make check` again (the report commit is
+newer than the gate marker, and `brg-push check` refuses a stale gate),
+`bash "${CLAUDE_PLUGIN_ROOT}/bin/brg-push" check`, and on exit 0
+`bash "${CLAUDE_PLUGIN_ROOT}/bin/brg-push" request`: the run's last Stop
+pushes the branch from a fresh clone. This request replaces the one
+`merge-request` made, which named the commit before the report.
+Otherwise print the push command in the last message. Never run `git push`; unattended, never ask.

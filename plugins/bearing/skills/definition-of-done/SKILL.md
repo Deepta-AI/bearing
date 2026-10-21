@@ -2,7 +2,7 @@
 name: definition-of-done
 description: 'Checks a branch or ticket against the Definition of Done, with evidence per item: gate, tests, docs, scope, commits, smoke run. Use when asked "am I done", "is this story complete" or "ready to merge?"'
 argument-hint: "[base branch, default: the state file's Base line, else develop, else main] [--unattended]"
-allowed-tools: Read, Grep, Glob, Write, Skill, AskUserQuestion, Bash(make:*), Bash(docker compose:*), Bash(curl:*), Bash(playwright-cli:*), Bash(pnpm exec playwright:*), Bash(git status:*), Bash(git am:*), Bash(git checkout:*), Bash(git switch:*), Bash(git branch:*), Bash(git worktree:*), Bash(git diff:*), Bash(git log:*), Bash(git remote:*), Bash(git rev-parse:*), Bash(git show:*), Bash(go vet:*), Bash(go test:*), Bash(go run:*), Bash(go build:*), Bash(pnpm test:*), Bash(uv run pytest:*), Bash(pytest:*), Bash(python3 -m pytest:*), Bash(./gradlew test:*), Bash(swift test:*), Bash(maestro test:*), Bash(xcodebuild test:*), Bash(./gradlew connectedDebugAndroidTest:*), Bash(printenv BEARING_AUTOPILOT BEARING_NONINTERACTIVE), Bash(bash *bin/brg-config get noninteractive --user), Bash(tail -40), Bash(bash *skills/definition-of-done/scripts/red_proof.sh *), Bash(bash *bin/brg-state-path*), Bash(bash *bin/brg-changed*), Bash(python3 *bin/brg-autopilot decision test_run.*), Bash(python3 *skills/prose-lint/scripts/prose_check.py*)
+allowed-tools: Read, Grep, Glob, Write, Skill, AskUserQuestion, Bash(make:*), Bash(docker compose:*), Bash(curl:*), Bash(playwright-cli:*), Bash(pnpm exec playwright:*), Bash(git status:*), Bash(git am:*), Bash(git checkout:*), Bash(git switch:*), Bash(git branch:*), Bash(git worktree:*), Bash(git diff:*), Bash(git log:*), Bash(git remote:*), Bash(git rev-parse:*), Bash(git show:*), Bash(go vet:*), Bash(go test:*), Bash(go run:*), Bash(go build:*), Bash(pnpm test:*), Bash(uv run pytest:*), Bash(pytest:*), Bash(python3 -m pytest:*), Bash(./gradlew test:*), Bash(swift test:*), Bash(maestro test:*), Bash(xcodebuild test:*), Bash(./gradlew connectedDebugAndroidTest:*), Bash(printenv BEARING_AUTOPILOT BEARING_NONINTERACTIVE), Bash(bash *bin/brg-config get noninteractive --user), Bash(tail -40), Bash(bash *skills/definition-of-done/scripts/red_proof.sh *), Bash(bash *bin/brg-state-path*), Bash(bash *bin/brg-changed*), Bash(python3 *bin/brg-autopilot decision test_run.*), Bash(python3 *skills/prose-lint/scripts/prose_check.py*), Bash(python3 *skills/session-handoff/scripts/progress.py*)
 ---
 
 # definition-of-done
@@ -174,6 +174,7 @@ The list below is the standard's; it needs no file in the repository.
        <job>" (recommended) or "I will start what it needs and rerun"; on
        yes add `CI-accepted: <suite> (<job>)` to the state file and the row
        reads `pass (<suite> left to CI job <job>, accepted)`.
+   15. task set: `n/a` without `## Repos` in `docs/progress/<ID>.md`; else `python3 "${CLAUDE_PLUGIN_ROOT}/skills/session-handoff/scripts/progress.py" set --task <ID>`, judged as `${CLAUDE_PLUGIN_ROOT}/references/task-set.md` says.
 4. Print the table, then the verdict: `done` only if no `fail`. Each
    failing row names the file and the function, route or line, so the
    author can act without searching, and says what was run to show it.
