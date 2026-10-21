@@ -4,6 +4,8 @@ All notable changes to Bearing. Keep a Changelog format, semantic versions.
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-10-21
+
 ### Added
 - impeccable is pinned (`plugins/bearing/bin/pinned-packs.txt`) and installed
   in the standard profile; `doctor` reports it, and `install` takes
@@ -101,6 +103,31 @@ All notable changes to Bearing. Keep a Changelog format, semantic versions.
   two-repository task set and a bugfix sibling's type, the site flow
   recorded at start, and the workflow skill's next step in a site
   repository.
+
+- `bearing-genai`, a fourth plugin installed by default, holds the 12
+  GenAI and ML skills that were in `bearing` plus two new ones, 14 in all.
+  `install.sh`, `brg-doctor`, `upgrade-tools` and autopilot know it;
+  autopilot's `llm` profile refuses to start when `genai-design` is not
+  installed.
+- model-routing picks the cheapest model or cascade per LLM feature that
+  still passes its eval, from measured scores and costs, any provider.
+  Each cascade leg carries its own effort, `max_tokens` and timeout.
+- dataset-generation makes eval, training or preference data from a real
+  seed: taxonomy, generation, dedupe, a contamination check against the
+  golden set, a person's audit and a datasheet. Unattended, it stops
+  before anything is promoted.
+- llm-eval reports confidence intervals, compares two versions on paired
+  cases, and calibrates a judge against at least 30 person-labelled items
+  (kappa at least 0.6) before its scores gate anything; `eval_stats.py` is
+  vendored into `evals/tools/` with a source, version and sha256 header.
+- A GenAI task flow from genai-design through the eval baseline, the build
+  branch, prompts, the gateway, model routing, guardrails, tests and the
+  eval gate to the merge request. The "Calls to a model" options in the
+  greenfield and feature flows link to it, and `brg-session next-step`
+  follows it on a non-bugfix branch that ran genai-design.
+- `lint-model-ids` (part of `make check`) holds every Claude model id under
+  `plugins/` to `bin/model-ids.txt`: defaults `claude-opus-5-5`,
+  `claude-sonnet-5-5` and `claude-haiku-4-5`.
 
 ### Changed
 - Hooks resolve tools on a fixed PATH, which now also holds the Linuxbrew
@@ -294,6 +321,10 @@ All notable changes to Bearing. Keep a Changelog format, semantic versions.
   linked `.bearing` before refusing it.
 
 ### Notes for existing repositories
+- Upgrading from 0.8.0 or earlier: the GenAI and ML skills moved to
+  `bearing-genai`. Run `claude plugin install bearing-genai@bearing` (or
+  rerun `install.sh`, or let `upgrade-tools` offer it), and change any
+  reference written `bearing:<genai skill>` to `bearing-genai:<skill>`.
 - Copy the six Edit and Write denies on `//opt/homebrew/bin/**`,
   `//usr/local/bin/**` and `//home/linuxbrew/.linuxbrew/bin/**` from the
   settings template into `.claude/settings.json`, then run `brg-doctor`.
