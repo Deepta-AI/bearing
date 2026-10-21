@@ -4,6 +4,11 @@ All notable changes to Bearing. Keep a Changelog format, semantic versions.
 
 ## [Unreleased]
 
+### Fixed
+- The React template pins `vite` 7.3.7, clearing GHSA-587h-7wmj-h5pm
+  (high, `launch-editor`) that failed `make vuln` in a new React repository
+  and the `scaffold (react-web)` CI job.
+
 ## [0.9.0] - 2026-10-21
 
 ### Added
