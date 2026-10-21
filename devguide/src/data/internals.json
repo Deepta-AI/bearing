@@ -20058,8 +20058,8 @@
    "groups": [
     "Fixed"
    ],
-   "entries": 1,
-   "summary": "- The React template pins `vite` 7.3.7, clearing GHSA-587h-7wmj-h5pm (high, `launch-editor`) that failed `make vuln` in a new React repository and the `scaffold (react-web)` CI job."
+   "entries": 2,
+   "summary": "- The React template pins `vite` 7.3.7, clearing GHSA-587h-7wmj-h5pm (high, `launch-editor`) that failed `make vuln` in a new React repository and the `scaffold (react-web)` CI job. - New Go scaffolds pin `go 1.26.10`, so their CI (`go-version-file: go.mod`) installs a Go with GO-2026-6809 (`crypto/x509`) fixed, and Bearing's own CI sets up Go with `check-latest`, so the `scaffold (go-api)` job's `govulncheck` no longer reports the runner's cached 1.26.9."
   },
   {
    "version": "0.9.0",

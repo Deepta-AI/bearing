@@ -13,7 +13,7 @@ logs, `golangci-lint` for lint, `govulncheck` in CI.
 The Go version that matters is the `go` line in the repository's `go.mod`,
 not the toolchain on the machine: it decides the language semantics (a
 per-iteration loop variable from 1.22, so `tc := tc` is dead code and a
-closure over `tc` is not a bug). New scaffolds pin `go 1.26.8`; with an older
+closure over `tc` is not a bug). New scaffolds pin `go 1.26.10`; with an older
 local toolchain and `GOTOOLCHAIN=local` they do not build, so say so rather
 than lowering the `go` line or letting a toolchain download.
 

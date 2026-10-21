@@ -1,6 +1,6 @@
 module __MODULE__
 
-go 1.26.8
+go 1.26.10
 
 require (
 	github.com/jackc/pgx/v5 v5.11.0

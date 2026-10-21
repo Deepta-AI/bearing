@@ -1,3 +1,3 @@
 module __MODULE__
 
-go 1.26.8
+go 1.26.10
