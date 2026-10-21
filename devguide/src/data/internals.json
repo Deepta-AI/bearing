@@ -20055,9 +20055,11 @@
   {
    "version": "Unreleased",
    "date": "",
-   "groups": [],
-   "entries": 0,
-   "summary": ""
+   "groups": [
+    "Fixed"
+   ],
+   "entries": 1,
+   "summary": "- The React template pins `vite` 7.3.7, clearing GHSA-587h-7wmj-h5pm (high, `launch-editor`) that failed `make vuln` in a new React repository and the `scaffold (react-web)` CI job."
   },
   {
    "version": "0.9.0",
