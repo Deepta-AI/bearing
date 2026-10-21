@@ -33,7 +33,7 @@ t_end
 
 t_begin "a run starts at the repo stage and refuses a second start"
 assert_exit 0 ap start "a word counter"
-assert_contains "$T_OUT" "17 stages"
+assert_contains "$T_OUT" "18 stages"
 assert_contains "$T_OUT" "next: repo"
 assert_exit 1 ap start "another"
 assert_contains "$T_OUT" "is open at stage repo"
@@ -271,6 +271,34 @@ git -C "$d" push -q 2>/dev/null
 assert_exit 1 ap "done" mr
 assert_contains "$T_OUT" "was pushed during the run"
 d="$d_save"
+t_end
+
+# oldrun <state file> <last done stage>: a run written by the 17-stage
+# brg-autopilot (no contract stage), done up to and including the stage named.
+oldrun() {
+  python3 -c '
+import json, sys
+old = "repo branch prd stories decide architecture design repos ux lld test_cases build test_automation design_review review dod mr".split()
+st = {"run": "r", "statement": "s", "started": "t", "started_epoch": 0, "decisions": [],
+      "stages": {n: {"status": "done" if old.index(n) <= old.index(sys.argv[2]) else "pending",
+                     "attempts": 0, "checked": "", "notes": []} for n in old}}
+json.dump(st, open(sys.argv[1], "w"))
+' "$1" "$2"
+}
+
+t_begin "a run from before the contract stage, past ux, carries contract from its old design gate"
+od="$(tmpdir)/old-run"; mkdir -p "$od/.bearing/state"
+oldrun "$od/.bearing/state/autopilot.json" lld
+assert_exit 0 python3 "$AP" next --dir "$od"
+assert_contains "$T_OUT" "next: test_cases"
+assert_contains "$T_OUT" "contract carried from the old design gate"
+assert_exit 0 python3 "$AP" status --dir "$od"
+assert_contains "$T_OUT" "carried from the old design gate"
+# a run not yet past ux runs the new contract gate in its turn
+oldrun "$od/.bearing/state/autopilot.json" design
+assert_exit 0 python3 "$AP" next --dir "$od"
+assert_contains "$T_OUT" "next: repos"
+assert_not_contains "$T_OUT" "carried"
 t_end
 
 t_summary

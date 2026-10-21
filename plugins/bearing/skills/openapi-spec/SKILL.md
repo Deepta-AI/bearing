@@ -22,6 +22,10 @@ tool that is not installed prints SKIPPED, never a silent pass.
   step 3 patterns); if none, asks one question for a pasted list of
   operations (method, path, purpose). Zero operations after that stops
   the skill: "provide the stories or a list of operations".
+- Data needs: `docs/design/screens/*/data-needs.md`, if any (the screens
+  come first; the contract answers what they need). Each server action
+  (`Server` not `none:`) is an operation or maps to one; none: the
+  screens are not designed, and the sources above stand alone.
 - Auth scheme: looks in `docs/adr/`; if absent, the Decisions first
   protocol decides it, else the spec carries `x-adr-needed: auth`.
 - Spec for `check`: `api/openapi.yaml`; if absent, the mode is `new`.
@@ -116,7 +120,14 @@ ${CLAUDE_PLUGIN_ROOT}/skills/tech-decision/references/decision-protocol.md.
    `x-idempotent`, an error status with no declared code) is fixed in the
    spec and the script rerun, or listed in the report. Link API.md from
    `docs/api/README.md`.
-8. Print the output contract.
+8. Data needs, when `docs/design/screens/*/data-needs.md` exists:
+   `uv run --quiet --with pyyaml==6.0.3 python "${CLAUDE_PLUGIN_ROOT}/skills/openapi-spec/scripts/api_doc.py" needs --spec api/openapi.yaml --needs docs/design/screens/*/data-needs.md`
+   (`command -v uv` fails: the same with `python3`). It fails on an
+   action no operation maps, an outcome with no response, an id no file
+   has, an action id in two features' files (renumber the later one),
+   zero actions or zero operations. Fix
+   the spec and rerun until 0 problems.
+9. Print the output contract.
 
 ## Output contract
 
@@ -134,6 +145,7 @@ Breaking vs <tag>: 0 | K | SKIPPED (oasdiff not available | no tagged spec)
 Docs: docs/api/README.md (served at <route> | unconfirmed)
 API doc: docs/api/API.md (<api_doc.py counts line, verbatim>) | not generated (<reason>)
   findings: K   <METHOD /path>: <finding>
+Data needs: <api_doc.py needs line, verbatim> | none (no screens)
 Revision: v<n> -> v<n+1>, sections changed C, ADRs superseded S, downstream D | v1 (new)
 ```
 

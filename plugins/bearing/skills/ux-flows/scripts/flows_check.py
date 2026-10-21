@@ -34,14 +34,31 @@ missing state, computed from the mermaid and the tables in the file.
     screen; a row that reads `n/a` needs a reason (`n/a: <reason>`); a
     required row missing, blank, or n/a without a reason is a problem, and
     so is an inventory screen with no state table.
+  - Task paths: the table under "## Task paths" (| Task | Story | Kind |
+    Entry | Path | Screens | Interactions | Over |), one row per user task.
+    A path is segments split on " > ": `S-nn[ (modal)][: item, item]`, each
+    comma item one interaction (a typed field is one item, never one per
+    keystroke; the content typed is not counted). The script recounts
+    screens (distinct) and interactions from the path and holds them to
+    the budget, never trusting the written counts: primary at most 3
+    screens and 6 interactions, secondary at most 5 and 10, overridable in
+    .bearing/config.json (ux.budget.primary.screens, .interactions, and
+    the same for secondary). A row over budget fails unless its Over cell
+    reads `over: <reason>`. Also failing: written counts that disagree, a
+    kind other than primary or secondary, a path through a screen not in
+    the inventory, an entry that is not the path's first screen, a story
+    the inventory serves that no task path names, and zero task paths.
 
 Usage: flows_check.py [--file F ...] [--root docs/design/flows]
-Prints one "problem:" line per failure, the Dead ends line and the counts;
-exits 1 on any problem, or when zero files or zero screens were read.
+                      [--config .bearing/config.json]
+Prints one "problem:" line per failure, the Dead ends line, the task paths
+line and the counts; exits 1 on any problem, or when zero files or zero
+screens were read.
 """
 
 import argparse
 import glob
+import json
 import os
 import re
 import sys
@@ -212,8 +229,189 @@ def states(text):
                 out[cur][base] = value
     return out
 
+DEFAULT_BUDGET = {"primary": (3, 6), "secondary": (5, 10)}
+BUDGET_KEYS = {
+    ("primary", 0): "ux.budget.primary.screens",
+    ("primary", 1): "ux.budget.primary.interactions",
+    ("secondary", 0): "ux.budget.secondary.screens",
+    ("secondary", 1): "ux.budget.secondary.interactions",
+}
+SEGMENT = re.compile(r"^(S-\d{2,3})(?:\s*\(modal\))?\s*(?::(.*))?$", re.I | re.S)
+REASON_HINT = "add a ## Task paths section, one row per primary task: ux-flows references/task-paths.md"
 
-def check(path):
+
+def whole(v):
+    """A positive whole number, as a number or a string of digits."""
+    if isinstance(v, bool):
+        return None
+    if isinstance(v, int):
+        return v if v > 0 else None
+    if isinstance(v, str) and re.fullmatch(r"\s*\d+\s*", v):
+        return int(v) if int(v) > 0 else None
+    return None
+
+
+def budget(config_path):
+    """({"primary": (screens, interactions), "secondary": (...)}, problems)."""
+    out = {k: list(v) for k, v in DEFAULT_BUDGET.items()}
+    problems = []
+    if not os.path.isfile(config_path):
+        return {k: tuple(v) for k, v in out.items()}, problems
+    try:
+        cfg = json.loads(read(config_path))
+        if not isinstance(cfg, dict):
+            raise ValueError("not an object")
+    except ValueError as e:
+        problems.append(f"{config_path}: not valid JSON ({e}); the default budget stays")
+        return {k: tuple(v) for k, v in out.items()}, problems
+    for (kind, i), key in BUDGET_KEYS.items():
+        if key not in cfg or cfg[key] is None:
+            continue
+        n = whole(cfg[key])
+        if n is None:
+            problems.append(
+                f"{config_path}: {key} is {json.dumps(cfg[key])}, not a whole number above 0"
+            )
+        else:
+            out[kind][i] = n
+    return {k: tuple(v) for k, v in out.items()}, problems
+
+
+def count_path(cell):
+    """(distinct screens, interactions, screen ids in order) for one path."""
+    ids, inter = [], 0
+    for seg in re.split(r"\s+>\s+", cell.strip()):
+        m = SEGMENT.match(seg.strip())
+        if not m:
+            continue
+        s = m.group(1).upper()
+        ids.append(s)
+        if m.group(2):
+            inter += len([i for i in m.group(2).split(",") if i.strip()])
+    return len(set(ids)), inter, ids
+
+
+def task_paths(text):
+    """Rows of the Task paths table as dicts (see the header names)."""
+    rows, header = [], None
+    for line in section(text, r"Task paths").split("\n"):
+        if not line.startswith("|"):
+            continue
+        cells = [c.strip() for c in line.strip().strip("|").split("|")]
+        if header is None:
+            header = [c.lower() for c in cells]
+            continue
+        if re.match(r"^:?-+:?$", cells[0]):
+            continue
+
+        def col(name):
+            return cells[header.index(name)] if name in header and header.index(name) < len(cells) else ""
+
+        over_cell = col("over")
+        m = re.match(r"^over:\s*(.*)$", over_cell, re.I | re.S)
+        if m:
+            over = m.group(1).strip() or None
+        else:
+            over = ""  # blank; any other text is flagged through over_raw
+        rows.append({
+            "task": col("task"),
+            "story": re.findall(r"US-[A-Za-z0-9-]+", col("story")),
+            "kind": col("kind").lower(),
+            "entry": col("entry"),
+            "path": col("path"),
+            "screens": col("screens"),
+            "interactions": col("interactions"),
+            "over": over,
+            "over_raw": over_cell,
+        })
+    return rows
+
+
+def served(text):
+    """US- ids in the Serves column of the non-removed inventory rows."""
+    out, header = [], None
+    for line in section(text, r"Screens?(?: inventory)?[ \t]*$").split("\n"):
+        if not line.startswith("|"):
+            continue
+        cells = [c.strip() for c in line.strip().strip("|").split("|")]
+        if header is None:
+            header = [c.lower() for c in cells]
+            continue
+        if not re.match(r"^S-\d{2,3}\b", cells[0]) or "serves" not in header:
+            continue
+        st = header.index("status") if "status" in header else None
+        if st is not None and st < len(cells) and re.search(r"\b(removed|retired)\b", cells[st], re.I):
+            continue
+        i = header.index("serves")
+        for u in re.findall(r"US-[A-Za-z0-9-]+", cells[i] if i < len(cells) else ""):
+            if u not in out:
+                out.append(u)
+    return out
+
+
+def check_tasks(path, text, screens, limits):
+    """(problems, tasks, over, over_reason) for the Task paths section."""
+    problems = []
+    rows = task_paths(text)
+    if not rows:
+        problems.append(f"{path}: 0 task paths ({REASON_HINT})")
+        return problems, 0, 0, 0
+    over_n = reason_n = 0
+    named = set()
+    for r in rows:
+        t = f'task "{r["task"]}"'
+        named.update(r["story"])
+        sc, it, ids = count_path(r["path"])
+        segs = re.split(r"\s+>\s+", r["path"].strip())
+        for n, seg in enumerate(segs):
+            m = SEGMENT.match(seg.strip())
+            if not m:
+                problems.append(f'{path}: {t} path segment "{seg.strip()}" does not start with a screen id (S-nn)')
+            elif n < len(segs) - 1 and not [i for i in (m.group(2) or "").split(",") if i.strip()]:
+                problems.append(
+                    f'{path}: {t} path segment "{seg.strip()}" has no interaction; '
+                    "every screen but the last needs the interaction that leaves it (S-nn: tap X)"
+                )
+        for s in dict.fromkeys(ids):
+            if s not in screens:
+                problems.append(f"{path}: {t} path names {s}, not in the inventory")
+        if ids and r["entry"] and sid(r["entry"]) != ids[0]:
+            problems.append(f"{path}: {t} entry {sid(r['entry']) or r['entry']} is not the first screen of its path ({ids[0]})")
+        ws, wi = whole(r["screens"]), whole(r["interactions"])
+        if r["interactions"].strip() == "0":
+            wi = 0
+        if ws is None or wi is None:
+            problems.append(f"{path}: {t} Screens and Interactions must be whole numbers")
+        elif (ws, wi) != (sc, it):
+            problems.append(f"{path}: {t} counts written {ws} screens, {wi} interactions; the path has {sc} and {it}")
+        if r["kind"] not in limits:
+            problems.append(f"{path}: {t} kind must be primary or secondary")
+            continue
+        ms, mi = limits[r["kind"]]
+        if r["over_raw"] and not re.match(r"^over:", r["over_raw"], re.I):
+            problems.append(f"{path}: {t} Over cell must be blank or read over: <reason>")
+        o = r["over"]
+        if o is None:
+            problems.append(f"{path}: {t} over: needs a reason")
+        if sc <= ms and it <= mi:
+            continue
+        over_n += 1
+        if o is None:
+            pass
+        elif o == "":
+            problems.append(
+                f"{path}: {t} is over budget: {sc} screens, {it} interactions "
+                f"({r['kind']} budget {ms} and {mi}); shorten it, or write over: <reason> in the Over cell"
+            )
+        else:
+            reason_n += 1
+    for u in served(text):
+        if u not in named:
+            problems.append(f"{path}: story {u} is served by the inventory but has no task path")
+    return problems, len(rows), over_n, reason_n
+
+
+def check(path, limits=None):
     text = read(path)
     problems = []
     screens, terminal, dialogs, removed = inventory_full(text)
@@ -250,6 +448,10 @@ def check(path):
         problems.append(
             f"{path}: {s} is a dialog with no cancel, back or close in its Exits"
         )
+    task_problems, tasks, over_n, reason_n = check_tasks(
+        path, text, set(screens), limits or {k: v for k, v in DEFAULT_BUDGET.items()}
+    )
+    problems += task_problems
     table = states(text)
     missing = 0
     for s in screens:
@@ -279,6 +481,9 @@ def check(path):
         "edges": len(edges),
         "dead": len(dead),
         "unflowed": len(unflowed),
+        "tasks": tasks,
+        "over": over_n,
+        "over_reason": reason_n,
         "tables": len(table),
         "missing": missing,
         "problems": problems,
@@ -289,16 +494,19 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--file", nargs="*", default=None)
     ap.add_argument("--root", default="docs/design/flows")
+    ap.add_argument("--config", default=".bearing/config.json")
     a = ap.parse_args()
+    limits, problems = budget(a.config)
     files = [f for f in (a.file or pick_files(a.root)) if os.path.isfile(f)]
     if not files:
+        for p_ in problems:
+            print(f"problem: {p_}")
         print(
             f"ux-flows: 0 flow files read ({a.file or a.root}), nothing checked",
             file=sys.stderr,
         )
         return 1
     tot = {}
-    problems = []
     owner = {}
     for f in files:
         # one product's packages share one id space: the design gallery and
@@ -307,11 +515,13 @@ def main():
             if s_ in owner and owner[s_] != f:
                 problems.append(f"{f}: {s_} is also a screen in {owner[s_]}; screen ids continue across packages")
             owner.setdefault(s_, f)
-        r = check(f)
+        r = check(f, limits)
         problems += r.pop("problems")
         for k, v in r.items():
             tot[k] = tot.get(k, 0) + v
     if tot["screens"] == 0:
+        for p_ in problems:
+            print(f"problem: {p_}")
         print(
             f"ux-flows: {len(files)} files, 0 screens in the inventory, nothing checked",
             file=sys.stderr,
@@ -320,6 +530,7 @@ def main():
     for p in problems:
         print(f"problem: {p}")
     print(f"Dead ends: {tot['dead']}")
+    print(f"task paths: {tot['tasks']} tasks, {tot['over']} over budget ({tot['over_reason']} with reason)")
     print(
         f"ux-flows: {len(files)} files, {tot['screens']} screens ({tot['terminal']} terminal, {tot['removed']} removed), "
         f"{tot['dialogs']} dialogs ({tot['no_back']} without a way back), "

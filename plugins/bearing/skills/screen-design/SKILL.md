@@ -1,8 +1,8 @@
 ---
 name: screen-design
 description: 'Designs every screen in every state (empty, error, loading), desktop and phone, as clickable React or HTML mockups before code. Use when asked to "design the screens", "hi-fi mockups" or "show every state".'
-argument-hint: "<feature> [--screens S-01,S-03] [--framework react-shadcn|react-native|flutter|compose|swiftui|web] [--round N] [--standalone]"
-allowed-tools: Read, Write, Edit, Grep, Glob, Bash(ls:*), Bash(mkdir:*), Bash(test:*), Bash(make:*), Bash(git log:*), Bash(git diff:*), Bash(git show:*), Bash(git status:*), Bash(~/.claude/skills/gstack/browse/dist/browse:*), Bash(python3 *skills/screen-design/scripts/states_check.py*), Bash(python3 *skills/screen-design/scripts/gallery_check.py*), Bash(python3 *skills/screen-design/scripts/bundle.py*), Bash(python3 *skills/design-system/scripts/system_page.py*), Bash(python3 *skills/design-critique/scripts/evidence.py*), Bash(python3 *skills/accessibility/scripts/contrast.py*), Bash(bash *bin/brg-kit-paths*)
+argument-hint: "<feature> [--screens S-01,S-03] [--framework react-shadcn|react-native|flutter|compose|swiftui|web] [--round N] [--standalone] [--unattended]"
+allowed-tools: Read, Write, Edit, Grep, Glob, Skill, Bash(ls:*), Bash(mkdir:*), Bash(test:*), Bash(make:*), Bash(git log:*), Bash(git diff:*), Bash(git show:*), Bash(git status:*), Bash(printenv BEARING_AUTOPILOT BEARING_NONINTERACTIVE), Bash(bash *bin/brg-config get noninteractive --user), Bash(sh scripts/design-lint.sh:*), Bash(mkdir -p .scratch/impeccable-pass/*), Bash(~/.claude/skills/gstack/browse/dist/browse:*), Bash(python3 *skills/screen-design/scripts/states_check.py*), Bash(python3 *skills/screen-design/scripts/gallery_check.py*), Bash(python3 *skills/screen-design/scripts/bundle.py*), Bash(python3 *skills/design-system/scripts/system_page.py*), Bash(python3 *skills/design-critique/scripts/evidence.py*), Bash(python3 *skills/accessibility/scripts/contrast.py*), Bash(bash *bin/brg-kit-paths*)
 ---
 
 # screen-design
@@ -18,7 +18,8 @@ older than the PRD, a state the API can produce that nobody drew, a
 requirement the API cannot support, a client comment that breaks an ADR
 or the contrast floor. The doctrine in
 `../design-directions/references/design-doctrine.md` governs visual
-choices; read it before the first screen is planned.
+choices when impeccable is not installed (the fallback); read it before the
+first screen is planned.
 
 Two paths. On React with shadcn/ui (the react-web template) the design is
 code: each screen is a view composed from `src/components/ui` and the
@@ -47,10 +48,10 @@ screen that opens from a file.
 - Screenshots: `~/.claude/skills/gstack/browse/dist/browse` when
   executable; otherwise none are taken and the report says so.
 - Templates: `templates/screen.html`, `templates/index.html`,
-  `templates/gallery.html`, `templates/design.schema.json`,
+  `templates/gallery.html`, `templates/data-needs.md`, `templates/design.schema.json`,
   `templates/DESIGN-SYNC.md`, `templates/CHANGES.md`.
-- Gates, Python 3 only: `scripts/gallery_check.py`, `scripts/states_check.py`,
-  `scripts/bundle.py`, plus `evidence.py` and `contrast.py` from sibling
+- Gates, Python 3 only: `scripts/gallery_check.py`, `scripts/states_check.py`
+  (also `--needs`), `scripts/bundle.py`, plus `evidence.py` and `contrast.py` from sibling
   skills. Detail: references/targets-and-gates.md
 - `--standalone`: each page carries a copy of the tokens in
   `<style data-tokens>` instead of the link, for sending one file.
@@ -100,6 +101,39 @@ concern (`ambiguity`, `missing-screen`, `undefined-state`, `dead-end`,
    `audit` block by hand; never run `/design-sync` (the push to a shared
    design system is the person's). Detail: references/html-bundle.md
 
+### Impeccable pass
+
+1. After every screen and state exists, with impeccable installed: snapshot
+   the target files (`mkdir -p .scratch/impeccable-pass/<dir>`, then
+   `cp -p <file> .scratch/impeccable-pass/<file>`), run `harden` then
+   `polish` per feature, then rerun the gates (states or gallery, bundle,
+   contrast, design-lint, `sh scripts/design-lint.sh --sync` only when
+   tokens.json has `meta.sourceHash`, else skipped and said). Detect,
+   unattended rule, brief and snapshot detail:
+   `${CLAUDE_PLUGIN_ROOT}/references/impeccable.md`, section screen-design.
+2. A failing gate gets one fix in the screen, never by weakening it; still
+   failing, that file is copied back from the snapshot
+   (`cp -p .scratch/impeccable-pass/<file> <file>`, target files
+   only; never git checkout, restore or stash) and listed. A
+   token-level change impeccable wants goes back to design-system
+   (`tokens.json` is not edited by hand).
+3. Unattended, polish runs only when the binding system and the flows are on
+   disk; else harden only, with `polish skipped: unattended (<why>)`. A
+   polish that asks is stopped, its targets restored from the snapshot, and
+   `polish skipped: unattended (asked)` printed.
+4. Not installed: print `impeccable not installed` once, no pass, the
+   doctrine decides.
+
+### Data needs
+
+1. With the flows file on disk, after the screens and the impeccable pass:
+   write `docs/design/screens/<feature>/data-needs.md` from
+   `templates/data-needs.md` (ids continue after the highest F- and A- in
+   the other features' files; each screen with server data lists its
+   read as an action), then run the `--needs` check of
+   `scripts/states_check.py` (command in the reference) and fix until it
+   exits 0. Without flows, skip it and say so. Detail: references/targets-and-gates.md
+
 ### A review round (client or team comments)
 
 1. Find where the pages really come from; triage every comment before
@@ -115,11 +149,13 @@ Sources: flows <file> (against PRD v<x>) | PRD v<y> | ADRs <ids> | API <files>
 Reconciled: <n> states added beyond the flows (<names>); gaps raised: <one line each, owner>
 Screens: <gate counts line, verbatim>
 Bundle: <bundle.py check counts line, verbatim> | not used (<reason>)
+Data needs: <states_check.py --needs counts line, verbatim> | skipped (no flows file)
 Contrast: <contrast.py counts line, verbatim> | no colour changed
+Impeccable: harden <n> and polish <n> screen sets | not installed; inferred: <facts> | none
 Round: <per comment: verdict and reason> | first round
 Ran: <each command with its result>
 Not run: <build, typecheck, dev server, screenshots, each with its reason> | none
-Next: design-critique docs/design/screens/<feature>
+Next: design-critique docs/design/screens/<feature>; then data-model and openapi-spec
 ```
 
 ## Gotchas

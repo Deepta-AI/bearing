@@ -2,13 +2,19 @@
 
 Read when: steps 1 to 5: before any token is written.
 
-1. Resolve the direction: `$ARGUMENTS`, else root `DESIGN.md` or
-`docs/design/DESIGN.md`, else `docs/design/variants/*/approved.json`,
-else the app's current styles read as the de facto system, else ask
-once for a brief (product, audience, one memorable thing, brand
-colour or face). Read it in full; list what it fixes (hue, faces,
-density, shape, devices) and what it leaves free. `--lint-only`: go
-to the lint section.
+1. Resolve the direction: `$ARGUMENTS`, else the token source (root
+`DESIGN.md` frontmatter tokens, else `direction` in the newest
+`docs/design/variants/*/approved.json`; the mapping is in
+`${CLAUDE_PLUGIN_ROOT}/references/impeccable.md`, section design-system),
+else root `DESIGN.md` or `docs/design/DESIGN.md` as prose, else
+`approved.json`, else the app's current styles read as the de facto
+system, else ask once for a brief (product, audience, one memorable
+thing, brand colour or face). Read it in full; list what it fixes (hue,
+faces, density, shape, devices) and what it leaves free. `--lint-only`:
+go to the lint section. Other inputs read as the direction: gstack
+`design-consultation` writes a direction as DESIGN.md prose (no
+frontmatter tokens, so it is not a token source) and GSD `gsd-ui-phase`
+writes a UI-SPEC per phase.
 2. **Measure the direction before designing.** Compute the contrast of
 every pair it implies (brand fill behind its label, brand as link text
 on page and card, brand as focus ring on the page) with

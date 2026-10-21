@@ -329,7 +329,7 @@ STAGES = [
                 "API contract",
                 "openapi-spec",
                 "bearing",
-                "api/openapi.yaml and a drift report",
+                "api/openapi.yaml with an operation per screen action (x-data-needs) and a drift report",
             ),
             (
                 "API versioning and retirement",
@@ -365,7 +365,7 @@ STAGES = [
                 "Data model",
                 "data-model",
                 "bearing",
-                "ERD, schema per store, migration plan",
+                "ERD, schema per store and migration plan, with columns taken from the screens' data needs (--needs)",
             ),
             (
                 "Deployment architecture",
@@ -392,15 +392,9 @@ STAGES = [
             ),
             (
                 "Design direction",
-                "/design-consultation",
-                "gstack",
-                "DESIGN.md with aesthetic, type, colour, spacing, motion",
-            ),
-            (
-                "Three variants to choose from",
                 "design-directions",
                 "bearing",
-                "three distinct HTML variants, comparison board, approved.json",
+                "one impeccable direction round over the real screens when impeccable is installed, three variants without it; a comparison board and approved.json",
             ),
             (
                 "Design system and tokens",
@@ -412,7 +406,7 @@ STAGES = [
                 "Screen designs",
                 "screen-design",
                 "bearing",
-                "one HTML prototype per screen with every state, redlines",
+                "one HTML prototype per screen with every state, redlines, and data-needs.md listing the data each action reads and writes",
             ),
             (
                 "Theming",
@@ -430,7 +424,7 @@ STAGES = [
                 "Design review and iteration",
                 "design-critique",
                 "bearing",
-                "ten scored categories with evidence on prototypes or a URL, an AI-slop detector, approved fixes, a re-score; used while only prototypes exist; once the app runs in a browser, the workflow calls gstack /design-review",
+                "twelve scored categories, task cost among them, with evidence on prototypes or a URL, an AI-slop detector, approved fixes, a re-score; used while only prototypes exist; once the app runs in a browser, the workflow calls gstack /design-review",
             ),
             (
                 "Copy and clarity",
@@ -991,6 +985,7 @@ NOTES = [
     "analytics-events serves two rows: under Set up the repository it designs the sheet and wires the SDK once; under Build a task it adds one feature's events against that sheet. Same skill, two moments.",
     "explain-codebase serves two rows as well: Discover (a repository you do not know) and Build a task (the subsystem you are about to change).",
     "tracker-sync appears under Plan and under Ship: ticket creation first, then the status and the MR link. With BEARING_TRACKER=none both rows are skipped with a note; rest (any server speaking the REST tracker protocol) is one adapter among none, jira, gitlab and github (docs/TRACKERS.md).",
+    "Screens come before the contract: ux-flows, design-directions, design-system and screen-design run first, and the screens' data-needs.md feeds data-model (--needs) and openapi-spec (api_doc.py needs), so the API and the tables are derived from what the screens show.",
     "Design review changes skill with time: design-critique while only prototypes exist, gstack /design-review once the app runs in a browser.",
 ]
 
@@ -1181,7 +1176,7 @@ ROLES = [
             ("Discover", "Normalise the PRD"),
             ("Discover", "Backlog from the PRD"),
             ("Design the product", "UX flows from the spec"),
-            ("Design the product", "Three variants to choose from"),
+            ("Design the product", "Design direction"),
         ],
     ),
     (

@@ -13,9 +13,13 @@
       "properties": {
         "name": { "type": "string", "description": "Product name." },
         "version": { "type": "integer", "minimum": 1, "description": "Bump on every breaking change to a role or scale." },
-        "source": { "type": "string", "description": "Where the direction came from: DESIGN.md, a variant path, a CSS file, or 'brief'." },
+        "source": { "type": "string", "description": "Where the direction came from. 'design-md' (root DESIGN.md frontmatter tokens) and 'approved-direction' (the picked direction in approved.json) are hash-checked sources; otherwise a DESIGN.md path, a variant path, a CSS file, or 'brief'." },
+        "sourcePath": { "type": "string", "description": "The hash-checked source, relative to the repository root: DESIGN.md or docs/design/variants/<feature>/approved.json." },
+        "sourceHash": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$", "description": "sha256 of sourcePath's bytes when the tokens were derived (design-lint.sh --hash); design-lint.sh --sync compares it with the file now." },
         "memorable": { "type": "string", "description": "The one thing a first-time user should remember. Every token serves it." }
-      }
+      },
+      "if": { "properties": { "source": { "enum": ["design-md", "approved-direction"] } } },
+      "then": { "required": ["sourcePath", "sourceHash"] }
     },
     "color": {
       "type": "object",

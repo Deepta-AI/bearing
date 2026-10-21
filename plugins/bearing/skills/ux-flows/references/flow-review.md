@@ -100,3 +100,12 @@ a notification) has a path for each session state, and every count shown
 before an action matches what the server will do on that date. On a
 re-issue, every review note, sign-off and ticket citing a changed or
 removed screen is listed.
+
+## F14. Task cost
+
+Every task path fits its budget (3 screens and 6 interactions primary,
+5 and 10 secondary, or the project's own) or carries `over: <reason>`
+with a reason from `references/task-paths.md`. Every story the inventory
+serves has a task path. The result comes from the `task paths:` line of
+flows_check.py, not from counting. A destructive action's confirmation is
+kept and counted, never removed to fit.

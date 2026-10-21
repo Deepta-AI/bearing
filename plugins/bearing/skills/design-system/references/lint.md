@@ -11,7 +11,11 @@ spacing and font sizes off the scale, including px inside style-object
 strings (`padding: "6px 12px"`), rem at 16 px, and Tailwind arbitrary
 values; shadows on non-pressable elements; raw `<button>`, `<input>`,
 `<table>` and friends outside `components/ui` (`DESIGN_LINT_LIBRARY` for
-another library folder); one-off font families.
+another library folder); one-off font families. It is pattern-based: a
+colour built in a variable named `brand`, or a value split across lines,
+is missed, so review the diff too. A Tailwind 3 config reading
+`hsl(var(--x))` with a hex in `--x` compiles and renders nothing; grep
+the config before writing a value (Read the repo, item 1).
 
 1. Gate only what was asked: set `DESIGN_LINT_RULES` in the Makefile
 (colour, spacing, font-size, shadow, raw, family). "Colours and px"
@@ -39,3 +43,30 @@ change; tell the team that, with the command, in the report.
 4. Prove it: add a new colour and an off-scale value in a scratch file,
 run `make check`, see it fail, remove them. If the check has tests,
 they run under `make check` in the CI image too.
+
+## The hash check (tokens-sync)
+
+Installed only when `docs/design/tokens.json` holds `meta.sourceHash`
+(tokens derived from root `DESIGN.md` frontmatter or a picked direction in
+`approved.json`). It is a mode of the same installed script, so no second
+file is copied: add a `tokens-sync` target running
+`sh scripts/design-lint.sh --sync` and list it under `check` next to
+`design-lint`. A rerun of design-system from a source with no hash
+removes the target with `meta.sourcePath` and `meta.sourceHash`. Its lines,
+where `<source>` is `meta.sourcePath` (`DESIGN.md`, or
+`docs/design/variants/<feature>/approved.json` for a picked direction):
+
+- pass: `tokens-sync: 1 source checked, <source> matches tokens.json (sha256:<first 12>)`
+- drift: `tokens-sync: 1 source checked, failed`, then
+  `tokens-sync: <source> is sha256:<new>, tokens.json was derived from sha256:<old>; rerun design-system to re-derive the tokens`
+- moved source: an `approved-direction` source with root `DESIGN.md` now
+  carrying frontmatter tokens prints the same count line, then names both
+  files
+- zero input: `tokens-sync: 0 sources checked (<file> missing)` or
+  `(no meta.sourceHash in <tokens>)`
+- no hasher: `tokens-sync: no sha256 tool (sha256sum, shasum or openssl)`
+
+Each failure exits 1. `DESIGN_TOKENS`, `DESIGN_SOURCE` and `DESIGN_ROOT`
+override the paths (the script header says how). Prove it as in item 4:
+append a line to the source, see `make check` fail with both hashes,
+revert it.

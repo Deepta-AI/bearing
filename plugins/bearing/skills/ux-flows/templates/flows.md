@@ -242,6 +242,23 @@ sequenceDiagram
 
 Dead ends: 0
 
+## Task paths
+
+<!-- What: one row per task, the cheapest route a user takes to finish it,
+     counted by flows_check.py. Syntax and budgets: references/task-paths.md.
+     Good: one primary row per story (or per job when there are no
+     stories), secondary rows for settings and admin; every segment but the
+     last names the interaction that leaves it; counts match the path; a
+     task over budget is redesigned first, and writes "over: <reason>" only
+     for a legal confirmation, a provider-owned payment step or a
+     destructive action's confirmation.
+     Example: Invite a member | US-01 | primary | S-01 | S-01: tap Invite,
+     tap Send > S-02 | 2 | 2 | -->
+
+| Task | Story | Kind | Entry | Path | Screens | Interactions | Over |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| <verb noun> | US-.. | primary | S-01 | S-01: <tap X>, <tap Y> > S-02 | 2 | 2 | |
+
 ## 7. Interaction inventory
 
 <!-- What: every control on every screen with its label, type, target size,

@@ -53,10 +53,50 @@ assert_not_contains "$T_OUT" "@latest" "no unpinned npm fetch"
 assert_contains "$T_OUT" "would copy $KIT/plugins/bearing/templates/user/bearing.env -> $ENVF (mode 600)"
 assert_contains "$T_OUT" "would copy $KIT/plugins/bearing/templates/user/CLAUDE.md -> ~/.claude/CLAUDE.md"
 assert_contains "$T_OUT" "would run  bash $KIT/plugins/bearing/bin/brg-doctor"
-assert_contains "$T_OUT" "install.sh: 9 installed, 0 already present, 1 skipped, 0 failed (dry run: nothing is changed)"
+assert_contains "$T_OUT" "install.sh: 10 installed, 0 already present, 1 skipped, 0 failed (dry run: nothing is changed)"
 assert_contains "$T_OUT" "Restart Claude Code to load new plugins."
 assert_eq "" "$(tree "$fh")" "nothing created under the fake HOME"
 _t_count; [ -e "$ENVF" ] && _t_fail "env file was created under --dry-run: $ENVF"
+t_end
+
+t_begin "--dry-run: standard installs impeccable at its pin; minimal and --skip-impeccable do not"
+isha="$(awk -F'|' '$1=="cli" && $2=="pbakaus/impeccable" {print $3}' "$pins")"
+skv="$(awk -F'|' '$1=="npm" && $2=="skills" {print $3}' "$pins")"
+_t_count; printf '%s' "$isha" | grep -Eq '^[0-9a-f]{40}$' || _t_fail "impeccable is not pinned to a full commit: '$isha'"
+assert_exit 0 under_fake --dry-run
+assert_contains "$T_OUT" "would run  npx --yes skills@$skv add pbakaus/impeccable#$isha -a claude-code -g -y"
+assert_exit 0 under_fake --dry-run --profile minimal
+assert_not_contains "$T_OUT" "pbakaus/impeccable"
+assert_exit 0 under_fake --dry-run --skip-impeccable
+assert_contains "$T_OUT" "skipped    impeccable"
+t_end
+
+t_begin "--skip-impeccable holds on --profile full: no impeccable install, and brg-install-packs is told"
+assert_exit 0 under_fake --dry-run --profile full --skip-impeccable; runs=$((runs+1))
+assert_contains "$T_OUT" "would run  bash $KIT/plugins/bearing/bin/brg-install-packs --skip-impeccable"
+assert_not_contains "$T_OUT" "add pbakaus/impeccable"
+# brg-install-packs itself skips the row: a stub npx records every call.
+calls="$(tmpdir)/calls"; sh_stubs="$(tmpdir)"
+printf '#!/bin/sh\necho "$*" >> "%s"\nexit 0\n' "$calls" > "$sh_stubs/npx"; chmod +x "$sh_stubs/npx"
+env -u XDG_CONFIG_HOME HOME="$fh" PATH="$sh_stubs:$stubs:$PATH" bash "$KIT/plugins/bearing/bin/brg-install-packs" --skip-official --skip-playwright --skip-pinned --skip-impeccable > "$sh_stubs/out" 2>&1
+T_OUT="$(cat "$sh_stubs/out")"
+assert_contains "$T_OUT" "skipped    pbakaus/impeccable (impeccable; --skip-impeccable)"
+_t_count; grep -q 'pbakaus/impeccable' "$calls" && _t_fail "brg-install-packs ran the impeccable install under --skip-impeccable"
+_t_count; grep -q 'differential-review\|trailofbits' "$calls" || _t_fail "the stub npx saw no other cli row, so the check examined nothing"
+t_end
+
+t_begin "impeccable already installed under ~/.agents is present, not reinstalled"
+ah="$(tmpdir)"; mkdir -p "$ah/.agents/skills/impeccable"
+assert_exit 0 env -u XDG_CONFIG_HOME HOME="$ah" PATH="$stubs:$PATH" bash "$INSTALL" --dry-run
+assert_contains "$T_OUT" "present    impeccable"
+assert_not_contains "$T_OUT" "add pbakaus/impeccable"
+t_end
+
+t_begin "a pin file without the impeccable row fails with a message"
+kit2="$(tmpdir)"; mkdir -p "$kit2/plugins"; cp "$INSTALL" "$kit2/install.sh"; cp -R "$KIT/plugins/bearing" "$kit2/plugins/bearing"
+grep -v 'pbakaus/impeccable' "$KIT/plugins/bearing/bin/pinned-packs.txt" > "$kit2/plugins/bearing/bin/pinned-packs.txt"
+assert_exit 1 env -u XDG_CONFIG_HOME HOME="$fh" PATH="$stubs:$PATH" bash "$kit2/install.sh" --dry-run
+assert_contains "$T_OUT" "FAILED     impeccable: no cli|pbakaus/impeccable or npm|skills row"
 t_end
 
 t_begin "--dry-run --profile full: packs would run, still nothing changes"
@@ -70,7 +110,7 @@ t_begin "--no-claude --dry-run --profile minimal prints the harness instruction"
 assert_exit 0 under_fake --no-claude --dry-run --profile minimal; runs=$((runs+1))
 assert_contains "$T_OUT" "(profile minimal)"
 assert_contains "$T_OUT" "skipped    claude plugin marketplace and plugin install (--no-claude)"
-assert_contains "$T_OUT" "skipped    superpowers, gstack, GSD Core (--no-claude)"
+assert_contains "$T_OUT" "skipped    superpowers, gstack, GSD Core, impeccable (--no-claude)"
 assert_contains "$T_OUT" "skipped    ~/.claude/CLAUDE.md (--no-claude)"
 assert_contains "$T_OUT" "skipped    brg-doctor (checks the Claude Code install; --no-claude)"
 assert_contains "$T_OUT" "next: in each repository run  bash $KIT/plugins/bearing/bin/brg-harness <cursor|codex|gemini|copilot|opencode|windsurf|cline|zed|kiro|all> --dir <repo>"

@@ -3,10 +3,11 @@
 # first real run skipped every skill no gate checked. The decide gate
 # needs a product profile (ui, data, api, deploy). architecture needs a C4
 # file with a diagram and an architecture.json whose SVGs pass
-# diagram_check. design adds, by profile, the data model, the API contract
-# and a deployment architecture with its diagram, after arch_check
-# and (profile data) model_check pass. ux runs the flows, contrast,
-# screen-state and design-bundle checkers for a UI. test_cases runs cases_check.
+# diagram_check. design adds, by profile, a deployment architecture with
+# its diagram after arch_check passes. ux runs the flows, contrast,
+# screen-state and design-bundle checkers for a UI. contract, after the
+# screens, needs the data model, API contract and threat model, checked
+# against the screens' data needs. test_cases runs cases_check.
 # build needs make build too when the Makefile records it. test_automation
 # needs every automatable TC id named by a test. design_review
 # needs a review for a UI. dod refuses a profile the code contradicts.
@@ -87,7 +88,7 @@ datamodel() { cp "$KIT/plugins/bearing/skills/data-model/templates/"{schema.sql,
 
 t_begin "the stage list runs architecture, ux, test cases and test automation in order"
 assert_exit 0 python3 "$AP" stages
-assert_eq "repo branch prd stories decide architecture design repos ux lld test_cases build test_automation design_review review dod mr" "$(printf '%s' "$T_OUT" | tr '\n' ' ' | sed 's/ $//')" "stage order"
+assert_eq "repo branch prd stories decide architecture design repos ux contract lld test_cases build test_automation design_review review dod mr" "$(printf '%s' "$T_OUT" | tr '\n' ' ' | sed 's/ $//')" "stage order"
 t_end
 
 t_begin "decide needs the product profile, recorded in the digest"
@@ -126,50 +127,170 @@ assert_contains "$T_OUT" "1 C4 file(s), 1 mermaid diagram(s); diagram-check: 3 d
 assert_contains "$T_OUT" " 0 problems"
 t_end
 
-t_begin "design requires the data model, API contract and deployment the profile names"
+t_begin "design requires the HLD and the deployment the profile names"
 at design; profile yes yes yes yes
-mkdir -p "$d/docs/design" "$d/docs/architecture" "$d/api"
+mkdir -p "$d/docs/design" "$d/docs/architecture"
 printf '# HLD\n' > "$d/docs/design/x-hld.md"; printf '# LLD\n' > "$d/docs/design/x-lld.md"
 assert_exit 1 ap "done" design
-assert_contains "$T_OUT" "docs/design/data-model.md (data-model)"
-assert_contains "$T_OUT" "api/openapi.yaml (openapi-spec)"
 assert_contains "$T_OUT" "docs/architecture/deployment.md (deployment-architecture)"
-printf '# Data model\n' > "$d/docs/design/data-model.md"; printf 'openapi: 3.1.0\n' > "$d/api/openapi.yaml"
+assert_not_contains "$T_OUT" "data-model.md"
+assert_not_contains "$T_OUT" "openapi.yaml"
 printf '# Deployment\nno picture\n' > "$d/docs/architecture/deployment.md"
 assert_exit 1 ap "done" design
 assert_contains "$T_OUT" "arch_check failed"
 assert_contains "$T_OUT" "Gate: FAILED"
-archset "$d"; threats "$d"
-assert_exit 1 ap "done" design
-assert_contains "$T_OUT" "model_check failed"
-datamodel "$d"
+archset "$d"
 assert_exit 1 ap "done" design
 assert_contains "$T_OUT" "docs/architecture/deployment.md has no mermaid diagram"
 mermaid "$d/docs/architecture/deployment.md" "Deployment"
 assert_exit 0 ap "done" design
-assert_contains "$T_OUT" "HLD 1, threat models 1, data model, API contract, deployment with 1 diagram(s)"
+assert_contains "$T_OUT" "HLD 1, deployment with 1 diagram(s)"
+assert_not_contains "$T_OUT" "threat models"
+t_end
+
+t_begin "contract requires the data model, API contract and threat model, from the screens' data needs"
+at contract; profile yes yes yes yes
+mkdir -p "$d/docs/design" "$d/api"
+assert_exit 1 ap "done" contract
+assert_contains "$T_OUT" "docs/design/data-model.md (data-model)"
+assert_contains "$T_OUT" "api/openapi.yaml (openapi-spec)"
+datamodel "$d"; printf 'openapi: 3.1.0\n' > "$d/api/openapi.yaml"
+assert_exit 1 ap "done" contract
+assert_contains "$T_OUT" "docs/security/threat-model-*.md (threat-model"
+threats "$d"
+assert_exit 1 ap "done" contract
+assert_contains "$T_OUT" "no docs/design/screens/*/data-needs.md (screen-design"
+mkdir -p "$d/docs/design/screens/invites" "$d/docs/design/flows/invites"
+cp "$KIT/tests/fixtures/data-needs/data-needs.md" "$d/docs/design/screens/invites/data-needs.md"
+cp "$KIT/tests/fixtures/data-needs/flows.md" "$d/docs/design/flows/invites/flows.md"
+cp "$KIT/tests/fixtures/data-needs/openapi.json" "$d/api/openapi.yaml"
+assert_exit 1 ap "done" contract
+assert_contains "$T_OUT" "model_check failed"
+assert_contains "$T_OUT" "data needs: 2 fields, 0 stored, 0 derived, 1 unmapped"
+replace_in "$d/docs/design/data-dictionary.csv" "US-01-003 AC1: the invoice page is addressed by id." "US-01-003 AC1: the invoice page is addressed by id; F-02 invite expiry."
+assert_exit 0 ap "done" contract
+assert_contains "$T_OUT" "data model, API contract, threat models 1; data needs: 3 actions, 3 mapped, 1 new operations; 4 outcomes, 0 without a response, 0 problems"
+t_end
+
+t_begin "contract runs the screens' data needs against the flows"
+at contract; profile yes no yes no
+mkdir -p "$d/docs/design/screens/invites" "$d/docs/design/flows/invites" "$d/api"; threats "$d"
+cp "$KIT/tests/fixtures/data-needs/data-needs.md" "$d/docs/design/screens/invites/data-needs.md"
+cp "$KIT/tests/fixtures/data-needs/openapi.json" "$d/api/openapi.yaml"
+assert_exit 1 ap "done" contract
+assert_contains "$T_OUT" "no docs/design/flows/invites/flows*.md for docs/design/screens/invites/data-needs.md"
+cp "$KIT/tests/fixtures/data-needs/flows.md" "$d/docs/design/flows/invites/flows.md"
+replace_in "$d/docs/design/flows/invites/flows.md" "| S-02 | Invite | US-01-001 | terminal |" "| S-02 | Invite | US-01-001 | terminal |
+| S-03 | Settings | US-01-001 | terminal |"
+assert_exit 1 ap "done" contract
+assert_contains "$T_OUT" "data needs check failed for docs/design/screens/invites/data-needs.md"
+cp "$KIT/tests/fixtures/data-needs/flows.md" "$d/docs/design/flows/invites/flows.md"
+replace_in "$d/api/openapi.yaml" '"x-data-needs": ["A-02"],' '"x-data-needs": [],'
+assert_exit 1 ap "done" contract
+assert_contains "$T_OUT" "needs check failed"
+assert_contains "$T_OUT" "2 mapped"
+cp "$KIT/tests/fixtures/data-needs/openapi.json" "$d/api/openapi.yaml"
+assert_exit 0 ap "done" contract
+assert_contains "$T_OUT" "API contract, threat models 1; data needs: 3 actions, 3 mapped"
+assert_contains "$T_OUT" "; profile: data=no"
+t_end
+
+t_begin "contract reads the newest flows file by version, and needs every screened feature's data needs"
+at contract; profile yes no yes no
+mkdir -p "$d/docs/design/screens/invites" "$d/docs/design/flows/invites" "$d/api"; threats "$d"
+cp "$KIT/tests/fixtures/data-needs/data-needs.md" "$d/docs/design/screens/invites/data-needs.md"
+cp "$KIT/tests/fixtures/data-needs/openapi.json" "$d/api/openapi.yaml"
+# flows.md and flows-v2.md list a screen the data needs lack; flows-v10.md is the newest and matches
+cp "$KIT/tests/fixtures/data-needs/flows.md" "$d/docs/design/flows/invites/flows-v10.md"
+cp "$KIT/tests/fixtures/data-needs/flows.md" "$d/docs/design/flows/invites/flows.md"
+replace_in "$d/docs/design/flows/invites/flows.md" "| S-02 | Invite | US-01-001 | terminal |" "| S-02 | Invite | US-01-001 | terminal |
+| S-03 | Settings | US-01-001 | terminal |"
+cp "$d/docs/design/flows/invites/flows.md" "$d/docs/design/flows/invites/flows-v2.md"
+printf '# notes\n\n| S-09 | Draft | US-01-001 | terminal |\n' > "$d/docs/design/flows/invites/flows-notes.md"
+assert_exit 0 ap "done" contract
+assert_contains "$T_OUT" "data needs: 3 actions, 3 mapped"
+at contract; profile yes no yes no
+mkdir -p "$d/docs/design/screens/invites" "$d/docs/design/flows/invites" "$d/docs/design/flows/billing" "$d/api"; threats "$d"
+cp "$KIT/tests/fixtures/data-needs/data-needs.md" "$d/docs/design/screens/invites/data-needs.md"
+cp "$KIT/tests/fixtures/data-needs/flows.md" "$d/docs/design/flows/invites/flows.md"
+cp "$KIT/tests/fixtures/data-needs/flows.md" "$d/docs/design/flows/billing/flows.md"
+cp "$KIT/tests/fixtures/data-needs/openapi.json" "$d/api/openapi.yaml"
+assert_exit 1 ap "done" contract
+assert_contains "$T_OUT" "features with screens but no data needs: billing (docs/design/screens/billing/data-needs.md, screen-design)"
+assert_not_contains "$T_OUT" "invites (docs"
+t_end
+
+t_begin "contract reads a YAML spec through uv with the pinned PyYAML, and names the missing dependency without either"
+at contract; profile yes no yes no
+mkdir -p "$d/docs/design/screens/invites" "$d/docs/design/flows/invites" "$d/api"; threats "$d"
+cp "$KIT/tests/fixtures/data-needs/data-needs.md" "$d/docs/design/screens/invites/data-needs.md"
+cp "$KIT/tests/fixtures/data-needs/flows.md" "$d/docs/design/flows/invites/flows.md"
+cp "$KIT/tests/fixtures/data-needs/openapi.yaml" "$d/api/openapi.yaml"
+assert_not_contains "$(head -1 "$d/api/openapi.yaml")" "{" "the spec is YAML, not JSON"
+if command -v uv >/dev/null 2>&1; then
+  assert_exit 0 ap "done" contract
+  assert_contains "$T_OUT" "API contract, threat models 1; data needs: 3 actions, 3 mapped"
+  python3 - "$d/.bearing/state/autopilot.json" <<'PY'
+import json, sys
+st = json.load(open(sys.argv[1])); st["stages"]["contract"]["status"] = "pending"; json.dump(st, open(sys.argv[1], "w"))
+PY
+else
+  echo "skip: uv is not on PATH, so the YAML pass through uv is not exercised here"
+fi
+# no uv on PATH and a python3 whose `import yaml` fails: the gate names the dependency
+nouv="$(tmpdir)"; blk="$(tmpdir)"
+ln -s "$(command -v python3)" "$nouv/python3"; ln -s "$(command -v git)" "$nouv/git"
+printf 'raise ImportError("PyYAML blocked by the test")\n' > "$blk/yaml.py"
+assert_exit 1 env PATH="$nouv" PYTHONPATH="$blk" "$nouv/python3" "$AP" "done" contract --dir "$d"
+assert_contains "$T_OUT" "needs check failed"
+assert_contains "$T_OUT" "api/openapi.yaml is YAML and neither uv nor PyYAML is installed"
+t_end
+
+t_begin "ui with data and no API still owes the data needs, checked against the flows and the model"
+at contract; profile yes yes no no
+mkdir -p "$d/docs/design" "$d/docs/design/flows/invites"; datamodel "$d"; threats "$d"
+cp "$KIT/tests/fixtures/data-needs/flows.md" "$d/docs/design/flows/invites/flows.md"
+assert_exit 1 ap "done" contract
+assert_contains "$T_OUT" "no docs/design/screens/*/data-needs.md (screen-design"
+mkdir -p "$d/docs/design/screens/invites"
+cp "$KIT/tests/fixtures/data-needs/data-needs.md" "$d/docs/design/screens/invites/data-needs.md"
+replace_in "$d/docs/design/data-dictionary.csv" "US-01-003 AC1: the invoice page is addressed by id." "US-01-003 AC1: the invoice page is addressed by id; F-02 invite expiry."
+replace_in "$d/docs/design/flows/invites/flows.md" "| S-02 | Invite | US-01-001 | terminal |" "| S-02 | Invite | US-01-001 | terminal |
+| S-03 | Settings | US-01-001 | terminal |"
+assert_exit 1 ap "done" contract
+assert_contains "$T_OUT" "data needs check failed for docs/design/screens/invites/data-needs.md"
+cp "$KIT/tests/fixtures/data-needs/flows.md" "$d/docs/design/flows/invites/flows.md"
+assert_exit 0 ap "done" contract
+assert_contains "$T_OUT" "data model, threat models 1; profile: api=no"
+assert_not_contains "$T_OUT" "data needs: 3 actions"
 t_end
 
 t_begin "a product that calls a model owes the GenAI solution, then guardrails and evals"
 at design; ap profile --ui no --data no --api no --deploy no --llm yes --scope full --why fixture >/dev/null
 assert_contains "$(ap status)" "llm=yes"
-archset "$d"; printf '# LLD\n' > "$d/docs/design/x-lld.md"; threats "$d"
+archset "$d"; printf '# LLD\n' > "$d/docs/design/x-lld.md"
 assert_exit 1 ap "done" design
 assert_contains "$T_OUT" "docs/genai/*-solution.md (genai-design"
-rm "$d/docs/security/threat-model-site.md"
-assert_exit 1 ap "done" design
-assert_contains "$T_OUT" "docs/security/threat-model-*.md (threat-model"
-threats "$d"
 mkdir -p "$d/docs/genai"; printf '# Q&A solution\n' > "$d/docs/genai/qa-solution.md"
 assert_exit 0 ap "done" design
-assert_contains "$T_OUT" "GenAI solution"
+assert_contains "$T_OUT" "HLD 1, GenAI solution; profile: deploy=no"
+at contract; ap profile --ui no --data no --api no --deploy no --llm yes --scope full --why fixture >/dev/null
+assert_exit 1 ap "done" contract
+assert_contains "$T_OUT" "docs/security/threat-model-*.md (threat-model"
+threats "$d"
+assert_exit 0 ap "done" contract
+assert_contains "$T_OUT" "threat models 1"
 t_end
 
-t_begin "a full-scope profile without data, API or deployment needs only the HLD and the threat model"
+t_begin "a full-scope profile without data or API needs only the threat model at contract"
 at design; ap profile --ui no --data no --api no --deploy no --scope full --why fixture >/dev/null
-archset "$d"; printf '# LLD\n' > "$d/docs/design/x-lld.md"; threats "$d"
+archset "$d"; printf '# LLD\n' > "$d/docs/design/x-lld.md"
 assert_exit 0 ap "done" design
-assert_contains "$T_OUT" "HLD 1, threat models 1; profile: data=no api=no deploy=no"
+assert_contains "$T_OUT" "HLD 1; profile: deploy=no"
+at contract; ap profile --ui no --data no --api no --deploy no --scope full --why fixture >/dev/null
+threats "$d"
+assert_exit 0 ap "done" contract
+assert_contains "$T_OUT" "threat models 1; profile: data=no api=no"
 t_end
 
 t_begin "the low-level design comes after the screens, one written this run"
@@ -193,6 +314,10 @@ assert_exit 1 ap "done" design
 python3 -c "print('# Search\n\n' + 'The search command reads the store through notes() and prints matches. ' * 4)" > "$d/docs/design/search.md"
 assert_exit 0 ap "done" design
 assert_contains "$T_OUT" "design note docs/design/search.md"
+assert_exit 0 ap "done" repos
+assert_exit 0 ap "done" ux
+assert_exit 0 ap "done" contract
+assert_contains "$T_OUT" "scope lean (no ui, data, api or deploy): the design note covers the contract"
 # an existing repository is lean whatever the profile says, unless the profile says full
 at architecture; python3 - "$d/.bearing/state/autopilot.json" <<'PY2'
 import json, sys
@@ -232,6 +357,8 @@ flows() {
     printf '| Id | Screen | Purpose | Serves | Entry from | Exits to | Status |\n| --- | --- | --- | --- | --- | --- | --- |\n'
     printf '| S-01 | Orders | list | US-01-001 | nav | S-02 | new |\n'
     printf '| S-02 | Done | receipt | US-01-001 | S-01 | terminal: the flow ends here | new |\n\n'
+    printf '## Task paths\n\n| Task | Story | Kind | Entry | Path | Screens | Interactions | Over |\n| --- | --- | --- | --- | --- | --- | --- | --- |\n'
+    printf '| Finish an order | US-01-001 | primary | S-01 | S-01: tap Done > S-02 | 2 | 1 | |\n\n'
     printf '## 2. Interaction states\n\n'; states S-01; states S-02
     printf '## 4. Navigation map\n\n```mermaid\nflowchart LR\n  S01[S-01 Orders] --> S02[S-02 Done]\n```\n'
   } > "$1"
@@ -359,6 +486,34 @@ rm "$d/web/src/features/orders/Bad.tsx"
 assert_exit 0 ap "done" ux
 assert_contains "$T_OUT" "direction: 2-ledger of 3 scored variants; motion spec; screen-gallery: 2 screens"
 assert_contains "$T_OUT" "design-lint passed"
+t_end
+
+t_begin "an impeccable pick counts as the chosen direction on react-shadcn"
+at ux; profile yes no no no
+flows "$d/docs/design/flows/orders/flows.md"; tokens "$d/docs/design/tokens.json"
+mkdir -p "$d/docs/design/variants/app"
+printf '{"source": "impeccable", "chosen": "harbour", "challengers": []}\n' > "$d/docs/design/variants/app/approved.json"
+assert_exit 1 ap "done" ux
+assert_contains "$T_OUT" "picked over no challenger"
+printf '{"source": "impeccable", "chosen": null, "challengers": ["ledger"]}\n' > "$d/docs/design/variants/app/approved.json"
+assert_exit 1 ap "done" ux
+assert_contains "$T_OUT" "no direction picked yet"
+printf '{"source": "impeccable", "chosen": "harbour", "challengers": ["ledger"]}\n' > "$d/docs/design/variants/app/approved.json"
+printf '{"source": "impeccable", "chosen": "harbour", "challengers": "ledger"}\n' > "$d/docs/design/variants/app/approved.json"
+assert_exit 1 ap "done" ux
+assert_contains "$T_OUT" "challengers must be a list of direction names"
+printf '{"source": "impeccable", "chosen": "harbour", "challengers": ["ledger", ""]}\n' > "$d/docs/design/variants/app/approved.json"
+assert_exit 1 ap "done" ux
+assert_contains "$T_OUT" "challengers must be a list of direction names"
+printf '{"source": "impeccable", "chosen": "harbour", "challengers": ["ledger", "harbour"]}\n' > "$d/docs/design/variants/app/approved.json"
+assert_exit 1 ap "done" ux
+assert_contains "$T_OUT" "harbour is both chosen and a challenger"
+printf '{"source": "impeccable", "chosen": "harbour", "challengers": ["ledger"]}\n' > "$d/docs/design/variants/app/approved.json"
+assert_exit 1 ap "done" ux
+assert_contains "$T_OUT" "no docs/design/motion.md (motion-design)"
+printf '{"source": "bearing", "chosen": "harbour", "challengers": ["ledger"]}\n' > "$d/docs/design/variants/app/approved.json"
+assert_exit 1 ap "done" ux
+assert_contains "$T_OUT" "0 scored variants; a direction is chosen from 3"
 t_end
 
 t_begin "ux and design review pass without a UI in the profile"

@@ -68,23 +68,36 @@ STAGES = [
      "product profile (ui, data, api, deploy) is recorded"),
     ("architecture", "architecture-diagram (scope full); lean: nothing, the existing shape stands",
      "scope full: at least one docs/architecture/*-c4.md with a mermaid diagram; lean: nothing"),
-    ("design", "scope full: high-level-design, then data-model (profile data), openapi-spec (profile api), "
-     "deployment-architecture (profile deploy), threat-model, genai-design (profile llm); lean: "
-     "low-level-design as one note",
-     "scope full: docs/design/*-hld.md, docs/security/threat-model-*.md passing threats_check; "
-     "by profile, docs/design/data-model.md, api/openapi.yaml, docs/architecture/deployment.md with a "
-     "mermaid diagram and docs/genai/*-solution.md; lean: one docs/design/*.md written this run"),
+    ("design", "scope full: high-level-design, then deployment-architecture (profile deploy) and "
+     "genai-design (profile llm); the data model, API contract and threat model wait for the screens "
+     "(contract); lean: low-level-design as one note",
+     "scope full: docs/design/*-hld.md passing arch_check; by profile, docs/architecture/deployment.md "
+     "with a mermaid diagram and docs/genai/*-solution.md; lean: one docs/design/*.md written this run"),
     ("repos", "scope full: new-repo for each docs/architecture/repo-plan.json entry, beside this repository "
      "(headless: brg-autopilot repos-request); lean: nothing",
      "scope full: every repo-plan entry other than this repository is a git repository beside it whose "
      "make check records a pass and has passed; lean: nothing"),
     ("ux", "profile ui, scope full: ux-flows, design-directions --unattended, design-system, motion-design, "
-     "then screen-design; lean: the existing screens and design system are the precedent",
+     "then screen-design --unattended with each feature's data-needs.md; lean: the existing screens and design system "
+     "are the precedent",
      "profile ui: flows passing flows_check and tokens passing contrast; on react-shadcn (the default) "
-     "a direction chosen from 3 scored variants, docs/design/motion.md, every screen in the design "
-     "gallery passing gallery_check, and design-lint; on another stack HTML screens passing states_check"),
-    # after the screens: a front-end component's design needs them (the handbook's
-    # greenfield order), and the server components' designs need the API and data
+     "a chosen direction (an impeccable pick over at least one challenger, or the highest of 3 scored "
+     "variants), docs/design/motion.md, every screen in the design gallery passing gallery_check, and "
+     "design-lint; on another stack HTML screens passing states_check"),
+    # the contract follows the screens: the API and the data model answer
+    # what each screen's data-needs.md says it shows and does
+    ("contract", "scope full: data-model (profile data), openapi-spec (profile api), then threat-model, "
+     "all from docs/design/screens/*/data-needs.md; lean: the design note covers the contract",
+     "scope full: docs/security/threat-model-*.md passing threats_check; by profile, "
+     "docs/design/data-model.md passing model_check (with --needs) and api/openapi.yaml; profile ui with "
+     "data or api: a docs/design/screens/<feature>/data-needs.md for every feature whose flows list "
+     "screens, passing states_check --needs against the newest flows file, and (profile api) "
+     "api_doc.py needs; lean: nothing"),
+    # after the contract, as in the handbook's greenfield order (screens, then
+    # data model, API and threat model, then low-level design): a front-end
+    # component's design names the screens, a server component's design needs
+    # the API and the data model. The handbook's design-critique of the screens
+    # runs here as design_review, on the running app after the build.
     ("lld", "scope full: low-level-design, one per component in the HLD's What gets built table that "
      "this run builds; lean: the design note already is the low-level design",
      "scope full: at least one docs/design/*-lld.md written this run; lean: nothing"),
@@ -99,7 +112,7 @@ STAGES = [
      "every case in docs/testing/test-cases.md not manual-only or retired is named by its TC id in a "
      "test file, and make check passed after the last change; profile llm: guardrails/policy.yaml and "
      "docs/genai/evals.md"),
-    ("design_review", "profile ui: design-critique on the design gallery of the running app",
+    ("design_review", "profile ui: design-critique --unattended on the design gallery of the running app",
      "profile ui: a review scoring overall 8.0 with no category below 7 and every screenshot present; "
      "otherwise nothing"),
     ("review", "branch-review",
@@ -139,11 +152,29 @@ def load(d):
         print("brg-autopilot: no run here; start one with: brg-autopilot start \"<statement>\"", file=sys.stderr)
         sys.exit(1)
     st = json.load(open(p))
+    carry_contract(st)
     # a run started by an older brg-autopilot lacks the stages added since;
     # they join as pending so the run continues instead of failing on a key
     for n in NAMES:
         st["stages"].setdefault(n, {"status": "pending", "attempts": 0, "checked": "", "notes": []})
     return st
+
+
+CARRIED = "carried from the old design gate, which checked the data model, API contract and threat models"
+
+
+def carry_contract(st):
+    """A run from before the contract stage, resumed with design done and a
+    stage after ux done: its old design gate already held the data model,
+    API contract and threat models, so contract is marked done rather than
+    pulling the run back behind its low-level design."""
+    stages = st.get("stages") or {}
+    if "contract" in stages or (stages.get("design") or {}).get("status") != "done":
+        return
+    later = NAMES[NAMES.index("contract") + 1:]
+    if any((stages.get(n) or {}).get("status") == "done" for n in later):
+        stages["contract"] = {"status": "done", "attempts": 0, "checked": CARRIED, "notes": [CARRIED]}
+        print(f"brg-autopilot: contract {CARRIED}", file=sys.stderr)
 
 
 def save(d, st):
@@ -318,6 +349,30 @@ def checker(d, script, *args):
     return r.returncode == 0, (lines[-1].strip() if lines else f"{script}: no output")
 
 
+# openapi-spec writes YAML; api_doc.py reads it with PyYAML, which a plain
+# python3 rarely has. Run it as openapi-spec does, through uv with the pinned
+# PyYAML (pinned-packs.txt); --no-project keeps uv from syncing the product's
+# own pyproject.toml.
+YAML_PYTHON = "uv run --quiet --no-project --with pyyaml==6.0.3 python".split()
+
+
+def api_needs(d, spec, needs):
+    """api_doc.py needs over the screens' data needs; (passed, the first
+    problem and the counts line). Without uv it falls back to python3, and a
+    YAML spec there fails naming the missing dependency."""
+    interp = YAML_PYTHON if shutil.which("uv") else ["python3"]
+    r = sh([*interp, os.path.join(KIT, "skills", "openapi-spec/scripts/api_doc.py"), "needs",
+            "--spec", spec, "--needs", *needs], d)
+    out = r.stdout + r.stderr
+    if r.returncode != 0 and "PyYAML is not installed" in out:
+        return False, (f"{os.path.relpath(spec, d)} is YAML and neither uv nor PyYAML is installed "
+                       "(install uv, or PyYAML 6.0.3 for python3)")
+    lines = [l_.strip() for l_ in out.splitlines() if l_.strip()]
+    last = lines[-1] if lines else "api_doc.py needs: no output"
+    first = next((l_ for l_ in lines if l_.startswith("problem:")), "")
+    return r.returncode == 0, (f"{first}; {last}" if first and r.returncode != 0 else last)
+
+
 def rels(d, pattern):
     return sorted(os.path.relpath(p, d) for p in glob.glob(os.path.join(d, pattern), recursive=True))
 
@@ -352,44 +407,92 @@ def g_design(d, st):
         return True, f"scope lean ({scope_why(st)}): design note {', '.join(notes)}"
     h = rels(d, "docs/design/*-hld.md")
     missing = [] if h else ["docs/design/*-hld.md (high-level-design)"]
-    need = [("data", "docs/design/data-model.md", "data-model"),
-            ("api", "api/openapi.yaml", "openapi-spec"),
-            ("deploy", "docs/architecture/deployment.md", "deployment-architecture")]
-    missing += [f"{rel} ({skill})" for key, rel, skill in need
-                if wants(st, key) and not os.path.isfile(os.path.join(d, rel))]
+    if wants(st, "deploy") and not os.path.isfile(os.path.join(d, "docs/architecture/deployment.md")):
+        missing.append("docs/architecture/deployment.md (deployment-architecture)")
     if missing:
         return False, "missing: " + ", ".join(missing)
     ok, last = checker(d, "high-level-design/scripts/arch_check.py", *[os.path.join(d, x) for x in h],
                        "--arch", os.path.join(d, "docs/architecture"), "--adr-dir", os.path.join(d, "docs/adr"))
     if not ok:
         return False, f"arch_check failed: {last}"
-    if wants(st, "data"):
-        ok, last = checker(d, "data-model/scripts/model_check.py", "--dir", os.path.join(d, "docs/design"))
-        if not ok:
-            return False, f"model_check failed: {last}"
-    threats = rels(d, "docs/security/threat-model-*.md")
-    if not threats:
-        return False, "missing: docs/security/threat-model-*.md (threat-model: it needs the HLD, data model and API)"
-    for t in threats:
-        ok, last = checker(d, "threat-model/scripts/threats_check.py", os.path.join(d, t))
-        if not ok:
-            return False, f"threats_check failed for {t}: {last}"
     if wants(st, "llm") and not rels(d, "docs/genai/*-solution.md"):
         return False, "missing: docs/genai/*-solution.md (genai-design: the profile says the product calls a model)"
-    parts = [f"HLD {len(h)}, threat models {len(threats)}"]
+    parts = [f"HLD {len(h)}"]
     if wants(st, "llm"):
         parts.append("GenAI solution")
-    if wants(st, "data"):
-        parts.append("data model")
-    if wants(st, "api"):
-        parts.append("API contract")
     if wants(st, "deploy"):
         n = diagrams(d, "docs/architecture/deployment.md")
         if n == 0:
             return False, "docs/architecture/deployment.md has no mermaid diagram"
         parts.append(f"deployment with {n} diagram(s)")
-    off = [f"{k}=no" for k in ("data", "api", "deploy") if not wants(st, k)]
-    return True, ", ".join(parts) + (f"; profile: {' '.join(off)}" if off else "")
+    return True, ", ".join(parts) + ("" if wants(st, "deploy") else "; profile: deploy=no")
+
+
+SCREEN_ROW = re.compile(r"^\|\s*S-\d+\s*\|", re.M)
+
+
+def screened_features(d):
+    """Feature folders under docs/design/flows whose newest flows file lists
+    at least one screen (an S-nn row)."""
+    return [os.path.basename(os.path.dirname(f)) for f in newest_flows(rels(d, "docs/design/flows/*/flows*.md"))
+            if SCREEN_ROW.search(read(d, f))]
+
+
+def g_contract(d, st):
+    """The data model, the API contract and the threat model, after the
+    screens: each screen's data-needs.md says what it shows and what it asks
+    the server to do, and the contract answers exactly that."""
+    if scope(st) == "lean":
+        return True, f"scope lean ({scope_why(st)}): the design note covers the contract"
+    need = [("data", "docs/design/data-model.md", "data-model"), ("api", "api/openapi.yaml", "openapi-spec")]
+    missing = [f"{rel} ({skill})" for key, rel, skill in need
+               if wants(st, key) and not os.path.isfile(os.path.join(d, rel))]
+    if missing:
+        return False, "missing: " + ", ".join(missing)
+    threats = rels(d, "docs/security/threat-model-*.md")
+    if not threats:
+        return False, "missing: docs/security/threat-model-*.md (threat-model: it needs the data model and API)"
+    for t in threats:
+        ok, last = checker(d, "threat-model/scripts/threats_check.py", os.path.join(d, t))
+        if not ok:
+            return False, f"threats_check failed for {t}: {last}"
+    needs = rels(d, "docs/design/screens/*/data-needs.md")
+    # the data model and the API both derive from the screens: a UI product
+    # with either owes every screened feature's data-needs.md
+    if wants(st, "ui") and (wants(st, "data") or wants(st, "api")):
+        if not needs:
+            return False, ("no docs/design/screens/*/data-needs.md (screen-design: the API and data model "
+                           "derive from the screens' data needs)")
+        lacking = [f for f in screened_features(d)
+                   if not os.path.isfile(os.path.join(d, f"docs/design/screens/{f}/data-needs.md"))]
+        if lacking:
+            return False, ("features with screens but no data needs: "
+                           + ", ".join(f"{f} (docs/design/screens/{f}/data-needs.md, screen-design)" for f in lacking))
+    if wants(st, "data"):
+        ok, last = checker(d, "data-model/scripts/model_check.py", "--dir", os.path.join(d, "docs/design"),
+                           *(["--needs", *[os.path.join(d, n) for n in needs]] if needs else []))
+        if not ok:
+            return False, f"model_check failed: {last}"
+    if wants(st, "ui"):
+        for n in needs:
+            feature = os.path.basename(os.path.dirname(n))
+            fl = feature_flows(d, feature)
+            if not fl:
+                return False, f"no docs/design/flows/{feature}/flows*.md for {n} (ux-flows)"
+            ok, last = checker(d, "screen-design/scripts/states_check.py", "--needs", os.path.join(d, n),
+                               "--flows", os.path.join(d, fl))
+            if not ok:
+                return False, f"data needs check failed for {n}: {last}"
+    needs_line = ""
+    if wants(st, "api") and needs:
+        ok, needs_line = api_needs(d, os.path.join(d, "api/openapi.yaml"), [os.path.join(d, n) for n in needs])
+        if not ok:
+            return False, f"needs check failed: {needs_line}"
+    parts = [label for key, label in (("data", "data model"), ("api", "API contract")) if wants(st, key)]
+    parts.append(f"threat models {len(threats)}")
+    off = [f"{k}=no" for k in ("data", "api") if not wants(st, k)]
+    return True, (", ".join(parts) + (f"; {needs_line}" if needs_line else "")
+                  + (f"; profile: {' '.join(off)}" if off else ""))
 
 
 PLAN = "docs/architecture/repo-plan.json"
@@ -491,8 +594,8 @@ def g_ux(d, st):
         return False, "no docs/design/screens/<feature>/*.html (screen-design)"
     for feat in features:
         name = os.path.basename(feat)
-        fl = sorted(rels(d, f"docs/design/flows/{name}/flows*.md"))
-        args = ["--screens", os.path.join(d, feat)] + (["--flows", os.path.join(d, fl[-1])] if fl else [])
+        fl = feature_flows(d, name)
+        args = ["--screens", os.path.join(d, feat)] + (["--flows", os.path.join(d, fl)] if fl else [])
         ok, last = checker(d, "screen-design/scripts/states_check.py", *args)
         if not ok:
             return False, f"states_check failed for {feat}: {last}"
@@ -504,19 +607,40 @@ def g_ux(d, st):
                   f"screens: {len(features)} feature(s) passed; {last}")
 
 
+FLOWS_FILE = re.compile(r"^flows(?:-v(\d+))?\.md$")
+
+
+def flows_version(path):
+    """flows.md is version 1, flows-v<n>.md version n; any other name is None.
+    ux-flows writes flows-v<n+1>.md beside the old file, and a text sort put
+    flows.md after flows-v2.md and flows-v2.md after flows-v10.md."""
+    m = FLOWS_FILE.match(os.path.basename(path))
+    return (int(m.group(1)) if m.group(1) else 1) if m else None
+
+
 def newest_flows(flows):
-    """The newest flows file per feature folder (flows-v2.md over flows.md)."""
+    """The newest flows file per feature folder, by version number
+    (flows-v10.md over flows-v2.md over flows.md); flows-notes.md is not one."""
     by_feature = {}
     for f in flows:
-        by_feature.setdefault(os.path.dirname(f), []).append(f)
-    return [sorted(v)[-1] for _, v in sorted(by_feature.items())]
+        if flows_version(f) is not None:
+            by_feature.setdefault(os.path.dirname(f), []).append(f)
+    return [max(v, key=flows_version) for _, v in sorted(by_feature.items())]
+
+
+def feature_flows(d, feature):
+    """The newest flows file of one feature folder, or ""."""
+    fl = newest_flows(rels(d, f"docs/design/flows/{feature}/flows*.md"))
+    return fl[0] if fl else ""
 
 
 def ux_screens_as_code(d, flows):
-    """The react-shadcn design pipeline: a direction chosen from three scored
-    variants, a motion spec, every screen as a *.screen.tsx in the design
-    gallery with every state, and design-lint over the app. Screens drawn as
-    HTML beside the app drifted from it; screens as code cannot."""
+    """The react-shadcn design pipeline: a chosen direction, a motion spec,
+    every screen as a *.screen.tsx in the design gallery with every state, and
+    design-lint over the app. Screens drawn as HTML beside the app drifted
+    from it; screens as code cannot. The direction comes from impeccable's one
+    round (source impeccable: a pick over at least one challenger) or from
+    Bearing's own variants (source bearing or absent: the highest of 3 scored)."""
     approved = rels(d, "docs/design/variants/*/approved.json")
     if not approved:
         return False, "no chosen design direction: docs/design/variants/*/approved.json (design-directions)"
@@ -524,12 +648,27 @@ def ux_screens_as_code(d, flows):
         rec = json.load(open(os.path.join(d, approved[-1])))
     except (OSError, ValueError) as e:
         return False, f"{approved[-1]} does not parse: {e}"
-    scores = rec.get("scores") or rec.get("ratings") or {}
     chosen = rec.get("chosen") or ""
-    if len(scores) < 3:
-        return False, f"{approved[-1]}: {len(scores)} scored variants; a direction is chosen from 3"
-    if chosen not in scores:
-        return False, f"{approved[-1]}: chosen {chosen or 'nothing'} is not one of the scored variants"
+    if rec.get("source") == "impeccable":
+        rivals = rec.get("challengers")
+        if not chosen:
+            return False, f"{approved[-1]}: no direction picked yet (impeccable round; chosen is empty)"
+        if rivals is None:
+            rivals = []
+        if not isinstance(rivals, list) or not all(isinstance(c, str) and c.strip() for c in rivals):
+            return False, f"{approved[-1]}: challengers must be a list of direction names, got {json.dumps(rivals)}"
+        if chosen in rivals:
+            return False, f"{approved[-1]}: {chosen} is both chosen and a challenger"
+        if not rivals:
+            return False, f"{approved[-1]}: {chosen} picked over no challenger; an impeccable pick names its challengers"
+        picked = f"direction: {chosen}, an impeccable pick over {len(rivals)} challenger(s)"
+    else:
+        scores = rec.get("scores") or rec.get("ratings") or {}
+        if len(scores) < 3:
+            return False, f"{approved[-1]}: {len(scores)} scored variants; a direction is chosen from 3"
+        if chosen not in scores:
+            return False, f"{approved[-1]}: chosen {chosen or 'nothing'} is not one of the scored variants"
+        picked = f"direction: {chosen} of {len(scores)} scored variants"
     if not os.path.isfile(os.path.join(d, "docs/design/motion.md")):
         return False, "no docs/design/motion.md (motion-design)"
     src = next((s_ for s_ in ("src", "web/src") if os.path.isfile(os.path.join(d, s_, "design", "screen.ts"))), "")
@@ -548,7 +687,7 @@ def ux_screens_as_code(d, flows):
     if r.returncode != 0:
         return False, f"design-lint failed: {lines[-2] if len(lines) > 1 else (lines[-1] if lines else 'no output')}"
     return True, (f"flows: {len(flows)} file(s) passed; tokens: contrast passed; "
-                  f"direction: {chosen} of {len(scores)} scored variants; motion spec; {gallery}; design-lint passed")
+                  f"{picked}; motion spec; {gallery}; design-lint passed")
 
 
 CASES = "docs/testing/test-cases.md"
@@ -811,7 +950,8 @@ def g_mr(d, st):
 
 
 GATES = {"repo": g_repo, "branch": g_branch, "prd": g_prd, "stories": g_stories, "decide": g_decide,
-         "architecture": g_architecture, "design": g_design, "repos": g_repos, "ux": g_ux, "lld": g_lld,
+         "architecture": g_architecture, "design": g_design, "repos": g_repos, "ux": g_ux,
+         "contract": g_contract, "lld": g_lld,
          "test_cases": g_test_cases,
          "build": g_build, "test_automation": g_test_automation,
          "design_review": g_design_review, "review": g_review, "dod": g_dod, "mr": g_mr}

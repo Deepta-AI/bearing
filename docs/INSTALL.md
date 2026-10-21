@@ -59,7 +59,8 @@ diverging".
 
 Flags: `--profile minimal|standard|full`, `--dry-run` (print every action,
 touch nothing), `--no-claude` (no claude CLI steps; see step 6),
-`--skip-gsd`, `--skip-gstack`, `--skip-superpowers`, `--skip-packs`,
+`--skip-gsd`, `--skip-gstack`, `--skip-superpowers`, `--skip-impeccable`,
+`--skip-packs`,
 `--remote <git url>`, `--uninstall`.
 
 What it does, in order, skipping anything already present:

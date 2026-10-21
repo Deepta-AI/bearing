@@ -62,3 +62,5 @@ test-run|DATABASE_URL=... go test|prompts: run by the skill; an env-prefix grant
 test-run|PLAYWRIGHT_JSON_OUTPUT_NAME=|prompts: run by the skill; an env-prefix grant would also match a smuggled command, so the harness asks
 test-run|DATABASE_URL=... uv run pytest|prompts: run by the skill; an env-prefix grant would also match a smuggled command, so the harness asks
 spike|rm -r .scratch/spike-|prompts: run by the skill to delete the throwaway; a glob grant on rm is too wide, so the harness asks
+screen-design|cp -p .scratch/impeccable-pass/|prompts: run by the skill to revert a target file; an overwriting cp under a glob is too wide to pre-approve, so the harness asks
+screen-design|cp -p|prompts: run by the skill to snapshot a target file; an overwriting cp under a glob is too wide to pre-approve, so the harness asks

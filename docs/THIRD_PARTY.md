@@ -8,7 +8,7 @@ installer profile (`install.sh --profile minimal|standard|full`):
 | Profile | Installs |
 | --- | --- |
 | `minimal` | the Bearing plugin and `~/.config/bearing/bearing.env` only |
-| `standard` (default) | minimal plus Superpowers, gstack and GSD Core |
+| `standard` (default) | minimal plus Superpowers, gstack, GSD Core and impeccable |
 | `full` | standard plus every row below marked "full" (`plugins/bearing/bin/brg-install-packs`) |
 
 The generator checks every skill a stage row or a flow step names from
@@ -22,6 +22,7 @@ the maintainer's machine.
 | Superpowers (obra) | standard | `claude plugin install superpowers@claude-plugins-official` | MIT | brainstorming (auto), writing-plans, executing-plans, test-driven-development, systematic-debugging, verification-before-completion, writing-skills |
 | gstack (garrytan) | standard | fetch at the pinned commit into `~/.claude/skills/gstack` and `./setup` | MIT | /office-hours, /plan-ceo-review, /plan-eng-review, /plan-devex-review, /plan-design-review, /design-consultation, /design-review, /design-html, /review, /investigate, /qa, /qa-only, /browse, /cso, /health, /retro, /canary, /document-release, /document-generate, /diagram, /context-save, /spec |
 | GSD Core (open-gsd) | standard | `npx @opengsd/gsd-core@1.14.0 --global --claude` | MIT | gsd-spec-phase, gsd-plan-phase, gsd-execute-phase, gsd-verify-work, gsd-pause-work, gsd-debug, gsd-code-review, gsd-add-tests, gsd-sketch, gsd-ui-phase, gsd-ui-review, gsd-next, gsd-spike, gsd-map-codebase |
+| impeccable (pbakaus) | standard | `npx skills@1.7.0 add pbakaus/impeccable#08d5b470495d242ca0470f4aeae1956c3a074f83 -a claude-code -g -y` (version 4.6.0) | Apache-2.0 | design-directions (init, document --seed), design-system (reads its DESIGN.md), screen-design (polish, harden), design-critique (audit, critique) |
 | frontend-design (Anthropic, official marketplace) | full | `claude plugin install frontend-design@claude-plugins-official` | Apache-2.0 | the anti-generic design doctrine behind the design lane |
 | code-review (Anthropic, official) | full | `claude plugin install code-review@claude-plugins-official` | Apache-2.0 | multi-reviewer, confidence-scored PR review (GitHub PRs and `gh`) |
 | claude-security (Anthropic, official) | full | `claude plugin install claude-security@claude-plugins-official` | Apache-2.0 | deep vulnerability scan with a verifier panel and patch files |
@@ -109,8 +110,12 @@ permissions refuse; use `merge-request`.
 
 ## How the design lane uses other packs
 
-- `/design-consultation` (gstack) writes the design direction and a
-  `DESIGN.md` the Bearing design skills read.
+- impeccable (standard profile) now does direction and visual judgement:
+  `init` and `document --seed` write the design context, `polish` and
+  `harden` refine screens, `audit` and `critique` review them.
+  `/design-consultation` (gstack) stays an alternative direction source: it
+  writes the design direction and a `DESIGN.md` the Bearing design skills
+  read.
 - `design-directions` makes the variants as local HTML.
   gstack `design-shotgun` calls OpenAI's image API and needs
   `~/.gstack/openai.json`.

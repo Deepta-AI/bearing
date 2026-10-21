@@ -26,8 +26,9 @@ The ui stack is React with shadcn/ui and Tailwind
 only then pass `--ui-stack` (flutter, react-native, compose, swiftui,
 html) and record why.
 It decides which stages apply: ux and design_review need ui, the data
-model data, the API contract api, the deployment architecture deploy,
-and llm (the product calls a language model at run time) adds
+model data and the API contract api (both at contract, from every
+screened feature's data needs when ui is yes too), the deployment
+architecture deploy, and llm (the product calls a language model at run time) adds
 genai-design to design and llm-guardrails and llm-eval to
 test_automation.
 Answer from the statement and the stories, not from convenience: the

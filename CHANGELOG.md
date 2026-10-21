@@ -4,6 +4,89 @@ All notable changes to Bearing. Keep a Changelog format, semantic versions.
 
 ## [Unreleased]
 
+### Added
+- impeccable is pinned (`plugins/bearing/bin/pinned-packs.txt`) and installed
+  in the standard profile; `doctor` reports it, and `install` takes
+  `--skip-impeccable` (held on the full profile too).
+- design-directions: one impeccable direction round when impeccable is
+  installed and the run is attended, recorded in `approved.json` as the
+  locked `direction`. Without impeccable it prints `impeccable not
+  installed` once and runs the three-variant path as before.
+- design-system derives `tokens.json` from the `DESIGN.md` frontmatter when
+  it has tokens, else from the approved direction, and records which
+  (`source: design-md | approved-direction`) with the hash of that source.
+  The hash check is the `--sync` and `--hash` modes of
+  `design-system/templates/design-lint.sh`; the make target is
+  `tokens-sync`.
+- screen-design: an impeccable harden and polish pass before the state and
+  contrast gates (one fix, then revert on a failing gate).
+- screen-design writes `docs/design/screens/<feature>/data-needs.md` (per
+  screen: fields, actions with outcomes, states with a server condition,
+  each marked exists or new; fields have ids F-nn and actions A-nn, other
+  shapes fail) and checks it with
+  `states_check.py --needs <data-needs.md> --flows <flows.md>`, which
+  prints `data-needs: N screens, N fields, N actions (...), N outcomes, N
+  states, N problems` and fails on zero.
+- openapi-spec derives operations from the screens' data needs (`x-data-needs`
+  on each operation) and checks them with
+  `api_doc.py needs --spec F --needs F [F ...]`, which prints `data needs: ...`
+  and fails on zero actions. data-model checks its columns against the same
+  files with `model_check.py --needs`.
+- design-critique has a counted task cost category (5%), from the flows'
+  task paths and the confirmations on reversible actions, and takes
+  impeccable `audit` findings.
+- ux-flows: a `## Task paths` section, one row per user task with its kind,
+  path and counts, held to a budget (primary 3 screens and 6 interactions,
+  secondary 5 and 10, overridable in `.bearing/config.json`) by
+  `flows_check.py`, which prints a `task paths:` line.
+- Eval cases for the task budget, written data needs, operations from data
+  needs, and the impeccable fallback and unattended runs.
+
+### Changed
+- `flows_check.py` requires `## Task paths`: a flows file without it now
+  fails. Existing repositories add the section to each flows file (see
+  Notes for existing repositories).
+- The greenfield and feature flows put screens before the data model, the
+  API contract and the threat model.
+- `autopilot` gains a `contract` stage after `ux`. A feature with screens
+  needs its `data-needs.md` when the run has a UI and data or an API. A
+  run saved before this change, with `design` done and a later stage (`lld`
+  or after) done, has `contract` carried as done when it is loaded, with a
+  note. The newest flows file is
+  chosen by version number.
+- design-critique weights: twelve categories, typography 10%, task cost 5%.
+- Data-needs ids are unique across the product, not per file: a new
+  feature numbers its F- and A- ids after the highest in the other
+  features' files. `api_doc.py needs` and `model_check.py --needs` fail on
+  an id in two features' files, naming both and saying to renumber.
+- `states_check.py --needs` fails on a screen that shows server data (a
+  `server` field or a server condition) with no server action: the read
+  that loads it is listed as an action, marked `exists` when the API has it.
+- The autopilot contract gate runs `api_doc.py needs` through uv with the
+  pinned PyYAML (`--with pyyaml==6.0.3`) when uv is installed, so a YAML
+  `api/openapi.yaml` is read; with neither uv nor PyYAML it fails naming
+  the dependency.
+- autopilot passes `--unattended` to screen-design and design-critique, and
+  design-critique also reads `brg-config get noninteractive --user`, so an
+  unattended review never runs impeccable `critique`.
+
+### Notes for existing repositories
+- Add a `## Task paths` table to every `docs/design/flows/*/flows.md`
+  (columns Task, Story, Kind, Entry, Path, Screens, Interactions, Over; the
+  `ux-flows` skill's `references/task-paths.md` has the format), then run
+  `flows_check.py`. Without it the flows check fails.
+- A `data-needs.md` written by hand uses ids F-nn for fields and A-nn for
+  actions; `states_check.py --needs` rejects other shapes. Renumber any id
+  that repeats another feature's, and add the read action to each screen
+  that shows server data.
+
+### Noted
+- impeccable `critique` asks a question at its close, so an unattended run
+  (`BEARING_NONINTERACTIVE`, `BEARING_AUTOPILOT`, `--unattended`) runs only
+  `audit`; design-directions skips the impeccable round when unattended and
+  takes its own fallback.
+- Plugin size: `bearing` is at 511 files; the cap is under 512.
+
 ## [0.8.0] - 2026-10-17
 
 ### Added

@@ -62,6 +62,25 @@
     "The final message is honest about verification: it says which checks it ran (for example make screens, make check, a contrast calculation) and does not describe how the pages look on screen unless it opened or screenshotted them",
     "No file written or edited contains an em dash character"
    ]
+  },
+  {
+   "id": 3,
+   "name": "data-needs-written",
+   "prompt": "Do the screen designs for the clinic booking feature and list what each screen needs from the backend, so the API and data model can follow from the screens.",
+   "expected_output": "Screens for the booking flow plus docs/design/screens/booking/data-needs.md with, per screen, the fields it shows, the actions with their outcomes, and the states with a server condition. Each error row in the flows has a server condition. Every field and action is marked exists or new against src/api/booking.js (getSlots, createBooking and its 409 slot_taken exist; anything else, such as OTP verification or an add to calendar data, is new). The check is run and its data-needs: line printed verbatim.",
+   "files": [
+    "files/clinic-booking"
+   ],
+   "expectations": [
+    "docs/design/screens/booking/data-needs.md exists with a section per screen (S-01 to S-04), each with a Fields table, an Actions table whose rows list their outcomes, and a States table",
+    "Every error row in docs/design/flows/booking/flows.md (for example S-01 error and S-03 slot taken) has a server condition in the matching States table, such as the slots call failing or createBooking returning 409 slot_taken",
+    "Each field and action is marked `exists` or `new` against src/api/booking.js: reading slots (getSlots) and creating a booking (createBooking, with its 409 slot_taken) are exists; the OTP send and verify of S-02 are new because nothing in the file does them",
+    "A screen that shows server data (a server field, or a loading, empty or error state with a server condition) lists the read that loads it as an action with a 200 outcome, such as reading the slots (getSlots, exists) on the slot screen",
+    "A field that is not served by the backend says where it comes from (`client: <where>` or `derived: <how>`) rather than being left as server",
+    "The final message prints the check's line verbatim, in the form `data-needs: N screens, N fields, N actions (N exists, N new), N outcomes, N states, N problems`, and the check was actually run with --needs and --flows",
+    "No API contract, data model or code under src/ was written or changed by this run; the run says the contract and data model follow from data-needs.md",
+    "Nothing is committed, and a check that was not run is reported as not run, never as passed"
+   ]
   }
  ]
 }
