@@ -4,6 +4,60 @@ All notable changes to Bearing. Keep a Changelog format, semantic versions.
 
 ## [Unreleased]
 
+### Added
+- `make evals-weekly`: trigger-eval and harness-eval, then a row in the
+  tracked `evals/scoreboard.jsonl` (`bin/eval-scoreboard.py`) compared with
+  the last one. Fails on zero cases or a regression (recall or false
+  triggers moved by more than 5 points, a harness scenario falling) and
+  keeps the row. `make evals-timer` prints systemd user units for a weekly
+  run and installs nothing.
+- `make skill-tune` (`bin/skill-tune.py`): propose an edit to one skill
+  from the expectations it last failed, measure the edited copy beside
+  the skill as it is, and keep it as a patch only if with_skill gains 10
+  points without a smaller margin over no skill. Nothing in the
+  repository changes.
+- `make claude-drift` (`bin/claude-code-drift.py`): what Claude Code
+  added since `docs/claude-code-surface.json` (first record: 2.1.287, 31
+  hook events, Bearing uses 7) and any hook event or CLI flag Bearing
+  uses that is gone, which fails the run.
+- `make pin-refresh` (`bin/pin-refresh.py`): how far each pinned pack is
+  behind upstream, with the files changed under the pinned path and a
+  flag on a changed SKILL.md and on a link under the pinned path (the
+  installer would copy it as a link). First run: 80 pins, 27 behind.
+- Hooks on four more Claude Code events: `StopFailure` writes the
+  checkpoint and logs the API error type, so the next session resumes;
+  `PostToolUseFailure` and `PermissionDenied` log the tool name (never its
+  input, error or reason) to `gates.log` for `brg-guard stats`;
+  `SubagentStop` sends `bearing:verifier`, `reviewer` or
+  `security-auditor` back once when its report misses its output
+  contract, and never twice.
+- `make eval-audit` (`bin/eval-audit.py`): every expectation sorted by
+  whether it tells a run with the skill from one without, from all graded
+  runs on the machine: discriminating, no signal, never passes, favours no
+  skill, and flagged by a grader. First audit, adr: 21 expectations, only
+  3 discriminating, 12 with no signal.
+- Held-out cases: `"held_out": true` in evals.json keeps a case's failures
+  from skill-tune's proposer (which now edits a bare copy of the skill and
+  cannot read any evals folder); an edit whose held-out cases fall is
+  rejected. adr has the first, case 3 (a proposed decision, nothing
+  decided).
+- Evals run in parallel: `skill-evals-run` measures three skills at once
+  (`--parallel-skills`) under one cap on open sessions (`-j`, default 6),
+  `skill-tune` measures the copy and the skill as it is at the same time,
+  and `evals-weekly` runs trigger-eval eight at a time.
+- `skill-evals.py alternative <skill> <invoke>`: pair a Bearing skill
+  with an installed rival from another pack, kept in the private results
+  file only; `skill-evals-run` then measures it in three arms.
+- `bin/skill-evals-run.py`: skill-evals with no one at the keyboard.
+  Executor and grader sessions run through `claude -p` in the Bash
+  sandbox (localhost only, no Skill tool, no settings) over a rotating
+  set of skills (changed since last measured, then never measured, then
+  oldest; five a week by default). `make evals-weekly` runs it and the
+  scoreboard records each skill's pass rate with and without it; a
+  with_skill drop of more than 10 points since the skill's last
+  measurement fails the run. `bin/skill-evals.py` takes
+  `BRG_SKILL_EVALS_WS` and `BRG_SKILL_EVALS_PRIVATE`.
+
 ### Changed
 - The handbook and the developer guide are redesigned as one dark-first
   system in the spirit of Linear: tokens in `docs/design/tokens.json`
@@ -16,7 +70,30 @@ All notable changes to Bearing. Keep a Changelog format, semantic versions.
   `bin/gen-guide.py` fails when a skill has no summary or a summary names
   no skill.
 
+- Five pinned packs moved to their upstream heads after reading each
+  diff (`make pin-refresh`): getsentry `gha-security-review`, the six
+  `android/skills` rows, grafana `k6`, the four addyosmani skills and
+  dash0 `otel-instrumentation`. Expo, `create-prd`, `swiftui-pro` and
+  the large packs stay where they were for the maintainer to decide.
+
 ### Fixed
+- Pushes no longer fail after a passing gate. The pre-push hook ran the
+  15-minute gate while git held the connection to GitHub open, and GitHub
+  closed it first. The hook now only checks that `make gate` passed on
+  every commit being pushed (kept per commit by `bin/gate-mark`, for every
+  branch and worktree) and refuses at once otherwise; `make push` runs the
+  gate, then pushes (`FORCE=1` for `--force-with-lease`).
+- The skill-evals executor prompt forced every decision record to
+  Proposed, so a case whose request says "it is accepted" could never
+  pass; a run now records as decided what the request says was decided,
+  and nothing it chose itself. adr's two cases no longer penalise the
+  decisions index the skill creates on purpose.
+- A relative `BRG_SKILL_EVALS_WS` broke `measure` (the aggregator runs in
+  its own directory); the workspace and results paths are made absolute.
+- The skill-evals executors could not write `transcript.md` to their run
+  folder (the sandbox kept it read-only), so the first real measurement
+  failed every run; each executor now gets its run folder, and only it,
+  as writable, and its JSON result is kept as `session.json`.
 - A push from a linked worktree no longer lets the gate write into the
   main repository. Git exports `GIT_DIR` and `GIT_INDEX_FILE` to a hook
   from a worktree; the pre-push gate inherited them, so every test that

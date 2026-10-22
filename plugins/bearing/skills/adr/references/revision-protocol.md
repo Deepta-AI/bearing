@@ -39,7 +39,8 @@ section at the end. A file without a `Version:` line is v1.
    (`adr "<title>"`, supersedes ADR-nnnn) and list it under the
    changes table's Impact. Write it only when the user asks for it, then
    through `adr` with status Proposed unless the user decided it in
-   this conversation, naming no decider who did not decide. A revision
+   this conversation or the request says it was accepted, naming no
+   decider who did not decide. A revision
    never edits an accepted ADR in place, its decision or its status; the
    old ADR is marked `Superseded by` only once the new one is Accepted.
 5. **Critic on the changed sections only.** When the skill offers

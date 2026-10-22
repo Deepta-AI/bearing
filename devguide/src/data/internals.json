@@ -4,13 +4,13 @@
   "skills": 109,
   "commandSkills": 0,
   "stackSkills": 12,
-  "scripts": 99,
-  "scriptLines": 33783,
-  "hooks": 8,
+  "scripts": 111,
+  "scriptLines": 35640,
+  "hooks": 12,
   "agents": 8,
-  "makeTargets": 32,
+  "makeTargets": 39,
   "gates": 19,
-  "tests": 119,
+  "tests": 126,
   "fixtures": 25,
   "stacks": 13,
   "templates": 38,
@@ -26,7 +26,7 @@
    "dir": "plugins/bearing",
    "description": "A developer workflow for coding agents: skills for every stage from brief to runbook, review subagents, one guard behind every hook, and repository templates. The stack conventions come in bearing-backend and bearing-apps, and the GenAI and ML skills in bearing-genai.",
    "required": true,
-   "files": 456,
+   "files": 459,
    "skills": [
     "ab-experiment",
     "accessibility",
@@ -432,11 +432,11 @@
    "sections": [
     {
      "title": "Inputs",
-     "lines": 33
+     "lines": 38
     },
     {
      "title": "Steps",
-     "lines": 32
+     "lines": 42
     },
     {
      "title": "Output contract",
@@ -451,20 +451,20 @@
     "Title: looks in `$ARGUMENTS`; if absent, asks one question for the decision in the imperative (\"Use X for Y\").",
     "ADR convention: an `.adr-dir` file (adr-tools), the ADR location named in `CLAUDE.md`, `AGENTS.md` or the README, then existing ADR files under `docs/adr/`, `docs/decisions/`, `docs/architecture/decisions/`, `doc/adr/`, `doc/architecture/decisions/`, `adr/`, `decisions/` or `architecture/decisions/` (files matching `NNNN-*`, `ADR-NNN-*` or `adr-NNN-*`, in `.md`, `.rst` or `.adoc`). The directory, the numbering width…",
     "Template: looks for a template in the ADR directory (`0000-template.md`, `template.md`, `adr-template.md`); if absent, the headings of the newest existing ADR; if none, this skill's `templates/adr.md` without installing a repository copy.",
-    "Existing ADRs: the files in the ADR directory give the next number and a decision this one supersedes; if no ADR directory exists, creates `docs/adr/` and starts at `0001`.",
-    "Decisions index: `docs/architecture/decisions.md`; if absent, created from `${CLAUDE_PLUGIN_ROOT}/skills/high-level-design/templates/architecture-decisions.md` with this ADR as its first row.",
-    "Area and standard stack: the keys and defaults in `${CLAUDE_PLUGIN_ROOT}/skills/tech-decision/references/catalogue.md`; if unreadable, Area is a short noun and no technology is marked outside the standard stack.",
-    "Context facts: the code (routes, schemas, migrations, manifests), the README and `git log` for what is in use today; facts given in the request are quoted with \"from the request\".",
+    "Existing ADRs: every ADR file in the repository, in any directory or scheme, gives the next number (step 2); the ones in the chosen directory give a decision this one supersedes. If no ADR directory exists, creates `docs/adr/` and starts at `0001`.",
+    "Decisions index: `docs/architecture/decisions.md`; if absent, created from `${CLAUDE_PLUGIN_ROOT}/skills/high-level-design/templates/architecture-decisions.md` with this ADR as its first row. Its rows use each ADR's id as the ADR files write it (`0004`, `ADR-015`), never a numbering of their own.",
+    "Area and standard stack: the keys and defaults in `${CLAUDE_PLUGIN_ROOT}/skills/tech-decision/references/catalogue.md`; if unreadable, Area is a short noun and no technology is marked outside the standard stack. The catalogue gives Area and the \"outside the standard stack\" marks only; it is never a context fact or a reason.",
+    "Context facts: the code (routes, schemas, migrations, manifests), the README and `git log` for what is in use today; facts given in the request are quoted with \"from the request\". Reasons, dates and people the request and repository do not give are written \"(to be confirmed)\", never supplied from general knowledge or the catalogue.",
     "Options: the ones the user or the calling skill names; if only one is known, asks one question for the alternative that was considered, and writes \"no alternative was considered\" as an option when the answer is none.",
     "Task id: from the branch name; if the branch carries none, `Task: none`."
    ],
    "steps": [
     "Convention: search the locations in Inputs and print \"ADR convention: <dir>, <pattern>, N existing (from <.adr-dir | CLAUDE.md | existing files | default>)\". Two directories that both hold ADRs, or two numbering schemes in one directory, is a conflict: name both and ask one question with AskUserQuestion, one option per scheme, which to follow (as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says); never add a third…",
-    "Next number: the highest number in the ADR directory plus one, in its width and prefix (a template file does not count; no directory means `0001`). File: `<dir>/<prefix><number>-<title in its case>.<ext>`, default `docs/adr/NNNN-<kebab-title>.md`.",
-    "Read the template (the repository copy when present, else `templates/adr.md`) and any existing ADR the decision touches; if it supersedes one, say which and mark that one Superseded.",
+    "Next number: the highest number among every ADR in the repository, in any directory or scheme, plus one, so no two ADRs share a number (`0002` and `ADR-003` make the next one 4); written in the chosen directory's width and prefix (a template file does not count; no ADR anywhere means `0001`). File: `<dir>/<prefix><number>-<title in its case>.<ext>`, default `docs/adr/NNNN-<kebab-title>.md`.",
+    "Read the template (the repository copy when present, else `templates/adr.md`) and any existing ADR the decision touches; if it supersedes one, say which. When the new ADR is Accepted, change only the old one's status line to `Superseded by <new id>` now, in its own status format; its decision text stays byte for byte. When Proposed, leave the old one untouched.",
     "Fill every section, under the convention's headings when they differ from the template's (map context, options, decision and consequences onto them; add a missing one rather than drop it). Area is the catalogue key. Reversibility is cheap, awkward or irreversible, then what reversing costs. Context is facts and constraints with numbers, no options. What else was considered is a table: the chosen option first, then a…",
-    "Status Proposed unless the user says it is decided. Task id from the branch.",
-    "Index: add a row (id, title, area, status, reversibility) to `docs/architecture/decisions.md`, or update the row of the ADR this one supersedes to \"Superseded by ADR-nnnn\" once the new one is Accepted. Print the output contract. No em dashes."
+    "Status Accepted when the request says the decision is accepted, agreed or made (at a review, a meeting, by a named person); write it Accepted with that date, not \"Proposed, awaiting confirmation\". Otherwise Proposed. Task id from the branch.",
+    "Index: add a row (id as the ADR files write it, title, area, status, reversibility) to `docs/architecture/decisions.md`, and set the superseded ADR's row to \"Superseded by <new id>\" when the new one is Accepted. No other file or directory is created. Print the output contract. No em dashes."
    ],
    "output": "",
    "gotchas": [
@@ -477,15 +477,15 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 117,
+   "lines": 132,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 117
+     "lines": 132
     },
     {
      "path": "references/revision-protocol.md",
-     "lines": 71
+     "lines": 72
     },
     {
      "path": "templates/adr.md",
@@ -16047,6 +16047,107 @@
    "calls": []
   },
   {
+   "path": "bin/claude-code-drift.py",
+   "name": "claude-code-drift.py",
+   "lang": "python",
+   "group": "quality",
+   "lines": 206,
+   "header": "claude-code-drift: what Claude Code offers now that Bearing does not use,\nand what Bearing uses that Claude Code no longer offers.\n\nIt reads the installed CLI (`claude --version`, the flags in `claude --help`)\nand the Claude Code settings schema (hook events, settings keys, sandbox\nkeys), and compares them with docs/claude-code-surface.json, the surface\nrecorded the last time a maintainer looked. Each run prints what is new since\nthen (features to consider) and what Bearing uses that is gone: a hook event\nin plugins/*/hooks/hooks.json, or a CLI flag the eval scripts pass. Anything\ngone fails the run.\n\n--record writes the current surface once the maintainer has read the new\nitems, so the next run starts from there.\n\nUsage: claude-code-drift.py [--schema FILE|URL] [--surface F] [--record]\nPrints \"claude-code-drift: <version>, N flags, M hook events, K settings keys;\nX new, Y gone\"; exits 1 when something used is gone, when there is no recorded\nsurface (without --record), or when the CLI or the schema cannot be read.\nThe schema defaults to the published one at SCHEMA_URL (data only; nothing\nfetched is run).",
+   "functions": [
+    "die",
+    "cli",
+    "fetch",
+    "load_schema",
+    "find",
+    "surface",
+    "used",
+    "main"
+   ],
+   "env": [],
+   "calls": [
+    "harness-eval.py"
+   ]
+  },
+  {
+   "path": "bin/eval-audit.py",
+   "name": "eval-audit.py",
+   "lang": "python",
+   "group": "quality",
+   "lines": 169,
+   "header": "eval-audit: which expectations tell a run with the skill from one without.\n\nReads every graded, unblinded skill-evals run (<ws>/<skill>/iteration-N/\neval-<id>-<slug>/<arm>/run-1/grading.json, the arm being with_skill,\nwithout_skill or with_the_alternative; a run still named arm-N is not yet\nunblinded and is skipped) and counts, per expectation, how often it passed in\neach arm. Each expectation lands in one class:\n\n  discriminating    passes more often with the skill than without\n  no signal         passes in every run of every arm: it measures nothing\n  never passes      fails in every run of every arm: broken, contradictory or\n                    asking for what no run can do\n  favours no skill  passes more often without the skill than with it\n  even              runs in both arms, same rate, not every time\n\nand, separately, flagged: a grader's eval_feedback names it. Rewrite or drop\nthe no-signal, never-passes and flagged ones; read the favours-no-skill ones\nagainst the skill.\n\nUsage: eval-audit.py [--ws D ...] [--skill S] [--json F]\nPrints the problem expectations and \"eval-audit: N skills, M graded runs, K\nexpectations: ...\"; exits 1 when it found no graded run.",
+   "functions": [
+    "collect",
+    "rate",
+    "classify",
+    "main"
+   ],
+   "env": [],
+   "calls": []
+  },
+  {
+   "path": "bin/eval-scoreboard.py",
+   "name": "eval-scoreboard.py",
+   "lang": "python",
+   "group": "quality",
+   "lines": 226,
+   "header": "eval-scoreboard: one row of evals/scoreboard.jsonl from a trigger-eval and\na harness-eval run, compared with the row before it.\n\nThe row holds the date, the commit measured, trigger totals (cases, errored,\nrecall, false-trigger rate) and per skill, the harness pass rate per scenario,\nand skill_evals (from bin/skill-evals-run.py's summary.json, or null when\nit did not run). The file\nis tracked and read by no site: the numbers are for merge requests and the\nmaintainers, not the handbook.\n\nA regression is recall down, or the false-trigger rate up, by more than\n--max-drop (default 0.05), or any harness scenario's pass rate lower than in\nthe previous row. The row is written anyway, so the history stays honest.\nPer-skill moves are listed and never fail the run: a skill has too few\nrequests to gate on. A skill whose with_skill pass rate fell by more than\n--max-skill-drop (default 0.10) since its previous measurement in any row is a\nregression too.\n\nUsage: eval-scoreboard.py --trigger <results.json> --harness <results.json>\n                          [--board evals/scoreboard.jsonl] [--max-drop R]\n                          [--skill-evals <summary.json>] [--max-skill-drop R]\nPrints \"eval-scoreboard: N trigger cases, M harness runs checked\" and what\nmoved; exits 2 when a results file is missing or unreadable, 1 when zero cases\nwere checked (nothing written) or on a regression, else 0.",
+   "functions": [
+    "load",
+    "commit",
+    "trigger_row",
+    "harness_row",
+    "last_row",
+    "measured_before",
+    "skill_evals_row",
+    "pct",
+    "main"
+   ],
+   "env": [],
+   "calls": []
+  },
+  {
+   "path": "bin/evals-timer.sh",
+   "name": "evals-timer.sh",
+   "lang": "bash",
+   "group": "quality",
+   "lines": 46,
+   "header": "bin/evals-timer.sh: print the user-level systemd units that run\nbin/evals-weekly.sh for this clone every Sunday at 02:00, and the commands\nthat install them. Installs nothing: a timer is standing configuration, so\nthe maintainer reads the units and runs the commands. Linux with systemd\nonly; on a Mac, run `make evals-weekly` by hand or from launchd. Run it from\na clone kept on main: the units measure whatever this clone has checked out.",
+   "functions": [],
+   "env": [],
+   "calls": []
+  },
+  {
+   "path": "bin/evals-weekly.sh",
+   "name": "evals-weekly.sh",
+   "lang": "bash",
+   "group": "quality",
+   "lines": 60,
+   "header": "bin/evals-weekly.sh: the weekly eval run. trigger-eval, harness-eval and\nskill-evals-run (a rotating set of skills, BRG_SKILL_EVALS_MAX, default 5,\nthree at once under a cap of six sessions) run\nagainst this clone with the logged-in claude CLI (the subscription, never an\nAPI key), each into a fresh folder, then bin/eval-scoreboard.py appends a row\nto evals/scoreboard.jsonl and compares it with the last one. The maintainer\ncommits the row. `make evals-timer` prints the systemd units that run this\nevery week.\n\nRefuses a dirty tree (exit 2): the row records the commit it measured. The\nboard itself may be uncommitted, so a row not yet committed does not block\nnext week's run.\nExits 1 when either suite or the scoreboard failed; the row is still written\nwhen the scoreboard had cases to write. bash 3.2 safe.\n\n  BRG_TRIGGER_EVAL  the trigger-eval command (default: python3 bin/trigger-eval.py -j 8)\n  BRG_HARNESS_EVAL  the harness-eval command (default: python3 bin/harness-eval.py)\n  BRG_SKILL_EVALS   the skill-evals-run command (default: python3 bin/skill-evals-run.py);\n                    it gets --board, --out and --max appended\n  BRG_SCOREBOARD    the board file (default: evals/scoreboard.jsonl)",
+   "functions": [
+    "trigger",
+    "harness",
+    "skills"
+   ],
+   "env": [],
+   "calls": [
+    "brg-evals-weekly",
+    "harness-eval.py"
+   ]
+  },
+  {
+   "path": "bin/gate-mark",
+   "name": "gate-mark",
+   "lang": "bash",
+   "group": "quality",
+   "lines": 27,
+   "header": "bin/gate-mark: the commits `make gate` passed on, one full sha per line, in\nthe repository's common git directory (shared by every worktree, so a pass\nrecorded in one checkout counts in all of them). The pre-push hook reads it;\nnothing else writes it. The newest 200 are kept. bash 3.2 safe.\n\n  gate-mark add <commit>   record a pass (resolved to a full commit sha)\n  gate-mark has <commit>   exit 0 when that commit passed, 1 when not\n  gate-mark path           print the file",
+   "functions": [
+    "sha"
+   ],
+   "env": [],
+   "calls": []
+  },
+  {
    "path": "bin/gen-devguide.py",
    "name": "gen-devguide.py",
    "lang": "python",
@@ -16280,8 +16381,8 @@
    "name": "lint-skill-evals.py",
    "lang": "python",
    "group": "quality",
-   "lines": 136,
-   "header": "lint-skill-evals: every skill carries skill-creator evals, or is on the\npending list, and the pending list only shrinks.\n\nA skill's evals live at evals/<name>/evals.json, outside the skill folder so\na run that follows the skill never reads its grading, in skill-creator's\ncase schema: {\"skill_name\": <name>, \"evals\": [{\"id\": int, \"prompt\": str,\n\"expected_output\": str, \"files\": [paths], \"expectations\": [str, ...]}]}.\nThe cases are written and run with skill-creator (with the skill against a\nbaseline without it, graded, benchmarked); this lint checks they exist and\nare well formed, not how they scored.\n\nevals/.pending lists the skills that predate this rule, one name per\nline. A skill with no evals that is not listed fails (new skills need\nevals); a listed skill that now has evals fails too, so its row is removed\nand the list ratchets down.\n\nUsage: lint-skill-evals.py [skills-dir] [evals-dir] [pending-file]\nAn evals/<name> folder with no matching skill is a problem too.\nPrints one line per problem and the counts; exits 1 on any problem, or when\nzero skills were examined.",
+   "lines": 143,
+   "header": "lint-skill-evals: every skill carries skill-creator evals, or is on the\npending list, and the pending list only shrinks.\n\nA skill's evals live at evals/<name>/evals.json, outside the skill folder so\na run that follows the skill never reads its grading, in skill-creator's\ncase schema: {\"skill_name\": <name>, \"evals\": [{\"id\": int, \"prompt\": str,\n\"expected_output\": str, \"files\": [paths], \"expectations\": [str, ...],\n\"held_out\": bool}]}. A held-out case is measured like any other but its\nfailures are never shown to skill-tune's proposer, so an edit cannot win by\nfitting the cases that judge it; at least one case must not be held out.\nThe cases are written and run with skill-creator (with the skill against a\nbaseline without it, graded, benchmarked); this lint checks they exist and\nare well formed, not how they scored.\n\nevals/.pending lists the skills that predate this rule, one name per\nline. A skill with no evals that is not listed fails (new skills need\nevals); a listed skill that now has evals fails too, so its row is removed\nand the list ratchets down.\n\nUsage: lint-skill-evals.py [skills-dir] [evals-dir] [pending-file]\nAn evals/<name> folder with no matching skill is a problem too.\nPrints one line per problem and the counts; exits 1 on any problem, or when\nzero skills were examined.",
    "functions": [
     "check_evals",
     "main"
@@ -16354,6 +16455,25 @@
    "calls": []
   },
   {
+   "path": "bin/pin-refresh.py",
+   "name": "pin-refresh.py",
+   "lang": "python",
+   "group": "quality",
+   "lines": 207,
+   "header": "pin-refresh: how far every pinned pack has fallen behind its upstream.\n\nFor each row of plugins/bearing/bin/pinned-packs.txt:\n  skill, plugin, cli, clone  `git ls-remote` the repository's HEAD; when it\n                             moved past the pin, fetch both commits (no file\n                             contents beyond what the diff needs) into a cache\n                             and name the files that changed under the pinned\n                             path (a cli row's path is a skill name, matched\n                             anywhere), flagging a changed SKILL.md\n  npm, pypi                  the registry's latest version against the pin\n\nIt never edits the pin file. Moving a pin is the maintainer's call: read the\ndiff it names, then change the row (tests/unit/pins_match.sh finds every\nother place a version is written).\n\nUsage: pin-refresh.py [--pins F] [--cache D]\nPrints one line per pin and \"pin-refresh: N pins checked, M behind, K errors\";\nexits 1 on zero pins or any error, else 0 (being behind is news, not a failure).\n\n  BRG_PIN_GIT_URL   the repository URL template (default https://github.com/{repo}.git)\n  BRG_PIN_NPM_URL   default https://registry.npmjs.org/{pkg}/latest\n  BRG_PIN_PYPI_URL  default https://pypi.org/pypi/{pkg}/json",
+   "functions": [
+    "rows",
+    "fetch",
+    "git",
+    "upstream_head",
+    "changed",
+    "where",
+    "main"
+   ],
+   "env": [],
+   "calls": []
+  },
+  {
    "path": "bin/skill-desc.py",
    "name": "skill-desc.py",
    "lang": "python",
@@ -16365,12 +16485,37 @@
    "calls": []
   },
   {
+   "path": "bin/skill-evals-run.py",
+   "name": "skill-evals-run.py",
+   "lang": "python",
+   "group": "quality",
+   "lines": 361,
+   "header": "skill-evals-run: measure a rotating set of skills with no one at the keyboard.\n\nFor each chosen skill this drives bin/skill-evals.py end to end: prepare (the\nnext free iteration), one `claude -p` executor per run folder, timing from the\nsession's JSON result, grade-prompt, one `claude -p` grader per case, unblind\nand measure. The measurements go to <out>/summary.json, which\nbin/eval-scoreboard.py --skill-evals copies into evals/scoreboard.jsonl.\n\nEvery session runs in Claude Code's Bash sandbox (required, network limited to\nlocalhost, credential folders unreadable) with no user or project settings,\nand without the Skill tool or browser tools. The executor prompt forbids push,\ndeploy and network installs; the sandbox enforces it.\n\nRotation, from the board's skill_evals rows: skills whose skill folder or\nevals/<name>/ changed since the commit they were last measured at come first,\nthen skills never measured, then the longest since measured. --max caps it.\n\nUsage: skill-evals-run.py [--only a,b] [--max N] [--board F] [--out D]\n                          [-j N] [--parallel-skills N] [--model M]\n                          [--timeout S] [--list]\n--parallel-skills skills are measured at once (default 3); -j caps the claude\nsessions open at once across all of them (default 6).\nPrints one line per skill and \"skill-evals-run: N skills chosen, M measured,\nK failed\"; exits 1 when no skill was chosen or none was measured or any\nfailed. Uses the logged-in claude CLI (subscription), never an API key.",
+   "functions": [
+    "git",
+    "skills_with_evals",
+    "last_measured",
+    "changed_since",
+    "choose",
+    "evals",
+    "settings_for",
+    "claude",
+    "next_iteration",
+    "measure_one",
+    "main"
+   ],
+   "env": [],
+   "calls": [
+    "skill-evals.py"
+   ]
+  },
+  {
    "path": "bin/skill-evals.py",
    "name": "skill-evals.py",
    "lang": "python",
    "group": "quality",
-   "lines": 670,
-   "header": "skill-evals: run a Bearing skill's evals against no skill, graded blind,\nand record the measured result for the maintainers.\n\nThe cases live in evals/<name>/evals.json, away from the skill so a run that\nfollows the skill cannot read its grading (skill-creator's case schema;\n`files[0]` is a fixture repository under evals/<name>/files/, whose optional\n.eval-branch names the branch to check out). The workspace is\n.scratch/skill-evals/<name>/iteration-<N>/, one folder per case, one per\narm inside it, in the layout skill-creator's aggregate_benchmark.py reads.\n\nArms:\n  with_skill            reads the kit's SKILL.md from this checkout and follows it\n  without_skill         no skill at all\n  with_the_alternative  optional, maintainers only: runs when the untracked\n                        .scratch/private/comparisons.json exists and names an\n                        installed skill for this one (never another Bearing\n                        skill). Nothing committed names such a skill.\nFolders are named arm-1..arm-N until grading is done, so the grader does not\nknow which arm produced what; `unblind` renames them. The benchmark's delta is\nthe first two configurations in sorted order.\n\nResults go to .scratch/private/comparisons.json (git ignores .scratch/), never\nto a tracked file: the measured numbers are an internal audit, not something\nthe docs or the sites publish.\n\n  skill-evals.py prepare <skill> [--iteration N]   workspace, fixtures, prompts\n  skill-evals.py reset <run dir>...               rebuild interrupted runs from the fixture\n  skill-evals.py timing <run dir> <tokens> <ms>    record a finished run\n  skill-evals.py grade-prompt <skill> [--iteration N]\n                                                   one blind grader brief per case\n  skill-evals.py unblind <skill> [--iteration N]   arm-k -> arm name\n  skill-evals.py measure <skill> [--iteration N] --model <id>\n                                                   benchmark + the private results file\n  skill-evals.py status                            where every skill stands\n\nEach command prints the count of what it handled and exits 1 on zero.",
+   "lines": 723,
+   "header": "skill-evals: run a Bearing skill's evals against no skill, graded blind,\nand record the measured result for the maintainers.\n\nThe cases live in evals/<name>/evals.json, away from the skill so a run that\nfollows the skill cannot read its grading (skill-creator's case schema;\n`files[0]` is a fixture repository under evals/<name>/files/, whose optional\n.eval-branch names the branch to check out). The workspace is\n.scratch/skill-evals/<name>/iteration-<N>/, one folder per case, one per\narm inside it, in the layout skill-creator's aggregate_benchmark.py reads.\n\nArms:\n  with_skill            reads the kit's SKILL.md from this checkout and follows it\n  without_skill         no skill at all\n  with_the_alternative  optional, maintainers only: runs when the untracked\n                        .scratch/private/comparisons.json exists and names an\n                        installed skill for this one (never another Bearing\n                        skill). Nothing committed names such a skill.\nFolders are named arm-1..arm-N until grading is done, so the grader does not\nknow which arm produced what; `unblind` renames them. The benchmark's delta is\nthe first two configurations in sorted order.\n\nResults go to .scratch/private/comparisons.json (git ignores .scratch/).\nbin/skill-evals-run.py drives these commands unattended and copies each\nmeasurement into the tracked evals/scoreboard.jsonl; neither site reads it,\nso the numbers stay out of the handbook and the developer guide.\nBRG_SKILL_EVALS_WS and BRG_SKILL_EVALS_PRIVATE move the workspace and the\nresults file (the tests use them).\n\n  skill-evals.py prepare <skill> [--iteration N]   workspace, fixtures, prompts\n  skill-evals.py reset <run dir>...               rebuild interrupted runs from the fixture\n  skill-evals.py timing <run dir> <tokens> <ms>    record a finished run\n  skill-evals.py grade-prompt <skill> [--iteration N]\n                                                   one blind grader brief per case\n  skill-evals.py unblind <skill> [--iteration N]   arm-k -> arm name\n  skill-evals.py measure <skill> [--iteration N] --model <id>\n                                                   benchmark + the private results file\n  skill-evals.py status                            where every skill stands\n  skill-evals.py alternative <skill> <invoke> | --clear\n                                                   pair a Bearing skill with an installed\n                                                   rival for the third arm (private file only)\n\nEach command prints the count of what it handled and exits 1 on zero.",
    "functions": [
     "die",
     "meta_path",
@@ -16395,6 +16540,7 @@
     "skill_creator",
     "measure",
     "status",
+    "set_alternative",
     "main"
    ],
    "env": [
@@ -16403,6 +16549,35 @@
     "BEARING_TRACKER",
     "CLAUDE_PLUGIN_ROOT"
    ],
+   "calls": []
+  },
+  {
+   "path": "bin/skill-tune.py",
+   "name": "skill-tune.py",
+   "lang": "python",
+   "group": "quality",
+   "lines": 420,
+   "header": "skill-tune: propose an edit to one skill, measure it, keep it only if it wins.\n\nThe loop Harness2 (Google Research, Oct 2026) runs on a harness, here on one\nBearing skill: propose, probe, keep.\n\n  propose  a `claude -p` session in Claude Code's Bash sandbox edits a copy of\n           the skill, given its SKILL.md, its references and the expectations\n           its last measurement failed, and writes why to rationale.md\n  probe    the lints a skill must pass (lint-skills, lint-skill-size,\n           lint-tools, no em dashes), then bin/skill-evals-run.py measures the\n           copy and the skill as it is, side by side, --repeat times each\n  keep     the edit stays only when the copy's with_skill pass rate beats the\n           skill as it is by --min-gain (default 0.10) and its margin over no\n           skill does not shrink; it is written as candidate.patch with a\n           report.md, for the maintainer to read and `git apply`\n\nNothing in this repository changes: both copies come from `git archive HEAD`\ninto the run folder. The skill to tune is --skill, else the weakest measured\nskill on evals/scoreboard.jsonl (lowest with_skill pass rate). --list ranks\nthem and stops.\n\nUsage: skill-tune.py [--skill S] [--board F] [--out D] [--repeat N]\n                     [--min-gain R] [--model M] [--list]\nExits 0 when the edit is kept, 3 when it is rejected (no edit, lint failed or\nno gain), 1 on an error or when the board has no measured skill. Uses the\nlogged-in claude CLI (subscription), never an API key.\n\n  BRG_SKILL_TUNE_MEASURE  the measuring command, given the kit copy first\n                          (default: python3 <copy>/bin/skill-evals-run.py)\n  BRG_SKILL_TUNE_LINT     the lint command run in the candidate copy\n                          (default: make lint-skills lint-skill-size lint-tools)",
+   "functions": [
+    "run_driver",
+    "measured",
+    "rate",
+    "rank",
+    "extract",
+    "held_out",
+    "case_id",
+    "failures",
+    "propose",
+    "no_read",
+    "held_rate",
+    "em_dashes",
+    "lint",
+    "measure",
+    "mean",
+    "diff",
+    "main"
+   ],
+   "env": [],
    "calls": []
   },
   {
@@ -16421,6 +16596,19 @@
    "env": [],
    "calls": [
     "brg-trigger"
+   ]
+  },
+  {
+   "path": "plugins/bearing/hooks/scripts/agent-report.sh",
+   "name": "agent-report.sh",
+   "lang": "bash",
+   "group": "hooks",
+   "lines": 36,
+   "header": "SubagentStop (bearing:verifier, bearing:reviewer, bearing:security-auditor):\na skill reads these agents' reports by their output contract, so a report\nthat does not start the way agents/<name>.md says is sent back once, with\nthe line it must start with. The second stop always passes\n(stop_hook_active), so an agent that cannot comply is never held in a loop;\ngates.log records ok, resent or passed-unshaped. Exit 2 sends it back.",
+   "functions": [],
+   "env": [],
+   "calls": [
+    "brg-guard"
    ]
   },
   {
@@ -16546,6 +16734,20 @@
    ]
   },
   {
+   "path": "plugins/bearing/hooks/scripts/stop-failure.sh",
+   "name": "stop-failure.sh",
+   "lang": "bash",
+   "group": "hooks",
+   "lines": 18,
+   "header": "StopFailure: a turn ended on an API error (rate limit, overload, an auth or\nbilling error). Claude Code gives this hook no say in what happens next, so\nit only makes the next session's resume work: the checkpoint brg-session\nwrites for compaction is written now, and gates.log records the error type\n(`brg-guard stats` counts them). Always exits 0.",
+   "functions": [],
+   "env": [],
+   "calls": [
+    "brg-guard",
+    "brg-session"
+   ]
+  },
+  {
    "path": "plugins/bearing/hooks/scripts/stop-summary.sh",
    "name": "stop-summary.sh",
    "lang": "bash",
@@ -16557,6 +16759,19 @@
    "calls": [
     "brg-guard",
     "brg-session"
+   ]
+  },
+  {
+   "path": "plugins/bearing/hooks/scripts/tool-failure.sh",
+   "name": "tool-failure.sh",
+   "lang": "bash",
+   "group": "hooks",
+   "lines": 21,
+   "header": "PostToolUseFailure and PermissionDenied: record in gates.log which tool\nfailed or was denied, so `brg-guard stats` shows where sessions lose time.\nThe event name comes from the hook input; only the tool name is logged,\nnever its input, error text or the denial reason (they can hold paths and\nsecrets). Never blocks: the tool already failed or was denied. Always exits 0.",
+   "functions": [],
+   "env": [],
+   "calls": [
+    "brg-guard"
    ]
   },
   {
@@ -17735,6 +17950,49 @@
     "stop-gate"
    ],
    "body": "#!/usr/bin/env bash\n# Stop: adapter over bin/brg-guard stop-gate. When files this session changed\n# have not passed make check, Claude is sent back once with the reason\n# ({\"decision\": \"block\"}); on the second stop (stop_hook_active) the guard\n# only reminds, so the hook can never loop.\nset -u\n# No program runs before lib.sh resets the environment, so no dirname here;\n# the next script starts with \"$BASH\" from ${0%/*}, never found on PATH.\n# shellcheck source=lib.sh\ncase \"$0\" in (*/*) . \"${0%/*}/lib.sh\" ;; (*) . ./lib.sh ;; esac\nguard=\"${0%/*}/../../bin/brg-guard\"\nset -- --id \"$(json_field session_id)\"\n[ \"$(json_field stop_hook_active)\" = \"true\" ] && set -- \"$@\" --active\n\"$BASH\" \"${0%/*}/../../bin/brg-session\" timeline-close --id \"$(json_field session_id)\" >/dev/null 2>&1\n\"$BASH\" \"${0%/*}/../../bin/brg-session\" checkpoint >/dev/null 2>&1\nblock_or_print \"$guard\" stop-gate \"$@\""
+  },
+  {
+   "event": "StopFailure",
+   "matcher": "",
+   "script": "stop-failure.sh",
+   "timeout": 10,
+   "guard": [
+    "log",
+    "stats"
+   ],
+   "body": "#!/usr/bin/env bash\n# StopFailure: a turn ended on an API error (rate limit, overload, an auth or\n# billing error). Claude Code gives this hook no say in what happens next, so\n# it only makes the next session's resume work: the checkpoint brg-session\n# writes for compaction is written now, and gates.log records the error type\n# (`brg-guard stats` counts them). Always exits 0.\nset -u\n# No program runs before lib.sh resets the environment, so no dirname here;\n# the next script starts with \"$BASH\" from ${0%/*}, never found on PATH.\n# shellcheck source=lib.sh\ncase \"$0\" in (*/*) . \"${0%/*}/lib.sh\" ;; (*) . ./lib.sh ;; esac\ne=\"$(json_field error)\"\n# The error type is a fixed word (rate_limit, server_error, ...); anything\n# else is logged as unknown rather than written as given.\ncase \"$e\" in (*[!a-z_]*|'') e=unknown ;; esac\n\"$BASH\" \"${0%/*}/../../bin/brg-session\" checkpoint >/dev/null 2>&1\n\"$BASH\" \"${0%/*}/../../bin/brg-guard\" log stop-failure \"$e\" >/dev/null 2>&1\nexit 0"
+  },
+  {
+   "event": "PostToolUseFailure",
+   "matcher": "",
+   "script": "tool-failure.sh",
+   "timeout": 5,
+   "guard": [
+    "log",
+    "stats"
+   ],
+   "body": "#!/usr/bin/env bash\n# PostToolUseFailure and PermissionDenied: record in gates.log which tool\n# failed or was denied, so `brg-guard stats` shows where sessions lose time.\n# The event name comes from the hook input; only the tool name is logged,\n# never its input, error text or the denial reason (they can hold paths and\n# secrets). Never blocks: the tool already failed or was denied. Always exits 0.\nset -u\n# No program runs before lib.sh resets the environment, so no dirname here;\n# the next script starts with \"$BASH\" from ${0%/*}, never found on PATH.\n# shellcheck source=lib.sh\ncase \"$0\" in (*/*) . \"${0%/*}/lib.sh\" ;; (*) . ./lib.sh ;; esac\ncase \"$(json_field hook_event_name)\" in\n  (PermissionDenied) gate=permission-denied ;;\n  (*) gate=tool-failure ;;\nesac\nt=\"$(json_field tool_name)\"\n# A tool name is a word (Bash, Edit, mcp__server__tool); anything else is\n# logged as unknown.\ncase \"$t\" in (*[!A-Za-z0-9_-]*|'') t=unknown ;; esac\n\"$BASH\" \"${0%/*}/../../bin/brg-guard\" log \"$gate\" \"$t\" >/dev/null 2>&1\nexit 0"
+  },
+  {
+   "event": "PermissionDenied",
+   "matcher": "",
+   "script": "tool-failure.sh",
+   "timeout": 5,
+   "guard": [
+    "log",
+    "stats"
+   ],
+   "body": "#!/usr/bin/env bash\n# PostToolUseFailure and PermissionDenied: record in gates.log which tool\n# failed or was denied, so `brg-guard stats` shows where sessions lose time.\n# The event name comes from the hook input; only the tool name is logged,\n# never its input, error text or the denial reason (they can hold paths and\n# secrets). Never blocks: the tool already failed or was denied. Always exits 0.\nset -u\n# No program runs before lib.sh resets the environment, so no dirname here;\n# the next script starts with \"$BASH\" from ${0%/*}, never found on PATH.\n# shellcheck source=lib.sh\ncase \"$0\" in (*/*) . \"${0%/*}/lib.sh\" ;; (*) . ./lib.sh ;; esac\ncase \"$(json_field hook_event_name)\" in\n  (PermissionDenied) gate=permission-denied ;;\n  (*) gate=tool-failure ;;\nesac\nt=\"$(json_field tool_name)\"\n# A tool name is a word (Bash, Edit, mcp__server__tool); anything else is\n# logged as unknown.\ncase \"$t\" in (*[!A-Za-z0-9_-]*|'') t=unknown ;; esac\n\"$BASH\" \"${0%/*}/../../bin/brg-guard\" log \"$gate\" \"$t\" >/dev/null 2>&1\nexit 0"
+  },
+  {
+   "event": "SubagentStop",
+   "matcher": "^bearing:(verifier|reviewer|security-auditor)$",
+   "script": "agent-report.sh",
+   "timeout": 5,
+   "guard": [
+    "agent"
+   ],
+   "body": "#!/usr/bin/env bash\n# SubagentStop (bearing:verifier, bearing:reviewer, bearing:security-auditor):\n# a skill reads these agents' reports by their output contract, so a report\n# that does not start the way agents/<name>.md says is sent back once, with\n# the line it must start with. The second stop always passes\n# (stop_hook_active), so an agent that cannot comply is never held in a loop;\n# gates.log records ok, resent or passed-unshaped. Exit 2 sends it back.\nset -u\n# No program runs before lib.sh resets the environment, so no dirname here;\n# the next script starts with \"$BASH\" from ${0%/*}, never found on PATH.\n# shellcheck source=lib.sh\ncase \"$0\" in (*/*) . \"${0%/*}/lib.sh\" ;; (*) . ./lib.sh ;; esac\nguard=\"${0%/*}/../../bin/brg-guard\"\nagent=\"$(json_field agent_type)\"\ncase \"$agent\" in\n  (bearing:verifier) want='^Verdict: (CONFIRMED|REFUTED|UNCERTAIN)'; line='Verdict: CONFIRMED | REFUTED | UNCERTAIN' ;;\n  (bearing:reviewer|bearing:security-auditor) want='^## Findings \\('; line='## Findings (N ...)' ;;\n  (*) exit 0 ;;\nesac\nname=\"${agent#bearing:}\"\nmsg=\"$(json_field last_assistant_message)\"\nif [ \"$msg\" = \"__BRG_UNPARSED__\" ]; then\n  \"$BASH\" \"$guard\" log agent-report not-run \"$name\" >/dev/null 2>&1\n  exit 0\nfi\nif printf '%s\\n' \"$msg\" | grep -Eq -- \"$want\"; then\n  \"$BASH\" \"$guard\" log agent-report ok \"$name\" >/dev/null 2>&1\n  exit 0\nfi\nif [ \"$(json_field stop_hook_active)\" = true ]; then\n  \"$BASH\" \"$guard\" log agent-report passed-unshaped \"$name\" >/dev/null 2>&1\n  exit 0\nfi\n\"$BASH\" \"$guard\" log agent-report resent \"$name\" >/dev/null 2>&1\necho \"Bearing: the skill that started you reads your report by the output contract in agents/$name.md. Reply again with the report in that shape, starting with the line: $line\" >&2\nexit 2"
   }
  ],
  "agents": [
@@ -18071,7 +18329,12 @@
   },
   {
    "name": "gate",
-   "does": "Before a push: make check, then the bash32 CI job (with Docker); records the commit it passed on so the pre-push hook lets it straight through",
+   "does": "Before a push: make check, then the bash32 CI job (with Docker); records the commit it passed on (bin/gate-mark), which the pre-push hook requires",
+   "inCheck": false
+  },
+  {
+   "name": "push",
+   "does": "The gate on this commit (skipped when it already passed), then push the current branch; FORCE=1 adds --force-with-lease",
    "inCheck": false
   },
   {
@@ -18082,6 +18345,36 @@
   {
    "name": "trigger-eval",
    "does": "Real headless sessions: does each plain request load the right skill (evals/triggers.json; ONLY=skill,... J=4 SOURCES=user,project,local; uses the claude CLI; not part of check)",
+   "inCheck": false
+  },
+  {
+   "name": "evals-weekly",
+   "does": "trigger-eval, harness-eval and skill-evals-run (five skills in rotation) on a clean tree, then a row in evals/scoreboard.jsonl compared with the last (uses the claude CLI; not part of check)",
+   "inCheck": false
+  },
+  {
+   "name": "evals-timer",
+   "does": "Print the systemd user units that run evals-weekly every Sunday, and the commands that install them (installs nothing)",
+   "inCheck": false
+  },
+  {
+   "name": "skill-tune",
+   "does": "Propose an edit to the weakest measured skill (SKILL=name to choose), measure it beside the skill as it is, keep it as a patch only if it wins (uses the claude CLI)",
+   "inCheck": false
+  },
+  {
+   "name": "claude-drift",
+   "does": "What Claude Code added since docs/claude-code-surface.json, and anything Bearing uses that it dropped (RECORD=1 moves the baseline)",
+   "inCheck": false
+  },
+  {
+   "name": "eval-audit",
+   "does": "Which expectations tell a run with the skill from one without, from every graded run on this machine (SKILL=name to limit)",
+   "inCheck": false
+  },
+  {
+   "name": "pin-refresh",
+   "does": "How far each pinned pack in pinned-packs.txt is behind upstream, with the files changed; edits nothing",
    "inCheck": false
   },
   {
@@ -18458,6 +18751,13 @@
    "asserts": 23
   },
   {
+   "path": "tests/unit/claude_code_drift.sh",
+   "kind": "unit",
+   "lines": 102,
+   "header": "tests/unit/claude_code_drift.sh: bin/claude-code-drift.py compares what the installed Claude Code offers (version, CLI flags, hook events and settings keys from the settings schema) with the surface recorded last time and with what Bearing uses. New features are listed; a flag or hook event Bearing uses that the CLI no longer offers fails the run. A stub claude and a local schema stand in for the real ones.",
+   "asserts": 20
+  },
+  {
    "path": "tests/unit/config_helper.sh",
    "kind": "unit",
    "lines": 124,
@@ -18575,6 +18875,20 @@
    "lines": 112,
    "header": "tests/unit/dod_red_proof.sh: plugins/bearing/skills/definition-of-done/scripts/red_proof.sh proves a regression test is green with the fix and red without it, in a throwaway worktree, leaving the working tree untouched; and fails when the test passes without the fix, fails with it, or when the diff holds no test or no non-test file.",
    "asserts": 29
+  },
+  {
+   "path": "tests/unit/eval_audit.sh",
+   "kind": "unit",
+   "lines": 61,
+   "header": "tests/unit/eval_audit.sh: bin/eval-audit.py reads every graded, unblinded skill-evals run and sorts each expectation: discriminating (passes more with the skill), no signal (passes in every run of every arm), never passes, favours no skill, and flagged by a grader's eval_feedback. A synthetic workspace stands in for real runs.",
+   "asserts": 14
+  },
+  {
+   "path": "tests/unit/eval_scoreboard.sh",
+   "kind": "unit",
+   "lines": 180,
+   "header": "tests/unit/eval_scoreboard.sh: bin/eval-scoreboard.py turns one trigger-eval and one harness-eval results.json into a row of evals/scoreboard.jsonl and fails on zero cases or a regression; bin/evals-weekly.sh runs both suites and the scoreboard. The suites are stubbed through BRG_TRIGGER_EVAL and BRG_HARNESS_EVAL; the real sessions run under make evals-weekly, not here.",
+   "asserts": 46
   },
   {
    "path": "tests/unit/eval_stats.sh",
@@ -18703,6 +19017,13 @@
    "asserts": 32
   },
   {
+   "path": "tests/unit/hook_events.sh",
+   "kind": "unit",
+   "lines": 85,
+   "header": "tests/unit/hook_events.sh: the hooks on StopFailure, PostToolUseFailure, PermissionDenied and SubagentStop. stop-failure.sh writes the checkpoint and logs the error type; tool-failure.sh logs the tool name only; agent-report.sh sends a Bearing review agent back once when its report misses its output contract, and never twice. bash 3.2 safe.",
+   "asserts": 25
+  },
+  {
    "path": "tests/unit/hook_hardening.sh",
    "kind": "unit",
    "lines": 235,
@@ -18747,9 +19068,9 @@
   {
    "path": "tests/unit/lint_evals.sh",
    "kind": "unit",
-   "lines": 66,
+   "lines": 78,
    "header": "tests/unit/lint_evals.sh: bin/lint-skill-evals.py accepts a skill with well-formed skill-creator evals and a pending legacy skill; fails a new skill without evals, evals left beside a skill, evals for no skill, a pending row for a skill that has evals (the list only shrinks), a malformed evals.json, a missing input file, a pending row naming no skill, and an empty skills directory.",
-   "asserts": 24
+   "asserts": 29
   },
   {
    "path": "tests/unit/lint_plugin_size.sh",
@@ -18829,6 +19150,13 @@
    "asserts": 11
   },
   {
+   "path": "tests/unit/pin_refresh.sh",
+   "kind": "unit",
+   "lines": 90,
+   "header": "tests/unit/pin_refresh.sh: bin/pin-refresh.py reports, for every row of pinned-packs.txt, whether upstream moved past the pin and which files under the pinned path changed; npm and PyPI rows get the registry's latest version. It never edits the pin file. Local repositories and registry files stand in for GitHub, npm and PyPI.",
+   "asserts": 21
+  },
+  {
    "path": "tests/unit/pins_match.py",
    "kind": "unit",
    "lines": 82,
@@ -18901,9 +19229,9 @@
   {
    "path": "tests/unit/repo_pre_push.sh",
    "kind": "unit",
-   "lines": 54,
-   "header": "tests/unit/repo_pre_push.sh: this repository's own .githooks/pre-push runs the gate without the variables git exports to a hook. From a linked worktree git sets GIT_DIR and GIT_INDEX_FILE to absolute paths into the main repository; a gate that inherits them sends every test's `git init`, commit and tag in a temp folder into the real repository instead (19 Oct 2026: fake tags, branches and config in the Bearing clone). tests/lib/assert.sh drops them too. A fake make stands in for the gate. bash 3.2 safe.",
-   "asserts": 8
+   "lines": 90,
+   "header": "tests/unit/repo_pre_push.sh: this repository's own .githooks/pre-push checks that `make gate` passed on every commit being pushed (bin/gate-mark) and never runs the gate itself: git opens the connection to the remote before the hook, and a 15-minute gate outlived it, so pushes failed though the gate passed. An ungated push is refused at once with nothing sent. A pass is kept per commit in the common git directory, so it counts for every branch and worktree. tests/lib/assert.sh drops git's repository variables (a hook from a linked worktree exports them). A fake make records if anything runs i…",
+   "asserts": 21
   },
   {
    "path": "tests/unit/route_frontier.sh",
@@ -19009,6 +19337,20 @@
    "lines": 39,
    "header": "tests/unit/skill_evals.sh: bin/skill-evals.py refuses empty input with a message, and status counts the skills, the evals and the measured ones.",
    "asserts": 11
+  },
+  {
+   "path": "tests/unit/skill_evals_run.sh",
+   "kind": "unit",
+   "lines": 262,
+   "header": "tests/unit/skill_evals_run.sh: bin/skill-evals-run.py chooses a rotating set of skills from evals/scoreboard.jsonl and drives bin/skill-evals.py through executor and grader sessions; bin/eval-scoreboard.py --skill-evals writes the measurements into the row. A stub claude stands in for every session and a stub skill-creator for the benchmark; the real sessions run under make evals-weekly, not here.",
+   "asserts": 61
+  },
+  {
+   "path": "tests/unit/skill_tune.sh",
+   "kind": "unit",
+   "lines": 179,
+   "header": "tests/unit/skill_tune.sh: bin/skill-tune.py picks the weakest measured skill, has a proposer session edit a copy of it, measures the copy against the skill as it is, and keeps the edit as a patch only when the copy scores higher by the margin. The proposer, the measurements and the lint are stubs; the real sessions run under `python3 bin/skill-tune.py`, not here.",
+   "asserts": 48
   },
   {
    "path": "tests/unit/stack_json.sh",
@@ -20063,11 +20405,12 @@
    "version": "Unreleased",
    "date": "",
    "groups": [
+    "Added",
     "Changed",
     "Fixed"
    ],
-   "entries": 5,
-   "summary": "- The handbook and the developer guide are redesigned as one dark-first system in the spirit of Linear: tokens in `docs/design/tokens.json` (bound in `ui/tokens.css`, contrast measured), Geist type, one indigo accent, shared tabs, segmented controls, tiles and step cards, rebuilt home pages and rewritten page copy. Dark is the default; the toggle pins light. - The sites describe each skill from `docs/skill-summaries.json`, written for readers, instead of the trigger-oriented frontmatter description; `bin/gen-guide.py` fails when a skill has no summary or a summary names no skill."
+   "entries": 20,
+   "summary": "- `make evals-weekly`: trigger-eval and harness-eval, then a row in the tracked `evals/scoreboard.jsonl` (`bin/eval-scoreboard.py`) compared with the last one. Fails on zero cases or a regression (recall or false triggers moved by more than 5 points, a harness scenario falling) and keeps the row. `make evals-timer` prints systemd user units for a weekly run and installs nothing. - `make skill-tune` (`bin/skill-tune.py`): propose an edit to one skill from the expectations it last failed, measure the edited copy beside the skill as it is, and keep it as a patch only if with_skill gains 10 points without a smaller margin over no skill. Nothing in the repository changes. - `make claude-drift` (…"
   },
   {
    "version": "0.9.0",

@@ -22,7 +22,9 @@
 #
 # Every SKILL.md of a skill or plugin row was read at its commit before it
 # was listed. The cli and clone rows pin the head of each repository's default
-# branch on 26 Sep 2026, the branch the packs were chosen from; read the new
+# branch on 26 Sep 2026, the branch the packs were chosen from (getsentry,
+# android, grafana, addyosmani and dash0hq moved on 22 Oct 2026 after
+# `make pin-refresh` and a read of each diff); read the new
 # files before moving one. Changing a commit means reading the new files again;
 # docs/THIRD_PARTY.md records why each one is here and which Bearing skill it
 # serves. Changing an npm or pypi version means changing the same literal in
@@ -36,14 +38,14 @@ skill|trailofbits/skills|32e34f8173796e3566a51aee877dc96bc5191f64|plugins/supply
 skill|trailofbits/skills|32e34f8173796e3566a51aee877dc96bc5191f64|plugins/agentic-actions-auditor/skills/agentic-actions-auditor|agentic-actions-auditor|CC-BY-SA-4.0
 skill|trailofbits/skills|32e34f8173796e3566a51aee877dc96bc5191f64|plugins/property-based-testing/skills/property-based-testing|property-based-testing|CC-BY-SA-4.0
 plugin|trailofbits/skills|32e34f8173796e3566a51aee877dc96bc5191f64|insecure-defaults@trailofbits|insecure-defaults|CC-BY-SA-4.0
-skill|getsentry/skills|c2f99a5b04b4cd992ec3022d7c2c3e23e938d241|skills/gha-security-review|gha-security-review|Apache-2.0
+skill|getsentry/skills|f57ada2d0b640406ea7e25b11d636c530e77c58b|skills/gha-security-review|gha-security-review|Apache-2.0
 skill|openai/skills|49f948faa9258a0c61caceaf225e179651397431|skills/.curated/security-threat-model|security-threat-model|Apache-2.0
-skill|android/skills|b1f707d90904129b5972b3cc6436b568583effe5|build-system/agp/agp-9-upgrade|agp-9-upgrade|Apache-2.0
-skill|android/skills|b1f707d90904129b5972b3cc6436b568583effe5|navigation/navigation-3|navigation-3|Apache-2.0
-skill|android/skills|b1f707d90904129b5972b3cc6436b568583effe5|system/edge-to-edge|edge-to-edge|Apache-2.0
-skill|android/skills|b1f707d90904129b5972b3cc6436b568583effe5|security/android-intent-security|android-intent-security|Apache-2.0
-skill|android/skills|b1f707d90904129b5972b3cc6436b568583effe5|performance/r8-analyzer|r8-analyzer|Apache-2.0
-skill|android/skills|b1f707d90904129b5972b3cc6436b568583effe5|testing/testing-setup|android-testing-setup|Apache-2.0
+skill|android/skills|95ea931a1ad8f9b2be132ae0cfb2aad964d71118|build-system/agp/agp-9-upgrade|agp-9-upgrade|Apache-2.0
+skill|android/skills|95ea931a1ad8f9b2be132ae0cfb2aad964d71118|navigation/navigation-3|navigation-3|Apache-2.0
+skill|android/skills|95ea931a1ad8f9b2be132ae0cfb2aad964d71118|system/edge-to-edge|edge-to-edge|Apache-2.0
+skill|android/skills|95ea931a1ad8f9b2be132ae0cfb2aad964d71118|security/android-intent-security|android-intent-security|Apache-2.0
+skill|android/skills|95ea931a1ad8f9b2be132ae0cfb2aad964d71118|performance/r8-analyzer|r8-analyzer|Apache-2.0
+skill|android/skills|95ea931a1ad8f9b2be132ae0cfb2aad964d71118|testing/testing-setup|android-testing-setup|Apache-2.0
 skill|flutter/agent-plugins|e89522a8b0c23d282e0acc9538dd0b2cd164358b|skills/flutter-apply-architecture-best-practices|flutter-apply-architecture-best-practices|BSD-3-Clause
 skill|flutter/agent-plugins|e89522a8b0c23d282e0acc9538dd0b2cd164358b|skills/flutter-add-widget-test|flutter-add-widget-test|BSD-3-Clause
 skill|flutter/agent-plugins|e89522a8b0c23d282e0acc9538dd0b2cd164358b|skills/flutter-add-integration-test|flutter-add-integration-test|BSD-3-Clause
@@ -68,7 +70,7 @@ skill|hashicorp/agent-skills|c2d65dfe492f74d360d35b859b88932222470bd8|plugins/te
 skill|supabase/agent-skills|8331f910845103c08d51f6ca1d86ebb7d1f745e3|skills/supabase-postgres-best-practices|supabase-postgres-best-practices|MIT
 skill|expo/skills|cd752143d19e5a9aa71b4aaaf1cfc59226c77d6a|plugins/expo/skills/expo-upgrade|expo-upgrade|MIT
 skill|expo/skills|cd752143d19e5a9aa71b4aaaf1cfc59226c77d6a|plugins/expo/skills/expo-router|expo-router|MIT
-skill|grafana/skills|1ccacf29049fde66637fe01ab93a83a772da323b|skills/grafana-k6/k6|k6|Apache-2.0
+skill|grafana/skills|cc33318b60a7fbc2c69a25122164baf00e805f79|skills/grafana-k6/k6|k6|Apache-2.0
 plugin|AccessLint/skills|2e9d7336678302d0bc08848e92542560295b34d3|accesslint@accesslint|accesslint|MIT
 
 # Skills through the skills CLI, each at a commit (brg-install-packs, profile full).
@@ -86,11 +88,11 @@ cli|phuryn/pm-skills|8607e3b077817f89bf4a9b623246219734ac3be0|sprint-plan|sprint
 cli|phuryn/pm-skills|8607e3b077817f89bf4a9b623246219734ac3be0|pre-mortem|pre-mortem|MIT
 cli|phuryn/pm-skills|8607e3b077817f89bf4a9b623246219734ac3be0|customer-journey-map|customer-journey-map|MIT
 cli|phuryn/pm-skills|8607e3b077817f89bf4a9b623246219734ac3be0|outcome-roadmap|outcome-roadmap|MIT
-cli|addyosmani/agent-skills|2686b620fc1fed2e8f60c704839c766b8594c6b6|documentation-and-adrs|documentation-and-adrs|MIT
-cli|addyosmani/agent-skills|2686b620fc1fed2e8f60c704839c766b8594c6b6|api-and-interface-design|api-and-interface-design|MIT
-cli|addyosmani/agent-skills|2686b620fc1fed2e8f60c704839c766b8594c6b6|observability-and-instrumentation|observability-and-instrumentation|MIT
-cli|addyosmani/agent-skills|2686b620fc1fed2e8f60c704839c766b8594c6b6|debugging-and-error-recovery|debugging-and-error-recovery|MIT
-cli|dash0hq/agent-skills|b809d934546a57c740b567014f5a0c67b906ebb5|otel-instrumentation|otel-instrumentation|Apache-2.0
+cli|addyosmani/agent-skills|aeac41d4d005999432bb7312f7ff06383a91d59d|documentation-and-adrs|documentation-and-adrs|MIT
+cli|addyosmani/agent-skills|aeac41d4d005999432bb7312f7ff06383a91d59d|api-and-interface-design|api-and-interface-design|MIT
+cli|addyosmani/agent-skills|aeac41d4d005999432bb7312f7ff06383a91d59d|observability-and-instrumentation|observability-and-instrumentation|MIT
+cli|addyosmani/agent-skills|aeac41d4d005999432bb7312f7ff06383a91d59d|debugging-and-error-recovery|debugging-and-error-recovery|MIT
+cli|dash0hq/agent-skills|76b6e98cfb1d5f7525f13f9cf85b34a59ccb3af9|otel-instrumentation|otel-instrumentation|Apache-2.0
 cli|petrkindlmann/qa-skills|b3bb61bd268b147476252c6ed5a0440c87b97441|test-reliability|test-reliability|MIT
 cli|petrkindlmann/qa-skills|b3bb61bd268b147476252c6ed5a0440c87b97441|selector-drift-recovery|selector-drift-recovery|MIT
 cli|petrkindlmann/qa-skills|b3bb61bd268b147476252c6ed5a0440c87b97441|ai-test-generation|ai-test-generation|MIT

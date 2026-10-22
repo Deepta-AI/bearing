@@ -4,7 +4,7 @@
 SHELL := /bin/bash
 KITP := plugins/bearing
 .DEFAULT_GOAL := help
-.PHONY: help hooks gate ci-bash32 site devguide wiki check check-file validate lint-skills lint-tools lint-skill-size lint-questions lint-evals lint-triggers lint-neutral lint-docs lint-json lint-shell lint-portable lint-prose lint-version lint-budget lint-templates lint-plugin-size lint-model-ids test install doctor docs harness-eval trigger-eval
+.PHONY: help hooks gate push ci-bash32 site devguide wiki check check-file validate lint-skills lint-tools lint-skill-size lint-questions lint-evals lint-triggers lint-neutral lint-docs lint-json lint-shell lint-portable lint-prose lint-version lint-budget lint-templates lint-plugin-size lint-model-ids test install doctor docs harness-eval trigger-eval evals-weekly evals-timer skill-tune claude-drift pin-refresh eval-audit
 
 help: ## List targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-14s %s\n", $$1, $$2}'
@@ -179,9 +179,9 @@ hooks: ## Install this repository's pre-push gate (make check, then the bash32 C
 	git config core.hooksPath .githooks
 	@echo "hooks: .githooks/pre-push installed; run make gate before git push"
 
-gate: ## Before a push: make check, then the bash32 CI job (with Docker); records the commit it passed on so the pre-push hook lets it straight through
+gate: ## Before a push: make check, then the bash32 CI job (with Docker); records the commit it passed on (bin/gate-mark), which the pre-push hook requires
 	@[ -z "$$(git status --porcelain --untracked-files=no)" ] || { echo "gate: commit first; the gate is recorded against a commit" >&2; exit 1; }
-	@head=$$(git rev-parse HEAD); mark="$$(git rev-parse --git-dir)/bearing-gate-passed"; rm -f "$$mark"; \
+	@head=$$(git rev-parse HEAD); \
 	log="$${TMPDIR:-/tmp}/bearing-gate.log"; \
 	echo "gate: make check on $$(echo $$head | cut -c1-7)"; \
 	$(MAKE) --no-print-directory check >"$$log" 2>&1 || { tail -30 "$$log" >&2; echo "gate: make check failed (log: $$log)" >&2; exit 1; }; \
@@ -191,7 +191,13 @@ gate: ## Before a push: make check, then the bash32 CI job (with Docker); record
 	  grep "bash32:" "$$log"; \
 	else echo "gate: Docker is not running, so the bash32 CI job was not run here; CI will run it"; fi; \
 	[ "$$(git rev-parse HEAD)" = "$$head" ] || { echo "gate: HEAD moved during the run; nothing recorded" >&2; exit 1; }; \
-	echo "$$head" > "$$mark"; echo "gate: passed on $$(echo $$head | cut -c1-7); git push will not run it again"
+	bash bin/gate-mark add "$$head" || exit 1; echo "gate: passed on $$(echo $$head | cut -c1-7); a push of this commit goes straight through"
+
+push: ## The gate on this commit (skipped when it already passed), then push the current branch; FORCE=1 adds --force-with-lease
+	@branch=$$(git symbolic-ref -q --short HEAD) || { echo "push: not on a branch" >&2; exit 1; }; \
+	if bash bin/gate-mark has HEAD; then echo "push: the gate already passed on $$(git rev-parse --short HEAD)"; \
+	else $(MAKE) --no-print-directory gate || exit 1; fi; \
+	git push $(if $(FORCE),--force-with-lease) -u origin "$$branch"
 
 ci-bash32: ## The bash32 CI job, in the same bash:3.2 image (needs Docker): run before a push
 	docker run --rm -v "$$PWD:/kit" -w /kit bash:3.2 bash tests/ci-bash32.sh
@@ -201,6 +207,24 @@ harness-eval: ## Real Claude Code sessions against the hooks: push, deploy, edit
 
 trigger-eval: ## Real headless sessions: does each plain request load the right skill (evals/triggers.json; ONLY=skill,... J=4 SOURCES=user,project,local; uses the claude CLI; not part of check)
 	python3 bin/trigger-eval.py -j $(or $(J),4) $(if $(ONLY),--only $(ONLY)) $(if $(SOURCES),--sources $(SOURCES))
+
+evals-weekly: ## trigger-eval, harness-eval and skill-evals-run (five skills in rotation) on a clean tree, then a row in evals/scoreboard.jsonl compared with the last (uses the claude CLI; not part of check)
+	bash bin/evals-weekly.sh
+
+evals-timer: ## Print the systemd user units that run evals-weekly every Sunday, and the commands that install them (installs nothing)
+	@bash bin/evals-timer.sh
+
+skill-tune: ## Propose an edit to the weakest measured skill (SKILL=name to choose), measure it beside the skill as it is, keep it as a patch only if it wins (uses the claude CLI)
+	python3 bin/skill-tune.py $(if $(SKILL),--skill $(SKILL))
+
+claude-drift: ## What Claude Code added since docs/claude-code-surface.json, and anything Bearing uses that it dropped (RECORD=1 moves the baseline)
+	python3 bin/claude-code-drift.py $(if $(RECORD),--record)
+
+eval-audit: ## Which expectations tell a run with the skill from one without, from every graded run on this machine (SKILL=name to limit)
+	python3 bin/eval-audit.py $(if $(SKILL),--skill $(SKILL))
+
+pin-refresh: ## How far each pinned pack in pinned-packs.txt is behind upstream, with the files changed; edits nothing
+	python3 bin/pin-refresh.py
 
 install: ## Install on this machine
 	bash install.sh

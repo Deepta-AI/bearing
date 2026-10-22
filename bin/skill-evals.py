@@ -20,9 +20,12 @@ Folders are named arm-1..arm-N until grading is done, so the grader does not
 know which arm produced what; `unblind` renames them. The benchmark's delta is
 the first two configurations in sorted order.
 
-Results go to .scratch/private/comparisons.json (git ignores .scratch/), never
-to a tracked file: the measured numbers are an internal audit, not something
-the docs or the sites publish.
+Results go to .scratch/private/comparisons.json (git ignores .scratch/).
+bin/skill-evals-run.py drives these commands unattended and copies each
+measurement into the tracked evals/scoreboard.jsonl; neither site reads it,
+so the numbers stay out of the handbook and the developer guide.
+BRG_SKILL_EVALS_WS and BRG_SKILL_EVALS_PRIVATE move the workspace and the
+results file (the tests use them).
 
   skill-evals.py prepare <skill> [--iteration N]   workspace, fixtures, prompts
   skill-evals.py reset <run dir>...               rebuild interrupted runs from the fixture
@@ -33,6 +36,9 @@ the docs or the sites publish.
   skill-evals.py measure <skill> [--iteration N] --model <id>
                                                    benchmark + the private results file
   skill-evals.py status                            where every skill stands
+  skill-evals.py alternative <skill> <invoke> | --clear
+                                                   pair a Bearing skill with an installed
+                                                   rival for the third arm (private file only)
 
 Each command prints the count of what it handled and exits 1 on zero.
 """
@@ -52,9 +58,15 @@ KIT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(KIT, "bin"))
 import kit_paths  # noqa: E402
 
-WS = os.path.join(KIT, ".scratch", "skill-evals")
+WS = os.path.abspath(
+    os.environ.get("BRG_SKILL_EVALS_WS") or os.path.join(KIT, ".scratch", "skill-evals")
+)
 # Internal and untracked: .scratch/ is in .gitignore.
-COMPARISONS = os.path.join(KIT, ".scratch", "private", "comparisons.json")
+COMPARISONS = os.path.abspath(
+    os.environ.get("BRG_SKILL_EVALS_PRIVATE") or os.path.join(
+    KIT, ".scratch", "private", "comparisons.json"
+)
+)
 ARMS = ["with_skill", "with_the_alternative", "without_skill"]
 
 
@@ -206,9 +218,11 @@ Work only inside that repository (read, edit and run commands there). Nobody is 
 questions: where you would ask the user something, pick the option you would recommend, and note
 the question and your choice. Where a procedure says to stop and wait for the user's agreement or
 answer before going on, carry on with your recommended option as a working assumption so the whole
-task is finished in this run, and record the question and the assumption. The user has not decided
-anything: any decision record, ADR or document you write shows such a choice as Proposed (awaiting
-the user), never Accepted or approved, and names no person as having decided or authored it.
+task is finished in this run, and record the question and the assumption. A choice you made on the
+user's behalf is not a decision: any decision record, ADR or document you write shows it as Proposed
+(awaiting the user), never Accepted or approved. Only what the request itself says was decided
+(accepted, agreed or made) is recorded as decided, as the request says it. Name no person as having
+decided or authored anything unless the request names them.
 Never push, deploy or publish anything; nothing outside the repository may change. Do not install
 packages from the network. If a procedure starts helper agents, run each in the foreground and wait
 for its result (never in the background): a background helper's completion notice does not reach
@@ -548,7 +562,9 @@ def measure(a):
     )
     b = load(os.path.join(it, "benchmark.json"))
     rs = b.get("run_summary", {})
-    arms = {k: v for k, v in rs.items() if k in ARMS}
+    # In ARMS order: the benchmark lists configurations in the order it found
+    # them on disk, which differs between filesystems.
+    arms = {k: rs[k] for k in ARMS if k in rs}
     if "with_skill" not in arms or len(arms) < 2:
         die(
             f"skill-evals: benchmark for {a.skill} has {len(arms)} graded arms; need with_skill and one more"
@@ -630,9 +646,41 @@ def status(a):
         print(
             f"  {s}: {m['result']} ({m['closest']}, {m['margin'] * 100:+.1f} points) on {m['cases']} cases, {m['date']}"
         )
+    for s in skills:
+        alt = (c.get(s, {}).get("best_alternative") or {}).get("invoke")
+        if alt:
+            print(f"  {s}: paired with {alt}")
     todo = [s for s in with_evals if s not in measured]
     if todo:
         print("  evals written, not measured: " + ", ".join(todo))
+    return 0
+
+
+def set_alternative(a):
+    """Record (or clear) the rival a Bearing skill is measured against.
+
+    It goes to the private results file only, so nothing committed names it."""
+    if a.skill not in bearing_skills():
+        die(f"skill-evals: {a.skill} is not a Bearing skill; 0 pairings written")
+    c = private()
+    if a.clear:
+        c.get(a.skill, {}).pop("best_alternative", None)
+        msg = f"skill-evals: {a.skill}: alternative cleared"
+    else:
+        inv = (a.invoke or "").strip()
+        if not inv:
+            die("skill-evals: name the alternative to pair, or pass --clear")
+        if inv.lstrip("/").split(":")[-1] in bearing_skills() or inv.split(":")[0].startswith("bearing"):
+            die(f"skill-evals: {inv} is a Bearing skill; an alternative comes from another pack")
+        if not skill_file(inv):
+            die(f"skill-evals: {inv} is not installed under ~/.claude/skills or ~/.claude/plugins; install it first")
+        if user_only(inv):
+            die(f"skill-evals: {inv} is user-invocable only (disable-model-invocation); a run cannot load it")
+        c.setdefault(a.skill, {})["best_alternative"] = {"invoke": inv, "installed": True}
+        msg = f"skill-evals: {a.skill}: measured against {inv} from the next prepare"
+    os.makedirs(os.path.dirname(COMPARISONS), exist_ok=True)
+    dump(COMPARISONS, c)
+    print(msg)
     return 0
 
 
@@ -654,6 +702,10 @@ def main():
     p.add_argument("tokens")
     p.add_argument("ms")
     sp.add_parser("status")
+    p = sp.add_parser("alternative")
+    p.add_argument("skill")
+    p.add_argument("invoke", nargs="?")
+    p.add_argument("--clear", action="store_true")
     a = ap.parse_args()
     return {
         "prepare": prepare,
@@ -663,6 +715,7 @@ def main():
         "unblind": unblind,
         "measure": measure,
         "status": status,
+        "alternative": set_alternative,
     }[a.cmd](a)
 
 

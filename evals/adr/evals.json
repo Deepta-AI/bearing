@@ -10,7 +10,7 @@
     "files/decisions-repo"
    ],
    "expectations": [
-    "Exactly one new ADR file exists, at docs/decisions/ADR-015-<kebab title>.md; nothing was created under docs/adr/ or any other directory",
+    "Exactly one new ADR file exists, at docs/decisions/ADR-015-<kebab title>.md; nothing was created under docs/adr/ or any other new ADR directory (adding a row to docs/architecture/decisions.md, or creating that index, is expected)",
     "The new ADR uses the repository's own headings (Context, Decision, Alternatives considered, Consequences) and its 'Status:' line style",
     "The new ADR's status is Accepted",
     "The new ADR names ADR-012 as the decision it supersedes",
@@ -36,11 +36,35 @@
     "The transcript names both existing ADR locations (docs/adr/ and docs/decisions/) and treats them as a conflict to resolve rather than silently picking one",
     "The transcript records a question for the user about which convention to follow, with the choice made",
     "Exactly one new ADR file exists, inside docs/adr/ or docs/decisions/, named in that directory's pattern, with a number that collides with no existing ADR in either directory (0004 in docs/adr/, or ADR-004 in docs/decisions/)",
-    "No third directory or numbering scheme was created",
+    "No third ADR directory or numbering scheme was created (a row in docs/architecture/decisions.md, or creating that index, is expected)",
     "The new ADR identifies 0002 (Use Postgres for events) as superseded, and 0002's status now reads superseded (not still Accepted) while its decision text is unchanged",
     "TimescaleDB appears as a rejected option with a reason, and staying on Postgres is also considered",
     "The context uses a number from the repository (about 40 million events a day, or the 9x ingest spikes)",
     "The ADR does not state reasons, dates or people for the data review as fact beyond what the request and repository give; anything else is marked as needing confirmation",
+    "No file written or edited contains an em dash character"
+   ]
+  },
+  {
+   "id": 3,
+   "name": "proposed-not-decided",
+   "held_out": true,
+   "prompt": "We're weighing a move from SQS to RabbitMQ for the export job queue, mostly because of the 256 KB message limit that keeps biting the big exports. Nothing is decided yet; Priya wants to see it written down before the ops sync. Can you draft the ADR?",
+   "expected_output": "One new ADR, docs/adr/0004-<kebab title>.md, in the repository's MADR layout, status Proposed. It names 0002 (Use SQS for background jobs) as the decision it would supersede if accepted but leaves 0002 untouched. The decisions index gets one row for 0004, written as the files write ids, status Proposed. The context quotes the 256 KB limit from the request and the 2,000-row chunking from worker/export.py; staying on SQS is an option; Priya is not recorded as a decider and no reason the request and repository do not give is stated as fact.",
+   "files": [
+    "files/proposal-repo"
+   ],
+   "expectations": [
+    "Exactly one new ADR file exists, at docs/adr/0004-<kebab title>.md; no other ADR directory or numbering scheme was created",
+    "The new ADR uses the repository's MADR headings: Status, Context and Problem Statement, Considered Options, Decision Outcome, Consequences",
+    "The new ADR's status is Proposed, not Accepted",
+    "docs/adr/0002-use-sqs-for-background-jobs.md is unchanged (git diff fixture -- docs/adr/0002-use-sqs-for-background-jobs.md is empty)",
+    "The new ADR names 0002 (Use SQS for background jobs) as the decision it would supersede if accepted",
+    "docs/architecture/decisions.md has exactly one new row, for 0004, with status Proposed and the id written 0004 as the ADR files write it; the three existing rows are unchanged",
+    "The context gives the 256 KB message limit as coming from the request",
+    "The context cites a fact only the repository gives: worker/export.py splits exports into chunks of 2,000 rows to keep each message under the limit",
+    "At least two options are recorded, including staying on SQS, each with a cost or risk",
+    "Priya is not named as having decided, approved or authored the decision; if named at all, it is as the person who asked to see the draft",
+    "No reason, date or person the request and repository do not give is stated as fact; anything else is marked to be confirmed",
     "No file written or edited contains an em dash character"
    ]
   }
