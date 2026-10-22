@@ -19,7 +19,8 @@ it = pathlib.Path(sys.argv[1])
 rates = {}
 for g in it.glob("eval-*/*/run-1/grading.json"):
     rates.setdefault(g.parent.parent.name, []).append(json.load(open(g))["summary"]["pass_rate"])
-json.dump({"run_summary": {k: {"pass_rate": {"mean": sum(v) / len(v)}} for k, v in rates.items()}},
+# Listed backwards, as a filesystem may (macOS did): the driver must not care.
+json.dump({"run_summary": {k: {"pass_rate": {"mean": sum(v) / len(v)}} for k, v in sorted(rates.items(), reverse=True)}},
           open(it / "benchmark.json", "w"))
 PY
 
@@ -201,7 +202,10 @@ PY
 
 t_begin "rotation: changed since measured first, then never measured, then the oldest"
 assert_exit 0 list --max 4
-assert_contains "$(printf '%s' "$T_OUT" | sed -n 1p)" "learn (changed since"
+# A shallow clone (CI) lacks the parent commit: then git cannot say what
+# changed, the driver says "history unreadable", and the skill still goes first.
+if git -C "$KIT" cat-file -e "${learn_change}^" 2>/dev/null; then why="learn (changed since"; else why="learn (history unreadable from"; fi
+assert_contains "$(printf '%s' "$T_OUT" | sed -n 1p)" "$why"
 assert_contains "$(printf '%s' "$T_OUT" | sed -n 2p)" "ab-experiment (never measured)"
 assert_contains "$(printf '%s' "$T_OUT" | sed -n 3p)" "accessibility (never measured)"
 assert_contains "$(printf '%s' "$T_OUT" | sed -n 4p)" "adr (last measured 2026-09-01)"

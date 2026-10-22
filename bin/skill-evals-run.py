@@ -336,7 +336,9 @@ def main():
         if "error" in m:
             print(f"{s}: failed: {m['error']}", flush=True)
         else:
-            arms = ", ".join(f"{k} {v['pass_rate']:.2f}" for k, v in m["arms"].items())
+            # a fixed order, whatever order the benchmark listed the arms in
+            order = [k for k in ("with_skill", "with_the_alternative", "without_skill") if k in m["arms"]]
+            arms = ", ".join(f"{k} {m['arms'][k]['pass_rate']:.2f}" for k in order)
             print(f"{s}: {arms}; {m['result']}", flush=True)
         return s, m
 

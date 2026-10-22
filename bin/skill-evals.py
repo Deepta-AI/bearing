@@ -562,7 +562,9 @@ def measure(a):
     )
     b = load(os.path.join(it, "benchmark.json"))
     rs = b.get("run_summary", {})
-    arms = {k: v for k, v in rs.items() if k in ARMS}
+    # In ARMS order: the benchmark lists configurations in the order it found
+    # them on disk, which differs between filesystems.
+    arms = {k: rs[k] for k in ARMS if k in rs}
     if "with_skill" not in arms or len(arms) < 2:
         die(
             f"skill-evals: benchmark for {a.skill} has {len(arms)} graded arms; need with_skill and one more"

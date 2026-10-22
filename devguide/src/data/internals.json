@@ -5,7 +5,7 @@
   "commandSkills": 0,
   "stackSkills": 12,
   "scripts": 111,
-  "scriptLines": 35636,
+  "scriptLines": 35640,
   "hooks": 12,
   "agents": 8,
   "makeTargets": 39,
@@ -16489,7 +16489,7 @@
    "name": "skill-evals-run.py",
    "lang": "python",
    "group": "quality",
-   "lines": 359,
+   "lines": 361,
    "header": "skill-evals-run: measure a rotating set of skills with no one at the keyboard.\n\nFor each chosen skill this drives bin/skill-evals.py end to end: prepare (the\nnext free iteration), one `claude -p` executor per run folder, timing from the\nsession's JSON result, grade-prompt, one `claude -p` grader per case, unblind\nand measure. The measurements go to <out>/summary.json, which\nbin/eval-scoreboard.py --skill-evals copies into evals/scoreboard.jsonl.\n\nEvery session runs in Claude Code's Bash sandbox (required, network limited to\nlocalhost, credential folders unreadable) with no user or project settings,\nand without the Skill tool or browser tools. The executor prompt forbids push,\ndeploy and network installs; the sandbox enforces it.\n\nRotation, from the board's skill_evals rows: skills whose skill folder or\nevals/<name>/ changed since the commit they were last measured at come first,\nthen skills never measured, then the longest since measured. --max caps it.\n\nUsage: skill-evals-run.py [--only a,b] [--max N] [--board F] [--out D]\n                          [-j N] [--parallel-skills N] [--model M]\n                          [--timeout S] [--list]\n--parallel-skills skills are measured at once (default 3); -j caps the claude\nsessions open at once across all of them (default 6).\nPrints one line per skill and \"skill-evals-run: N skills chosen, M measured,\nK failed\"; exits 1 when no skill was chosen or none was measured or any\nfailed. Uses the logged-in claude CLI (subscription), never an API key.",
    "functions": [
     "git",
@@ -16514,7 +16514,7 @@
    "name": "skill-evals.py",
    "lang": "python",
    "group": "quality",
-   "lines": 721,
+   "lines": 723,
    "header": "skill-evals: run a Bearing skill's evals against no skill, graded blind,\nand record the measured result for the maintainers.\n\nThe cases live in evals/<name>/evals.json, away from the skill so a run that\nfollows the skill cannot read its grading (skill-creator's case schema;\n`files[0]` is a fixture repository under evals/<name>/files/, whose optional\n.eval-branch names the branch to check out). The workspace is\n.scratch/skill-evals/<name>/iteration-<N>/, one folder per case, one per\narm inside it, in the layout skill-creator's aggregate_benchmark.py reads.\n\nArms:\n  with_skill            reads the kit's SKILL.md from this checkout and follows it\n  without_skill         no skill at all\n  with_the_alternative  optional, maintainers only: runs when the untracked\n                        .scratch/private/comparisons.json exists and names an\n                        installed skill for this one (never another Bearing\n                        skill). Nothing committed names such a skill.\nFolders are named arm-1..arm-N until grading is done, so the grader does not\nknow which arm produced what; `unblind` renames them. The benchmark's delta is\nthe first two configurations in sorted order.\n\nResults go to .scratch/private/comparisons.json (git ignores .scratch/).\nbin/skill-evals-run.py drives these commands unattended and copies each\nmeasurement into the tracked evals/scoreboard.jsonl; neither site reads it,\nso the numbers stay out of the handbook and the developer guide.\nBRG_SKILL_EVALS_WS and BRG_SKILL_EVALS_PRIVATE move the workspace and the\nresults file (the tests use them).\n\n  skill-evals.py prepare <skill> [--iteration N]   workspace, fixtures, prompts\n  skill-evals.py reset <run dir>...               rebuild interrupted runs from the fixture\n  skill-evals.py timing <run dir> <tokens> <ms>    record a finished run\n  skill-evals.py grade-prompt <skill> [--iteration N]\n                                                   one blind grader brief per case\n  skill-evals.py unblind <skill> [--iteration N]   arm-k -> arm name\n  skill-evals.py measure <skill> [--iteration N] --model <id>\n                                                   benchmark + the private results file\n  skill-evals.py status                            where every skill stands\n  skill-evals.py alternative <skill> <invoke> | --clear\n                                                   pair a Bearing skill with an installed\n                                                   rival for the third arm (private file only)\n\nEach command prints the count of what it handled and exits 1 on zero.",
    "functions": [
     "die",
@@ -19341,7 +19341,7 @@
   {
    "path": "tests/unit/skill_evals_run.sh",
    "kind": "unit",
-   "lines": 258,
+   "lines": 262,
    "header": "tests/unit/skill_evals_run.sh: bin/skill-evals-run.py chooses a rotating set of skills from evals/scoreboard.jsonl and drives bin/skill-evals.py through executor and grader sessions; bin/eval-scoreboard.py --skill-evals writes the measurements into the row. A stub claude stands in for every session and a stub skill-creator for the benchmark; the real sessions run under make evals-weekly, not here.",
    "asserts": 61
   },
