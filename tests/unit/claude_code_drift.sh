@@ -36,7 +36,8 @@ chmod 755 "$d/claude"
 schema() {
   python3 - "$d/schema.json" "$@" <<'PY'
 import json, sys
-events = ["PreToolUse", "PostToolUse", "UserPromptSubmit", "Stop", "SessionStart", "SessionEnd", "PreCompact"] + sys.argv[2:]
+events = ["PreToolUse", "PostToolUse", "UserPromptSubmit", "Stop", "SessionStart", "SessionEnd", "PreCompact",
+          "StopFailure", "PostToolUseFailure", "PermissionDenied", "SubagentStop"] + sys.argv[2:]
 json.dump({"properties": {"hooks": {"properties": {e: {} for e in events}},
                           "permissions": {}, "sandbox": {"properties": {"enabled": {}, "network": {}}}, "model": {}}},
           open(sys.argv[1], "w"))
@@ -66,11 +67,11 @@ assert_contains "$T_OUT" "flags"
 t_end
 
 t_begin "a new flag and a new hook event are listed as new"
-schema SubagentStop
+schema TaskCompleted
 STUB_VERSION=2.1.310 STUB_EXTRA_FLAG="  --max-budget-usd <n>   budget" assert_exit 0 drift
 assert_contains "$T_OUT" "2.1.300 -> 2.1.310"
 assert_contains "$T_OUT" "new flag: --max-budget-usd"
-assert_contains "$T_OUT" "new hook event: SubagentStop"
+assert_contains "$T_OUT" "new hook event: TaskCompleted"
 t_end
 
 t_begin "a hook event Bearing uses that the schema dropped fails the run"
