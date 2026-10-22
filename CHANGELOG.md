@@ -22,7 +22,18 @@ All notable changes to Bearing. Keep a Changelog format, semantic versions.
   uses that is gone, which fails the run.
 - `make pin-refresh` (`bin/pin-refresh.py`): how far each pinned pack is
   behind upstream, with the files changed under the pinned path and a
-  flag on a changed SKILL.md. First run: 80 pins, 27 behind.
+  flag on a changed SKILL.md and on a link under the pinned path (the
+  installer would copy it as a link). First run: 80 pins, 27 behind.
+- Hooks on four more Claude Code events: `StopFailure` writes the
+  checkpoint and logs the API error type, so the next session resumes;
+  `PostToolUseFailure` and `PermissionDenied` log the tool name (never its
+  input, error or reason) to `gates.log` for `brg-guard stats`;
+  `SubagentStop` sends `bearing:verifier`, `reviewer` or
+  `security-auditor` back once when its report misses its output
+  contract, and never twice.
+- `skill-evals.py alternative <skill> <invoke>`: pair a Bearing skill
+  with an installed rival from another pack, kept in the private results
+  file only; `skill-evals-run` then measures it in three arms.
 - `bin/skill-evals-run.py`: skill-evals with no one at the keyboard.
   Executor and grader sessions run through `claude -p` in the Bash
   sandbox (localhost only, no Skill tool, no settings) over a rotating
@@ -45,7 +56,17 @@ All notable changes to Bearing. Keep a Changelog format, semantic versions.
   `bin/gen-guide.py` fails when a skill has no summary or a summary names
   no skill.
 
+- Five pinned packs moved to their upstream heads after reading each
+  diff (`make pin-refresh`): getsentry `gha-security-review`, the six
+  `android/skills` rows, grafana `k6`, the four addyosmani skills and
+  dash0 `otel-instrumentation`. Expo, `create-prd`, `swiftui-pro` and
+  the large packs stay where they were for the maintainer to decide.
+
 ### Fixed
+- The skill-evals executors could not write `transcript.md` to their run
+  folder (the sandbox kept it read-only), so the first real measurement
+  failed every run; each executor now gets its run folder, and only it,
+  as writable, and its JSON result is kept as `session.json`.
 - A push from a linked worktree no longer lets the gate write into the
   main repository. Git exports `GIT_DIR` and `GIT_INDEX_FILE` to a hook
   from a worktree; the pre-push gate inherited them, so every test that

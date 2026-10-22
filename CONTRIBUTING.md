@@ -204,7 +204,12 @@ written, a count printed, a refusal on empty input).
   reading the new items, `make claude-drift RECORD=1` moves the baseline.
 - `make pin-refresh` lists every pin in `pinned-packs.txt` that upstream
   has moved past, with the files changed under the pinned path. It edits
-  nothing: read the diff it names before moving a pin.
+  nothing: read the diff it names before moving a pin. It also names any
+  link under the pinned path: the installer would copy it as a link.
+- `python3 bin/skill-evals.py alternative <skill> <invoke>` pairs a
+  Bearing skill with an installed rival so the next measurement runs a
+  third arm. The pairing lives in the untracked results file; a rival is
+  adopted only on its scores.
 
 ## Testing a change
 
