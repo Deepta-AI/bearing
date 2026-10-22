@@ -8,7 +8,8 @@ set -u
 . "$(dirname "$0")/../lib/assert.sh"
 HS="$KIT/plugins/bearing/hooks/scripts"
 
-repo="$(tmpdir)"; git init -q "$repo"; mkdir -p "$repo/.bearing/state"
+# -b main: git's default branch name differs between images (the bash32 one says master)
+repo="$(tmpdir)"; git init -q -b main "$repo"; mkdir -p "$repo/.bearing/state"
 log="$repo/.bearing/state/gates.log"
 hook() { T_IN="$2"; t_run bash -c "cd '${3:-$repo}' && bash '$HS/$1'"; }  # hook <script> <json> [dir]
 last() { tail -1 "$log" | cut -f2,3,5; }
