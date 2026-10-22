@@ -31,6 +31,10 @@ All notable changes to Bearing. Keep a Changelog format, semantic versions.
   `SubagentStop` sends `bearing:verifier`, `reviewer` or
   `security-auditor` back once when its report misses its output
   contract, and never twice.
+- Evals run in parallel: `skill-evals-run` measures three skills at once
+  (`--parallel-skills`) under one cap on open sessions (`-j`, default 6),
+  `skill-tune` measures the copy and the skill as it is at the same time,
+  and `evals-weekly` runs trigger-eval eight at a time.
 - `skill-evals.py alternative <skill> <invoke>`: pair a Bearing skill
   with an installed rival from another pack, kept in the private results
   file only; `skill-evals-run` then measures it in three arms.

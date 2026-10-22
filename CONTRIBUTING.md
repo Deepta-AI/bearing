@@ -164,7 +164,9 @@ written, a count printed, a refusal on empty input).
   settings), a rotating set chosen from `evals/scoreboard.jsonl` (changed
   since last measured, then never measured, then oldest; `--max`, default
   5), and a `summary.json` the scoreboard copies in. `--list` shows the
-  set without running it.
+  set without running it. Three skills are measured at once
+  (`--parallel-skills`), and `-j` (default 6) caps the claude sessions
+  open at once across them, so the load on the subscription stays bounded.
 - Workspaces go under `.scratch/skill-evals/`, which git ignores.
 - `make harness-eval` drives real Claude Code sessions against the hooks
   (push, deploy, edit lint, stop gate, compaction). It needs the claude

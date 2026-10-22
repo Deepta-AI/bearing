@@ -17,7 +17,10 @@ evals/<name>/ changed since the commit they were last measured at come first,
 then skills never measured, then the longest since measured. --max caps it.
 
 Usage: skill-evals-run.py [--only a,b] [--max N] [--board F] [--out D]
-                          [-j N] [--model M] [--timeout S] [--list]
+                          [-j N] [--parallel-skills N] [--model M]
+                          [--timeout S] [--list]
+--parallel-skills skills are measured at once (default 3); -j caps the claude
+sessions open at once across all of them (default 6).
 Prints one line per skill and "skill-evals-run: N skills chosen, M measured,
 K failed"; exits 1 when no skill was chosen or none was measured or any
 failed. Uses the logged-in claude CLI (subscription), never an API key.
@@ -32,6 +35,7 @@ import os
 import re
 import subprocess
 import sys
+import threading
 
 KIT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(KIT, "bin"))
@@ -46,6 +50,12 @@ PRIVATE = os.environ.get("BRG_SKILL_EVALS_PRIVATE") or os.path.join(
     KIT, ".scratch", "private", "comparisons.json"
 )
 BOARD = os.path.join(KIT, "evals", "scoreboard.jsonl")
+# Skills are measured in parallel. SESSIONS caps the claude sessions open at
+# once across all of them (-j), so the load on the subscription stays bounded;
+# PRIVATE_LOCK serialises the steps that read or write the private results
+# file (prepare reads it, measure rewrites it).
+SESSIONS = threading.BoundedSemaphore(4)
+PRIVATE_LOCK = threading.Lock()
 
 SANDBOX = {
     "sandbox": {
@@ -175,9 +185,10 @@ def claude(prompt, cwd, args, writable=(), keep=None):
     if args.model:
         cmd += ["--model", args.model]
     try:
-        p = subprocess.run(
-            cmd, cwd=cwd, capture_output=True, text=True, timeout=args.timeout
-        )
+        with SESSIONS:
+            p = subprocess.run(
+                cmd, cwd=cwd, capture_output=True, text=True, timeout=args.timeout
+            )
     except subprocess.TimeoutExpired:
         return None, f"timed out after {args.timeout} s"
     if keep:
@@ -206,7 +217,8 @@ def next_iteration(skill):
 
 def measure_one(skill, args):
     it = str(next_iteration(skill))
-    p = evals("prepare", skill, "--iteration", it)
+    with PRIVATE_LOCK:
+        p = evals("prepare", skill, "--iteration", it)
     if p.returncode != 0:
         return {"error": f"prepare: {(p.stderr or p.stdout).strip()[:200]}"}
     runs = [
@@ -267,15 +279,15 @@ def measure_one(skill, args):
             "error": f"{len(errors)} of {len(briefs)} graders failed; first: {errors[0]}"
         }
 
-    for step in (
-        ["unblind", skill, "--iteration", it],
-        ["measure", skill, "--iteration", it, "--model", model or "cli-default"],
-    ):
-        r = evals(*step)
+    r = evals("unblind", skill, "--iteration", it)
+    if r.returncode != 0:
+        return {"error": f"unblind: {(r.stderr or r.stdout).strip()[:200]}"}
+    with PRIVATE_LOCK:
+        r = evals("measure", skill, "--iteration", it, "--model", model or "cli-default")
         if r.returncode != 0:
-            return {"error": f"{step[0]}: {(r.stderr or r.stdout).strip()[:200]}"}
-    with open(PRIVATE) as f:
-        m = json.load(f)[skill]["measured"]
+            return {"error": f"measure: {(r.stderr or r.stdout).strip()[:200]}"}
+        with open(PRIVATE) as f:
+            m = json.load(f)[skill]["measured"]
     m["commit"] = git("rev-parse", "HEAD")
     return m
 
@@ -286,13 +298,16 @@ def main():
     ap.add_argument("--max", type=int, default=5)
     ap.add_argument("--board", default=BOARD)
     ap.add_argument("--out", default=os.path.join(KIT, ".scratch", "skill-evals-run"))
-    ap.add_argument("-j", type=int, default=4)
+    ap.add_argument("-j", type=int, default=6, help="claude sessions open at once, across all skills")
+    ap.add_argument("--parallel-skills", type=int, default=3, help="skills measured at the same time")
     ap.add_argument("--model")
     ap.add_argument("--timeout", type=int, default=1800, help="seconds per session")
     ap.add_argument(
         "--list", action="store_true", help="print the chosen skills and stop"
     )
     args = ap.parse_args()
+    global SESSIONS
+    SESSIONS = threading.BoundedSemaphore(max(1, args.j))
 
     chosen = choose(args)
     if args.list:
@@ -310,15 +325,20 @@ def main():
         "chosen": [s for s, _ in chosen],
         "skills": {},
     }
-    for s, why in chosen:
+    def one(sw):
+        s, why = sw
         print(f"{s}: measuring ({why})", flush=True)
         m = measure_one(s, args)
-        summary["skills"][s] = m
         if "error" in m:
             print(f"{s}: failed: {m['error']}", flush=True)
         else:
             arms = ", ".join(f"{k} {v['pass_rate']:.2f}" for k, v in m["arms"].items())
             print(f"{s}: {arms}; {m['result']}", flush=True)
+        return s, m
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max(1, args.parallel_skills)) as pool:
+        done = dict(pool.map(one, chosen))
+    summary["skills"] = {s: done[s] for s, _ in chosen}
     os.makedirs(args.out, exist_ok=True)
     with open(os.path.join(args.out, "summary.json"), "w") as f:
         json.dump(summary, f, indent=1)

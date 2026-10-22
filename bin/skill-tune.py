@@ -33,6 +33,7 @@ logged-in claude CLI (subscription), never an API key.
 """
 
 import argparse
+import concurrent.futures
 import datetime
 import glob
 import json
@@ -209,7 +210,7 @@ def measure(kit, skill, out, args):
         if cmd
         else [sys.executable, os.path.join(kit, "bin", "skill-evals-run.py")]
     )
-    extra = ["--model", args.model] if args.model else []
+    extra = ["-j", str(args.j)] + (["--model", args.model] if args.model else [])
     p = subprocess.run(
         base + ["--only", skill, "--out", out, *extra],
         capture_output=True,
@@ -259,6 +260,7 @@ def main():
     ap.add_argument("--board", default=BOARD)
     ap.add_argument("--out", default=os.path.join(KIT, ".scratch", "skill-tune"))
     ap.add_argument("--repeat", type=int, default=1)
+    ap.add_argument("-j", type=int, default=3, help="claude sessions per measurement; all measurements run at once")
     ap.add_argument("--min-gain", type=float, default=0.10)
     ap.add_argument("--model")
     ap.add_argument("--timeout", type=int, default=1800)
@@ -313,17 +315,18 @@ def main():
     if why:
         return reject(why)
 
+    # Every measurement (each repeat of the skill as it is and of the copy)
+    # runs at once; each caps its own sessions at -j.
+    jobs = [(kit, name, k) for k in range(1, max(1, args.repeat) + 1)
+            for kit, name in ((base, "baseline"), (cand, "candidate"))]
+    with concurrent.futures.ThreadPoolExecutor(max_workers=len(jobs)) as pool:
+        got = list(pool.map(lambda j: measure(j[0], skill, os.path.join(run, f"{j[1]}-{j[2]}"), args), jobs))
     bm, cm = [], []
-    for k in range(1, max(1, args.repeat) + 1):
-        for kit, ms, name in ((base, bm, "baseline"), (cand, cm, "candidate")):
-            m = measure(kit, skill, os.path.join(run, f"{name}-{k}"), args)
-            if m is None:
-                print(
-                    f"skill-tune: {skill}: the {name} measurement failed",
-                    file=sys.stderr,
-                )
-                return 1
-            ms.append(m)
+    for (kit, name, k), m in zip(jobs, got):
+        if m is None:
+            print(f"skill-tune: {skill}: the {name} measurement failed", file=sys.stderr)
+            return 1
+        (bm if name == "baseline" else cm).append(m)
     b, c = mean(bm, "with_skill"), mean(cm, "with_skill")
     b_margin, c_margin = b - mean(bm, "without_skill"), c - mean(cm, "without_skill")
     line = f"with_skill {b:.0%} -> {c:.0%}, margin over no skill {b_margin:+.0%} -> {c_margin:+.0%} ({len(bm)} runs each)"

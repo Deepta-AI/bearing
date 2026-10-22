@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # bin/evals-weekly.sh: the weekly eval run. trigger-eval, harness-eval and
-# skill-evals-run (a rotating set of skills, BRG_SKILL_EVALS_MAX, default 5) run
+# skill-evals-run (a rotating set of skills, BRG_SKILL_EVALS_MAX, default 5,
+# three at once under a cap of six sessions) run
 # against this clone with the logged-in claude CLI (the subscription, never an
 # API key), each into a fresh folder, then bin/eval-scoreboard.py appends a row
 # to evals/scoreboard.jsonl and compares it with the last one. The maintainer
@@ -13,7 +14,7 @@
 # Exits 1 when either suite or the scoreboard failed; the row is still written
 # when the scoreboard had cases to write. bash 3.2 safe.
 #
-#   BRG_TRIGGER_EVAL  the trigger-eval command (default: python3 bin/trigger-eval.py -j 4)
+#   BRG_TRIGGER_EVAL  the trigger-eval command (default: python3 bin/trigger-eval.py -j 8)
 #   BRG_HARNESS_EVAL  the harness-eval command (default: python3 bin/harness-eval.py)
 #   BRG_SKILL_EVALS   the skill-evals-run command (default: python3 bin/skill-evals-run.py);
 #                     it gets --board, --out and --max appended
@@ -32,7 +33,7 @@ rc=0
 # An override is a command line for tests (split on spaces); the default
 # keeps the kit path whole, spaces and all.
 trigger() {
-  if [ -n "${BRG_TRIGGER_EVAL:-}" ]; then $BRG_TRIGGER_EVAL; else python3 "$kit/bin/trigger-eval.py" -j 4; fi
+  if [ -n "${BRG_TRIGGER_EVAL:-}" ]; then $BRG_TRIGGER_EVAL; else python3 "$kit/bin/trigger-eval.py" -j 8; fi
 }
 harness() {
   if [ -n "${BRG_HARNESS_EVAL:-}" ]; then $BRG_HARNESS_EVAL; else python3 "$kit/bin/harness-eval.py"; fi

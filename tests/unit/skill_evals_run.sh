@@ -32,6 +32,13 @@ import json, os, re, sys
 a = sys.argv[1:]
 with open(os.environ["STUB_LOG"], "a") as f:
     f.write(json.dumps(a) + "\n")
+if os.environ.get("STUB_CONC"):
+    import time
+    with open(os.environ["STUB_CONC"], "a") as f:
+        f.write(f"start {time.time()}\n")
+    time.sleep(0.4)
+    with open(os.environ["STUB_CONC"], "a") as f:
+        f.write(f"end {time.time()}\n")
 p = a[a.index("-p") + 1]
 if os.environ.get("STUB_FAIL") and "one run of a skill evaluation" in p:
     print(json.dumps({"type": "result", "is_error": True, "result": "stub failure"})); sys.exit(1)
@@ -112,6 +119,24 @@ t_end
 t_begin "the next run of the same skill takes the next free iteration"
 assert_exit 0 run --only learn
 assert_file "$d/ws/learn/iteration-2/benchmark.json"
+t_end
+
+t_begin "skills are measured in parallel, never with more sessions open than -j"
+: > "$d/conc.log"
+STUB_CONC="$d/conc.log" assert_exit 0 run --only learn,test-cases -j 2 --parallel-skills 2
+assert_contains "$T_OUT" "2 skills chosen, 2 measured, 0 failed"
+peak="$(python3 - "$d/conc.log" <<'PY2'
+import sys
+ev = sorted((float(t), 1 if k == "start" else -1) for k, t in (l.split() for l in open(sys.argv[1])))
+n = m = 0
+for _, x in ev:
+    n += x; m = max(m, n)
+print(m)
+PY2
+)"
+assert_eq 2 "$peak" "most sessions open at once"
+assert_contains "$(cat "$d/private.json")" '"test-cases"'
+assert_contains "$(cat "$d/private.json")" '"learn"'
 t_end
 
 t_begin "a skill whose executors fail is recorded with its error and fails the run"

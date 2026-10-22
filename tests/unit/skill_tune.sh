@@ -35,11 +35,16 @@ cat > "$d/measure" <<'S'
 kit="$1"; shift
 while [ $# -gt 0 ]; do case "$1" in --out) out="$2"; shift;; --only) skill="$2"; shift;; esac; shift; done
 case "$kit" in *candidate*) r="${STUB_CAND:-0.9}";; *) r="${STUB_BASE:-0.5}";; esac
+if [ -n "${STUB_WHEN:-}" ]; then
+  echo "start $(python3 -c 'import time;print(time.time())')" >> "$STUB_WHEN"; sleep 0.5
+  echo "end $(python3 -c 'import time;print(time.time())')" >> "$STUB_WHEN"
+fi
 mkdir -p "$out"
 printf '{"skills": {"%s": {"cases": 2, "arms": {"with_skill": {"pass_rate": %s}, "without_skill": {"pass_rate": 0.4}}}}}\n' "$skill" "$r" > "$out/summary.json"
 echo "measured $skill in $kit: $r"
 S
 chmod 755 "$d/claude" "$d/measure"
+fresh_out() { python3 -c 'import shutil,sys; shutil.rmtree(sys.argv[1], ignore_errors=True)' "$d/out"; }
 tune() {
   STUB_LOG="$d/calls.log" BRG_CLAUDE="$d/claude" BRG_SKILL_TUNE_MEASURE="$d/measure" \
     BRG_SKILL_TUNE_LINT="true" python3 "$KIT/bin/skill-tune.py" --board "$board" --out "$d/out" "$@"
@@ -68,6 +73,19 @@ assert_contains "$(cat "$p")" "+- Check the result before reporting it."
 assert_contains "$(cat "$p")" "plugins/bearing/skills/learn/SKILL.md"
 assert_contains "$(cat "$(dirname "$p")/report.md")" "The failed cases skipped the final check."
 assert_eq "$before" "$(git -C "$KIT" status --porcelain -- plugins)" "kit unchanged"
+t_end
+
+t_begin "the copy and the skill as it is are measured at the same time"
+fresh_out
+: > "$d/when.log"
+STUB_WHEN="$d/when.log" assert_exit 0 tune --skill learn --repeat 2
+assert_contains "$T_OUT" "(2 runs each)"
+assert_eq 4 "$(grep -c '^start' "$d/when.log")" "measurements"
+# every measurement started before the first one ended
+first_end="$(grep '^end' "$d/when.log" | cut -d' ' -f2 | sort -n | head -1)"
+last_start="$(grep '^start' "$d/when.log" | cut -d' ' -f2 | sort -n | tail -1)"
+assert_eq 1 "$(python3 -c "print(int($last_start < $first_end))")" "overlapping"
+p="$(find "$d/out" -name candidate.patch | head -1)"
 t_end
 
 t_begin "the patch applies to the kit as it is"
