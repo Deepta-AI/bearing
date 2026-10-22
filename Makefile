@@ -4,7 +4,7 @@
 SHELL := /bin/bash
 KITP := plugins/bearing
 .DEFAULT_GOAL := help
-.PHONY: help hooks gate ci-bash32 site devguide wiki check check-file validate lint-skills lint-tools lint-skill-size lint-questions lint-evals lint-triggers lint-neutral lint-docs lint-json lint-shell lint-portable lint-prose lint-version lint-budget lint-templates lint-plugin-size lint-model-ids test install doctor docs harness-eval trigger-eval evals-weekly evals-timer skill-tune claude-drift pin-refresh
+.PHONY: help hooks gate ci-bash32 site devguide wiki check check-file validate lint-skills lint-tools lint-skill-size lint-questions lint-evals lint-triggers lint-neutral lint-docs lint-json lint-shell lint-portable lint-prose lint-version lint-budget lint-templates lint-plugin-size lint-model-ids test install doctor docs harness-eval trigger-eval evals-weekly evals-timer skill-tune claude-drift pin-refresh eval-audit
 
 help: ## List targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-14s %s\n", $$1, $$2}'
@@ -213,6 +213,9 @@ skill-tune: ## Propose an edit to the weakest measured skill (SKILL=name to choo
 
 claude-drift: ## What Claude Code added since docs/claude-code-surface.json, and anything Bearing uses that it dropped (RECORD=1 moves the baseline)
 	python3 bin/claude-code-drift.py $(if $(RECORD),--record)
+
+eval-audit: ## Which expectations tell a run with the skill from one without, from every graded run on this machine (SKILL=name to limit)
+	python3 bin/eval-audit.py $(if $(SKILL),--skill $(SKILL))
 
 pin-refresh: ## How far each pinned pack in pinned-packs.txt is behind upstream, with the files changed; edits nothing
 	python3 bin/pin-refresh.py

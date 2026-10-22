@@ -36,7 +36,7 @@
     "The transcript names both existing ADR locations (docs/adr/ and docs/decisions/) and treats them as a conflict to resolve rather than silently picking one",
     "The transcript records a question for the user about which convention to follow, with the choice made",
     "Exactly one new ADR file exists, inside docs/adr/ or docs/decisions/, named in that directory's pattern, with a number that collides with no existing ADR in either directory (0004 in docs/adr/, or ADR-004 in docs/decisions/)",
-    "No third directory or numbering scheme was created",
+    "No third ADR directory or numbering scheme was created (a row in docs/architecture/decisions.md, or creating that index, is expected)",
     "The new ADR identifies 0002 (Use Postgres for events) as superseded, and 0002's status now reads superseded (not still Accepted) while its decision text is unchanged",
     "TimescaleDB appears as a rejected option with a reason, and staying on Postgres is also considered",
     "The context uses a number from the repository (about 40 million events a day, or the 9x ingest spikes)",
