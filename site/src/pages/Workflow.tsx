@@ -47,8 +47,8 @@ export default function Workflow() {
       <section className="stage-notes">
         <h2 id="read">How to read this map</h2>
         <p className="muted">
-          Twelve stages from an idea to a service in production. Each row is one moment in the work and names the one skill the workflow runs for
-          it.
+          {data.stages.length} stages, from an idea to a service in production. Each row is one moment in the work. It names the one skill the
+          workflow runs for that moment.
         </p>
         <ul>
           {data.notes.map((n) => (

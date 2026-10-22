@@ -22,25 +22,27 @@ export default function Files() {
   return (
     <Page
       full
+      crumb="Get started"
       title="Default files"
-      lede="What every developer has on their machine and what every repository carries, with the exact contents the installer and onboard-repo write. Copy a file from here when you set one up by hand."
+      lede="Pick a scope, then a file. Each file says who writes it and what you may change. Files the kit writes show their exact contents, ready to copy by hand."
     >
-      <nav className="flow-tabs" aria-label="Scope">
+      <nav className="seg scope" aria-label="Scope">
         {data.defaultFiles.map((s) => (
           <a
             key={s.id}
             href={`?scope=${s.id}`}
-            className={s.id === scope.id ? "on" : ""}
+            aria-current={s.id === scope.id ? "true" : undefined}
             onClick={(e) => {
               e.preventDefault();
               pick(s.id);
             }}
           >
-            {s.title} <span className="muted">({s.files.length})</span>
+            {s.title}
+            <span className="n">{s.files.length}</span>
           </a>
         ))}
       </nav>
-      <p className="muted" style={{ maxWidth: "78ch" }}>
+      <p className="muted scope-sum">
         {scope.summary}
       </p>
       <div className="files">

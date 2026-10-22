@@ -221,24 +221,26 @@ export default function FlowDiagram({ flow, initialStep }: { flow: Flow; initial
       return (
         <div className="branch" key={`b${bi}`}>
           <div className="q">{n.question}</div>
-          <div className="opts" role="group" aria-label={n.question}>
-            {n.options.map((o, oi) => (
-              <button
-                key={o.label}
-                type="button"
-                aria-pressed={chosen.includes(oi)}
-                onClick={() =>
-                  setSel((s) => {
-                    const cur = s[bi] ?? [];
-                    const next = n.multi ? (cur.includes(oi) ? cur.filter((x) => x !== oi) : [...cur, oi]) : cur.includes(oi) ? [] : [oi];
-                    return { ...s, [bi]: next };
-                  })
-                }
-              >
-                {o.label}
-                {o.steps.length > 0 && <span className="muted"> ({o.steps.length})</span>}
-              </button>
-            ))}
+          <div className="opts">
+            <div className="seg" role="group" aria-label={n.question}>
+              {n.options.map((o, oi) => (
+                <button
+                  key={o.label}
+                  type="button"
+                  aria-pressed={chosen.includes(oi)}
+                  onClick={() =>
+                    setSel((s) => {
+                      const cur = s[bi] ?? [];
+                      const next = n.multi ? (cur.includes(oi) ? cur.filter((x) => x !== oi) : [...cur, oi]) : cur.includes(oi) ? [] : [oi];
+                      return { ...s, [bi]: next };
+                    })
+                  }
+                >
+                  {o.label}
+                  {o.steps.length > 0 && <span className="muted"> ({o.steps.length})</span>}
+                </button>
+              ))}
+            </div>
             <span className="muted hint">
               {n.multi ? "choose any that apply" : "choose one"}
             </span>

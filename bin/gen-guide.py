@@ -5,9 +5,12 @@
   docs/WORKFLOW.md              the stage tables between the markers
 
 Every table comes from one source: the skill frontmatter (name,
-description, invocation), CATEGORY and STAGES below, plus one reviewed
-file: docs/flows.json (the six task flows). Fails when zero skills are
-found, when a skill has no category, when a row names more than one skill,
+description, invocation), CATEGORY and STAGES below, plus two reviewed
+files: docs/flows.json (the six task flows) and docs/skill-summaries.json
+(what each skill does and when to use it, written for a reader; the
+description stays written for triggering and only supplies the search
+phrases). Fails when zero skills are found, when a skill has no category
+or no summary, when a summary names no skill, when a row names more than one skill,
 or when a row or a flow names a skill that is neither a Bearing skill nor
 listed in docs/known-skills.txt.
 
@@ -180,6 +183,19 @@ absent = [s for s in CAT_OF if s not in existing]
 for s in absent:
     print(f"note: {s} is in CATEGORY but has no SKILL.md in any plugin yet; skipped")
 
+# What the sites say about each skill. The frontmatter description is the
+# model's trigger text; readers get these instead.
+SUMMARIES_FILE = ROOT / "docs" / "skill-summaries.json"
+try:
+    SUMMARIES = json.loads(SUMMARIES_FILE.read_text(encoding="utf-8"))
+except (OSError, ValueError) as e:
+    sys.exit(f"docs/skill-summaries.json: {e}")
+if not SUMMARIES:
+    sys.exit("docs/skill-summaries.json: 0 summaries, nothing checked")
+for k, v in SUMMARIES.items():
+    if not isinstance(v, dict) or not str(v.get("what", "")).strip() or not str(v.get("when", "")).strip():
+        sys.exit(f"docs/skill-summaries.json: {k} needs a non-empty what and when")
+
 skills = []
 for skill_d in SKILL_DIRS:
     skill = skill_d / "SKILL.md"
@@ -197,15 +213,16 @@ for skill_d in SKILL_DIRS:
         desc = desc[1:-1].replace('\\"', '"')
     cmd = bool(re.search(r"^disable-model-invocation: true", fm, re.M))
     arg = re.search(r'^argument-hint: "?(.+?)"?$', fm, re.M)
-    what, _, when = desc.partition(" Use when ")
-    phrases = re.findall(r'"([^"]+)"', when)
+    _, _, trigger = desc.partition(" Use when ")
+    phrases = re.findall(r'"([^"]+)"', trigger)
+    summary = SUMMARIES.get(name, {})
     skills.append(
         {
             "name": name,
             "plugin": kit_paths.plugin_of(skill_d),
             "category": CAT_OF.get(name, "other"),
-            "what": what.strip().rstrip("."),
-            "when": when.strip().rstrip("."),
+            "what": summary.get("what", "").strip().rstrip("."),
+            "when": summary.get("when", "").strip().rstrip("."),
             "phrases": phrases,
             "invocation": "command" if cmd else "auto",
             "args": arg.group(1).strip() if arg else "",
@@ -216,6 +233,13 @@ if not skills:
 missing = [s["name"] for s in skills if s["category"] == "other"]
 if missing:
     sys.exit(f"skills without a category: {missing}")
+unsummarised = sorted(s["name"] for s in skills if not s["what"])
+if unsummarised:
+    sys.exit(f"skills without a summary in docs/skill-summaries.json: {unsummarised}")
+orphans = sorted(set(SUMMARIES) - {s["name"] for s in skills})
+if orphans:
+    sys.exit(f"docs/skill-summaries.json names no skill: {orphans}")
+print(f"summaries: {len(skills)} of {len(skills)} skills")
 # A skill may carry more than one stack: templates/ and templates-<variant>/
 # (go has go-api and go-cli).
 STACKS = sorted(

@@ -1,0 +1,438 @@
+{
+  "ab-experiment": {
+    "what": "Designs an A/B test with a hypothesis, sample size and decision rules, then analyses the results against that plan",
+    "when": "you need to know whether an experiment worked and how long it must run"
+  },
+  "accessibility": {
+    "what": "Audits screens against WCAG 2.2 AA, fixes what it can at the source and leaves a regression gate in CI",
+    "when": "keyboard, screen-reader or low-vision users may not be able to finish a flow"
+  },
+  "adr": {
+    "what": "Records a decision already made as a numbered ADR with its context, the options weighed and its consequences",
+    "when": "a choice has been made and future readers will ask why"
+  },
+  "analytics-events": {
+    "what": "Designs the analytics event sheet, wires events through one typed module and audits the code against the sheet",
+    "when": "you are tracking a feature, or the numbers in the dashboard look wrong"
+  },
+  "android": {
+    "what": "Applies the Android house rules to Kotlin and Compose code and reviews diffs against its checklist, gated by make check",
+    "when": "you write, change or review Kotlin or Java code in an Android app"
+  },
+  "api-versioning": {
+    "what": "Deprecates and retires API endpoints with Sunset headers, a breaking-change diff and a removal gate read from the logs",
+    "when": "an endpoint has to change or go away without stranding its consumers"
+  },
+  "app-store-release": {
+    "what": "Prepares an App Store or Google Play submission in a release doc and prints the upload commands for you to run",
+    "when": "a mobile build is going to TestFlight or the stores, or review rejected it"
+  },
+  "architecture-diagram": {
+    "what": "Draws C4 and sequence diagrams from the code as it is, with a source for every box and a list of what is unconfirmed",
+    "when": "you need a picture of the system that matches the code, not the README"
+  },
+  "auth": {
+    "what": "Builds authentication and authorisation for a service, with a permission matrix that runs as one test per cell",
+    "when": "you are adding login or roles, or need to know who can read whose data"
+  },
+  "autopilot": {
+    "what": "Runs unattended from one requirement statement to a prepared merge request, recording each decision as Proposed",
+    "when": "you want a requirement built end to end without answering questions on the way"
+  },
+  "background-jobs": {
+    "what": "Builds queue, cron or outbox jobs that are safe to run twice, with bounded retries, dead letters and a runbook stub",
+    "when": "work runs outside the request and must survive retries, crashes and duplicates"
+  },
+  "backlog": {
+    "what": "Turns PRD statements into epics and Given-When-Then stories, with a coverage matrix that a script checks",
+    "when": "a PRD is ready and the team needs stories it can plan, build and test"
+  },
+  "branch-review": {
+    "what": "Reviews a branch, patch or path, has each Critical and High finding verified independently, and gives a merge verdict",
+    "when": "a change needs a second pair of eyes before it is merged"
+  },
+  "ci-pipeline": {
+    "what": "Generates or refreshes the GitLab CI or GitHub Actions pipeline for the stack, with every job calling a make target",
+    "when": "a repository has no pipeline, or its pipeline has drifted from the template"
+  },
+  "client-deliverables": {
+    "what": "Builds the numbered client documentation pack, each document as Markdown and versioned Word, with a delivery checklist",
+    "when": "a client is due a documentation delivery and expects Word documents"
+  },
+  "client-handover": {
+    "what": "Writes the end-of-engagement handover pack, every line sourced from the repository or marked unconfirmed",
+    "when": "an engagement is ending and the client's next team must run the system"
+  },
+  "cloud-cost": {
+    "what": "Reviews a month of the cloud bill read-only, works out cost per request and proposes cuts as commands to run",
+    "when": "the cloud bill has grown and you need to know where the money goes"
+  },
+  "company-attribution": {
+    "what": "Sets who owns a repository through a company profile, then fills LICENSE, CODEOWNERS and package metadata from it",
+    "when": "a repository needs a licence, an owner or the right company name on it"
+  },
+  "computer-vision": {
+    "what": "Builds an image feature with group-based splits, a baseline to beat and a threshold set from the cost of errors",
+    "when": "you need to classify images, spot defects or read fields from scanned documents"
+  },
+  "data-model": {
+    "what": "Designs the data model from the stories, giving every column a reason, with a runnable schema.sql that a gate checks",
+    "when": "stories are agreed and you need to know which tables and columns to build"
+  },
+  "data-pipeline": {
+    "what": "Applies the data stack rules to dbt models and Airflow 3 DAGs: idempotent partitions, tested marts, safe backfills",
+    "when": "you write or change dbt models or Airflow DAGs, or plan a warehouse backfill"
+  },
+  "database": {
+    "what": "Applies its rules for schemas, indexes, slow queries and store choice on PostgreSQL, ClickHouse and MongoDB",
+    "when": "a query is slow, an index is in doubt, or a feature needs a place to store data"
+  },
+  "dataset-generation": {
+    "what": "Grows at least 10 real rows into deduplicated, contamination-checked eval or training data, with a datasheet",
+    "when": "you have a few real examples and need many more for an eval or a training run"
+  },
+  "db-migration": {
+    "what": "Writes a database migration with a tested Down step, lock-safety notes and the deploy order against the code",
+    "when": "you are changing a schema that live traffic and the previous release still use"
+  },
+  "definition-of-done": {
+    "what": "Checks a branch against the Definition of Done item by item, with a command or a file line as evidence for each",
+    "when": "you think a task is finished and want proof before the merge request"
+  },
+  "dependency-audit": {
+    "what": "Audits dependencies for vulnerabilities and outdated versions, then applies only the upgrades you approve, each gated",
+    "when": "packages are out of date, or an advisory names one you ship"
+  },
+  "deployment-architecture": {
+    "what": "Documents what runs where in each environment, with a diagram and a source or unconfirmed mark on every claim",
+    "when": "someone on call needs to know how the system is deployed and rolled back"
+  },
+  "design-critique": {
+    "what": "Scores a UI design against its flows and design system with measured contrast and screenshots, worst finding first",
+    "when": "a design or prototype is about to go to the client or into handoff"
+  },
+  "design-directions": {
+    "what": "Produces visual directions over the real screens, one impeccable pick or three distinct variants, and records the choice",
+    "when": "the screens exist but nobody has chosen how the product should look"
+  },
+  "design-system": {
+    "what": "Turns a chosen design direction into oklch tokens, per-stack themes and a lint that keeps new colour literals out",
+    "when": "a look has been agreed and the code should be held to it"
+  },
+  "docs-drift": {
+    "what": "Finds docs that no longer match the code and fixes the stale side, or reports code that has left its design",
+    "when": "you inherit a codebase or suspect the README no longer tells the truth"
+  },
+  "doctor": {
+    "what": "Checks this machine and repository are set up for Bearing and gives a fix you can type for each real miss",
+    "when": "a hook did not fire or you are not sure the kit is installed properly"
+  },
+  "estimate": {
+    "what": "Sizes the remaining backlog in points and hours and answers the date question with a margin from measured velocity",
+    "when": "someone asks how long the backlog will take or whether go-live still holds"
+  },
+  "explain-codebase": {
+    "what": "Explains how a repository or feature works, read-only, with a path and line number behind every claim",
+    "when": "you are new to the code or need to find where something is handled"
+  },
+  "feature-flags": {
+    "what": "Adds, uses or removes a feature flag through one typed module, with an owner, a removal date and tests for both states",
+    "when": "a change must merge dark, or an old flag is ready to come out"
+  },
+  "feature-patterns": {
+    "what": "Plans one common mechanism, such as uploads, search or payments, as a design doc before any code is written",
+    "when": "a feature needs a well-known mechanism that is easy to get wrong the first time"
+  },
+  "flutter": {
+    "what": "Holds Dart code to the Flutter house rules for Riverpod state, repositories and loading states, and reviews Dart diffs",
+    "when": "you write, review or scaffold a Flutter app in Dart"
+  },
+  "gate-audit": {
+    "what": "Audits every CI job, hook and make check for gates that pass on empty input or check nothing, and names the fix",
+    "when": "you suspect a green check is not actually checking anything"
+  },
+  "genai-design": {
+    "what": "Writes a solution document for a GenAI feature that names one metric, one approach and the cheaper option it rejected",
+    "when": "you are deciding how to build a feature with an LLM, before any code exists"
+  },
+  "git-hooks": {
+    "what": "Installs or repairs the committed git hooks, sets core.hooksPath and proves each hook on failing and passing input",
+    "when": "a clone runs no hooks, or a commit was rejected and you need to know why"
+  },
+  "go": {
+    "what": "Applies the Go house rules for net/http, pgx, sqlc and goose, and reviews Go diffs for tenant scope and race traps",
+    "when": "you write, change or review Go code, or start a new Go service"
+  },
+  "harness-setup": {
+    "what": "Sets up a repository for another coding agent such as Cursor or Codex, carrying its rules, hooks and denies across",
+    "when": "part of the team works in a coding agent other than Claude Code"
+  },
+  "health-checks": {
+    "what": "Builds /healthz and /readyz endpoints with per-dependency checks, plus probes, alerts or synthetic journeys when asked",
+    "when": "a service needs liveness and readiness, or an outage should page someone"
+  },
+  "high-level-design": {
+    "what": "Writes a High Level Design once its goal is agreed, then has an independent critic grade it before approval",
+    "when": "a new system or large feature needs a design that reviewers can challenge"
+  },
+  "i18n": {
+    "what": "Moves user-facing strings into per-platform catalogs with plurals, locale formats and RTL, gated by a missing-key check",
+    "when": "the app needs another language or has to work right to left"
+  },
+  "incident": {
+    "what": "Keeps the live incident record as scribe, with severity, a UTC timeline and comms, while people run every fix",
+    "when": "something is down in production and the response needs a record and a plan"
+  },
+  "infra": {
+    "what": "Applies the infrastructure rules to Terraform and Kubernetes changes, where CI posts the plan and a person applies it",
+    "when": "you change or review Terraform, kustomize overlays or alert rules"
+  },
+  "ios": {
+    "what": "Applies the iOS house rules for Swift 6, SwiftUI and strict concurrency, and reviews Swift diffs against its checklist",
+    "when": "you write, change or review Swift code for an iPhone app"
+  },
+  "learn": {
+    "what": "Lists, adds and proposes the learnings Bearing keeps on this machine, and only with your consent",
+    "when": "you want Bearing to remember a lesson or share recurring ones upstream"
+  },
+  "license-compliance": {
+    "what": "Checks third-party licences against an allow and deny policy and writes the SBOM or notices a release needs",
+    "when": "you must know whether you may ship what you depend on, and what you owe"
+  },
+  "llm-agent": {
+    "what": "Builds an LLM agent on the Anthropic SDK whose tools carry permission tiers and whose loop has turn and cost limits",
+    "when": "you want a model to take actions through tools, alone or as several agents"
+  },
+  "llm-eval": {
+    "what": "Turns an LLM feature's success metric into a person-labelled golden set, graders and a CI gate that fails on regression",
+    "when": "you need to know whether a prompt or model change made a feature better or worse"
+  },
+  "llm-fine-tuning": {
+    "what": "Plans and smoke-tests fine-tuning of an open model once evals show prompting and RAG fall short, then serves it on vLLM",
+    "when": "prompting, retrieval and a stronger model still miss the target on your eval"
+  },
+  "llm-gateway": {
+    "what": "Finds every model call in the code and moves it behind one gateway module with routing, retries, cost and kill switches",
+    "when": "model calls are scattered through the code or you cannot see what they cost"
+  },
+  "llm-guardrails": {
+    "what": "Adds input, tool-call and output checks around an LLM feature from a reviewable policy, proven by adversarial tests",
+    "when": "an LLM feature takes untrusted text, handles personal data or acts through tools"
+  },
+  "load-test": {
+    "what": "Writes k6 load tests from the SLOs with failing thresholds and a manual CI job, and refuses production hosts",
+    "when": "you need to know whether a service meets its SLO at peak traffic"
+  },
+  "logging": {
+    "what": "Sets up one structured logger that carries the request id across async hops and keeps personal data out of the logs",
+    "when": "your logs leak personal data or cannot be joined to the request that wrote them"
+  },
+  "low-level-design": {
+    "what": "Writes a low level design for one HLD component, down to files, types, indexed queries, named tests and MR-sized work",
+    "when": "an agreed HLD component needs a detailed plan before anyone writes code"
+  },
+  "mcp-server": {
+    "what": "Builds an MCP server or client in Python or TypeScript, with tiered tools, both transports and a protocol test per tool",
+    "when": "you want models to reach an API or service of yours as MCP tools"
+  },
+  "merge-request": {
+    "what": "Runs the gate, audits the commits and drafts the merge request description for the current branch, never pushing it",
+    "when": "a branch is finished and you want the MR text and the push command ready"
+  },
+  "model-routing": {
+    "what": "Measures candidate models on a feature's eval and writes the cheapest route or cascade that still clears the threshold",
+    "when": "you want to cut LLM spend without dropping below a feature's quality bar"
+  },
+  "motion-design": {
+    "what": "Builds a requested animation from the motion tokens with a reduced-motion path, then checks it with the motion gate",
+    "when": "a screen needs animation that stays smooth and respects people who asked for less motion"
+  },
+  "new-repo": {
+    "what": "Creates a new repository shaped like its siblings, with Makefile, CI, hooks, CLAUDE.md and AGENTS.md, then runs its gate",
+    "when": "you are starting a new service or app that should match the repositories beside it"
+  },
+  "new-skill": {
+    "what": "Writes a new Bearing skill in the kit's house format, validates it and evals it against a baseline run without the skill",
+    "when": "a repeated checklist or job should become a skill other engineers can trigger"
+  },
+  "nextjs": {
+    "what": "Applies the Next.js App Router rules on server components, authorised server actions and caching, and reviews diffs",
+    "when": "you build or review pages, routes or server actions in a Next.js app"
+  },
+  "node": {
+    "what": "Applies the Node backend rules for Fastify 5, Zod, Drizzle and pino, and reviews TypeScript server diffs",
+    "when": "you write or review a TypeScript backend service running on Node"
+  },
+  "observability": {
+    "what": "Wires OpenTelemetry so one trace id joins logs, spans and metrics, then adds RED dashboards and SLO burn-rate alerts",
+    "when": "you cannot tell from production signals whether a service works or why it is slow"
+  },
+  "on-call": {
+    "what": "Writes the on-call rotation, escalation and error budget policy, and checks that every paging alert has a runbook",
+    "when": "you need to decide who gets paged, how a page escalates and what a burnt budget costs"
+  },
+  "onboard-repo": {
+    "what": "Brings an existing repository onto the standard within its own conventions, with a make check that mirrors CI",
+    "when": "you inherit or adopt a repository that predates the standard files"
+  },
+  "openapi-spec": {
+    "what": "Designs or audits the OpenAPI 3.1 contract in api/openapi.yaml, writes readable API docs and counts drift from the code",
+    "when": "an API needs a written contract, or the spec and the code may have drifted apart"
+  },
+  "performance": {
+    "what": "Profiles a slow path at production size, fixes the cause one change at a time and reports before and after numbers",
+    "when": "something is too slow or uses too much memory and you need a measured fix"
+  },
+  "postmortem": {
+    "what": "Writes a blameless postmortem from incident notes, with impact in numbers, a UTC timeline and a root cause chain",
+    "when": "an incident is over and the team needs a written account it can learn from"
+  },
+  "prd": {
+    "what": "Turns a brief, notes or a ticket into a PRD of numbered, testable REQ statements and a register of open questions",
+    "when": "you have a brief or client notes and need requirements that everything can trace back to"
+  },
+  "privacy-review": {
+    "what": "Maps personal data against what was promised, traces each retention and deletion path end to end and fixes the breaks",
+    "when": "you must show that delete really deletes and retention matches the published promise"
+  },
+  "prompt-registry": {
+    "what": "Moves prompts into a versioned registry loaded by one module, with typed variables, render tests and a score per version",
+    "when": "you are writing, improving or auditing the prompts a product sends to a model"
+  },
+  "prose-lint": {
+    "what": "Finds em dashes, AI filler and self-praise in prose people read and rewrites whole sentences, checking each claim",
+    "when": "docs, MR text or UI copy read as machine-written or may promise more than the code does"
+  },
+  "python": {
+    "what": "Applies the Python house rules for FastAPI, Pydantic v2, async SQLAlchemy and Alembic, and reviews Python diffs",
+    "when": "you write, change or review Python code, from an API service to a command-line tool"
+  },
+  "rag": {
+    "what": "Builds retrieval-augmented generation on pgvector whose answers cite sources, measured by recall and MRR on a golden set",
+    "when": "answers must come from your own documents and show where each claim came from"
+  },
+  "react": {
+    "what": "Applies the React house rules for TanStack Query, Zustand and Zod at every boundary, and reviews TSX diffs",
+    "when": "you write or review components and hooks in a React app built with Vite"
+  },
+  "react-native": {
+    "what": "Applies the React Native house rules for Expo, expo-router and secure token storage, and reviews mobile diffs",
+    "when": "you build or review screens in an Expo app that ships to iOS and Android"
+  },
+  "refactor": {
+    "what": "Restructures code without changing behaviour, one mechanical transform per commit, tests green before and after each",
+    "when": "code needs reshaping, renaming or splitting and nothing a test can see may change"
+  },
+  "release": {
+    "what": "Works out the next version from the commits or the API diff, writes the CHANGELOG section and prints the tag commands",
+    "when": "a service or package is ready to version and you want the changelog and tag commands"
+  },
+  "resilience-testing": {
+    "what": "Turns the design's failure claims into fault plans and restore drills, first predicting from the code which will fail",
+    "when": "you need to know whether the system survives a dead dependency or a lost database"
+  },
+  "runbook": {
+    "what": "Writes or updates the runbook for one alert, with diagnosis commands, remediation, rollback and escalation",
+    "when": "an alert can fire and whoever is paged needs to know what to check and do"
+  },
+  "screen-design": {
+    "what": "Designs every screen in every state, desktop and phone, as clickable React or HTML mockups before any product code",
+    "when": "the flows are agreed and a reviewer needs screens to click through and approve"
+  },
+  "secrets": {
+    "what": "Inventories and scans secrets by name without seeing a value, and prints the rotation and leak response steps to run",
+    "when": "a key was committed, a secret needs rotating or nobody knows which secrets exist"
+  },
+  "session-handoff": {
+    "what": "Writes a handoff note for the next session on this branch: where work stopped, what is local only, what to do first",
+    "when": "you are pausing, clearing context or handing the branch to someone else"
+  },
+  "simplify-code": {
+    "what": "Deletes code a change does not need, such as dead code and one-use abstractions, with the tests green after each cut",
+    "when": "a change, often AI-written, carries more code than the job needs"
+  },
+  "speech": {
+    "what": "Builds transcription, text-to-speech or a real-time voice agent, measured by WER per language and latency per stage",
+    "when": "you need to transcribe calls, speak replies aloud or run a voice agent"
+  },
+  "spike": {
+    "what": "Answers one yes, no or number question inside a timebox using throwaway code, leaving only a written recommendation",
+    "when": "a decision depends on something nobody knows yet and you want a bounded answer"
+  },
+  "start-task": {
+    "what": "Cuts a ticket's branch from the base it will ship from, runs a baseline and checks the criteria against the repository",
+    "when": "you are picking up a ticket and want to start on the right branch"
+  },
+  "tabular-ml": {
+    "what": "Builds a classical model on tables or events with a leak-checked split, a baseline it must beat and drift monitoring",
+    "when": "you need to predict churn, score accounts, forecast demand or flag anomalies"
+  },
+  "task-report": {
+    "what": "Writes the end-of-task report under Changed, Verified, Not done and Noticed, every line backed by a command or a file",
+    "when": "work is finished and someone who was not there needs a true account of it"
+  },
+  "tech-debt": {
+    "what": "Keeps the tech debt register in docs/DEBT.md, seeded from TODOs, suppressions and skipped tests, ranked by weekly cost",
+    "when": "you want to choose what to clean up next by cost rather than by who complains"
+  },
+  "tech-decision": {
+    "what": "Lays out the options for a technology choice, recommends one with reasons, lets you decide and records it as an ADR",
+    "when": "you must choose between technologies, such as two message brokers or two clouds"
+  },
+  "test-automation": {
+    "what": "Sets up or extends the stack's own automated test suite and writes one test per planned test case, named by its TC id",
+    "when": "planned test cases need to become automated tests in the stack's own framework"
+  },
+  "test-cases": {
+    "what": "Turns acceptance criteria into a risk register, TC-numbered test cases and a test plan, with no test code",
+    "when": "QA needs test cases and a plan derived from the acceptance criteria"
+  },
+  "test-heal": {
+    "what": "Classifies each failing or flaky test with evidence, heals locator, timing and data drift, and leaves regressions red",
+    "when": "tests fail or flake and you need to know which are drift and which are real bugs"
+  },
+  "test-run": {
+    "what": "Runs every test suite the repository has into one report, naming each failure at file:line and each suite not run",
+    "when": "you want to know what is failing and which tests actually ran"
+  },
+  "themes": {
+    "what": "Adds or checks themes such as dark mode or a tenant brand, keeping the current mode intact and proving contrast",
+    "when": "the product needs dark mode, a high contrast theme or a brand per tenant"
+  },
+  "threat-model": {
+    "what": "Writes a STRIDE threat model before code, tying assets, boundaries and entry points to rated threats and mitigations",
+    "when": "a feature touches auth, payments, personal data or outside input and needs defences planned"
+  },
+  "traceability": {
+    "what": "Builds the traceability matrix from requirements to stories, tests and commits, and counts every broken link it finds",
+    "when": "you need to know whether every requirement is tested and delivered before sign-off"
+  },
+  "tracker-sync": {
+    "what": "Creates and updates tickets in the configured tracker, syncs the backlog and moves status only when the rules are met",
+    "when": "backlog items need tickets, or a ticket's status and MR link need updating"
+  },
+  "upgrade-tools": {
+    "what": "Upgrades the Claude Code plugins and skill packs on this machine after reviewing each diff, noting each version change",
+    "when": "your plugins or skill packs are behind and you want them updated with care"
+  },
+  "ux-flows": {
+    "what": "Maps a feature's screens, states and copy against its stories, with flow diagrams and a gate that fails on any dead end",
+    "when": "you need to know which screens a feature needs and what users see when it fails"
+  },
+  "vapt-report": {
+    "what": "Writes the VAPT report for a release from triaged scanner findings and the threat model, ending in a ship or block call",
+    "when": "a release needs a written security position before it ships"
+  },
+  "verify-deploy": {
+    "what": "Checks readiness, health, version and smoke pages on one environment after you deploy, read-only and never rolling back",
+    "when": "you have just deployed and want evidence that the right version is up"
+  },
+  "webhooks": {
+    "what": "Builds inbound webhooks that verify signatures and process each event once, and outbound ones with retries and a log",
+    "when": "you are receiving or sending webhooks and need them trustworthy and traceable"
+  },
+  "workflow": {
+    "what": "Reads where the work stands from the repository, branch and diff, and names the skill or step that comes next",
+    "when": "you are unsure what to do next, which skill fits or what the team has in flight"
+  }
+}

@@ -126,6 +126,10 @@ plugin directory's limits.
   Otherwise the skill prints the command for the engineer.
 - Place the skill in the stage map in `bin/gen-guide.py`: a `CATEGORY`
   entry and, where the workflow runs it for a stage, a `STAGES` row.
+- Give it a reader's summary in `docs/skill-summaries.json`: `what` (one
+  sentence on what it does and leaves behind) and `when` (completes "Use
+  it when ..."). The sites show these; the frontmatter description stays
+  written for triggering.
   `make docs` regenerates `docs/WORKFLOW.md`, `docs/SKILLS.md` and the
   handbook data, and fails naming whatever is missing.
 - Where a stage calls an installed skill from another pack instead of a

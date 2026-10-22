@@ -32,13 +32,19 @@ export function readingOrder(nav: NavGroup[]) {
 const ShellCtx = createContext<{ order: NavItem[] }>({ order: [] });
 export const useShell = () => useContext(ShellCtx);
 
+/** The Bearing mark: a B with a heading mark on an indigo tile. Source: docs/design/logo/bearing-mark.svg. */
 export function Mark() {
   return (
     <svg viewBox="0 0 32 32" aria-hidden="true">
-      <circle cx="16" cy="16" r="14.5" fill="none" stroke="currentColor" strokeWidth="1.6" />
-      <path d="M16 4.8l3.4 11.2L16 27.2l-3.4-11.2z" fill="var(--accent)" />
-      <path d="M16 16h3.4L16 27.2l-3.4-11.2z" fill="currentColor" opacity=".32" />
-      <circle cx="16" cy="16" r="1.9" fill="currentColor" />
+      <rect width="32" height="32" rx="8" fill="var(--accent)" />
+      <path
+        d="M9.5 7.2h7.3a4.4 4.4 0 0 1 0 8.8H9.5Z M9.5 16h8.6a4.4 4.4 0 0 1 0 8.8H9.5Z"
+        fill="none"
+        stroke="var(--on-accent)"
+        strokeWidth="2.4"
+        strokeLinejoin="round"
+      />
+      <path d="M25.6 5.4 24.5 10.3 20.7 6.5Z" fill="var(--on-accent)" />
     </svg>
   );
 }

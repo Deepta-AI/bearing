@@ -45,8 +45,9 @@ export function Guard() {
   const g = data.scripts.find((s) => s.name === "brg-guard")!;
   return (
     <Page
+      crumb="Chapter 4 / Runtime"
       title="The guard"
-      lede={`plugins/bearing/bin/brg-guard is ${g.lines.toLocaleString("en")} lines of bash 3.2 that decide whether a shell command may run. It is the one piece of Bearing that must be right, so it is built to refuse whatever it cannot read.`}
+      lede={`plugins/bearing/bin/brg-guard is ${g.lines.toLocaleString("en")} lines of bash 3.2 that decide whether a shell command may run. It is the one piece of Bearing that must be right, so it refuses whatever it cannot read.`}
       toc={[
         { id: "walk", label: "Watch it read a command" },
         { id: "pipeline", label: "The pipeline" },
@@ -60,14 +61,14 @@ export function Guard() {
       sources={["plugins/bearing/bin/brg-guard", "tests/unit/guard_deny_table.sh", "tests/unit/guard_readonly.sh", "tests/unit/guard_latency.sh"]}
     >
       <H2 id="walk">Watch it read a command</H2>
-      <p>Pick an example. Each step names the function in the guard that does it; the final verdict and message are what the guard really printed.</p>
+      <p>Pick an example. Each step names the guard function that does it. The verdict and message are what the guard printed.</p>
       <GuardAnatomy />
       <Terminal id="guard" height={280} title="The same four commands and three more, run against the real guard" />
 
       <H2 id="pipeline">The pipeline</H2>
       <p>
-        <code>guard_command</code> is short. The work is in the scanners it calls, which walk the string byte by byte (with <code>LC_ALL=C</code>) keeping
-        track of quotes, so the guard sees the same words the shell will.
+        <code>guard_command</code> is short. The work is in the scanners it calls. They walk the string byte by byte (with <code>LC_ALL=C</code>) and track
+        quotes, so the guard sees the same words the shell will.
       </p>
       <ol className="steps">
         <li>
@@ -110,8 +111,8 @@ export function Guard() {
 
       <H2 id="patterns">The pattern language</H2>
       <p>
-        One rule per line in <code>verb_rows</code>, as <code>tool|pattern|label</code>. The tool is argv[0] after wrappers and path are removed, and may be a
-        glob (<code>mkfs*</code>). The pattern is space-separated tokens matched against the rest:
+        One rule per line in <code>verb_rows</code>, as <code>tool|pattern|label</code>. The tool is argv[0] with wrappers and path removed, and may be a glob
+        (<code>mkfs*</code>). The pattern is space-separated tokens matched against the rest:
       </p>
       <Defs
         rows={[
@@ -130,14 +131,14 @@ scp|@remote|scp to a remote          scp with any host:path argument`}</Code>
 
       <H2 id="rules">The {data.guardRules.length} rules</H2>
       <p>
-        Straight from <code>brg-guard --verbs</code> when this site was built. <S name="brg-harness" /> derives the Codex execpolicy, the Gemini exclusions
-        and the Zed regexes from the same output, and the handbook states its count. The deny list in <code>plugins/bearing/templates/repo/.claude/settings.json</code> is
-        kept by hand beside it, so a new rule usually wants a matching <code>Bash(...)</code> deny entry too.
+        From <code>brg-guard --verbs</code> when this site was built. <S name="brg-harness" /> derives the Codex execpolicy, the Gemini exclusions and the Zed
+        regexes from the same output. The deny list in <code>plugins/bearing/templates/repo/.claude/settings.json</code> is kept by hand, so a new rule usually
+        needs a matching <code>Bash(...)</code> deny entry too.
       </p>
       <RuleTable />
 
       <H2 id="hard">The hard cases</H2>
-      <p>Each of these was a real bypass or a real false refusal at some point; each now has rows in the deny table test.</p>
+      <p>Each was once a real bypass or a real false refusal. Each now has rows in the deny table test.</p>
       <div className="tablewrap">
         <table>
           <thead>
@@ -163,18 +164,18 @@ scp|@remote|scp to a remote          scp with any host:path argument`}</Code>
       </div>
       <Note title="Speed is part of correctness">
         <p>
-          The guard runs before every Bash call, so a slow guard is a tax on all work. <code>tests/unit/guard_latency.sh</code> times an 8,000 byte command
-          (about 370 ms when recorded) and checks that an over-limit command is refused in milliseconds. Keep new scanning linear: index into the string,
-          never spawn a process per character.
+          The guard runs before every Bash call, so a slow guard taxes all work. <code>tests/unit/guard_latency.sh</code> times an 8,000 byte command (about
+          370 ms when recorded) and checks that an over-limit command is refused in milliseconds. Keep new scanning linear: index into the string, and never
+          spawn a process per character.
         </p>
       </Note>
 
       <H2 id="readonly">Read-only mode</H2>
       <p>
-        <code>brg-guard readonly "&lt;command&gt;"</code> inverts the logic: instead of a deny list it is an allow list. Every program in the command must be a
-        read-only tool: git diff, log, show, status, blame and ls-files; ls, cat, grep, rg, find without <code>-exec</code>, sed without <code>-i</code>, jq,
-        and similar. <code>tee</code>, <code>sort -o</code>, awk that writes or pipes to a command, and interpreter one-liners are refused. It exists for
-        harnesses and agents that must look but not touch; the kit's own reviewer agents go further and get no shell at all.
+        <code>brg-guard readonly "&lt;command&gt;"</code> swaps the deny list for an allow list. Every program in the command must be a read-only tool: git
+        diff, log, show, status, blame and ls-files; ls, cat, grep, rg, find without <code>-exec</code>, sed without <code>-i</code>, jq, and similar.{" "}
+        <code>tee</code>, <code>sort -o</code>, awk that writes or pipes to a command, and interpreter one-liners are refused. It is for harnesses and agents
+        that must look but not touch. The kit's own reviewer agents get no shell at all.
       </p>
 
       <H2 id="subcommands">Every subcommand</H2>
@@ -203,12 +204,12 @@ scp|@remote|scp to a remote          scp with any host:path argument`}</Code>
         </table>
       </div>
       <p>
-        The version line reads <code>BEARING_GUARD_VERSION="__VERSION__"</code> in the kit; <S name="brg-harness" /> stamps the real version when it vendors a
+        In the kit the version line reads <code>BEARING_GUARD_VERSION="__VERSION__"</code>. <S name="brg-harness" /> stamps the real version when it vendors a
         copy into a repository as <code>.bearing/bin/brg-guard</code>, and the doctor compares the two.
       </p>
 
       <H2 id="which">Which wall refused me?</H2>
-      <p>The wording tells you. When a command you expected to run is refused:</p>
+      <p>The wording tells you which one refused:</p>
       <Defs
         rows={[
           ["Bearing blocked 'x'", "the guard matched a rule. Change the rule in verb_rows, or run the command yourself."],

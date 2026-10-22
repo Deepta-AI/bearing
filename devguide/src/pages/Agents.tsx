@@ -9,6 +9,7 @@ const CONTRACT: Record<string, string> = {
   "explorer": "The answer in under 40 lines, the relevant paths with line numbers and a few words each, and what it could not confirm. It never pastes more than five lines of a file.",
   "test-writer": "Failing tests written in an isolated worktree, the failing output, and what production change the tests expect. It never edits production code and never invents a name it cannot find.",
   "doc-writer": "The document drafted from the kit's template and the code as it is, every claim sourced, anything unsourced marked unconfirmed; the files written; the questions for you. Edits under docs/ and README.md only.",
+  "prd-drafter": "For its line range of the brief: a table of draft statements (statement, persona, source lines, tag), the constraints, the gaps and conflicts seen, and a count. It never numbers REQs and never writes files; the prd session merges and judges.",
   "critic": "The three weakest claims in a PRD, HLD or LLD, the cheapest experiment that would falsify each, what the document does not say, and a verdict: accept, accept after the experiment, or do not accept until.",
 };
 
@@ -82,8 +83,9 @@ function ReviewVisual(i: number) {
 export function Agents() {
   return (
     <Page
+      crumb="Chapter 6 / Agents"
       title="The eight agents"
-      lede="A subagent is a fresh context with its own prompt, model and tool list. Bearing uses them for one reason: to get a second opinion that cannot be contaminated by the first, and cannot touch what it is judging."
+      lede="A subagent is a fresh context with its own prompt, model and tool list. Bearing uses them for a second opinion that the first cannot contaminate, from a reader that cannot touch what it judges."
       toc={[
         { id: "why", label: "Why subagents" },
         { id: "table", label: "The eight" },
@@ -94,26 +96,25 @@ export function Agents() {
     >
       <H2 id="why">Why subagents</H2>
       <p>
-        The plugin namespaces each one, so Claude Code knows them as <code>bearing:reviewer</code>, <code>bearing:critic</code> and so on; a skill names the
-        short form in its <code>agent:</code> field or starts one by that name. Three properties make a subagent worth its cost:
+        The plugin namespaces each one, so Claude Code knows them as <code>bearing:reviewer</code>, <code>bearing:critic</code> and so on. A skill names the
+        short form in its <code>agent:</code> field, or starts one by that name. Three properties make a subagent worth its cost:
       </p>
       <ul>
         <li>
           <strong>Isolation.</strong> It starts without the session's reasoning, so a verifier checks the code and not the argument.
         </li>
         <li>
-          <strong>Fewer tools.</strong> Six of the eight have Read, Grep and Glob only, and name Bash, Write and Edit in <code>disallowedTools</code> as
-          well. A reviewer that cannot edit cannot "fix" what it is reviewing; one that cannot run a shell cannot be steered by a command in the diff.
+          <strong>Fewer tools.</strong> Six of the eight have Read, Grep and Glob only, and also list Bash, Write and Edit in <code>disallowedTools</code>. A
+          reviewer that cannot edit cannot "fix" what it reviews. One without a shell cannot be steered by a command in the diff.
         </li>
         <li>
-          <strong>A return contract.</strong> Each agent's prompt ends with the exact shape of its report, so the calling skill can merge it without reading
-          prose.
+          <strong>A return contract.</strong> Each prompt ends with the exact shape of its report, so the calling skill merges it without parsing prose.
         </li>
       </ul>
       <Note title="Tools take bare names">
         <p>
-          In an agent's <code>tools:</code> field, only bare tool names work (<code>Read, Grep, Glob</code>); a pattern like <code>Bash(git diff:*)</code> is
-          not applied there. <code>lint-skills</code> fails an agent whose tools field contains a parenthesis.
+          An agent's <code>tools:</code> field takes only bare tool names (<code>Read, Grep, Glob</code>). A pattern like <code>Bash(git diff:*)</code> is not
+          applied there, and <code>lint-skills</code> fails an agent whose tools field contains a parenthesis.
         </p>
       </Note>
 
@@ -175,9 +176,11 @@ export function Agents() {
               <Rich text={a.intro} />
             </p>
           )}
-          <p>
-            <strong>Returns.</strong> {CONTRACT[a.name]}
-          </p>
+          {CONTRACT[a.name] && (
+            <p>
+              <strong>Returns.</strong> {CONTRACT[a.name]}
+            </p>
+          )}
           {a.usedBy.length > 0 && (
             <p>
               <strong>Called from</strong>{" "}
@@ -195,7 +198,7 @@ export function Agents() {
 
       <H2 id="review">The review pipeline</H2>
       <p>
-        <S name="branch-review" /> is where the agents work together. The design point is the blind verifier: two readers, one of whom never saw the other's
+        In <S name="branch-review" /> the agents work together. The design point is the blind verifier: two readers, one of whom never saw the other's
         reasoning.
       </p>
       <Stepper label="The review pipeline" frames={REVIEW} visual={ReviewVisual} interval={3600} />

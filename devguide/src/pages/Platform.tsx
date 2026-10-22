@@ -15,8 +15,9 @@ const VERBS: [string, string, string, string, string][] = [
 export function Trackers() {
   return (
     <Page
+      crumb="Chapter 10 / Platform"
       title="Trackers"
-      lede="Skills never call a tracker's API. They call plugins/bearing/bin/brg-tracker with one of eleven verbs, and it hands the call to one adapter chosen by BEARING_TRACKER. Adding a tracker means one new script, not a change to any skill."
+      lede="Skills never call a tracker's API. They call plugins/bearing/bin/brg-tracker with one of eleven verbs, and it hands the call to the adapter BEARING_TRACKER names. A new tracker is one new script, with no skill changed."
       toc={[
         { id: "shape", label: "The shape" },
         { id: "verbs", label: "Verbs and adapters" },
@@ -74,7 +75,7 @@ export function Trackers() {
       </div>
       <p>
         Plus <code>config</code> (shared, never prints a secret) and <code>close</code> (status <code>BEARING_TRACKER_DONE_STATUS</code>, default Done).{" "}
-        <code>trace</code> posts a structured comment with the branch, MR, commits, test case ids and ADRs, because no tracker has git fields; that comment and
+        <code>trace</code> posts a structured comment with the branch, MR, commits, test case ids and ADRs, because no tracker has git fields. That comment and
         the links are the traceability.
       </p>
 
@@ -89,14 +90,14 @@ export function Trackers() {
         ]}
       />
       <p>
-        Every shape matches one regex, <code>TASK_ID_RE</code> in <code>.githooks/lib.sh</code>, so the git hooks, the guard's task-id hint and the branch
-        convention agree whatever the tracker. A REST tracker's keys are its server's own; the adapter resolves them through the protocol's search
-        endpoint and assumes no shape.
+        Every shape matches one regex, <code>TASK_ID_RE</code> in <code>.githooks/lib.sh</code>. So the git hooks, the guard's task-id hint and the branch
+        convention agree whatever the tracker. A REST tracker's keys are its server's own: the adapter resolves them through the protocol's search endpoint
+        and assumes no shape.
       </p>
 
       <H2 id="none">Tracker none</H2>
       <p>
-        No tracker is a supported mode, not an error. Read verbs exit 0, write verbs print{" "}
+        No tracker is a supported mode, not an error. Read verbs exit 0. Write verbs print{" "}
         <code>tracker: none (set BEARING_TRACKER in ~/.config/bearing/bearing.env)</code> and exit 3, and every calling skill treats 3 as "skipped". Nothing
         asks for credentials.
       </p>
@@ -123,8 +124,9 @@ export function Harnesses() {
   const h = data.scripts.find((s) => s.name === "brg-harness")!;
   return (
     <Page
+      crumb="Chapter 11 / Platform"
       title="Other harnesses"
-      lede="The standard lives in AGENTS.md, the gate in the Makefile, the guard in one script. brg-harness carries all three to nine other coding harnesses, each through the mechanism that harness actually offers."
+      lede="The standard lives in AGENTS.md, the gate in the Makefile, the guard in one script. brg-harness carries all three to nine other coding harnesses, each through the mechanism that harness offers."
       toc={[
         { id: "idea", label: "One guard, many adapters" },
         { id: "matrix", label: "What each harness gets" },
@@ -135,8 +137,8 @@ export function Harnesses() {
     >
       <H2 id="idea">One guard, many adapters</H2>
       <p>
-        Most harnesses have some way to run a script before a shell command, but each passes a different JSON and expects a different answer. So the decision
-        stays in <code>brg-guard</code> and each harness gets a small adapter that translates: Cursor wants{" "}
+        Most harnesses can run a script before a shell command, but each passes different JSON and expects a different answer. So the decision stays in{" "}
+        <code>brg-guard</code>, and each harness gets a small adapter that translates. Cursor wants{" "}
         <code>{'{"permission": "deny", "user_message": ...}'}</code>, Copilot wants <code>permissionDecision</code>, Cline wants <code>{'{"cancel": true}'}</code>
         , Windsurf reads the exit code. <S name="brg-harness" /> ({h.lines.toLocaleString("en")} lines) writes them.
       </p>
@@ -173,9 +175,9 @@ export function Harnesses() {
 
       <H2 id="vendored">The vendored guard</H2>
       <p>
-        On other harnesses the plugin is not installed, so the guard is copied into the repository as <code>.bearing/bin/brg-guard</code> with the kit version
-        stamped in place of <code>__VERSION__</code>. Hooks then work wherever the kit lives, or without it. <S name="brg-doctor" /> compares the stamp with the
-        kit and reports a stale copy.
+        Other harnesses have no plugin, so the guard is copied into the repository as <code>.bearing/bin/brg-guard</code>, with the kit version stamped in
+        place of <code>__VERSION__</code>. Hooks then work wherever the kit lives, or without it. <S name="brg-doctor" /> compares the stamp with the kit and
+        reports a stale copy.
       </p>
 
       <H2 id="honest">What is and is not enforced</H2>
@@ -193,8 +195,9 @@ export function Harnesses() {
 export function Install() {
   return (
     <Page
+      crumb="Chapter 12 / Platform"
       title="Install, doctor, packs"
-      lede="install.sh puts the plugin, the packs and one config file on a machine; brg-doctor proves what is there; brg-install-packs brings in the third-party skills the workflow names as main choices, each pinned."
+      lede="install.sh puts the plugin, the packs and one config file on a machine. brg-doctor proves what is there. brg-install-packs brings in the third-party skills the workflow names as main choices, each pinned."
       toc={[
         { id: "paths", label: "Plugin only or full install" },
         { id: "profiles", label: "Profiles" },
@@ -259,7 +262,7 @@ export function Install() {
       </Note>
 
       <H2 id="env">bearing.env</H2>
-      <p>One file per developer, the only place anything about your organisation, the git host or the tracker lives.</p>
+      <p>One file per developer. It is the only place that holds anything about your organisation, git host or tracker.</p>
       <Code cap="~/.config/bearing/bearing.env (the keys; see docs/INSTALL.md)">{`BEARING_TRACKER=none            # none | jira | gitlab | github | rest
 BEARING_PROFILE=standard        # written by install.sh
 BEARING_GIT_HOST=both           # gitlab | github | both: which CI and templates repos get
@@ -274,7 +277,7 @@ BEARING_KIT_REMOTE=             # a fork's git url; install, scaffold and adopt 
 BEARING_ORG_ID=com.example      # reverse domain for mobile ids`}</Code>
       <p>
         Every script reads it with the same parser, and <code>tests/unit/load_env.sh</code> compares the seven copies of that parser so they cannot drift.{" "}
-        <code>BEARING_ENV</code> points at a different file, which is how the tests and the recordings on this site run with a tracker of none.
+        <code>BEARING_ENV</code> points at a different file. The tests and this site's recordings use it to run with a tracker of none.
       </p>
 
       <H2 id="doctor">brg-doctor</H2>
@@ -308,7 +311,7 @@ BEARING_ORG_ID=com.example      # reverse domain for mobile ids`}</Code>
         </li>
       </ol>
       <Note title="Moving a pin">
-        <p>Every pinned SKILL.md was read at its commit before it was listed. Moving a commit means reading the skill again at the new commit; that is the review, not a formality.</p>
+        <p>Every pinned SKILL.md was read at its commit before it was listed. Moving a pin means reading the skill again at the new commit. That reading is the review.</p>
       </Note>
 
       <H2 id="uninstall">Uninstall</H2>

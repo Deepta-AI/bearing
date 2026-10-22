@@ -19,7 +19,13 @@ export function SkillLink({ name, className = "skillname" }: { name: string; cla
 }
 
 export function PackTag({ pack }: { pack: string }) {
-  return <span className={`tag dot c-${packKey(pack)}`}>{packName(pack)}</span>;
+  // The dot is the shared .dot inside the tag: ui/base.css gives .dot a fixed size, so the tag itself cannot carry the class.
+  return (
+    <span className={`tag c-${packKey(pack)}`}>
+      <i className="dot" aria-hidden="true" />
+      {packName(pack)}
+    </span>
+  );
 }
 
 /** A code block with a copy button. Commands drop their trailing # notes when copied; `exact` copies a file as it is. */

@@ -264,7 +264,7 @@ a.tile:hover { border-color: var(--line-2); transform: translateY(-2px); }
 .stepc p { margin: 0; color: var(--muted); font-size: var(--t-sm); }
 
 /* kbd group and status dot */
-.dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--c, var(--muted)); vertical-align: middle; }
+.dot:not(.tag) { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--c, var(--muted)); vertical-align: middle; }
 .dot.ok { --c: var(--ok); } .dot.bad { --c: var(--bad); } .dot.gate { --c: var(--gate); } .dot.accent { --c: var(--accent); }
 
 @media (prefers-reduced-motion: no-preference) {
