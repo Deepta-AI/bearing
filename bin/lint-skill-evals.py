@@ -5,7 +5,10 @@ pending list, and the pending list only shrinks.
 A skill's evals live at evals/<name>/evals.json, outside the skill folder so
 a run that follows the skill never reads its grading, in skill-creator's
 case schema: {"skill_name": <name>, "evals": [{"id": int, "prompt": str,
-"expected_output": str, "files": [paths], "expectations": [str, ...]}]}.
+"expected_output": str, "files": [paths], "expectations": [str, ...],
+"held_out": bool}]}. A held-out case is measured like any other but its
+failures are never shown to skill-tune's proposer, so an edit cannot win by
+fitting the cases that judge it; at least one case must not be held out.
 The cases are written and run with skill-creator (with the skill against a
 baseline without it, graded, benchmarked); this lint checks they exist and
 are well formed, not how they scored.
@@ -66,6 +69,10 @@ def check_evals(name, eval_dir, path, problems):
         for f in c.get("files") or []:
             if not os.path.exists(os.path.join(eval_dir, f)):
                 problems.append(f"{where}: input file {f} does not exist")
+        if "held_out" in c and not isinstance(c["held_out"], bool):
+            problems.append(f"{where}: held_out is true or false")
+    if cases and all(c.get("held_out") for c in cases):
+        problems.append(f"{name}: every case is held out; skill-tune needs at least one to learn from")
     return len(cases)
 
 

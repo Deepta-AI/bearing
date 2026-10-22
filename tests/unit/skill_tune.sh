@@ -40,6 +40,11 @@ if [ -n "${STUB_WHEN:-}" ]; then
   echo "end $(python3 -c 'import time;print(time.time())')" >> "$STUB_WHEN"
 fi
 mkdir -p "$out"
+if [ -n "${STUB_HELD_BASE:-}" ]; then
+  case "$kit" in *candidate*) h="$STUB_HELD_CAND";; *) h="$STUB_HELD_BASE";; esac
+  g="$out/ws/$skill/iteration-1/eval-3-proposed-not-decided/with_skill/run-1"; mkdir -p "$g"
+  printf '{"expectations": [], "summary": {"pass_rate": %s}}\n' "$h" > "$g/grading.json"
+fi
 printf '{"skills": {"%s": {"cases": 2, "arms": {"with_skill": {"pass_rate": %s}, "without_skill": {"pass_rate": 0.4}}}}}\n' "$skill" "$r" > "$out/summary.json"
 echo "measured $skill in $kit: $r"
 S
@@ -119,6 +124,51 @@ BRG_SKILL_TUNE_LINT="false" STUB_LOG="$d/calls.log" BRG_CLAUDE="$d/claude" BRG_S
   assert_exit 3 python3 "$KIT/bin/skill-tune.py" --board "$board" --out "$d/out" --skill learn
 assert_contains "$T_OUT" "lint failed"
 assert_not_contains "$T_OUT" "measured learn"
+t_end
+
+# Held-out cases: adr's case 3 is held out. A graded workspace with a failure
+# in case 1 (shown to the proposer) and one in case 3 (never shown).
+hws="$(tmpdir)"
+for c in "eval-1-supersede-in-house-convention:VISIBLE-FAILURE" "eval-3-proposed-not-decided:HIDDEN-FAILURE"; do
+  g="$hws/adr/iteration-1/${c%%:*}/with_skill/run-1"; mkdir -p "$g"
+  printf '{"expectations": [{"text": "%s", "passed": false, "evidence": "e"}], "summary": {"pass_rate": 0.0}}\n' "${c#*:}" > "$g/grading.json"
+done
+htune() {
+  BRG_SKILL_EVALS_WS="$hws" STUB_LOG="$d/calls.log" BRG_CLAUDE="$d/claude" BRG_SKILL_TUNE_MEASURE="$d/measure" \
+    BRG_SKILL_TUNE_LINT="true" python3 "$KIT/bin/skill-tune.py" --board "$board" --out "$d/out" --skill adr "$@"
+}
+
+t_begin "the proposer is told the failures of tuned cases only, never a held-out one"
+fresh_out; : > "$d/calls.log"
+STUB_HELD_BASE=0.8 STUB_HELD_CAND=0.9 assert_exit 0 htune
+assert_contains "$(cat "$d/calls.log")" "VISIBLE-FAILURE"
+assert_not_contains "$(cat "$d/calls.log")" "HIDDEN-FAILURE"
+t_end
+
+t_begin "the proposer works on a bare copy of the skill and cannot read any evals folder"
+last_call="$(cat "$d/calls.log")"  # the prompt spans lines
+assert_contains "$last_call" "$d/out/adr-"
+assert_contains "$last_call" "/proposal/adr"
+assert_contains "$last_call" "$KIT/evals"
+t_end
+
+t_begin "a held-out case that holds lets a winning edit through and is reported"
+assert_contains "$T_OUT" "held-out cases (never shown to the proposer) 80% -> 90%"
+assert_contains "$T_OUT" "skill-tune: adr: kept"
+t_end
+
+t_begin "a held-out case that falls rejects the edit even when the tuned cases win"
+fresh_out
+STUB_HELD_BASE=0.8 STUB_HELD_CAND=0.6 assert_exit 3 htune
+assert_contains "$T_OUT" "held-out cases (never shown to the proposer) 80% -> 60%"
+assert_contains "$T_OUT" "the held-out cases fell"
+assert_eq "" "$(find "$d/out" -name candidate.patch)" "patches"
+t_end
+
+t_begin "a skill without a held-out case says the verdict rests on the cases the proposer saw"
+fresh_out
+assert_exit 0 tune --skill learn
+assert_contains "$T_OUT" "no held-out case"
 t_end
 
 t_begin "an unknown skill fails"

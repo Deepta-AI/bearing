@@ -59,6 +59,18 @@ assert_exit 1 python3 "$LINT" "$d/none" "$d/evals"
 assert_contains "$T_OUT" "no skills directory"
 t_end
 
+t_begin "held_out must be a boolean, and not every case may be held out"
+d="$(tmpdir)"; sk "$d" sk-h
+ev "$d" sk-h '{"skill_name": "sk-h", "evals": [{"id": 1, "prompt": "p", "expected_output": "o", "expectations": ["e"], "held_out": "yes"}, {"id": 2, "prompt": "p", "expected_output": "o", "expectations": ["e"]}]}'
+assert_exit 1 python3 "$LINT" "$d/skills" "$d/evals" "$d/pending"
+assert_contains "$T_OUT" "case 1: held_out is true or false"
+ev "$d" sk-h '{"skill_name": "sk-h", "evals": [{"id": 1, "prompt": "p", "expected_output": "o", "expectations": ["e"], "held_out": true}]}'
+assert_exit 1 python3 "$LINT" "$d/skills" "$d/evals" "$d/pending"
+assert_contains "$T_OUT" "every case is held out"
+ev "$d" sk-h '{"skill_name": "sk-h", "evals": [{"id": 1, "prompt": "p", "expected_output": "o", "expectations": ["e"], "held_out": true}, {"id": 2, "prompt": "p", "expected_output": "o", "expectations": ["e"]}]}'
+assert_exit 0 python3 "$LINT" "$d/skills" "$d/evals" "$d/pending"
+t_end
+
 t_begin "the kit's own skills pass"
 assert_exit 0 python3 "$LINT"
 t_end
