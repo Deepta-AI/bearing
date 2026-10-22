@@ -7214,7 +7214,7 @@
    "plugin": "bearing-genai",
    "category": "genai",
    "what": "Plans and smoke-tests fine-tuning of an open model once evals show prompting and RAG fall short, then serves it on vLLM",
-   "when": "prompting, retrieval and a stronger model still miss the target on your eval",
+   "when": "prompting, retrieval and a larger model still miss the target on your eval",
    "description": "Fine-tunes an open model when prompting and RAG fall short: eval-backed decision, dataset, LoRA, DPO or distillation, vLLM serving. Use when asked to \"fine-tune a model\", \"train on our data\" or \"distil a smaller model\".",
    "invocation": "auto",
    "kind": "step",
