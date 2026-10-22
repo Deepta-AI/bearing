@@ -34,9 +34,10 @@ shape from this skill's template).
   `template.md`, `adr-template.md`); if absent, the headings of the
   newest existing ADR; if none, this skill's `templates/adr.md` without
   installing a repository copy.
-- Existing ADRs: the files in the ADR directory give the next number and
-  a decision this one supersedes; if no ADR directory exists, creates
-  `docs/adr/` and starts at `0001`.
+- Existing ADRs: every ADR file in the repository, in any directory or
+  scheme, gives the next number (step 2); the ones in the chosen
+  directory give a decision this one supersedes. If no ADR directory
+  exists, creates `docs/adr/` and starts at `0001`.
 - Decisions index: `docs/architecture/decisions.md`; if absent, created
   from `${CLAUDE_PLUGIN_ROOT}/skills/high-level-design/templates/architecture-decisions.md`
   with this ADR as its first row. Its rows use each ADR's id as the ADR
@@ -65,9 +66,11 @@ shape from this skill's template).
    or two numbering schemes in one directory, is a conflict: name both
    and ask one question with AskUserQuestion, one option per scheme, which to follow
    (as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says); never add a third scheme.
-2. Next number: the highest number in the ADR directory plus one, in
-   its width and prefix (a template file does not count; no directory
-   means `0001`). File: `<dir>/<prefix><number>-<title in its case>.<ext>`,
+2. Next number: the highest number among every ADR in the repository,
+   in any directory or scheme, plus one, so no two ADRs share a number
+   (`0002` and `ADR-003` make the next one 4); written in the chosen
+   directory's width and prefix (a template file does not count; no ADR
+   anywhere means `0001`). File: `<dir>/<prefix><number>-<title in its case>.<ext>`,
    default `docs/adr/NNNN-<kebab-title>.md`.
 3. Read the template (the repository copy when present, else
    `templates/adr.md`) and any existing ADR the decision touches; if it
