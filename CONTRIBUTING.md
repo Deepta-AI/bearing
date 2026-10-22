@@ -190,6 +190,21 @@ written, a count printed, a refusal on empty input).
   a merge request can show its effect on the score; neither site reads
   it. `make evals-timer` prints the systemd user units that run it every
   Sunday from a clone kept on main; commit the new row after each run.
+- `make skill-tune` (SKILL=<name>, else the weakest measured skill) is
+  the improvement loop: a sandboxed session edits a copy of the skill
+  from the expectations it last failed, the copy must pass the skill
+  lints, then both are measured side by side. The edit is kept only when
+  with_skill rises by 10 points and the margin over no skill does not
+  shrink, as `candidate.patch` and `report.md` under
+  `.scratch/skill-tune/`; read it, then `git apply` it on a branch.
+- `make claude-drift` compares the installed Claude Code (flags, and the
+  hook events and settings keys in its settings schema) with
+  `docs/claude-code-surface.json`: what is new, which hook events Bearing
+  does not use, and anything Bearing uses that is gone (that fails). After
+  reading the new items, `make claude-drift RECORD=1` moves the baseline.
+- `make pin-refresh` lists every pin in `pinned-packs.txt` that upstream
+  has moved past, with the files changed under the pinned path. It edits
+  nothing: read the diff it names before moving a pin.
 
 ## Testing a change
 

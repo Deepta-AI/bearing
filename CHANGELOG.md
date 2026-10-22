@@ -11,6 +11,18 @@ All notable changes to Bearing. Keep a Changelog format, semantic versions.
   triggers moved by more than 5 points, a harness scenario falling) and
   keeps the row. `make evals-timer` prints systemd user units for a weekly
   run and installs nothing.
+- `make skill-tune` (`bin/skill-tune.py`): propose an edit to one skill
+  from the expectations it last failed, measure the edited copy beside
+  the skill as it is, and keep it as a patch only if with_skill gains 10
+  points without a smaller margin over no skill. Nothing in the
+  repository changes.
+- `make claude-drift` (`bin/claude-code-drift.py`): what Claude Code
+  added since `docs/claude-code-surface.json` (first record: 2.1.287, 31
+  hook events, Bearing uses 7) and any hook event or CLI flag Bearing
+  uses that is gone, which fails the run.
+- `make pin-refresh` (`bin/pin-refresh.py`): how far each pinned pack is
+  behind upstream, with the files changed under the pinned path and a
+  flag on a changed SKILL.md. First run: 80 pins, 27 behind.
 - `bin/skill-evals-run.py`: skill-evals with no one at the keyboard.
   Executor and grader sessions run through `claude -p` in the Bash
   sandbox (localhost only, no Skill tool, no settings) over a rotating
