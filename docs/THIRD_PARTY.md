@@ -52,16 +52,16 @@ CC BY-SA 4.0, so it is installed and referenced, never copied into the kit.
 | Pack (commit) | Skills installed | Licence | Serves |
 | --- | --- | --- | --- |
 | trailofbits/skills (32e34f8) | supply-chain-risk-auditor, agentic-actions-auditor, property-based-testing; insecure-defaults as a plugin (it is a command and a workflow, not a skill) | CC BY-SA 4.0 | dependency-audit, ci-pipeline, test-automation, vapt-report |
-| getsentry/skills (c2f99a5) | gha-security-review | Apache-2.0 | ci-pipeline, vapt-report |
+| getsentry/skills (f57ada2) | gha-security-review | Apache-2.0 | ci-pipeline, vapt-report |
 | openai/skills (49f948f) | security-threat-model only (the repository is deprecated; this folder carries its own Apache-2.0 licence) | Apache-2.0 | threat-model |
-| android/skills (b1f707d) | agp-9-upgrade, navigation-3, edge-to-edge, android-intent-security, r8-analyzer, android-testing-setup (installed under that name; upstream calls it testing-setup) | Apache-2.0 | android |
+| android/skills (95ea931) | agp-9-upgrade, navigation-3, edge-to-edge, android-intent-security, r8-analyzer, android-testing-setup (installed under that name; upstream calls it testing-setup) | Apache-2.0 | android |
 | flutter/agent-plugins (e89522a) | flutter-apply-architecture-best-practices, flutter-add-widget-test, flutter-add-integration-test, flutter-setup-declarative-routing, flutter-setup-localization, flutter-fix-layout-issues, dart-run-static-analysis | BSD-3-Clause | flutter |
 | twostraws/SwiftUI-Agent-Skill (be297ff) | swiftui-pro | MIT | ios |
 | samber/cc-skills-golang (19a0626) | golang-code-style, -error-handling, -concurrency, -context, -testing, -security, -database, -observability, -safety, -performance (10 of its 46) | MIT | go |
 | hashicorp/agent-skills (c2d65df) | terraform-style-guide, terraform-test, terraform-refactor-module (upstream refactor-module) | MPL-2.0 | infra |
 | supabase/agent-skills (8331f91) | supabase-postgres-best-practices | MIT | database, db-migration |
 | expo/skills (cd75214) | expo-upgrade, expo-router; not eas-update, eas-app-stores or expo-dev-client, which publish or need EAS cloud builds | MIT | react-native |
-| grafana/skills (1ccacf2) | k6 | Apache-2.0 | load-test |
+| grafana/skills (cc33318) | k6 | Apache-2.0 | load-test |
 | AccessLint/skills (2e9d733) | the accesslint plugin: accessibility-scan, -inspect, -audit, -fix, -diff, with its MCP server | MIT (plugin.json; the repository has no licence file) | accessibility |
 
 The repository settings template denies the deploy and publish commands
