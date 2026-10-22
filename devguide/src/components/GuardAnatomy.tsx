@@ -20,7 +20,7 @@ const pre = (cmd: string): Stage => ({
 const EXAMPLES: Example[] = [
   {
     id: "env",
-    label: "A push hidden behind env",
+    label: "Push behind env",
     cmd: "env GIT_TRACE=1 git push origin main",
     verdict: "refused",
     message: "Bearing blocked 'git push': the engineer pushes, merges and deploys; the agent prepares. Print the command for the engineer instead.",
@@ -34,7 +34,7 @@ const EXAMPLES: Example[] = [
   },
   {
     id: "chain",
-    label: "An amend after an innocent echo",
+    label: "Amend after echo",
     cmd: "echo ok && git commit --amend --no-edit",
     verdict: "refused",
     message: "Bearing blocked 'git commit --amend': the engineer pushes, merges and deploys; the agent prepares. Print the command for the engineer instead.",
@@ -47,7 +47,7 @@ const EXAMPLES: Example[] = [
   },
   {
     id: "var",
-    label: "A verb the guard cannot read",
+    label: "Unreadable verb",
     cmd: "git $SUB origin",
     verdict: "refused",
     message: "brg-guard: the verb after git is a variable that cannot be read; refusing (fail closed)",
@@ -60,7 +60,7 @@ const EXAMPLES: Example[] = [
   },
   {
     id: "ok",
-    label: "Ordinary work goes through",
+    label: "Ordinary work",
     cmd: "git status --short",
     verdict: "allowed",
     message: "(no output, exit 0: the command runs)",
@@ -92,8 +92,8 @@ export function GuardAnatomy() {
   const atVerdict = st >= last;
   return (
     <figure className="anatomy wide panel">
-      <div className="an-top">
-        <div className="filters" role="group" aria-label="Examples">
+      <div className="an-top seg-scroll">
+        <div className="seg" role="group" aria-label="Examples">
           {EXAMPLES.map((x, n) => (
             <button
               key={x.id}

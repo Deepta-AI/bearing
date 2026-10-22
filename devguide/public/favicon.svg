@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Bearing">
+  <rect width="32" height="32" rx="8" fill="#6168d2"/>
+  <path d="M9.5 7.2h7.3a4.4 4.4 0 0 1 0 8.8H9.5Z M9.5 16h8.6a4.4 4.4 0 0 1 0 8.8H9.5Z" fill="none" stroke="#fff" stroke-width="2.4" stroke-linejoin="round"/>
+  <path d="M25.6 5.4 24.5 10.3 20.7 6.5Z" fill="#fff"/>
+</svg>

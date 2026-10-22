@@ -40,24 +40,35 @@ function blocks(md: string): ReactNode[] {
   return out;
 }
 
+/** The recording's intro and its steps, split at each level-two heading outside a code fence (reports quote their own headings). */
+function split(md: string) {
+  const steps: { title: string; body: string }[] = [];
+  const intro: string[] = [];
+  let fence = false;
+  for (const l of md.split("\n")) {
+    if (l.startsWith("```")) fence = !fence;
+    if (!fence && l.startsWith("## ")) steps.push({ title: l.slice(3).trim(), body: "" });
+    else if (steps.length) steps[steps.length - 1].body += l + "\n";
+    else intro.push(l);
+  }
+  return { intro: intro.join("\n"), steps };
+}
+
 export default function Example() {
   const md = data.walkthrough;
   if (!md)
     return (
-      <Page title="A recorded task" lede="No recording yet.">
+      <Page crumb="Get started" title="A recorded task" lede="No recording yet.">
         <div className="empty">docs/examples/walkthrough.md is rendered here by make docs once it exists.</div>
       </Page>
     );
-  const [intro, ...rest] = md.split(/^## /m);
-  const steps = rest.map((chunk) => {
-    const nl = chunk.indexOf("\n");
-    return { title: chunk.slice(0, nl).trim(), body: chunk.slice(nl + 1) };
-  });
+  const { intro, steps } = split(md);
   const introText = intro.replace(/^# .*\n/, "");
   return (
     <Page
+      crumb="Get started"
       title="A recorded task"
-      lede="A real build, captured prompt by prompt: what the developer typed and what each skill reported, unchanged. Open a step to read it."
+      lede="One real build, recorded step by step. Open a step to read the prompt the developer typed and the report the skill printed."
     >
       <div className="muted">{blocks(introText)}</div>
       {steps.map((s, i) => {
@@ -65,8 +76,10 @@ export default function Example() {
         return (
           <details className="walk-step" key={i} open={i === 0}>
             <summary>
-              <i>{m ? m[1] : i + 1}</i>
-              {m ? m[2] : s.title}
+              <i>
+                {i + 1} of {steps.length}
+              </i>
+              <span>{m ? m[2] : s.title}</span>
             </summary>
             <div className="body">{blocks(s.body)}</div>
           </details>

@@ -2,7 +2,9 @@ import { Link } from "react-router";
 import { Stepper, type Frame } from "../components/Stepper";
 import { Terminal } from "../components/Terminal";
 import { Code, Defs, H2, Note, Page, S } from "../components/ui";
-import { data } from "../lib/data";
+import { data, recordings } from "../lib/data";
+
+const WRITTEN = recordings.scaffold?.steps.flatMap((s) => s.out.map(([, l]) => l)).find((l) => /^brg-scaffold: \d+ files written/.test(l));
 
 const PH = [
   ["__REPO_NAME__", "InvoiceService"],
@@ -34,12 +36,12 @@ function Layers({ i }: { i: number }) {
         ))}
         {i >= 6 && <div className="val">lockfile: created by go mod tidy && go -C tools mod tidy</div>}
         {i >= 7 && <div className="val">git init -b main; core.hooksPath=.githooks</div>}
-        {i >= 8 && <div className="val">brg-scaffold: 64 files written ... 0 files with unfilled placeholders</div>}
+        {i >= 8 && WRITTEN && <div className="val">{WRITTEN.replace(/ to \S+/, "")}</div>}
       </div>
     );
   return (
     <div className="layers" aria-hidden="true">
-      <div className="layer" style={{ top: 240, borderStyle: "dashed", background: "var(--paper-2)" }}>
+      <div className="layer" style={{ top: 240, borderStyle: "dashed", background: "var(--bg-sunk)" }}>
         <b>InvoiceService/</b>
         <span>an empty directory (or one holding only .bearing/)</span>
       </div>
@@ -136,8 +138,9 @@ const FRAMES: Frame[] = [
 export function Scaffold() {
   return (
     <Page
+      crumb="Chapter 7 / Repositories"
       title="Scaffolding a repository"
-      lede={`brg-scaffold turns a stack id and a name into a repository that passes its own gate before anyone writes a line. It is ${data.scripts.find((x) => x.name === "brg-scaffold")?.lines} lines of bash, and every step below is one of its numbered steps.`}
+      lede={`brg-scaffold turns a stack id and a name into a repository that passes its own gate before anyone writes a line. It is ${data.scripts.find((x) => x.name === "brg-scaffold")?.lines} lines of bash; each step below is one of its numbered steps.`}
       toc={[
         { id: "watch", label: "Watch it build one" },
         { id: "steps", label: "Step by step" },
@@ -157,14 +160,15 @@ export function Scaffold() {
       <H2 id="steps">Step by step</H2>
       <Stepper label="brg-scaffold, step by step" frames={FRAMES} visual={(i) => <Layers i={i} />} interval={3400} />
       <p>
-        You rarely call the script yourself: <S name="new-repo" /> asks for what it cannot infer (stack, name, host, tracker, lead), runs{" "}
-        <S name="brg-scaffold" />, then <code>make setup</code> and <code>make check</code>. It never commits: it prints the first commit command for you, and reports the remote project and CI variables under Not done.
+        You rarely call the script yourself. <S name="new-repo" /> asks for what it cannot infer (stack, name, host, tracker, lead), runs{" "}
+        <S name="brg-scaffold" />, then <code>make setup</code> and <code>make check</code>. It never commits. It prints the first commit command, and lists the
+        remote project and CI variables under Not done.
       </p>
 
       <H2 id="stacks">The {data.stacks.length} stacks</H2>
       <p>
-        A stack is not registered anywhere: a folder <code>plugins/&lt;plugin&gt;/skills/&lt;lane&gt;/templates*/</code> holding a <code>stack.json</code> is a stack. Two lanes
-        ship a second variant in <code>templates-cli/</code>.
+        Stacks are not registered anywhere. Any folder <code>plugins/&lt;plugin&gt;/skills/&lt;lane&gt;/templates*/</code> holding a <code>stack.json</code> is a
+        stack. Two lanes ship a second variant in <code>templates-cli/</code>.
       </p>
       <div className="tablewrap">
         <table>
@@ -229,7 +233,7 @@ export function Scaffold() {
       />
 
       <H2 id="result">What you get</H2>
-      <p>The recording above, as a map. Everything outside cmd/, internal/ and db/ is the standard; those three are the skeleton.</p>
+      <p>The recording above, as a map. cmd/, internal/ and db/ are the skeleton; everything else is the standard.</p>
       <div className="tree">
         {[
           ["AGENTS.md", "the standard for every agent, loaded every session"],
@@ -299,7 +303,7 @@ export function Scaffold() {
       <Note title="Why the caches are writable">
         <p>
           The first sandboxed template broke every <code>npm</code>, <code>pnpm</code>, <code>uv</code> and <code>go</code> install, because their caches live
-          outside the repository. <code>make harness-eval</code> has a sandbox scenario that proves installs work and <code>.env</code> stays unreadable.
+          outside the repository. A <code>make harness-eval</code> scenario proves that installs work and <code>.env</code> stays unreadable.
         </p>
       </Note>
 
@@ -312,7 +316,7 @@ export function Scaffold() {
         </li>
         <li>
           In CI, one <code>kit:scaffold:&lt;stack&gt;</code> job per stack runs <code>make setup && make check</code> inside the result, in that stack's own
-          image. A daily schedule runs them with fresh dependencies, so a bad upstream release fails the next morning rather than in the next new repository.
+          image. A daily schedule runs them with fresh dependencies, so a bad upstream release fails the next morning, not in the next new repository.
         </li>
       </ul>
     </Page>
@@ -347,8 +351,9 @@ function AdoptTree() {
 export function Adopt() {
   return (
     <Page
+      crumb="Chapter 8 / Repositories"
       title="Adopting a repository"
-      lede="brg-adopt brings an existing repository onto the standard without overwriting a single file. Everything it would change becomes a proposal beside the original, and running it twice changes nothing."
+      lede="brg-adopt brings an existing repository onto the standard without overwriting a file. Each change it would make becomes a proposal beside the original, and a second run changes nothing."
       toc={[
         { id: "rule", label: "The one rule" },
         { id: "watch", label: "Watch it, twice" },
@@ -361,13 +366,13 @@ export function Adopt() {
     >
       <H2 id="rule">The one rule</H2>
       <p>
-        Adopt builds the whole desired tree in a temporary staging directory first (shared files, the stack's rules, placeholders filled), and only then walks
-        it against the repository. It never edits a file that exists. That is what makes it safe to run on a codebase you did not write.
+        Adopt first builds the whole desired tree in a temporary staging directory: shared files, the stack's rules, placeholders filled. Only then does it walk
+        that tree against the repository. It never edits a file that exists, so it is safe on a codebase you did not write.
       </p>
 
       <H2 id="watch">Watch it, twice</H2>
       <p>
-        The first run adds 36 files to a repository that had a package.json and a README. The second finds 34 files in the standard and keeps all 34: the
+        The first run adds 36 files to a repository that had a package.json and a README. The second finds 34 files in the standard and keeps all 34. The
         Makefile and the GitHub workflow are no longer offered, because the repository now has them.
       </p>
       <Terminal id="adopt" height={360} />
@@ -377,14 +382,14 @@ export function Adopt() {
 
       <H2 id="build">Build files are offered, not imposed</H2>
       <p>
-        A repository that already builds keeps its build. The stack's Makefile is staged only when there is no Makefile; <code>.gitlab-ci.yml</code> only when
-        there is none; <code>.github/</code> only when there are no workflows. Everything else in the standard (AGENTS.md, settings, rules, hooks, docs
-        templates) is always staged.
+        A repository that already builds keeps its build. The stack's Makefile is staged only when there is no Makefile, <code>.gitlab-ci.yml</code> only when
+        there is none, and <code>.github/</code> only when there are no workflows. The rest of the standard (AGENTS.md, settings, rules, hooks, docs templates)
+        is always staged.
       </p>
 
       <H2 id="gate">Making the Stop gate block</H2>
       <p>
-        The Stop hook can only hold a session to <code>make check</code> if the check target records a pass. Every stack template's Makefile does. For a
+        The Stop hook can hold a session to <code>make check</code> only if the check target records a pass. Every stack template's Makefile does. In a
         repository's own Makefile, adopt finds the single <code>check:</code> rule (not a double-colon rule, not two rules), walks past its prerequisites and
         recipe, and proposes one more recipe line:
       </p>
@@ -393,7 +398,7 @@ export function Adopt() {
 	go test ./...
 	@mkdir -p .bearing/state && touch .bearing/state/.check-passed`}</Code>
       <p>
-        Make stops at the first failing line, so the last line only runs when everything before it passed. When the Makefile has no check target, or one adopt
+        Make stops at the first failing line, so the last line runs only when everything before it passed. When the Makefile has no check target, or one adopt
         cannot safely extend, it prints the line for you instead.
       </p>
 

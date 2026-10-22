@@ -4,6 +4,18 @@ All notable changes to Bearing. Keep a Changelog format, semantic versions.
 
 ## [Unreleased]
 
+### Changed
+- The handbook and the developer guide are redesigned as one dark-first
+  system in the spirit of Linear: tokens in `docs/design/tokens.json`
+  (bound in `ui/tokens.css`, contrast measured), Geist type, one indigo
+  accent, shared tabs, segmented controls, tiles and step cards, rebuilt
+  home pages and rewritten page copy. Dark is the default; the toggle pins
+  light.
+- The sites describe each skill from `docs/skill-summaries.json`, written
+  for readers, instead of the trigger-oriented frontmatter description;
+  `bin/gen-guide.py` fails when a skill has no summary or a summary names
+  no skill.
+
 ### Fixed
 - A push from a linked worktree no longer lets the gate write into the
   main repository. Git exports `GIT_DIR` and `GIT_INDEX_FILE` to a hook

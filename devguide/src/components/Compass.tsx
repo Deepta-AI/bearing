@@ -64,7 +64,7 @@ export function Compass() {
   const h = hooks.find((x) => x.event === EVENTS[i].event);
   const e = EVENTS[i];
 
-  // One tour through the six events when the dial first comes into view; any
+  // One tour through the events when the dial first comes into view; any
   // interaction ends it. Reduced motion: no tour.
   useEffect(() => {
     if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
@@ -92,8 +92,8 @@ export function Compass() {
 
   return (
     <div className="compass wide" ref={root}>
-      <div className="dial">
-        <svg viewBox="-200 -200 400 400" role="group" aria-label="The six hook events of a session">
+      <div className="dial" role="group" aria-label={`The ${EVENTS.length} checkpoints of a session`}>
+        <svg viewBox="-200 -200 400 400">
           <circle r={R + 30} className="ring-outer" />
           <circle r={R} className="ring" />
           <circle r={R - 46} className="ring-inner" />
@@ -117,7 +117,7 @@ export function Compass() {
                 role="button"
                 tabIndex={0}
                 aria-pressed={n === i}
-                aria-label={`${ev.event}: ${ev.when}`}
+                aria-label={`${ev.short}: ${ev.event}. ${ev.when}`}
                 onClick={() => pick(n)}
                 onKeyDown={(k) => {
                   if (k.key === "Enter" || k.key === " ") {

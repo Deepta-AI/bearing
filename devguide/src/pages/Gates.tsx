@@ -52,7 +52,7 @@ function CheckRail() {
         {assertions ? <span className="walls-out">{assertions.toLocaleString("en")} assertions in the test step</span> : null}
       </div>
       <figcaption>
-        Each tile is one prerequisite of <code>check</code>, in Makefile order, lit at its real moment in the recorded run (compressed). The text is the line it
+        One tile per prerequisite of <code>check</code>, in Makefile order, lit at its moment in the recorded run (time compressed). The text is the line it
         printed.
       </figcaption>
     </figure>
@@ -88,8 +88,9 @@ export function Gates() {
   };
   return (
     <Page
+      crumb="Chapter 13 / Quality"
       title="Gates, tests and CI"
-      lede={`make check is ${data.check.length} steps and about three minutes. Every step prints what it examined and fails when that is zero, because a gate that checked nothing did not pass.`}
+      lede={`make check is ${data.check.length} steps and about three minutes. Every step prints what it examined and fails when that is zero: a gate that checked nothing did not pass.`}
       toc={[
         { id: "rail", label: "Watch make check" },
         { id: "make", label: "Every make target" },
@@ -130,8 +131,8 @@ export function Gates() {
 
       <H2 id="zero">Fail on empty</H2>
       <p>
-        The rule came from a real failure: four CI gates once passed while examining zero items (a glob that matched nothing, a directory that moved). Since
-        then every gate in the kit, and every gate the kit writes into product repositories, follows the same shape:
+        The rule came from a real failure: four CI gates once passed while examining zero items (a glob that matched nothing, a directory that moved). Every
+        gate in the kit, and every gate it writes into product repositories, now has the same shape:
       </p>
       <pre className="anno-src">{`n=0; bad=0
 for f in <the things>; do
@@ -141,16 +142,16 @@ done
 [ "$bad" -eq 0 ] || { echo "lint-x: $bad problems"; exit 1; }
 echo "lint-x: $n files checked, 0 problems"`}</pre>
       <p>
-        <code>tests/lint/gate_selfaudit.sh</code> enforces it on the gates themselves: it audited 76 gates across 14 Makefiles in the recorded run, feeding
-        each an empty input and expecting a failure. Stack Makefiles also print <code>check: R gates run, S skipped</code> and fail when S is above zero,
-        unless <code>BEARING_ALLOW_SKIP=1</code> is set on a workstation.
+        <code>tests/lint/gate_selfaudit.sh</code> holds the gates to it. It feeds each an empty input and expects a failure; the recorded run audited 76 gates
+        across 14 Makefiles. Stack Makefiles also print <code>check: R gates run, S skipped</code> and fail when S is above zero, unless{" "}
+        <code>BEARING_ALLOW_SKIP=1</code> is set on a workstation.
       </p>
 
       <H2 id="tests">The {data.tests.length} test files</H2>
       <p>
-        <code>tests/run.sh</code> runs every <code>*.sh</code> under <code>tests/</code> except the library, counts a non-executable test as a failure so none
-        is skipped silently, and exits 1 when any failed or none ran. Each file prints <code>&lt;name&gt;: N cases, M assertions, F failed</code>. All of
-        them run on bash 3.2.
+        <code>tests/run.sh</code> runs every <code>*.sh</code> under <code>tests/</code> except the library. A non-executable test counts as a failure, so none
+        is skipped silently, and the runner exits 1 when any failed or none ran. Each file prints{" "}
+        <code>&lt;name&gt;: N cases, M assertions, F failed</code>. All of them run on bash 3.2.
       </p>
       {kinds.map(([k, ts]) => (
         <details key={k} className="testgroup" open={k === "integration"}>
@@ -176,9 +177,9 @@ echo "lint-x: $n files checked, 0 problems"`}</pre>
 
       <H2 id="harness">harness-eval: real sessions</H2>
       <p>
-        Unit tests prove the guard's logic; they cannot prove Claude Code calls it, reads its JSON, or loops. <S name="harness-eval.py" /> runs real headless
-        sessions (<code>claude -p</code>) against throwaway repositories with <code>--plugin-dir</code> pointed at your checkout, so the installed copy cannot
-        answer for the one under test. A gate never reached counts as a failure.
+        Unit tests prove the guard's logic. They cannot prove that Claude Code calls it, reads its JSON, or does not loop. <S name="harness-eval.py" /> runs
+        real headless sessions (<code>claude -p</code>) against throwaway repositories, with <code>--plugin-dir</code> pointed at your checkout so the installed
+        copy cannot answer for it. A gate never reached counts as a failure.
       </p>
       <div className="tablewrap">
         <table>
@@ -201,13 +202,13 @@ echo "lint-x: $n files checked, 0 problems"`}</pre>
         </table>
       </div>
       <p>
-        <code>make harness-eval ONLY=push,stop-red</code> runs a subset; <code>--repeat N</code> gives pass rates. It uses real tokens, so it is not part of{" "}
-        <code>make check</code>; run it after any change to a hook or the guard.
+        <code>make harness-eval ONLY=push,stop-red</code> runs a subset, and <code>--repeat N</code> gives pass rates. It spends real tokens, so it is not part
+        of <code>make check</code>. Run it after any change to a hook or the guard.
       </p>
 
       <H2 id="ci">CI</H2>
       <p>
-        CI runs on GitHub Actions, in {data.gh.length} workflows. A matrix job runs once per entry. The GitLab pipeline below is the twin of both, for a
+        CI runs on GitHub Actions in {data.gh.length} workflows. A matrix job runs once per entry. The GitLab pipeline further down is the twin of both, for a
         GitLab mirror.
       </p>
       <div className="ci wide">

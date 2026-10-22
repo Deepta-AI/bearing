@@ -5,8 +5,8 @@
    "name": "ab-experiment",
    "plugin": "bearing",
    "category": "product",
-   "what": "Designs and analyses an A/B test: hypothesis, primary and guardrail metrics, sample size and duration, stopping rule, decision",
-   "when": "asked to \"A/B test this\", \"how long should it run\", \"is it significant\"",
+   "what": "Designs an A/B test with a hypothesis, sample size and decision rules, then analyses the results against that plan",
+   "when": "you need to know whether an experiment worked and how long it must run",
    "phrases": [
     "A/B test this",
     "how long should it run",
@@ -19,8 +19,8 @@
    "name": "accessibility",
    "plugin": "bearing",
    "category": "quality",
-   "what": "Audits and fixes accessibility to WCAG 2.2 AA on web and mobile, findings at file:line, axe checks in Playwright",
-   "when": "asked about \"accessibility\", \"a11y\", \"WCAG\", \"screen reader\" or \"keyboard navigation\"",
+   "what": "Audits screens against WCAG 2.2 AA, fixes what it can at the source and leaves a regression gate in CI",
+   "when": "keyboard, screen-reader or low-vision users may not be able to finish a flow",
    "phrases": [
     "accessibility",
     "a11y",
@@ -35,8 +35,8 @@
    "name": "adr",
    "plugin": "bearing",
    "category": "architecture",
-   "what": "Records a decision already made as a numbered ADR (docs/adr/ or the repo's own folder): context, options, decision, consequences",
-   "when": "asked to \"write an ADR\", \"record this decision\" or \"document why we chose\"",
+   "what": "Records a decision already made as a numbered ADR with its context, the options weighed and its consequences",
+   "when": "a choice has been made and future readers will ask why",
    "phrases": [
     "write an ADR",
     "record this decision",
@@ -49,8 +49,8 @@
    "name": "analytics-events",
    "plugin": "bearing",
    "category": "platform",
-   "what": "Designs the analytics event sheet, wires the analytics SDK behind one typed module and audits code against the sheet",
-   "when": "asked to \"track this feature\", \"add an event\", \"set up analytics\" or \"audit tracking\"",
+   "what": "Designs the analytics event sheet, wires events through one typed module and audits the code against the sheet",
+   "when": "you are tracking a feature, or the numbers in the dashboard look wrong",
    "phrases": [
     "track this feature",
     "add an event",
@@ -64,8 +64,8 @@
    "name": "android",
    "plugin": "bearing-apps",
    "category": "stacks",
-   "what": "Android house rules (Kotlin, Jetpack Compose, Material 3, Hilt, coroutines, Room, Gradle). Load before writing or changing Android or Kotlin code",
-   "when": "asked for \"a Room DAO\", \"a Hilt module\" or an app",
+   "what": "Applies the Android house rules to Kotlin and Compose code and reviews diffs against its checklist, gated by make check",
+   "when": "you write, change or review Kotlin or Java code in an Android app",
    "phrases": [
     "a Room DAO",
     "a Hilt module"
@@ -77,8 +77,8 @@
    "name": "api-versioning",
    "plugin": "bearing",
    "category": "architecture",
-   "what": "Versions and retires API endpoints: Deprecation and Sunset headers, consumer inventory, breaking-change diff, contract tests, log-gated removal",
-   "when": "asked to \"deprecate an endpoint\", \"version the API\" or \"sunset\"",
+   "what": "Deprecates and retires API endpoints with Sunset headers, a breaking-change diff and a removal gate read from the logs",
+   "when": "an endpoint has to change or go away without stranding its consumers",
    "phrases": [
     "deprecate an endpoint",
     "version the API",
@@ -91,8 +91,8 @@
    "name": "app-store-release",
    "plugin": "bearing",
    "category": "task flow",
-   "what": "Prepares an App Store or Google Play submission: build numbers, listing, screenshots, privacy forms, phased rollout, rejection fixes",
-   "when": "asked to \"submit to the App Store\", \"TestFlight\" or \"app rejected\"",
+   "what": "Prepares an App Store or Google Play submission in a release doc and prints the upload commands for you to run",
+   "when": "a mobile build is going to TestFlight or the stores, or review rejected it",
    "phrases": [
     "submit to the App Store",
     "TestFlight",
@@ -105,8 +105,8 @@
    "name": "architecture-diagram",
    "plugin": "bearing",
    "category": "architecture",
-   "what": "Draws the architecture from the code as it is: C4 and sequence diagrams in mermaid, SVG and PNG, every box sourced",
-   "when": "asked to \"draw the architecture\", \"C4 diagram\" or \"sequence diagram\"",
+   "what": "Draws C4 and sequence diagrams from the code as it is, with a source for every box and a list of what is unconfirmed",
+   "when": "you need a picture of the system that matches the code, not the README",
    "phrases": [
     "draw the architecture",
     "C4 diagram",
@@ -119,8 +119,8 @@
    "name": "auth",
    "plugin": "bearing",
    "category": "architecture",
-   "what": "Builds authentication and authorisation: sessions or tokens, passkeys, OAuth, RBAC, tenant isolation, IDOR checks, a permission matrix as tests",
-   "when": "asked to \"add login\", \"roles and permissions\" or \"who can access\"",
+   "what": "Builds authentication and authorisation for a service, with a permission matrix that runs as one test per cell",
+   "when": "you are adding login or roles, or need to know who can read whose data",
    "phrases": [
     "add login",
     "roles and permissions",
@@ -133,8 +133,8 @@
    "name": "autopilot",
    "plugin": "bearing",
    "category": "meta",
-   "what": "Runs unattended from one requirement statement to a prepared merge request, deciding as Proposed for review; pushes only where opted in",
-   "when": "asked to \"autopilot this\", \"run it end to end\" or \"build this unattended\"",
+   "what": "Runs unattended from one requirement statement to a prepared merge request, recording each decision as Proposed",
+   "when": "you want a requirement built end to end without answering questions on the way",
    "phrases": [
     "autopilot this",
     "run it end to end",
@@ -147,8 +147,8 @@
    "name": "background-jobs",
    "plugin": "bearing",
    "category": "architecture",
-   "what": "Builds background jobs that survive failure: queue, cron or outbox, idempotency keys, backoff retries, dead letters, graceful shutdown",
-   "when": "asked for a \"background job\", \"queue\", \"cron job\", \"worker\" or \"outbox\"",
+   "what": "Builds queue, cron or outbox jobs that are safe to run twice, with bounded retries, dead letters and a runbook stub",
+   "when": "work runs outside the request and must survive retries, crashes and duplicates",
    "phrases": [
     "background job",
     "queue",
@@ -163,8 +163,8 @@
    "name": "backlog",
    "plugin": "bearing",
    "category": "product",
-   "what": "Turns PRD requirements into a backlog of epics and Given-When-Then user stories with a coverage matrix, combining statements",
-   "when": "asked to \"write the user stories\", \"build the backlog\" or \"break down the PRD\"",
+   "what": "Turns PRD statements into epics and Given-When-Then stories, with a coverage matrix that a script checks",
+   "when": "a PRD is ready and the team needs stories it can plan, build and test",
    "phrases": [
     "write the user stories",
     "build the backlog",
@@ -177,8 +177,8 @@
    "name": "branch-review",
    "plugin": "bearing",
    "category": "quality",
-   "what": "Code review of a branch, MR, patch or path with stack checklists, every Critical and High finding independently verified, and merge verdict",
-   "when": "asked to \"review this\", \"review the MR\" or \"look over my changes\"",
+   "what": "Reviews a branch, patch or path, has each Critical and High finding verified independently, and gives a merge verdict",
+   "when": "a change needs a second pair of eyes before it is merged",
    "phrases": [
     "review this",
     "review the MR",
@@ -191,8 +191,8 @@
    "name": "ci-pipeline",
    "plugin": "bearing",
    "category": "repository",
-   "what": "Generates or refreshes the CI pipeline for the stack (GitLab CI, GitHub Actions or both), every job a make target, deploys manual",
-   "when": "asked to \"add CI\", \"set up the pipeline\", \"fix the pipeline\" or \"add a CI job\"",
+   "what": "Generates or refreshes the GitLab CI or GitHub Actions pipeline for the stack, with every job calling a make target",
+   "when": "a repository has no pipeline, or its pipeline has drifted from the template",
    "phrases": [
     "add CI",
     "set up the pipeline",
@@ -206,8 +206,8 @@
    "name": "client-deliverables",
    "plugin": "bearing",
    "category": "operate",
-   "what": "Builds the client documentation pack: numbered folders, each document as Markdown, CSV and versioned Word, and a delivery checklist",
-   "when": "asked to \"build the client pack\" or \"export the docs to Word\"",
+   "what": "Builds the numbered client documentation pack, each document as Markdown and versioned Word, with a delivery checklist",
+   "when": "a client is due a documentation delivery and expects Word documents",
    "phrases": [
     "build the client pack",
     "export the docs to Word"
@@ -219,8 +219,8 @@
    "name": "client-handover",
    "plugin": "bearing",
    "category": "operate",
-   "what": "Writes the client handover pack at the end of an engagement: environments, access list, deploy, runbooks, debt, licences, sign-off",
-   "when": "asked to \"prepare the handover\" or \"hand this over to the client\"",
+   "what": "Writes the end-of-engagement handover pack, every line sourced from the repository or marked unconfirmed",
+   "when": "an engagement is ending and the client's next team must run the system",
    "phrases": [
     "prepare the handover",
     "hand this over to the client"
@@ -232,8 +232,8 @@
    "name": "cloud-cost",
    "plugin": "bearing",
    "category": "operate",
-   "what": "Reviews the cloud bill read-only: spend by service and environment, top ten lines, cost per request, proposed cuts",
-   "when": "asked about the \"cloud bill\", \"cost review\", \"FinOps\" or \"why is the bill so high\"",
+   "what": "Reviews a month of the cloud bill read-only, works out cost per request and proposes cuts as commands to run",
+   "when": "the cloud bill has grown and you need to know where the money goes",
    "phrases": [
     "cloud bill",
     "cost review",
@@ -247,8 +247,8 @@
    "name": "company-attribution",
    "plugin": "bearing",
    "category": "repository",
-   "what": "Sets who owns a repository: organisation profile, LICENSE and NOTICE, CODEOWNERS, SECURITY.md, package metadata",
-   "when": "asked to \"add a licence\", \"attribute this repo to\" or \"who owns this code\"",
+   "what": "Sets who owns a repository through a company profile, then fills LICENSE, CODEOWNERS and package metadata from it",
+   "when": "a repository needs a licence, an owner or the right company name on it",
    "phrases": [
     "add a licence",
     "attribute this repo to",
@@ -261,8 +261,8 @@
    "name": "computer-vision",
    "plugin": "bearing-genai",
    "category": "genai",
-   "what": "Builds image features (VLM, classifier, detector, quality check, document extraction) with leak-free splits and a cost-set threshold",
-   "when": "asked to \"classify images\", \"detect defects\", \"extract from scans\"",
+   "what": "Builds an image feature with group-based splits, a baseline to beat and a threshold set from the cost of errors",
+   "when": "you need to classify images, spot defects or read fields from scanned documents",
    "phrases": [
     "classify images",
     "detect defects",
@@ -275,8 +275,8 @@
    "name": "data-model",
    "plugin": "bearing",
    "category": "architecture",
-   "what": "Designs the data model from the stories: data-model doc, runnable schema.sql, data dictionary and ERD, a reason per column",
-   "when": "asked to \"design the data model\", \"what tables do we need\" or \"draw the ER diagram\"",
+   "what": "Designs the data model from the stories, giving every column a reason, with a runnable schema.sql that a gate checks",
+   "when": "stories are agreed and you need to know which tables and columns to build",
    "phrases": [
     "design the data model",
     "what tables do we need",
@@ -289,8 +289,8 @@
    "name": "data-pipeline",
    "plugin": "bearing-backend",
    "category": "stacks",
-   "what": "Data pipeline house rules (dbt models with tests, Airflow 3 DAGs, sqlfluff, partitioned backfills). Load before writing or changing dbt, Airflow or warehouse code",
-   "when": "asked for \"dbt models\", \"a backfill\"",
+   "what": "Applies the data stack rules to dbt models and Airflow 3 DAGs: idempotent partitions, tested marts, safe backfills",
+   "when": "you write or change dbt models or Airflow DAGs, or plan a warehouse backfill",
    "phrases": [
     "dbt models",
     "a backfill"
@@ -302,8 +302,8 @@
    "name": "database",
    "plugin": "bearing",
    "category": "stacks",
-   "what": "Database work for PostgreSQL, ClickHouse or MongoDB: schema, indexes, slow query review with EXPLAIN, store choice, lock-safe changes",
-   "when": "asked about \"choosing an index\", \"a slow query\" or \"which database\"",
+   "what": "Applies its rules for schemas, indexes, slow queries and store choice on PostgreSQL, ClickHouse and MongoDB",
+   "when": "a query is slow, an index is in doubt, or a feature needs a place to store data",
    "phrases": [
     "choosing an index",
     "a slow query",
@@ -316,8 +316,8 @@
    "name": "dataset-generation",
    "plugin": "bearing-genai",
    "category": "genai",
-   "what": "Generates eval, training or preference data from a real seed: taxonomy, generation, dedupe, contamination check, human audit, datasheet",
-   "when": "asked to \"make synthetic data\" or \"we need more examples\"",
+   "what": "Grows at least 10 real rows into deduplicated, contamination-checked eval or training data, with a datasheet",
+   "when": "you have a few real examples and need many more for an eval or a training run",
    "phrases": [
     "make synthetic data",
     "we need more examples"
@@ -329,8 +329,8 @@
    "name": "db-migration",
    "plugin": "bearing",
    "category": "quality",
-   "what": "Writes a database migration with a tested down step and lock-safety notes (goose, Alembic, Prisma, Knex, Room, GRDB, ClickHouse, Mongo)",
-   "when": "asked to \"add a migration\", \"add a column\" or \"change the schema\"",
+   "what": "Writes a database migration with a tested Down step, lock-safety notes and the deploy order against the code",
+   "when": "you are changing a schema that live traffic and the previous release still use",
    "phrases": [
     "add a migration",
     "add a column",
@@ -343,8 +343,8 @@
    "name": "definition-of-done",
    "plugin": "bearing",
    "category": "task flow",
-   "what": "Checks a branch or ticket against the Definition of Done, with evidence per item: gate, tests, docs, scope, commits, smoke run",
-   "when": "asked \"am I done\", \"is this story complete\" or \"ready to merge?\"",
+   "what": "Checks a branch against the Definition of Done item by item, with a command or a file line as evidence for each",
+   "when": "you think a task is finished and want proof before the merge request",
    "phrases": [
     "am I done",
     "is this story complete",
@@ -357,8 +357,8 @@
    "name": "dependency-audit",
    "plugin": "bearing",
    "category": "platform",
-   "what": "Audits dependencies for vulnerabilities and outdated versions, applies approved patch and minor upgrades with tests, keeps Renovate current",
-   "when": "asked to \"audit dependencies\", \"update the packages\" or \"bump deps\"",
+   "what": "Audits dependencies for vulnerabilities and outdated versions, then applies only the upgrades you approve, each gated",
+   "when": "packages are out of date, or an advisory names one you ship",
    "phrases": [
     "audit dependencies",
     "update the packages",
@@ -371,8 +371,8 @@
    "name": "deployment-architecture",
    "plugin": "bearing",
    "category": "architecture",
-   "what": "Documents how and where the system is deployed, with a diagram: environments, topology, scaling, backups, rollback, DR, each claim sourced",
-   "when": "asked \"what runs where\", \"how is it deployed\"",
+   "what": "Documents what runs where in each environment, with a diagram and a source or unconfirmed mark on every claim",
+   "when": "someone on call needs to know how the system is deployed and rolled back",
    "phrases": [
     "what runs where",
     "how is it deployed"
@@ -384,8 +384,8 @@
    "name": "design-critique",
    "plugin": "bearing",
    "category": "design",
-   "what": "Scores a UI design (design gallery, running app or HTML prototype) at three widths, both themes, twelve categories, with an AI-slop check",
-   "when": "asked to \"critique this design\", \"review the prototype\" or \"score this\"",
+   "what": "Scores a UI design against its flows and design system with measured contrast and screenshots, worst finding first",
+   "when": "a design or prototype is about to go to the client or into handoff",
    "phrases": [
     "critique this design",
     "review the prototype",
@@ -398,8 +398,8 @@
    "name": "design-directions",
    "plugin": "bearing",
    "category": "design",
-   "what": "Produces the visual direction over the real screens (one impeccable pick, else three variants) and records the choice",
-   "when": "asked for \"design directions\", \"three design options\" or \"which look should we go with\"",
+   "what": "Produces visual directions over the real screens, one impeccable pick or three distinct variants, and records the choice",
+   "when": "the screens exist but nobody has chosen how the product should look",
    "phrases": [
     "design directions",
     "three design options",
@@ -412,8 +412,8 @@
    "name": "design-system",
    "plugin": "bearing",
    "category": "design",
-   "what": "Turns a design direction into a design system: oklch tokens, per-stack themes, a component contract, an every-state page and a lint",
-   "when": "asked to \"set up the design system\", \"make design tokens\" or \"lint colours\"",
+   "what": "Turns a chosen design direction into oklch tokens, per-stack themes and a lint that keeps new colour literals out",
+   "when": "a look has been agreed and the code should be held to it",
    "phrases": [
     "set up the design system",
     "make design tokens",
@@ -426,8 +426,8 @@
    "name": "docs-drift",
    "plugin": "bearing",
    "category": "quality",
-   "what": "Finds docs that no longer match the code (broken links and paths, gone make targets, unused env vars, stale pages) and fixes the stale side",
-   "when": "asked \"are the docs up to date\", \"check the README\" or \"docs drift\"",
+   "what": "Finds docs that no longer match the code and fixes the stale side, or reports code that has left its design",
+   "when": "you inherit a codebase or suspect the README no longer tells the truth",
    "phrases": [
     "are the docs up to date",
     "check the README",
@@ -440,8 +440,8 @@
    "name": "doctor",
    "plugin": "bearing",
    "category": "meta",
-   "what": "Checks this machine and repository are set up for this plugin: skill packs, hooks, CLAUDE.md import, rules, hooksPath, with a fix per miss",
-   "when": "asked to \"check my setup\", \"is it installed\" or a hook is missing",
+   "what": "Checks this machine and repository are set up for Bearing and gives a fix you can type for each real miss",
+   "when": "a hook did not fire or you are not sure the kit is installed properly",
    "phrases": [
     "check my setup",
     "is it installed"
@@ -453,8 +453,8 @@
    "name": "estimate",
    "plugin": "bearing",
    "category": "product",
-   "what": "Estimates the backlog: story points and task hours with assumptions, dependencies, a phase plan and a confidence range",
-   "when": "asked \"how long will this take\", \"estimate the backlog\" or \"size the stories\"",
+   "what": "Sizes the remaining backlog in points and hours and answers the date question with a margin from measured velocity",
+   "when": "someone asks how long the backlog will take or whether go-live still holds",
    "phrases": [
     "how long will this take",
     "estimate the backlog",
@@ -467,8 +467,8 @@
    "name": "explain-codebase",
    "plugin": "bearing",
    "category": "architecture",
-   "what": "Explains how a repo or feature works, read-only, path:line for every claim: entry points, module map, one request traced",
-   "when": "asked \"how does this work\", \"where is X handled\" or \"trace this request\"",
+   "what": "Explains how a repository or feature works, read-only, with a path and line number behind every claim",
+   "when": "you are new to the code or need to find where something is handled",
    "phrases": [
     "how does this work",
     "where is X handled",
@@ -481,8 +481,8 @@
    "name": "feature-flags",
    "plugin": "bearing",
    "category": "platform",
-   "what": "Adds, uses or removes a feature flag: default off, owner, removal date, one typed flags module, kill switch, tests for both states",
-   "when": "asked to \"put this behind a flag\", \"add a feature flag\" or \"remove the flag\"",
+   "what": "Adds, uses or removes a feature flag through one typed module, with an owner, a removal date and tests for both states",
+   "when": "a change must merge dark, or an old flag is ready to come out",
    "phrases": [
     "put this behind a flag",
     "add a feature flag",
@@ -495,8 +495,8 @@
    "name": "feature-patterns",
    "plugin": "bearing",
    "category": "architecture",
-   "what": "Plans one common feature mechanism before code: uploads, search, realtime, caching, rate limits, payments, notifications, multitenancy",
-   "when": "asked to \"add file uploads\", \"add realtime\" or \"rate limiting\"",
+   "what": "Plans one common mechanism, such as uploads, search or payments, as a design doc before any code is written",
+   "when": "a feature needs a well-known mechanism that is easy to get wrong the first time",
    "phrases": [
     "add file uploads",
     "add realtime",
@@ -509,8 +509,8 @@
    "name": "flutter",
    "plugin": "bearing-apps",
    "category": "stacks",
-   "what": "Conventions for Flutter: Dart 3, Riverpod, go_router, dio, freezed, ARB localisation, flavours, flutter_test, integration_test, fastlane",
-   "when": "writing, reviewing or scaffolding \"Flutter\", \"Dart\" or \"Riverpod\" code",
+   "what": "Holds Dart code to the Flutter house rules for Riverpod state, repositories and loading states, and reviews Dart diffs",
+   "when": "you write, review or scaffold a Flutter app in Dart",
    "phrases": [
     "Flutter",
     "Dart",
@@ -523,8 +523,8 @@
    "name": "gate-audit",
    "plugin": "bearing",
    "category": "quality",
-   "what": "Audits every gate (CI jobs, git hooks, make check, hook scripts) for passing on empty input, printing no count or asserting a constant",
-   "when": "asked to \"audit the gates\", \"is this check real\" or \"check the CI checks\"",
+   "what": "Audits every CI job, hook and make check for gates that pass on empty input or check nothing, and names the fix",
+   "when": "you suspect a green check is not actually checking anything",
    "phrases": [
     "audit the gates",
     "is this check real",
@@ -537,8 +537,8 @@
    "name": "genai-design",
    "plugin": "bearing-genai",
    "category": "genai",
-   "what": "Designs a GenAI solution before code: success metric, approach with the cheaper option rejected, model tier, cost, latency, risks, eval plan",
-   "when": "asked \"how should we build this with an LLM\" or \"RAG or agent\"",
+   "what": "Writes a solution document for a GenAI feature that names one metric, one approach and the cheaper option it rejected",
+   "when": "you are deciding how to build a feature with an LLM, before any code exists",
    "phrases": [
     "how should we build this with an LLM",
     "RAG or agent"
@@ -550,8 +550,8 @@
    "name": "git-hooks",
    "plugin": "bearing",
    "category": "repository",
-   "what": "Installs or repairs the committed git hooks (commit-msg, pre-commit, pre-push), sets core.hooksPath and dry-runs each",
-   "when": "asked to \"install the git hooks\", \"set up hooks\" or \"why was my commit rejected\"",
+   "what": "Installs or repairs the committed git hooks, sets core.hooksPath and proves each hook on failing and passing input",
+   "when": "a clone runs no hooks, or a commit was rejected and you need to know why",
    "phrases": [
     "install the git hooks",
     "set up hooks",
@@ -564,8 +564,8 @@
    "name": "go",
    "plugin": "bearing-backend",
    "category": "stacks",
-   "what": "Go house rules (net/http, pgx, sqlc, goose, slog, table-driven and httptest tests). Load before writing or changing any Go code",
-   "when": "asked for \"a Go handler\", \"sqlc queries\" or a new Go service",
+   "what": "Applies the Go house rules for net/http, pgx, sqlc and goose, and reviews Go diffs for tenant scope and race traps",
+   "when": "you write, change or review Go code, or start a new Go service",
    "phrases": [
     "a Go handler",
     "sqlc queries"
@@ -577,8 +577,8 @@
    "name": "harness-setup",
    "plugin": "bearing",
    "category": "meta",
-   "what": "Sets up a repository for another coding agent (Cursor, Codex, Gemini CLI, Copilot, OpenCode, Windsurf, Cline, Zed, Kiro): rules, hooks, skills",
-   "when": "asked to \"set up Cursor\" or \"use this with Codex\"",
+   "what": "Sets up a repository for another coding agent such as Cursor or Codex, carrying its rules, hooks and denies across",
+   "when": "part of the team works in a coding agent other than Claude Code",
    "phrases": [
     "set up Cursor",
     "use this with Codex"
@@ -590,8 +590,8 @@
    "name": "health-checks",
    "plugin": "bearing",
    "category": "platform",
-   "what": "Builds /healthz and /readyz endpoints with per-dependency checks, a scheduled synthetic journey suite, uptime probes and alerts",
-   "when": "asked to \"add health checks\", \"readiness endpoint\" or \"uptime monitoring\"",
+   "what": "Builds /healthz and /readyz endpoints with per-dependency checks, plus probes, alerts or synthetic journeys when asked",
+   "when": "a service needs liveness and readiness, or an outage should page someone",
    "phrases": [
     "add health checks",
     "readiness endpoint",
@@ -604,8 +604,8 @@
    "name": "high-level-design",
    "plugin": "bearing",
    "category": "architecture",
-   "what": "Writes a High Level Design (HLD): goals and non-goals agreed first, then architecture, data, interfaces, failure modes, rollout",
-   "when": "asked for an \"HLD\", \"system design\" or \"an architecture overview\"",
+   "what": "Writes a High Level Design once its goal is agreed, then has an independent critic grade it before approval",
+   "when": "a new system or large feature needs a design that reviewers can challenge",
    "phrases": [
     "HLD",
     "system design",
@@ -618,8 +618,8 @@
    "name": "i18n",
    "plugin": "bearing",
    "category": "platform",
-   "what": "Internationalises the app: string catalogs per platform, ICU plurals, locale formatting, fallbacks, an RTL check, a missing-key count",
-   "when": "asked to \"add a language\", \"translate the app\", \"add i18n\" or \"support RTL\"",
+   "what": "Moves user-facing strings into per-platform catalogs with plurals, locale formats and RTL, gated by a missing-key check",
+   "when": "the app needs another language or has to work right to left",
    "phrases": [
     "add a language",
     "translate the app",
@@ -633,8 +633,8 @@
    "name": "incident",
    "plugin": "bearing",
    "category": "operate",
-   "what": "Runs a live incident as scribe: severity, UTC timeline, roles, runbook steps for a person, comms, postmortem hand-off; never remediates",
-   "when": "\"we have an outage\", \"declare an incident\" or \"the alert is firing\"",
+   "what": "Keeps the live incident record as scribe, with severity, a UTC timeline and comms, while people run every fix",
+   "when": "something is down in production and the response needs a record and a plan",
    "phrases": [
     "we have an outage",
     "declare an incident",
@@ -647,8 +647,8 @@
    "name": "infra",
    "plugin": "bearing-backend",
    "category": "stacks",
-   "what": "Infrastructure house rules (Terraform modules, remote state, per-env dirs, tflint, Trivy, kustomize, plan-only CI). Load before changing Terraform or k8s",
-   "when": "asked about \"remote state\", \"a kustomize overlay\"",
+   "what": "Applies the infrastructure rules to Terraform and Kubernetes changes, where CI posts the plan and a person applies it",
+   "when": "you change or review Terraform, kustomize overlays or alert rules",
    "phrases": [
     "remote state",
     "a kustomize overlay"
@@ -660,8 +660,8 @@
    "name": "ios",
    "plugin": "bearing-apps",
    "category": "stacks",
-   "what": "iOS house rules (Swift 6, SwiftUI, Observation, Swift Concurrency, SwiftData, Swift Testing). Load before writing or changing Swift or iOS code",
-   "when": "asked for \"an iPhone screen\", \"SwiftData models\"",
+   "what": "Applies the iOS house rules for Swift 6, SwiftUI and strict concurrency, and reviews Swift diffs against its checklist",
+   "when": "you write, change or review Swift code for an iPhone app",
    "phrases": [
     "an iPhone screen",
     "SwiftData models"
@@ -673,8 +673,8 @@
    "name": "learn",
    "plugin": "bearing",
    "category": "meta",
-   "what": "Lists, adds and proposes Bearing learnings kept on this machine (opt-in)",
-   "when": "asked \"what has Bearing learned\", \"remember this for next time\" or \"send our learnings upstream\"",
+   "what": "Lists, adds and proposes the learnings Bearing keeps on this machine, and only with your consent",
+   "when": "you want Bearing to remember a lesson or share recurring ones upstream",
    "phrases": [
     "what has Bearing learned",
     "remember this for next time",
@@ -687,8 +687,8 @@
    "name": "license-compliance",
    "plugin": "bearing",
    "category": "platform",
-   "what": "Checks open-source licences: a CycloneDX SBOM, a licence inventory against an allow and deny policy, third-party notices",
-   "when": "asked for an \"SBOM\", \"licence check\", \"third-party notices\" or \"which licences\"",
+   "what": "Checks third-party licences against an allow and deny policy and writes the SBOM or notices a release needs",
+   "when": "you must know whether you may ship what you depend on, and what you owe",
    "phrases": [
     "SBOM",
     "licence check",
@@ -702,8 +702,8 @@
    "name": "llm-agent",
    "plugin": "bearing-genai",
    "category": "genai",
-   "what": "Builds an LLM agent on the Anthropic SDK: tiered tool registry, bounded loop, memory, call logging, guardrails, trajectory evals, kill switch",
-   "when": "asked to \"build an agent\", \"give the model tools\" or \"multi-agent\"",
+   "what": "Builds an LLM agent on the Anthropic SDK whose tools carry permission tiers and whose loop has turn and cost limits",
+   "when": "you want a model to take actions through tools, alone or as several agents",
    "phrases": [
     "build an agent",
     "give the model tools",
@@ -716,8 +716,8 @@
    "name": "llm-eval",
    "plugin": "bearing-genai",
    "category": "genai",
-   "what": "Evaluates an LLM feature: a success metric, a human-labelled golden set, code graders then an LLM judge, a CI regression gate",
-   "when": "asked to \"evaluate the model\", \"build an eval set\" or \"is the new prompt better\"",
+   "what": "Turns an LLM feature's success metric into a person-labelled golden set, graders and a CI gate that fails on regression",
+   "when": "you need to know whether a prompt or model change made a feature better or worse",
    "phrases": [
     "evaluate the model",
     "build an eval set",
@@ -730,8 +730,8 @@
    "name": "llm-fine-tuning",
    "plugin": "bearing-genai",
    "category": "genai",
-   "what": "Fine-tunes an open model when prompting and RAG fall short: eval-backed decision, dataset, LoRA, DPO or distillation, vLLM serving",
-   "when": "asked to \"fine-tune a model\", \"train on our data\" or \"distil a smaller model\"",
+   "what": "Plans and smoke-tests fine-tuning of an open model once evals show prompting and RAG fall short, then serves it on vLLM",
+   "when": "prompting, retrieval and a larger model still miss the target on your eval",
    "phrases": [
     "fine-tune a model",
     "train on our data",
@@ -744,8 +744,8 @@
    "name": "llm-gateway",
    "plugin": "bearing-genai",
    "category": "genai",
-   "what": "Puts every LLM call behind one gateway: model tiers, retries, timeouts, rate limits, caching, cost, fallbacks; starts by finding every call",
-   "when": "asked to \"find every model call\", \"track LLM cost\"",
+   "what": "Finds every model call in the code and moves it behind one gateway module with routing, retries, cost and kill switches",
+   "when": "model calls are scattered through the code or you cannot see what they cost",
    "phrases": [
     "find every model call",
     "track LLM cost"
@@ -757,8 +757,8 @@
    "name": "llm-guardrails",
    "plugin": "bearing-genai",
    "category": "genai",
-   "what": "Secures an LLM feature or agent: prompt injection and jailbreak defence, PII checks, a tool-call permission gate, output checks, adversarial tests",
-   "when": "asked for \"guardrails\" or about \"prompt injection\"",
+   "what": "Adds input, tool-call and output checks around an LLM feature from a reviewable policy, proven by adversarial tests",
+   "when": "an LLM feature takes untrusted text, handles personal data or acts through tools",
    "phrases": [
     "guardrails",
     "prompt injection"
@@ -770,8 +770,8 @@
    "name": "load-test",
    "plugin": "bearing",
    "category": "quality",
-   "what": "Writes k6 load tests from the SLOs with failing thresholds (smoke, load, stress, soak) and a manual CI job; refuses production",
-   "when": "asked whether it \"holds at peak\", to \"load test\" or \"soak test\"",
+   "what": "Writes k6 load tests from the SLOs with failing thresholds and a manual CI job, and refuses production hosts",
+   "when": "you need to know whether a service meets its SLO at peak traffic",
    "phrases": [
     "holds at peak",
     "load test",
@@ -784,8 +784,8 @@
    "name": "logging",
    "plugin": "bearing",
    "category": "platform",
-   "what": "Adds structured logging: one logger, request id bound at the edge, shared field names, redaction, sampling, HTTP request logs",
-   "when": "asked to \"add logging\", \"improve the logs\", \"log the requests\" or \"fix the logs\"",
+   "what": "Sets up one structured logger that carries the request id across async hops and keeps personal data out of the logs",
+   "when": "your logs leak personal data or cannot be joined to the request that wrote them",
    "phrases": [
     "add logging",
     "improve the logs",
@@ -799,8 +799,8 @@
    "name": "low-level-design",
    "plugin": "bearing",
    "category": "architecture",
-   "what": "Writes a Low Level Design (LLD) refining one HLD component into modules, types, error paths, indexed queries, tests and MR-sized work",
-   "when": "asked for an \"LLD\", \"low level design\" or \"detailed design\"",
+   "what": "Writes a low level design for one HLD component, down to files, types, indexed queries, named tests and MR-sized work",
+   "when": "an agreed HLD component needs a detailed plan before anyone writes code",
    "phrases": [
     "LLD",
     "low level design",
@@ -813,8 +813,8 @@
    "name": "mcp-server",
    "plugin": "bearing-genai",
    "category": "genai",
-   "what": "Builds an MCP server in Python or TypeScript: schema-checked tools, both transports, auth, a test per tool, Claude Code registration",
-   "when": "asked to \"build an MCP server\" or \"expose this as MCP tools\"",
+   "what": "Builds an MCP server or client in Python or TypeScript, with tiered tools, both transports and a protocol test per tool",
+   "when": "you want models to reach an API or service of yours as MCP tools",
    "phrases": [
     "build an MCP server",
     "expose this as MCP tools"
@@ -826,8 +826,8 @@
    "name": "merge-request",
    "plugin": "bearing",
    "category": "task flow",
-   "what": "Prepares the merge request for the current branch: gate run, commit audit, diff summary, description, ticket link; pushes only where opted in",
-   "when": "asked to \"prepare the MR\", \"write the PR description\"",
+   "what": "Runs the gate, audits the commits and drafts the merge request description for the current branch, never pushing it",
+   "when": "a branch is finished and you want the MR text and the push command ready",
    "phrases": [
     "prepare the MR",
     "write the PR description"
@@ -839,8 +839,8 @@
    "name": "model-routing",
    "plugin": "bearing-genai",
    "category": "genai",
-   "what": "Picks the cheapest model or cascade per LLM feature that still passes its eval, from measured scores and costs, any provider",
-   "when": "asked \"which model should this feature use\" or \"cut our LLM bill\"",
+   "what": "Measures candidate models on a feature's eval and writes the cheapest route or cascade that still clears the threshold",
+   "when": "you want to cut LLM spend without dropping below a feature's quality bar",
    "phrases": [
     "which model should this feature use",
     "cut our LLM bill"
@@ -852,8 +852,8 @@
    "name": "motion-design",
    "plugin": "bearing",
    "category": "design",
-   "what": "Writes the motion spec and tokens and builds a requested animation (hero, page transition, interaction) with a reduced-motion path",
-   "when": "asked to \"add animation\", \"animate this\" or \"respect reduced motion\"",
+   "what": "Builds a requested animation from the motion tokens with a reduced-motion path, then checks it with the motion gate",
+   "when": "a screen needs animation that stays smooth and respects people who asked for less motion",
    "phrases": [
     "add animation",
     "animate this",
@@ -866,8 +866,8 @@
    "name": "new-repo",
    "plugin": "bearing",
    "category": "repository",
-   "what": "Creates a new repository for one stack with Makefile, CI, git hooks, CLAUDE.md, AGENTS.md, rules, MR templates and docs in place",
-   "when": "asked to \"create a repo\", \"scaffold a service\" or \"start a new project\"",
+   "what": "Creates a new repository shaped like its siblings, with Makefile, CI, hooks, CLAUDE.md and AGENTS.md, then runs its gate",
+   "when": "you are starting a new service or app that should match the repositories beside it",
    "phrases": [
     "create a repo",
     "scaffold a service",
@@ -880,8 +880,8 @@
    "name": "new-skill",
    "plugin": "bearing",
    "category": "meta",
-   "what": "Creates a new skill for this plugin in its git checkout with the house sections and lints, then evals it against a baseline",
-   "when": "asked to \"add a skill\", \"make this a skill\" or \"turn this checklist into a skill\"",
+   "what": "Writes a new Bearing skill in the kit's house format, validates it and evals it against a baseline run without the skill",
+   "when": "a repeated checklist or job should become a skill other engineers can trigger",
    "phrases": [
     "add a skill",
     "make this a skill",
@@ -894,8 +894,8 @@
    "name": "nextjs",
    "plugin": "bearing-apps",
    "category": "stacks",
-   "what": "Next.js house rules (App Router, React 19, server components, server actions with Zod, Tailwind, shadcn/ui). Load before writing or changing Next.js code",
-   "when": "asked for \"an App Router page\", \"a new route\"",
+   "what": "Applies the Next.js App Router rules on server components, authorised server actions and caching, and reviews diffs",
+   "when": "you build or review pages, routes or server actions in a Next.js app",
    "phrases": [
     "an App Router page",
     "a new route"
@@ -907,8 +907,8 @@
    "name": "node",
    "plugin": "bearing-backend",
    "category": "stacks",
-   "what": "Node house rules (Node 24, TypeScript, Fastify 5, Zod, Drizzle, pino, vitest, pnpm). Load before writing or changing Node or TypeScript backend code",
-   "when": "asked for \"a Fastify route\", \"a Node API\"",
+   "what": "Applies the Node backend rules for Fastify 5, Zod, Drizzle and pino, and reviews TypeScript server diffs",
+   "when": "you write or review a TypeScript backend service running on Node",
    "phrases": [
     "a Fastify route",
     "a Node API"
@@ -920,8 +920,8 @@
    "name": "observability",
    "plugin": "bearing",
    "category": "platform",
-   "what": "Wires OpenTelemetry traces and metrics, trace ids in logs, a local Grafana stack, RED dashboards, SLOs and burn-rate alerts",
-   "when": "asked to \"add observability\", \"set up tracing\", \"add dashboards\" or \"define SLOs\"",
+   "what": "Wires OpenTelemetry so one trace id joins logs, spans and metrics, then adds RED dashboards and SLO burn-rate alerts",
+   "when": "you cannot tell from production signals whether a service works or why it is slow",
    "phrases": [
     "add observability",
     "set up tracing",
@@ -935,8 +935,8 @@
    "name": "on-call",
    "plugin": "bearing",
    "category": "operate",
-   "what": "Sets up on-call: rotation, escalation, alert routing by severity, error budget policy, handover notes, a runbook for every paging alert",
-   "when": "asked about \"on-call\", \"who gets paged\", \"escalation\" or \"error budget\"",
+   "what": "Writes the on-call rotation, escalation and error budget policy, and checks that every paging alert has a runbook",
+   "when": "you need to decide who gets paged, how a page escalates and what a burnt budget costs",
    "phrases": [
     "on-call",
     "who gets paged",
@@ -950,8 +950,8 @@
    "name": "onboard-repo",
    "plugin": "bearing",
    "category": "repository",
-   "what": "Brings an existing repository onto the team conventions (Makefile, hooks, CLAUDE.md, rules) without overwriting; conflicts land beside the file",
-   "when": "asked to \"onboard this repo\" or \"adopt the standard\"",
+   "what": "Brings an existing repository onto the standard within its own conventions, with a make check that mirrors CI",
+   "when": "you inherit or adopt a repository that predates the standard files",
    "phrases": [
     "onboard this repo",
     "adopt the standard"
@@ -963,8 +963,8 @@
    "name": "openapi-spec",
    "plugin": "bearing",
    "category": "architecture",
-   "what": "Designs or audits the OpenAPI 3.1 contract in api/openapi.yaml, generates readable API docs and counts spec and route drift",
-   "when": "asked to \"write the OpenAPI spec\", \"design the API contract\" or \"check the spec\"",
+   "what": "Designs or audits the OpenAPI 3.1 contract in api/openapi.yaml, writes readable API docs and counts drift from the code",
+   "when": "an API needs a written contract, or the spec and the code may have drifted apart",
    "phrases": [
     "write the OpenAPI spec",
     "design the API contract",
@@ -977,8 +977,8 @@
    "name": "performance",
    "plugin": "bearing",
    "category": "quality",
-   "what": "Finds and fixes slowness by profiling first (pprof, py-spy, clinic, Lighthouse, Instruments), with before and after numbers",
-   "when": "something is slow: \"this is slow\", \"profile this\", \"p95 is high\"",
+   "what": "Profiles a slow path at production size, fixes the cause one change at a time and reports before and after numbers",
+   "when": "something is too slow or uses too much memory and you need a measured fix",
    "phrases": [
     "this is slow",
     "profile this",
@@ -991,8 +991,8 @@
    "name": "postmortem",
    "plugin": "bearing",
    "category": "operate",
-   "what": "Writes a blameless postmortem after an incident: impact in numbers, UTC timeline, root cause chain, owned follow-ups, lessons",
-   "when": "asked for a \"postmortem\", \"RCA\", \"incident report\" or \"write up the outage\"",
+   "what": "Writes a blameless postmortem from incident notes, with impact in numbers, a UTC timeline and a root cause chain",
+   "when": "an incident is over and the team needs a written account it can learn from",
    "phrases": [
     "postmortem",
     "RCA",
@@ -1006,8 +1006,8 @@
    "name": "prd",
    "plugin": "bearing",
    "category": "product",
-   "what": "Normalises any brief, notes or ticket into a PRD of numbered testable REQ statements, objectives, personas and open questions; no stories",
-   "when": "asked to \"write the PRD\" or \"turn this brief into requirements\"",
+   "what": "Turns a brief, notes or a ticket into a PRD of numbered, testable REQ statements and a register of open questions",
+   "when": "you have a brief or client notes and need requirements that everything can trace back to",
    "phrases": [
     "write the PRD",
     "turn this brief into requirements"
@@ -1019,8 +1019,8 @@
    "name": "privacy-review",
    "plugin": "bearing",
    "category": "platform",
-   "what": "Reviews personal data handling: a data map with purpose, basis and retention, deletion wired to it, data subject requests, a DPIA",
-   "when": "asked about \"GDPR\", \"DPDP\", \"personal data\", \"retention\" or \"delete my account\"",
+   "what": "Maps personal data against what was promised, traces each retention and deletion path end to end and fixes the breaks",
+   "when": "you must show that delete really deletes and retention matches the published promise",
    "phrases": [
     "GDPR",
     "DPDP",
@@ -1035,8 +1035,8 @@
    "name": "prompt-registry",
    "plugin": "bearing-genai",
    "category": "genai",
-   "what": "Keeps prompts in a versioned registry (prompts/<name>/vN.md) loaded by one module, with typed variables, fixture tests and scores",
-   "when": "asked to \"write the system prompt\", \"improve this prompt\" or \"version prompts\"",
+   "what": "Moves prompts into a versioned registry loaded by one module, with typed variables, render tests and a score per version",
+   "when": "you are writing, improving or auditing the prompts a product sends to a model",
    "phrases": [
     "write the system prompt",
     "improve this prompt",
@@ -1049,8 +1049,8 @@
    "name": "prose-lint",
    "plugin": "bearing",
    "category": "quality",
-   "what": "Lints prose people read (docs, MR text, commits, UI copy) for em dashes, AI filler and self-praise, rewriting whole sentences",
-   "when": "asked to \"check the prose\", \"lint the README\" or \"does this sound AI-written\"",
+   "what": "Finds em dashes, AI filler and self-praise in prose people read and rewrites whole sentences, checking each claim",
+   "when": "docs, MR text or UI copy read as machine-written or may promise more than the code does",
    "phrases": [
     "check the prose",
     "lint the README",
@@ -1063,8 +1063,8 @@
    "name": "python",
    "plugin": "bearing-backend",
    "category": "stacks",
-   "what": "Python house rules (3.14, FastAPI, Pydantic v2, async SQLAlchemy, Alembic, uv, ruff, pytest). Load before writing or changing any Python code",
-   "when": "asked for \"a Celery task\", \"a Python service\"",
+   "what": "Applies the Python house rules for FastAPI, Pydantic v2, async SQLAlchemy and Alembic, and reviews Python diffs",
+   "when": "you write, change or review Python code, from an API service to a command-line tool",
    "phrases": [
     "a Celery task",
     "a Python service"
@@ -1076,8 +1076,8 @@
    "name": "rag",
    "plugin": "bearing-genai",
    "category": "genai",
-   "what": "Builds retrieval-augmented generation (RAG) on pgvector: ingestion, chunking, embeddings, a retriever that cites sources, retrieval metrics",
-   "when": "answers must come from documents: \"add RAG\", \"cite the source\"",
+   "what": "Builds retrieval-augmented generation on pgvector whose answers cite sources, measured by recall and MRR on a golden set",
+   "when": "answers must come from your own documents and show where each claim came from",
    "phrases": [
     "add RAG",
     "cite the source"
@@ -1089,8 +1089,8 @@
    "name": "react",
    "plugin": "bearing-apps",
    "category": "stacks",
-   "what": "React house rules (React 19, TypeScript, Vite, TanStack Query, Zustand, Zod, shadcn/ui, Tailwind). Load before writing or changing React or TSX code",
-   "when": "asked for \"a React component\", \"a query hook\"",
+   "what": "Applies the React house rules for TanStack Query, Zustand and Zod at every boundary, and reviews TSX diffs",
+   "when": "you write or review components and hooks in a React app built with Vite",
    "phrases": [
     "a React component",
     "a query hook"
@@ -1102,8 +1102,8 @@
    "name": "react-native",
    "plugin": "bearing-apps",
    "category": "stacks",
-   "what": "React Native house rules (Expo, expo-router, TanStack Query, Zustand, Zod, NativeWind, EAS). Load before writing or changing React Native or Expo code",
-   "when": "asked for \"an Expo screen\", \"an EAS build\"",
+   "what": "Applies the React Native house rules for Expo, expo-router and secure token storage, and reviews mobile diffs",
+   "when": "you build or review screens in an Expo app that ships to iOS and Android",
    "phrases": [
     "an Expo screen",
     "an EAS build"
@@ -1115,8 +1115,8 @@
    "name": "refactor",
    "plugin": "bearing",
    "category": "task flow",
-   "what": "Refactors without changing behaviour: tests green first, one mechanical change per commit, checks between, a diff size ceiling",
-   "when": "asked to \"refactor\", \"clean this up\", \"extract\" or \"rename across the codebase\"",
+   "what": "Restructures code without changing behaviour, one mechanical transform per commit, tests green before and after each",
+   "when": "code needs reshaping, renaming or splitting and nothing a test can see may change",
    "phrases": [
     "refactor",
     "clean this up",
@@ -1130,8 +1130,8 @@
    "name": "release",
    "plugin": "bearing",
    "category": "task flow",
-   "what": "Prepares a release: version from commits or from the API diff for packages, CHANGELOG section, version bump, printed tag commands",
-   "when": "asked to \"cut a release\", \"bump the version\" or \"publish the package\"",
+   "what": "Works out the next version from the commits or the API diff, writes the CHANGELOG section and prints the tag commands",
+   "when": "a service or package is ready to version and you want the changelog and tag commands",
    "phrases": [
     "cut a release",
     "bump the version",
@@ -1144,8 +1144,8 @@
    "name": "resilience-testing",
    "plugin": "bearing",
    "category": "quality",
-   "what": "Tests the failure modes the design claims: fault injection plan, backup restore drills, DR tests with measured RTO and RPO",
-   "when": "asked about \"chaos testing\", \"restore drill\", \"DR test\" or \"what if the database dies\"",
+   "what": "Turns the design's failure claims into fault plans and restore drills, first predicting from the code which will fail",
+   "when": "you need to know whether the system survives a dead dependency or a lost database",
    "phrases": [
     "chaos testing",
     "restore drill",
@@ -1159,8 +1159,8 @@
    "name": "runbook",
    "plugin": "bearing",
    "category": "operate",
-   "what": "Writes or updates the runbook for one alert: meaning, impact, diagnosis commands, remediation, rollback, escalation",
-   "when": "asked to \"write a runbook\", \"document this alert\" or \"what do we do when X fires\"",
+   "what": "Writes or updates the runbook for one alert, with diagnosis commands, remediation, rollback and escalation",
+   "when": "an alert can fire and whoever is paged needs to know what to check and do",
    "phrases": [
     "write a runbook",
     "document this alert",
@@ -1173,8 +1173,8 @@
    "name": "screen-design",
    "plugin": "bearing",
    "category": "design",
-   "what": "Designs every screen in every state (empty, error, loading), desktop and phone, as clickable React or HTML mockups before code",
-   "when": "asked to \"design the screens\", \"hi-fi mockups\" or \"show every state\"",
+   "what": "Designs every screen in every state, desktop and phone, as clickable React or HTML mockups before any product code",
+   "when": "the flows are agreed and a reviewer needs screens to click through and approve",
    "phrases": [
     "design the screens",
     "hi-fi mockups",
@@ -1187,8 +1187,8 @@
    "name": "secrets",
    "plugin": "bearing",
    "category": "platform",
-   "what": "Handles secrets without seeing values: inventory, rotation, leak response (revoke, rotate, scrub, audit), gitleaks, .env.example parity",
-   "when": "\"a key was committed\", \"rotate the secret\" or \"secret leaked\"",
+   "what": "Inventories and scans secrets by name without seeing a value, and prints the rotation and leak response steps to run",
+   "when": "a key was committed, a secret needs rotating or nobody knows which secrets exist",
    "phrases": [
     "a key was committed",
     "rotate the secret",
@@ -1201,8 +1201,8 @@
    "name": "session-handoff",
    "plugin": "bearing",
    "category": "task flow",
-   "what": "Saves session state for the next session on this branch: next steps, done, blockers, questions, files, gate, and a progress note",
-   "when": "asked to \"save state\", \"write a handoff\", \"pause here\" or before /clear",
+   "what": "Writes a handoff note for the next session on this branch: where work stopped, what is local only, what to do first",
+   "when": "you are pausing, clearing context or handing the branch to someone else",
    "phrases": [
     "save state",
     "write a handoff",
@@ -1215,8 +1215,8 @@
    "name": "simplify-code",
    "plugin": "bearing",
    "category": "task flow",
-   "what": "Deletes code a change does not need (dead code, one-use abstractions, unused options, redundant checks), tests green after each cut; refactor only moves code",
-   "when": "asked to \"simplify this code\" or \"cut the bloat\"",
+   "what": "Deletes code a change does not need, such as dead code and one-use abstractions, with the tests green after each cut",
+   "when": "a change, often AI-written, carries more code than the job needs",
    "phrases": [
     "simplify this code",
     "cut the bloat"
@@ -1228,8 +1228,8 @@
    "name": "speech",
    "plugin": "bearing-genai",
    "category": "genai",
-   "what": "Builds speech features: transcription, diarisation, text-to-speech or a real-time voice agent with barge-in, measured by WER and latency",
-   "when": "asked to \"transcribe calls\", \"build a voice agent\" or \"speech to text\"",
+   "what": "Builds transcription, text-to-speech or a real-time voice agent, measured by WER per language and latency per stage",
+   "when": "you need to transcribe calls, speak replies aloud or run a voice agent",
    "phrases": [
     "transcribe calls",
     "build a voice agent",
@@ -1242,8 +1242,8 @@
    "name": "spike",
    "plugin": "bearing",
    "category": "product",
-   "what": "Runs a timeboxed spike: a yes, no or number question, a timebox and stop condition, throwaway code never merged, a written recommendation",
-   "when": "asked to \"spike this\", \"investigate whether\" or \"prototype to find out\"",
+   "what": "Answers one yes, no or number question inside a timebox using throwaway code, leaving only a written recommendation",
+   "when": "a decision depends on something nobody knows yet and you want a bounded answer",
    "phrases": [
     "spike this",
     "investigate whether",
@@ -1256,8 +1256,8 @@
    "name": "start-task",
    "plugin": "bearing",
    "category": "task flow",
-   "what": "Starts work on a ticket: creates the branch from the right base with the task id, writes state and progress notes, restates the criteria",
-   "when": "asked to \"start TASK-142\", \"pick up this ticket\" or \"create a branch\"",
+   "what": "Cuts a ticket's branch from the base it will ship from, runs a baseline and checks the criteria against the repository",
+   "when": "you are picking up a ticket and want to start on the right branch",
    "phrases": [
     "start TASK-142",
     "pick up this ticket",
@@ -1270,8 +1270,8 @@
    "name": "tabular-ml",
    "plugin": "bearing-genai",
    "category": "genai",
-   "what": "Builds classical ML on tables or events (churn, scoring, demand forecasts, anomalies) with leak-proof splits, a baseline, calibration, drift checks",
-   "when": "asked to \"predict churn\", \"forecast demand\"",
+   "what": "Builds a classical model on tables or events with a leak-checked split, a baseline it must beat and drift monitoring",
+   "when": "you need to predict churn, score accounts, forecast demand or flag anomalies",
    "phrases": [
     "predict churn",
     "forecast demand"
@@ -1283,8 +1283,8 @@
    "name": "task-report",
    "plugin": "bearing",
    "category": "task flow",
-   "what": "Writes the end-of-task report: Changed, Verified, Not done, Noticed, with evidence",
-   "when": "work is finished or someone asks for a summary of it: \"write up what you did\", \"report back\", \"give me the status\"",
+   "what": "Writes the end-of-task report under Changed, Verified, Not done and Noticed, every line backed by a command or a file",
+   "when": "work is finished and someone who was not there needs a true account of it",
    "phrases": [
     "write up what you did",
     "report back",
@@ -1297,8 +1297,8 @@
    "name": "tech-debt",
    "plugin": "bearing",
    "category": "task flow",
-   "what": "Keeps the tech debt register in docs/DEBT.md, seeded from TODOs, suppressed lints and skipped tests, ranked by cost of carrying it",
-   "when": "asked about \"tech debt\", \"what should we clean up next\" or \"the debt register\"",
+   "what": "Keeps the tech debt register in docs/DEBT.md, seeded from TODOs, suppressions and skipped tests, ranked by weekly cost",
+   "when": "you want to choose what to clean up next by cost rather than by who complains",
    "phrases": [
     "tech debt",
     "what should we clean up next",
@@ -1311,8 +1311,8 @@
    "name": "tech-decision",
    "plugin": "bearing",
    "category": "architecture",
-   "what": "Chooses between technology options: lays out options, recommends with reasons, lets the user decide, records each choice as an ADR",
-   "when": "asked \"Kafka or RabbitMQ\", \"which cloud\" or \"what stack should we use\"",
+   "what": "Lays out the options for a technology choice, recommends one with reasons, lets you decide and records it as an ADR",
+   "when": "you must choose between technologies, such as two message brokers or two clouds",
    "phrases": [
     "Kafka or RabbitMQ",
     "which cloud",
@@ -1325,8 +1325,8 @@
    "name": "test-automation",
    "plugin": "bearing",
    "category": "quality",
-   "what": "Sets up or extends the automated test suite (Playwright, Maestro, Espresso, pytest, Go httptest), one test per planned test case by TC id",
-   "when": "asked to \"automate the test cases\", \"set up Playwright\" or \"e2e tests\"",
+   "what": "Sets up or extends the stack's own automated test suite and writes one test per planned test case, named by its TC id",
+   "when": "planned test cases need to become automated tests in the stack's own framework",
    "phrases": [
     "automate the test cases",
     "set up Playwright",
@@ -1339,8 +1339,8 @@
    "name": "test-cases",
    "plugin": "bearing",
    "category": "quality",
-   "what": "Writes manual test cases and a test plan from acceptance criteria: risk per story, scenarios, TC-numbered steps; no test code",
-   "when": "QA needs \"the test cases\", \"the manual test plan\" or scenarios",
+   "what": "Turns acceptance criteria into a risk register, TC-numbered test cases and a test plan, with no test code",
+   "when": "QA needs test cases and a plan derived from the acceptance criteria",
    "phrases": [
     "the test cases",
     "the manual test plan"
@@ -1352,8 +1352,8 @@
    "name": "test-heal",
    "plugin": "bearing",
    "category": "quality",
-   "what": "Fixes failing or flaky tests: classifies each failure with evidence, heals locator, timing and data drift, leaves regressions red, quarantines flakes",
-   "when": "asked to \"fix the flaky tests\" or \"heal the tests\"",
+   "what": "Classifies each failing or flaky test with evidence, heals locator, timing and data drift, and leaves regressions red",
+   "when": "tests fail or flake and you need to know which are drift and which are real bugs",
    "phrases": [
     "fix the flaky tests",
     "heal the tests"
@@ -1365,8 +1365,8 @@
    "name": "test-run",
    "plugin": "bearing",
    "category": "quality",
-   "what": "Runs every test suite present into one report: failures at file:line, slowest, flaky, coverage; a suite that did not run never passes",
-   "when": "asked to \"run the tests\", \"what is failing\" or \"run TC-0231\"",
+   "what": "Runs every test suite the repository has into one report, naming each failure at file:line and each suite not run",
+   "when": "you want to know what is failing and which tests actually ran",
    "phrases": [
     "run the tests",
     "what is failing",
@@ -1379,8 +1379,8 @@
    "name": "themes",
    "plugin": "bearing",
    "category": "design",
-   "what": "Adds and manages themes on the design system (dark, high contrast, brand, tenant, seasonal) with contrast checks and a preview",
-   "when": "asked to \"add dark mode\", \"add a high contrast theme\" or \"theme for a tenant\"",
+   "what": "Adds or checks themes such as dark mode or a tenant brand, keeping the current mode intact and proving contrast",
+   "when": "the product needs dark mode, a high contrast theme or a brand per tenant",
    "phrases": [
     "add dark mode",
     "add a high contrast theme",
@@ -1393,8 +1393,8 @@
    "name": "threat-model",
    "plugin": "bearing",
    "category": "architecture",
-   "what": "Writes a STRIDE threat model before code: assets, trust boundaries, entry points, threats rated, mitigations mapped to stories",
-   "when": "asked to \"threat model this\", \"STRIDE analysis\" or \"what could an attacker do\"",
+   "what": "Writes a STRIDE threat model before code, tying assets, boundaries and entry points to rated threats and mitigations",
+   "when": "a feature touches auth, payments, personal data or outside input and needs defences planned",
    "phrases": [
     "threat model this",
     "STRIDE analysis",
@@ -1407,8 +1407,8 @@
    "name": "traceability",
    "plugin": "bearing",
    "category": "quality",
-   "what": "Builds the traceability matrix from requirements through stories, test cases, tests, commits and tickets, counting every gap; read-only",
-   "when": "asked \"is everything traced\", \"traceability matrix\" or \"untested\"",
+   "what": "Builds the traceability matrix from requirements to stories, tests and commits, and counts every broken link it finds",
+   "when": "you need to know whether every requirement is tested and delivered before sign-off",
    "phrases": [
     "is everything traced",
     "traceability matrix",
@@ -1421,8 +1421,8 @@
    "name": "tracker-sync",
    "plugin": "bearing",
    "category": "product",
-   "what": "Creates and updates tickets in the configured tracker (Jira, GitLab, GitHub, REST or none): create, sync the backlog, move status, link MRs",
-   "when": "asked to \"create the tickets\", \"sync to Jira\" or \"move TASK-142\"",
+   "what": "Creates and updates tickets in the configured tracker, syncs the backlog and moves status only when the rules are met",
+   "when": "backlog items need tickets, or a ticket's status and MR link need updating",
    "phrases": [
     "create the tickets",
     "sync to Jira",
@@ -1435,8 +1435,8 @@
    "name": "upgrade-tools",
    "plugin": "bearing",
    "category": "meta",
-   "what": "Upgrades every installed Claude Code plugin and skill pack on this machine (plugins, gstack, skills CLI, GSD), versions before and after",
-   "when": "asked to \"update the plugins\", \"upgrade the skills\" or \"update all\"",
+   "what": "Upgrades the Claude Code plugins and skill packs on this machine after reviewing each diff, noting each version change",
+   "when": "your plugins or skill packs are behind and you want them updated with care",
    "phrases": [
     "update the plugins",
     "upgrade the skills",
@@ -1449,8 +1449,8 @@
    "name": "ux-flows",
    "plugin": "bearing",
    "category": "design",
-   "what": "Maps UX flows: screen inventory tied to stories, every state with copy, storyboard, flow diagrams and a zero dead-end check",
-   "when": "asked to \"map the user flows\", \"what screens do we need\" or \"user journey\"",
+   "what": "Maps a feature's screens, states and copy against its stories, with flow diagrams and a gate that fails on any dead end",
+   "when": "you need to know which screens a feature needs and what users see when it fails",
    "phrases": [
     "map the user flows",
     "what screens do we need",
@@ -1463,8 +1463,8 @@
    "name": "vapt-report",
    "plugin": "bearing",
    "category": "quality",
-   "what": "Writes the VAPT security report for a release from scanner findings, linked to the threat model, with a ship or block decision",
-   "when": "asked for a \"VAPT report\", \"security sign-off\" or \"pentest report\"",
+   "what": "Writes the VAPT report for a release from triaged scanner findings and the threat model, ending in a ship or block call",
+   "when": "a release needs a written security position before it ships",
    "phrases": [
     "VAPT report",
     "security sign-off",
@@ -1477,8 +1477,8 @@
    "name": "verify-deploy",
    "plugin": "bearing",
    "category": "operate",
-   "what": "Checks one environment after the engineer deploys: readiness, health, version, smoke pages, synthetic suite; read-only, never rolls back",
-   "when": "asked to \"verify the deploy\", \"check qa after deploying\"",
+   "what": "Checks readiness, health, version and smoke pages on one environment after you deploy, read-only and never rolling back",
+   "when": "you have just deployed and want evidence that the right version is up",
    "phrases": [
     "verify the deploy",
     "check qa after deploying"
@@ -1490,8 +1490,8 @@
    "name": "webhooks",
    "plugin": "bearing",
    "category": "architecture",
-   "what": "Builds webhooks both ways: inbound with signature checks, replay window and idempotent handlers; outbound with retries, dead letters and a delivery log",
-   "when": "asked to \"add a webhook\" or \"verify signatures\"",
+   "what": "Builds inbound webhooks that verify signatures and process each event once, and outbound ones with retries and a log",
+   "when": "you are receiving or sending webhooks and need them trustworthy and traceable",
    "phrases": [
     "add a webhook",
     "verify signatures"
@@ -1503,8 +1503,8 @@
    "name": "workflow",
    "plugin": "bearing",
    "category": "meta",
-   "what": "Says where the work stands (repository, branch, diff) and which skill or step comes next",
-   "when": "asked \"what should I do next\", \"which skill do I use\", \"how do we work here\" or \"what is in flight\"",
+   "what": "Reads where the work stands from the repository, branch and diff, and names the skill or step that comes next",
+   "when": "you are unsure what to do next, which skill fits or what the team has in flight",
    "phrases": [
     "what should I do next",
     "which skill do I use",

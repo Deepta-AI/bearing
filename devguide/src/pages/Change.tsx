@@ -1,12 +1,11 @@
-import { useState } from "react";
-import { Link } from "react-router";
-import { Stepper, type Frame } from "../components/Stepper";
+import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import { Link, useLocation } from "react-router";
 import { Code, H2, Note, Page, S } from "../components/ui";
 import { data } from "../lib/data";
 
-type Recipe = { id: string; title: string; when: string; touch: string[]; steps: React.ReactNode[]; gates: string[] };
+type Recipe = { id: string; title: string; when: string; touch: string[]; steps: ReactNode[]; gates: string[] };
 
-const RECIPES: Recipe[] = [
+export const RECIPES: Recipe[] = [
   {
     id: "skill",
     title: "Add a skill",
@@ -207,18 +206,46 @@ const RECIPES: Recipe[] = [
 ];
 
 function Recipes() {
-  const [id, setId] = useState(RECIPES[0].id);
+  const { hash } = useLocation();
+  const fromHash = RECIPES.find((x) => `#${x.id}` === hash)?.id;
+  const [id, setId] = useState(fromHash ?? RECIPES[0].id);
+  const tabs = useRef<(HTMLButtonElement | null)[]>([]);
+  // A link such as /change#guard-rule opens that recipe; the tab keeps the id, so the page scrolls to it.
+  useEffect(() => {
+    if (fromHash) setId(fromHash);
+  }, [fromHash]);
   const r = RECIPES.find((x) => x.id === id)!;
+  const onKey = (e: KeyboardEvent<HTMLButtonElement>, n: number) => {
+    const last = RECIPES.length - 1;
+    const to = e.key === "ArrowRight" ? (n === last ? 0 : n + 1) : e.key === "ArrowLeft" ? (n === 0 ? last : n - 1) : e.key === "Home" ? 0 : e.key === "End" ? last : -1;
+    if (to < 0) return;
+    e.preventDefault();
+    setId(RECIPES[to].id);
+    tabs.current[to]?.focus();
+  };
   return (
     <div className="recipes wide">
-      <div className="rc-tabs" role="tablist" aria-label="Recipes">
-        {RECIPES.map((x) => (
-          <button key={x.id} id={x.id} type="button" role="tab" aria-selected={x.id === id} onClick={() => setId(x.id)}>
+      <div className="tabs" role="tablist" aria-label="Recipes">
+        {RECIPES.map((x, n) => (
+          <button
+            key={x.id}
+            id={x.id}
+            ref={(el) => {
+              tabs.current[n] = el;
+            }}
+            type="button"
+            role="tab"
+            aria-selected={x.id === id}
+            aria-controls="recipe-panel"
+            tabIndex={x.id === id ? 0 : -1}
+            onClick={() => setId(x.id)}
+            onKeyDown={(e) => onKey(e, n)}
+          >
             {x.title}
           </button>
         ))}
       </div>
-      <div className="rc-body panel" role="tabpanel" key={id}>
+      <div className="rc-body panel" role="tabpanel" id="recipe-panel" aria-labelledby={id} tabIndex={0} key={id}>
         <h3>{r.title}</h3>
         <p className="rc-when">{r.when}</p>
         <div className="rc-cols">
@@ -251,11 +278,22 @@ function Recipes() {
   );
 }
 
+const LOOP: [string, ReactNode, string][] = [
+  ["Branch", "From main, with a short name such as feat/RustStack or fix/GuardSudoParse.", "git switch -c feat/<Name>"],
+  ["Check the file", "After each edit. The edit hook formats the file and runs no repository command.", "make check-file FILE=<path>"],
+  ["Run the gate", "About three minutes.", "make check"],
+  ["Regenerate", "When skills, flows or docs sources changed.", "make docs"],
+  ["Prove the hooks", "When a hook or the guard changed.", "make harness-eval ONLY=<scenario>"],
+  ["Commit", "With a CHANGELOG line under [Unreleased].", 'git commit -m "feat(guard): refuse helm rollback"'],
+  ["You push", "To your fork, then open the pull request. The agent cannot push.", "git push"],
+];
+
 export function Change() {
   return (
     <Page
+      crumb="Chapter 14 / Contributing"
       title="Changing Bearing"
-      lede="The kit is built to be changed by the same workflow it gives everyone else: a task branch, the smallest change, the gate before every commit, and you pushing. These are the recipes, each with the files it touches and the gates that will catch a mistake."
+      lede="Change the kit with the workflow it gives everyone else: a task branch, the smallest change, the gate before every commit, and you pushing. Each recipe below lists the files it touches and the gates that catch a mistake."
       toc={[
         { id: "loop", label: "The loop for any change" },
         { id: "recipes", label: "Recipes" },
@@ -265,19 +303,21 @@ export function Change() {
       sources={["CONTRIBUTING.md", "plugins/bearing/skills/new-skill/SKILL.md", "Makefile"]}
     >
       <H2 id="loop">The loop for any change</H2>
-      <Code>{`git switch -c feat/<Name>               # or fix/, chore/, docs/ (feat/DevGuide)
-# edit; the edit hook formats, and runs no repository command
-make check-file FILE=<path>             # the per-file check, after each edit
-make check                              # the gate, about three minutes
-make docs                               # when skills, flows or docs sources changed
-make harness-eval ONLY=<scenario>       # when a hook or the guard changed
-# CHANGELOG.md: a line under [Unreleased]
-git commit -m "feat(guard): refuse helm rollback"
-# you push to your fork and open the pull request`}</Code>
-      <p>
-        Working on the kit inside Claude Code, the kit's own guard and hooks are active, so the agent cannot push your branch either. That is the point: it
-        prepares, you ship.
-      </p>
+      <ol className="stepcs">
+        {LOOP.map(([t, d, cmd], i) => (
+          <li key={t}>
+            <div className="stepc">
+              <div className="of">
+                {i + 1} of {LOOP.length}
+              </div>
+              <h3>{t}</h3>
+              <p>{d}</p>
+              <code className="cmdline">{cmd}</code>
+            </div>
+          </li>
+        ))}
+      </ol>
+      <p>Inside Claude Code the kit's own guard and hooks are active, so the agent cannot push your branch either. It prepares; you ship.</p>
 
       <H2 id="recipes">Recipes</H2>
       <Recipes />
@@ -310,13 +350,12 @@ git commit -m "feat(guard): refuse helm rollback"
           with <code>--plugin-dir</code>.
         </li>
         <li>
-          <strong>Writing about blocked commands from Bash.</strong> The installed guard reads every Bash command, heredoc bodies fed to a shell included, so a
-          test or doc that spells out a push is refused. Assemble the words at run time, as the tests do, or write the file with an editor.
+          <strong>Writing about blocked commands from Bash.</strong> The installed guard reads every Bash command, including heredoc bodies fed to a shell.
+          A test or doc that spells out a push is refused. Assemble the words at run time, as the tests do, or write the file with an editor.
         </li>
         <li>
           <strong>bash 3.2.</strong> No associative arrays, no <code>mapfile</code>, no <code>${"${x,,}"}</code>, no <code>readarray</code>; BSD sed and stat
-          on a Mac. The <code>bash32</code> and <code>macos</code> CI jobs catch most of it; <code>shellcheck</code> the
-          rest.
+          on a Mac. The <code>bash32</code> and <code>macos</code> CI jobs catch most of it; <code>shellcheck</code> catches the rest.
         </li>
         <li>
           <strong>A skill that depends on another.</strong> It will be run alone. Give every input a fallback.
@@ -325,28 +364,29 @@ git commit -m "feat(guard): refuse helm rollback"
           <strong>A gate that prints nothing.</strong> Print the count; fail on zero. <code>gate_selfaudit.sh</code> will find it otherwise.
         </li>
         <li>
-          <strong>Em dashes.</strong> In any tracked file, <code>lint-prose</code> fails. Rewrite the sentence rather than swapping the character.
+          <strong>Em dashes.</strong> <code>lint-prose</code> fails on one in any tracked file. Rewrite the sentence; do not swap the character.
         </li>
       </ul>
     </Page>
   );
 }
 
-const RELEASE: Frame[] = [
-  { title: "Collapse Unreleased", where: "CHANGELOG.md", body: <p>Move the Unreleased entries under a new version heading with the date, grouped Added, Changed, Fixed, with a one-paragraph summary on top.</p> },
-  { title: "Bump VERSION", where: "VERSION, .claude-plugin/plugin.json, .claude-plugin/marketplace.json (twice)", body: <p>Four places hold the version. <code>make lint-version</code> fails until all four match. A new version is also what makes installed machines refresh their cached copy.</p> },
+const RELEASE: { title: string; where: string; body: ReactNode }[] = [
+  { title: "Collapse Unreleased", where: "CHANGELOG.md", body: <p>Move the Unreleased entries under a dated version heading, grouped Added, Changed, Fixed, with a one-paragraph summary on top.</p> },
+  { title: "Bump VERSION", where: "VERSION, .claude-plugin/plugin.json, .claude-plugin/marketplace.json (twice)", body: <p>Four places hold the version, and <code>make lint-version</code> fails until they match. A new version also makes installed machines refresh their cached copy.</p> },
   { title: "Regenerate", where: "make docs", body: <p>The handbook data, docs/SKILLS.md, docs/WORKFLOW.md, the repository skills maps and this guide's data carry the version. Commit them.</p> },
-  { title: "Validate locally", where: "make validate, make check, make harness-eval", body: <p>CI cannot run <code>claude plugin validate --strict</code>, so you do. Run the harness eval if any hook or the guard changed since the last release.</p> },
+  { title: "Validate locally", where: "make validate, make check, make harness-eval", body: <p>CI cannot run <code>claude plugin validate --strict</code>, so you do. Run the harness eval if a hook or the guard changed since the last release.</p> },
   { title: "Merge", where: "the pull request", body: <p>The ci workflow runs check, the scaffolds, bash32 and macos. On main, the docs workflow publishes the handbook and this guide to Vercel (on a GitLab mirror, the pages and Vercel jobs).</p> },
-  { title: "Tag and push", where: "your terminal", body: <p>A person tags: <code>git tag -a vX.Y.Z -m "bearing X.Y.Z"</code>, then pushes main with tags. The kit never does this for you.</p> },
-  { title: "Roll out", where: "upgrade-tools on each machine", body: <p><S name="upgrade-tools" /> updates every installed source with versions before and after, and reruns the doctor. A plugin-only install takes <code>claude plugin update bearing@bearing</code>.</p> },
+  { title: "Tag and push", where: "your terminal", body: <p>A person tags with <code>git tag -a vX.Y.Z -m "bearing X.Y.Z"</code>, then pushes main with tags. The kit never does this.</p> },
+  { title: "Roll out", where: "upgrade-tools on each machine", body: <p><S name="upgrade-tools" /> updates every installed source, prints versions before and after, and reruns the doctor. A plugin-only install takes <code>claude plugin update bearing@bearing</code>.</p> },
 ];
 
 export function Release() {
   return (
     <Page
+      crumb="Chapter 15 / Contributing"
       title="Releasing"
-      lede={`Bearing is at ${data.version}. A release is seven steps, and the gates make it hard to get one wrong.`}
+      lede={`Bearing is at ${data.version}. A release is seven steps, and the gates catch most mistakes.`}
       toc={[
         { id: "steps", label: "The seven steps" },
         { id: "sites", label: "Publishing the two sites" },
@@ -355,12 +395,27 @@ export function Release() {
       sources={["CHANGELOG.md", "VERSION", ".claude-plugin/plugin.json", ".github/workflows/docs.yml", ".gitlab-ci.yml"]}
     >
       <H2 id="steps">The seven steps</H2>
-      <Stepper label="Releasing Bearing" frames={RELEASE} interval={3000} />
+      <ol className="stepcs wide-cards" aria-label="Releasing Bearing">
+        {RELEASE.map((r, i) => (
+          <li key={r.title}>
+            <div className="stepc">
+              <div className="of">
+                {i + 1} of {RELEASE.length}
+              </div>
+              <h3>{r.title}</h3>
+              <code className="cmdline" style={{ marginTop: 0, marginBottom: "var(--s2)" }}>
+                {r.where}
+              </code>
+              {r.body}
+            </div>
+          </li>
+        ))}
+      </ol>
 
       <H2 id="sites">Publishing the two sites</H2>
       <p>
-        Two Vite sites live in the repository, each built from generated data and each deployed as static files: <code>site/</code> is the handbook (how to use
-        Bearing) and <code>devguide/</code> is this guide (how Bearing works).
+        The repository holds two Vite sites, each built from generated data and deployed as static files. <code>site/</code> is the handbook (how to use
+        Bearing). <code>devguide/</code> is this guide (how Bearing works).
       </p>
       <Code cap="build them locally">{`make site        # site/dist
 make devguide    # devguide/dist`}</Code>

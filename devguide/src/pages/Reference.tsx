@@ -17,8 +17,9 @@ export function Replays() {
   return (
     <Page
       full
+      crumb="Reference"
       title="Terminal replays"
-      lede="Every recording on this site, in one place. They are real runs of the kit's own commands against this checkout, captured line by line with their timing, with home and scratch paths rewritten."
+      lede="Every recording on this site. Each is a real run of the kit's own commands against this checkout, captured line by line with its timing. Home and scratch paths are rewritten."
     >
       <Code cap="record them again after a change they show">{`python3 devguide/scripts/record.py            # every session
 python3 devguide/scripts/record.py scaffold   # one`}</Code>
@@ -53,7 +54,7 @@ const TERMS: [string, string][] = [
   ["Decisions first", "A block in a skill that runs tech-decision before writing anything that depends on a choice. Such a skill must grant Skill."],
   ["fail closed", "When the guard cannot read a command (a variable verb, an unparsed hook JSON, an over-long command) it refuses rather than allows."],
   ["gate", "A check that prints what it counted and fails on zero. Every step of make check is one."],
-  ["guard", "plugins/bearing/bin/brg-guard, the one script behind every hook on every harness."],
+  ["guard", "plugins/bearing/bin/brg-guard, the one script that decides for the hooks on every harness."],
   ["handoff note", ".bearing/state/<branch>.md, written by start-task and session-handoff, printed at the next SessionStart."],
   ["harness", "A coding agent host: Claude Code, Cursor, Codex, Gemini CLI, Copilot, OpenCode, Windsurf, Cline, Zed, Kiro."],
   ["pinned pack", "A third-party skill fetched at a fixed commit by brg-install-packs, with a .bearing-pack provenance file."],
@@ -69,7 +70,7 @@ const TERMS: [string, string][] = [
 
 export function Glossary() {
   return (
-    <Page full title="Glossary" lede="The words this guide uses with a specific meaning in Bearing.">
+    <Page full crumb="Reference" title="Glossary" lede="Words this guide uses with a specific meaning in Bearing.">
       <dl className="glossary">
         {TERMS.map(([t, d]) => (
           <div key={t}>

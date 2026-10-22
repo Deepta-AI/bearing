@@ -32,13 +32,19 @@ export function readingOrder(nav: NavGroup[]) {
 const ShellCtx = createContext<{ order: NavItem[] }>({ order: [] });
 export const useShell = () => useContext(ShellCtx);
 
+/** The Bearing mark: a B with a heading mark on an indigo tile. Source: docs/design/logo/bearing-mark.svg. */
 export function Mark() {
   return (
     <svg viewBox="0 0 32 32" aria-hidden="true">
-      <circle cx="16" cy="16" r="14.5" fill="none" stroke="currentColor" strokeWidth="1.6" />
-      <path d="M16 4.8l3.4 11.2L16 27.2l-3.4-11.2z" fill="var(--accent)" />
-      <path d="M16 16h3.4L16 27.2l-3.4-11.2z" fill="currentColor" opacity=".32" />
-      <circle cx="16" cy="16" r="1.9" fill="currentColor" />
+      <rect width="32" height="32" rx="8" fill="var(--accent)" />
+      <path
+        d="M9.5 7.2h7.3a4.4 4.4 0 0 1 0 8.8H9.5Z M9.5 16h8.6a4.4 4.4 0 0 1 0 8.8H9.5Z"
+        fill="none"
+        stroke="var(--on-accent)"
+        strokeWidth="2.4"
+        strokeLinejoin="round"
+      />
+      <path d="M25.6 5.4 24.5 10.3 20.7 6.5Z" fill="var(--on-accent)" />
     </svg>
   );
 }
@@ -46,19 +52,8 @@ export function Mark() {
 const THEME_KEY = "bearing-theme";
 
 function ThemeToggle() {
-  const sysDark = () => matchMedia("(prefers-color-scheme: dark)").matches;
-  const [dark, setDark] = useState(() => {
-    const t = document.documentElement.dataset.theme;
-    return t ? t === "dark" : sysDark();
-  });
-  useEffect(() => {
-    const mq = matchMedia("(prefers-color-scheme: dark)");
-    const f = () => {
-      if (!document.documentElement.dataset.theme) setDark(mq.matches);
-    };
-    mq.addEventListener("change", f);
-    return () => mq.removeEventListener("change", f);
-  }, []);
+  // Dark is the default; data-theme="light" pins the light theme.
+  const [dark, setDark] = useState(() => document.documentElement.dataset.theme !== "light");
   return (
     <button
       type="button"
@@ -66,14 +61,12 @@ function ThemeToggle() {
       aria-label={dark ? "Use the light theme" : "Use the dark theme"}
       title={dark ? "Light theme" : "Dark theme"}
       onClick={() => {
-        const next = dark ? "light" : "dark";
-        // Choosing what the system already shows goes back to following it.
-        const follow = (next === "dark") === sysDark();
-        if (follow) delete document.documentElement.dataset.theme;
-        else document.documentElement.dataset.theme = next;
+        const light = dark;
+        if (light) document.documentElement.dataset.theme = "light";
+        else delete document.documentElement.dataset.theme;
         try {
-          if (follow) localStorage.removeItem(THEME_KEY);
-          else localStorage.setItem(THEME_KEY, next);
+          if (light) localStorage.setItem(THEME_KEY, "light");
+          else localStorage.removeItem(THEME_KEY);
         } catch {
           /* private window: the choice lasts this visit */
         }
@@ -231,18 +224,19 @@ export function Shell({
           </Link>
           <SiteSwitch site={site} className="ui-switch" label="Bearing documentation" />
           <span className="grow" />
-          <button type="button" className="ui-searchbtn" onClick={open} aria-label="Search (press / or Ctrl K)">
+          <button type="button" className="ui-searchbtn" onClick={open} aria-label="Search (press / or Ctrl K)" title="Search (/ or Ctrl K)">
             <SearchIcon />
             <span className="lbl">Search</span>
             <kbd>/</kbd>
-            <kbd>Ctrl K</kbd>
           </button>
+          <div className="ui-tools">
           <ThemeToggle />
           <a className="ui-icon gh" href="https://github.com/Deepta-AI/bearing" aria-label="Bearing on GitHub" title="Source on GitHub">
             <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
               <path d="M12 .5a11.5 11.5 0 0 0-3.64 22.41c.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.52-1.33-1.28-1.69-1.28-1.69-1.05-.72.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.77 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.84 1.19 3.1 0 4.42-2.7 5.4-5.26 5.68.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .5z" />
             </svg>
           </a>
+          </div>
         </div>
       </header>
       <div className="ui-shell">

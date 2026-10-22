@@ -205,10 +205,12 @@ function Transcript({ upto }: { upto: number }) {
 
 export function Session() {
   const frames: Frame[] = FILM.map((f) => f.frame);
+  const events = new Set(data.hooks.map((h) => h.event)).size;
   return (
     <Page
+      crumb="Chapter 3 / Runtime"
       title="A session, event by event"
-      lede="Six hook events, one guard script. Here is a single realistic session on a task branch, with each hook's real wording, followed by how the adapters and the guard divide the work."
+      lede={`${events} hook events, ${data.hooks.length} adapters, one guard script. First a single session on a task branch, in each hook's real wording; then how the adapters and the guard divide the work.`}
       toc={[
         { id: "film", label: "The session" },
         { id: "table", label: "The hook table" },
@@ -238,7 +240,7 @@ export function Session() {
           </thead>
           <tbody>
             {data.hooks.map((h) => (
-              <tr key={h.event}>
+              <tr key={`${h.event}-${h.matcher}`}>
                 <td>
                   <code>{h.event}</code>
                 </td>
@@ -256,9 +258,8 @@ export function Session() {
 
       <H2 id="adapters">Anatomy of an adapter</H2>
       <p>
-        Each adapter does three things and nothing else: source <code>lib.sh</code>, pull fields out of the event JSON, and hand them to one guard subcommand.
-        The decision logic lives in the guard so that Cursor, Codex, Gemini CLI and the rest can call the same logic through their own adapters (see{" "}
-        <Link to="/harnesses">Other harnesses</Link>).
+        An adapter sources <code>lib.sh</code>, pulls fields out of the event JSON, and hands them to a kit script. The decisions live in the guard, so
+        Cursor, Codex, Gemini CLI and the rest reach the same logic through their own adapters (see <Link to="/harnesses">Other harnesses</Link>).
       </p>
       <Code cap="plugins/bearing/hooks/scripts/lib.sh, the part every adapter uses">{`HOOK_JSON="$(cat 2>/dev/null || true)"     # the event, read once
 
@@ -271,15 +272,15 @@ json_field() {                              # json_field tool_input.command
 }`}</Code>
       <Note tone="signal" title="Fail closed, but only where it matters">
         <p>
-          Without <code>jq</code>, every field reads as the sentinel <code>__BRG_UNPARSED__</code>. The <code>command</code> subcommand refuses it, because a
-          command the guard cannot read must not run. The hint subcommands (session, task-id, format, stop) see the sentinel and do nothing, because
-          refusing to print a hint would only break the session.
+          Without <code>jq</code>, every field reads as the sentinel <code>__BRG_UNPARSED__</code>. The <code>command</code> subcommand refuses it: a command
+          the guard cannot read must not run. The hint subcommands (session, task-id, format, stop) see the sentinel and do nothing, since refusing a hint
+          would only break the session.
         </p>
       </Note>
       <Terminal id="hooks" height={250} />
 
       <H2 id="json">Talking back to Claude Code</H2>
-      <p>A hook has three ways to be heard, and the kit uses each on purpose:</p>
+      <p>A hook can answer in three ways. The kit uses each for one kind of event:</p>
       <ul>
         <li>
           <strong>Exit 2 with a message on stderr</strong> (PreToolUse): the tool call is cancelled and the message goes to the model.
@@ -294,9 +295,8 @@ json_field() {                              # json_field tool_input.command
       </ul>
       <Note title="The trap the harness eval found">
         <p>
-          The JSON must be all of stdout. The first live run of the edit hook failed because the formatter's note ("bearing format: gofmt formatted csv.go")
-          was printed to stdout before the JSON, and Claude Code read the whole thing as text. That is why <code>format-file.sh</code> sends the format step to
-          stderr.
+          The JSON must be all of stdout. The first live run of the edit hook failed: the formatter's note ("bearing format: gofmt formatted csv.go") went to
+          stdout before the JSON, and Claude Code read the whole thing as text. So <code>format-file.sh</code> sends the format step to stderr.
         </p>
       </Note>
 
@@ -335,8 +335,8 @@ json_field() {                              # json_field tool_input.command
 
       <H2 id="state">The state directory</H2>
       <p>
-        Everything the hooks remember lives under <code>.bearing/state/</code> in the product repository, which the template's <code>.gitignore</code>{" "}
-        excludes. <S name="brg-state-path" /> computes the per-branch file name.
+        The hooks keep everything they remember under <code>.bearing/state/</code> in the product repository. The template's <code>.gitignore</code>{" "}
+        excludes it. <S name="brg-state-path" /> computes the per-branch file name.
       </p>
       <div className="tablewrap">
         <table>
@@ -360,14 +360,14 @@ json_field() {                              # json_field tool_input.command
         </table>
       </div>
       <p>
-        Branch names become file names by replacing <code>/</code> with <code>_</code>, so <code>feature/TASK-142-InvoiceExport</code> is{" "}
+        A branch name becomes a file name with <code>/</code> replaced by <code>_</code>: <code>feature/TASK-142-InvoiceExport</code> is{" "}
         <code>feature_TASK-142-InvoiceExport.md</code>.
       </p>
 
       <H2 id="telemetry">Gate telemetry</H2>
       <p>
-        Every decision appends one tab-separated line to <code>gates.log</code>: the time, the gate, the outcome, the milliseconds it took and a short label.
-        The log rotates to <code>gates.log.1</code> at 512 KB. <code>BEARING_NO_GATE_LOG=1</code> turns it off. <code>brg-guard stats</code> summarises it:
+        Every decision appends one tab-separated line to <code>gates.log</code>: time, gate, outcome, milliseconds and a short label. The log rotates to{" "}
+        <code>gates.log.1</code> at 512 KB, and <code>BEARING_NO_GATE_LOG=1</code> turns it off. <code>brg-guard stats</code> summarises it:
       </p>
       <Code cap="brg-guard stats, the shape of its output">{`brg-guard stats: 412 gate decisions, 2026-09-24T09:12:03 to 2026-09-25T17:40:51
   check-file clean                   88  median   610 ms  p90  2100 ms  max   4210 ms
@@ -379,8 +379,8 @@ json_field() {                              # json_field tool_input.command
        6  git push
        3  git commit --amend`}</Code>
       <p>
-        The counts in this sample are illustrative; the columns are the real ones. Use it to answer "is the guard slowing us down" and "which rule do agents
-        hit most" before changing either.
+        The counts in this sample are illustrative; the columns are real. Use it to answer "is the guard slowing us down" and "which rule do agents hit most"
+        before you change either.
       </p>
     </Page>
   );

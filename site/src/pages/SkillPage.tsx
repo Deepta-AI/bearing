@@ -43,7 +43,7 @@ export default function SkillPage() {
               Takes: <code>{s.args}</code>
             </small>
           )}
-          <small>{s.invocation === "command" ? "Typed only." : "Or ask in your own words; it loads when the request matches."}</small>
+          <small>{s.invocation === "command" ? "Typed only." : "Or ask in your own words. It loads when your request matches."}</small>
         </section>
         <section>
           <h2 data-no-anchor>Plugin</h2>

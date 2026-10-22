@@ -9,7 +9,7 @@ const LAYERS = [
     name: "The plugin manifest",
     path: ".claude-plugin/",
     kind: "declares",
-    text: "marketplace.json names a marketplace called bearing that holds four plugins; each plugin's own plugin.json names it and its version. Claude Code finds skills/, agents/ and hooks/hooks.json by convention inside each plugin folder. Nothing else registers anything.",
+    text: "marketplace.json names a marketplace called bearing with four plugins. Each plugin's plugin.json gives its name and version. Claude Code finds skills/, agents/ and hooks/hooks.json inside each plugin folder by convention. Nothing else registers anything.",
     to: "/install",
   },
   {
@@ -17,7 +17,7 @@ const LAYERS = [
     name: "Skills",
     path: "plugins/*/skills/*/",
     kind: "the model reads",
-    text: "Instructions for one step each. Only the name and description sit in every session; the body loads when the skill is invoked, and its references/ load only when a step says to read them.",
+    text: "Instructions for one step each. Only the name and description sit in every session. The body loads when the skill is invoked, and references/ load only when a step says to read them.",
     to: "/skills-work",
   },
   {
@@ -25,7 +25,7 @@ const LAYERS = [
     name: "Subagents",
     path: "plugins/bearing/agents/*.md",
     kind: "the model reads, in a fork",
-    text: "A fresh context with a narrower tool list. Reviewers get Read, Grep and Glob and nothing else; the test writer gets a worktree. They return a report, never a conversation.",
+    text: "A fresh context with a narrower tool list. Reviewers get Read, Grep and Glob only; the test writer gets a worktree. Each returns a report, not a conversation.",
     to: "/agents",
   },
   {
@@ -33,7 +33,7 @@ const LAYERS = [
     name: "Hooks over the guard",
     path: "plugins/bearing/hooks/ and bin/brg-guard",
     kind: "the machine enforces",
-    text: "Six events, each a few lines of shell that turn the event's JSON into arguments for one script. The guard decides; the adapter only translates. The same guard serves eight other harnesses.",
+    text: `${new Set(data.hooks.map((h) => h.event)).size} events, each a few lines of shell that turn the event's JSON into arguments for a kit script. The guard decides; the adapter only translates. The same guard serves nine other harnesses.`,
     to: "/session",
   },
   {
@@ -41,7 +41,7 @@ const LAYERS = [
     name: "Scripts",
     path: "plugins/bearing/bin/brg-*",
     kind: "the machine does",
-    text: "Deterministic work that a skill calls instead of improvising: scaffold, adopt, the tracker adapters, autopilot's gates, the checklists. A skill's allowed-tools grants exactly these calls.",
+    text: "Deterministic work a skill calls instead of improvising: scaffold, adopt, the tracker adapters, autopilot's gates, the checklists. A skill's allowed-tools grants exactly these calls.",
     to: "/scripts",
   },
 ];
@@ -91,8 +91,9 @@ function Walls() {
 export function Architecture() {
   return (
     <Page
+      crumb="Chapter 2 / Architecture"
       title="The five layers"
-      lede="Bearing is five kinds of file, loaded by Claude Code in five different ways. Knowing which layer a behaviour lives in tells you where to change it and what can override it."
+      lede="Bearing is five kinds of file, and Claude Code loads each kind its own way. The layer a behaviour lives in tells you where to change it and what can override it."
       toc={[
         { id: "layers", label: "The layers" },
         { id: "loading", label: "How Claude Code loads them" },
@@ -117,8 +118,8 @@ export function Architecture() {
         ))}
       </div>
       <p>
-        Layers 2 and 3 are prose: the model reads them and usually complies. Layers 4 and 5 are code: they run whatever the model thinks. Every rule in the kit
-        that must hold without exception has a copy in layer 4 or in the repository's own git hooks and gate.
+        Layers 2 and 3 are prose: the model reads them and usually complies. Layers 4 and 5 are code: they run whatever the model thinks. Every rule that must
+        hold without exception has a copy in layer 4, or in the repository's own git hooks and gate.
       </p>
 
       <H2 id="loading">How Claude Code loads them</H2>
@@ -156,8 +157,8 @@ export function Architecture() {
 
       <H2 id="repo">What lands in a repository</H2>
       <p>
-        The plugin lives on the developer's machine. A product repository gets its own copy of the standard from <code>plugins/bearing/templates/repo/</code>, so it keeps
-        working for a teammate on another harness, in CI, and on a clone where the plugin was never installed.
+        The plugin lives on the developer's machine. A product repository gets its own copy of the standard from <code>plugins/bearing/templates/repo/</code>. So
+        it keeps working for a teammate on another harness, in CI, and on a clone without the plugin.
       </p>
       <div className="tablewrap">
         <table>
@@ -205,18 +206,18 @@ export function Architecture() {
 
       <H2 id="depth">Defence in depth</H2>
       <p>
-        Take the most important rule: the agent never pushes. It is written four times, in four layers that fail independently. Where the engineer lists a
-        repository in <code>BEARING_AUTO_PUSH</code>, the Stop hook clones the task branch fresh and pushes it to the listed URL; that push runs no hook,
-        Makefile or config from the repository.
+        Take the most important rule: the agent never pushes. It is written four times, in four layers that fail independently. One exception: where the
+        engineer lists a repository in <code>BEARING_AUTO_PUSH</code>, the Stop hook clones the task branch fresh and pushes it to the listed URL. That push runs
+        no hook, Makefile or config from the repository.
       </p>
       <Walls />
 
       <H2 id="neutral">Company-neutral by construction</H2>
       <p>
         Nothing in the kit names a company, a git host or a tracker. Those come from <code>~/.config/bearing/bearing.env</code> (never inside a repository) and
-        from placeholders that <S name="brg-scaffold" /> fills: <code>__KIT_REMOTE__</code>, <code>__ORG_ID__</code>, <code>__TRACKER__</code>. The holder of
-        the licence is named once, in <code>NOTICE.md</code>. <code>make lint-neutral</code> fails on the phrases a de-branding leaves behind and on tracker
-        id literals outside the adapter docs.
+        from placeholders that <S name="brg-scaffold" /> fills: <code>__KIT_REMOTE__</code>, <code>__ORG_ID__</code>, <code>__TRACKER__</code>. The licence
+        holder is named once, in <code>NOTICE.md</code>. <code>make lint-neutral</code> fails on phrases a de-branding leaves behind, and on tracker id literals
+        outside the adapter docs.
       </p>
       <Code cap="where configuration comes from, highest first">{`1. a flag on the command            brg-scaffold ... --host github
 2. the environment                  BEARING_GIT_HOST=github

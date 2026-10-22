@@ -88,14 +88,13 @@ export function Terminal({ id, steps: only, title, height = 360 }: { id: string;
   return (
     <figure className="term wide" aria-label={`Terminal replay: ${title ?? rec.title}`}>
       <div className="term-bar">
-        <span className="dots" aria-hidden="true">
-          <i />
-          <i />
-          <i />
-        </span>
+        <svg className="term-glyph" viewBox="0 0 16 16" aria-hidden="true">
+          <path d="M4 5.5 6.5 8 4 10.5M8 10.5h4" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
         <span className="term-title">{title ?? rec.title}</span>
+        <span className="term-cwd">{rec.cwd}</span>
         <span className="term-ctl">
-          <button type="button" onClick={() => setSpeed((s) => (s === 1 ? 2 : s === 2 ? 4 : 1))} aria-label="Replay speed">
+          <button type="button" onClick={() => setSpeed((s) => (s === 1 ? 2 : s === 2 ? 4 : 1))} aria-label={`Replay speed, now ${speed} times`}>
             {speed}×
           </button>
           <button type="button" onClick={() => setT(total + 1)} disabled={finished}>
@@ -114,6 +113,9 @@ export function Terminal({ id, steps: only, title, height = 360 }: { id: string;
             {playing ? "Pause" : finished && started ? "Replay" : started ? "Resume" : "Play"}
           </button>
         </span>
+      </div>
+      <div className="term-prog" aria-hidden="true">
+        <span style={{ width: `${Math.min(100, (t / total) * 100)}%` }} />
       </div>
       <div className="term-body" ref={body} style={{ height }} aria-live="off">
         {!started && (

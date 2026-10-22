@@ -157,8 +157,9 @@ skill and against a baseline without it. Neither replaces the other.
     copying a quoted description phrase. `make trigger-eval ONLY=<name>`
     where the target exists.
 11. Registry: `make docs` regenerates the table in `docs/SKILLS.md`
-    (never hand-edit it); place the skill in `bin/gen-guide.py` where
-    that file exists; a line under Unreleased in `CHANGELOG.md`. Then
+    (never hand-edit it); place the skill in `bin/gen-guide.py` and give
+    it a `what` and `when` in `docs/skill-summaries.json` where those
+    exist; a line under Unreleased in `CHANGELOG.md`. Then
     `make check` passes.
 12. Commit nothing; leave the change in the working tree, print the
     commit command, and report as below.

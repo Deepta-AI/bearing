@@ -16,7 +16,7 @@ export function Page({
   children,
 }: {
   crumb?: ReactNode;
-  title: ReactNode;
+  title?: ReactNode;
   lede?: ReactNode;
   toc?: Toc;
   sources?: string[];

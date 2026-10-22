@@ -10,16 +10,16 @@ export default function FlowPage() {
   if (!flow) return <Navigate to="/flows/greenfield" replace />;
   return (
     <DocPage full crumb="Flows" title={flow.title} lede={<>{flow.tagline} {flow.when}</>}>
-        <nav className="flow-tabs" aria-label="Flows">
+        <nav className="tabs" aria-label="Flows">
           {data.flows.map((f) => (
-            <Link key={f.id} to={`/flows/${f.id}`} className={f.id === flow.id ? "on" : ""}>
+            <Link key={f.id} to={`/flows/${f.id}`} aria-current={f.id === flow.id ? "page" : undefined}>
               {f.title}
             </Link>
           ))}
         </nav>
         <p className="muted">
-          Open any step to see what the skill does, why the step matters and what you get. Answer the
-          questions on the line to see the steps that apply to your change.
+          Open a step to see what its skill does, why it matters and what you get. Answer the questions on the line to show only the steps that
+          apply to your change.
         </p>
         <FlowDiagram key={flow.id} flow={flow} initialStep={params.get("step") ?? undefined} />
     </DocPage>

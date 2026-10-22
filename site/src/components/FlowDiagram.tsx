@@ -53,7 +53,7 @@ function StepCard({
   index: number;
 }) {
   const reduce = useReducedMotion();
-  const c = `var(--${packKey(step.pack) === "bearing" ? "jade" : packKey(step.pack)})`;
+  const c = `var(--${packKey(step.pack) === "bearing" ? "accent" : packKey(step.pack)})`;
   return (
     <motion.div
       ref={refFn}
@@ -149,7 +149,7 @@ export default function FlowDiagram({ flow, initialStep }: { flow: Flow; initial
     const el = st && refs.current.get(st.id);
     if (!el || !box.current) return setFill(0);
     const top = el.getBoundingClientRect().top - box.current.getBoundingClientRect().top;
-    setFill(top + 27);
+    setFill(top + 22);
   }, [active, steps, open, sel]);
 
   const goTo = useCallback(
@@ -191,7 +191,7 @@ export default function FlowDiagram({ flow, initialStep }: { flow: Flow; initial
       if (n.kind === "link") {
         const target = data.flows.find((f) => f.id === n.flow);
         return (
-          <div className="node" key={`l${k}`} style={{ ["--c" as string]: "var(--jade)" }}>
+          <div className="node" key={`l${k}`} style={{ ["--c" as string]: "var(--accent)" }}>
             <span className="pin" aria-hidden="true" />
             <Link className="linknode" to={`/flows/${n.flow}`}>
               {n.title}: open the {target?.title.toLowerCase()} flow
@@ -221,25 +221,27 @@ export default function FlowDiagram({ flow, initialStep }: { flow: Flow; initial
       return (
         <div className="branch" key={`b${bi}`}>
           <div className="q">{n.question}</div>
-          <div className="opts" role="group" aria-label={n.question}>
-            {n.options.map((o, oi) => (
-              <button
-                key={o.label}
-                type="button"
-                aria-pressed={chosen.includes(oi)}
-                onClick={() =>
-                  setSel((s) => {
-                    const cur = s[bi] ?? [];
-                    const next = n.multi ? (cur.includes(oi) ? cur.filter((x) => x !== oi) : [...cur, oi]) : cur.includes(oi) ? [] : [oi];
-                    return { ...s, [bi]: next };
-                  })
-                }
-              >
-                {o.label}
-                {o.steps.length > 0 && <span className="muted"> ({o.steps.length})</span>}
-              </button>
-            ))}
-            <span className="muted" style={{ fontSize: ".84rem", alignSelf: "center" }}>
+          <div className="opts">
+            <div className="seg" role="group" aria-label={n.question}>
+              {n.options.map((o, oi) => (
+                <button
+                  key={o.label}
+                  type="button"
+                  aria-pressed={chosen.includes(oi)}
+                  onClick={() =>
+                    setSel((s) => {
+                      const cur = s[bi] ?? [];
+                      const next = n.multi ? (cur.includes(oi) ? cur.filter((x) => x !== oi) : [...cur, oi]) : cur.includes(oi) ? [] : [oi];
+                      return { ...s, [bi]: next };
+                    })
+                  }
+                >
+                  {o.label}
+                  {o.steps.length > 0 && <span className="muted"> ({o.steps.length})</span>}
+                </button>
+              ))}
+            </div>
+            <span className="muted hint">
               {n.multi ? "choose any that apply" : "choose one"}
             </span>
           </div>
@@ -288,13 +290,13 @@ export default function FlowDiagram({ flow, initialStep }: { flow: Flow; initial
         </button>
       </div>
       <div className="legend">
-        {[["bearing", "--jade"], ["Superpowers", "--sp"], ["gstack", "--gs"], ["GSD Core", "--gsd"], ["Other packs", "--bi"]].map(([l, v]) => (
+        {[["bearing", "--accent"], ["Superpowers", "--sp"], ["gstack", "--gs"], ["GSD Core", "--gsd"], ["Other packs", "--bi"]].map(([l, v]) => (
           <span key={l} style={{ ["--c" as string]: `var(${v})` }}>
             <i />
             {l}
           </span>
         ))}
-        <span>Dashed ring: optional step. Diamond: a decision; choose an answer to see its steps.</span>
+        <span>Hollow dot: optional step. Diamond: a decision; choose an answer to see its steps.</span>
       </div>
       <div className="diagram" ref={box}>
         <span className="spine" aria-hidden="true" />

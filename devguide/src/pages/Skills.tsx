@@ -3,15 +3,15 @@ import { Link, useParams } from "react-router";
 import { Code, H2, Note, Page, Rich, S } from "../components/ui";
 import { CATEGORY_LABEL, data, skillByName, type Skill } from "../lib/data";
 
-const SECTION_TONE: Record<string, string> = {
-  Inputs: "var(--sea)",
-  Steps: "var(--brass)",
-  "Output contract": "var(--jade)",
-  Gotchas: "var(--signal)",
-  "When this skill is active": "var(--sea)",
-  Layout: "var(--brass)",
-  "Rules that matter most": "var(--brass)",
-  Commands: "var(--jade)",
+export const SECTION_TONE: Record<string, string> = {
+  Inputs: "var(--accent)",
+  Steps: "var(--gate)",
+  "Output contract": "var(--ok)",
+  Gotchas: "var(--bad)",
+  "When this skill is active": "var(--accent)",
+  Layout: "var(--gate)",
+  "Rules that matter most": "var(--gate)",
+  Commands: "var(--ok)",
 };
 
 function SectionBar({ s }: { s: Skill }) {
@@ -20,13 +20,13 @@ function SectionBar({ s }: { s: Skill }) {
     <div>
       <div className="bar secbar" role="img" aria-label={`Sections by length: ${s.sections.map((x) => `${x.title} ${x.lines} lines`).join(", ")}`}>
         {s.sections.map((x) => (
-          <span key={x.title} style={{ width: `${(x.lines / total) * 100}%`, background: SECTION_TONE[x.title] ?? "var(--rule-2)" }} title={`${x.title}: ${x.lines} lines`} />
+          <span key={x.title} style={{ width: `${(x.lines / total) * 100}%`, background: SECTION_TONE[x.title] ?? "var(--line-2)" }} title={`${x.title}: ${x.lines} lines`} />
         ))}
       </div>
       <div className="seclegend">
         {s.sections.map((x) => (
           <span key={x.title}>
-            <i style={{ background: SECTION_TONE[x.title] ?? "var(--rule-2)" }} />
+            <i style={{ background: SECTION_TONE[x.title] ?? "var(--line-2)" }} />
             {x.title} <small>{x.lines}</small>
           </span>
         ))}
@@ -76,8 +76,9 @@ export function SkillsWork() {
   const example = skillByName.get("start-task")!;
   return (
     <Page
+      crumb="Chapter 5 / Skills"
       title="How skills work"
-      lede={`A skill is one Markdown file with a frontmatter block, read by two audiences: Claude Code reads the frontmatter to decide when the skill may run and what it may touch; the model reads the body to know how. Bearing has ${sk.length}, and lints every one of them the same way.`}
+      lede={`A skill is one Markdown file with frontmatter. Claude Code reads the frontmatter to decide when the skill runs and what it may touch. The model reads the body to know how. Bearing has ${sk.length}, all linted the same way.`}
       toc={[
         { id: "anatomy", label: "Anatomy of SKILL.md" },
         { id: "frontmatter", label: "The frontmatter" },
@@ -129,16 +130,16 @@ Branch: feature/TASK-142-InvoiceTotals
 - the ways this goes wrong`}</pre>
         <ol className="anno-notes">
           <li><b>name</b> must equal the folder. <code>lint-skills</code> checks it.</li>
-          <li><b>description</b> is the trigger. The job first, then "Use when" and at least two quoted phrases, 220 characters at most, because the start is what survives a shortened listing.</li>
-          <li><b>argument-hint</b> shows in the slash menu when you type <code>/bearing:start-task</code>. No Bearing skill sets <code>disable-model-invocation</code>: it would hide the skill from the model entirely.</li>
+          <li><b>description</b> is the trigger: the job first, then "Use when" and at least two quoted phrases. 220 characters at most, because a shortened listing keeps the start.</li>
+          <li><b>argument-hint</b> shows in the slash menu for <code>/bearing:start-task</code>. No Bearing skill sets <code>disable-model-invocation</code>, which would hide it from the model.</li>
           <li><b>allowed-tools</b> is least privilege. Scripts appear as exact Bash patterns, never a bare <code>Bash</code> or <code>bash:*</code>.</li>
           <li><b>Inputs</b> is the independence contract: each input's first place and its fallback.</li>
           <li><b>Output contract</b> is a fixed block with counts, so a caller can check the result.</li>
-          <li><b>Gotchas</b> are the most valuable lines: the mistakes a capable model still makes here.</li>
+          <li><b>Gotchas</b> are the most valuable lines: the mistakes a capable model still makes.</li>
         </ol>
       </div>
       <p>
-        See the real one: <S name={example.name} /> ({example.lines} lines, {example.files.length} files).
+        The real one: <S name={example.name} /> ({example.lines} lines, {example.files.length} files).
       </p>
 
       <H2 id="frontmatter">The frontmatter</H2>
@@ -176,16 +177,16 @@ Branch: feature/TASK-142-InvoiceTotals
         <div className="card">
           <h4>Two ways in ({sk.length})</h4>
           <p>
-            Every skill can be typed as <code>/bearing:&lt;name&gt;</code> and picked by the model when your words match. Side effects stay safe because the
-            guard and the settings refuse what a person must do (push, merge, tag, deploy), not because the skill is hidden.
+            Every skill can be typed as <code>/bearing:&lt;name&gt;</code>, and the model picks it when your words match. Side effects stay safe because the
+            guard and the settings refuse what only a person may do (push, merge, tag, deploy). Hiding the skill is not the safeguard.
             {data.counts.commandSkills ? ` ${data.counts.commandSkills} set disable-model-invocation and are typed only.` : ""}
           </p>
         </div>
         <div className="card">
           <h4>Why names and descriptions are short</h4>
           <p>
-            Every description is paid for in every session, and Claude Code caps the listing. So each name says its job (<code>definition-of-done</code>, not{" "}
-            <code>dod</code>), and each description leads with the job and its phrases in 220 characters or fewer, tuned against near-miss prompts.
+            Every session pays for every description, and Claude Code caps the listing. So each name says its job (<code>definition-of-done</code>, not{" "}
+            <code>dod</code>). Each description leads with the job and its phrases in 220 characters or fewer, tuned against near-miss prompts.
           </p>
         </div>
         <div className="card">
@@ -199,25 +200,25 @@ Branch: feature/TASK-142-InvoiceTotals
 
       <H2 id="sections">The section contract</H2>
       <p>
-        <code>make lint-skills</code> enforces the headings. Step skills need Inputs, Steps, Output contract and Gotchas; stack skills need their own five and
-        Gotchas. Each exists for a reason learned the hard way:
+        <code>make lint-skills</code> enforces the headings. Step skills need Inputs, Steps, Output contract and Gotchas. Stack skills need their own five and
+        Gotchas. Each heading exists for a reason:
       </p>
       <ul>
         <li>
-          <strong>Inputs with fallbacks</strong>, because a skill that stops since another skill has not run is broken. Every input names where it looks first,
+          <strong>Inputs with fallbacks.</strong> A skill that stops because another skill has not run is broken. Each input names where it looks first,
           where next, and the one question it asks when both are empty.
         </li>
         <li>
-          <strong>Steps</strong> that name tools and files, not intentions. A step the model cannot check is a step it will skip.
+          <strong>Steps</strong> that name tools and files, not intentions. The model skips a step it cannot check.
         </li>
         <li>
-          <strong>Output contract</strong> with counts, because "done" is not evidence. A person, or the skill that called this one, checks the block instead of the transcript.
+          <strong>Output contract</strong> with counts. "Done" is not evidence; the block is, for a person or for the skill that called this one.
         </li>
         <li>
-          <strong>Gotchas</strong>, because the obvious steps are what the model already does. The value of a skill is in its gotchas.
+          <strong>Gotchas.</strong> The model already does the obvious steps. A skill earns its place in its gotchas.
         </li>
       </ul>
-      <p>The shape of every skill, drawn to scale: the colours are the four sections, the width is how many lines each holds.</p>
+      <p>Six skills drawn to scale. Colour is the section; width is its line count.</p>
       <div className="secgrid wide">
         {["start-task", "branch-review", "prd", "go", "tech-decision", "autopilot"].map((n) => {
           const s = skillByName.get(n);
@@ -232,7 +233,7 @@ Branch: feature/TASK-142-InvoiceTotals
 
       <H2 id="tools">allowed-tools and lint-tools</H2>
       <p>
-        While a skill runs, its <code>allowed-tools</code> are what it may use without asking. Bearing treats that list as a contract with two checks:
+        While a skill runs, it may use its <code>allowed-tools</code> without asking. Two checks hold that list to the body:
       </p>
       <ul>
         <li>
@@ -249,10 +250,10 @@ Branch: feature/TASK-142-InvoiceTotals
 license-compliance|npm ci|named as a reproducible-build flag in the release notes`}</Code>
 
       <H2 id="files">references, templates, scripts</H2>
-      <p>A skill folder holds up to three kinds of file beside SKILL.md, and the lint checks that every backticked path in the body exists.</p>
+      <p>A skill folder holds up to three kinds of file beside SKILL.md. The lint checks that every backticked path in the body exists.</p>
       <ul>
         <li>
-          <strong>references/</strong> are read on demand: checklists, guidelines, decision catalogues. They cost nothing until a step says "read".
+          <strong>references/</strong> are read on demand: checklists, guidelines, decision catalogues. They cost nothing until a step says to read them.
         </li>
         <li>
           <strong>templates/</strong> are copied: a PRD skeleton, a runbook, and for stack skills the whole repository layer with a <code>stack.json</code>.
@@ -281,15 +282,15 @@ license-compliance|npm ci|named as a reproducible-build flag in the release note
             <S name={s.name} /> under <code>{s.extra.agent}</code>
           </span>
         ))}
-        . The doc writer has no shell and edits under <code>docs/</code> only, so these skills can be trusted with prose without being trusted with the
+        . The doc writer has no shell and edits under <code>docs/</code> only, so these skills can write prose without access to the rest of the
         repository.
       </p>
 
       <H2 id="evals">Evals</H2>
       <p>
-        A skill that does not pass more of its cases than a no-skill baseline is prose the model already follows. Each measured skill has <code>evals/&lt;name&gt;/evals.json</code>{" "}
-        (kept outside the skill folder, so a run that follows the skill never reads its own grading) in skill-creator's schema: prompts, fixture repositories
-        under <code>files/</code>, and expectations a grader can check.
+        A skill that passes no more cases than a no-skill baseline adds nothing. Each measured skill has <code>evals/&lt;name&gt;/evals.json</code> in
+        skill-creator's schema: prompts, fixture repositories under <code>files/</code>, and expectations a grader can check. It sits outside the skill folder,
+        so a run that follows the skill never reads its own grading.
       </p>
       <p>
         {data.counts.evals} skills have evals; {data.evalsPending.length} predate the rule and sit on <code>evals/.pending</code>. <code>lint-evals</code> fails a
@@ -297,7 +298,7 @@ license-compliance|npm ci|named as a reproducible-build flag in the release note
         arms (with the skill and with nothing), then unblinds and measures after grading; results stay in the maintainer's <code>.scratch/</code>.
       </p>
       <div className="bar" style={{ height: 12 }} role="img" aria-label={`${data.counts.evals} of ${data.counts.skills} skills have evals`}>
-        <span style={{ width: `${(data.counts.evals / data.counts.skills) * 100}%`, background: "var(--jade)" }} />
+        <span style={{ width: `${(data.counts.evals / data.counts.skills) * 100}%`, background: "var(--ok)" }} />
       </div>
       <p className="barcap">
         {data.counts.evals} of {data.counts.skills} skills measured
@@ -345,21 +346,28 @@ export function Skills() {
       (!q || `${s.name} ${s.description}`.toLowerCase().includes(q.toLowerCase())),
   );
   return (
-    <Page full title="Every skill" lede="The anatomy of each skill as it is on disk: its frontmatter, its sections to scale, its inputs, steps and gotchas, and every file in its folder.">
+    <Page full crumb="Reference" title="Every skill" lede="Each skill as it is on disk: frontmatter, sections to scale, inputs, steps, gotchas and files.">
       <div className="filters">
         <input type="search" placeholder="Filter by name or words" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Filter skills" />
-        {[
-          ["", "All"],
-          ...(data.counts.commandSkills ? [["command", "Typed only"]] : []),
-          ["stack", "Stack"],
-          ["evals", "Measured"],
-        ].map(([k, l]) => (
-          <button key={k} type="button" aria-pressed={kind === k} onClick={() => setKind(k)}>
-            {l}
-          </button>
-        ))}
+        <div className="seg-scroll">
+          <div className="seg" role="group" aria-label="Kind">
+            {[
+              ["", "All"],
+              ...(data.counts.commandSkills ? [["command", "Typed only"]] : []),
+              ["stack", "Stack"],
+              ["evals", "Measured"],
+            ].map(([k, l]) => (
+              <button key={k} type="button" aria-pressed={kind === k} onClick={() => setKind(k)}>
+                {l}
+              </button>
+            ))}
+          </div>
+        </div>
+        <span className="count" aria-live="polite">
+          {list.length} shown
+        </span>
       </div>
-      <div className="filters">
+      <div className="tabs cats" role="group" aria-label="Category">
         <button type="button" aria-pressed={cat === ""} onClick={() => setCat("")}>
           Every category
         </button>
@@ -368,14 +376,13 @@ export function Skills() {
             {CATEGORY_LABEL[c] ?? c}
           </button>
         ))}
-        <span className="count">{list.length} shown</span>
       </div>
       <div className="skillgrid">
         {list.map((s) => (
           <Link key={s.name} to={`/skills/${s.name}`} className="card skillcard">
-            <h4>
+            <h2>
               <code>{s.name}</code>
-            </h4>
+            </h2>
             <p>{s.what}</p>
             <SectionBar s={s} />
             <div className="chips">

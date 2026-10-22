@@ -58,14 +58,22 @@ export function Scripts() {
   return (
     <Page
       full
+      crumb="Reference"
       title="Every script"
-      lede={`${data.counts.scripts} scripts, ${data.counts.scriptLines.toLocaleString("en")} lines. Each entry is read from the script itself: its header comment, the functions it defines, the environment it reads and the kit scripts it calls.`}
+      lede={`${data.counts.scripts} scripts, ${data.counts.scriptLines.toLocaleString("en")} lines. Each entry comes from the script itself: header comment, functions, the environment it reads, the kit scripts it calls.`}
     >
       <div className="filters">
         <input type="search" placeholder="Filter: tracker, BEARING_ENV, precompact" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Filter scripts" />
-        <button type="button" aria-pressed={skillScripts} onClick={() => setSkillScripts((x) => !x)}>
-          Include scripts inside skills
-        </button>
+        <div className="seg-scroll">
+          <div className="seg" role="group" aria-label="Which scripts">
+            <button type="button" aria-pressed={!skillScripts} onClick={() => setSkillScripts(false)}>
+              Kit scripts
+            </button>
+            <button type="button" aria-pressed={skillScripts} onClick={() => setSkillScripts(true)}>
+              With scripts inside skills
+            </button>
+          </div>
+        </div>
       </div>
       {groups.map(([g, list]) => (
         <section key={g}>
@@ -128,7 +136,7 @@ export function ScriptPage() {
         )}
       </div>
       <H2 id="header">What it says it does</H2>
-      <p>The script's own header, as its author wrote it. It is also what the script prints for --help in most cases.</p>
+      <p>The script's own header, as its author wrote it. Most scripts print it for --help.</p>
       <Code>{s.header || "(no header comment)"}</Code>
 
       <H2 id="wiring">Wiring</H2>
@@ -189,7 +197,7 @@ export function ScriptPage() {
       {s.functions.length > 0 && (
         <>
           <H2 id="functions">Functions</H2>
-          <p>In the order they are defined. Reading them top to bottom is a fair outline of the script.</p>
+          <p>In the order they are defined, which outlines the script.</p>
           <div className="fnlist">
             {s.functions.map((f, i) => (
               <code key={`${f}-${i}`}>{f}</code>
