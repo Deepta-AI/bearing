@@ -51,7 +51,7 @@ BOARD = os.path.join(KIT, "evals", "scoreboard.jsonl")
 WS = os.environ.get("BRG_SKILL_EVALS_WS") or os.path.join(
     KIT, ".scratch", "skill-evals"
 )
-EM_DASH = "—"
+EM_DASH = chr(0x2014)  # spelled as a code point so no em dash sits in the source
 
 
 def run_driver():
