@@ -3,7 +3,7 @@
 - Task: NOTASK-4
 - Title: LinearSiteRedesign
 - Branch: feat/NOTASK-4-LinearSiteRedesign
-- Status: in review
+- Status: merged
 - Owner: Deepta-AI
 - Started: 2026-10-22
 - Updated: 2026-10-22
