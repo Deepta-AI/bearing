@@ -50,6 +50,10 @@ S
 chmod 755 "$d/claude"
 
 board="$d/scoreboard.jsonl"
+# --list reads only the board and git, so it keeps the caller's HOME (git's
+# safe.directory lives there when the repository has another owner, as in the
+# bash32 image).
+list() { python3 "$KIT/bin/skill-evals-run.py" --board "$board" --list "$@"; }
 run() {
   HOME="$home" STUB_LOG="$d/calls.log" BRG_CLAUDE="$d/claude" \
     BRG_SKILL_EVALS_WS="$d/ws" BRG_SKILL_EVALS_PRIVATE="$d/private.json" \
@@ -117,7 +121,7 @@ open(board, "w").write(json.dumps(row) + "\n")
 PY
 
 t_begin "rotation: changed since measured first, then never measured, then the oldest"
-assert_exit 0 run --list --max 4
+assert_exit 0 list --max 4
 assert_contains "$(printf '%s' "$T_OUT" | sed -n 1p)" "learn (changed since"
 assert_contains "$(printf '%s' "$T_OUT" | sed -n 2p)" "ab-experiment (never measured)"
 assert_contains "$(printf '%s' "$T_OUT" | sed -n 3p)" "accessibility (never measured)"
@@ -125,8 +129,19 @@ assert_contains "$(printf '%s' "$T_OUT" | sed -n 4p)" "adr (last measured 2026-0
 assert_contains "$T_OUT" "4 skills chosen"
 t_end
 
+t_begin "a commit git cannot read puts the skill first and says why"
+python3 - "$board" <<'PY2'
+import json, sys
+row = json.loads(open(sys.argv[1]).readline())
+row["skill_evals"]["skills"]["learn"]["commit"] = "0000000000000000000000000000000000000000"
+open(sys.argv[1], "w").write(json.dumps(row) + "\n")
+PY2
+assert_exit 0 list --max 1
+assert_contains "$T_OUT" "learn (history unreadable from 0000000)"
+t_end
+
 t_begin "--max 0 chooses nothing and fails"
-assert_exit 1 run --list --max 0
+assert_exit 1 list --max 0
 assert_contains "$T_OUT" "0 skills chosen"
 t_end
 

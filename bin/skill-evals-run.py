@@ -103,13 +103,17 @@ def last_measured(board):
 
 
 def changed_since(skill, commit):
+    """None when unchanged since commit, else the reason it goes first."""
     paths = [
         os.path.relpath(str(kit_paths.skill_dir(skill)), KIT),
         os.path.join("evals", skill),
     ]
     log = git("log", "--format=%h", f"{commit}..HEAD", "--", *paths)
-    # An unknown commit (rewritten history) counts as changed.
-    return log is None or bool(log)
+    if log is None:
+        # git could not answer (an unknown commit after a rewrite, or a
+        # repository git refuses to read): measure it again, and say why.
+        return f"history unreadable from {commit[:7] or 'unknown'}"
+    return f"changed since {commit[:7]}" if log else None
 
 
 def choose(args):
@@ -123,8 +127,8 @@ def choose(args):
         m = seen.get(s)
         if not m:
             never.append((s, "never measured"))
-        elif changed_since(s, m.get("commit") or ""):
-            changed.append((s, f"changed since {(m.get('commit') or 'unknown')[:7]}"))
+        elif why := changed_since(s, m.get("commit") or ""):
+            changed.append((s, why))
         else:
             old.append((m.get("date") or "", s))
     old.sort()
