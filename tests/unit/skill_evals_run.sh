@@ -105,6 +105,37 @@ assert_contains "$T_OUT" "1 skills chosen, 0 measured, 1 failed"
 assert_contains "$(cat "$d/out/summary.json")" "\"error\""
 t_end
 
+# A rival skill installed under the run's HOME, for the third arm.
+mkdir -p "$home/.claude/skills/rival"
+printf -- '---\nname: rival\ndescription: a rival\n---\n# rival\n' > "$home/.claude/skills/rival/SKILL.md"
+ev() { HOME="$home" BRG_SKILL_EVALS_WS="$d/ws" BRG_SKILL_EVALS_PRIVATE="$d/private.json" python3 "$KIT/bin/skill-evals.py" "$@"; }
+
+t_begin "alternative pairs a Bearing skill with an installed rival, privately"
+assert_exit 0 ev alternative learn rival-pack:rival
+assert_contains "$T_OUT" "learn: measured against rival-pack:rival"
+assert_contains "$(cat "$d/private.json")" '"invoke": "rival-pack:rival"'
+assert_exit 0 ev status
+assert_contains "$T_OUT" "learn: paired with rival-pack:rival"
+t_end
+
+t_begin "alternative refuses a Bearing skill, a rival that is not installed, and an unknown skill"
+assert_exit 1 ev alternative learn bearing:adr
+assert_contains "$T_OUT" "is a Bearing skill"
+assert_exit 1 ev alternative learn other:not-installed
+assert_contains "$T_OUT" "not installed"
+assert_exit 1 ev alternative no-such-skill rival-pack:rival
+assert_contains "$T_OUT" "0 pairings written"
+t_end
+
+t_begin "a paired skill is measured in three arms"
+: > "$d/calls.log"
+assert_exit 0 run --only learn
+assert_contains "$T_OUT" "with_the_alternative 0.50"
+assert_eq "8" "$(wc -l < "$d/calls.log" | tr -d ' ')" "sessions (2 cases x 3 arms + 2 graders)"
+assert_exit 0 ev alternative learn --clear
+assert_contains "$T_OUT" "alternative cleared"
+t_end
+
 # Rotation: a board where every skill but two was measured at HEAD, one of the
 # measured skills last measured just before its folder changed.
 head="$(git -C "$KIT" rev-parse HEAD)"

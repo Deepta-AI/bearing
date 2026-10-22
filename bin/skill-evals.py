@@ -36,6 +36,9 @@ results file (the tests use them).
   skill-evals.py measure <skill> [--iteration N] --model <id>
                                                    benchmark + the private results file
   skill-evals.py status                            where every skill stands
+  skill-evals.py alternative <skill> <invoke> | --clear
+                                                   pair a Bearing skill with an installed
+                                                   rival for the third arm (private file only)
 
 Each command prints the count of what it handled and exits 1 on zero.
 """
@@ -635,9 +638,41 @@ def status(a):
         print(
             f"  {s}: {m['result']} ({m['closest']}, {m['margin'] * 100:+.1f} points) on {m['cases']} cases, {m['date']}"
         )
+    for s in skills:
+        alt = (c.get(s, {}).get("best_alternative") or {}).get("invoke")
+        if alt:
+            print(f"  {s}: paired with {alt}")
     todo = [s for s in with_evals if s not in measured]
     if todo:
         print("  evals written, not measured: " + ", ".join(todo))
+    return 0
+
+
+def set_alternative(a):
+    """Record (or clear) the rival a Bearing skill is measured against.
+
+    It goes to the private results file only, so nothing committed names it."""
+    if a.skill not in bearing_skills():
+        die(f"skill-evals: {a.skill} is not a Bearing skill; 0 pairings written")
+    c = private()
+    if a.clear:
+        c.get(a.skill, {}).pop("best_alternative", None)
+        msg = f"skill-evals: {a.skill}: alternative cleared"
+    else:
+        inv = (a.invoke or "").strip()
+        if not inv:
+            die("skill-evals: name the alternative to pair, or pass --clear")
+        if inv.lstrip("/").split(":")[-1] in bearing_skills() or inv.split(":")[0].startswith("bearing"):
+            die(f"skill-evals: {inv} is a Bearing skill; an alternative comes from another pack")
+        if not skill_file(inv):
+            die(f"skill-evals: {inv} is not installed under ~/.claude/skills or ~/.claude/plugins; install it first")
+        if user_only(inv):
+            die(f"skill-evals: {inv} is user-invocable only (disable-model-invocation); a run cannot load it")
+        c.setdefault(a.skill, {})["best_alternative"] = {"invoke": inv, "installed": True}
+        msg = f"skill-evals: {a.skill}: measured against {inv} from the next prepare"
+    os.makedirs(os.path.dirname(COMPARISONS), exist_ok=True)
+    dump(COMPARISONS, c)
+    print(msg)
     return 0
 
 
@@ -659,6 +694,10 @@ def main():
     p.add_argument("tokens")
     p.add_argument("ms")
     sp.add_parser("status")
+    p = sp.add_parser("alternative")
+    p.add_argument("skill")
+    p.add_argument("invoke", nargs="?")
+    p.add_argument("--clear", action="store_true")
     a = ap.parse_args()
     return {
         "prepare": prepare,
@@ -668,6 +707,7 @@ def main():
         "unblind": unblind,
         "measure": measure,
         "status": status,
+        "alternative": set_alternative,
     }[a.cmd](a)
 
 
