@@ -49,8 +49,10 @@ import kit_paths  # noqa: E402
 
 CLAUDE = os.environ.get("BRG_CLAUDE", "claude")
 BOARD = os.path.join(KIT, "evals", "scoreboard.jsonl")
-WS = os.environ.get("BRG_SKILL_EVALS_WS") or os.path.join(
+WS = os.path.abspath(
+    os.environ.get("BRG_SKILL_EVALS_WS") or os.path.join(
     KIT, ".scratch", "skill-evals"
+)
 )
 EM_DASH = chr(0x2014)  # spelled as a code point so no em dash sits in the source
 
@@ -105,8 +107,25 @@ def extract(dest, skill):
     subprocess.run(["tar", "-x", "-C", dest], input=arc.stdout, check=True)
 
 
+def held_out(skill):
+    """The ids of the skill's held-out cases (evals.json "held_out": true)."""
+    try:
+        cases = json.load(open(os.path.join(KIT, "evals", skill, "evals.json")))["evals"]
+    except (OSError, ValueError, KeyError):
+        return set()
+    return {str(c["id"]) for c in cases if c.get("held_out")}
+
+
+def case_id(case_dir):
+    """eval-<id>-<slug> -> <id>"""
+    parts = os.path.basename(case_dir).split("-")
+    return parts[1] if len(parts) > 1 else ""
+
+
 def failures(skill):
-    """The expectations the skill's last measurement failed, with evidence."""
+    """The expectations the skill's last measurement failed, with evidence;
+    never from a held-out case."""
+    hidden = held_out(skill)
     its = sorted(
         glob.glob(os.path.join(WS, skill, "iteration-*")),
         key=lambda p: int(p.rsplit("-", 1)[1]) if p.rsplit("-", 1)[1].isdigit() else 0,
@@ -120,18 +139,22 @@ def failures(skill):
         )
     ):
         case = os.path.basename(os.path.dirname(os.path.dirname(os.path.dirname(g))))
+        if case_id(case) in hidden:
+            continue
         for e in json.load(open(g)).get("expectations", []):
             if not e.get("passed"):
                 out.append(f"- {case}: {e.get('text')} (evidence: {e.get('evidence')})")
     return out
 
 
-def propose(skill_dir, rationale, fails, args):
+def propose(skill_dir, rationale, fails, args, hidden_dirs=()):
+    """skill_dir is a bare copy of the skill folder, outside any kit copy;
+    hidden_dirs (every evals/ folder) are unreadable in the sandbox."""
     d = run_driver()
     told = (
         "\n".join(fails)
         if fails
-        else "(no graded failures are on this machine; read the evals instead)"
+        else "(no graded failures are on this machine; judge from SKILL.md alone)"
     )
     prompt = f"""You improve one skill of a developer workflow kit. Its folder is your working directory:
   {skill_dir}
@@ -142,7 +165,8 @@ Make the smallest edit to the files in this folder that would make a run followi
 them, without making it worse at anything else. Keep the frontmatter name; keep the description
 under 220 characters; keep SKILL.md under 200 lines (put detail in references/); never use an em
 dash; never add a tool the frontmatter's allowed-tools does not grant. Edit nothing outside this
-folder. Then write {rationale} with what you changed and which failure each change answers.
+folder. The evaluation cases are not yours to read. Then write {rationale} with what you changed
+and which failure each change answers.
 If you find no edit worth making, change nothing and say so in {rationale}.
 Reply with one line: done, or why you stopped."""
     cmd = [
@@ -154,7 +178,7 @@ Reply with one line: done, or why you stopped."""
         "--setting-sources",
         "",
         "--settings",
-        json.dumps(d.settings_for([os.path.dirname(rationale)])),
+        json.dumps(no_read(d.settings_for([os.path.dirname(rationale)]), hidden_dirs)),
         "--permission-mode",
         "acceptEdits",
         "--disallowedTools",
@@ -169,6 +193,26 @@ Reply with one line: done, or why you stopped."""
         cmd, cwd=skill_dir, capture_output=True, text=True, timeout=args.timeout
     )
     return p.returncode == 0, (p.stderr or p.stdout).strip()[-300:]
+
+
+def no_read(settings, dirs):
+    """settings with dirs added to the sandbox's denyRead."""
+    fs = settings["sandbox"]["filesystem"]
+    fs["denyRead"] = list(fs.get("denyRead", [])) + [os.path.abspath(x) for x in dirs]
+    return settings
+
+
+def held_rate(out, skill, hidden):
+    """with_skill pass rate over the held-out cases of one measurement, or None."""
+    rates = []
+    for g in glob.glob(os.path.join(out, "ws", skill, "iteration-*", "eval-*", "with_skill", "run-1", "grading.json")):
+        case = os.path.basename(os.path.dirname(os.path.dirname(os.path.dirname(g))))
+        if case_id(case) in hidden:
+            try:
+                rates.append(float(json.load(open(g))["summary"]["pass_rate"]))
+            except (OSError, ValueError, KeyError):
+                pass
+    return sum(rates) / len(rates) if rates else None
 
 
 def em_dashes(root):
@@ -304,7 +348,13 @@ def main():
             json.dump({"skill": skill, "kept": False, "why": why}, f, indent=1)
         return 3
 
-    ok, tail = propose(cand_skill, rationale, failures(skill), args)
+    bare = os.path.join(run, "proposal", os.path.basename(rel))
+    shutil.copytree(cand_skill, bare)
+    hidden = held_out(skill)
+    ok, tail = propose(bare, rationale, failures(skill), args,
+                       hidden_dirs=[os.path.join(KIT, "evals"), os.path.join(base, "evals"), os.path.join(cand, "evals")])
+    shutil.rmtree(cand_skill)
+    shutil.copytree(bare, cand_skill)
     if not ok:
         print(f"skill-tune: {skill}: proposer failed: {tail}", file=sys.stderr)
         return 1
@@ -331,6 +381,16 @@ def main():
     b_margin, c_margin = b - mean(bm, "without_skill"), c - mean(cm, "without_skill")
     line = f"with_skill {b:.0%} -> {c:.0%}, margin over no skill {b_margin:+.0%} -> {c_margin:+.0%} ({len(bm)} runs each)"
     print(f"skill-tune: {skill}: {line}")
+    hb = [r for r in (held_rate(os.path.join(run, f"baseline-{k}"), skill, hidden) for k in range(1, max(1, args.repeat) + 1)) if r is not None]
+    hc = [r for r in (held_rate(os.path.join(run, f"candidate-{k}"), skill, hidden) for k in range(1, max(1, args.repeat) + 1)) if r is not None]
+    if hidden and hb and hc:
+        hb_m, hc_m = sum(hb) / len(hb), sum(hc) / len(hc)
+        line += f"; held-out cases {hb_m:.0%} -> {hc_m:.0%}"
+        print(f"skill-tune: {skill}: held-out cases (never shown to the proposer) {hb_m:.0%} -> {hc_m:.0%}")
+        if hc_m < hb_m:
+            return reject(f"{line}; the held-out cases fell")
+    elif not hidden:
+        print(f"skill-tune: {skill}: no held-out case; the verdict rests on the cases the proposer saw")
     if c - b < args.min_gain or c_margin < b_margin:
         return reject(f"{line}; needs {args.min_gain:.0%} more and no smaller margin")
 

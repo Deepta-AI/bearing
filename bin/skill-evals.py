@@ -58,10 +58,14 @@ KIT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(KIT, "bin"))
 import kit_paths  # noqa: E402
 
-WS = os.environ.get("BRG_SKILL_EVALS_WS") or os.path.join(KIT, ".scratch", "skill-evals")
+WS = os.path.abspath(
+    os.environ.get("BRG_SKILL_EVALS_WS") or os.path.join(KIT, ".scratch", "skill-evals")
+)
 # Internal and untracked: .scratch/ is in .gitignore.
-COMPARISONS = os.environ.get("BRG_SKILL_EVALS_PRIVATE") or os.path.join(
+COMPARISONS = os.path.abspath(
+    os.environ.get("BRG_SKILL_EVALS_PRIVATE") or os.path.join(
     KIT, ".scratch", "private", "comparisons.json"
+)
 )
 ARMS = ["with_skill", "with_the_alternative", "without_skill"]
 

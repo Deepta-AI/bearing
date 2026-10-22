@@ -43,11 +43,15 @@ import kit_paths  # noqa: E402
 
 CLAUDE = os.environ.get("BRG_CLAUDE", "claude")
 EVALS = os.path.join(KIT, "bin", "skill-evals.py")
-WS = os.environ.get("BRG_SKILL_EVALS_WS") or os.path.join(
+WS = os.path.abspath(
+    os.environ.get("BRG_SKILL_EVALS_WS") or os.path.join(
     KIT, ".scratch", "skill-evals"
 )
-PRIVATE = os.environ.get("BRG_SKILL_EVALS_PRIVATE") or os.path.join(
+)
+PRIVATE = os.path.abspath(
+    os.environ.get("BRG_SKILL_EVALS_PRIVATE") or os.path.join(
     KIT, ".scratch", "private", "comparisons.json"
+)
 )
 BOARD = os.path.join(KIT, "evals", "scoreboard.jsonl")
 # Skills are measured in parallel. SESSIONS caps the claude sessions open at

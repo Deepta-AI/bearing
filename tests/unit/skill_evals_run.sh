@@ -116,6 +116,14 @@ assert_eq "4 of 4" "$(cat "$d/adddir.txt")" "executors given only their run fold
 assert_eq "4" "$(find "$d/ws/learn/iteration-1" -name session.json | wc -l | tr -d ' ')" "session results kept"
 t_end
 
+t_begin "a relative workspace path works (measure hands it to a tool in another directory)"
+rel="$(tmpdir)"; mkdir -p "$rel/here"
+T_IN=""; t_run bash -c "cd '$rel/here' && HOME='$home' STUB_LOG='$d/calls.log' BRG_CLAUDE='$d/claude' BRG_SKILL_EVALS_WS=ws BRG_SKILL_EVALS_PRIVATE=private.json python3 '$KIT/bin/skill-evals-run.py' --board '$board' --out out --only learn"
+assert_eq 0 "$T_RC" "exit"
+assert_contains "$T_OUT" "1 skills chosen, 1 measured, 0 failed"
+assert_file "$rel/here/ws/learn/iteration-1/benchmark.json"
+t_end
+
 t_begin "the next run of the same skill takes the next free iteration"
 assert_exit 0 run --only learn
 assert_file "$d/ws/learn/iteration-2/benchmark.json"

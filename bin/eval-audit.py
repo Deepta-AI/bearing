@@ -32,8 +32,10 @@ import re
 import sys
 
 KIT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-WS = os.environ.get("BRG_SKILL_EVALS_WS") or os.path.join(
+WS = os.path.abspath(
+    os.environ.get("BRG_SKILL_EVALS_WS") or os.path.join(
     KIT, ".scratch", "skill-evals"
+)
 )
 ARMS = ("with_skill", "without_skill", "with_the_alternative")
 
