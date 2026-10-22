@@ -92,6 +92,24 @@ t_run bash -c "cd '$repo' && env -u CLAUDECODE -u CLAUDE_CODE_ENTRYPOINT git pus
 assert_contains "$T_OUT" "1 branch ref(s), 1 commit message(s) checked, gate passed"
 t_end
 
+t_begin "a push from a linked worktree runs the gate without git's hook variables"
+# From a worktree git exports GIT_DIR and GIT_INDEX_FILE into the main
+# repository; a gate whose tests run git in a temp folder must not reach it.
+setup; wt="$(tmpdir)/wt"; probe="$(tmpdir)/probe"; gate="$(tmpdir)/gate.sh"
+cat > "$gate" <<S
+env | grep -E '^GIT_(DIR|INDEX_FILE|WORK_TREE|COMMON_DIR)=' > "$probe"
+t="\$(mktemp -d "${TMPDIR:-/tmp}/brg-gate.XXXXXX")"
+git init -q "\$t" && git -C "\$t" -c user.email=g@example.com -c user.name=g commit -q --allow-empty -m x && git -C "\$t" tag leaked-tag
+rm -rf "\$t"
+S
+git -C "$repo" worktree add -q -b feature/ABC-1-Wt "$wt"
+printf "PUSH_CONFIRM='agents'\nGATE_CMD='bash %s'\n" "$gate" >> "$wt/.githooks/lib.sh"
+t_run bash -c "cd '$wt' && env -u CLAUDECODE -u CLAUDE_CODE_ENTRYPOINT git push origin HEAD:refs/heads/feature/ABC-1-Wt 2>&1"
+assert_contains "$T_OUT" "gate passed"
+assert_eq "" "$(cat "$probe")" "GIT_* variables the gate saw"
+assert_eq "" "$(git -C "$repo" tag -l leaked-tag)" "tag in the main repository"
+t_end
+
 t_begin "the hooks carry no opt-in code"
 n=0
 for f in "$H/lib.sh" "$H/pre-push" "$H2/lib.sh" "$H2/pre-push"; do

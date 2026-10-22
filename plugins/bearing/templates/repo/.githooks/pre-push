@@ -107,6 +107,11 @@ if [ "$GATE_CMD" = "make check" ]; then
   grep -qE '^check:' "$makefile" || hook_fail "no check target in $makefile; add one or set GATE_CMD in .githooks/lib.sh"
 fi
 hook_note "running $GATE_CMD"
-bash -c "$GATE_CMD" </dev/null || hook_fail "$GATE_CMD failed; nothing was pushed"
+# Without the variables git exports to a hook: from a linked worktree GIT_DIR
+# and GIT_INDEX_FILE point into the main repository, and a gate whose tests run
+# git in a temp folder would write there. The gate finds the repository from
+# its working directory, as it does when run by hand.
+( unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_COMMON_DIR GIT_OBJECT_DIRECTORY GIT_ALTERNATE_OBJECT_DIRECTORIES GIT_NAMESPACE GIT_PREFIX
+  bash -c "$GATE_CMD" ) </dev/null || hook_fail "$GATE_CMD failed; nothing was pushed"
 hook_note "$checked branch ref(s), $commits commit message(s) checked, gate passed"
 exit 0

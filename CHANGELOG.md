@@ -5,6 +5,13 @@ All notable changes to Bearing. Keep a Changelog format, semantic versions.
 ## [Unreleased]
 
 ### Fixed
+- A push from a linked worktree no longer lets the gate write into the
+  main repository. Git exports `GIT_DIR` and `GIT_INDEX_FILE` to a hook
+  from a worktree; the pre-push gate inherited them, so every test that
+  ran git in a temp folder created tags, branches, commits and config in
+  the real clone. Bearing's own `.githooks/pre-push` and the template
+  `pre-push` now run the gate without them, and `tests/lib/assert.sh`
+  drops them for every test (`tests/unit/repo_pre_push.sh`).
 - The React template pins `vite` 7.3.7, clearing GHSA-587h-7wmj-h5pm
   (high, `launch-editor`) that failed `make vuln` in a new React repository
   and the `scaffold (react-web)` CI job.

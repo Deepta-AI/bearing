@@ -16,5 +16,10 @@ if [ -f "$mark" ] && [ "$(cat "$mark")" = "$head" ] && [ -z "$(git status --porc
   echo "pre-push: the gate passed on ${head:0:7} (make gate); pushing" >&2
   exit 0
 fi
+# From a linked worktree git exports GIT_DIR and GIT_INDEX_FILE into the main
+# repository; a gate that inherits them sends every test's git init, commit and
+# tag in a temp folder there (19 Oct 2026). The gate finds the repository from
+# its working directory, as it does when run by hand.
+unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_COMMON_DIR GIT_OBJECT_DIRECTORY GIT_ALTERNATE_OBJECT_DIRECTORIES GIT_NAMESPACE GIT_PREFIX
 echo "pre-push: the gate has not passed on ${head:0:7}; running it now (about 15 minutes, which can outlast the connection to the remote: next time run make gate first)" >&2
 exec make gate
