@@ -208,6 +208,17 @@ written, a count printed, a refusal on empty input).
   has moved past, with the files changed under the pinned path. It edits
   nothing: read the diff it names before moving a pin. It also names any
   link under the pinned path: the installer would copy it as a link.
+- `make eval-audit` (SKILL=<name>) reads every graded run on the machine
+  and sorts each expectation: discriminating, no signal (passes in every
+  run of every arm), never passes, favours no skill, and flagged by a
+  grader's eval_feedback. Rewrite or drop the no-signal, never-passes and
+  flagged ones; an expectation that measures nothing makes a skill look
+  as good as no skill.
+- Mark one case per skill `"held_out": true` once a skill has three or
+  more: skill-tune measures it but never shows its failures to the
+  proposer, and rejects an edit whose held-out cases fall. A held-out case
+  tests behaviour the other cases do not (adr's case 3 is the proposed
+  path; the other two are accepted decisions).
 - `python3 bin/skill-evals.py alternative <skill> <invoke>` pairs a
   Bearing skill with an installed rival so the next measurement runs a
   third arm. The pairing lives in the untracked results file; a rival is

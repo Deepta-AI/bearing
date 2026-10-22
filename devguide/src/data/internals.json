@@ -4,13 +4,13 @@
   "skills": 109,
   "commandSkills": 0,
   "stackSkills": 12,
-  "scripts": 109,
-  "scriptLines": 35365,
+  "scripts": 110,
+  "scriptLines": 35609,
   "hooks": 12,
   "agents": 8,
-  "makeTargets": 37,
+  "makeTargets": 38,
   "gates": 19,
-  "tests": 125,
+  "tests": 126,
   "fixtures": 25,
   "stacks": 13,
   "templates": 38,
@@ -16069,6 +16069,22 @@
    ]
   },
   {
+   "path": "bin/eval-audit.py",
+   "name": "eval-audit.py",
+   "lang": "python",
+   "group": "quality",
+   "lines": 169,
+   "header": "eval-audit: which expectations tell a run with the skill from one without.\n\nReads every graded, unblinded skill-evals run (<ws>/<skill>/iteration-N/\neval-<id>-<slug>/<arm>/run-1/grading.json, the arm being with_skill,\nwithout_skill or with_the_alternative; a run still named arm-N is not yet\nunblinded and is skipped) and counts, per expectation, how often it passed in\neach arm. Each expectation lands in one class:\n\n  discriminating    passes more often with the skill than without\n  no signal         passes in every run of every arm: it measures nothing\n  never passes      fails in every run of every arm: broken, contradictory or\n                    asking for what no run can do\n  favours no skill  passes more often without the skill than with it\n  even              runs in both arms, same rate, not every time\n\nand, separately, flagged: a grader's eval_feedback names it. Rewrite or drop\nthe no-signal, never-passes and flagged ones; read the favours-no-skill ones\nagainst the skill.\n\nUsage: eval-audit.py [--ws D ...] [--skill S] [--json F]\nPrints the problem expectations and \"eval-audit: N skills, M graded runs, K\nexpectations: ...\"; exits 1 when it found no graded run.",
+   "functions": [
+    "collect",
+    "rate",
+    "classify",
+    "main"
+   ],
+   "env": [],
+   "calls": []
+  },
+  {
    "path": "bin/eval-scoreboard.py",
    "name": "eval-scoreboard.py",
    "lang": "python",
@@ -16352,8 +16368,8 @@
    "name": "lint-skill-evals.py",
    "lang": "python",
    "group": "quality",
-   "lines": 136,
-   "header": "lint-skill-evals: every skill carries skill-creator evals, or is on the\npending list, and the pending list only shrinks.\n\nA skill's evals live at evals/<name>/evals.json, outside the skill folder so\na run that follows the skill never reads its grading, in skill-creator's\ncase schema: {\"skill_name\": <name>, \"evals\": [{\"id\": int, \"prompt\": str,\n\"expected_output\": str, \"files\": [paths], \"expectations\": [str, ...]}]}.\nThe cases are written and run with skill-creator (with the skill against a\nbaseline without it, graded, benchmarked); this lint checks they exist and\nare well formed, not how they scored.\n\nevals/.pending lists the skills that predate this rule, one name per\nline. A skill with no evals that is not listed fails (new skills need\nevals); a listed skill that now has evals fails too, so its row is removed\nand the list ratchets down.\n\nUsage: lint-skill-evals.py [skills-dir] [evals-dir] [pending-file]\nAn evals/<name> folder with no matching skill is a problem too.\nPrints one line per problem and the counts; exits 1 on any problem, or when\nzero skills were examined.",
+   "lines": 143,
+   "header": "lint-skill-evals: every skill carries skill-creator evals, or is on the\npending list, and the pending list only shrinks.\n\nA skill's evals live at evals/<name>/evals.json, outside the skill folder so\na run that follows the skill never reads its grading, in skill-creator's\ncase schema: {\"skill_name\": <name>, \"evals\": [{\"id\": int, \"prompt\": str,\n\"expected_output\": str, \"files\": [paths], \"expectations\": [str, ...],\n\"held_out\": bool}]}. A held-out case is measured like any other but its\nfailures are never shown to skill-tune's proposer, so an edit cannot win by\nfitting the cases that judge it; at least one case must not be held out.\nThe cases are written and run with skill-creator (with the skill against a\nbaseline without it, graded, benchmarked); this lint checks they exist and\nare well formed, not how they scored.\n\nevals/.pending lists the skills that predate this rule, one name per\nline. A skill with no evals that is not listed fails (new skills need\nevals); a listed skill that now has evals fails too, so its row is removed\nand the list ratchets down.\n\nUsage: lint-skill-evals.py [skills-dir] [evals-dir] [pending-file]\nAn evals/<name> folder with no matching skill is a problem too.\nPrints one line per problem and the counts; exits 1 on any problem, or when\nzero skills were examined.",
    "functions": [
     "check_evals",
     "main"
@@ -16460,7 +16476,7 @@
    "name": "skill-evals-run.py",
    "lang": "python",
    "group": "quality",
-   "lines": 355,
+   "lines": 359,
    "header": "skill-evals-run: measure a rotating set of skills with no one at the keyboard.\n\nFor each chosen skill this drives bin/skill-evals.py end to end: prepare (the\nnext free iteration), one `claude -p` executor per run folder, timing from the\nsession's JSON result, grade-prompt, one `claude -p` grader per case, unblind\nand measure. The measurements go to <out>/summary.json, which\nbin/eval-scoreboard.py --skill-evals copies into evals/scoreboard.jsonl.\n\nEvery session runs in Claude Code's Bash sandbox (required, network limited to\nlocalhost, credential folders unreadable) with no user or project settings,\nand without the Skill tool or browser tools. The executor prompt forbids push,\ndeploy and network installs; the sandbox enforces it.\n\nRotation, from the board's skill_evals rows: skills whose skill folder or\nevals/<name>/ changed since the commit they were last measured at come first,\nthen skills never measured, then the longest since measured. --max caps it.\n\nUsage: skill-evals-run.py [--only a,b] [--max N] [--board F] [--out D]\n                          [-j N] [--parallel-skills N] [--model M]\n                          [--timeout S] [--list]\n--parallel-skills skills are measured at once (default 3); -j caps the claude\nsessions open at once across all of them (default 6).\nPrints one line per skill and \"skill-evals-run: N skills chosen, M measured,\nK failed\"; exits 1 when no skill was chosen or none was measured or any\nfailed. Uses the logged-in claude CLI (subscription), never an API key.",
    "functions": [
     "git",
@@ -16485,7 +16501,7 @@
    "name": "skill-evals.py",
    "lang": "python",
    "group": "quality",
-   "lines": 717,
+   "lines": 721,
    "header": "skill-evals: run a Bearing skill's evals against no skill, graded blind,\nand record the measured result for the maintainers.\n\nThe cases live in evals/<name>/evals.json, away from the skill so a run that\nfollows the skill cannot read its grading (skill-creator's case schema;\n`files[0]` is a fixture repository under evals/<name>/files/, whose optional\n.eval-branch names the branch to check out). The workspace is\n.scratch/skill-evals/<name>/iteration-<N>/, one folder per case, one per\narm inside it, in the layout skill-creator's aggregate_benchmark.py reads.\n\nArms:\n  with_skill            reads the kit's SKILL.md from this checkout and follows it\n  without_skill         no skill at all\n  with_the_alternative  optional, maintainers only: runs when the untracked\n                        .scratch/private/comparisons.json exists and names an\n                        installed skill for this one (never another Bearing\n                        skill). Nothing committed names such a skill.\nFolders are named arm-1..arm-N until grading is done, so the grader does not\nknow which arm produced what; `unblind` renames them. The benchmark's delta is\nthe first two configurations in sorted order.\n\nResults go to .scratch/private/comparisons.json (git ignores .scratch/).\nbin/skill-evals-run.py drives these commands unattended and copies each\nmeasurement into the tracked evals/scoreboard.jsonl; neither site reads it,\nso the numbers stay out of the handbook and the developer guide.\nBRG_SKILL_EVALS_WS and BRG_SKILL_EVALS_PRIVATE move the workspace and the\nresults file (the tests use them).\n\n  skill-evals.py prepare <skill> [--iteration N]   workspace, fixtures, prompts\n  skill-evals.py reset <run dir>...               rebuild interrupted runs from the fixture\n  skill-evals.py timing <run dir> <tokens> <ms>    record a finished run\n  skill-evals.py grade-prompt <skill> [--iteration N]\n                                                   one blind grader brief per case\n  skill-evals.py unblind <skill> [--iteration N]   arm-k -> arm name\n  skill-evals.py measure <skill> [--iteration N] --model <id>\n                                                   benchmark + the private results file\n  skill-evals.py status                            where every skill stands\n  skill-evals.py alternative <skill> <invoke> | --clear\n                                                   pair a Bearing skill with an installed\n                                                   rival for the third arm (private file only)\n\nEach command prints the count of what it handled and exits 1 on zero.",
    "functions": [
     "die",
@@ -16527,7 +16543,7 @@
    "name": "skill-tune.py",
    "lang": "python",
    "group": "quality",
-   "lines": 360,
+   "lines": 420,
    "header": "skill-tune: propose an edit to one skill, measure it, keep it only if it wins.\n\nThe loop Harness2 (Google Research, Oct 2026) runs on a harness, here on one\nBearing skill: propose, probe, keep.\n\n  propose  a `claude -p` session in Claude Code's Bash sandbox edits a copy of\n           the skill, given its SKILL.md, its references and the expectations\n           its last measurement failed, and writes why to rationale.md\n  probe    the lints a skill must pass (lint-skills, lint-skill-size,\n           lint-tools, no em dashes), then bin/skill-evals-run.py measures the\n           copy and the skill as it is, side by side, --repeat times each\n  keep     the edit stays only when the copy's with_skill pass rate beats the\n           skill as it is by --min-gain (default 0.10) and its margin over no\n           skill does not shrink; it is written as candidate.patch with a\n           report.md, for the maintainer to read and `git apply`\n\nNothing in this repository changes: both copies come from `git archive HEAD`\ninto the run folder. The skill to tune is --skill, else the weakest measured\nskill on evals/scoreboard.jsonl (lowest with_skill pass rate). --list ranks\nthem and stops.\n\nUsage: skill-tune.py [--skill S] [--board F] [--out D] [--repeat N]\n                     [--min-gain R] [--model M] [--list]\nExits 0 when the edit is kept, 3 when it is rejected (no edit, lint failed or\nno gain), 1 on an error or when the board has no measured skill. Uses the\nlogged-in claude CLI (subscription), never an API key.\n\n  BRG_SKILL_TUNE_MEASURE  the measuring command, given the kit copy first\n                          (default: python3 <copy>/bin/skill-evals-run.py)\n  BRG_SKILL_TUNE_LINT     the lint command run in the candidate copy\n                          (default: make lint-skills lint-skill-size lint-tools)",
    "functions": [
     "run_driver",
@@ -16535,8 +16551,12 @@
     "rate",
     "rank",
     "extract",
+    "held_out",
+    "case_id",
     "failures",
     "propose",
+    "no_read",
+    "held_rate",
     "em_dashes",
     "lint",
     "measure",
@@ -18330,6 +18350,11 @@
    "inCheck": false
   },
   {
+   "name": "eval-audit",
+   "does": "Which expectations tell a run with the skill from one without, from every graded run on this machine (SKILL=name to limit)",
+   "inCheck": false
+  },
+  {
    "name": "pin-refresh",
    "does": "How far each pinned pack in pinned-packs.txt is behind upstream, with the files changed; edits nothing",
    "inCheck": false
@@ -18710,7 +18735,7 @@
   {
    "path": "tests/unit/claude_code_drift.sh",
    "kind": "unit",
-   "lines": 101,
+   "lines": 102,
    "header": "tests/unit/claude_code_drift.sh: bin/claude-code-drift.py compares what the installed Claude Code offers (version, CLI flags, hook events and settings keys from the settings schema) with the surface recorded last time and with what Bearing uses. New features are listed; a flag or hook event Bearing uses that the CLI no longer offers fails the run. A stub claude and a local schema stand in for the real ones.",
    "asserts": 20
   },
@@ -18832,6 +18857,13 @@
    "lines": 112,
    "header": "tests/unit/dod_red_proof.sh: plugins/bearing/skills/definition-of-done/scripts/red_proof.sh proves a regression test is green with the fix and red without it, in a throwaway worktree, leaving the working tree untouched; and fails when the test passes without the fix, fails with it, or when the diff holds no test or no non-test file.",
    "asserts": 29
+  },
+  {
+   "path": "tests/unit/eval_audit.sh",
+   "kind": "unit",
+   "lines": 61,
+   "header": "tests/unit/eval_audit.sh: bin/eval-audit.py reads every graded, unblinded skill-evals run and sorts each expectation: discriminating (passes more with the skill), no signal (passes in every run of every arm), never passes, favours no skill, and flagged by a grader's eval_feedback. A synthetic workspace stands in for real runs.",
+   "asserts": 14
   },
   {
    "path": "tests/unit/eval_scoreboard.sh",
@@ -19018,9 +19050,9 @@
   {
    "path": "tests/unit/lint_evals.sh",
    "kind": "unit",
-   "lines": 66,
+   "lines": 78,
    "header": "tests/unit/lint_evals.sh: bin/lint-skill-evals.py accepts a skill with well-formed skill-creator evals and a pending legacy skill; fails a new skill without evals, evals left beside a skill, evals for no skill, a pending row for a skill that has evals (the list only shrinks), a malformed evals.json, a missing input file, a pending row naming no skill, and an empty skills directory.",
-   "asserts": 24
+   "asserts": 29
   },
   {
    "path": "tests/unit/lint_plugin_size.sh",
@@ -19291,16 +19323,16 @@
   {
    "path": "tests/unit/skill_evals_run.sh",
    "kind": "unit",
-   "lines": 250,
+   "lines": 258,
    "header": "tests/unit/skill_evals_run.sh: bin/skill-evals-run.py chooses a rotating set of skills from evals/scoreboard.jsonl and drives bin/skill-evals.py through executor and grader sessions; bin/eval-scoreboard.py --skill-evals writes the measurements into the row. A stub claude stands in for every session and a stub skill-creator for the benchmark; the real sessions run under make evals-weekly, not here.",
-   "asserts": 58
+   "asserts": 61
   },
   {
    "path": "tests/unit/skill_tune.sh",
    "kind": "unit",
-   "lines": 129,
+   "lines": 179,
    "header": "tests/unit/skill_tune.sh: bin/skill-tune.py picks the weakest measured skill, has a proposer session edit a copy of it, measures the copy against the skill as it is, and keeps the edit as a patch only when the copy scores higher by the margin. The proposer, the measurements and the lint are stubs; the real sessions run under `python3 bin/skill-tune.py`, not here.",
-   "asserts": 34
+   "asserts": 48
   },
   {
    "path": "tests/unit/stack_json.sh",
@@ -20359,7 +20391,7 @@
     "Changed",
     "Fixed"
    ],
-   "entries": 15,
+   "entries": 19,
    "summary": "- `make evals-weekly`: trigger-eval and harness-eval, then a row in the tracked `evals/scoreboard.jsonl` (`bin/eval-scoreboard.py`) compared with the last one. Fails on zero cases or a regression (recall or false triggers moved by more than 5 points, a harness scenario falling) and keeps the row. `make evals-timer` prints systemd user units for a weekly run and installs nothing. - `make skill-tune` (`bin/skill-tune.py`): propose an edit to one skill from the expectations it last failed, measure the edited copy beside the skill as it is, and keep it as a patch only if with_skill gains 10 points without a smaller margin over no skill. Nothing in the repository changes. - `make claude-drift` (…"
   },
   {

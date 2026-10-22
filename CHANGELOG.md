@@ -31,6 +31,16 @@ All notable changes to Bearing. Keep a Changelog format, semantic versions.
   `SubagentStop` sends `bearing:verifier`, `reviewer` or
   `security-auditor` back once when its report misses its output
   contract, and never twice.
+- `make eval-audit` (`bin/eval-audit.py`): every expectation sorted by
+  whether it tells a run with the skill from one without, from all graded
+  runs on the machine: discriminating, no signal, never passes, favours no
+  skill, and flagged by a grader. First audit, adr: 21 expectations, only
+  3 discriminating, 12 with no signal.
+- Held-out cases: `"held_out": true` in evals.json keeps a case's failures
+  from skill-tune's proposer (which now edits a bare copy of the skill and
+  cannot read any evals folder); an edit whose held-out cases fall is
+  rejected. adr has the first, case 3 (a proposed decision, nothing
+  decided).
 - Evals run in parallel: `skill-evals-run` measures three skills at once
   (`--parallel-skills`) under one cap on open sessions (`-j`, default 6),
   `skill-tune` measures the copy and the skill as it is at the same time,
@@ -67,6 +77,13 @@ All notable changes to Bearing. Keep a Changelog format, semantic versions.
   the large packs stay where they were for the maintainer to decide.
 
 ### Fixed
+- The skill-evals executor prompt forced every decision record to
+  Proposed, so a case whose request says "it is accepted" could never
+  pass; a run now records as decided what the request says was decided,
+  and nothing it chose itself. adr's two cases no longer penalise the
+  decisions index the skill creates on purpose.
+- A relative `BRG_SKILL_EVALS_WS` broke `measure` (the aggregator runs in
+  its own directory); the workspace and results paths are made absolute.
 - The skill-evals executors could not write `transcript.md` to their run
   folder (the sandbox kept it read-only), so the first real measurement
   failed every run; each executor now gets its run folder, and only it,
