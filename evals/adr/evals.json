@@ -10,7 +10,7 @@
     "files/decisions-repo"
    ],
    "expectations": [
-    "Exactly one new ADR file exists, at docs/decisions/ADR-015-<kebab title>.md; nothing was created under docs/adr/ or any other directory",
+    "Exactly one new ADR file exists, at docs/decisions/ADR-015-<kebab title>.md; nothing was created under docs/adr/ or any other new ADR directory (adding a row to docs/architecture/decisions.md, or creating that index, is expected)",
     "The new ADR uses the repository's own headings (Context, Decision, Alternatives considered, Consequences) and its 'Status:' line style",
     "The new ADR's status is Accepted",
     "The new ADR names ADR-012 as the decision it supersedes",

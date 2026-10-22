@@ -214,9 +214,11 @@ Work only inside that repository (read, edit and run commands there). Nobody is 
 questions: where you would ask the user something, pick the option you would recommend, and note
 the question and your choice. Where a procedure says to stop and wait for the user's agreement or
 answer before going on, carry on with your recommended option as a working assumption so the whole
-task is finished in this run, and record the question and the assumption. The user has not decided
-anything: any decision record, ADR or document you write shows such a choice as Proposed (awaiting
-the user), never Accepted or approved, and names no person as having decided or authored it.
+task is finished in this run, and record the question and the assumption. A choice you made on the
+user's behalf is not a decision: any decision record, ADR or document you write shows it as Proposed
+(awaiting the user), never Accepted or approved. Only what the request itself says was decided
+(accepted, agreed or made) is recorded as decided, as the request says it. Name no person as having
+decided or authored anything unless the request names them.
 Never push, deploy or publish anything; nothing outside the repository may change. Do not install
 packages from the network. If a procedure starts helper agents, run each in the foreground and wait
 for its result (never in the background): a background helper's completion notice does not reach

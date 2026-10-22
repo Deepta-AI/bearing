@@ -39,14 +39,18 @@ shape from this skill's template).
   `docs/adr/` and starts at `0001`.
 - Decisions index: `docs/architecture/decisions.md`; if absent, created
   from `${CLAUDE_PLUGIN_ROOT}/skills/high-level-design/templates/architecture-decisions.md`
-  with this ADR as its first row.
+  with this ADR as its first row. Its rows use each ADR's id as the ADR
+  files write it (`0004`, `ADR-015`), never a numbering of their own.
 - Area and standard stack: the keys and defaults in
   `${CLAUDE_PLUGIN_ROOT}/skills/tech-decision/references/catalogue.md`; if
   unreadable, Area is a short noun and no technology is marked outside
-  the standard stack.
+  the standard stack. The catalogue gives Area and the "outside the
+  standard stack" marks only; it is never a context fact or a reason.
 - Context facts: the code (routes, schemas, migrations, manifests), the
   README and `git log` for what is in use today; facts given in the
-  request are quoted with "from the request".
+  request are quoted with "from the request". Reasons, dates and people
+  the request and repository do not give are written "(to be
+  confirmed)", never supplied from general knowledge or the catalogue.
 - Options: the ones the user or the calling skill names; if only one is
   known, asks one question for the alternative that was considered, and
   writes "no alternative was considered" as an option when the answer is
@@ -67,7 +71,10 @@ shape from this skill's template).
    default `docs/adr/NNNN-<kebab-title>.md`.
 3. Read the template (the repository copy when present, else
    `templates/adr.md`) and any existing ADR the decision touches; if it
-   supersedes one, say which and mark that one Superseded.
+   supersedes one, say which. When the new ADR is Accepted, change only
+   the old one's status line to `Superseded by <new id>` now, in its own
+   status format; its decision text stays byte for byte. When Proposed,
+   leave the old one untouched.
 4. Fill every section, under the convention's headings when they differ
    from the template's (map context, options, decision and consequences
    onto them; add a missing one rather than drop it). Area is the
@@ -76,17 +83,22 @@ shape from this skill's template).
    no options. What else was considered is a table: the chosen option
    first, then at least one alternative, each with Why not (cost and
    risk) and Would suit (the fact that would make it right). Decision is
-   one sentence starting "We will", then the reasons in order of weight.
+   one sentence starting "We will", then the reasons in order of weight,
+   each from the request or the repository; with none given, "Reasons:
+   to be confirmed".
    Consequences include what becomes harder and the trigger for
    revisiting. Commits us to lists every product, service and library by
    name, marking any that is not a catalogue default "(outside the
    standard stack)".
-5. Status Proposed unless the user says it is decided. Task id from the
-   branch.
-6. Index: add a row (id, title, area, status, reversibility) to
-   `docs/architecture/decisions.md`, or update the row of the ADR this
-   one supersedes to "Superseded by ADR-nnnn" once the new one is
-   Accepted. Print the output contract. No em dashes.
+5. Status Accepted when the request says the decision is accepted,
+   agreed or made (at a review, a meeting, by a named person); write it
+   Accepted with that date, not "Proposed, awaiting confirmation".
+   Otherwise Proposed. Task id from the branch.
+6. Index: add a row (id as the ADR files write it, title, area,
+   status, reversibility) to `docs/architecture/decisions.md`, and set
+   the superseded ADR's row to "Superseded by <new id>" when the new one
+   is Accepted. No other file or directory is created. Print the output
+   contract. No em dashes.
 
 ## Output contract
 
