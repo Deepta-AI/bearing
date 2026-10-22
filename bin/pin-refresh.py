@@ -107,7 +107,28 @@ def changed(cache, repo, url, pin, head, row):
     p = git("diff", "--name-only", pin, head, "--", spec, cwd=d)
     if p.returncode != 0:
         raise OSError(f"diff: {p.stderr.strip()[:200]}")
-    return [f for f in p.stdout.splitlines() if f.strip()], d
+    files = [f for f in p.stdout.splitlines() if f.strip()]
+    # A link under the pinned path is copied as a link by the installer: it
+    # dangles, or points outside the pack. Mode 120000 in the tree is a link.
+    # ls-tree takes no glob pathspec, so a cli row's skill folder (matched
+    # by name anywhere) is found in the full listing.
+    t = git("ls-tree", "-r", head, cwd=d)
+    if t.returncode != 0:
+        raise OSError(f"ls-tree: {t.stderr.strip()[:200]}")
+    links = []
+    for ln in t.stdout.splitlines():
+        if not ln.startswith("120000 "):
+            continue
+        path = ln.split("\t", 1)[1]
+        if row["kind"] == "cli" and row["path"]:
+            inside = f"/{row['path']}/" in f"/{path}/"
+        elif spec == ".":
+            inside = True
+        else:
+            inside = path == spec or path.startswith(spec.rstrip("/") + "/")
+        if inside:
+            links.append(path)
+    return files, d, links
 
 
 def where(r):
@@ -142,7 +163,7 @@ def main():
                 if head == r["pin"]:
                     print(f"{label}: current")
                     continue
-                files, cache = changed(a.cache, r["source"], url, r["pin"], head, r)
+                files, cache, links = changed(a.cache, r["source"], url, r["pin"], head, r)
                 if not files:
                     print(f"{label}: upstream moved, nothing under {where(r)} changed")
                     continue
@@ -152,6 +173,8 @@ def main():
                     if any(f.endswith("SKILL.md") for f in files)
                     else ""
                 )
+                if links:
+                    skill_md += f" (links now: {', '.join(links[:3])}; the installer would copy them as links)"
                 print(
                     f"{label}: {r['pin'][:7]} -> {head[:7]}, {len(files)} files changed under {where(r)}{skill_md}; "
                     f"read: git -C {os.path.relpath(cache, KIT)} diff {r['pin'][:12]} {head[:12]}"

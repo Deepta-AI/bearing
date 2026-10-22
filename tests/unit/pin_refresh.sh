@@ -62,6 +62,18 @@ assert_contains "$T_OUT" "cli other/pack b: ${o1:0:7} -> "
 assert_contains "$T_OUT" "1 files changed under b (SKILL.md changed)"
 t_end
 
+t_begin "a link under the pinned path at the new commit is named"
+ln -s ../../shared "$d/remotes/acme/skills/skills/a/references"; g "$d/remotes/acme/skills" add -A; g "$d/remotes/acme/skills" commit -q -m link
+assert_exit 0 pr
+assert_contains "$T_OUT" "(links now: skills/a/references; the installer would copy them as links)"
+t_end
+
+t_begin "a link inside a cli row's skill folder is named too"
+ln -s ../../elsewhere "$d/remotes/other/pack/skills/b/refs"; g "$d/remotes/other/pack" add -A; g "$d/remotes/other/pack" commit -q -m link
+assert_exit 0 pr
+assert_contains "$T_OUT" "(links now: skills/b/refs; the installer would copy them as links)"
+t_end
+
 t_begin "an unreachable upstream is an error, not current"
 printf 'skill|gone/repo|%s|skills/a|a|MIT\n' "$v1" >> "$pins"
 assert_exit 1 pr
