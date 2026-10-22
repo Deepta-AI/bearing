@@ -142,7 +142,18 @@ def evals(*args):
     )
 
 
-def claude(prompt, cwd, args):
+def settings_for(writable):
+    """The sandbox settings, with these folders writable as well as the cwd."""
+    s = json.loads(json.dumps(SANDBOX))
+    if writable:
+        s["sandbox"]["filesystem"]["allowWrite"] = list(writable)
+    return s
+
+
+def claude(prompt, cwd, args, writable=(), keep=None):
+    """One sandboxed session in cwd; writable folders outside it are added to
+    both the sandbox and the session's directories. keep is a file the JSON
+    result is saved to, so a failed run can be read afterwards."""
     cmd = [
         CLAUDE,
         "-p",
@@ -152,13 +163,15 @@ def claude(prompt, cwd, args):
         "--setting-sources",
         "",
         "--settings",
-        json.dumps(SANDBOX),
+        json.dumps(settings_for(writable)),
         "--permission-mode",
         "acceptEdits",
         "--disallowedTools",
         OFF,
         "--no-session-persistence",
     ]
+    for w in writable:
+        cmd += ["--add-dir", w]
     if args.model:
         cmd += ["--model", args.model]
     try:
@@ -167,6 +180,9 @@ def claude(prompt, cwd, args):
         )
     except subprocess.TimeoutExpired:
         return None, f"timed out after {args.timeout} s"
+    if keep:
+        with open(keep, "w") as f:
+            f.write(p.stdout)
     try:
         res = json.loads(p.stdout.strip().splitlines()[-1])
     except (ValueError, IndexError):
@@ -201,11 +217,15 @@ def measure_one(skill, args):
     def execute(rd):
         with open(os.path.join(rd, "prompt.txt")) as f:
             prompt = f.read()
-        res, err = claude(prompt, os.path.join(rd, "outputs", "repo"), args)
+        # The run folder holds transcript.md, outside the repository the run
+        # works in; it is the only other place the session may write.
+        res, err = claude(prompt, os.path.join(rd, "outputs", "repo"), args,
+                          writable=[rd], keep=os.path.join(rd, "session.json"))
         if err:
             return err
         if not os.path.isfile(os.path.join(rd, "transcript.md")):
-            return f"{os.path.relpath(rd, WS)}: no transcript.md"
+            said = str((res or {}).get("result") or "")[:200]
+            return f"{os.path.relpath(rd, WS)}: no transcript.md (the session said: {said})"
         u = res.get("usage") or {}
         tokens = sum(
             int(u.get(k) or 0)

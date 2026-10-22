@@ -153,12 +153,14 @@ Reply with one line: done, or why you stopped."""
         "--setting-sources",
         "",
         "--settings",
-        json.dumps(d.SANDBOX),
+        json.dumps(d.settings_for([os.path.dirname(rationale)])),
         "--permission-mode",
         "acceptEdits",
         "--disallowedTools",
         d.OFF,
         "--no-session-persistence",
+        "--add-dir",
+        os.path.dirname(rationale),
     ]
     if args.model:
         cmd += ["--model", args.model]

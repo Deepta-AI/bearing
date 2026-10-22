@@ -77,6 +77,8 @@ t_end
 t_begin "the proposer runs sandboxed in the copy of the skill"
 assert_contains "$(tail -1 "$d/calls.log")" '"sandbox"'
 assert_contains "$(tail -1 "$d/calls.log")" "--disallowedTools Skill"
+assert_contains "$(tail -1 "$d/calls.log")" "--add-dir $d/out/learn-"
+assert_contains "$(tail -1 "$d/calls.log")" '"allowWrite": ["'"$d/out/learn-"
 t_end
 
 t_begin "a gain under the margin is rejected and no patch is left"

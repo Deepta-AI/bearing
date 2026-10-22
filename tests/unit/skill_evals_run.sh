@@ -94,6 +94,21 @@ PY
 assert_eq "bad 0" "$(cat "$d/flags.txt")" "sessions outside the sandbox"
 t_end
 
+t_begin "an executor may write its run folder and nothing else outside the repository"
+python3 - "$d/calls.log" > "$d/adddir.txt" <<'PY2'
+import json, sys
+ex = [json.loads(l) for l in open(sys.argv[1]) if "one run of a skill evaluation" in l]
+ok = 0
+for a in ex:
+    adds = [a[i + 1] for i, x in enumerate(a) if x == "--add-dir"]
+    w = json.loads(a[a.index("--settings") + 1])["sandbox"]["filesystem"].get("allowWrite", [])
+    ok += len(adds) == 1 and adds == w and adds[0].endswith("/run-1")
+print(f"{ok} of {len(ex)}")
+PY2
+assert_eq "4 of 4" "$(cat "$d/adddir.txt")" "executors given only their run folder"
+assert_eq "4" "$(find "$d/ws/learn/iteration-1" -name session.json | wc -l | tr -d ' ')" "session results kept"
+t_end
+
 t_begin "the next run of the same skill takes the next free iteration"
 assert_exit 0 run --only learn
 assert_file "$d/ws/learn/iteration-2/benchmark.json"
