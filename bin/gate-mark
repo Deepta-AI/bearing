@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+# bin/gate-mark: the commits `make gate` passed on, one full sha per line, in
+# the repository's common git directory (shared by every worktree, so a pass
+# recorded in one checkout counts in all of them). The pre-push hook reads it;
+# nothing else writes it. The newest 200 are kept. bash 3.2 safe.
+#
+#   gate-mark add <commit>   record a pass (resolved to a full commit sha)
+#   gate-mark has <commit>   exit 0 when that commit passed, 1 when not
+#   gate-mark path           print the file
+set -u
+file="$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null)/bearing-gate-passed" \
+  || { echo "gate-mark: not a git repository" >&2; exit 2; }
+sha() { git rev-parse -q --verify "${1:-}^{commit}" 2>/dev/null; }
+case "${1:-}" in
+  add)
+    c="$(sha "${2:-}")" || { echo "gate-mark: ${2:-} is not a commit" >&2; exit 2; }
+    tmp="$file.$$"
+    { [ -f "$file" ] && grep -vx -- "$c" "$file"; echo "$c"; } | tail -n 200 > "$tmp" && mv "$tmp" "$file" \
+      || { rm -f "$tmp"; echo "gate-mark: cannot write $file" >&2; exit 2; }
+    ;;
+  has)
+    c="$(sha "${2:-}")" || exit 1
+    [ -f "$file" ] && grep -qx -- "$c" "$file"
+    ;;
+  path) echo "$file" ;;
+  *) echo "usage: gate-mark add|has <commit> | path" >&2; exit 2 ;;
+esac

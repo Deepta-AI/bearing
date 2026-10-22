@@ -77,6 +77,12 @@ All notable changes to Bearing. Keep a Changelog format, semantic versions.
   the large packs stay where they were for the maintainer to decide.
 
 ### Fixed
+- Pushes no longer fail after a passing gate. The pre-push hook ran the
+  15-minute gate while git held the connection to GitHub open, and GitHub
+  closed it first. The hook now only checks that `make gate` passed on
+  every commit being pushed (kept per commit by `bin/gate-mark`, for every
+  branch and worktree) and refuses at once otherwise; `make push` runs the
+  gate, then pushes (`FORCE=1` for `--force-with-lease`).
 - The skill-evals executor prompt forced every decision record to
   Proposed, so a case whose request says "it is accepted" could never
   pass; a run now records as decided what the request says was decided,

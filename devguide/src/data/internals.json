@@ -4,11 +4,11 @@
   "skills": 109,
   "commandSkills": 0,
   "stackSkills": 12,
-  "scripts": 110,
-  "scriptLines": 35609,
+  "scripts": 111,
+  "scriptLines": 35636,
   "hooks": 12,
   "agents": 8,
-  "makeTargets": 38,
+  "makeTargets": 39,
   "gates": 19,
   "tests": 126,
   "fixtures": 25,
@@ -16135,6 +16135,19 @@
    ]
   },
   {
+   "path": "bin/gate-mark",
+   "name": "gate-mark",
+   "lang": "bash",
+   "group": "quality",
+   "lines": 27,
+   "header": "bin/gate-mark: the commits `make gate` passed on, one full sha per line, in\nthe repository's common git directory (shared by every worktree, so a pass\nrecorded in one checkout counts in all of them). The pre-push hook reads it;\nnothing else writes it. The newest 200 are kept. bash 3.2 safe.\n\n  gate-mark add <commit>   record a pass (resolved to a full commit sha)\n  gate-mark has <commit>   exit 0 when that commit passed, 1 when not\n  gate-mark path           print the file",
+   "functions": [
+    "sha"
+   ],
+   "env": [],
+   "calls": []
+  },
+  {
    "path": "bin/gen-devguide.py",
    "name": "gen-devguide.py",
    "lang": "python",
@@ -18316,7 +18329,12 @@
   },
   {
    "name": "gate",
-   "does": "Before a push: make check, then the bash32 CI job (with Docker); records the commit it passed on so the pre-push hook lets it straight through",
+   "does": "Before a push: make check, then the bash32 CI job (with Docker); records the commit it passed on (bin/gate-mark), which the pre-push hook requires",
+   "inCheck": false
+  },
+  {
+   "name": "push",
+   "does": "The gate on this commit (skipped when it already passed), then push the current branch; FORCE=1 adds --force-with-lease",
    "inCheck": false
   },
   {
@@ -19001,7 +19019,7 @@
   {
    "path": "tests/unit/hook_events.sh",
    "kind": "unit",
-   "lines": 84,
+   "lines": 85,
    "header": "tests/unit/hook_events.sh: the hooks on StopFailure, PostToolUseFailure, PermissionDenied and SubagentStop. stop-failure.sh writes the checkpoint and logs the error type; tool-failure.sh logs the tool name only; agent-report.sh sends a Bearing review agent back once when its report misses its output contract, and never twice. bash 3.2 safe.",
    "asserts": 25
   },
@@ -19211,9 +19229,9 @@
   {
    "path": "tests/unit/repo_pre_push.sh",
    "kind": "unit",
-   "lines": 54,
-   "header": "tests/unit/repo_pre_push.sh: this repository's own .githooks/pre-push runs the gate without the variables git exports to a hook. From a linked worktree git sets GIT_DIR and GIT_INDEX_FILE to absolute paths into the main repository; a gate that inherits them sends every test's `git init`, commit and tag in a temp folder into the real repository instead (19 Oct 2026: fake tags, branches and config in the Bearing clone). tests/lib/assert.sh drops them too. A fake make stands in for the gate. bash 3.2 safe.",
-   "asserts": 8
+   "lines": 90,
+   "header": "tests/unit/repo_pre_push.sh: this repository's own .githooks/pre-push checks that `make gate` passed on every commit being pushed (bin/gate-mark) and never runs the gate itself: git opens the connection to the remote before the hook, and a 15-minute gate outlived it, so pushes failed though the gate passed. An ungated push is refused at once with nothing sent. A pass is kept per commit in the common git directory, so it counts for every branch and worktree. tests/lib/assert.sh drops git's repository variables (a hook from a linked worktree exports them). A fake make records if anything runs i…",
+   "asserts": 21
   },
   {
    "path": "tests/unit/route_frontier.sh",
@@ -20391,7 +20409,7 @@
     "Changed",
     "Fixed"
    ],
-   "entries": 19,
+   "entries": 20,
    "summary": "- `make evals-weekly`: trigger-eval and harness-eval, then a row in the tracked `evals/scoreboard.jsonl` (`bin/eval-scoreboard.py`) compared with the last one. Fails on zero cases or a regression (recall or false triggers moved by more than 5 points, a harness scenario falling) and keeps the row. `make evals-timer` prints systemd user units for a weekly run and installs nothing. - `make skill-tune` (`bin/skill-tune.py`): propose an edit to one skill from the expectations it last failed, measure the edited copy beside the skill as it is, and keep it as a patch only if with_skill gains 10 points without a smaller margin over no skill. Nothing in the repository changes. - `make claude-drift` (…"
   },
   {

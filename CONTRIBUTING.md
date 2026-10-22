@@ -12,13 +12,15 @@ privately, as [SECURITY.md](SECURITY.md) describes.
    git remote add upstream https://github.com/Deepta-AI/bearing
    make hooks
    ```
-   `make hooks` installs `.githooks/pre-push`. Before pushing, run
-   `make gate`: `make check`, then, with Docker running, `make ci-bash32`
-   (the bash 3.2 CI job in the same image); it records the commit it
-   passed on, and the hook lets that commit's push straight through. A
-   push of a commit the gate has not passed runs the gate in the hook,
-   and at about 15 minutes that can outlast the connection git opened to
-   the remote, so the push fails although the gate passed. The macOS and scaffold jobs run only in CI; `make lint-portable`
+   `make hooks` installs `.githooks/pre-push`. Push with `make push`: it
+   runs `make gate` on the commit (`make check`, then, with Docker
+   running, `make ci-bash32`, the bash 3.2 CI job in the same image),
+   then pushes the branch; `FORCE=1` adds `--force-with-lease`. The gate
+   records each commit it passed on (`bin/gate-mark`, shared by every
+   worktree), and the hook only checks that every commit being pushed
+   passed: it refuses at once otherwise and never runs the gate itself,
+   because a 15-minute gate inside the hook outlived the connection git
+   had opened to the remote. The macOS and scaffold jobs run only in CI; `make lint-portable`
    (part of `make check`) rejects the BSD and missing-tool commands it
    knows (`sed -i`, `perl`, `grep -P`, `readlink -f`, `date -d`).
 2. Branch from `main` with a short descriptive name, for example
