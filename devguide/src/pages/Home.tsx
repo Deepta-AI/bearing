@@ -4,6 +4,27 @@ import { Terminal } from "../components/Terminal";
 import { Page } from "../components/ui";
 import { data } from "../lib/data";
 
+const WAYS: { to: string; title: string; text: string; meta: string }[] = [
+  {
+    to: "/start",
+    title: "You have an hour",
+    text: "Read chapters 1 to 4 in order: where things live, the five layers, one session event by event, and the guard. Everything else hangs off those.",
+    meta: "Where to start, then Next at the foot of each page",
+  },
+  {
+    to: "/change",
+    title: "You need to change something",
+    text: "Recipes for a new skill, a script, a stack, a tracker, a harness and a guard rule, each with the gates it must pass and the tests to add.",
+    meta: "Changing Bearing",
+  },
+  {
+    to: "/guard",
+    title: "Something was blocked",
+    text: "Every refusal comes from one of four places: the guard, the settings deny list, a git hook or a gate. The guard chapter shows how to tell which.",
+    meta: "The guard, then Gates, tests and CI",
+  },
+];
+
 export default function Home() {
   const c = data.counts;
   const manifest: [string, number | string, string, string, string][] = [
@@ -22,64 +43,81 @@ export default function Home() {
     ["GitLab CI jobs", c.ciJobs, ".gitlab-ci.yml", "/gates", "the twin, for a GitLab mirror"],
   ];
   return (
-    <Page full title="How Bearing works inside" lede={
-      <>
-        Bearing is an open-source (MIT) Claude Code plugin that gives every stage of a product a skill, and makes the rules that must not bend physical instead of polite: the agent
-        never pushes (where you opt a repository in, the Stop hook pushes its task branch), every gate counts, and everything traces. This guide
-        is its service manual: what runs when, which file decides, and where to make a change without breaking the rest. The source is at{" "}
-        <a href="https://github.com/Deepta-AI/bearing">github.com/Deepta-AI/bearing</a>.
-      </>
-    }>
-      <p className="kicker">Every Bearing session passes the same six checkpoints. Pick one to see what fires.</p>
-      <Compass />
+    <Page full>
+      <header className="hero">
+        <p className="hero-kicker">
+          <span className="tag">Bearing {data.version}</span>
+          <span>The developer guide</span>
+        </p>
+        <h1 className="hero-title">How Bearing works inside</h1>
+        <p className="hero-lede">
+          Bearing is an open-source (MIT) Claude Code plugin that gives every stage of a product a skill, and makes the rules that must not bend physical
+          instead of polite. This guide is its service manual: what runs when, which file decides, and where to make a change without breaking the rest.
+        </p>
+        <div className="hero-actions">
+          <Link className="btn primary" to="/start">
+            Read where to start
+          </Link>
+          <a className="btn" href="https://github.com/Deepta-AI/bearing">
+            github.com/Deepta-AI/bearing
+          </a>
+        </div>
+        <ul className="hero-facts" aria-label="The rules that do not bend">
+          <li>
+            <b>The agent never pushes.</b> Where you opt a repository in, the Stop hook pushes its task branch.
+          </li>
+          <li>
+            <b>Every gate counts.</b> Each prints what it counted and fails on zero.
+          </li>
+          <li>
+            <b>Everything traces.</b>
+          </li>
+        </ul>
+      </header>
+
+      <section className="home-panel" aria-labelledby="checkpoints">
+        <div className="hp-bar">
+          <span className="hp-title" id="checkpoints">
+            Session checkpoints
+          </span>
+          <code className="hp-meta">plugins/bearing/hooks/hooks.json</code>
+        </div>
+        <div className="hp-body">
+          <p className="kicker">Every Bearing session passes the same six checkpoints. Pick one to see what fires.</p>
+          <Compass />
+        </div>
+      </section>
 
       <h2 id="ways-in">Three ways in</h2>
-      <div className="cols">
-        <Link className="card" to="/start">
-          <h3>You have an hour</h3>
-          <p>Read chapters 1 to 4 in order: where things live, the five layers, one session event by event, and the guard. Everything else hangs off those.</p>
-          <span className="meta">Where to start, then Next at the foot of each page</span>
-        </Link>
-        <Link className="card" to="/change">
-          <h3>You need to change something</h3>
-          <p>Recipes for a new skill, a script, a stack, a tracker, a harness and a guard rule, each with the gates it must pass and the tests to add.</p>
-          <span className="meta">Changing Bearing</span>
-        </Link>
-        <Link className="card" to="/guard">
-          <h3>Something was blocked</h3>
-          <p>Every refusal comes from one of four places: the guard, the settings deny list, a git hook or a gate. The guard chapter shows how to tell which.</p>
-          <span className="meta">The guard, then Gates, tests and CI</span>
-        </Link>
+      <div className="ways">
+        {WAYS.map((w) => (
+          <Link className="way" to={w.to} key={w.to}>
+            <h3>{w.title}</h3>
+            <p>{w.text}</p>
+            <span className="meta">
+              {w.meta}
+              <svg viewBox="0 0 16 16" aria-hidden="true">
+                <path d="M6 3.5 10.5 8 6 12.5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </span>
+          </Link>
+        ))}
       </div>
 
       <h2 id="manifest">What the kit is made of</h2>
       <p>Counted from the repository when this site was built. Nothing on this page is typed by hand.</p>
-      <div className="tablewrap">
-        <table className="manifest">
-          <thead>
-            <tr>
-              <th>Part</th>
-              <th>Count</th>
-              <th>Where</th>
-              <th>Note</th>
-            </tr>
-          </thead>
-          <tbody>
-            {manifest.map(([part, n, where, to, note]) => (
-              <tr key={part}>
-                <td>
-                  <Link to={to}>{part}</Link>
-                </td>
-                <td className="num">{n}</td>
-                <td>
-                  <code>{where}</code>
-                </td>
-                <td>{note}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <ul className="manifest-grid">
+        {manifest.map(([part, n, where, to, note]) => (
+          <li key={part}>
+            <Link to={to}>
+              <span className="mg-n">{n}</span>
+              <span className="mg-part">{part}</span>
+              <span className="mg-note">{note}</span>
+              <code className="mg-where">{where}</code>
+            </Link>
+          </li>
+        ))}
+      </ul>
 
       <h2 id="see-it">See it refuse a push</h2>
       <p>
