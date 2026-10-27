@@ -108,6 +108,34 @@ assert_exit 0 sb --trigger "$d/t7.json" --harness "$d/h1.json" --max-drop 0.5
 assert_contains "$T_OUT" "adr: loaded 8/10 -> 7/10"
 t_end
 
+t_begin "a run cut short by the usage limit writes an honest row and no false regression"
+lb="$d/limited.jsonl"
+trigger "$d/l1.json" 9 1 0 5
+harness "$d/lh1.json" push:pass deploy:pass
+python3 "$KIT/bin/eval-scoreboard.py" --board "$lb" --trigger "$d/l1.json" --harness "$d/lh1.json" >/dev/null 2>&1
+python3 - "$d/lh2.json" <<'PY2'
+import json, sys
+json.dump([{"scenario": "push", "status": "not run"}, {"scenario": "deploy", "status": "not run"}], open(sys.argv[1], "w"))
+PY2
+assert_exit 0 python3 "$KIT/bin/eval-scoreboard.py" --board "$lb" --trigger "$d/l1.json" --harness "$d/lh2.json"
+assert_contains "$T_OUT" "stopped at the usage limit: harness (2 scenarios not run)"
+assert_contains "$T_OUT" "0 regressions"
+assert_eq "0 2" "$(tail -1 "$lb" | python3 -c 'import json,sys;h=json.load(sys.stdin)["harness"];print(h["runs"], h["not_run"])')" "harness runs, not run"
+t_end
+
+t_begin "rows measuring different skills are compared only on the skills both measured"
+rb="$d/rotation.jsonl"
+trigger "$d/r1.json" 3 0 0 2 adr
+python3 "$KIT/bin/eval-scoreboard.py" --board "$rb" --trigger "$d/r1.json" --harness "$d/h1.json" >/dev/null 2>&1
+trigger "$d/r2.json" 0 3 0 2 learn
+assert_exit 0 python3 "$KIT/bin/eval-scoreboard.py" --board "$rb" --trigger "$d/r2.json" --harness "$d/h1.json"
+assert_contains "$T_OUT" "no skill measured before, nothing compared"
+assert_not_contains "$T_OUT" "regression: recall"
+trigger "$d/r3.json" 1 2 0 2 adr
+assert_exit 1 python3 "$KIT/bin/eval-scoreboard.py" --board "$rb" --trigger "$d/r3.json" --harness "$d/h1.json"
+assert_contains "$T_OUT" "regression: recall 100% -> 33% over 1 skills"
+t_end
+
 # evals-weekly: stub suites write their results where the runner points them.
 # The runner measures the clone it sits in, so a copy runs in a clean one.
 repo="$(tmpdir)"
