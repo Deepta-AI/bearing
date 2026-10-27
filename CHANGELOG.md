@@ -77,6 +77,22 @@ All notable changes to Bearing. Keep a Changelog format, semantic versions.
   the large packs stay where they were for the maintainer to decide.
 
 ### Fixed
+- The Next.js template pins `next` and `eslint-config-next` 16.4.1,
+  clearing two critical advisories (GHSA-2464-fhr4-w9xw,
+  GHSA-673q-mjm6-r5xr, unauthenticated remote code execution) and a high
+  one (GHSA-p3m5-59mp-jv5r); the Next.js, React, Node and React Native
+  templates pin `zod` 4.6.6 for GHSA-mrhx-c7xc-m3w5 (high). They failed
+  `make vuln` in a new repository and the three node `scaffold` CI jobs.
+- The weekly evals no longer read a usage limit as failures. The first run
+  (22 Oct) hit "You've hit your session limit" after 547 trigger sessions,
+  and every harness scenario and skill eval after it was recorded as
+  failed. `bin/usage_limit.py` tells a limit refusal from a failure;
+  trigger-eval, harness-eval and skill-evals-run stop starting sessions at
+  the first, record the rest as not run, and exit 3; the scoreboard leaves
+  them out. The weekly run now goes harness, skill evals, then a trigger
+  rotation (`bin/trigger-rotation.py`, about 140 of the 547 cases: changed
+  skills plus a quarter by week), compares recall over the skills measured
+  before, and keeps its output in `.scratch/evals-weekly/`.
 - Pushes no longer fail after a passing gate. The pre-push hook ran the
   15-minute gate while git held the connection to GitHub open, and GitHub
   closed it first. The hook now only checks that `make gate` passed on

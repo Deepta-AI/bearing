@@ -41,7 +41,9 @@ Usage: harness-eval.py [--only name,...] [--list] [--keep] [--repeat N] [--min-r
   BRG_CLAUDE_PROJECTS  where session transcripts live (default ~/.claude/projects)
   BRG_HARNESS_EVAL_OUT where results.json goes (default .scratch/harness-eval)
 Prints one line per scenario and "harness-eval: N scenarios, P passed, ...";
-exits 1 on any failure or when no scenario ran. Uses the logged-in claude CLI
+exits 1 on any failure or when no scenario ran. A session refused for the
+plan's usage or rate limit (bin/usage_limit.py) stops the run: that scenario
+and the ones after it are "not run", left out of the rates, and the exit is 3. Uses the logged-in claude CLI
 (subscription); each run costs a few short sessions.
 """
 
@@ -57,6 +59,10 @@ import tempfile
 import time
 
 KIT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(KIT, "bin"))
+import usage_limit  # noqa: E402
+
+STOP = usage_limit.Stop()
 # The hooks under test ship in the bearing plugin (plugins/bearing).
 PLUGIN = os.path.join(KIT, "plugins", "bearing")
 CLAUDE = os.environ.get("BRG_CLAUDE", "claude")
@@ -151,6 +157,11 @@ class Run:
             (e.get("session_id") for e in self.stream if e.get("subtype") == "init"),
             resume or "",
         )
+        # A session refused for the usage limit tells nothing about the hooks.
+        said = " ".join(str(e.get("result", "")) for e in self.stream
+                        if e.get("type") == "result" and e.get("is_error"))
+        if usage_limit.is_limit(said) or usage_limit.is_limit(self.error):
+            STOP.hit(said or self.error)
         self.transcript = []
         for path in (
             glob.glob(os.path.join(PROJECTS, "*", f"{self.session}.jsonl"))
@@ -552,6 +563,11 @@ def main():
     results = []
     plan = [(n, k) for n in names for k in range(1, args.repeat + 1)]
     for n, k in plan:
+        if STOP:
+            results.append({"scenario": n, "repeat": k, "status": "not run",
+                            "detail": "usage limit", "session": "", "seconds": 0})
+            print(f"{n}: not run (usage limit)", flush=True)
+            continue
         run_root = os.path.join(root, f"r{k}")  # each repeat gets fresh fixtures
         os.makedirs(run_root, exist_ok=True)
         try:
@@ -569,6 +585,8 @@ def main():
             )
         if err and status != "pass":
             detail += f"; {err}"
+        if STOP:
+            status, detail = "not run", f"usage limit: {STOP.reason}"
         results.append(
             {
                 "scenario": n,
@@ -599,12 +617,13 @@ def main():
         shutil.rmtree(root, ignore_errors=True)
     count = {
         s: sum(r["status"] == s for r in results)
-        for s in ("pass", "fail", "not exercised")
+        for s in ("pass", "fail", "not exercised", "not run")
     }
     rates = {}
     for n in names:
-        mine = [r for r in results if r["scenario"] == n]
-        rates[n] = sum(r["status"] == "pass" for r in mine) / len(mine)
+        mine = [r for r in results if r["scenario"] == n and r["status"] != "not run"]
+        if mine:
+            rates[n] = sum(r["status"] == "pass" for r in mine) / len(mine)
     if args.repeat > 1:
         print(
             "harness-eval: pass rate per scenario: "
@@ -613,12 +632,16 @@ def main():
                 for n in names
             )
         )
-    below = [n for n in names if rates[n] < args.min_rate]
+    below = [n for n in rates if rates[n] < args.min_rate]
     print(
         f"harness-eval: {len(names)} scenarios, {len(results)} runs, {count['pass']} passed, {count['fail']} failed, "
-        f"{count['not exercised']} not exercised; below the {args.min_rate:.0%} rate: {', '.join(below) or 'none'}; "
+        f"{count['not exercised']} not exercised, {count['not run']} not run; below the {args.min_rate:.0%} rate: {', '.join(below) or 'none'}; "
         f"results in {os.path.relpath(out, KIT)}/results.json"
     )
+    if STOP:
+        print(f"harness-eval: stopped at the usage limit ({STOP.reason}); scenarios after it were not run",
+              file=sys.stderr)
+        return usage_limit.LIMITED
     return 0 if results and not below else 1
 
 

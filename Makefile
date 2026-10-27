@@ -208,7 +208,7 @@ harness-eval: ## Real Claude Code sessions against the hooks: push, deploy, edit
 trigger-eval: ## Real headless sessions: does each plain request load the right skill (evals/triggers.json; ONLY=skill,... J=4 SOURCES=user,project,local; uses the claude CLI; not part of check)
 	python3 bin/trigger-eval.py -j $(or $(J),4) $(if $(ONLY),--only $(ONLY)) $(if $(SOURCES),--sources $(SOURCES))
 
-evals-weekly: ## trigger-eval, harness-eval and skill-evals-run (five skills in rotation) on a clean tree, then a row in evals/scoreboard.jsonl compared with the last (uses the claude CLI; not part of check)
+evals-weekly: ## harness-eval, skill-evals-run (five skills) and trigger-eval (a rotation of about 140 cases) on a clean tree, then a row in evals/scoreboard.jsonl; stops at the usage limit with exit 3 (uses the claude CLI; not part of check)
 	bash bin/evals-weekly.sh
 
 evals-timer: ## Print the systemd user units that run evals-weekly every Sunday, and the commands that install them (installs nothing)

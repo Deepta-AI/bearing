@@ -108,6 +108,34 @@ assert_exit 0 sb --trigger "$d/t7.json" --harness "$d/h1.json" --max-drop 0.5
 assert_contains "$T_OUT" "adr: loaded 8/10 -> 7/10"
 t_end
 
+t_begin "a run cut short by the usage limit writes an honest row and no false regression"
+lb="$d/limited.jsonl"
+trigger "$d/l1.json" 9 1 0 5
+harness "$d/lh1.json" push:pass deploy:pass
+python3 "$KIT/bin/eval-scoreboard.py" --board "$lb" --trigger "$d/l1.json" --harness "$d/lh1.json" >/dev/null 2>&1
+python3 - "$d/lh2.json" <<'PY2'
+import json, sys
+json.dump([{"scenario": "push", "status": "not run"}, {"scenario": "deploy", "status": "not run"}], open(sys.argv[1], "w"))
+PY2
+assert_exit 0 python3 "$KIT/bin/eval-scoreboard.py" --board "$lb" --trigger "$d/l1.json" --harness "$d/lh2.json"
+assert_contains "$T_OUT" "stopped at the usage limit: harness (2 scenarios not run)"
+assert_contains "$T_OUT" "0 regressions"
+assert_eq "0 2" "$(tail -1 "$lb" | python3 -c 'import json,sys;h=json.load(sys.stdin)["harness"];print(h["runs"], h["not_run"])')" "harness runs, not run"
+t_end
+
+t_begin "rows measuring different skills are compared only on the skills both measured"
+rb="$d/rotation.jsonl"
+trigger "$d/r1.json" 3 0 0 2 adr
+python3 "$KIT/bin/eval-scoreboard.py" --board "$rb" --trigger "$d/r1.json" --harness "$d/h1.json" >/dev/null 2>&1
+trigger "$d/r2.json" 0 3 0 2 learn
+assert_exit 0 python3 "$KIT/bin/eval-scoreboard.py" --board "$rb" --trigger "$d/r2.json" --harness "$d/h1.json"
+assert_contains "$T_OUT" "no skill measured before, nothing compared"
+assert_not_contains "$T_OUT" "regression: recall"
+trigger "$d/r3.json" 1 2 0 2 adr
+assert_exit 1 python3 "$KIT/bin/eval-scoreboard.py" --board "$rb" --trigger "$d/r3.json" --harness "$d/h1.json"
+assert_contains "$T_OUT" "regression: recall 100% -> 33% over 1 skills"
+t_end
+
 # evals-weekly: stub suites write their results where the runner points them.
 # The runner measures the clone it sits in, so a copy runs in a clean one.
 repo="$(tmpdir)"
@@ -117,23 +145,28 @@ git -C "$repo" init -q && git -C "$repo" add -A && git -C "$repo" -c user.email=
 stubs="$(tmpdir)"
 cat > "$stubs/trigger" <<S
 #!/usr/bin/env bash
+echo "trigger \$*" >> "$d/order.log"
 mkdir -p "\$BRG_TRIGGER_EVAL_OUT/run" && cp "$d/t1.json" "\$BRG_TRIGGER_EVAL_OUT/run/results.json"
 echo "trigger-eval: stub"; exit \${STUB_RC:-0}
 S
 cat > "$stubs/harness" <<S
 #!/usr/bin/env bash
+echo harness >> "$d/order.log"
 mkdir -p "\$BRG_HARNESS_EVAL_OUT/run" && cp "$d/h1.json" "\$BRG_HARNESS_EVAL_OUT/run/results.json"
-echo "harness-eval: stub"
+echo "harness-eval: stub"; exit \${STUB_HARNESS_RC:-0}
 S
+printf '#!/bin/sh\necho adr,learn\n' > "$stubs/rotation"
 cat > "$stubs/skills" <<'S'
 #!/usr/bin/env bash
 while [ $# -gt 0 ]; do [ "$1" = --out ] && out="$2"; shift; done
 mkdir -p "$out"
 echo '{"skills": {"adr": {"commit": "c0", "date": "2026-10-19", "cases": 2, "arms": {"with_skill": {"pass_rate": 1.0}, "without_skill": {"pass_rate": 0.5}}, "margin": 0.5, "result": "bearing ahead"}}}' > "$out/summary.json"
 echo "skill-evals-run: stub"
+echo skills >> "$ORDER_LOG"
 S
-chmod 755 "$stubs/trigger" "$stubs/harness" "$stubs/skills"
-wk() { BRG_SKILL_EVALS="$stubs/skills" BRG_TRIGGER_EVAL="$stubs/trigger" BRG_HARNESS_EVAL="$stubs/harness" BRG_SCOREBOARD="${BOARD_AT:-$d/weekly.jsonl}" bash "$repo/bin/evals-weekly.sh" "$@"; }
+chmod 755 "$stubs/trigger" "$stubs/harness" "$stubs/skills" "$stubs/rotation"
+export ORDER_LOG="$d/order.log"
+wk() { BRG_TRIGGER_ROTATION="$stubs/rotation" BRG_SKILL_EVALS="$stubs/skills" BRG_TRIGGER_EVAL="$stubs/trigger" BRG_HARNESS_EVAL="$stubs/harness" BRG_SCOREBOARD="${BOARD_AT:-$d/weekly.jsonl}" bash "$repo/bin/evals-weekly.sh" "$@"; }
 
 t_begin "the weekly run runs both suites and writes one row"
 assert_exit 0 wk
@@ -145,9 +178,25 @@ assert_contains "$T_OUT" "eval-scoreboard: 15 trigger cases, 2 harness runs chec
 assert_eq 1 "$(wc -l < "$d/weekly.jsonl" | tr -d ' ')" "weekly rows"
 t_end
 
+t_begin "the cheap suites run first, the rotated trigger cases last, output kept in .scratch"
+: > "$d/order.log"
+assert_exit 0 wk
+assert_eq "harness skills trigger --only adr,learn" "$(tr '\n' ' ' < "$d/order.log" | sed 's/ $//')" "order"
+assert_contains "$T_OUT" "trigger cases for 2 skills this week"
+assert_contains "$T_OUT" "suite output kept in $repo/.scratch/evals-weekly/"
+t_end
+
+t_begin "a suite stopped by the usage limit makes the run exit 3, with the row written"
+n="$(wc -l < "$d/weekly.jsonl" | tr -d ' ')"
+STUB_HARNESS_RC=3 assert_exit 3 wk
+assert_contains "$T_OUT" "stopped at the plan's usage limit"
+assert_eq "$((n + 1))" "$(wc -l < "$d/weekly.jsonl" | tr -d ' ')" "row written"
+t_end
+
 t_begin "a failing suite fails the weekly run after the row is written"
+n="$(wc -l < "$d/weekly.jsonl" | tr -d ' ')"
 STUB_RC=1 assert_exit 1 wk
-assert_eq 2 "$(wc -l < "$d/weekly.jsonl" | tr -d ' ')" "weekly rows"
+assert_eq "$((n + 1))" "$(wc -l < "$d/weekly.jsonl" | tr -d ' ')" "weekly rows"
 t_end
 
 t_begin "a dirty tree is refused before anything runs"

@@ -44,4 +44,21 @@ assert_contains "$T_OUT" "below the 100% rate: push, edit-lint"
 assert_exit 2 ev --only push --repeat 0
 t_end
 
+t_begin "a session refused for the usage limit stops the run: not run, not failed, exit 3"
+lim="$(tmpdir)"
+cat > "$lim/claude" <<'S'
+#!/usr/bin/env bash
+echo '{"type":"system","subtype":"init","session_id":"s1"}'
+echo '{"type":"result","is_error":true,"result":"You'"'"'ve hit your session limit · resets 1am (Asia/Kolkata)"}'
+exit 1
+S
+chmod 755 "$lim/claude"
+T_IN=""; t_run env BRG_CLAUDE="$lim/claude" BRG_CLAUDE_PROJECTS="$projects" BRG_HARNESS_EVAL_OUT="$out" python3 "$KIT/bin/harness-eval.py" --only push,deploy,edit-lint
+assert_eq 3 "$T_RC" "exit"
+assert_contains "$T_OUT" "push: not run (usage limit: You've hit your session limit"
+assert_contains "$T_OUT" "deploy: not run (usage limit)"
+assert_contains "$T_OUT" "0 passed, 0 failed, 0 not exercised, 3 not run; below the 100% rate: none"
+assert_contains "$T_OUT" "stopped at the usage limit"
+t_end
+
 t_summary

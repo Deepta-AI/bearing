@@ -58,8 +58,10 @@ def commit():
 
 
 def trigger_row(data):
-    results = [r for r in data.get("results", []) if r.get("status") != "error"]
-    errored = len(data.get("results", [])) - len(results)
+    allr = data.get("results", [])
+    results = [r for r in allr if r.get("status") in ("pass", "fail")]
+    errored = sum(r.get("status") == "error" for r in allr)
+    not_run = sum(r.get("status") == "not run" for r in allr)
     should = [r for r in results if r["kind"] == "should"]
     near = [r for r in results if r["kind"] == "near"]
     skills = {}
@@ -74,6 +76,8 @@ def trigger_row(data):
     return {
         "cases": len(results),
         "errored": errored,
+        "not_run": not_run,
+        "limited": bool(data.get("limited")),
         "recall": round(sum(r["status"] == "pass" for r in should) / len(should), 4)
         if should
         else 0.0,
@@ -88,12 +92,15 @@ def trigger_row(data):
 
 
 def harness_row(rows):
+    ran = [r for r in rows if r.get("status") != "not run"]
     by = {}
-    for r in rows:
+    for r in ran:
         by.setdefault(r["scenario"], []).append(r["status"] == "pass")
     return {
-        "runs": len(rows),
-        "passed": sum(r["status"] == "pass" for r in rows),
+        "runs": len(ran),
+        "not_run": len(rows) - len(ran),
+        "limited": len(ran) < len(rows),
+        "passed": sum(r["status"] == "pass" for r in ran),
         "scenarios": {n: round(sum(v) / len(v), 4) for n, v in sorted(by.items())},
     }
 
@@ -128,8 +135,31 @@ def skill_evals_row(summary):
         for sk, m in skills.items()
         if "error" not in m
     }
-    failed = {sk: m["error"] for sk, m in skills.items() if "error" in m}
-    return {"chosen": len(skills), "measured": len(keep), "failed": failed, "skills": dict(sorted(keep.items()))}
+    failed = {sk: m["error"] for sk, m in skills.items() if "error" in m and not m.get("limited")}
+    limited = sorted(sk for sk, m in skills.items() if m.get("limited"))
+    return {"chosen": len(skills), "measured": len(keep), "failed": failed, "limited": limited,
+            "skills": dict(sorted(keep.items()))}
+
+
+def triggers_before(board):
+    """skill -> its newest trigger counts in any row so far; with the weekly
+    rotation each row measures a different set of skills."""
+    out = {}
+    if os.path.isfile(board):
+        with open(board) as f:
+            for ln in f:
+                if ln.strip():
+                    for sk, v in ((json.loads(ln).get("trigger") or {}).get("skills") or {}).items():
+                        out[sk] = v
+    return out
+
+
+def rates(counts):
+    """(recall, false rate) over [should loaded, should total, near false, near total] lists."""
+    sh = sum(c[1] for c in counts)
+    nr = sum(c[3] for c in counts)
+    return (sum(c[0] for c in counts) / sh if sh else None,
+            sum(c[2] for c in counts) / nr if nr else None)
 
 
 def pct(x):
@@ -152,12 +182,14 @@ def main():
     print(
         f"eval-scoreboard: {t['cases']} trigger cases, {h['runs']} harness runs checked"
     )
-    if t["cases"] == 0 or h["runs"] == 0:
-        print(
-            "eval-scoreboard: 0 cases checked in a suite; nothing written",
-            file=sys.stderr,
-        )
+    if t["cases"] == 0 and h["runs"] == 0 and not (se and se["measured"]):
+        print("eval-scoreboard: 0 cases checked in every suite; nothing written", file=sys.stderr)
         return 1
+    for name, n, lim in (("trigger", t["cases"], t["limited"]), ("harness", h["runs"], h["limited"])):
+        if n == 0 and not lim:
+            print(f"eval-scoreboard: 0 {name} cases checked and no usage limit to explain it; nothing written",
+                  file=sys.stderr)
+            return 1
 
     row = {
         "date": datetime.date.today().isoformat(),
@@ -168,6 +200,7 @@ def main():
     }
     prev = last_row(a.board)
     before = measured_before(a.board)
+    trig_before = triggers_before(a.board)
     os.makedirs(os.path.dirname(os.path.abspath(a.board)), exist_ok=True)
     with open(a.board, "a") as f:
         f.write(json.dumps(row, sort_keys=True) + "\n")
@@ -179,24 +212,32 @@ def main():
             f"harness {h['passed']}/{h['runs']} passed; no previous row"
         )
     else:
-        pt, ph = prev["trigger"], prev["harness"]
-        print(
-            f"  recall {pct(t['recall'])} ({(t['recall'] - pt['recall']) * 100:+.1f} points), "
-            f"false triggers {pct(t['false_rate'])} ({(t['false_rate'] - pt['false_rate']) * 100:+.1f} points), "
-            f"harness {h['passed']}/{h['runs']} passed; since {prev['date']} ({(prev.get('commit') or 'unknown')[:7]})"
-        )
-        if pt["recall"] - t["recall"] > a.max_drop:
-            regressions.append(f"recall {pct(pt['recall'])} -> {pct(t['recall'])}")
-        if t["false_rate"] - pt["false_rate"] > a.max_drop:
-            regressions.append(
-                f"false triggers {pct(pt['false_rate'])} -> {pct(t['false_rate'])}"
+        ph = prev.get("harness") or {}
+        # Recall and false triggers over the skills measured now that were
+        # measured before, each against its own last measurement.
+        common = [sk for sk in t["skills"] if sk in trig_before]
+        r_now, f_now = rates([t["skills"][sk] for sk in common])
+        r_was, f_was = rates([trig_before[sk] for sk in common])
+        if r_now is not None and r_was is not None:
+            print(
+                f"  recall {pct(r_now)} ({(r_now - r_was) * 100:+.1f} points), false triggers "
+                f"{pct(f_now or 0)} ({((f_now or 0) - (f_was or 0)) * 100:+.1f} points) over {len(common)} skills "
+                f"measured before; harness {h['passed']}/{h['runs']} passed; since {prev['date']} "
+                f"({(prev.get('commit') or 'unknown')[:7]})"
             )
+            if r_was - r_now > a.max_drop:
+                regressions.append(f"recall {pct(r_was)} -> {pct(r_now)} over {len(common)} skills")
+            if (f_now or 0) - (f_was or 0) > a.max_drop:
+                regressions.append(f"false triggers {pct(f_was or 0)} -> {pct(f_now or 0)} over {len(common)} skills")
+        else:
+            print(f"  recall {pct(t['recall'])}, false triggers {pct(t['false_rate'])}: no skill measured "
+                  f"before, nothing compared; harness {h['passed']}/{h['runs']} passed")
         for n, rate in h["scenarios"].items():
-            was = ph["scenarios"].get(n)
+            was = (ph.get("scenarios") or {}).get(n)
             if was is not None and rate < was:
                 regressions.append(f"harness {n} {pct(was)} -> {pct(rate)}")
         for s, now in t["skills"].items():
-            was = pt["skills"].get(s)
+            was = trig_before.get(s)
             if was and was != now:
                 print(
                     f"  {s}: loaded {was[0]}/{was[1]} -> {now[0]}/{now[1]}, "
@@ -214,6 +255,15 @@ def main():
         print("  skill-evals: not run")
     if t["errored"]:
         print(f"  {t['errored']} trigger cases errored and were left out")
+    limits = []
+    if t["limited"]:
+        limits.append(f"trigger ({t['not_run']} cases not run)")
+    if h["limited"]:
+        limits.append(f"harness ({h['not_run']} scenarios not run)")
+    if se is not None and se.get("limited"):
+        limits.append(f"skill-evals ({len(se['limited'])} skills not run)")
+    if limits:
+        print(f"  stopped at the usage limit: {', '.join(limits)}; left out, not counted as failures")
     for r in regressions:
         print(f"regression: {r}")
     print(
