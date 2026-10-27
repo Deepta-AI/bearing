@@ -4,13 +4,13 @@
   "skills": 109,
   "commandSkills": 0,
   "stackSkills": 12,
-  "scripts": 111,
-  "scriptLines": 35640,
+  "scripts": 113,
+  "scriptLines": 35952,
   "hooks": 12,
   "agents": 8,
   "makeTargets": 39,
   "gates": 19,
-  "tests": 126,
+  "tests": 127,
   "fixtures": 25,
   "stacks": 13,
   "templates": 38,
@@ -16089,7 +16089,7 @@
    "name": "eval-scoreboard.py",
    "lang": "python",
    "group": "quality",
-   "lines": 226,
+   "lines": 276,
    "header": "eval-scoreboard: one row of evals/scoreboard.jsonl from a trigger-eval and\na harness-eval run, compared with the row before it.\n\nThe row holds the date, the commit measured, trigger totals (cases, errored,\nrecall, false-trigger rate) and per skill, the harness pass rate per scenario,\nand skill_evals (from bin/skill-evals-run.py's summary.json, or null when\nit did not run). The file\nis tracked and read by no site: the numbers are for merge requests and the\nmaintainers, not the handbook.\n\nA regression is recall down, or the false-trigger rate up, by more than\n--max-drop (default 0.05), or any harness scenario's pass rate lower than in\nthe previous row. The row is written anyway, so the history stays honest.\nPer-skill moves are listed and never fail the run: a skill has too few\nrequests to gate on. A skill whose with_skill pass rate fell by more than\n--max-skill-drop (default 0.10) since its previous measurement in any row is a\nregression too.\n\nUsage: eval-scoreboard.py --trigger <results.json> --harness <results.json>\n                          [--board evals/scoreboard.jsonl] [--max-drop R]\n                          [--skill-evals <summary.json>] [--max-skill-drop R]\nPrints \"eval-scoreboard: N trigger cases, M harness runs checked\" and what\nmoved; exits 2 when a results file is missing or unreadable, 1 when zero cases\nwere checked (nothing written) or on a regression, else 0.",
    "functions": [
     "load",
@@ -16099,6 +16099,8 @@
     "last_row",
     "measured_before",
     "skill_evals_row",
+    "triggers_before",
+    "rates",
     "pct",
     "main"
    ],
@@ -16121,16 +16123,17 @@
    "name": "evals-weekly.sh",
    "lang": "bash",
    "group": "quality",
-   "lines": 60,
-   "header": "bin/evals-weekly.sh: the weekly eval run. trigger-eval, harness-eval and\nskill-evals-run (a rotating set of skills, BRG_SKILL_EVALS_MAX, default 5,\nthree at once under a cap of six sessions) run\nagainst this clone with the logged-in claude CLI (the subscription, never an\nAPI key), each into a fresh folder, then bin/eval-scoreboard.py appends a row\nto evals/scoreboard.jsonl and compares it with the last one. The maintainer\ncommits the row. `make evals-timer` prints the systemd units that run this\nevery week.\n\nRefuses a dirty tree (exit 2): the row records the commit it measured. The\nboard itself may be uncommitted, so a row not yet committed does not block\nnext week's run.\nExits 1 when either suite or the scoreboard failed; the row is still written\nwhen the scoreboard had cases to write. bash 3.2 safe.\n\n  BRG_TRIGGER_EVAL  the trigger-eval command (default: python3 bin/trigger-eval.py -j 8)\n  BRG_HARNESS_EVAL  the harness-eval command (default: python3 bin/harness-eval.py)\n  BRG_SKILL_EVALS   the skill-evals-run command (default: python3 bin/skill-evals-run.py);\n                    it gets --board, --out and --max appended\n  BRG_SCOREBOARD    the board file (default: evals/scoreboard.jsonl)",
+   "lines": 87,
+   "header": "bin/evals-weekly.sh: the weekly eval run. trigger-eval, harness-eval and\nskill-evals-run (a rotating set of skills, BRG_SKILL_EVALS_MAX, default 5,\nthree at once under a cap of six sessions) run\nagainst this clone with the logged-in claude CLI (the subscription, never an\nAPI key), each into a fresh folder, then bin/eval-scoreboard.py appends a row\nto evals/scoreboard.jsonl and compares it with the last one. The maintainer\ncommits the row. `make evals-timer` prints the systemd units that run this\nevery week.\n\nRefuses a dirty tree (exit 2): the row records the commit it measured. The\nboard itself may be uncommitted, so a row not yet committed does not block\nnext week's run.\nExits 1 when either suite or the scoreboard failed; the row is still written\nwhen the scoreboard had cases to write. bash 3.2 safe.\n\n  BRG_TRIGGER_EVAL  the trigger-eval command (default: python3 bin/trigger-eval.py -j 8)\n  BRG_HARNESS_EVAL  the harness-eval command (default: python3 bin/harness-eval.py)\n  BRG_SKILL_EVALS   the skill-evals-run command (default: python3 bin/skill-evals-run.py);\n                    it gets --board, --out and --max appended\n  BRG_SCOREBOARD    the board file (default: evals/scoreboard.jsonl)\n  BRG_TRIGGER_ROTATION  the command printing this week's trigger skills\n                    (default: python3 bin/trigger-rotation.py --board <board>)\n  BRG_EVALS_WEEKLY_OUT  where each run's output folder goes (default:\n                    .scratch/evals-weekly, which git ignores; /tmp was\n                    cleared before the first run's failures could be read)\n\nOrder: the harness (8 scenarios) and the skill evals (5 skills) first, the\ntrigger cases (a rotation of about 140, bin/trigger-rotation.py) last, so the\nplan's usage limit, if it is reached, cuts the cheapest-to-repeat suite. A\nsuite stopped by the limit exits 3; the row marks what did not run, and this\nscript exits 3 too.",
    "functions": [
+    "run",
     "trigger",
+    "rotation",
     "harness",
     "skills"
    ],
    "env": [],
    "calls": [
-    "brg-evals-weekly",
     "harness-eval.py"
    ]
   },
@@ -16291,8 +16294,8 @@
    "name": "harness-eval.py",
    "lang": "python",
    "group": "quality",
-   "lines": 626,
-   "header": "harness-eval: run real Claude Code sessions against Bearing's hooks and check\nthat each gate was reached and held.\n\nEvery scenario builds a throwaway repository under the system temp directory,\nruns `claude -p` in it with this kit loaded through --plugin-dir (and only the\nproject and local setting sources, so an installed copy of the plugin cannot\nanswer for it), then reads the stream and the session transcript.\n\n  ordinary-work  everyday commands that name a blocked verb as text (a python\n              heredoc with a triple-quoted doc line, importlib's\n              exec_module, a commit message read with -F -) must all run\n  sandbox     the repository template's own settings: from inside the\n              session a push host (github.com over git) must be unreachable,\n              and npm's registry, npm's default cache, $TMPDIR, a lockfile and\n              .env.example usable, while .env stays hidden\n  push        asked to commit and push; the remote must not move and the guard\n              must have refused a `git push`\n  deploy      asked to `kubectl apply`; a stub kubectl must never run and the\n              guard must have refused the command\n  edit-lint   asked to write invalid JSON in a repository with a check-file\n              target; the edit hook must have said it ran no check-file\n              (hooks run no repository command; make check-file runs in\n              the session), and the file must end valid or the report\n              name the problem\n  stop-green  changes a file with a passing `make check`; the Stop hook must\n              have sent the session back once and the check must then pass\n              (or the report say it was not run)\n  stop-red    the same with a failing `make check`; sent back once, no loop,\n              and the report must say the check failed\n  compaction  a request made before `/compact` must be in the snapshot and in\n              what SessionStart (compact) put back into context\n\nA scenario whose gate was never reached is \"not exercised\" and counts as a\nfailure: a check that examined nothing did not pass.\n\nUsage: harness-eval.py [--only name,...] [--list] [--keep] [--repeat N] [--min-rate R]\n  --repeat N    run each scenario N times on fresh fixtures and print its pass\n                rate; exit 0 only when every scenario reaches --min-rate (1.0)\n  BRG_CLAUDE           the claude binary (default: claude)\n  BRG_CLAUDE_PROJECTS  where session transcripts live (default ~/.claude/projects)\n  BRG_HARNESS_EVAL_OUT where results.json goes (default .scratch/harness-eval)\nPrints one line per scenario and \"harness-eval: N scenarios, P passed, ...\";\nexits 1 on any failure or when no scenario ran. Uses the logged-in claude CLI\n(subscription); each run costs a few short sessions.",
+   "lines": 649,
+   "header": "harness-eval: run real Claude Code sessions against Bearing's hooks and check\nthat each gate was reached and held.\n\nEvery scenario builds a throwaway repository under the system temp directory,\nruns `claude -p` in it with this kit loaded through --plugin-dir (and only the\nproject and local setting sources, so an installed copy of the plugin cannot\nanswer for it), then reads the stream and the session transcript.\n\n  ordinary-work  everyday commands that name a blocked verb as text (a python\n              heredoc with a triple-quoted doc line, importlib's\n              exec_module, a commit message read with -F -) must all run\n  sandbox     the repository template's own settings: from inside the\n              session a push host (github.com over git) must be unreachable,\n              and npm's registry, npm's default cache, $TMPDIR, a lockfile and\n              .env.example usable, while .env stays hidden\n  push        asked to commit and push; the remote must not move and the guard\n              must have refused a `git push`\n  deploy      asked to `kubectl apply`; a stub kubectl must never run and the\n              guard must have refused the command\n  edit-lint   asked to write invalid JSON in a repository with a check-file\n              target; the edit hook must have said it ran no check-file\n              (hooks run no repository command; make check-file runs in\n              the session), and the file must end valid or the report\n              name the problem\n  stop-green  changes a file with a passing `make check`; the Stop hook must\n              have sent the session back once and the check must then pass\n              (or the report say it was not run)\n  stop-red    the same with a failing `make check`; sent back once, no loop,\n              and the report must say the check failed\n  compaction  a request made before `/compact` must be in the snapshot and in\n              what SessionStart (compact) put back into context\n\nA scenario whose gate was never reached is \"not exercised\" and counts as a\nfailure: a check that examined nothing did not pass.\n\nUsage: harness-eval.py [--only name,...] [--list] [--keep] [--repeat N] [--min-rate R]\n  --repeat N    run each scenario N times on fresh fixtures and print its pass\n                rate; exit 0 only when every scenario reaches --min-rate (1.0)\n  BRG_CLAUDE           the claude binary (default: claude)\n  BRG_CLAUDE_PROJECTS  where session transcripts live (default ~/.claude/projects)\n  BRG_HARNESS_EVAL_OUT where results.json goes (default .scratch/harness-eval)\nPrints one line per scenario and \"harness-eval: N scenarios, P passed, ...\";\nexits 1 on any failure or when no scenario ran. A session refused for the\nplan's usage or rate limit (bin/usage_limit.py) stops the run: that scenario\nand the ones after it are \"not run\", left out of the rates, and the exit is 3. Uses the logged-in claude CLI\n(subscription); each run costs a few short sessions.",
    "functions": [
     "sh",
     "fixture",
@@ -16489,8 +16492,8 @@
    "name": "skill-evals-run.py",
    "lang": "python",
    "group": "quality",
-   "lines": 361,
-   "header": "skill-evals-run: measure a rotating set of skills with no one at the keyboard.\n\nFor each chosen skill this drives bin/skill-evals.py end to end: prepare (the\nnext free iteration), one `claude -p` executor per run folder, timing from the\nsession's JSON result, grade-prompt, one `claude -p` grader per case, unblind\nand measure. The measurements go to <out>/summary.json, which\nbin/eval-scoreboard.py --skill-evals copies into evals/scoreboard.jsonl.\n\nEvery session runs in Claude Code's Bash sandbox (required, network limited to\nlocalhost, credential folders unreadable) with no user or project settings,\nand without the Skill tool or browser tools. The executor prompt forbids push,\ndeploy and network installs; the sandbox enforces it.\n\nRotation, from the board's skill_evals rows: skills whose skill folder or\nevals/<name>/ changed since the commit they were last measured at come first,\nthen skills never measured, then the longest since measured. --max caps it.\n\nUsage: skill-evals-run.py [--only a,b] [--max N] [--board F] [--out D]\n                          [-j N] [--parallel-skills N] [--model M]\n                          [--timeout S] [--list]\n--parallel-skills skills are measured at once (default 3); -j caps the claude\nsessions open at once across all of them (default 6).\nPrints one line per skill and \"skill-evals-run: N skills chosen, M measured,\nK failed\"; exits 1 when no skill was chosen or none was measured or any\nfailed. Uses the logged-in claude CLI (subscription), never an API key.",
+   "lines": 389,
+   "header": "skill-evals-run: measure a rotating set of skills with no one at the keyboard.\n\nFor each chosen skill this drives bin/skill-evals.py end to end: prepare (the\nnext free iteration), one `claude -p` executor per run folder, timing from the\nsession's JSON result, grade-prompt, one `claude -p` grader per case, unblind\nand measure. The measurements go to <out>/summary.json, which\nbin/eval-scoreboard.py --skill-evals copies into evals/scoreboard.jsonl.\n\nEvery session runs in Claude Code's Bash sandbox (required, network limited to\nlocalhost, credential folders unreadable) with no user or project settings,\nand without the Skill tool or browser tools. The executor prompt forbids push,\ndeploy and network installs; the sandbox enforces it.\n\nRotation, from the board's skill_evals rows: skills whose skill folder or\nevals/<name>/ changed since the commit they were last measured at come first,\nthen skills never measured, then the longest since measured. --max caps it.\n\nUsage: skill-evals-run.py [--only a,b] [--max N] [--board F] [--out D]\n                          [-j N] [--parallel-skills N] [--model M]\n                          [--timeout S] [--list]\n--parallel-skills skills are measured at once (default 3); -j caps the claude\nsessions open at once across all of them (default 6).\nPrints one line per skill and \"skill-evals-run: N skills chosen, M measured,\nK failed\"; exits 1 when no skill was chosen or none was measured or any\nfailed. A session refused for the plan's usage or rate limit\n(bin/usage_limit.py) stops the run: no further session starts, the skills\nnot finished are \"limited\" in summary.json, and the exit is 3. Uses the logged-in claude CLI (subscription), never an API key.",
    "functions": [
     "git",
     "skills_with_evals",
@@ -16502,6 +16505,7 @@
     "claude",
     "next_iteration",
     "measure_one",
+    "_measure_one",
     "main"
    ],
    "env": [],
@@ -16585,8 +16589,8 @@
    "name": "trigger-eval.py",
    "lang": "python",
    "group": "quality",
-   "lines": 301,
-   "header": "trigger-eval: does a plain request load the right skill?\n\nEach case in evals/triggers.json is one request sent to a fresh headless\nClaude Code session (`claude -p`) with the three Bearing plugins loaded through\n--plugin-dir, in a small sample repository. The session is stopped at the first\nSkill call, or after a few other tool calls, or when it ends; what counts is\nthe first Bearing skill Claude loaded.\n\n  should   the skill must be the first Bearing skill loaded\n  near     a near miss: the skill must not be loaded; `expect` names the\n           sibling that should load instead (or null for none), recorded but\n           not required, so a near miss measures false triggers only\n\nBy default only the project and local setting sources load, so skills and\nplugins installed on this machine do not answer for the kit under test.\n--sources user,project,local runs in the machine's real setup instead (every\ninstalled skill competing for the listing budget).\n\nUsage: trigger-eval.py [--only name,...] [--kind should|near] [-j N]\n                       [--model M] [--sources S] [--repeat N]\n                       [--min-recall R] [--max-false R] [--list]\nPrints one line per skill and \"trigger-eval: N cases, ...\"; exits 1 when no\ncase ran, when any case errored, or when recall or the false-trigger rate\nmisses its bound. Results go to .scratch/trigger-eval/<time>/results.json.\nUses the logged-in claude CLI (subscription); one short session per case.",
+   "lines": 328,
+   "header": "trigger-eval: does a plain request load the right skill?\n\nEach case in evals/triggers.json is one request sent to a fresh headless\nClaude Code session (`claude -p`) with the three Bearing plugins loaded through\n--plugin-dir, in a small sample repository. The session is stopped at the first\nSkill call, or after a few other tool calls, or when it ends; what counts is\nthe first Bearing skill Claude loaded.\n\n  should   the skill must be the first Bearing skill loaded\n  near     a near miss: the skill must not be loaded; `expect` names the\n           sibling that should load instead (or null for none), recorded but\n           not required, so a near miss measures false triggers only\n\nBy default only the project and local setting sources load, so skills and\nplugins installed on this machine do not answer for the kit under test.\n--sources user,project,local runs in the machine's real setup instead (every\ninstalled skill competing for the listing budget).\n\nUsage: trigger-eval.py [--only name,...] [--kind should|near] [-j N]\n                       [--model M] [--sources S] [--repeat N]\n                       [--min-recall R] [--max-false R] [--list]\nPrints one line per skill and \"trigger-eval: N cases, ...\"; exits 1 when no\ncase ran, when any case errored, or when recall or the false-trigger rate\nmisses its bound. A session refused for the plan's usage or rate limit\n(bin/usage_limit.py) stops the run: no further session starts, the rest are\n\"not run\", results.json says limited, and the exit is 3. Results go to .scratch/trigger-eval/<time>/results.json.\nUses the logged-in claude CLI (subscription); one short session per case.",
    "functions": [
     "build_fixture",
     "skill_name",
@@ -16597,6 +16601,34 @@
    "calls": [
     "brg-trigger"
    ]
+  },
+  {
+   "path": "bin/trigger-rotation.py",
+   "name": "trigger-rotation.py",
+   "lang": "python",
+   "group": "quality",
+   "lines": 111,
+   "header": "trigger-rotation: the skills trigger-eval runs this week.\n\nAll 547 trigger cases in one run used up the plan's session limit on 22 Oct\n2026, so the weekly run takes:\n\n  changed   every skill whose folder changed since the scoreboard row that\n            last measured its triggers (or whose history git cannot read)\n  quarter   a rotating quarter of all skills, by ISO week number, so every\n            skill is measured at least once in four weeks; a skill never\n            measured joins in its quarter, not all at once\n\nUsage: trigger-rotation.py [--board F] [--cases F] [--week N] [--quarters N] [--list]\nPrints the names comma-separated for `trigger-eval.py --only`, or with --list\none per line with the reason and \"trigger-rotation: N skills (C changed, Q\nquarter K of 4)\"; exits 1 when it chose no skill.",
+   "functions": [
+    "last_measured",
+    "changed",
+    "main"
+   ],
+   "env": [],
+   "calls": []
+  },
+  {
+   "path": "bin/usage_limit.py",
+   "name": "usage_limit.py",
+   "lang": "python",
+   "group": "quality",
+   "lines": 46,
+   "header": "usage_limit: tell a session refused for the plan's usage or rate limit from\none that failed, for the eval runners (trigger-eval, harness-eval,\nskill-evals-run).\n\nA refused session is not a result: once one says the limit is hit, every\nsession after it is refused too, so a runner stops starting sessions, marks\nwhat it did not run as \"not run (usage limit)\" and exits LIMITED. The\nscoreboard leaves those out instead of counting them as failures, so a\nlimited run never reads as a regression or, the week after, as a recovery.\nOn 22 Oct 2026 the first weekly run hit \"You've hit your session limit\"\nafter 547 trigger sessions, and the harness and skill evals that followed\nall \"failed\".",
+   "functions": [
+    "is_limit"
+   ],
+   "env": [],
+   "calls": []
   },
   {
    "path": "plugins/bearing/hooks/scripts/agent-report.sh",
@@ -18349,7 +18381,7 @@
   },
   {
    "name": "evals-weekly",
-   "does": "trigger-eval, harness-eval and skill-evals-run (five skills in rotation) on a clean tree, then a row in evals/scoreboard.jsonl compared with the last (uses the claude CLI; not part of check)",
+   "does": "harness-eval, skill-evals-run (five skills) and trigger-eval (a rotation of about 140 cases) on a clean tree, then a row in evals/scoreboard.jsonl; stops at the usage limit with exit 3 (uses the claude CLI; not part of check)",
    "inCheck": false
   },
   {
@@ -18886,9 +18918,9 @@
   {
    "path": "tests/unit/eval_scoreboard.sh",
    "kind": "unit",
-   "lines": 180,
+   "lines": 229,
    "header": "tests/unit/eval_scoreboard.sh: bin/eval-scoreboard.py turns one trigger-eval and one harness-eval results.json into a row of evals/scoreboard.jsonl and fails on zero cases or a regression; bin/evals-weekly.sh runs both suites and the scoreboard. The suites are stubbed through BRG_TRIGGER_EVAL and BRG_HARNESS_EVAL; the real sessions run under make evals-weekly, not here.",
-   "asserts": 46
+   "asserts": 62
   },
   {
    "path": "tests/unit/eval_stats.sh",
@@ -18998,9 +19030,9 @@
   {
    "path": "tests/unit/harness_eval.sh",
    "kind": "unit",
-   "lines": 47,
+   "lines": 64,
    "header": "tests/unit/harness_eval.sh: bin/harness-eval.py fails closed. With a claude that starts a session and does nothing, every scenario is \"not exercised\" and the run exits 1 with the counts; an unknown scenario exits 2; --list names all eight. The real sessions run under make harness-eval, not here.",
-   "asserts": 18
+   "asserts": 23
   },
   {
    "path": "tests/unit/hld_arch_check.sh",
@@ -19341,9 +19373,9 @@
   {
    "path": "tests/unit/skill_evals_run.sh",
    "kind": "unit",
-   "lines": 262,
+   "lines": 273,
    "header": "tests/unit/skill_evals_run.sh: bin/skill-evals-run.py chooses a rotating set of skills from evals/scoreboard.jsonl and drives bin/skill-evals.py through executor and grader sessions; bin/eval-scoreboard.py --skill-evals writes the measurements into the row. A stub claude stands in for every session and a stub skill-creator for the benchmark; the real sessions run under make evals-weekly, not here.",
-   "asserts": 61
+   "asserts": 66
   },
   {
    "path": "tests/unit/skill_tune.sh",
@@ -19425,9 +19457,16 @@
   {
    "path": "tests/unit/trigger_eval.sh",
    "kind": "unit",
-   "lines": 64,
+   "lines": 78,
    "header": "tests/unit/trigger_eval.sh: bin/trigger-eval.py grades what Claude loaded, and bin/lint-triggers.py holds evals/triggers.json to every skill. A stub claude loads the skill named after \"LOAD:\" in the request (none otherwise) and \"FAIL\" makes the session error. The real sessions run under make trigger-eval, not here.",
-   "asserts": 15
+   "asserts": 20
+  },
+  {
+   "path": "tests/unit/trigger_rotation.sh",
+   "kind": "unit",
+   "lines": 62,
+   "header": "tests/unit/trigger_rotation.sh: bin/trigger-rotation.py picks the skills trigger-eval runs this week: every skill whose folder changed since the row that last measured its triggers, plus a rotating quarter of all skills by ISO week, so each is covered at least monthly and the run stays inside the plan's limits (all 547 cases at once hit the session limit on 22 Oct 2026).",
+   "asserts": 13
   },
   {
    "path": "tests/unit/update_check.sh",
@@ -20409,7 +20448,7 @@
     "Changed",
     "Fixed"
    ],
-   "entries": 20,
+   "entries": 21,
    "summary": "- `make evals-weekly`: trigger-eval and harness-eval, then a row in the tracked `evals/scoreboard.jsonl` (`bin/eval-scoreboard.py`) compared with the last one. Fails on zero cases or a regression (recall or false triggers moved by more than 5 points, a harness scenario falling) and keeps the row. `make evals-timer` prints systemd user units for a weekly run and installs nothing. - `make skill-tune` (`bin/skill-tune.py`): propose an edit to one skill from the expectations it last failed, measure the edited copy beside the skill as it is, and keep it as a patch only if with_skill gains 10 points without a smaller margin over no skill. Nothing in the repository changes. - `make claude-drift` (…"
   },
   {
