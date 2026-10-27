@@ -20448,7 +20448,7 @@
     "Changed",
     "Fixed"
    ],
-   "entries": 21,
+   "entries": 22,
    "summary": "- `make evals-weekly`: trigger-eval and harness-eval, then a row in the tracked `evals/scoreboard.jsonl` (`bin/eval-scoreboard.py`) compared with the last one. Fails on zero cases or a regression (recall or false triggers moved by more than 5 points, a harness scenario falling) and keeps the row. `make evals-timer` prints systemd user units for a weekly run and installs nothing. - `make skill-tune` (`bin/skill-tune.py`): propose an edit to one skill from the expectations it last failed, measure the edited copy beside the skill as it is, and keep it as a patch only if with_skill gains 10 points without a smaller margin over no skill. Nothing in the repository changes. - `make claude-drift` (…"
   },
   {

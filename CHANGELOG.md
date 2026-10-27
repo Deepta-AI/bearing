@@ -77,6 +77,12 @@ All notable changes to Bearing. Keep a Changelog format, semantic versions.
   the large packs stay where they were for the maintainer to decide.
 
 ### Fixed
+- The Next.js template pins `next` and `eslint-config-next` 16.4.1,
+  clearing two critical advisories (GHSA-2464-fhr4-w9xw,
+  GHSA-673q-mjm6-r5xr, unauthenticated remote code execution) and a high
+  one (GHSA-p3m5-59mp-jv5r); the Next.js, React, Node and React Native
+  templates pin `zod` 4.6.6 for GHSA-mrhx-c7xc-m3w5 (high). They failed
+  `make vuln` in a new repository and the three node `scaffold` CI jobs.
 - The weekly evals no longer read a usage limit as failures. The first run
   (22 Oct) hit "You've hit your session limit" after 547 trigger sessions,
   and every harness scenario and skill eval after it was recorded as
