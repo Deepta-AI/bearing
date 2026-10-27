@@ -145,23 +145,28 @@ git -C "$repo" init -q && git -C "$repo" add -A && git -C "$repo" -c user.email=
 stubs="$(tmpdir)"
 cat > "$stubs/trigger" <<S
 #!/usr/bin/env bash
+echo "trigger \$*" >> "$d/order.log"
 mkdir -p "\$BRG_TRIGGER_EVAL_OUT/run" && cp "$d/t1.json" "\$BRG_TRIGGER_EVAL_OUT/run/results.json"
 echo "trigger-eval: stub"; exit \${STUB_RC:-0}
 S
 cat > "$stubs/harness" <<S
 #!/usr/bin/env bash
+echo harness >> "$d/order.log"
 mkdir -p "\$BRG_HARNESS_EVAL_OUT/run" && cp "$d/h1.json" "\$BRG_HARNESS_EVAL_OUT/run/results.json"
-echo "harness-eval: stub"
+echo "harness-eval: stub"; exit \${STUB_HARNESS_RC:-0}
 S
+printf '#!/bin/sh\necho adr,learn\n' > "$stubs/rotation"
 cat > "$stubs/skills" <<'S'
 #!/usr/bin/env bash
 while [ $# -gt 0 ]; do [ "$1" = --out ] && out="$2"; shift; done
 mkdir -p "$out"
 echo '{"skills": {"adr": {"commit": "c0", "date": "2026-10-19", "cases": 2, "arms": {"with_skill": {"pass_rate": 1.0}, "without_skill": {"pass_rate": 0.5}}, "margin": 0.5, "result": "bearing ahead"}}}' > "$out/summary.json"
 echo "skill-evals-run: stub"
+echo skills >> "$ORDER_LOG"
 S
-chmod 755 "$stubs/trigger" "$stubs/harness" "$stubs/skills"
-wk() { BRG_SKILL_EVALS="$stubs/skills" BRG_TRIGGER_EVAL="$stubs/trigger" BRG_HARNESS_EVAL="$stubs/harness" BRG_SCOREBOARD="${BOARD_AT:-$d/weekly.jsonl}" bash "$repo/bin/evals-weekly.sh" "$@"; }
+chmod 755 "$stubs/trigger" "$stubs/harness" "$stubs/skills" "$stubs/rotation"
+export ORDER_LOG="$d/order.log"
+wk() { BRG_TRIGGER_ROTATION="$stubs/rotation" BRG_SKILL_EVALS="$stubs/skills" BRG_TRIGGER_EVAL="$stubs/trigger" BRG_HARNESS_EVAL="$stubs/harness" BRG_SCOREBOARD="${BOARD_AT:-$d/weekly.jsonl}" bash "$repo/bin/evals-weekly.sh" "$@"; }
 
 t_begin "the weekly run runs both suites and writes one row"
 assert_exit 0 wk
@@ -173,9 +178,25 @@ assert_contains "$T_OUT" "eval-scoreboard: 15 trigger cases, 2 harness runs chec
 assert_eq 1 "$(wc -l < "$d/weekly.jsonl" | tr -d ' ')" "weekly rows"
 t_end
 
+t_begin "the cheap suites run first, the rotated trigger cases last, output kept in .scratch"
+: > "$d/order.log"
+assert_exit 0 wk
+assert_eq "harness skills trigger --only adr,learn" "$(tr '\n' ' ' < "$d/order.log" | sed 's/ $//')" "order"
+assert_contains "$T_OUT" "trigger cases for 2 skills this week"
+assert_contains "$T_OUT" "suite output kept in $repo/.scratch/evals-weekly/"
+t_end
+
+t_begin "a suite stopped by the usage limit makes the run exit 3, with the row written"
+n="$(wc -l < "$d/weekly.jsonl" | tr -d ' ')"
+STUB_HARNESS_RC=3 assert_exit 3 wk
+assert_contains "$T_OUT" "stopped at the plan's usage limit"
+assert_eq "$((n + 1))" "$(wc -l < "$d/weekly.jsonl" | tr -d ' ')" "row written"
+t_end
+
 t_begin "a failing suite fails the weekly run after the row is written"
+n="$(wc -l < "$d/weekly.jsonl" | tr -d ' ')"
 STUB_RC=1 assert_exit 1 wk
-assert_eq 2 "$(wc -l < "$d/weekly.jsonl" | tr -d ' ')" "weekly rows"
+assert_eq "$((n + 1))" "$(wc -l < "$d/weekly.jsonl" | tr -d ' ')" "weekly rows"
 t_end
 
 t_begin "a dirty tree is refused before anything runs"
