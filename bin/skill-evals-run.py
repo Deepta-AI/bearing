@@ -23,7 +23,9 @@ Usage: skill-evals-run.py [--only a,b] [--max N] [--board F] [--out D]
 sessions open at once across all of them (default 6).
 Prints one line per skill and "skill-evals-run: N skills chosen, M measured,
 K failed"; exits 1 when no skill was chosen or none was measured or any
-failed. Uses the logged-in claude CLI (subscription), never an API key.
+failed. A session refused for the plan's usage or rate limit
+(bin/usage_limit.py) stops the run: no further session starts, the skills
+not finished are "limited" in summary.json, and the exit is 3. Uses the logged-in claude CLI (subscription), never an API key.
 """
 
 import argparse
@@ -40,6 +42,9 @@ import threading
 KIT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(KIT, "bin"))
 import kit_paths  # noqa: E402
+import usage_limit  # noqa: E402
+
+STOP = usage_limit.Stop()
 
 CLAUDE = os.environ.get("BRG_CLAUDE", "claude")
 EVALS = os.path.join(KIT, "bin", "skill-evals.py")
@@ -188,8 +193,12 @@ def claude(prompt, cwd, args, writable=(), keep=None):
         cmd += ["--add-dir", w]
     if args.model:
         cmd += ["--model", args.model]
+    if STOP:
+        return None, "not run: usage limit"
     try:
         with SESSIONS:
+            if STOP:  # hit while this one waited for a free slot
+                return None, "not run: usage limit"
             p = subprocess.run(
                 cmd, cwd=cwd, capture_output=True, text=True, timeout=args.timeout
             )
@@ -206,7 +215,11 @@ def claude(prompt, cwd, args, writable=(), keep=None):
             f"claude exit {p.returncode}, no JSON result: {p.stderr.strip()[:200]}",
         )
     if p.returncode != 0 or res.get("is_error"):
-        return None, f"claude exit {p.returncode}: {str(res.get('result'))[:200]}"
+        said = str(res.get("result"))[:200]
+        if usage_limit.is_limit(said):
+            STOP.hit(said)
+            return None, f"usage limit: {said}"
+        return None, f"claude exit {p.returncode}: {said}"
     return res, None
 
 
@@ -220,6 +233,16 @@ def next_iteration(skill):
 
 
 def measure_one(skill, args):
+    m = _measure_one(skill, args)
+    if "error" in m and STOP:
+        # A skill cut short by the usage limit was not measured, not failed.
+        m = {"error": f"not run: usage limit ({STOP.reason})", "limited": True}
+    return m
+
+
+def _measure_one(skill, args):
+    if STOP:
+        return {"error": "not run: usage limit"}
     it = str(next_iteration(skill))
     with PRIVATE_LOCK:
         p = evals("prepare", skill, "--iteration", it)
@@ -348,12 +371,17 @@ def main():
     os.makedirs(args.out, exist_ok=True)
     with open(os.path.join(args.out, "summary.json"), "w") as f:
         json.dump(summary, f, indent=1)
-    failed = sum("error" in m for m in summary["skills"].values())
-    measured = len(chosen) - failed
+    failed = sum("error" in m and not m.get("limited") for m in summary["skills"].values())
+    measured = sum("error" not in m for m in summary["skills"].values())
     print(
         f"skill-evals-run: {len(chosen)} skills chosen, {measured} measured, {failed} failed; "
         f"summary in {os.path.relpath(os.path.join(args.out, 'summary.json'), KIT)}"
     )
+    limited = sum(bool(m.get("limited")) for m in summary["skills"].values())
+    if STOP:
+        print(f"skill-evals-run: stopped at the usage limit ({STOP.reason}); {limited} skills not run, "
+              f"recorded as limited, not failed", file=sys.stderr)
+        return usage_limit.LIMITED
     return 0 if measured and not failed else 1
 
 

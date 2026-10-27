@@ -41,6 +41,8 @@ if os.environ.get("STUB_CONC"):
     with open(os.environ["STUB_CONC"], "a") as f:
         f.write(f"end {time.time()}\n")
 p = a[a.index("-p") + 1]
+if os.environ.get("STUB_LIMIT") and "one run of a skill evaluation" in p:
+    print(json.dumps({"type": "result", "is_error": True, "result": "You've hit your session limit \u00b7 resets 1am"})); sys.exit(1)
 if os.environ.get("STUB_FAIL") and "one run of a skill evaluation" in p:
     print(json.dumps({"type": "result", "is_error": True, "result": "stub failure"})); sys.exit(1)
 if "one run of a skill evaluation" in p:
@@ -146,6 +148,15 @@ PY2
 assert_eq 2 "$peak" "most sessions open at once"
 assert_contains "$(cat "$d/private.json")" '"test-cases"'
 assert_contains "$(cat "$d/private.json")" '"learn"'
+t_end
+
+t_begin "the usage limit stops the run: skills are limited, not failed, and no further session starts"
+: > "$d/calls.log"
+STUB_LIMIT=1 assert_exit 3 run --only learn,test-cases --parallel-skills 1 -j 1
+assert_contains "$T_OUT" "stopped at the usage limit"
+assert_contains "$T_OUT" "0 measured, 0 failed"
+assert_eq "1" "$(wc -l < "$d/calls.log" | tr -d ' ')" "sessions started (only the one refused)"
+assert_eq "True True" "$(python3 -c 'import json,sys;d=json.load(open(sys.argv[1]))["skills"];print(d["learn"].get("limited"), d["test-cases"].get("limited"))' "$d/out/summary.json")" "both limited"
 t_end
 
 t_begin "a skill whose executors fail is recorded with its error and fails the run"

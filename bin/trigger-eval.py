@@ -22,7 +22,9 @@ Usage: trigger-eval.py [--only name,...] [--kind should|near] [-j N]
                        [--min-recall R] [--max-false R] [--list]
 Prints one line per skill and "trigger-eval: N cases, ..."; exits 1 when no
 case ran, when any case errored, or when recall or the false-trigger rate
-misses its bound. Results go to .scratch/trigger-eval/<time>/results.json.
+misses its bound. A session refused for the plan's usage or rate limit
+(bin/usage_limit.py) stops the run: no further session starts, the rest are
+"not run", results.json says limited, and the exit is 3. Results go to .scratch/trigger-eval/<time>/results.json.
 Uses the logged-in claude CLI (subscription); one short session per case.
 """
 
@@ -37,6 +39,10 @@ import threading
 import time
 
 KIT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(KIT, "bin"))
+import usage_limit  # noqa: E402
+
+STOP = usage_limit.Stop()
 PLUGINS = [
     os.path.join(KIT, "plugins", p)
     for p in ("bearing", "bearing-backend", "bearing-apps", "bearing-genai")
@@ -230,8 +236,17 @@ def main():
         lock = threading.Lock()
 
         def one(c):
+            if STOP:
+                # Every session after the limit is refused: do not start one.
+                r = dict(c, skills=[], first=None, other_tools=0, tools=[], error="", seconds=0, status="not run")
+                with lock:
+                    done[0] += 1
+                return r
             r = dict(c, **run_case(cwd, c["prompt"], args))
-            if r["error"]:
+            if usage_limit.is_limit(r["error"]):
+                STOP.hit(r["error"])
+                r["status"] = "not run"
+            elif r["error"]:
                 r["status"] = "error"
             elif c["kind"] == "should":
                 r["status"] = "pass" if r["first"] == c["skill"] else "fail"
@@ -254,7 +269,8 @@ def main():
 
     with open(os.path.join(out, "results.json"), "w") as f:
         json.dump(
-            {"sources": args.sources, "model": args.model, "results": results},
+            {"sources": args.sources, "model": args.model, "limited": bool(STOP),
+             "limit": STOP.reason, "results": results},
             f,
             indent=1,
         )
@@ -264,17 +280,21 @@ def main():
         by_skill.setdefault(r["skill"], []).append(r)
     print()
     for skill, rs in by_skill.items():
-        should = [r for r in rs if r["kind"] == "should"]
-        near = [r for r in rs if r["kind"] == "near"]
+        should = [r for r in rs if r["kind"] == "should" and r["status"] in ("pass", "fail")]
+        near = [r for r in rs if r["kind"] == "near" and r["status"] in ("pass", "fail")]
+        if not should and not near:
+            continue
         wrong = sorted({r["first"] or "none" for r in should if r["status"] == "fail"})
         print(
             f"  {skill}: loaded on {sum(r['status'] == 'pass' for r in should)}/{len(should)}"
             f", false triggers {sum(r['status'] == 'fail' for r in near)}/{len(near)}"
             + (f"; instead: {', '.join(wrong)}" if wrong else "")
         )
-    should = [r for r in results if r["kind"] == "should" and r["status"] != "error"]
-    near = [r for r in results if r["kind"] == "near" and r["status"] != "error"]
+    graded = [r for r in results if r["status"] in ("pass", "fail")]
+    should = [r for r in graded if r["kind"] == "should"]
+    near = [r for r in graded if r["kind"] == "near"]
     errors = [r for r in results if r["status"] == "error"]
+    not_run = [r for r in results if r["status"] == "not run"]
     recall = sum(r["status"] == "pass" for r in should) / len(should) if should else 0.0
     false = sum(r["status"] == "fail" for r in near) / len(near) if near else 0.0
     sibling = [r for r in near if r["expect"]]
@@ -288,6 +308,13 @@ def main():
     )
     if errors:
         print(f"first error: {errors[0]['error']}", file=sys.stderr)
+    if STOP:
+        print(
+            f"trigger-eval: stopped at the usage limit ({STOP.reason}); {len(not_run)} of "
+            f"{len(results)} cases not run, the rest are scored above",
+            file=sys.stderr,
+        )
+        return usage_limit.LIMITED
     ok = (
         bool(should)
         and not errors

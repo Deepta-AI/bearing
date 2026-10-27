@@ -14,6 +14,7 @@ p="$2"
 echo '{"type":"system","subtype":"init","session_id":"s0"}'
 case "$p" in
   *FAIL*) echo '{"type":"result","is_error":true,"result":"Failed to authenticate"}'; exit 1 ;;
+  *LIMIT*) echo '{"type":"result","is_error":true,"result":"You'"'"'ve hit your session limit · resets 1am (Asia/Kolkata)"}'; exit 1 ;;
   *LOAD:*) s="${p#*LOAD:}"; s="${s%% *}"
     echo "{\"type\":\"assistant\",\"message\":{\"content\":[{\"type\":\"tool_use\",\"name\":\"Skill\",\"input\":{\"skill\":\"bearing:$s\"}}]}}" ;;
 esac
@@ -49,6 +50,19 @@ printf '[{"skill": "adr", "should": ["a", "b", "c"], "near": []}]\n' > "$cases/t
 assert_exit 1 env BRG_CLAUDE=true BRG_TRIGGER_EVAL_OUT="$out" BRG_TRIGGER_CASES="$cases/t.json" python3 "$KIT/bin/trigger-eval.py"
 assert_contains "$T_OUT" "3 errored"
 assert_contains "$T_OUT" "printed nothing"
+t_end
+
+t_begin "a session refused for the usage limit stops the run: the rest are not run, exit 3"
+cat > "$cases/t.json" <<'J'
+[{"skill": "adr", "should": ["one LOAD:adr", "two LOAD:adr", "now LIMIT"],
+  "near": [{"prompt": "later LOAD:adr", "expect": null}, {"prompt": "later still", "expect": null}]}]
+J
+assert_exit 3 ev -j 1
+assert_contains "$T_OUT" "stopped at the usage limit (You've hit your session limit"
+assert_contains "$T_OUT" "3 of 5 cases not run"
+assert_contains "$T_OUT" "0 errored; recall 100% (2/2)"
+r="$(ls -t "$out"/*/results.json | head -1)"
+assert_eq "True 3" "$(python3 -c 'import json,sys;d=json.load(open(sys.argv[1]));print(d["limited"], sum(x["status"]=="not run" for x in d["results"]))' "$r")" "limited, not run"
 t_end
 
 t_begin "no case selected checks nothing and fails"
