@@ -5,6 +5,14 @@ All notable changes to Bearing. Keep a Changelog format, semantic versions.
 ## [Unreleased]
 
 ### Added
+- The doctor reports gate health from the last 14 days of the
+  repository's `gates.log`: how many gate decisions it read, and how often
+  the Stop gate blocked and passed. A Stop gate that blocked 10 times or
+  more and more often than it passed is a MISSING line, since each block
+  is a full extra turn; so is a compaction snapshot that failed to write.
+- After a compaction the session hook prints the branch's handoff note up
+  to 40 lines, so its Criteria come back with the snapshot. Startup and
+  resume keep the first 8 lines; a linked note is not read.
 - Claude Code plugin settings (`userConfig`) for the everyday keys:
   tracker, tracker URL, project and email, task id prefix, learning,
   non-interactive mode and the update check. `/plugin install` asks for
@@ -65,6 +73,14 @@ All notable changes to Bearing. Keep a Changelog format, semantic versions.
   read-only and the link fails across devices.
 
 ### Fixed
+- Tests no longer write the developer's `gates.log`. They ran the guard
+  from the Bearing checkout, which has `.bearing/`, so every decision a
+  test provoked landed in that checkout's log (two guard tests added 605
+  refusals, and `brg-guard stats` showed 2,801 refused `git push`).
+  `tests/lib/assert.sh` sets `BEARING_NO_GATE_LOG=1`; the 11 tests that
+  read the log unset it and log into their own temporary repository.
+- INSTALL gives the output style's full name, `bearing:Bearing report`:
+  a plain `Bearing report` in settings is not applied.
 - The hooks answer for the session's repository. SessionStart moves to the
   event's `cwd`, and every later hook but the Bash guard to the nearest
   directory at or above it that holds the session's mark, before it locks

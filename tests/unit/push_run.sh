@@ -11,6 +11,7 @@
 # bash 3.2 safe.
 set -u
 . "$(dirname "$0")/../lib/assert.sh"
+unset BEARING_NO_GATE_LOG # this test reads gates.log
 unset BEARING_ENV BEARING_AUTO_PUSH CLAUDE_PROJECT_DIR
 home="$(tmpdir)"; mkdir -p "$home/.config/bearing"; envf="$home/.config/bearing/bearing.env"
 # The whole plugin, so stop-gate finds the seamed brg-push beside the guard;

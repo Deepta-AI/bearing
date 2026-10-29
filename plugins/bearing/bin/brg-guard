@@ -1992,7 +1992,10 @@ esac
       fi
     fi
     sf="$root/.bearing/state/$(printf '%s' "$branch" | tr '/' '_').md"
-    [ -f "$sf" ] && { echo "Handoff state from the previous session (${sf#"$root"/}):"; head -8 "$sf"; }
+    # After a compaction the whole note comes back (40 lines at most): the
+    # handoff's Criteria section starts near line 8, past the startup cut.
+    sl=8; [ "$source" = compact ] && sl=40
+    [ -f "$sf" ] && [ ! -L "$sf" ] && { echo "Handoff state from the previous session (${sf#"$root"/}):"; head -"$sl" "$sf"; }
     if [ "$source" != "compact" ]; then
       bash "$(dirname "$0")/brg-session" resume --source "${source:-startup}" 2>/dev/null || gate_log resume not-run "brg-session resume failed"
     fi

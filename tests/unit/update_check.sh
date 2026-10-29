@@ -4,6 +4,7 @@
 # network and the real ~/.claude are never touched.
 set -u
 . "$(dirname "$0")/../lib/assert.sh"
+unset BEARING_NO_GATE_LOG # this test reads gates.log
 U="$KIT/plugins/bearing/bin/brg-update-check"
 export HOME; HOME="$(tmpdir)"
 unset BEARING_ENV BEARING_UPDATE_CHECK BEARING_UPDATE_SKIP BEARING_UPDATE_SNOOZE_UNTIL

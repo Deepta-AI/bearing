@@ -7,6 +7,7 @@
 # a gate's exit 2 into {"decision": "block"}.
 set -u
 . "$(dirname "$0")/../lib/assert.sh"
+unset BEARING_NO_GATE_LOG # this test reads gates.log
 
 repo="$(tmpdir)"
 git -C "$repo" init -q -b main
@@ -122,6 +123,23 @@ assert_contains "$T_OUT" "The context was just summarised"
 assert_contains "$T_OUT" "first ask: build the gate"
 assert_exit 0 in_repo session --id S1 --source startup
 assert_not_contains "$T_OUT" "just summarised" "startup does not replay the snapshot"
+t_end
+
+t_begin "after a compaction the handoff note comes back with its criteria"
+note="$state/$(git -C "$repo" branch --show-current | tr '/' '_').md"
+{ printf '# TASK-7 Waitlist\nUpdated: today   Branch: main   Base: main\nGate: make check 3 passed\nOnly on this machine: none\n## Next (do this first)\n- write the offer test\n## Criteria\n'
+  for i in 1 2 3 4 5 6 7 8 9 10; do printf -- '- %s partly: criterion %s\n' "$i" "$i"; done
+  for i in $(seq 1 40); do printf 'filler %s\n' "$i"; done; } > "$note"
+assert_exit 0 in_repo session --id S1 --source compact
+assert_contains "$T_OUT" "- 10 partly: criterion 10" "the criteria are restored"
+assert_not_contains "$T_OUT" "filler 30" "40 lines at most"
+assert_exit 0 in_repo session --id S1 --source startup
+assert_contains "$T_OUT" "## Next (do this first)" "startup keeps the short note"
+assert_not_contains "$T_OUT" "criterion 2" "startup keeps its first 8 lines"
+rm -f "$note"; ln -s "$repo/Makefile" "$note"
+assert_exit 0 in_repo session --id S1 --source compact
+assert_not_contains "$T_OUT" "Handoff state" "a linked note is not read"
+rm -f "$note"
 t_end
 
 t_begin "precompact without .bearing or a transcript"

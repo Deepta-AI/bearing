@@ -10,6 +10,7 @@
 # included file) never runs. Canary files prove nothing ran. bash 3.2 safe.
 set -u
 . "$(dirname "$0")/../lib/assert.sh"
+unset BEARING_NO_GATE_LOG # this test reads gates.log
 HS="$KIT/plugins/bearing/hooks/scripts"
 P="$KIT/plugins/bearing/skills/session-handoff/scripts/progress.py"
 U="$KIT/plugins/bearing/bin/brg-update-check"

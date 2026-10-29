@@ -261,6 +261,26 @@ if [ -n "$root" ] && [ "$in_kit" -eq 0 ]; then
     if [ -n "$gv" ] && [ "$gv" = "$KIT_VERSION" ]; then pass ".bearing/bin/brg-guard version $gv matches the kit"
     else fail ".bearing/bin/brg-guard version ${gv:-unreadable} differs from kit $KIT_VERSION; run harness-setup again to refresh .bearing/bin/brg-guard"; fi
   else skipped "no vendored .bearing/bin/brg-guard (harness-setup installs it per harness)"; fi
+  # Gate health, from the last 14 days of .bearing/state/gates.log (local
+  # times, written only where python3 is, so python3 picks the cutoff). A
+  # Stop gate that blocks more often than it passes means turns end before
+  # the check: each block is a full extra turn. brg-guard stats has the rest.
+  glog="$root/.bearing/state/gates.log"
+  if [ -f "$glog" ] && [ ! -L "$glog" ]; then
+    since="$(python3 -I -S -c 'import time; print(time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime(time.time() - 14 * 86400)))' 2>/dev/null)"
+    counts="$(cat "$glog.1" "$glog" 2>/dev/null | awk -F'\t' -v s="${since:-0}" '$1 >= s { n++; c[$2 " " $3]++ }
+      END { printf "%d %d %d %d\n", n, c["stop-gate blocked"], c["stop-gate passed"], c["precompact failed"] }')"
+    read -r gn gb gp gf <<EOF
+$counts
+EOF
+    if [ "${gn:-0}" -eq 0 ]; then optional "gate health: 0 gate decisions in the last 14 days (.bearing/state/gates.log)"
+    else
+      if [ "$gb" -ge 10 ] && [ "$gb" -gt "$gp" ]; then
+        fail "gate health: the Stop gate blocked $gb times and passed $gp in 14 days; turns end before the check (run make check-changed before the final report; brg-guard stats for the rest)"
+      else pass "gate health: $gn gate decisions in 14 days, Stop gate blocked $gb, passed $gp"; fi
+      [ "$gf" -eq 0 ] || fail "gate health: $gf compaction snapshot(s) failed to write in 14 days (.bearing/state is a link or not writable)"
+    fi
+  else optional "gate health: no .bearing/state/gates.log yet"; fi
 fi
 total=$((ok+miss))
 echo "brg-doctor: $total checks, $miss missing, $opt optional"

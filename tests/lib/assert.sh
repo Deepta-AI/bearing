@@ -115,6 +115,11 @@ unset BEARING_ENV BEARING_NONINTERACTIVE BEARING_AUTOPILOT
 # would run git ls-remote against the marketplace; update_check.sh unsets
 # this for its own cases.
 BEARING_UPDATE_CHECK=off; export BEARING_UPDATE_CHECK
+# The tests run the guard from this checkout, which has .bearing/, so every
+# decision a test provokes would land in the developer's gates.log (two guard
+# tests added 605 refusals). A test that checks the log unsets this and
+# logs into its own temporary repository.
+BEARING_NO_GATE_LOG=1; export BEARING_NO_GATE_LOG
 hook_kit() { # hook_kit <PATH>: a plugin copy whose hooks reset PATH to <PATH>
   local k line
   [ -d "$T_KITS" ] || return 1

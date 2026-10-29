@@ -3,6 +3,7 @@
 # a branch without an id.
 set -u
 . "$(dirname "$0")/../lib/assert.sh"
+unset BEARING_NO_GATE_LOG # this test reads gates.log
 S="$KIT/plugins/bearing/bin/brg-session"
 repo="$(tmpdir)"; git -C "$repo" init -q -b main
 printf '.bearing/state/\n' > "$repo/.gitignore"; git -C "$repo" add -A
