@@ -201,7 +201,7 @@ listing is capped at 1% of the context window (about 8,000 characters on a
 name only. With several skill packs installed it is easy to pass 300 skills
 and 80,000 characters, and then most skills trigger only by name. Bearing is
 built for that: every skill name says its job and every description puts the
-job and the trigger phrases first, in 220 characters or fewer. To keep
+job and the trigger phrases first, in 150 characters or fewer. To keep
 triggering reliable on your machine:
 
 - Count what you load: `ls ~/.claude/skills | wc -l`, plus each plugin's
@@ -217,6 +217,19 @@ triggering reliable on your machine:
 - Never set `disable-model-invocation: true` on a skill you want Claude to
   pick up from plain requests. It hides the skill from Claude entirely,
   name included; only typing `/<plugin>:<name>` still reaches it.
+
+## Shorter replies: the Bearing report output style
+
+The bearing plugin ships one output style, `Bearing report`
+(`plugins/bearing/output-styles/bearing-report.md`). It keeps Claude Code's
+coding instructions and adds a few rules that cut output tokens without
+cutting evidence: no narration of tool calls or restated plans, counts
+quoted from the commands that ran, the repository's check run before the
+final report rather than after it, and every turn that changed anything
+ending in the Changed, Verified, Not done, Noticed report, with "not run"
+for each check that was skipped. It is opt in: choose it under Output style
+in `/config`, or in `.claude/settings.local.json` for one repository. The
+style is read once, when a session starts.
 
 ## 7. Upgrade
 

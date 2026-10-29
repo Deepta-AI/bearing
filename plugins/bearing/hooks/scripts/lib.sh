@@ -70,10 +70,42 @@ EOF
   export GIT_PAGER=cat
   unset GIT_EXTERNAL_DIFF
 }
+HOOK_JSON="$(cat 2>/dev/null || true)"
+
+# Every git question a hook asks (branch, changed files, the session mark)
+# is about the session's repository, not the directory the harness started
+# the hook in: the desktop app runs a worktree session's hooks from the main
+# checkout, which reported branch=main for a session on its own task branch.
+# SessionStart moves to the event's cwd, where it writes the session mark.
+# Every later hook moves to the nearest directory at or above the event's
+# cwd that holds .bearing/state/.session-<id>, so a cd into a subdirectory
+# or a nested repository does not move the Stop gate off the repository the
+# session started in; with no such directory it stays where it was started.
+# All before git_lockdown reads the filter drivers of the repository it will
+# be asked about. The Bash guard keeps the directory it was started in.
+case "${0##*/}" in
+  (block-publish.sh) ;;
+  (*) _brg_cwd="$(printf '%s' "$HOOK_JSON" | jq -r '.cwd // empty' 2>/dev/null)"
+      _brg_sid="$(printf '%s' "$HOOK_JSON" | jq -r '.session_id // empty' 2>/dev/null)"
+      case "$_brg_sid" in (''|.*|*[!A-Za-z0-9._-]*) _brg_sid="" ;; esac
+      case "$_brg_cwd" in
+        (/*) if [ ! -d "$_brg_cwd" ]; then :
+             elif [ "${0##*/}" = session-start.sh ]; then { cd "$_brg_cwd" 2>/dev/null || true; }
+             elif [ -n "$_brg_sid" ]; then
+               _brg_d="$_brg_cwd"
+               while [ -n "$_brg_d" ]; do
+                 if [ -f "$_brg_d/.bearing/state/.session-$_brg_sid" ]; then { cd "$_brg_d" 2>/dev/null || true; }; break; fi
+                 [ "$_brg_d" = / ] && break
+                 _brg_d="${_brg_d%/*}"; [ -n "$_brg_d" ] || _brg_d=/
+               done
+               unset _brg_d
+             fi ;;
+      esac
+      unset _brg_cwd _brg_sid ;;
+esac
+
 # The Bash guard runs no git; every other hook script is locked down here.
 case "${0##*/}" in (block-publish.sh) ;; (*) git_lockdown ;; esac
-
-HOOK_JSON="$(cat 2>/dev/null || true)"
 BEARING_JQ_WARNED=0
 
 json_field() {

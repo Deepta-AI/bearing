@@ -10,12 +10,15 @@
   "license": "MIT",
   "keywords": [
     "workflow",
+    "claude-code",
+    "agent-skills",
+    "guardrails",
+    "hooks",
     "code-review",
     "testing",
     "documentation",
-    "gitlab",
     "github",
-    "hooks",
+    "gitlab",
     "scaffold"
   ]
 }

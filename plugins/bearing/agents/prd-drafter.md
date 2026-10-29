@@ -4,6 +4,7 @@ description: Read-only drafter for one section range of a long brief. Used by pr
 tools: Read, Grep, Glob
 disallowedTools: Bash, Write, Edit, MultiEdit, NotebookEdit, Agent
 model: sonnet
+effort: low
 maxTurns: 8
 ---
 

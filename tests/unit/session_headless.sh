@@ -7,6 +7,8 @@
 set -u
 . "$(dirname "$0")/../lib/assert.sh"
 export HOME; HOME="$(tmpdir)"
+# This test offers its own fake release; assert.sh turns the check off.
+unset BEARING_UPDATE_CHECK
 remote="$(tmpdir)/r.git"; git init -q --bare "$remote"
 src="$(tmpdir)/src"; git init -q -b main "$src"
 git -C "$src" -c user.email=t@example.com -c user.name=t commit -q --allow-empty -m v

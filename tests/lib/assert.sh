@@ -111,6 +111,10 @@ T_KITS="$(mktemp -d "${T_KITS:-/tmp}/brg-kits.XXXXXX")" && T_TMPS="$T_TMPS $T_KI
 # needs a config sets XDG_CONFIG_HOME or BEARING_ENV itself.
 XDG_CONFIG_HOME="$T_KITS/xdg-config"; mkdir -p "$XDG_CONFIG_HOME"; export XDG_CONFIG_HOME
 unset BEARING_ENV BEARING_NONINTERACTIVE BEARING_AUTOPILOT
+# An empty config has no update-check cache, so a session hook in a test
+# would run git ls-remote against the marketplace; update_check.sh unsets
+# this for its own cases.
+BEARING_UPDATE_CHECK=off; export BEARING_UPDATE_CHECK
 hook_kit() { # hook_kit <PATH>: a plugin copy whose hooks reset PATH to <PATH>
   local k line
   [ -d "$T_KITS" ] || return 1

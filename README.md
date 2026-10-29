@@ -1,18 +1,49 @@
 # Bearing
 
-Bearing is a development workflow for teams that build software with
-coding agents. Every stage of a product, from the brief to the runbook,
-has one skill that runs the checklist, and the rules that must not bend
-(the agent never pushes, and only where you opt a repository in does the
-Stop hook push its task branch, after the gate; every gate prints a count;
-everything traces) are enforced by hooks and git rather than by prose.
-It is for engineers on any harness (Claude Code as a plugin; Cursor,
-Codex, Gemini CLI, Copilot and others through `harness-setup`), for tech
-leads who want one standard across repositories, for PMs and designers
-who want the PRD, the backlog and the screens to come out in a known
-shape, and for solo developers who want the discipline without a team to
-supply it. Nothing in the kit names a company, a git host or a tracker:
-those are yours to configure.
+**Skills, subagents and guard hooks that take a coding agent from the brief
+to the merge request, and stop it claiming work it did not do.**
+
+A prompt asks an agent to behave; Bearing checks that it did. The rules
+that must not bend are enforced by hooks and git, not by prose: the agent
+never pushes (unless you opt a repository in, and then only its task
+branch, after the gate), every gate prints the count of things it checked
+and fails on none, and every finding traces to a file and line.
+
+```
+/plugin marketplace add Deepta-AI/bearing
+/plugin install bearing@bearing
+```
+
+Then ask in your own words: "start TASK-142", "write the PRD for this
+brief", "review this branch", "am I done?".
+
+## Why Bearing
+
+- **Guards, not guidelines.** One guard script sits behind every hook. It
+  refuses 136 command rules over 55 programs (`git push`, `kubectl apply`,
+  `npm publish`, `rm -rf` outside the repository and the rest), fails
+  closed on a command it cannot read, and the Stop hook sends the agent
+  back once when files it changed have not passed `make check`.
+- **Gates that cannot pass on nothing.** Every gate fails on empty input
+  and prints its count (`lint-listing: 109 skills, 18490 characters`), so
+  "0 checked, all passed" is never a pass.
+- **One skill per stage, measured.** 109 skills from the brief to the
+  runbook, each run with and without itself in weekly evals. Trimming the
+  descriptions to fit Claude Code's skill listing took recall on the 30
+  weakest skills from 59% to 79%, with no false triggers in 92 near-miss
+  requests.
+- **Review you can trust.** Every Critical and High finding from the
+  reviewer goes to a verifier that never saw the reviewer's reasoning, and
+  is confirmed, refuted or left uncertain with the lines that decide it.
+- **Any harness, any stack.** A Claude Code plugin; Cursor, Codex, Gemini
+  CLI, Copilot and others through `harness-setup`. Scaffolds and
+  conventions for thirteen stacks, and nothing in the kit names a company,
+  a git host or a tracker.
+
+It is for engineers, for tech leads who want one standard across
+repositories, for PMs and designers who want the PRD, the backlog and the
+screens in a known shape, and for solo developers who want the discipline
+without a team to supply it.
 
 Bearing is open source under the MIT licence. Its home is
 <https://github.com/Deepta-AI/bearing>. Two sites are built from this
@@ -78,14 +109,18 @@ Everything below is in this repository; nothing else runs.
 **Hooks** (`plugins/bearing/hooks/hooks.json`, in the bearing plugin; the
 stack plugins have none). Each script is a thin adapter that reads the
 event JSON with `jq` and calls one subcommand of
-`plugins/bearing/bin/brg-guard`:
+`plugins/bearing/bin/brg-guard`. Every script but the Bash guard first
+moves to the session's repository (SessionStart to the event's `cwd`, the
+rest to the nearest directory above it holding the session's mark), so a
+worktree session started from the main checkout reports its own branch
+and files:
 
 | Event (matcher) | Script | What it does | Blocks? |
 | --- | --- | --- | --- |
 | `SessionStart` (startup, resume, compact) | `session-start.sh` | `brg-guard session`: prints the branch, the task id, the count of changed files, the handoff state from `.bearing/state/`, the review checklists for the repository's stacks and, after a compaction, the snapshot `PreCompact` wrote | no |
 | `UserPromptSubmit` | `inject-task-id.sh` | `brg-guard task-id`: prints `Task: <ID>` when the branch carries a ticket id the prompt lacks | no |
 | `PreToolUse` (Bash) | `block-publish.sh` | `brg-guard command`: refuses the commands listed below, and any command it cannot read (fail closed, which is every command when `jq` is missing) | yes, exit 2 |
-| `PostToolUse` (Edit, Write, MultiEdit) | `format-file.sh` | `brg-guard format`: formats the edited file with an allow-listed formatter (gofmt, prettier, ruff format, ktlint, swiftformat, terraform fmt, shfmt) taken only from fixed system directories, never `node_modules/.bin`, the inherited PATH or `uv run`, in a cleared environment; prettier only under a `.prettierrc.json` or `package.json` `prettier` object of plain formatting options, parsed as JSON. Then `brg-guard check-file` prints one line saying the per-file check was not run: hooks run outside the sandbox and run no repository command, so `make check-file FILE=<file>` runs in the session | no |
+| `PostToolUse` (Edit, Write, MultiEdit) | `format-file.sh` | `brg-guard format`: formats the edited file with an allow-listed formatter (gofmt, prettier, ruff format, ktlint, swiftformat, terraform fmt, shfmt) taken only from fixed system directories, never `node_modules/.bin`, the inherited PATH or `uv run`, in a cleared environment; prettier only under a `.prettierrc.json` or `package.json` `prettier` object of plain formatting options, parsed as JSON. Then `brg-guard check-file` prints one line saying the per-file check was not run: hooks run outside the sandbox and run no repository command, so `make check-file FILE=<file>` runs in the session. On the session's first edit the gate counts, `brg-guard stop-hint` adds one line, given to Claude as `additionalContext`, saying the Stop gate will ask for `make check-changed` (or `make check`) and to run it before the final report, so the report is not written twice | no |
 | `PreCompact` | `precompact.sh` | `brg-guard precompact`: writes `.bearing/state/<branch>.compact.md` (branch, changes, check state, the last requests) | no |
 | `Stop` | `stop-summary.sh` | `brg-guard stop-gate`: when files changed in this session since `make check` last passed, sends Claude back once with the reason; the second stop only reminds, so it cannot loop. On a stop that passes, when merge-request or autopilot requested it and the engineer opted the repository in, `brg-push run` pushes the task branch from a fresh clone, in the background | once |
 | `StopFailure` | `stop-failure.sh` | a turn ended on an API error (rate limit, overload, auth, billing): writes the checkpoint so the next session resumes, and logs the error type to `gates.log` | no (Claude Code gives it no say) |
