@@ -4,6 +4,7 @@ description: Read-only, stack-aware reviewer for a diff or branch in a repositor
 tools: Read, Grep, Glob
 disallowedTools: Bash, Write, Edit, MultiEdit, NotebookEdit
 model: opus
+effort: high
 maxTurns: 40
 memory: project
 ---

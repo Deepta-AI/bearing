@@ -102,6 +102,19 @@ trap _t_cleanup EXIT
 # removed at exit with the rest.
 T_KITS="${TMPDIR:-/tmp}"; T_KITS="${T_KITS%/}"
 T_KITS="$(mktemp -d "${T_KITS:-/tmp}/brg-kits.XXXXXX")" && T_TMPS="$T_TMPS $T_KITS"
+
+# A test must not read or write the developer's own Bearing config: the
+# Stop gate and the skills log learnings to
+# ${XDG_CONFIG_HOME:-$HOME/.config}/bearing/learnings.jsonl, which the next
+# real session reads back as advice (one make check on main added 53 stop-gate blocks there).
+# Every test starts with an empty config folder of its own; a test that
+# needs a config sets XDG_CONFIG_HOME or BEARING_ENV itself.
+XDG_CONFIG_HOME="$T_KITS/xdg-config"; mkdir -p "$XDG_CONFIG_HOME"; export XDG_CONFIG_HOME
+unset BEARING_ENV BEARING_NONINTERACTIVE BEARING_AUTOPILOT
+# An empty config has no update-check cache, so a session hook in a test
+# would run git ls-remote against the marketplace; update_check.sh unsets
+# this for its own cases.
+BEARING_UPDATE_CHECK=off; export BEARING_UPDATE_CHECK
 hook_kit() { # hook_kit <PATH>: a plugin copy whose hooks reset PATH to <PATH>
   local k line
   [ -d "$T_KITS" ] || return 1

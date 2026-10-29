@@ -18,5 +18,8 @@
     "airflow",
     "terraform",
     "kubernetes"
+  ],
+  "dependencies": [
+    "bearing"
   ]
 }

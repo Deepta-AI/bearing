@@ -4,6 +4,7 @@ description: Read-only, independent verifier for one review or security finding.
 tools: Read, Grep, Glob
 disallowedTools: Bash, Write, Edit, MultiEdit, NotebookEdit
 model: sonnet
+effort: high
 maxTurns: 25
 ---
 

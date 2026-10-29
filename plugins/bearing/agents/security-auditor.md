@@ -4,6 +4,7 @@ description: Read-only security auditor for a branch or service in a repository 
 tools: Read, Grep, Glob
 disallowedTools: Bash, Write, Edit, MultiEdit, NotebookEdit
 model: sonnet
+effort: high
 maxTurns: 40
 memory: project
 ---

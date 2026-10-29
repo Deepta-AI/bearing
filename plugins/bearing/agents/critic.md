@@ -4,6 +4,7 @@ description: Read-only critic that argues against a PRD, HLD or LLD. Use as the 
 tools: Read, Grep, Glob
 disallowedTools: Bash, Write, Edit, MultiEdit, NotebookEdit
 model: sonnet
+effort: high
 maxTurns: 20
 memory: project
 ---

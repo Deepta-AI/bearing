@@ -16,5 +16,8 @@
     "flutter",
     "ios",
     "android"
+  ],
+  "dependencies": [
+    "bearing"
   ]
 }

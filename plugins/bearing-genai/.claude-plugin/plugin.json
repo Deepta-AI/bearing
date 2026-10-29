@@ -19,5 +19,8 @@
     "fine-tuning",
     "speech",
     "computer-vision"
+  ],
+  "dependencies": [
+    "bearing"
   ]
 }

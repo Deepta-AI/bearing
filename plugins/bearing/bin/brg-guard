@@ -38,6 +38,9 @@ unset _brg_v
 #                                         check last passed; --active (the
 #                                         harness already continued once) only
 #                                         reminds, so it never loops
+#   brg-guard stop-hint --id <session> --file <path>
+#                                         once per session, for an edit the
+#                                         gate counts, what stop-gate will ask
 #   brg-guard check-file <file>           print that no hook runs the per-file
 #                                         check (make check-file runs in the
 #                                         session); exit 0
@@ -2031,7 +2034,7 @@ esac
     # Hold the session only to files it changed after its own start and after
     # the last passing check. Without a start mark, or in a repository whose
     # Makefile never writes the marker, there is nothing fair to hold it to.
-    [ -n "$sid" ] && [ -f "$start" ] && grep -qs 'check-passed' "$root/Makefile" || { gate_log stop-gate reminder-only "no session mark or marker"; exec "$BASH" "$0" stop; }
+    [ -n "$sid" ] && [ -f "$start" ] && [ -f "$root/Makefile" ] && [ ! -L "$root/Makefile" ] && grep -qs 'check-passed' "$root/Makefile" || { gate_log stop-gate reminder-only "no session mark or marker"; exec "$BASH" "$0" stop; }
     [ -f "$(dirname "$0")/brg-changed" ] || { gate_log stop-gate not-run "missing brg-changed"; exit 0; }
     cc="$state/.check-changed-passed"
     newest="$marker"; [ -f "$cc" ] && { [ ! -f "$marker" ] || [ "$cc" -nt "$marker" ]; } && newest="$cc"
@@ -2066,6 +2069,42 @@ EOF
     gate_log stop-gate blocked "$fresh file(s), ${target}"
     bash "$(dirname "$0")/brg-learn" log --kind gate-block --skill stop-gate --key "$target" --insight "stop gate blocked; ${target} needed" >/dev/null 2>&1
     exit 2;;
+  stop-hint)
+    # The first edit of a session hears, once, what the Stop gate will ask
+    # at the end. A PostToolUse hook's plain stdout reaches the transcript,
+    # not Claude, so the check-file line alone never told the agent; it
+    # wrote its report, was sent back, ran the check and wrote the report
+    # again. Prints the line (the edit hook hands it to Claude as
+    # additionalContext) only where stop-gate would hold the session, and
+    # only once: the .session-<id>.hinted mark is pruned with the session
+    # marks.
+    # An edit outside the repository, under .bearing/ or .scratch/, or to an
+    # ignored file is one the gate does not count: no hint, and no mark, so
+    # the first edit that counts still hears it.
+    sid=""; file=""
+    while [ $# -gt 0 ]; do
+      case "$1" in
+        --id) sid="${2:-}"; shift; [ $# -gt 0 ] && shift;;
+        --file) file="${2:-}"; shift; [ $# -gt 0 ] && shift;;
+        *) shift;;
+      esac
+    done
+    [ "$sid" != "$SENTINEL" ] || sid=""
+    case "$sid" in (''|.*|*[!A-Za-z0-9._-]*) exit 0;; esac
+    [ -n "$file" ] && [ "$file" != "$SENTINEL" ] && [ -f "$file" ] || exit 0
+    root="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 0
+    state="$root/.bearing/state"
+    [ -f "$state/.session-$sid" ] && [ -f "$root/Makefile" ] && [ ! -L "$root/Makefile" ] && grep -qs 'check-passed' "$root/Makefile" || exit 0
+    [ -e "$state/.session-$sid.hinted" ] && exit 0
+    phys="$(cd "$(dirname "$file")" 2>/dev/null && pwd -P)/${file##*/}"
+    case "$phys" in ("$root"/*) rel="${phys#"$root"/}";; (*) exit 0;; esac
+    case "$rel" in (.bearing/*|.scratch/*) exit 0;; esac
+    git -C "$root" check-ignore -q -- "$rel" 2>/dev/null && exit 0
+    ( cd "$root" && printf 'hinted\n' | state_write put ".session-$sid.hinted" ) || exit 0
+    target="make check"; grep -qs '^check-changed:' "$root/Makefile" && target="make check-changed"
+    echo "bearing: this session changes files, so the Stop gate holds it to ${target}. Run ${target} after your last edit and before your final report, so the report is written once."
+    gate_log stop-hint shown
+    exit 0;;
   check-file)
     # The per-file check runs the repository's own Makefile or linters
     # (make check-file, eslint from node_modules, go vet), all of which the

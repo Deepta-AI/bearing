@@ -4,6 +4,53 @@ All notable changes to Bearing. Keep a Changelog format, semantic versions.
 
 ## [Unreleased]
 
+### Added
+- `brg-guard stop-hint`: on the first edit the Stop gate will count (a
+  file in the repository, not ignored, not under `.bearing/` or
+  `.scratch/`), the edit hook tells Claude once, as `additionalContext`, to run
+  `make check-changed` (or `make check`) before the final report. The
+  hook's plain stdout reaches the transcript, not Claude, so until now the
+  agent learnt the rule only from the block: it wrote its report, was sent
+  back, ran the check and wrote the report again.
+- An opt-in output style, `Bearing report`
+  (`plugins/bearing/output-styles/`): no narration of tool calls, counts
+  quoted from what ran, the check before the report, and the Changed,
+  Verified, Not done, Noticed report with "not run" for every skipped
+  check. See [docs/INSTALL.md](docs/INSTALL.md#shorter-replies-the-bearing-report-output-style).
+- `effort` on five agents: `low` for prd-drafter (drafting statements from
+  one section), `high` for reviewer, verifier, security-auditor and
+  critic, where a missed finding costs most. doc-writer and test-writer
+  keep the default, and explorer (Haiku) sets none.
+- bearing-backend, bearing-apps and bearing-genai declare
+  `"dependencies": ["bearing"]`, so installing one brings the workflow
+  plugin it needs. The bearing manifest's keywords add `claude-code`,
+  `agent-skills` and `guardrails` for search.
+
+### Changed
+- The README's first screen leads with what Bearing does, the two install
+  lines and the four claims, each with its number.
+
+### Fixed
+- The hooks answer for the session's repository. SessionStart moves to the
+  event's `cwd`, and every later hook but the Bash guard to the nearest
+  directory at or above it that holds the session's mark, before it locks
+  git down. A worktree session the desktop app started from the main
+  checkout no longer reports `branch=main` or the main checkout's changes,
+  and a `cd` into a subdirectory or a nested repository does not move the
+  Stop gate.
+- Tests no longer write the developer's learnings. The test suite ran the
+  Stop gate with the developer's own `~/.config/bearing`, so one `make
+  check` added 53 stop-gate blocks to `learnings.jsonl`, and every later
+  session in any repository opened with "stop gate blocked; make check
+  needed (1130x)". `tests/lib/assert.sh` gives each test an empty
+  `XDG_CONFIG_HOME` and unsets `BEARING_ENV`.
+
+### Notes for existing installs
+- Learnings the tests wrote stay in `~/.config/bearing/learnings.jsonl`
+  until removed. `jq -c 'select(.skill != "stop-gate")'` over the file
+  keeps every other line; a real stop-gate block logs again from the next
+  session.
+
 ## [0.10.0] - 2026-10-29
 
 ### Added
