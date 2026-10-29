@@ -1934,6 +1934,16 @@ esac
       esac
     done
     [ "$sid" != "$SENTINEL" ] || sid=""
+    # Claude Code hands plugin settings to hook processes only: copy the
+    # non-secret ones where the agent's Bash can read them. Only under Claude
+    # Code (CLAUDE_PLUGIN_ROOT), so another harness's session never clears it.
+    # Before the repository check: settings apply outside a repository too.
+    if [ -n "${CLAUDE_PLUGIN_ROOT:-}" ] && [ -f "$(dirname "$0")/brg-plugin-options" ]; then
+      bash "$(dirname "$0")/brg-plugin-options" write >/dev/null 2>&1 || gate_log plugin-options failed "copy not written"
+      bash "$(dirname "$0")/brg-plugin-options" rejected 2>/dev/null | while IFS= read -r bad; do
+        [ -n "$bad" ] && echo "bearing: plugin setting ${bad%%:*} ignored (${bad#*: }); tell the user to fix it with /plugin configure bearing@bearing"
+      done
+    fi
     root="$(git rev-parse --show-toplevel 2>/dev/null)" || { echo "bearing: not a git repository, nothing to report."; exit 0; }
     # Mark when this session began, so stop-gate only holds a session to
     # files it changed; resume and compact keep the first mark. Old marks go.

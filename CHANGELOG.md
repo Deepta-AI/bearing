@@ -5,6 +5,26 @@ All notable changes to Bearing. Keep a Changelog format, semantic versions.
 ## [Unreleased]
 
 ### Added
+- Claude Code plugin settings (`userConfig`) for the everyday keys:
+  tracker, tracker URL, project and email, task id prefix, learning,
+  non-interactive mode and the update check. `/plugin install` asks for
+  them and `/plugin configure bearing@bearing` changes them; an
+  environment variable still wins, then the plugin setting, then
+  `bearing.env`. Claude Code hands plugin settings to hooks only (the
+  agent's Bash gets none, probed on 2.1.287), so the SessionStart hook
+  copies them to `~/.config/bearing-options/options.env`. Every
+  `bearing.env` parser, `brg-config`, the update check and the doctor read
+  them through `bin/brg-plugin-options`: from the hook's environment, else
+  from the copy, key by key, each value checked again, never from a copy
+  that is a link or has a second hard link. The repository settings
+  template denies the agent writes to that folder, since a tracker URL it
+  could rewrite would send the token elsewhere. A value a setting does not
+  allow is never used and is named at session start, in `brg-tracker
+  config` and by the doctor; a rejected tracker URL stops every tracker
+  call rather than fall back to gitlab.com or github.com with a
+  self-hosted token. Every setting is text (`on` or `off` for the
+  switches), so an untouched one never overrides `bearing.env`. Tokens,
+  passwords and `BEARING_AUTO_PUSH` stay in `bearing.env`.
 - `brg-guard stop-hint`: on the first edit the Stop gate will count (a
   file in the repository, not ignored, not under `.bearing/` or
   `.scratch/`), the edit hook tells Claude once, as `additionalContext`, to run

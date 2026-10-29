@@ -4,13 +4,13 @@
   "skills": 109,
   "commandSkills": 0,
   "stackSkills": 12,
-  "scripts": 114,
-  "scriptLines": 36116,
+  "scripts": 115,
+  "scriptLines": 36418,
   "hooks": 12,
   "agents": 8,
   "makeTargets": 40,
   "gates": 20,
-  "tests": 129,
+  "tests": 130,
   "fixtures": 25,
   "stacks": 13,
   "templates": 38,
@@ -26,7 +26,7 @@
    "dir": "plugins/bearing",
    "description": "A developer workflow for coding agents: skills for every stage from brief to runbook, review subagents, one guard behind every hook, and repository templates. The stack conventions come in bearing-backend and bearing-apps, and the GenAI and ML skills in bearing-genai.",
    "required": true,
-   "files": 460,
+   "files": 461,
    "skills": [
     "ab-experiment",
     "accessibility",
@@ -15211,7 +15211,7 @@
    "name": "brg-adopt",
    "lang": "bash",
    "group": "scaffold",
-   "lines": 263,
+   "lines": 275,
    "header": "brg-adopt: bring an existing repository onto the standard without\noverwriting anything.\n\n  brg-adopt [--dir <path>] [--stack <id>] [--host gitlab|github|both]\n            [--lead @user] [--group @group] [--tracker PREFIX|none]\n            [--org com.example] [--kit-remote <url>]\n\nDefaults for --host, --tracker, --org and --kit-remote come from BEARING_GIT_HOST,\nBEARING_TASK_ID_PREFIX, BEARING_ORG_ID and BEARING_KIT_REMOTE in\n~/.config/bearing/bearing.env; --host then falls back to the origin remote\n(github.com -> github, a gitlab host -> gitlab, anything else -> both).\nExplicit flags win. gitlab offers .gitlab-ci.yml and .gitlab/ only; github\noffers .github/ only; both offers both sets; a set the templates do not\nship yet is noted. For every file the standard ships: missing -> added;\nidentical -> kept; different -> written beside it as <file>.bearing-new and\ncounted as a conflict. A core.hooksPath already set to another directory\n(Husky's .husky) is left unchanged and counted as a conflict, with the fix\nprinted. Stack build files (Makefile, CI) are offered only\nwhen the repository has no Makefile: the stack's CI calls the stack\nMakefile's targets, so a repository keeping its own build keeps its own CI.\nThe CLAUDE.md snapshot names the stack's stack, databases and entrypoint only\nwhen that entrypoint exists here; otherwise they are left to fill in.",
    "functions": [
     "usage",
@@ -15229,7 +15229,8 @@
     "BEARING_TRACKER"
    ],
    "calls": [
-    "brg-kit-paths"
+    "brg-kit-paths",
+    "brg-plugin-options"
    ]
   },
   {
@@ -15381,8 +15382,8 @@
    "name": "brg-config",
    "lang": "bash",
    "group": "quality",
-   "lines": 90,
-   "header": "brg-config: remembered answers. Project answers (shared, committed) live in\n<repo>/.bearing/config.json; personal answers live in bearing.env as\nBEARING_<KEY>. Skills call it; the guard does not.\n  brg-config get <key> [--user]          print the value, or nothing\n  brg-config set <key> <value> [--user]  record it (atomic write)\nKeys use [A-Za-z0-9._-] only (exit 2 otherwise). Project scope needs jq\n(exit 1 without it). User scope maps the key to BEARING_<KEY> (upper-cased,\n\".\" and \"-\" become \"_\") in ${BEARING_ENV:-${XDG_CONFIG_HOME:-$HOME/.config}/bearing/bearing.env};\nset keeps every other line, comments and blank lines included, and mode 600.\nget reads the value the way the other Bearing scripts do (quotes stripped,\na trailing \" # comment\" dropped from an unquoted value); the last line wins.\nset refuses the auto-push key (exit 2): the engineer writes it by hand.",
+   "lines": 99,
+   "header": "brg-config: remembered answers. Project answers (shared, committed) live in\n<repo>/.bearing/config.json; personal answers live in bearing.env as\nBEARING_<KEY>. Skills call it; the guard does not.\n  brg-config get <key> [--user]          print the value, or nothing\n  brg-config set <key> <value> [--user]  record it (atomic write)\nKeys use [A-Za-z0-9._-] only (exit 2 otherwise). Project scope needs jq\n(exit 1 without it). User scope maps the key to BEARING_<KEY> (upper-cased,\n\".\" and \"-\" become \"_\") in ${BEARING_ENV:-${XDG_CONFIG_HOME:-$HOME/.config}/bearing/bearing.env};\nset keeps every other line, comments and blank lines included, and mode 600.\nget reads the value the way the other Bearing scripts do (quotes stripped,\na trailing \" # comment\" dropped from an unquoted value); the last line wins.\nset refuses the auto-push key (exit 2): the engineer writes it by hand.\nA user key set in Claude Code's plugin settings (brg-plugin-options) wins\nover bearing.env for get; set still writes the file, and says the plugin\nsetting shadows it.",
    "functions": [
     "usage"
    ],
@@ -15390,14 +15391,16 @@
     "BEARING_AUTO_PUSH",
     "BEARING_ENV"
    ],
-   "calls": []
+   "calls": [
+    "brg-plugin-options"
+   ]
   },
   {
    "path": "plugins/bearing/bin/brg-doctor",
    "name": "brg-doctor",
    "lang": "bash",
    "group": "install",
-   "lines": 260,
+   "lines": 267,
    "header": "brg-doctor: verify the Bearing installation on this machine and, when run\ninside a repository, in that repository. Prints one line per check and a\nsummary; exits 1 when any required check is missing. Accepts either git\nhost: CI is .gitlab-ci.yml or .github/workflows/*.yml or *.yaml and must run\nmake check; the change template is .gitlab/merge_request_templates/*.md or\npull_request_template.md in any case (GitHub's rule). The third-party packs (Superpowers, gstack)\nare required only when BEARING_PROFILE (environment, then bearing.env) is\nstandard or full; unset or minimal makes them optional, so a\n`install.sh --profile minimal` machine can pass. core.hooksPath passes as\n.githooks, or as another directory whose three hooks each call .githooks/\nwith their arguments and keep its exit status. A hook counts only when git\nwould run it: present, executable, and committed as 100755; make setup\ncounts only when every script its dry run calls exists.",
    "functions": [
     "trust_state",
@@ -15416,7 +15419,8 @@
    ],
    "calls": [
     "brg-guard",
-    "brg-kit-paths"
+    "brg-kit-paths",
+    "brg-plugin-options"
    ]
   },
   {
@@ -15424,8 +15428,8 @@
    "name": "brg-github",
    "lang": "bash",
    "group": "tracker",
-   "lines": 337,
-   "header": "brg-github: GitHub issues adapter for brg-tracker (REST API through a token,\nor through `gh api` when gh is installed and no token is configured).\n\n  brg-github me                           -> login, name\n  brg-github resolve <KEY>                -> the issue number\n  brg-github get <KEY>                    -> compact JSON for one issue\n  brg-github list [--type t] [--status s] [--q text] [--limit n]\n  brg-github create --type <epic|story|task|bug|testcase> --title <s>\n             [--description-file f] [--parent KEY] [--priority p]\n  brg-github update <KEY> [--status name] [--assignee me|login|email] [--title s]\n             [--description-file f] [--priority p]\n  brg-github comment <KEY> (<text> | --file f)\n  brg-github link <KEY> <relates|blocks> <KEY2>   -> a cross-reference comment\n  brg-github trace <KEY> [--branch b] [--mr url] [--commits a,b] [--tests TC-..,..]\n             [--adr ADR-nnnn] [--docs path,..]\n  brg-github close <KEY>                  -> status BEARING_TRACKER_DONE_STATUS (Done) and closed\n\nConfiguration: environment, then ~/.config/bearing/bearing.env (KEY=value):\n  BEARING_TRACKER_URL      https://github.com (default) or the GitHub Enterprise host\n  BEARING_TRACKER_PROJECT  owner/repo\n  BEARING_TRACKER_TOKEN    token with scope repo; empty means gh (gh auth login)\n  BEARING_TRACKER_DONE_STATUS  status label close applies (default Done)\nKeys are GH-<number>. Type and status are labels (type:story,\nstatus:in-review) created on first use; a status of done or closed also\ncloses the issue. GitHub has no issue links, so link and parent are\ncross-reference comments and a \"Parent:\" line. The token is never\nprinted. Every call has a 30 s budget. A 429 is retried once; a 5xx is\nretried once for GET and PATCH, and for a create, a comment or a label\nonly after a search for it (issues and comments carry a marker in an HTML\ncomment) finds nothing, so a retry never duplicates. list follows every\npage (Link rel=\"next\") up to BEARING_TRACKER_MAX_PAGES (default 20), says when\nit stops early, and prints the count on stderr.",
+   "lines": 350,
+   "header": "brg-github: GitHub issues adapter for brg-tracker (REST API through a token,\nor through `gh api` when gh is installed and no token is configured).\n\n  brg-github me                           -> login, name\n  brg-github resolve <KEY>                -> the issue number\n  brg-github get <KEY>                    -> compact JSON for one issue\n  brg-github list [--type t] [--status s] [--q text] [--limit n]\n  brg-github create --type <epic|story|task|bug|testcase> --title <s>\n             [--description-file f] [--parent KEY] [--priority p]\n  brg-github update <KEY> [--status name] [--assignee me|login|email] [--title s]\n             [--description-file f] [--priority p]\n  brg-github comment <KEY> (<text> | --file f)\n  brg-github link <KEY> <relates|blocks> <KEY2>   -> a cross-reference comment\n  brg-github trace <KEY> [--branch b] [--mr url] [--commits a,b] [--tests TC-..,..]\n             [--adr ADR-nnnn] [--docs path,..]\n  brg-github close <KEY>                  -> status BEARING_TRACKER_DONE_STATUS (Done) and closed\n\nConfiguration: environment, then Claude Code plugin settings (brg-plugin-options),\nthen ~/.config/bearing/bearing.env (KEY=value); the token is never a plugin setting:\n  BEARING_TRACKER_URL      https://github.com (default) or the GitHub Enterprise host\n  BEARING_TRACKER_PROJECT  owner/repo\n  BEARING_TRACKER_TOKEN    token with scope repo; empty means gh (gh auth login)\n  BEARING_TRACKER_DONE_STATUS  status label close applies (default Done)\nKeys are GH-<number>. Type and status are labels (type:story,\nstatus:in-review) created on first use; a status of done or closed also\ncloses the issue. GitHub has no issue links, so link and parent are\ncross-reference comments and a \"Parent:\" line. The token is never\nprinted. Every call has a 30 s budget. A 429 is retried once; a 5xx is\nretried once for GET and PATCH, and for a create, a comment or a label\nonly after a search for it (issues and comments carry a marker in an HTML\ncomment) finds nothing, so a retry never duplicates. list follows every\npage (Link rel=\"next\") up to BEARING_TRACKER_MAX_PAGES (default 20), says when\nit stops early, and prints the count on stderr.",
    "functions": [
     "usage",
     "die",
@@ -15459,6 +15463,7 @@
     "BEARING_TRACKER_URL"
    ],
    "calls": [
+    "brg-plugin-options",
     "brg-tracker"
    ]
   },
@@ -15467,8 +15472,8 @@
    "name": "brg-gitlab",
    "lang": "bash",
    "group": "tracker",
-   "lines": 311,
-   "header": "brg-gitlab: GitLab issues adapter for brg-tracker (REST API v4 through a\npersonal token, or through `glab api` when glab is installed and no token\nis configured).\n\n  brg-gitlab me                           -> id, username, name\n  brg-gitlab resolve <KEY>                -> the issue iid\n  brg-gitlab get <KEY>                    -> compact JSON for one issue\n  brg-gitlab list [--type t] [--status s] [--q text] [--limit n]\n  brg-gitlab create --type <epic|story|task|bug|testcase> --title <s>\n             [--description-file f] [--parent KEY] [--priority p]\n  brg-gitlab update <KEY> [--status name] [--assignee me|login|email] [--title s]\n             [--description-file f] [--priority p]\n  brg-gitlab comment <KEY> (<text> | --file f)\n  brg-gitlab link <KEY> <relates|blocks> <KEY2>\n  brg-gitlab trace <KEY> [--branch b] [--mr url] [--commits a,b] [--tests TC-..,..]\n             [--adr ADR-nnnn] [--docs path,..]\n  brg-gitlab close <KEY>                  -> status BEARING_TRACKER_DONE_STATUS (Done) and closed\n\nConfiguration: environment, then ~/.config/bearing/bearing.env (KEY=value):\n  BEARING_TRACKER_URL      https://gitlab.example.com (default https://gitlab.com)\n  BEARING_TRACKER_PROJECT  project path, e.g. group/repo\n  BEARING_TRACKER_TOKEN    personal access token with scope api; empty means glab\n  BEARING_TRACKER_DONE_STATUS  status label close applies (default Done)\nKeys are GL-<iid>. Type and status are scoped labels (type::story,\nstatus::in-review); a status of done or closed also closes the issue.\nParents are a relates_to link plus a \"Parent:\" line. The token is never\nprinted. Every call has a 30 s budget. A 429 is retried once; a 5xx is\nretried once for GET and PUT, and for a create or a note only after a\nsearch for its marker (an HTML comment it carries) finds nothing, so a\nretry never duplicates. list follows every page (Link rel=\"next\") up to\nBEARING_TRACKER_MAX_PAGES (default 20), says when it stops early, and prints\nthe count on stderr.",
+   "lines": 324,
+   "header": "brg-gitlab: GitLab issues adapter for brg-tracker (REST API v4 through a\npersonal token, or through `glab api` when glab is installed and no token\nis configured).\n\n  brg-gitlab me                           -> id, username, name\n  brg-gitlab resolve <KEY>                -> the issue iid\n  brg-gitlab get <KEY>                    -> compact JSON for one issue\n  brg-gitlab list [--type t] [--status s] [--q text] [--limit n]\n  brg-gitlab create --type <epic|story|task|bug|testcase> --title <s>\n             [--description-file f] [--parent KEY] [--priority p]\n  brg-gitlab update <KEY> [--status name] [--assignee me|login|email] [--title s]\n             [--description-file f] [--priority p]\n  brg-gitlab comment <KEY> (<text> | --file f)\n  brg-gitlab link <KEY> <relates|blocks> <KEY2>\n  brg-gitlab trace <KEY> [--branch b] [--mr url] [--commits a,b] [--tests TC-..,..]\n             [--adr ADR-nnnn] [--docs path,..]\n  brg-gitlab close <KEY>                  -> status BEARING_TRACKER_DONE_STATUS (Done) and closed\n\nConfiguration: environment, then Claude Code plugin settings (brg-plugin-options),\nthen ~/.config/bearing/bearing.env (KEY=value); the token is never a plugin setting:\n  BEARING_TRACKER_URL      https://gitlab.example.com (default https://gitlab.com)\n  BEARING_TRACKER_PROJECT  project path, e.g. group/repo\n  BEARING_TRACKER_TOKEN    personal access token with scope api; empty means glab\n  BEARING_TRACKER_DONE_STATUS  status label close applies (default Done)\nKeys are GL-<iid>. Type and status are scoped labels (type::story,\nstatus::in-review); a status of done or closed also closes the issue.\nParents are a relates_to link plus a \"Parent:\" line. The token is never\nprinted. Every call has a 30 s budget. A 429 is retried once; a 5xx is\nretried once for GET and PUT, and for a create or a note only after a\nsearch for its marker (an HTML comment it carries) finds nothing, so a\nretry never duplicates. list follows every page (Link rel=\"next\") up to\nBEARING_TRACKER_MAX_PAGES (default 20), says when it stops early, and prints\nthe count on stderr.",
    "functions": [
     "usage",
     "die",
@@ -15500,6 +15505,7 @@
     "BEARING_TRACKER_URL"
    ],
    "calls": [
+    "brg-plugin-options",
     "brg-tracker"
    ]
   },
@@ -15508,7 +15514,7 @@
    "name": "brg-guard",
    "lang": "bash",
    "group": "guard",
-   "lines": 2211,
+   "lines": 2221,
    "header": "Hooks run outside the sandbox with the harness's environment, so the first\nthing done is to drop what in it could run another program: PATH becomes\n/usr/bin:/bin plus the system tool directories (jq, git and python3 on\nmacOS live under /usr/local/bin or /opt/homebrew/bin; on Linux under\nLinuxbrew or a Nix profile), never a directory the environment put first\n(this line matches hooks/scripts/lib.sh, where brg-doctor reads it and\nthe tools the hooks need, and the settings template denies Edit and Write\non the user-owned ones); BASH_ENV and ENV (sourced by every bash started\nlater), CDPATH (redirects cd), PYTHON* (python3 also runs -I everywhere),\nLD_* and DYLD_* (preloaded libraries) are unset. BASH_ENV in the harness's\nown environment is sourced by bash before this line runs, which no script\ncan prevent; the settings template denies Edit and Write on the settings\nfiles whose env could set it.",
    "functions": [
     "git_lockdown",
@@ -15594,6 +15600,7 @@
     "brg-doctor",
     "brg-kit-paths",
     "brg-learn",
+    "brg-plugin-options",
     "brg-push",
     "brg-session",
     "brg-stacks",
@@ -15605,7 +15612,7 @@
    "name": "brg-harness",
    "lang": "bash",
    "group": "guard",
-   "lines": 688,
+   "lines": 700,
    "header": "brg-harness: make a repository and a machine work with a coding harness\nother than Claude Code, from the same standard and the same guard logic.\n\n  brg-harness <harness> [--dir <repo>] [--kit-url <git url>] [--kit-ref <tag or commit>] [--no-skills]\n\nHarnesses: cursor, codex, gemini, copilot, opencode, windsurf, cline, zed,\n           kiro, all\n\nWrites into the repository (idempotent; a file that exists with different\ncontent is left alone and the proposal goes to <file>.bearing-new):\n  every harness   .bearing/bin/brg-guard (the guard logic, vendored with the kit\n                  version stamped in, so hooks do not depend on where the\n                  kit is installed) and the hook adapters under .bearing/hooks/\n  cursor          .cursor/hooks.json, .cursor/rules/*.mdc from .claude/rules\n  codex           .codex/hooks.json, .codex/rules/bearing.rules (execpolicy)\n  gemini          .gemini/settings.json (BeforeTool hook, tools.exclude),\n                  GEMINI.md importing AGENTS.md\n  copilot         .github/hooks/bearing.json, .github/copilot-instructions.md,\n                  .github/instructions/brg-*.instructions.md (applyTo globs),\n                  .bearing/copilot-deny-tools.txt for the CLI\n  opencode        .opencode/plugins/brg-guard.js, opencode.json permissions\n  windsurf        .devin/hooks.json, .devin/rules/*.md (glob triggers)\n  cline           .clinerules/hooks/PreToolUse, .clinerules/brg-*.md (paths:)\n  zed             .zed/settings.json (tool_permissions deny), .rules pointer;\n                  Zed has no agent hooks, so no adapters by design\n  kiro            .kiro/hooks/brg-guard.json, .kiro/steering/brg-*.md,\n                  .bearing/kiro-permissions.yaml to merge at user level\nEvery command policy (execpolicy, tools.exclude, always_deny, opencode\npermissions, the Kiro and Copilot lists) is derived from `brg-guard\n--verbs`, so the lists and the hook never drift. The policies are prefix\nmatches and advisory; the hook adapter over brg-guard is the control.\nOn the machine (unless --no-skills): installs the Bearing skills into that\nharness's skills folder through the skills CLI (the version pinned in\nbin/pinned-packs.txt), from the kit's git remote at the release tag of this\nkit's version (v<VERSION>) or --kit-ref.\n\nThe git hooks in .githooks/ hold the push, commit and format rules on every\nharness; this script adds each harness's own adapters on top. The summary\ncounts a harness as wired only when its config file references every\nadapter and neither has an unresolved .bearing-new; exit 1 when any selected\nharness is not wired. Harnesses whose hook format has been checked only\nagainst recorded fixtures (Copilot, Kiro, Windsurf, Codex, Cline, OpenCode)\nare marked unverified; Cursor and Gemini CLI have been run for real.",
    "functions": [
     "load_env",
@@ -15649,6 +15656,7 @@
     "brg-guard",
     "brg-kit-paths",
     "brg-learn",
+    "brg-plugin-options",
     "brg-session",
     "brg-tracker",
     "brg-update-check"
@@ -15678,8 +15686,8 @@
    "name": "brg-jira",
    "lang": "bash",
    "group": "tracker",
-   "lines": 325,
-   "header": "brg-jira: Jira Cloud adapter for brg-tracker (REST API v3, basic auth with\nthe login email and an API token).\n\n  brg-jira me                             -> accountId, name, email\n  brg-jira resolve <KEY>                  -> the issue's numeric id\n  brg-jira get <KEY>                      -> compact JSON for one issue\n  brg-jira list [--type t] [--status s] [--q text] [--limit n]\n  brg-jira create --type <epic|story|task|bug|testcase> --title <s>\n           [--description-file f] [--parent KEY] [--priority p]\n  brg-jira update <KEY> [--status name] [--assignee me|email|accountId] [--title s]\n           [--description-file f] [--priority p]\n  brg-jira comment <KEY> (<text> | --file f)\n  brg-jira link <KEY> <relates|blocks> <KEY2>\n  brg-jira trace <KEY> [--branch b] [--mr url] [--commits a,b] [--tests TC-..,..]\n           [--adr ADR-nnnn] [--docs path,..]\n  brg-jira close <KEY>                    -> transition to BEARING_TRACKER_DONE_STATUS (Done)\n  brg-jira transitions <KEY>              -> transitions available right now\n  brg-jira types                          -> the effective issue type mapping\n\nConfiguration: environment, then ~/.config/bearing/bearing.env (KEY=value):\n  BEARING_TRACKER_URL      https://you.atlassian.net\n  BEARING_TRACKER_PROJECT  project key, e.g. PROJ\n  BEARING_TRACKER_EMAIL    login email\n  BEARING_TRACKER_TOKEN    API token (id.atlassian.com, Security, API tokens)\n  BEARING_TRACKER_DONE_STATUS  status close transitions to (default Done)\n  BEARING_JIRA_TYPES       epic=Epic,story=Story,task=Task,bug=Bug,testcase=Test\nKeys are PROJ-123. Status names match transitions case-insensitively. The\ntoken is never printed. Every call has a 30 s budget. A 429 is retried\nonce; a 5xx is retried once for GET and PUT, and for a create, a comment or\na transition only after a search for it (creates and comments carry the\nentity property bearing-op) finds nothing, so a retry never duplicates.\nlist follows nextPageToken up to BEARING_TRACKER_MAX_PAGES (default 20) pages,\nsays when it stops early, and prints the count on stderr.",
+   "lines": 338,
+   "header": "brg-jira: Jira Cloud adapter for brg-tracker (REST API v3, basic auth with\nthe login email and an API token).\n\n  brg-jira me                             -> accountId, name, email\n  brg-jira resolve <KEY>                  -> the issue's numeric id\n  brg-jira get <KEY>                      -> compact JSON for one issue\n  brg-jira list [--type t] [--status s] [--q text] [--limit n]\n  brg-jira create --type <epic|story|task|bug|testcase> --title <s>\n           [--description-file f] [--parent KEY] [--priority p]\n  brg-jira update <KEY> [--status name] [--assignee me|email|accountId] [--title s]\n           [--description-file f] [--priority p]\n  brg-jira comment <KEY> (<text> | --file f)\n  brg-jira link <KEY> <relates|blocks> <KEY2>\n  brg-jira trace <KEY> [--branch b] [--mr url] [--commits a,b] [--tests TC-..,..]\n           [--adr ADR-nnnn] [--docs path,..]\n  brg-jira close <KEY>                    -> transition to BEARING_TRACKER_DONE_STATUS (Done)\n  brg-jira transitions <KEY>              -> transitions available right now\n  brg-jira types                          -> the effective issue type mapping\n\nConfiguration: environment, then Claude Code plugin settings (brg-plugin-options),\nthen ~/.config/bearing/bearing.env (KEY=value); the token is never a plugin setting:\n  BEARING_TRACKER_URL      https://you.atlassian.net\n  BEARING_TRACKER_PROJECT  project key, e.g. PROJ\n  BEARING_TRACKER_EMAIL    login email\n  BEARING_TRACKER_TOKEN    API token (id.atlassian.com, Security, API tokens)\n  BEARING_TRACKER_DONE_STATUS  status close transitions to (default Done)\n  BEARING_JIRA_TYPES       epic=Epic,story=Story,task=Task,bug=Bug,testcase=Test\nKeys are PROJ-123. Status names match transitions case-insensitively. The\ntoken is never printed. Every call has a 30 s budget. A 429 is retried\nonce; a 5xx is retried once for GET and PUT, and for a create, a comment or\na transition only after a search for it (creates and comments carry the\nentity property bearing-op) finds nothing, so a retry never duplicates.\nlist follows nextPageToken up to BEARING_TRACKER_MAX_PAGES (default 20) pages,\nsays when it stops early, and prints the count on stderr.",
    "functions": [
     "usage",
     "die",
@@ -15715,6 +15723,7 @@
     "BEARING_TRACKER_URL"
    ],
    "calls": [
+    "brg-plugin-options",
     "brg-tracker"
    ]
   },
@@ -15758,6 +15767,42 @@
    "calls": [
     "brg-config",
     "brg-guard"
+   ]
+  },
+  {
+   "path": "plugins/bearing/bin/brg-plugin-options",
+   "name": "brg-plugin-options",
+   "lang": "bash",
+   "group": "quality",
+   "lines": 158,
+   "header": "brg-plugin-options: Bearing's Claude Code plugin settings (userConfig in\nplugins/bearing/.claude-plugin/plugin.json) as the BEARING_* keys the other\nscripts read. Precedence everywhere: the environment, then these settings,\nthen bearing.env, then each script's default.\n\n  brg-plugin-options print      one BEARING_KEY=value line per set option\n  brg-plugin-options rejected   one \"<option>: <why>\" line per set option\n                                whose value its key does not allow\n  brg-plugin-options write      write the copy (the SessionStart hook)\n  brg-plugin-options path       print where the copy lives\n\nClaude Code hands the settings to hook processes only, as\nCLAUDE_PLUGIN_OPTION_<KEY>; the agent's Bash tool and a skill's shell\ninjection get none of them (probed on 2.1.287). So the SessionStart hook,\noutside the sandbox, writes the set options to a copy,\n${XDG_CONFIG_HOME:-$HOME/.config}/bearing-options/options.env, and print\nreads that copy when no CLAUDE_PLUGIN_OPTION_ variable is present.\n\nThe copy is something the agent can read but, where the repository settings\ntemplate is in force, not write (sandbox denyWrite and an Edit deny on the\nfolder): a tracker URL it could rewrite would send the token elsewhere. So\nonly the keys below are ever read from it, every value is checked again on\nthe way in, a copy that is a link or has a second hard link is not read,\nand no secret is a plugin setting: BEARING_TRACKER_TOKEN,\nBEARING_TRACKER_PASSWORD and BEARING_AUTO_PUSH stay in bearing.env.\nA set value its key does not allow is never used and never silent: write\nkeeps its option name in the copy, rejected prints it, and brg-tracker\nconfig and the session line name it. bash 3.2 safe.",
+   "functions": [
+    "trim",
+    "value",
+    "why",
+    "lines_env",
+    "in_env",
+    "links",
+    "copy_ok",
+    "lines_copy"
+   ],
+   "env": [
+    "BEARING_AUTO_PUSH",
+    "BEARING_KEY",
+    "BEARING_LEARNING",
+    "BEARING_NONINTERACTIVE",
+    "BEARING_TASK_ID_PREFIX",
+    "BEARING_TRACKER",
+    "BEARING_TRACKER_EMAIL",
+    "BEARING_TRACKER_PASSWORD",
+    "BEARING_TRACKER_PROJECT",
+    "BEARING_TRACKER_TOKEN",
+    "BEARING_TRACKER_URL",
+    "BEARING_UPDATE_CHECK",
+    "CLAUDE_PLUGIN_OPTION_"
+   ],
+   "calls": [
+    "brg-tracker"
    ]
   },
   {
@@ -15831,7 +15876,7 @@
    "name": "brg-rest",
    "lang": "bash",
    "group": "tracker",
-   "lines": 432,
+   "lines": 444,
    "header": "brg-rest: client for any tracker that speaks the Bearing REST tracker\nprotocol (docs/TRACKERS.md, \"REST tracker protocol\"): create, read,\nupdate, comment, link, trace.\n\n  brg-rest login | me | projects | statuses <project> [type]\n  brg-rest resolve <KEY|id>                 -> numeric id\n  brg-rest get <KEY|id>                     -> the issue JSON\n  brg-rest list <project> [--type t] [--status name] [--q text] [--limit n]\n  brg-rest create <project> --type <t> --title <s> [--description-file f]\n         [--priority p] [--epic KEY] [--parent KEY] [--story KEY]\n         [--labels a,b] [--points n] [--assignee me|email]\n  brg-rest update <KEY|id> [--status name] [--assignee me|email] [--title s]\n         [--description-file f] [--priority p] [--points n] [--due YYYY-MM-DD]\n  brg-rest close <KEY|id>                   -> status BEARING_TRACKER_DONE_STATUS (Done)\n  brg-rest comment <KEY|id> (<text> | --file f)\n  brg-rest link <KEY|id> <blocks|blocked_by|relates|duplicates> <KEY|id>\n  brg-rest trace <KEY|id> [--branch b] [--mr url] [--commits a,b] [--tests KEY,..]\n         [--adr ADR-nnnn] [--docs path,..]\n  brg-rest docs <project> [--type prd|design|doc]   -> one line per document, count on stderr\n  brg-rest doc-get <id>                     -> the document JSON, content included\n  brg-rest doc-put <project> --title <s> --file <f> [--type prd|design|doc]\n         [--parent <id>] [--source <path>]  -> creates the document, or updates the\n         one whose content carries the source marker; {id,title,doc_type,action}\n  (create and update also take --document <id>: the document the issue\n  belongs to, so a story points at the PRD it came from)\n\nConfiguration comes from the environment, then ~/.config/bearing/bearing.env\n(KEY=value lines, read as data, never executed; the environment wins):\nBEARING_TRACKER_URL (required, the server's base url), BEARING_TRACKER_TOKEN\n(a bearer token) or BEARING_TRACKER_EMAIL plus BEARING_TRACKER_PASSWORD (the\nlogin endpoint trades them for a token, cached at ~/.config/bearing/rest.token,\nmode 600), BEARING_TRACKER_DONE_STATUS and BEARING_TRACKER_MAX_PAGES.\nCredentials reach curl through a config file on a pipe and request bodies\nthrough stdin, never on the command line, and are never printed. Every call\nhas a 30 s budget. A 429 is retried once; a 5xx is retried once for GET and\nPUT, and for a create or a comment only after a search for its marker (an\nHTML comment it carries) finds nothing, so a retry never duplicates. list\nfollows limit/offset up to BEARING_TRACKER_MAX_PAGES (default 20) pages,\nsays when it stops early, and prints the count on stderr. A key is whatever\nthe server returns in an issue's \"key\" field; every issue path takes the\nnumeric id, so the client resolves a key through the search endpoint (then\nthe project's issue list when BEARING_TRACKER_PROJECT is set). brg-tracker\nis the generic front; this client is its adapter for BEARING_TRACKER=rest.",
    "functions": [
     "load_kv",
@@ -15872,6 +15917,7 @@
     "BEARING_TRACKER_URL"
    ],
    "calls": [
+    "brg-plugin-options",
     "brg-tracker"
    ]
   },
@@ -15894,7 +15940,7 @@
    "name": "brg-scaffold",
    "lang": "bash",
    "group": "scaffold",
-   "lines": 288,
+   "lines": 300,
    "header": "brg-scaffold: create a repository from the Bearing templates.\n\n  brg-scaffold <stack> <PascalName> [--dir <path>] [--module <go module>]\n               [--host gitlab|github|both] [--tracker PREFIX|none]\n               [--lead @user] [--group @group] [--databases \"PostgreSQL\"]\n               [--org com.example] [--kit-remote <url>] [--check]\n\nDefaults for --host, --tracker, --org and --kit-remote come from BEARING_GIT_HOST,\nBEARING_TASK_ID_PREFIX, BEARING_ORG_ID and BEARING_KIT_REMOTE in\n~/.config/bearing/bearing.env (then both, the BEARING_TRACKER name or none,\ncom.example and the kit's own git remote). Explicit flags win.\n--host gitlab copies .gitlab-ci.yml and .gitlab/ only; github copies .github/\nonly; both copies both sets. A host file the templates do not ship yet is\nskipped with a note. Stacks are discovered from skills/*/templates*/\nstack.json in every Bearing plugin present (bin/brg-kit-paths); a stack\nwhose plugin is not installed names the plugin to install. The shared\nrepo files come from templates/repo, then the stack's templates, then the\nstack's skeleton. Placeholders (__REPO_NAME__ and\nfriends) are substituted in every text file. When the stack's toolchain\n(stack.json \"tool\") is installed, its \"install\" command runs once so the\nlockfile exists before the first commit; that step never fails the scaffold.\nPrints the count of files written and fails if zero.",
    "functions": [
     "usage",
@@ -15916,6 +15962,7 @@
     "brg-adopt",
     "brg-autopilot",
     "brg-kit-paths",
+    "brg-plugin-options",
     "brg-scaffold-install",
     "brg-scaffold-stage"
    ]
@@ -15979,8 +16026,8 @@
    "name": "brg-tracker",
    "lang": "bash",
    "group": "tracker",
-   "lines": 174,
-   "header": "brg-tracker: one command surface for every ticket tracker.\n\n  brg-tracker config                      -> effective tracker and where it came from (never secrets)\n  brg-tracker me                          -> the authenticated user\n  brg-tracker resolve <KEY>               -> the tracker's own id for a key\n  brg-tracker get <KEY>                   -> compact JSON for one ticket\n  brg-tracker list [--type t] [--status s] [--q text] [--limit n]  -> every page, count on stderr\n  brg-tracker create --type <epic|story|task|bug|testcase> --title <s>\n              [--description-file f] [--parent KEY] [--priority p]\n  brg-tracker update <KEY> [--status name] [--assignee me|email|login] [--title s]\n              [--description-file f] [--priority p]\n  brg-tracker close <KEY>                 -> status BEARING_TRACKER_DONE_STATUS (default Done)\n  brg-tracker comment <KEY> (<text> | --file f)\n  brg-tracker link <KEY> <relates|blocks> <KEY2>   -> prints \"link: issue-link\" or \"link: comment\"\n  brg-tracker trace <KEY> [--branch b] [--mr url] [--commits a,b] [--tests TC-..] [--adr ADR-nnnn]\n  brg-tracker docs [--type prd|design|doc]  -> the project's documents (rest only)\n  brg-tracker doc-put --title <s> --file <f> [--type prd|design|doc] [--parent <id>] [--source <path>]\n                                          -> create or update one document (rest only)\n  create and update also take --document <id> on rest: the document a ticket belongs to.\n  On jira, gitlab and github the document commands print \"documents: not supported\"\n  and exit 3, like a write on tracker none.\n\n--parent and --priority map per adapter: rest uses epic_id for a story,\nstory_id for a bug, parent_id otherwise, and a priority enum\n(lowest..highest); Jira uses the parent field and a priority name (High);\nGitLab and GitHub use a \"Parent:\" line plus a link or cross-reference\ncomment, and a priority::<slug> label. link is a real issue link on rest,\nJira and GitLab; on GitHub it is a cross-reference comment.\n\nConfiguration: BEARING_TRACKER from the environment, then\n~/.config/bearing/bearing.env (KEY=value; environment wins). Values:\n  none            every command prints \"tracker: none ...\" and exits 0 for\n                  read commands, 3 for write commands (callers treat 3 as skipped)\n  rest            bin/brg-rest    keys as the server returns them (docs/TRACKERS.md)\n  jira            bin/brg-jira    keys PROJ-123\n  gitlab          bin/brg-gitlab  keys GL-123\n  github          bin/brg-github  keys GH-123\nTokens and passwords are read by the adapters and never printed.",
+   "lines": 205,
+   "header": "brg-tracker: one command surface for every ticket tracker.\n\n  brg-tracker config                      -> effective tracker and where it came from (never secrets)\n  brg-tracker me                          -> the authenticated user\n  brg-tracker resolve <KEY>               -> the tracker's own id for a key\n  brg-tracker get <KEY>                   -> compact JSON for one ticket\n  brg-tracker list [--type t] [--status s] [--q text] [--limit n]  -> every page, count on stderr\n  brg-tracker create --type <epic|story|task|bug|testcase> --title <s>\n              [--description-file f] [--parent KEY] [--priority p]\n  brg-tracker update <KEY> [--status name] [--assignee me|email|login] [--title s]\n              [--description-file f] [--priority p]\n  brg-tracker close <KEY>                 -> status BEARING_TRACKER_DONE_STATUS (default Done)\n  brg-tracker comment <KEY> (<text> | --file f)\n  brg-tracker link <KEY> <relates|blocks> <KEY2>   -> prints \"link: issue-link\" or \"link: comment\"\n  brg-tracker trace <KEY> [--branch b] [--mr url] [--commits a,b] [--tests TC-..] [--adr ADR-nnnn]\n  brg-tracker docs [--type prd|design|doc]  -> the project's documents (rest only)\n  brg-tracker doc-put --title <s> --file <f> [--type prd|design|doc] [--parent <id>] [--source <path>]\n                                          -> create or update one document (rest only)\n  create and update also take --document <id> on rest: the document a ticket belongs to.\n  On jira, gitlab and github the document commands print \"documents: not supported\"\n  and exit 3, like a write on tracker none.\n\n--parent and --priority map per adapter: rest uses epic_id for a story,\nstory_id for a bug, parent_id otherwise, and a priority enum\n(lowest..highest); Jira uses the parent field and a priority name (High);\nGitLab and GitHub use a \"Parent:\" line plus a link or cross-reference\ncomment, and a priority::<slug> label. link is a real issue link on rest,\nJira and GitLab; on GitHub it is a cross-reference comment.\n\nConfiguration: BEARING_TRACKER from the environment, then\n~/.config/bearing/bearing.env (KEY=value; the environment wins, then Claude\nCode plugin settings, see brg-plugin-options, then this file). Values:\n  none            every command prints \"tracker: none ...\" and exits 0 for\n                  read commands, 3 for write commands (callers treat 3 as skipped)\n  rest            bin/brg-rest    keys as the server returns them (docs/TRACKERS.md)\n  jira            bin/brg-jira    keys PROJ-123\n  gitlab          bin/brg-gitlab  keys GL-123\n  github          bin/brg-github  keys GH-123\nTokens and passwords are read by the adapters and never printed.",
    "functions": [
     "usage",
     "die",
@@ -16002,6 +16049,7 @@
     "brg-github",
     "brg-gitlab",
     "brg-jira",
+    "brg-plugin-options",
     "brg-rest"
    ]
   },
@@ -19223,6 +19271,13 @@
    "asserts": 10
   },
   {
+   "path": "tests/unit/plugin_options.sh",
+   "kind": "unit",
+   "lines": 164,
+   "header": "tests/unit/plugin_options.sh: Bearing's Claude Code plugin settings (userConfig). Hooks get them as CLAUDE_PLUGIN_OPTION_<KEY>; the agent's Bash gets none, so the SessionStart hook writes a copy that brg-plugin-options print reads back. Precedence is the environment, then plugin settings, then bearing.env. Only the listed, non-secret keys pass, each value checked on the way out of the copy too. bash 3.2 safe.",
+   "asserts": 80
+  },
+  {
    "path": "tests/unit/prd_doc_to_text.sh",
    "kind": "unit",
    "lines": 63,
@@ -20346,7 +20401,7 @@
   },
   {
    "path": "repo/.claude/settings.json",
-   "lines": 488
+   "lines": 491
   },
   {
    "path": "repo/.editorconfig",
@@ -20470,7 +20525,7 @@
   },
   {
    "path": "user/bearing.env",
-   "lines": 111
+   "lines": 114
   }
  ],
  "changelog": [
@@ -20483,8 +20538,8 @@
     "Fixed",
     "Notes for existing installs"
    ],
-   "entries": 8,
-   "summary": "- `brg-guard stop-hint`: on the first edit the Stop gate will count (a file in the repository, not ignored, not under `.bearing/` or `.scratch/`), the edit hook tells Claude once, as `additionalContext`, to run `make check-changed` (or `make check`) before the final report. The hook's plain stdout reaches the transcript, not Claude, so until now the agent learnt the rule only from the block: it wrote its report, was sent back, ran the check and wrote the report again. - An opt-in output style, `Bearing report` (`plugins/bearing/output-styles/`): no narration of tool calls, counts quoted from what ran, the check before the report, and the Changed, Verified, Not done, Noticed report with \"not…"
+   "entries": 9,
+   "summary": "- Claude Code plugin settings (`userConfig`) for the everyday keys: tracker, tracker URL, project and email, task id prefix, learning, non-interactive mode and the update check. `/plugin install` asks for them and `/plugin configure bearing@bearing` changes them; an environment variable still wins, then the plugin setting, then `bearing.env`. Claude Code hands plugin settings to hooks only (the agent's Bash gets none, probed on 2.1.287), so the SessionStart hook copies them to `~/.config/bearing-options/options.env`. Every `bearing.env` parser, `brg-config`, the update check and the doctor read them through `bin/brg-plugin-options`: from the hook's environment, else from the copy, key by ke…"
   },
   {
    "version": "0.10.0",
@@ -21333,7 +21388,7 @@
  "settings": {
   "allow": 92,
   "ask": 20,
-  "deny": 213,
+  "deny": 215,
   "defaultMode": "acceptEdits",
   "askSamples": [
    "Bash(pnpm add:*)",
@@ -21370,6 +21425,7 @@
   "denyWrite": [
    "~/.ssh",
    "~/.config/bearing",
+   "~/.config/bearing-options",
    "~/.gitconfig",
    "~/.config/git",
    "./.githooks",

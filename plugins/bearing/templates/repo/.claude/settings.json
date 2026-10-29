@@ -188,6 +188,8 @@
       "Bash(git push:*)",
       "Bash(bash *bin/brg-push run*)",
       "Edit(~/.config/bearing/**)",
+      "Edit(~/.config/bearing-options/**)",
+      "Write(~/.config/bearing-options/**)",
       "Edit(~/.gitconfig)",
       "Edit(~/.config/git/**)",
       "Write(~/.config/git/**)",
@@ -475,6 +477,7 @@
       "denyWrite": [
         "~/.ssh",
         "~/.config/bearing",
+        "~/.config/bearing-options",
         "~/.gitconfig",
         "~/.config/git",
         "./.githooks",

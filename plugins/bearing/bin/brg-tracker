@@ -29,7 +29,8 @@
 # Jira and GitLab; on GitHub it is a cross-reference comment.
 #
 # Configuration: BEARING_TRACKER from the environment, then
-# ~/.config/bearing/bearing.env (KEY=value; environment wins). Values:
+# ~/.config/bearing/bearing.env (KEY=value; the environment wins, then Claude
+# Code plugin settings, see brg-plugin-options, then this file). Values:
 #   none            every command prints "tracker: none ..." and exits 0 for
 #                   read commands, 3 for write commands (callers treat 3 as skipped)
 #   rest            bin/brg-rest    keys as the server returns them (docs/TRACKERS.md)
@@ -49,8 +50,20 @@ die() { echo "brg-tracker: $*" >&2; exit 1; }
 # environment is never overridden. Quotes are stripped, "  # comment" tails
 # are dropped from unquoted values.
 load_env() {
-  [ -f "$ENV_FILE" ] || return 0
   local line key val
+  # Claude Code plugin settings (brg-plugin-options) come after the
+  # environment and before the file: a key already set is never overridden.
+  if [ -f "$(dirname "$0")/brg-plugin-options" ]; then
+    while IFS= read -r line; do
+      key="${line%%=*}"; val="${line#*=}"
+      printf '%s' "$key" | grep -Eq '^BEARING_[A-Z0-9_]+$' || continue
+      [ -n "${!key+x}" ] && continue
+      export "$key=$val"; BRG_PLUGIN_KEYS="${BRG_PLUGIN_KEYS:-} $key"
+    done <<EOF
+$(bash "$(dirname "$0")/brg-plugin-options" print 2>/dev/null)
+EOF
+  fi
+  [ -f "$ENV_FILE" ] || return 0
   while IFS= read -r line || [ -n "$line" ]; do
     case "${line#"${line%%[![:space:]]*}"}" in ''|'#'*) continue;; esac
     case "$line" in *=*) ;; *) continue;; esac
@@ -70,7 +83,9 @@ load_env() {
 src="default"
 [ -n "${BEARING_TRACKER+x}" ] && src="environment"
 load_env
-[ "$src" = "environment" ] || { [ -n "${BEARING_TRACKER+x}" ] && src="$ENV_FILE"; }
+if [ "$src" != "environment" ] && [ -n "${BEARING_TRACKER+x}" ]; then
+  case " ${BRG_PLUGIN_KEYS:-} " in (*" BEARING_TRACKER "*) src="plugin settings";; (*) src="$ENV_FILE";; esac
+fi
 tracker="${BEARING_TRACKER:-none}"
 tracker="$(printf '%s' "$tracker" | tr '[:upper:]' '[:lower:]')"
 [ -n "$tracker" ] || tracker=none
@@ -103,6 +118,13 @@ shape_of() {
 if [ "$cmd" = "config" ]; then
   echo "tracker: $tracker (from $src)"
   echo "env file: $ENV_FILE$([ -f "$ENV_FILE" ] || printf ' (absent)')"
+  pk="$(printf '%s' "${BRG_PLUGIN_KEYS:-}" | wc -w | tr -d ' ')"
+  echo "plugin settings: ${pk} key(s) in use$([ "$pk" -eq 0 ] || printf ' (%s)' "$(printf '%s' "${BRG_PLUGIN_KEYS}" | sed 's/^ //')")"
+  if [ -f "$KIT/bin/brg-plugin-options" ]; then
+    bash "$KIT/bin/brg-plugin-options" rejected 2>/dev/null | while IFS= read -r bad; do
+      [ -n "$bad" ] && echo "plugin setting ${bad%%:*} ignored: ${bad#*: } (fix it with /plugin configure bearing@bearing)"
+    done
+  fi
   if [ "$tracker" != none ]; then
     url="${BEARING_TRACKER_URL:-}"
     [ "$tracker" = gitlab ] && url="${url:-https://gitlab.com}"
@@ -128,11 +150,20 @@ if [ "$cmd" = "config" ]; then
 fi
 
 if [ "$tracker" = none ]; then
-  echo "tracker: none (set BEARING_TRACKER in ~/.config/bearing/bearing.env)"
+  echo "tracker: none (set it with /plugin configure bearing@bearing, or BEARING_TRACKER in ~/.config/bearing/bearing.env)"
   case "$cmd" in me|get|list|resolve|docs) exit 0;; create|update|comment|link|trace|close|doc-put) exit 3;; *) usage;; esac
 fi
 
 [ -x "$adapter" ] || die "adapter $adapter is missing or not executable"
+
+# A tracker_url plugin setting that was rejected must not fall back to the
+# adapter's public host (gitlab.com, github.com): a self-hosted token in
+# bearing.env would go there. Refuse until the URL is fixed, or set where it
+# is allowed (the environment or bearing.env).
+if [ -z "${BEARING_TRACKER_URL:-}" ] && [ -f "$KIT/bin/brg-plugin-options" ] \
+   && bash "$KIT/bin/brg-plugin-options" rejected 2>/dev/null | grep -q '^tracker_url:'; then
+  die "the tracker_url plugin setting was rejected (see brg-tracker config); not calling $tracker on its default host. Fix it with /plugin configure bearing@bearing"
+fi
 
 # rest: the generic surface mapped onto bin/brg-rest, whose list and create
 # take the project key as a positional argument and whose parent flag depends
