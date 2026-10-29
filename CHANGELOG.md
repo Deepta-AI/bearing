@@ -4,6 +4,8 @@ All notable changes to Bearing. Keep a Changelog format, semantic versions.
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-10-29
+
 ### Added
 - `make evals-weekly`: trigger-eval and harness-eval, then a row in the
   tracked `evals/scoreboard.jsonl` (`bin/eval-scoreboard.py`) compared with
@@ -85,12 +87,6 @@ All notable changes to Bearing. Keep a Changelog format, semantic versions.
   skills that missed requests, recall went from 59% to 79% (the GenAI and
   app skills from 12/33 to 26/33); 15 strong skills held at 96%; no false
   triggers in 92 near-miss cases.
-- The Next.js template pins `next` and `eslint-config-next` 16.4.1,
-  clearing two critical advisories (GHSA-2464-fhr4-w9xw,
-  GHSA-673q-mjm6-r5xr, unauthenticated remote code execution) and a high
-  one (GHSA-p3m5-59mp-jv5r); the Next.js, React, Node and React Native
-  templates pin `zod` 4.6.6 for GHSA-mrhx-c7xc-m3w5 (high). They failed
-  `make vuln` in a new repository and the three node `scaffold` CI jobs.
 - The weekly evals no longer read a usage limit as failures. The first run
   (22 Oct) hit "You've hit your session limit" after 547 trigger sessions,
   and every harness scenario and skill eval after it was recorded as
@@ -125,6 +121,14 @@ All notable changes to Bearing. Keep a Changelog format, semantic versions.
   the real clone. Bearing's own `.githooks/pre-push` and the template
   `pre-push` now run the gate without them, and `tests/lib/assert.sh`
   drops them for every test (`tests/unit/repo_pre_push.sh`).
+
+### Security
+- The Next.js template pins `next` and `eslint-config-next` 16.4.1,
+  clearing two critical advisories (GHSA-2464-fhr4-w9xw,
+  GHSA-673q-mjm6-r5xr, unauthenticated remote code execution) and a high
+  one (GHSA-p3m5-59mp-jv5r); the Next.js, React, Node and React Native
+  templates pin `zod` 4.6.6 for GHSA-mrhx-c7xc-m3w5 (high). They failed
+  `make vuln` in a new repository and the three node `scaffold` CI jobs.
 - The React template pins `vite` 7.3.7, clearing GHSA-587h-7wmj-h5pm
   (high, `launch-editor`) that failed `make vuln` in a new React repository
   and the `scaffold (react-web)` CI job.
@@ -132,6 +136,20 @@ All notable changes to Bearing. Keep a Changelog format, semantic versions.
   installs a Go with GO-2026-6809 (`crypto/x509`) fixed, and Bearing's own
   CI sets up Go with `check-latest`, so the `scaffold (go-api)` job's
   `govulncheck` no longer reports the runner's cached 1.26.9.
+
+### Notes for existing repositories
+- A repository scaffolded before 0.10.0 still pins the versions the
+  Security entries replace: `next` and `eslint-config-next` 16.3.8 and
+  `zod` 4.6.5 (Next.js, React, Node) or 4.1.11 (React Native), `vite`
+  before 7.3.7, and `go` before 1.26.10. Upgrading Bearing does not
+  change those files; run `dependency-audit` (or `make vuln`) in each
+  repository and move them.
+- Plugins update with `upgrade-tools` (or `claude plugin update
+  <name>@bearing` for each of bearing, bearing-backend, bearing-apps and
+  bearing-genai). A machine still on 0.8.0 has no `bearing-genai`;
+  `upgrade-tools` installs it.
+- The new hooks (StopFailure, PostToolUseFailure, PermissionDenied,
+  SubagentStop) take effect after the plugin update and a new session.
 
 ## [0.9.0] - 2026-10-21
 
