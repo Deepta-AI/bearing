@@ -3,6 +3,7 @@
 # no-op outside a Bearing repo, and a branch without a task id.
 set -u
 . "$(dirname "$0")/../lib/assert.sh"
+unset BEARING_NO_GATE_LOG # this test reads gates.log
 S="$KIT/plugins/bearing/bin/brg-session"
 repo="$(tmpdir)"; git -C "$repo" init -q -b feat/RuntimeAndFeel; mkdir -p "$repo/.bearing/state"
 in_repo() { ( cd "$repo" && bash "$S" "$@" ) }

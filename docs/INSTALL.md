@@ -271,8 +271,11 @@ quoted from the commands that ran, the repository's check run before the
 final report rather than after it, and every turn that changed anything
 ending in the Changed, Verified, Not done, Noticed report, with "not run"
 for each check that was skipped. It is opt in: choose it under Output style
-in `/config`, or in `.claude/settings.local.json` for one repository. The
-style is read once, when a session starts.
+in `/config` (or `/output-style bearing:Bearing report`), or for one
+repository set `"outputStyle": "bearing:Bearing report"` in
+`.claude/settings.local.json`. The plugin prefix is part of the name: a
+plain `"Bearing report"` matches none of the listed styles, so it is not
+applied (checked on 2.1.287). The style is read once, when a session starts.
 
 ## 7. Upgrade
 

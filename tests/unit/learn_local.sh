@@ -4,6 +4,7 @@
 # session ask and read back; gate blocks and reruns feed the log.
 set -u
 . "$(dirname "$0")/../lib/assert.sh"
+unset BEARING_NO_GATE_LOG # this test reads gates.log
 L="$KIT/plugins/bearing/bin/brg-learn"
 cfg="$(tmpdir)"; f="$cfg/bearing/learnings.jsonl"
 run() { XDG_CONFIG_HOME="$cfg" bash "$L" "$@"; }

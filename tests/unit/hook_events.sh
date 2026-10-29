@@ -6,6 +6,7 @@
 # contract, and never twice. bash 3.2 safe.
 set -u
 . "$(dirname "$0")/../lib/assert.sh"
+unset BEARING_NO_GATE_LOG # this test reads gates.log
 HS="$KIT/plugins/bearing/hooks/scripts"
 
 # -b main: git's default branch name differs between images (the bash32 one says master)

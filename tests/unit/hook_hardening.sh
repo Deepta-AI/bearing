@@ -10,6 +10,7 @@
 # ran. bash 3.2 safe.
 set -u
 . "$(dirname "$0")/../lib/assert.sh"
+unset BEARING_NO_GATE_LOG # this test reads gates.log
 HS="$KIT/plugins/bearing/hooks/scripts"
 canary="$(tmpdir)/canary"; mkdir -p "$canary"
 none_ran() { # none_ran <what>: no canary file, so no repository code ran

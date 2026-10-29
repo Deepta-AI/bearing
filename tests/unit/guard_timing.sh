@@ -3,6 +3,7 @@
 # prints median and p90; doctor --timing prints the stats block.
 set -u
 . "$(dirname "$0")/../lib/assert.sh"
+unset BEARING_NO_GATE_LOG # this test reads gates.log
 
 repo="$(tmpdir)"
 git -C "$repo" init -q -b main

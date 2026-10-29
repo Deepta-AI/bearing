@@ -5,12 +5,12 @@
   "commandSkills": 0,
   "stackSkills": 12,
   "scripts": 116,
-  "scriptLines": 36473,
+  "scriptLines": 36496,
   "hooks": 12,
   "agents": 8,
   "makeTargets": 41,
   "gates": 20,
-  "tests": 130,
+  "tests": 131,
   "fixtures": 25,
   "stacks": 13,
   "templates": 38,
@@ -15412,7 +15412,7 @@
    "name": "brg-doctor",
    "lang": "bash",
    "group": "install",
-   "lines": 267,
+   "lines": 287,
    "header": "brg-doctor: verify the Bearing installation on this machine and, when run\ninside a repository, in that repository. Prints one line per check and a\nsummary; exits 1 when any required check is missing. Accepts either git\nhost: CI is .gitlab-ci.yml or .github/workflows/*.yml or *.yaml and must run\nmake check; the change template is .gitlab/merge_request_templates/*.md or\npull_request_template.md in any case (GitHub's rule). The third-party packs (Superpowers, gstack)\nare required only when BEARING_PROFILE (environment, then bearing.env) is\nstandard or full; unset or minimal makes them optional, so a\n`install.sh --profile minimal` machine can pass. core.hooksPath passes as\n.githooks, or as another directory whose three hooks each call .githooks/\nwith their arguments and keep its exit status. A hook counts only when git\nwould run it: present, executable, and committed as 100755; make setup\ncounts only when every script its dry run calls exists.",
    "functions": [
     "trust_state",
@@ -15526,7 +15526,7 @@
    "name": "brg-guard",
    "lang": "bash",
    "group": "guard",
-   "lines": 2221,
+   "lines": 2224,
    "header": "Hooks run outside the sandbox with the harness's environment, so the first\nthing done is to drop what in it could run another program: PATH becomes\n/usr/bin:/bin plus the system tool directories (jq, git and python3 on\nmacOS live under /usr/local/bin or /opt/homebrew/bin; on Linux under\nLinuxbrew or a Nix profile), never a directory the environment put first\n(this line matches hooks/scripts/lib.sh, where brg-doctor reads it and\nthe tools the hooks need, and the settings template denies Edit and Write\non the user-owned ones); BASH_ENV and ENV (sourced by every bash started\nlater), CDPATH (redirects cd), PYTHON* (python3 also runs -I everywhere),\nLD_* and DYLD_* (preloaded libraries) are unset. BASH_ENV in the harness's\nown environment is sourced by bash before this line runs, which no script\ncan prevent; the settings template denies Edit and Write on the settings\nfiles whose env could set it.",
    "functions": [
     "git_lockdown",
@@ -18783,7 +18783,7 @@
   {
    "path": "tests/lib/assert.sh",
    "kind": "lib",
-   "lines": 153,
+   "lines": 158,
    "header": "tests/lib/assert.sh: sourced by every test file. bash 3.2 safe (macOS). t_begin <case> open a named case (counted; a case that runs no t_end assertion is a failure, so an empty test cannot pass) t_run <cmd...> run with $T_IN on stdin; sets T_RC and T_OUT (stdout+stderr) assert_exit <rc> <cmd...> t_run and check the exit code assert_eq <expected> <actual> [what] assert_contains <haystack> <needle> [what] assert_not_contains <haystack> <needle> [what] assert_file <path> [mode] the file exists (and has that octal mode) tmpdir print a fresh directory, removed at exit minimal_path <tool>... print…",
    "asserts": 13
   },
@@ -18984,6 +18984,13 @@
    "asserts": 52
   },
   {
+   "path": "tests/unit/doctor_gate_health.sh",
+   "kind": "unit",
+   "lines": 56,
+   "header": "tests/unit/doctor_gate_health.sh: brg-doctor's gate health line, from the last 14 days of .bearing/state/gates.log. A Stop gate that blocked 10 times or more and more often than it passed is MISSING, as is a compaction snapshot that failed to write; older lines do not count; an empty, missing or linked log is optional, never a pass.",
+   "asserts": 13
+  },
+  {
    "path": "tests/unit/doctor_hook_path.sh",
    "kind": "unit",
    "lines": 39,
@@ -19098,9 +19105,9 @@
   {
    "path": "tests/unit/guard_harness_gates.sh",
    "kind": "unit",
-   "lines": 190,
+   "lines": 208,
    "header": "tests/unit/guard_harness_gates.sh: the three harness gates. check-file runs no linter and no make target (the hooks run outside the sandbox) and says the per-file check runs in the session; stop-gate holds a session to the files it changed since the last check, once, and never loops; precompact writes a snapshot that session --source compact reads back. Then the Claude Code adapters turn a gate's exit 2 into {\"decision\": \"block\"}.",
-   "asserts": 82
+   "asserts": 91
   },
   {
    "path": "tests/unit/guard_latency.sh",
@@ -19126,7 +19133,7 @@
   {
    "path": "tests/unit/guard_timing.sh",
    "kind": "unit",
-   "lines": 33,
+   "lines": 34,
    "header": "tests/unit/guard_timing.sh: format writes a timed gates.log line; stats prints median and p90; doctor --timing prints the stats block.",
    "asserts": 9
   },
@@ -19154,21 +19161,21 @@
   {
    "path": "tests/unit/hook_events.sh",
    "kind": "unit",
-   "lines": 85,
+   "lines": 86,
    "header": "tests/unit/hook_events.sh: the hooks on StopFailure, PostToolUseFailure, PermissionDenied and SubagentStop. stop-failure.sh writes the checkpoint and logs the error type; tool-failure.sh logs the tool name only; agent-report.sh sends a Bearing review agent back once when its report misses its output contract, and never twice. bash 3.2 safe.",
    "asserts": 25
   },
   {
    "path": "tests/unit/hook_hardening.sh",
    "kind": "unit",
-   "lines": 235,
+   "lines": 236,
    "header": "tests/unit/hook_hardening.sh: the hooks run outside the sandbox, while the working tree (Makefile, node_modules, .git/config, .gitattributes, .bearing/state) is the agent's to write. So: the edit hook runs no repository command (no make check-file, no node_modules binary, nothing from the inherited PATH) and says what it did not run; every gates.log append refuses a planted link, hard link or FIFO and caps the label; and every git a hook starts runs no filter driver, external diff, pager or signature program the repository configures. Canary files prove nothing ran. bash 3.2 safe.",
    "asserts": 26
   },
   {
    "path": "tests/unit/hook_untrusted.sh",
    "kind": "unit",
-   "lines": 293,
+   "lines": 294,
    "header": "tests/unit/hook_untrusted.sh: the hooks run outside the sandbox, and the working tree, .git/config and the agent's environment are the agent's to write. So no hook writes through a link the agent planted or copies a linked file anywhere (SessionEnd, progress.py write); brg-update-check runs git ls-remote outside the repository with nothing of the repository's config or the caller's environment; and no hook runs a git command that reads file contents (status, diff, add), so a filter driver that appears between the hook's start and its git (a background loop toggling it in an included file) nev…",
    "asserts": 50
   },
@@ -19189,7 +19196,7 @@
   {
    "path": "tests/unit/learn_local.sh",
    "kind": "unit",
-   "lines": 166,
+   "lines": 167,
    "header": "tests/unit/learn_local.sh: consent states; nothing written unless on; counts increment; paths reduced or dropped; top ranks by count; the guard session ask and read back; gate blocks and reruns feed the log.",
    "asserts": 78
   },
@@ -19357,7 +19364,7 @@
   {
    "path": "tests/unit/push_run.sh",
    "kind": "unit",
-   "lines": 565,
+   "lines": 566,
    "header": "tests/unit/push_run.sh: brg-push request, run and status, and the hooks that drive them. request writes the request only when check passes; run, from the Stop hook, re-judges the request, the opt-in, the session mark, the gate marker and the engineer's global transport settings, then clones the branch fresh and pushes it to the URL listed in bearing.env, never running a repository hook, Makefile, git config key or exported variable; every file it writes in .bearing/state goes through state_write, never through a planted link. The Stop gate starts it when it passes, and a core.fsmonitor in .gi…",
    "asserts": 174
   },
@@ -19434,14 +19441,14 @@
   {
    "path": "tests/unit/session_checkpoint.sh",
    "kind": "unit",
-   "lines": 45,
+   "lines": 46,
    "header": "tests/unit/session_checkpoint.sh: checkpoint content on a task branch and on a branch without an id.",
    "asserts": 13
   },
   {
    "path": "tests/unit/session_end.sh",
    "kind": "unit",
-   "lines": 98,
+   "lines": 99,
    "header": "tests/unit/session_end.sh: SessionEnd refreshes docs/progress/<ID>.md on a task branch, keeps person-written content (a hand-added line the template would drop stops the rewrite), and does nothing elsewhere.",
    "asserts": 30
   },
@@ -19469,7 +19476,7 @@
   {
    "path": "tests/unit/session_timeline.sh",
    "kind": "unit",
-   "lines": 82,
+   "lines": 83,
    "header": "tests/unit/session_timeline.sh: timeline start, implicit end, close, recent, no-op outside a Bearing repo, and a branch without a task id.",
    "asserts": 32
   },
@@ -19595,7 +19602,7 @@
   {
    "path": "tests/unit/update_check.sh",
    "kind": "unit",
-   "lines": 199,
+   "lines": 200,
    "header": "tests/unit/update_check.sh: brg-update-check and its place in brg-guard session. A local bare repo is the remote; HOME and XDG_CONFIG_HOME are temp dirs, so the network and the real ~/.claude are never touched.",
    "asserts": 72
   },
@@ -20576,8 +20583,8 @@
     "Fixed",
     "Notes for existing installs"
    ],
-   "entries": 11,
-   "summary": "- Claude Code plugin settings (`userConfig`) for the everyday keys: tracker, tracker URL, project and email, task id prefix, learning, non-interactive mode and the update check. `/plugin install` asks for them and `/plugin configure bearing@bearing` changes them; an environment variable still wins, then the plugin setting, then `bearing.env`. Claude Code hands plugin settings to hooks only (the agent's Bash gets none, probed on 2.1.287), so the SessionStart hook copies them to `~/.config/bearing-options/options.env`. Every `bearing.env` parser, `brg-config`, the update check and the doctor read them through `bin/brg-plugin-options`: from the hook's environment, else from the copy, key by ke…"
+   "entries": 15,
+   "summary": "- The doctor reports gate health from the last 14 days of the repository's `gates.log`: how many gate decisions it read, and how often the Stop gate blocked and passed. A Stop gate that blocked 10 times or more and more often than it passed is a MISSING line, since each block is a full extra turn; so is a compaction snapshot that failed to write. - After a compaction the session hook prints the branch's handoff note up to 40 lines, so its Criteria come back with the snapshot. Startup and resume keep the first 8 lines; a linked note is not read. - Claude Code plugin settings (`userConfig`) for the everyday keys: tracker, tracker URL, project and email, task id prefix, learning, non-interacti…"
   },
   {
    "version": "0.10.0",

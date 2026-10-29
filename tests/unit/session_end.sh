@@ -4,6 +4,7 @@
 # would drop stops the rewrite), and does nothing elsewhere.
 set -u
 . "$(dirname "$0")/../lib/assert.sh"
+unset BEARING_NO_GATE_LOG # this test reads gates.log
 H="$KIT/plugins/bearing/hooks/scripts/session-end.sh"
 run() { bash -c "cd '$1' && bash '$H'"; }
 nextof() { awk '/^## Next/{f=1;next} /^## /{f=0} f && !/^<!--/ && NF {sub(/^- /,""); print; exit}' "$1"; }
