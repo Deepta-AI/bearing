@@ -49,6 +49,20 @@ All notable changes to Bearing. Keep a Changelog format, semantic versions.
 ### Changed
 - The README's first screen leads with what Bearing does, the two install
   lines and the four claims, each with its number.
+- The node, React and Next.js templates move to pnpm 10.17.1, as React
+  Native already had, and all four ship a `pnpm-workspace.yaml` with
+  `minimumReleaseAge: 4320`: a version published in the last three days is
+  not installed, the same wait Renovate keeps. pnpm 10 runs no dependency
+  install scripts; each template names the ones it skips
+  (`ignoredBuiltDependencies`) and its gate passes without them. The
+  Dockerfiles copy the file in before installing.
+
+- `make sandbox-probe` (`bin/probe-sandbox-links`) runs Claude Code's
+  sandbox runtime against the plugin settings copy: write it, replace it,
+  and hard-link it into the repository, write through the link and delete
+  the link. CI runs it on macOS, where Seatbelt checks paths and a hard
+  link is the open question; on Linux bubblewrap mounts the folder
+  read-only and the link fails across devices.
 
 ### Fixed
 - The hooks answer for the session's repository. SessionStart moves to the

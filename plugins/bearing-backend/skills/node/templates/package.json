@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "description": "__REPO_NAME__: __STACK__",
   "type": "module",
-  "packageManager": "pnpm@9.15.9",
+  "packageManager": "pnpm@10.17.1",
   "engines": {
     "node": ">=24"
   },

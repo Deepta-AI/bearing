@@ -11,8 +11,9 @@
 #              next morning (the scaffold resolves dependencies fresh).
 #   bash32     plugins/bearing/bin/brg-guard, the CLI --help paths and the
 #              unit tests under bash 3.2 (the macOS default) in the bash:3.2 image.
-#   macos      the shell lint, the whole test suite and a scaffold on
-#              macos-latest: BSD sed, BSD stat and the stock bash 3.2.
+#   macos      the shell lint, the whole test suite, the sandbox probe
+#              (bin/probe-sandbox-links) and a scaffold on macos-latest:
+#              BSD sed, BSD stat, Seatbelt and the stock bash 3.2.
 name: ci
 
 on:
@@ -88,4 +89,7 @@ jobs:
       - run: brew install --quiet shellcheck jq
       - run: sw_vers && bash --version | head -1
       - run: make lint-shell test
+      # Can a sandboxed agent change the plugin settings copy through a hard
+      # link? Seatbelt checks paths, so this is the platform where it matters.
+      - run: make sandbox-probe
       - run: bash plugins/bearing/bin/brg-scaffold go-api McProbe --dir /tmp/x

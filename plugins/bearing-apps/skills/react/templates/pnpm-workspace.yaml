@@ -1,0 +1,13 @@
+# Supply chain (pnpm 10.16 or later): a version published less than three days
+# ago is not installed, the same wait Renovate keeps, so a hijacked release has
+# time to be pulled first. pnpm 10 runs no dependency install scripts unless the
+# package is listed under onlyBuiltDependencies. For an urgent fix in a newer
+# release, list that one package under minimumReleaseAgeExclude with the reason
+# in the commit; never drop the setting.
+minimumReleaseAge: 4320
+# Their install scripts are not needed: the platform binary comes as an optional
+# dependency, and the stack's gate passes without them.
+ignoredBuiltDependencies:
+  - esbuild
+  - msw
+  - unrs-resolver

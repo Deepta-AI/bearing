@@ -4,7 +4,7 @@ WORKDIR /src
 RUN corepack enable
 # pnpm-lock.yaml is committed (make setup writes it); the glob keeps a first
 # build working before it exists, at the cost of an unpinned resolution.
-COPY package.json pnpm-lock.yaml* ./
+COPY package.json pnpm-lock.yaml* pnpm-workspace.yaml ./
 RUN if [ -f pnpm-lock.yaml ]; then pnpm install --frozen-lockfile; \
     else echo "lockfile: none committed, installing unfrozen (run pnpm install and commit pnpm-lock.yaml)"; pnpm install; fi
 COPY . .

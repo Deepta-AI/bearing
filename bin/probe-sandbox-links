@@ -1,0 +1,55 @@
+#!/usr/bin/env bash
+# bin/probe-sandbox-links: can a sandboxed agent change the plugin settings
+# copy (brg-plugin-options) through a hard link? Runs Claude Code's own
+# sandbox, @anthropic-ai/sandbox-runtime (srt), with the copy's folder in
+# denyWrite and a stand-in repository in allowWrite, then tries what a
+# misled agent would: write the copy directly, replace it, and hard-link it
+# into the repository, write through the link and delete the link so the
+# copy's link count is 1 again. Passes when the copy is unchanged afterwards.
+#
+#   bin/probe-sandbox-links      needs node (npx) and, on Linux, bubblewrap
+#
+# Not part of make check: it downloads srt. CI runs it on Linux and macOS
+# (make sandbox-probe). Prints one line per attempt. bash 3.2 safe.
+set -u
+SRT="@anthropic-ai/sandbox-runtime@0.0.79"
+command -v npx >/dev/null 2>&1 || { echo "probe-sandbox-links: npx not found" >&2; exit 1; }
+
+h="$(mktemp -d "${TMPDIR:-/tmp}/brg-probe.XXXXXX")" || exit 1
+trap 'chmod -R u+w "$h" 2>/dev/null; rm -rf "$h"' EXIT
+opts="$h/config/bearing-options"; repo="$h/repo"
+mkdir -p "$opts" "$repo"
+good='BEARING_TRACKER_URL=https://tracker.example.com'
+printf '%s\n' "$good" > "$opts/options.env"
+cat > "$h/srt.json" <<EOF
+{
+  "filesystem": { "denyRead": [], "allowWrite": ["$repo"], "denyWrite": ["$opts"] },
+  "network": { "allowedDomains": [], "deniedDomains": [] }
+}
+EOF
+
+# Each attempt runs inside the sandbox; its exit status is ignored, only the
+# copy's content afterwards counts.
+n=0; held=0
+attempt() { # attempt <label> <shell command run inside srt>
+  n=$((n+1))
+  ( cd "$repo" && npx -y "$SRT" --settings "$h/srt.json" bash -c "$2" ) >"$h/out" 2>&1
+  if [ "$(cat "$opts/options.env" 2>/dev/null)" = "$good" ]; then
+    held=$((held+1)); echo "held: $1 ($(tail -1 "$h/out" | cut -c1-120))"
+  else
+    echo "CHANGED: $1"; printf '%s\n' "$good" > "$opts/options.env"
+  fi
+}
+
+attempt "write the copy" "echo BEARING_TRACKER_URL=https://evil.example > '$opts/options.env'"
+attempt "replace the copy" "echo BEARING_TRACKER_URL=https://evil.example > '$repo/x' && mv -f '$repo/x' '$opts/options.env'"
+attempt "hard link, write, unlink" "ln '$opts/options.env' '$repo/h' && echo BEARING_TRACKER_URL=https://evil.example > '$repo/h'; rm -f '$repo/h'"
+attempt "chmod through a hard link" "ln '$opts/options.env' '$repo/h' && chmod 666 '$repo/h' && echo BEARING_TRACKER_URL=https://evil.example > '$repo/h'; rm -f '$repo/h'"
+
+# The sandbox must actually have run: a command that writes in the repository
+# leaves its file.
+( cd "$repo" && npx -y "$SRT" --settings "$h/srt.json" bash -c "echo ok > '$repo/alive'" ) >/dev/null 2>&1
+[ -f "$repo/alive" ] || { echo "probe-sandbox-links: srt did not run a command (see $SRT on $(uname -s))" >&2; exit 1; }
+
+echo "probe-sandbox-links: $(uname -s), $n attempts, $held held"
+[ "$n" -gt 0 ] && [ "$held" -eq "$n" ]

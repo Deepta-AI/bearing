@@ -23,7 +23,11 @@ or a mitigation within thirty.
   agent can read but, in a repository on the settings template, not write,
   so it cannot point the tracker URL, and with it the token, at another
   host. The copy is read key by key, each value checked again, and a copy
-  that is a link or has a second hard link is not read.
+  that is a link or has a second hard link is not read. A link made,
+  written through and removed again would leave one link, so the sandbox
+  must refuse the link itself: on Linux it does (the folder is a read-only
+  mount and the link fails across devices); `make sandbox-probe` checks
+  the same on macOS in CI.
 - The agent never publishes. `plugins/bearing/bin/brg-guard` blocks push, history
   rewrites, merges, releases, package publishing and deployment
   commands. It fails closed: a command it cannot read is refused. Claude
