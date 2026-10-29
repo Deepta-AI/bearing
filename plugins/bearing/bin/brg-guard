@@ -317,13 +317,31 @@ PAT_HC="[\\\\'\"()\`\$<#;&|]"              # heredoc line scan, command context
 TEXT_PROGS=' echo printf grep egrep fgrep rg ag ack man info help whatis apropos which type whereis hash test [ true false : cat less more head tail wc file stat ls '
 GIT_BUILTINS=' add am annotate apply archive bisect blame branch bundle cat-file check-attr check-ignore check-mailmap check-ref-format checkout checkout-index cherry cherry-pick citool clean clone column commit commit-graph commit-tree config count-objects credential describe diff diff-files diff-index diff-tree difftool fast-export fast-import fetch fetch-pack filter-branch fmt-merge-msg for-each-ref format-patch fsck gc get-tar-commit-id grep gui hash-object help init instaweb interpret-trailers log ls-files ls-remote ls-tree mailinfo mailsplit maintenance merge merge-base merge-file merge-tree mergetool mktag mktree mv name-rev notes pack-objects pack-refs prune pull push range-diff read-tree rebase reflog remote repack replace request-pull rerere reset restore rev-list rev-parse revert rm send-email shortlog show show-branch show-ref sparse-checkout stash status submodule switch symbolic-ref tag update-index update-ref var verify-commit verify-pack verify-tag version whatchanged worktree write-tree lfs filter-repo '
 
+# A block is policy, not a failure: the same command is blocked again, so
+# the message says so, gives the reason for this kind of rule and the safe
+# way on, and the agent stops retrying or working round it.
+POLICY="Bearing policy, not an error: it is blocked every time, so do not retry it or look for another way to run it."
+deny_why() { # deny_why <label>: why this kind of command is blocked, and what to do instead
+  case "$1" in
+    'git commit --amend') echo "it rewrites a commit the engineer may already have. Make a new commit instead.";;
+    'git rebase'|'git filter-repo'|'git filter-branch'|'git reset --hard'|'git update-ref -d'|'git reflog expire'|'git gc --prune')
+      echo "it rewrites or drops history the engineer may need. Use git cherry-pick, git revert or a new commit, or print the command for the engineer.";;
+    'git branch -D')
+      echo "it deletes a branch and its commits, which only the engineer decides. Print the command for the engineer; to move a branch with no commits of its own, git merge --ff-only works.";;
+    'git tag -d'|'git stash drop'|'git stash clear'|'git worktree remove'|'git clean -fdx'|'git remote set-url'|'git remote remove')
+      echo "it deletes work or changes where the repository points, which only the engineer decides. Print the command for the engineer.";;
+    'rm -rf outside the repository'|'chmod -R 777'|'chown -R /'|dd|mkfs|killall|'pkill -f .'|reboot|shutdown|'fork bomb')
+      echo "it can destroy files or processes outside the repository. Work on paths inside the repository (a scratch folder there for throwaway files), or print the command for the engineer.";;
+    *) echo "the engineer pushes, merges and deploys; the agent prepares. Print the command for the engineer instead.";;
+  esac
+}
 deny() { # deny <label>
-  echo "Bearing blocked '$1': the engineer pushes, merges and deploys; the agent prepares. Print the command for the engineer instead." >&2
+  echo "Bearing blocked '$1': $(deny_why "$1") $POLICY" >&2
   gate_log "$(guard_gate)" refused "$1"
   exit 2
 }
 refuse() { # refuse <reason>: the command could not be read
-  echo "brg-guard: $1; refusing (fail closed)" >&2
+  echo "brg-guard: $1; refusing (fail closed). Write the command with its program, verbs and paths spelled out, no variable or substitution in them, or print it for the engineer. $POLICY" >&2
   gate_log "$(guard_gate)" refused "unreadable: $1"
   exit 2
 }

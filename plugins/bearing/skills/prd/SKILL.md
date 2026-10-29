@@ -30,20 +30,16 @@ story per line. Detail: references/register-and-scope.md
   AskUserQuestion (as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says),
   options "enter a path or brief" (via Other) and "stop"; no answer stops:
   "provide a brief, a file path or an existing PRD".
-- Existing PRD: looks in `docs/product/PRD.md` for ids to keep; if absent,
-  numbering starts at `REQ-001`.
+- Existing PRD: `docs/product/PRD.md` and its parts `docs/product/prd/*.md`
+  for ids to keep; if absent, numbering starts at `REQ-001`.
 - Templates: `templates/PRD.md` and `templates/questions.md` in this skill; no
   repository copy is needed.
 - Existing register: looks in `docs/product/questions.md` for Q ids and
   decisions to keep; if absent, numbering starts at `Q-001`.
-- Input format: text formats are read as they are; a `.pdf` with Read (20 pages per call); a
-  `.docx` or `.odt` by `scripts/doc_to_text.py` in this skill. Only a legacy `.doc`, a Google
-  Doc or a Notion link gets one AskUserQuestion, options "enter an export path" (`.docx`, PDF or
-  text, via Other) and "stop". Detail: references/register-and-scope.md
-- Target repository: the git repository the session runs in (`git rev-parse --show-toplevel`).
-  When the working directory is not one, or is a folder holding several repositories, ask one
-  question with AskUserQuestion, options "enter the repository path" (via Other) and "stop"
-  (no answer: stop); never write `docs/product` into a parent folder.
+- Input format: text as it is, `.pdf` with Read, `.docx` or `.odt` by `scripts/doc_to_text.py`;
+  a legacy `.doc`, Google Doc or Notion link gets one export question. Detail: references/register-and-scope.md
+- Target repository: `git rev-parse --show-toplevel`; not one, or a folder of several: ask
+  for the path (AskUserQuestion, or stop); never write `docs/product` into a parent folder.
 - Repository decisions: `docs/adr/*.md` (or wherever the README keeps
   decisions) and the code that already handles the domain; if absent, the input
   is checked against itself only and the report says so.
@@ -63,8 +59,8 @@ story per line. Detail: references/register-and-scope.md
    source. A README or a docs page used as the brief is named as the source so
    the reader knows the PRD was inferred from it.
 2. Read `templates/PRD.md` and `templates/questions.md`. If
-   `docs/product/PRD.md` exists, read it and keep every existing `REQ-nnn` id
-   and text; new statements append after the highest id in the whole file (ids
+   `docs/product/PRD.md` exists, read it and its parts, keep every `REQ-nnn` id
+   and text; new statements append after the highest id in all of them (ids
    are not always in order in the tables), withdrawn statements stay in the
    list marked `withdrawn:`. Never renumber. When the input changes an existing
    statement, apply step 7a.
@@ -139,23 +135,24 @@ story per line. Detail: references/register-and-scope.md
 8. Write `docs/product/PRD.md` and `docs/product/questions.md`
    (`mkdir -p docs/product`); section 7 of the PRD states the register's
    counts. Print the counts. Zero statements extracted is a failed run, not an
-   empty PRD.
-9. Do not offer a critique. Only when the user asks for one, fork `critic`
-   (Agent tool) with the document path and report its findings; a finding
-   enters the register only when it meets the rule in step 7 (unclear about
-   what gets built), never for business, delivery or legal doubts.
+   empty PRD. Over 60 statements, section 5 moves per area to
+   `docs/product/prd/<nn>-<area>.md` (same table, ids unchanged) and PRD.md
+   keeps the other sections and an index of the parts. Then name the next
+   step: `backlog`, and `bearing-genai:genai-design` first when the product
+   runs on a model (LLM, RAG, agent, classifier). Detail: references/long-prd-and-next.md
+9. Do not offer a critique. Only on request fork `critic` (Agent tool) with the
+   path; a finding enters the register only under step 7's rule, never for business, delivery or legal doubts.
 10. Resolve the register in this session; nothing is sent outside it. Run
     `python3 "${CLAUDE_PLUGIN_ROOT}/skills/prd/scripts/register_answers.py" rank` for
     the open entries, ranked (open assumptions first, then by how many statements each
-    affects). Print the count and ask how to go through them with AskUserQuestion:
-    highest impact first in rounds of four, only the assumptions, or none now (the
-    default if unanswered); then ask round by round the same way, up to four entries a
-    call, each a question in plain words (the register's text is for engineers): the
-    assumed reading first, labelled "(Assumed)", then the other readings, at most four
-    options (the user can always type their own); put the experiment in an option's
-    description when the entry has one, and group entries on one topic in the same
-    round. Without AskUserQuestion, ask the same round as a numbered list and accept
-    short answers ("Q-005 c, Q-021 keep, Q-006 ask"). A user who cannot answer yet:
+    affects). Print the count and ask the first round at once with AskUserQuestion, the
+    three highest-impact entries, each a question in plain words (the register's text
+    is for engineers): the assumed reading first, labelled "(Assumed)", then the other
+    readings, at most four options (the user can always type their own). After each
+    round offer: the next three, only the assumptions, or stop (the default if
+    unanswered). Put the experiment in an option's description when the entry has
+    one; group entries on one topic in one round. Without AskUserQuestion, ask the round
+    as a numbered list ("Q-005 c, Q-021 keep, Q-006 ask"). A user who cannot answer yet:
     record `ask-client` with who will be asked. Write the answers to
     `.bearing/answers-<date>.json` and apply them with
     `register_answers.py apply --answers <file> --source "<who> in session"`.
@@ -168,6 +165,7 @@ story per line. Detail: references/register-and-scope.md
 
 ```
 ## PRD: <title> (<N> input lines from <source>)
+Open questions: O to answer (docs/product/questions.md), asked below | none
 Statements extracted: S (REQ-001 to REQ-nnn, W withdrawn)
 Business objectives: B (B1 to Bn, T with a confirmed target)
 Drafting: in this session | parallel (<R> ranges, <statements per range>)
@@ -181,6 +179,7 @@ Written: docs/product/PRD.md, docs/product/questions.md
 Critic: run on request (K findings, F filed) | not requested
 Answers: R rounds, C confirmed, V need review, A wait on the client, O still open | skipped
 Verdict: normalised | failed (0 statements)
+Next: backlog (stories and acceptance criteria for every REQ) | genai-design, then backlog
 ```
 
 ## Gotchas

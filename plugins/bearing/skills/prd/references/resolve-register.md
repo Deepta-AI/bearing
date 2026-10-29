@@ -6,11 +6,12 @@ Read when you reach step 10 and ask the open entries round by round.
    `python3 "${CLAUDE_PLUGIN_ROOT}/skills/prd/scripts/register_answers.py" rank`
    for the open entries, ranked: open assumptions first, then by
    how many statements each affects, so the first round settles what
-   blocks the most. Print the count and ask the user how to go through
-   them with AskUserQuestion, options highest impact first in rounds of four,
-   stopping whenever they like; only the assumptions; or none now (the default
-   if unanswered). Then ask round by round with AskUserQuestion, up to four
-   entries a call, each a question in
+   blocks the most. Print the count and ask the first round at once with
+   AskUserQuestion, the three highest-impact entries; a question about how to
+   go through them comes after a round, never before the first, so the
+   register is not skipped by a reader who missed it in a long reply. After
+   each round offer the next three, only the assumptions, or stop (the default
+   if unanswered). Up to three entries a call, each a question in
    plain words (the register's text is for engineers): the assumed
    reading first, labelled "(Assumed)", then the other readings, at most
    four options (the user can always type their own); put the

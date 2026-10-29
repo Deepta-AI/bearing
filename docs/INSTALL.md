@@ -265,15 +265,19 @@ triggering reliable on your machine:
 
 The bearing plugin ships one output style, `Bearing report`
 (`plugins/bearing/output-styles/bearing-report.md`). It keeps Claude Code's
-coding instructions and adds a few rules that cut output tokens without
+coding instructions and adds rules that cut output tokens without
 cutting evidence: no narration of tool calls or restated plans, counts
 quoted from the commands that ran, the repository's check run before the
 final report rather than after it, and every turn that changed anything
 ending in the Changed, Verified, Not done, Noticed report, with "not run"
-for each check that was skipped. It is opt in: choose it under Output style
-in `/config` (or `/output-style bearing:Bearing report`), or for one
-repository set `"outputStyle": "bearing:Bearing report"` in
-`.claude/settings.local.json`. The plugin prefix is part of the name: a
+for each check that was skipped. Replies lead with the answer, use short
+bullets, put comparisons in tables and give screenshots as file paths.
+A repository whose `.claude/settings.json` came from the template
+(`new-repo`, or `onboard-repo` where there was none) has it on:
+`"outputStyle": "bearing:Bearing report"`; add that line to your own.
+Elsewhere choose it under Output style in `/config` (or `/output-style
+bearing:Bearing report`); to turn it off in one repository, set another
+style in `.claude/settings.local.json`. The plugin prefix is part of the name: a
 plain `"Bearing report"` matches none of the listed styles, so it is not
 applied (checked on 2.1.287). The style is read once, when a session starts.
 

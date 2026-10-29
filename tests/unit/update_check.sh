@@ -16,7 +16,9 @@ git -C "$w" push -q "$remote" --tags
 git -C "$w" push -q "$remote" main 2>/dev/null
 cfg="$(tmpdir)"
 fresh() { rm -f "$cfg/bearing/update-check"; }
-run() { XDG_CONFIG_HOME="$cfg" bash "$U" --remote "$remote" --installed "$1" "${@:2}"; }
+# run() works from this checkout, so it logs nothing; the one case that reads
+# gates.log runs in its own repository.
+run() { BEARING_NO_GATE_LOG=1 XDG_CONFIG_HOME="$cfg" bash "$U" --remote "$remote" --installed "$1" "${@:2}"; }
 
 t_begin "newest numeric, not lexical; pre-releases ignored"
 fresh
@@ -115,10 +117,10 @@ t_end
 
 t_begin "a failed check is remembered: no second ls-remote for 6 hours"
 fresh; : > "$calls"
-XDG_CONFIG_HOME="$cfg" bash "$U" --remote "$hang" --installed 0.7.0 --budget 1 >/dev/null 2>&1
+BEARING_NO_GATE_LOG=1 XDG_CONFIG_HOME="$cfg" bash "$U" --remote "$hang" --installed 0.7.0 --budget 1 >/dev/null 2>&1
 assert_contains "$(cat "$cfg/bearing/update-check")" "	-	timeout" "negative entry"
 s=$(date +%s%N 2>/dev/null || echo 0)
-T_OUT="$(XDG_CONFIG_HOME="$cfg" bash "$U" --remote "$hang" --installed 0.7.0 --budget 3 2>&1)"
+T_OUT="$(BEARING_NO_GATE_LOG=1 XDG_CONFIG_HOME="$cfg" bash "$U" --remote "$hang" --installed 0.7.0 --budget 3 2>&1)"
 e=$(date +%s%N 2>/dev/null || echo 0)
 assert_eq "" "$T_OUT"
 assert_eq 1 "$(wc -l < "$calls" | tr -d ' ')" "ls-remote called once only"

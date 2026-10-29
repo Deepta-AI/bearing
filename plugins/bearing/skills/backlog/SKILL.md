@@ -166,9 +166,9 @@ Epics: E   Stories: U   Acceptance criteria: A   Flows: F or not written
 <the gate's "questions:" line, verbatim>
 <the gate's "stories-coverage:" line, verbatim>
 Written: <the files actually written or edited>
-Changed (update only): added <ids>; changed <ids>; reopened by <ids>;
-         withdrawn <ids>
+Changed (update only): added <ids>; changed <ids>; reopened by <ids>; withdrawn <ids>
 Verdict: covered | not covered (G REQ without a story, P problems)
+Next: estimate, tech-decision, high-level-design (a product from an idea) | start-task on the first story
 ```
 
 ## Gotchas

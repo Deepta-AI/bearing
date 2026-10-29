@@ -2,7 +2,7 @@
 name: spike
 description: 'Runs a timeboxed spike on one question with throwaway code and a written answer. Use when asked to "spike this" or "investigate whether".'
 argument-hint: "<name> \"<question>\" [--hours 4] [--branch]"
-allowed-tools: Read, Write, Edit, Grep, Glob, Bash(ls:*), Bash(mkdir -p:*), Bash(date:*), Bash(printenv:*), Bash(git status:*), Bash(git branch:*), Bash(git switch -c:*), Bash(git log:*), Bash(git diff:*), Bash(git show:*), Bash(git check-ignore:*), Bash(git restore:*), Bash(git checkout --:*), Bash(git clean -n:*), Bash(make check:*), Bash(make test:*), Bash(go run:*), Bash(go test:*), Bash(go tool pprof:*), Bash(go version:*), Bash(GOMAXPROCS=1 go test:*), Bash(GOMAXPROCS=1 go run:*), Bash(env:*), Bash(taskset:*), Bash(systemd-run --user --scope:*), Bash(/usr/bin/time:*), Bash(node:*), Bash(pnpm exec:*), Bash(uv run:*), Bash(python3:*)
+allowed-tools: Read, Write, Edit, Grep, Glob, AskUserQuestion, Bash(ls:*), Bash(mkdir -p:*), Bash(date:*), Bash(printenv:*), Bash(git status:*), Bash(git branch:*), Bash(git switch -c:*), Bash(git log:*), Bash(git diff:*), Bash(git show:*), Bash(git check-ignore:*), Bash(git restore:*), Bash(git checkout --:*), Bash(git clean -n:*), Bash(make check:*), Bash(make test:*), Bash(go run:*), Bash(go test:*), Bash(go tool pprof:*), Bash(go version:*), Bash(GOMAXPROCS=1 go test:*), Bash(GOMAXPROCS=1 go run:*), Bash(env:*), Bash(taskset:*), Bash(systemd-run --user --scope:*), Bash(/usr/bin/time:*), Bash(node:*), Bash(pnpm exec:*), Bash(uv run:*), Bash(python3:*)
 ---
 
 # spike
@@ -117,6 +117,12 @@ Not this: `systematic-debugging` for a bug with a symptom;
    globs). Run the repository's check again and `git status --porcelain`:
    only the doc is new, no tracked file differs, nothing
    is committed. Print the contract.
+9. Ask what happens next, once, with AskUserQuestion as
+   `${CLAUDE_PLUGIN_ROOT}/references/console.md` says, so the answer is not
+   lost under the findings: create the follow-up task (recommended when the
+   answer supports a change), run the narrower spike the doc names, or leave
+   the doc for review. This picks the next action; the recommendation itself
+   stays Proposed. No answer: leave the doc for review.
 
 ## Output contract
 
@@ -135,6 +141,7 @@ Follow-up: "<title>" (tracker-sync create --type task ... | tracker: none)
 Throwaway: deleted | .scratch/spike-<name>/ | spike/<name> (engineer: git branch -D spike/<name>)
 Check: <repo check before> / <after>; git status: only <doc path>
 Path: docs/spikes/<date>-<name>.md
+Next: <the answer to step 9>: follow-up task | narrower spike | doc left for review
 ```
 
 ## Gotchas

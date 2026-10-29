@@ -130,11 +130,28 @@ case "$sub" in
     git -C "$root" rev-parse -q --verify HEAD >/dev/null 2>&1 && met="${met}new-repo "
     [ -f "$root/docs/design/tokens.json" ] && met="${met}design-system "
     done_list="$(bash "$0" timeline-recent --branch "$branch" --n 200 | sed 's/.*://; s|^/||')"
+    # From an idea: a branch that ran planning skills (office-hours, prd,
+    # backlog, high-level-design, new-repo) and no start-task is building a
+    # product, not a ticket, so it follows the greenfield flow; so does a
+    # branch with no start-task in a repository whose config says
+    # "flow": "greenfield". A ticket branch keeps the feature flow.
+    if [ "$flow" = feature ]; then
+      if ! printf '%s\n' "$done_list" | grep -qx 'start-task'; then
+        [ -f "$cf" ] && [ "$(sed -n 's/.*"flow"[[:space:]]*:[[:space:]]*"\([a-z]*\)".*/\1/p' "$cf" | head -1)" = greenfield ] && flow=greenfield
+        printf '%s\n' "$done_list" | grep -qxE 'office-hours|prd|backlog|high-level-design|new-repo' && flow=greenfield
+      fi
+    fi
     [ "$flow" = feature ] && printf '%s\n' "$done_list" | grep -qx 'genai-design' && flow=genai
+    # The pointer is the furthest step done: a later branch step done means
+    # the earlier ones were skipped on purpose. In the greenfield flow only
+    # main-line steps move it, since prd sends a model-driven product to
+    # genai-design (step 14) before backlog (step 3); a step already done is
+    # never offered.
     printf '%s\n' "$done_list" | awk -F'\t' -v f="$flow" -v met="$met" '
       FNR==NR { if ($1==f) { name[$2]=$3; kind[$2]=$4; ord[$3]=$2; if ($2+0>max) max=$2+0 } next }
-      ($0 in ord) && ord[$0]+0>best { best=ord[$0]+0 }
+      ($0 in ord) { did[$0]=1; o=ord[$0]+0; if ((f!="greenfield" || kind[o]=="step") && o>best) best=o }
       END { for (k=best+1; k<=max; k++) {
+              if (name[k] in did) continue
               if (kind[k]=="branch" && index(met, " " name[k] " ")) continue
               print name[k]; break } }' "$steps" -;;
   resume)

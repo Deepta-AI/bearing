@@ -29,8 +29,8 @@ section and answer as below.
    checkpoint, the last skills and the next flow step. Its own "ask whether
    to continue" line is input only: the one ask is this menu's. On a trunk
    or release branch with no history it prints nothing: use the repository
-   read in Inputs instead, and lead with `start-task` when there is no
-   task branch.
+   read in Inputs instead: lead with `prd` when there is no product yet
+   (no `docs/product/PRD.md`, no code), else `start-task` for a ticket.
 2. Run `bash "${CLAUDE_PLUGIN_ROOT}/bin/brg-learn" top --skills "<candidate skills>" --n 3`
    and fold any learnings into the reasons; if it prints nothing (learning
    off or no jq), carry on.

@@ -471,9 +471,28 @@ t_end
 
 t_begin "block message names the label and the rule"
 assert_exit 2 bash "$GUARD" command "git $P"
-assert_eq "Bearing blocked 'git $P': the engineer pushes, merges and deploys; the agent prepares. Print the command for the engineer instead." "$T_OUT"
+assert_eq "Bearing blocked 'git $P': the engineer pushes, merges and deploys; the agent prepares. Print the command for the engineer instead. Bearing policy, not an error: it is blocked every time, so do not retry it or look for another way to run it." "$T_OUT"
 assert_exit 2 bash "$GUARD" command "terraform apply"
 assert_contains "$T_OUT" "blocked 'terraform apply'"
+t_end
+
+t_begin "each kind of block gives its own reason and way on, and says not to retry"
+assert_exit 2 bash "$GUARD" command "git commit --amend -m x"
+assert_contains "$T_OUT" "Make a new commit instead."
+assert_exit 2 bash "$GUARD" command "git rebase main"
+assert_contains "$T_OUT" "Use git cherry-pick, git revert or a new commit"
+assert_exit 2 bash "$GUARD" command "git branch -D old"
+assert_contains "$T_OUT" "git merge --ff-only works"
+assert_exit 2 bash "$GUARD" command "rm -rf /tmp/elsewhere"
+assert_contains "$T_OUT" "Work on paths inside the repository"
+assert_not_contains "$T_OUT" "pushes, merges and deploys" "rm -rf is not called a push"
+for c in "git push" "git rebase main" "rm -rf /tmp/elsewhere"; do
+  assert_exit 2 bash "$GUARD" command "$c"
+  assert_contains "$T_OUT" "Bearing policy, not an error" "$c"
+done
+assert_exit 2 bash "$GUARD" command '"$PROG" status'
+assert_contains "$T_OUT" "refusing (fail closed). Write the command with its program, verbs and paths spelled out"
+assert_contains "$T_OUT" "Bearing policy, not an error"
 t_end
 
 t_begin "brg-push run is the Stop hook's, never the agent's"

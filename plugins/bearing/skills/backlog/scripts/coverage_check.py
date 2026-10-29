@@ -137,6 +137,20 @@ def read(path):
     return strip_comments(open(path, encoding="utf-8").read())
 
 
+def read_prd(path):
+    """The PRD's text: PRD.md, then each part beside it in prd/*.md in name
+    order (a long PRD keeps its statements per area there, ids unchanged)."""
+    text = read(path)
+    if not path:
+        return text
+    parts = os.path.join(os.path.dirname(path), "prd")
+    if os.path.isdir(parts):
+        for n in sorted(os.listdir(parts)):
+            if n.endswith(".md") and os.path.isfile(os.path.join(parts, n)):
+                text = (text or "") + "\n" + (read(os.path.join(parts, n)) or "")
+    return text
+
+
 def cells(line):
     return [c.strip() for c in line.strip().strip("|").split("|")]
 
@@ -217,7 +231,7 @@ def git(cwd, *args):
 def req_ids(prd, coverage):
     """REQ ids from statement rows; (ids, withdrawn, source)."""
     for src, text, marker in (
-        (prd, read(prd), None),
+        (prd, read_prd(prd), None),
         (coverage, read(coverage), "Statements (inline"),
     ):
         if text is None:
@@ -747,7 +761,7 @@ def main():
             orphans.append(sid)
 
     if strict:
-        objectives = set(re.findall(r"^\|\s*(B\d+)\s*\|", read(a.prd) or "", re.M))
+        objectives = set(re.findall(r"^\|\s*(B\d+)\s*\|", read_prd(a.prd) or "", re.M))
         check_house_blocks(live, objectives, header, rows, problems)
     check_index(live, stories, header, rows, strict, problems)
 

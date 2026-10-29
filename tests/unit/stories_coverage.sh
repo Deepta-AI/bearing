@@ -126,6 +126,19 @@ assert_contains "$T_OUT" "questions: 2 (open 2, needs confirmation 1)"
 assert_contains "$T_OUT" "Verdict: covered"
 t_end
 
+t_begin "a PRD split into parts (prd/*.md) is read whole, ids unchanged"
+d="$(tmpdir)/parts"; fixture "$d"
+mkdir -p "$d/prd"
+grep -v 'REQ-003' "$d/PRD.md" > "$d/PRD.tmp" && mv "$d/PRD.tmp" "$d/PRD.md"
+printf '| Id | Statement |\n| --- | --- |\n| REQ-003 | Export as JSON |\n' > "$d/prd/02-export.md"
+assert_exit 0 run "$d"
+assert_contains "$T_OUT" "stories-coverage: 3 REQ from $d/PRD.md (1 withdrawn), 3 covered"
+printf '| REQ-009 | Import a list |\n' >> "$d/prd/02-export.md"
+assert_exit 1 run "$d"
+assert_contains "$T_OUT" "4 REQ from $d/PRD.md" "a statement only in a part counts"
+assert_contains "$T_OUT" "REQ-009"
+t_end
+
 t_begin "an AC that loses its Covers line leaves a gap, whatever the matrix says"
 d="$(tmpdir)/gap"; fixture "$d"
 sed -i.bak '/AC-US-00-002-1\. Given/{n;d;}' "$d/backlog.md"

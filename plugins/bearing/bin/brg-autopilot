@@ -289,8 +289,13 @@ def g_repo(d, st):
 
 
 def g_prd(d, st):
-    n = len(set(re.findall(r"\bREQ-\d{3}\b", read(d, "docs/product/PRD.md"))))
-    return (n > 0, f"docs/product/PRD.md: {n} REQ statements")
+    parts = os.path.join(d, "docs/product/prd")
+    text = read(d, "docs/product/PRD.md") + "".join(
+        read(d, f"docs/product/prd/{n}") for n in (sorted(os.listdir(parts)) if os.path.isdir(parts) else [])
+        if n.endswith(".md"))
+    n = len(set(re.findall(r"\bREQ-\d{3}\b", text)))
+    k = len([x for x in os.listdir(parts) if x.endswith(".md")]) if os.path.isdir(parts) else 0
+    return (n > 0, f"docs/product/PRD.md{f' and {k} parts' if k else ''}: {n} REQ statements")
 
 
 def g_stories(d, st):
@@ -1330,8 +1335,18 @@ GATES = {"repo": g_repo, "branch": g_branch, "prd": g_prd, "stories": g_stories,
 assert list(GATES) == NAMES, "every stage has its gate, in order"
 
 
+# The stages a planning run (--until) may stop after: the build starts at repos.
+PLANNING = NAMES[: NAMES.index("design") + 1]
+
+
+def run_names(st):
+    """The stages this run covers: all of them, or up to --until (planning only)."""
+    u = st.get("until")
+    return NAMES[: NAMES.index(u) + 1] if u in NAMES else NAMES
+
+
 def next_stage(st):
-    for n in NAMES:
+    for n in run_names(st):
         s = st["stages"][n]
         if s["status"] == "blocked":
             return n, "blocked"
@@ -1396,9 +1411,27 @@ def cmd_start(a):
         # a repository with commits and files before the run: a change, scope lean
         "existing": existing_repo(d),
     }
+    # --until <stage>: a planning run (prd, stories, decisions, architecture,
+    # design) that stops there with the digest, for a user who has a plan
+    # and wants the documents without the build
+    if a.until:
+        st["until"] = a.until
     os.makedirs(d, exist_ok=True)
     save(d, st)
-    print(f"brg-autopilot: run {st['run']} started, {len(NAMES)} stages")
+    upto = f", until {a.until}" if a.until else ""
+    print(f"brg-autopilot: run {st['run']} started, {len(run_names(st))} of {len(NAMES)} stages{upto}")
+    return cmd_next(a)
+
+
+def cmd_continue(a):
+    """A planning run goes on into the build: --until is dropped, every stage
+    done and every decision recorded stay."""
+    st = load(a.dir)
+    if not st.get("until"):
+        print("brg-autopilot: this run is not a planning run; use next", file=sys.stderr)
+        return 1
+    print(f"brg-autopilot: run {st['run']} continues past {st.pop('until')}, {len(st['decisions'])} decisions kept")
+    save(a.dir, st)
     return cmd_next(a)
 
 
@@ -1406,6 +1439,12 @@ def cmd_next(a):
     st = load(a.dir)
     n, status = next_stage(st)
     if n is None:
+        if st.get("until"):
+            rest = NAMES[len(run_names(st)):]
+            print(f"brg-autopilot: planning done through {st['until']}; not run: {', '.join(rest)}. "
+                  "Write the report (brg-autopilot report). The build: brg-autopilot continue, which keeps every "
+                  "decision, or start-task on the first story by hand")
+            return 0
         print("brg-autopilot: every stage is done; the merge request is prepared")
         return 0
     stage = dict((s[0], s) for s in STAGES)[n]
@@ -1485,8 +1524,10 @@ def cmd_report(a):
         L += ["", "## Repositories", "", "| Repository | Stack | Where |", "| --- | --- | --- |"]
         L += [f"| {r['name']} | {r['stack']} | {r['path']} |" for r in st["repos"]]
     L += ["", "## Not done", ""]
-    open_ = [n for n in NAMES if st["stages"][n]["status"] != "done" and n != "mr"]
-    L += [f"- {n}: {st['stages'][n]['status']}" for n in open_] or ["- none"]
+    covered = run_names(st)
+    open_ = [n for n in covered if st["stages"][n]["status"] != "done" and n != "mr"]
+    later = [f"- {n}: not run (planning run, until {st.get('until')})" for n in NAMES if n not in covered]
+    L += [f"- {n}: {st['stages'][n]['status']}" for n in open_] + later or ["- none"]
     if notes:
         L += ["", "## Failed attempts", ""] + [f"- {n}: {x}" for n, x in notes]
     os.makedirs(os.path.join(a.dir, "docs", "autopilot"), exist_ok=True)
@@ -1868,7 +1909,10 @@ def main():
         p.add_argument("--dir", default=os.getcwd())
         p.set_defaults(fn=fn)
         return p
-    add("start", cmd_start, "statement")
+    p = add("start", cmd_start, "statement")
+    p.add_argument("--until", default="", choices=[""] + PLANNING,
+                   help="stop after this planning stage: design for a planning run (PRD, backlog, decisions, architecture, design)")
+    add("continue", cmd_continue)
     add("next", cmd_next)
     p = add("done", cmd_done, "stage"); p.set_defaults(fn=cmd_done)
     add("fail", cmd_fail, "stage", "why")

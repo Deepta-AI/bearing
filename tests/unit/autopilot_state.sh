@@ -364,4 +364,37 @@ assert_contains "$T_OUT" "next: test_automation"
 assert_not_contains "$T_OUT" "test_run carried"
 t_end
 
+t_begin "a planning run (--until design) covers the planning stages and stops there"
+pd="$(tmpdir)/plan"; git init -q -b main "$pd"
+assert_exit 0 python3 "$AP" start "a clinic booking service from my notes" --until design --dir "$pd"
+assert_contains "$T_OUT" "7 of 19 stages, until design"
+assert_contains "$T_OUT" "next: repo"
+python3 - "$pd/.bearing/state/autopilot.json" <<'PY'
+import json, sys
+st = json.load(open(sys.argv[1]))
+for n in ("repo", "branch", "prd", "stories", "decide", "architecture", "design"):
+    st["stages"][n]["status"] = "done"
+json.dump(st, open(sys.argv[1], "w"))
+PY
+assert_exit 0 python3 "$AP" next --dir "$pd"
+assert_contains "$T_OUT" "planning done through design; not run: repos, ux,"
+assert_contains "$T_OUT" "start-task on the first story"
+assert_exit 0 python3 "$AP" report --dir "$pd"
+r="$(ls "$pd"/docs/autopilot/*.md)"
+assert_contains "$(cat "$r")" "- build: not run (planning run, until design)"
+assert_not_contains "$(cat "$r")" "- design:" "a done planning stage is not under Not done"
+assert_exit 0 python3 "$AP" decision db postgres "sqlite" "the notes name it" --dir "$pd"
+assert_exit 0 python3 "$AP" continue --dir "$pd"
+assert_contains "$T_OUT" "continues past design, 1 decisions kept"
+assert_contains "$T_OUT" "next: repos"
+assert_exit 1 python3 "$AP" continue --dir "$pd"
+assert_contains "$T_OUT" "not a planning run"
+t_end
+
+t_begin "--until takes a planning stage only"
+assert_exit 2 python3 "$AP" start "x" --until nowhere --dir "$(tmpdir)"
+assert_exit 2 python3 "$AP" start "x" --until test_run --dir "$(tmpdir)"
+assert_contains "$T_OUT" "invalid choice" "a build stage is not a planning stop"
+t_end
+
 t_summary

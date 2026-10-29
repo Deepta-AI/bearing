@@ -36,6 +36,22 @@ assert_not_contains "$(cat "$log")" "abc123"
 assert_not_contains "$(cat "$log")" "secret.env"
 t_end
 
+t_begin "a Bash failure that reads like the sandbox gets one line of context; an ordinary one gets none"
+hook tool-failure.sh '{"hook_event_name":"PostToolUseFailure","tool_name":"Bash","tool_input":{"command":"touch /etc/x"},"error":"Exit code 1\ntouch: /etc/x: Operation not permitted"}'
+assert_eq 0 "$T_RC" "exit"
+assert_eq "PostToolUseFailure" "$(printf '%s' "$T_OUT" | jq -r '.hookSpecificOutput.hookEventName')" "event"
+assert_contains "$(printf '%s' "$T_OUT" | jq -r '.hookSpecificOutput.additionalContext')" "do not retry it or try variants"
+assert_not_contains "$(cat "$log")" "/etc/x" "the error text is not logged"
+hook tool-failure.sh '{"hook_event_name":"PostToolUseFailure","tool_name":"Bash","error":"Exit code 1\nmkdir: /x: Read-only file system"}'
+assert_contains "$T_OUT" "additionalContext" "read-only file system"
+hook tool-failure.sh '{"hook_event_name":"PostToolUseFailure","tool_name":"Bash","error":"Exit code 2\nls: ./nope: No such file or directory"}'
+assert_eq "" "$T_OUT" "an ordinary failure gets nothing"
+hook tool-failure.sh '{"hook_event_name":"PostToolUseFailure","tool_name":"Edit","error":"Operation not permitted"}'
+assert_eq "" "$T_OUT" "only Bash failures"
+hook tool-failure.sh '{"hook_event_name":"PostToolUseFailure","tool_name":"Bash","error":"Exit code 1\nchrome --no-sandbox: test failed; Stripe sandbox key rejected"}'
+assert_eq "" "$T_OUT" "the word sandbox alone is not the sandbox"
+t_end
+
 t_begin "a permission denial is logged under its own gate"
 hook tool-failure.sh '{"hook_event_name":"PermissionDenied","tool_name":"mcp__github__push","reason":"[no-push] pushing"}'
 assert_eq "permission-denied${tab}mcp__github__push${tab}" "$(last)" "logged"
