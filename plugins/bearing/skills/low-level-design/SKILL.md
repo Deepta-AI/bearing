@@ -1,6 +1,6 @@
 ---
 name: low-level-design
-description: 'Writes a Low Level Design (LLD) refining one HLD component into modules, types, error paths, indexed queries, tests and MR-sized work. Use when asked for an "LLD", "low level design" or "detailed design".'
+description: 'Writes a Low Level Design for one HLD component: modules, types, errors, queries, MR-sized work. Use when asked for an "LLD" or "detailed design".'
 argument-hint: "<component> [--hld docs/design/<title>-hld.md]"
 allowed-tools: Read, Write, Grep, Glob, Skill, Agent, AskUserQuestion
 ---

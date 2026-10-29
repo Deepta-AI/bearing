@@ -1,6 +1,6 @@
 ---
 name: release
-description: 'Prepares a release: version from commits or from the API diff for packages, CHANGELOG section, version bump, printed tag commands. Use when asked to "cut a release", "bump the version" or "publish the package".'
+description: 'Prepares a release: version from commits, CHANGELOG section, version bump, tag commands. Use when asked to "cut a release" or "bump the version".'
 argument-hint: "[major|minor|patch|vX.Y.Z] [--package [path]]"
 allowed-tools: Read, Write, Edit, Grep, Glob, Bash(ls:*), Bash(mkdir -p docs/releases), Bash(date:*), Bash(git tag -l:*), Bash(git tag --no-merged:*), Bash(git branch -a:*), Bash(git branch --no-merged:*), Bash(git describe:*), Bash(git log:*), Bash(git diff:*), Bash(git show:*), Bash(git status:*), Bash(git remote:*), Bash(git merge-base:*), Bash(git grep:*), Bash(make:*), Bash(go test:*), Bash(pnpm test:*), Bash(uv run pytest:*), Bash(./gradlew test:*), Bash(swift test:*), Bash(npm pack --dry-run:*), Bash(pnpm pack --dry-run:*), Bash(npm view:*), Bash(gorelease:*), Bash(apidiff:*), Bash(go doc:*), Bash(go list:*), Bash(griffe check:*), Bash(pnpm changeset status:*), Bash(pnpm exec nx show projects:*), Bash(pnpm exec turbo run build --dry-run:*), AskUserQuestion
 ---

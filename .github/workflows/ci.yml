@@ -37,7 +37,7 @@ jobs:
         with: { fetch-depth: 0 }
       - run: sudo apt-get update -qq && sudo apt-get install -y -qq --no-install-recommends shellcheck jq
       # make check minus validate (needs the Claude CLI; see the header).
-      - run: make lint-skills lint-tools lint-evals lint-json lint-shell lint-prose lint-neutral lint-version lint-budget lint-templates lint-plugin-size lint-docs test
+      - run: make lint-skills lint-tools lint-evals lint-json lint-shell lint-prose lint-neutral lint-version lint-budget lint-templates lint-plugin-size lint-listing lint-docs test
 
   scaffold:
     runs-on: ubuntu-latest

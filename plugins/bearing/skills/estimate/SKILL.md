@@ -1,6 +1,6 @@
 ---
 name: estimate
-description: 'Estimates the backlog: story points and task hours with assumptions, dependencies, a phase plan and a confidence range. Use when asked "how long will this take", "estimate the backlog" or "size the stories".'
+description: 'Estimates a backlog in points and hours, with assumptions and a confidence range. Use when asked "how long will this take" or "size the stories".'
 argument-hint: "[path to the backlog, default docs/product/backlog.md] [team size]"
 allowed-tools: Read, Write, Edit, Grep, Glob, Bash(ls:*), Bash(mkdir:*), Bash(python3 *skills/backlog/scripts/coverage_check.py*)
 ---

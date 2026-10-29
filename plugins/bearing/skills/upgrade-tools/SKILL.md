@@ -1,6 +1,6 @@
 ---
 name: upgrade-tools
-description: 'Upgrades every installed Claude Code plugin and skill pack on this machine (plugins, gstack, skills CLI, GSD), versions before and after. Use when asked to "update the plugins", "upgrade the skills" or "update all".'
+description: 'Upgrades every installed Claude Code plugin and skill pack, versions before and after. Use when asked to "update the plugins" or "upgrade the skills".'
 argument-hint: "[source to limit: Bearing | plugins | gstack | skills | gsd; default: all]"
 allowed-tools: Read, Edit, Skill, AskUserQuestion, Bash(printenv BEARING_AUTOPILOT BEARING_NONINTERACTIVE), Bash(bash *bin/brg-doctor*), Bash(claude plugin:*), Bash(git status:*), Bash(git pull:*), Bash(git fetch:*), Bash(git log:*), Bash(git diff:*), Bash(git show:*), Bash(git tag:*), Bash(git describe:*), Bash(git rev-parse:*), Bash(git symbolic-ref:*), Bash(git checkout:*), Bash(git apply:*), Bash(git clone:*), Bash(make:*), Bash(npx skills@1.7.0:*), Bash(cat:*), Bash(ls:*)
 ---

@@ -1,6 +1,6 @@
 ---
 name: onboard-repo
-description: 'Brings an existing repository onto the team conventions (Makefile, hooks, CLAUDE.md, rules) without overwriting; conflicts land beside the file. Use when asked to "onboard this repo" or "adopt the standard".'
+description: 'Brings an existing repository onto team conventions without overwriting its files. Use when asked to "onboard this repo" or "adopt the standard".'
 argument-hint: "[--stack <id>] [--full]"
 allowed-tools: Read, Write, Edit, Grep, Glob, Skill, Bash(bash *bin/brg-adopt *), Bash(bash *bin/brg-stacks*), Bash(bash .githooks/install.sh), Bash(mktemp -d:*), Bash(git clone:*), Bash(git status:*), Bash(git rev-parse:*), Bash(git log:*), Bash(git ls-files:*), Bash(git config --get:*), Bash(git remote get-url:*), Bash(git check-ignore:*), Bash(git diff:*), Bash(git init:*), Bash(ls:*), Bash(diff:*), Bash(make:*), AskUserQuestion
 ---

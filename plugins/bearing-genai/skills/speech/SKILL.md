@@ -1,6 +1,6 @@
 ---
 name: speech
-description: 'Builds speech features: transcription, diarisation, text-to-speech or a real-time voice agent with barge-in, measured by WER and latency. Use when asked to "transcribe calls", "build a voice agent" or "speech to text".'
+description: 'Builds transcription, text-to-speech or voice agents, measured by WER and latency. Use when asked to "build a voice agent" or "speech to text".'
 argument-hint: "<batch|realtime|tts|analytics> <name> [--langs en,hi,te]"
 allowed-tools: Read, Write, Edit, Grep, Glob, Skill, Bash(ls:*), Bash(wc -l:*), Bash(make:*), Bash(git status:*), Bash(uv run:*), Bash(npm run:*), Bash(ffprobe:*), Bash(python3 *skills/speech/scripts/wer.py*), Bash(python3 *skills/speech/scripts/latency_report.py*)
 ---

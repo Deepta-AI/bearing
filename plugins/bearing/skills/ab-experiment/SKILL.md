@@ -1,6 +1,6 @@
 ---
 name: ab-experiment
-description: 'Designs and analyses an A/B test: hypothesis, primary and guardrail metrics, sample size and duration, stopping rule, decision. Use when asked to "A/B test this", "how long should it run", "is it significant".'
+description: 'Designs and analyses an A/B test: hypothesis, metrics, sample size, stopping rule. Use when asked to "A/B test this" or "is it significant".'
 argument-hint: "design <name> [--flag <flag_name>] [--metric <event>] | analyse <name> [results.csv]"
 allowed-tools: Read, Write, Edit, Grep, Glob, AskUserQuestion, Bash(ls:*), Bash(mkdir -p:*), Bash(date:*), Bash(python3 -c:*)
 ---

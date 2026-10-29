@@ -1,6 +1,6 @@
 ---
 name: prose-lint
-description: 'Lints prose people read (docs, MR text, commits, UI copy) for em dashes, AI filler and self-praise, rewriting whole sentences. Use when asked to "check the prose", "lint the README" or "does this sound AI-written".'
+description: 'Lints prose (docs, MR text, commits, UI copy) for em dashes and AI filler. Use when asked to "check the prose" or "lint the README".'
 argument-hint: "[file or directory, default: changed .md files and UI strings]"
 allowed-tools: Read, Edit, Grep, Glob, Bash(git diff:*), Bash(git status:*), Bash(git log:*), Bash(make check:*), Bash(python3 *skills/prose-lint/scripts/prose_check.py*)
 ---

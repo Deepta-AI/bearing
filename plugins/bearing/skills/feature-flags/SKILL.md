@@ -1,6 +1,6 @@
 ---
 name: feature-flags
-description: 'Adds, uses or removes a feature flag: default off, owner, removal date, one typed flags module, kill switch, tests for both states. Use when asked to "put this behind a flag", "add a feature flag" or "remove the flag".'
+description: 'Adds or removes a feature flag: default off, owner, removal date, tests for both states. Use when asked to "add a feature flag" or "remove the flag".'
 argument-hint: "add|use|remove <flag_name> [--owner <rotation>] [--task <ID>] [--kill-switch]"
 allowed-tools: Read, Write, Edit, Grep, Glob, Skill, Bash(ls:*), Bash(make:*), Bash(git diff:*), Bash(git log:*), Bash(git merge-base:*), Bash(git branch:*), Bash(date:*), Bash(go test:*), Bash(pnpm test:*), Bash(uv run pytest:*), Bash(./gradlew test:*), Bash(swift test:*), Bash(python3 *skills/feature-flags/scripts/flags_check.py*)
 ---

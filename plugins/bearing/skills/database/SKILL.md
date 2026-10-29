@@ -1,6 +1,6 @@
 ---
 name: database
-description: 'Database work for PostgreSQL, ClickHouse or MongoDB: schema, indexes, slow query review with EXPLAIN, store choice, lock-safe changes. Use when asked about "choosing an index", "a slow query" or "which database".'
+description: 'PostgreSQL, ClickHouse or MongoDB: indexes, slow queries, EXPLAIN, which store fits. Use when asked about "an index" or "a slow query".'
 allowed-tools: Read, Grep, Glob, Skill
 ---
 

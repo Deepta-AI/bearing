@@ -1,6 +1,6 @@
 ---
 name: webhooks
-description: 'Builds webhooks both ways: inbound with signature checks, replay window and idempotent handlers; outbound with retries, dead letters and a delivery log. Use when asked to "add a webhook" or "verify signatures".'
+description: 'Builds webhooks: inbound with signatures and idempotency, outbound with retries. Use when asked to "add a webhook" or "verify signatures".'
 argument-hint: "inbound <provider> | outbound <event ...> | audit"
 allowed-tools: Read, Write, Edit, Grep, Glob, Bash(ls:*), Bash(mkdir -p:*), Bash(make check:*), Bash(make test:*), Bash(git diff:*), Bash(git status:*), Bash(go test:*), Bash(pnpm exec vitest:*), Bash(uv run pytest:*)
 ---

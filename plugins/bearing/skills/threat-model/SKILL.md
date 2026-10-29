@@ -1,6 +1,6 @@
 ---
 name: threat-model
-description: 'Writes a STRIDE threat model before code: assets, trust boundaries, entry points, threats rated, mitigations mapped to stories. Use when asked to "threat model this", "STRIDE analysis" or "what could an attacker do".'
+description: 'Writes a STRIDE threat model before code: assets, boundaries, threats, mitigations. Use when asked to "threat model this" or "STRIDE analysis".'
 argument-hint: "<feature or system> [path to HLD]"
 allowed-tools: Read, Write, Grep, Glob, Skill, Bash(ls:*), Bash(mkdir:*), Bash(git branch:*), Bash(python3 *skills/threat-model/scripts/threats_check.py*)
 ---

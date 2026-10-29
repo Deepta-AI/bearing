@@ -1,6 +1,6 @@
 ---
 name: autopilot
-description: 'Runs unattended from one requirement statement to a prepared merge request, deciding as Proposed for review; pushes only where opted in. Use when asked to "autopilot this", "run it end to end" or "build this unattended".'
+description: 'Runs unattended from one requirement to a prepared merge request for review. Use when asked to "autopilot this" or "run it end to end".'
 argument-hint: "\"<requirement statement>\" [--resume]"
 allowed-tools: Read, Write, Edit, Grep, Glob, Skill, Agent, Bash
 ---

@@ -1,6 +1,6 @@
 ---
 name: new-repo
-description: 'Creates a new repository for one stack with Makefile, CI, git hooks, CLAUDE.md, AGENTS.md, rules, MR templates and docs in place. Use when asked to "create a repo", "scaffold a service" or "start a new project".'
+description: 'Creates a new repository for one stack with Makefile, CI, hooks, CLAUDE.md and AGENTS.md. Use when asked to "create a repo" or "scaffold a service".'
 argument-hint: "<stack> <PascalName> [--dir path] [--module <path>] [--tracker <PREFIX>] [--lead @user] [--group @group]"
 allowed-tools: Read, Grep, Glob, Edit, Write, Skill, Bash(bash *bin/brg-scaffold *), Bash(ls:*), Bash(make:*), Bash(cp:*), Bash(mkdir:*), Bash(git status:*), Bash(git log:*), Bash(git branch:*), Bash(git init:*), Bash(git config:*), Bash(git check-ignore:*), Bash(go:*), Bash(gofmt:*), Bash(python3:*), Bash(uv:*), Bash(pytest:*), Bash(ruff:*), AskUserQuestion
 ---

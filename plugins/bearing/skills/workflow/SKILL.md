@@ -1,6 +1,6 @@
 ---
 name: workflow
-description: 'Says where the work stands (repository, branch, diff) and which skill or step comes next. Use when asked "what should I do next", "which skill do I use", "how do we work here" or "what is in flight".'
+description: 'Says where the work stands (repository, branch, diff) and which skill comes next. Use when asked "what should I do next" or "which skill do I use".'
 allowed-tools: Read, Grep, Glob, AskUserQuestion, Bash(git status:*), Bash(git branch:*), Bash(git log:*), Bash(git rev-parse:*), Bash(git rev-list:*), Bash(git diff:*), Bash(git show:*), Bash(git ls-tree:*), Bash(git for-each-ref:*), Bash(git merge-base:*), Bash(git grep:*), Bash(make -n:*), Bash(make check:*), Bash(ls:*), Bash(wc -l), Bash(bash *bin/brg-state-path*), Bash(bash *bin/brg-session*), Bash(bash *bin/brg-config*), Bash(bash *bin/brg-learn*), Bash(python3 *skills/session-handoff/scripts/progress.py*)
 ---
 

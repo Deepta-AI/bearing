@@ -1,6 +1,6 @@
 ---
 name: llm-eval
-description: 'Evaluates an LLM feature: a success metric, a human-labelled golden set, code graders then an LLM judge, a CI regression gate. Use when asked to "evaluate the model", "build an eval set" or "is the new prompt better".'
+description: 'Evaluates an LLM feature: golden set, code graders, LLM judge, CI regression gate. Use when asked to "build an eval set" or "evaluate the model".'
 argument-hint: "<name> [--task classification|extraction|generation|agent|retrieval] [--unattended]"
 allowed-tools: Read, Write, Edit, Grep, Glob, Bash(ls:*), Bash(wc -l:*), Bash(make eval:*), Bash(python3 -c:*), Bash(python3 *skills/llm-eval/scripts/eval_stats.py*), Bash(python3 evals/tools/eval_stats.py*), Bash(printenv BEARING_AUTOPILOT BEARING_NONINTERACTIVE), Bash(git log:*), Bash(git branch:*), Bash(uv run python evals/*), Bash(npx tsx@4.23.15 evals/*)
 ---

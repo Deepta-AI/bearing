@@ -1,6 +1,6 @@
 ---
 name: i18n
-description: 'Internationalises the app: string catalogs per platform, ICU plurals, locale formatting, fallbacks, an RTL check, a missing-key count. Use when asked to "add a language", "translate the app", "add i18n" or "support RTL".'
+description: 'Internationalises an app: string catalogs, ICU plurals, locale formatting, RTL, missing keys. Use when asked to "add a language" or "support RTL".'
 argument-hint: "[add <locale>] [--check-only]"
 allowed-tools: Read, Write, Edit, Grep, Glob, AskUserQuestion, Bash(bash *bin/brg-config*), Bash(ls:*), Bash(make:*), Bash(python3 -c:*), Bash(node:*), Bash(pnpm test:*), Bash(./gradlew test:*), Bash(swift test:*)
 ---

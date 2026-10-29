@@ -1,6 +1,6 @@
 ---
 name: vapt-report
-description: 'Writes the VAPT security report for a release from scanner findings, linked to the threat model, with a ship or block decision. Use when asked for a "VAPT report", "security sign-off" or "pentest report".'
+description: 'Writes the release VAPT report from scanner findings and the threat model, ship or block. Use when asked for a "VAPT report" or "security sign-off".'
 argument-hint: "<version or tag> [scope notes] [--allow-stale]"
 allowed-tools: Read, Write, Grep, Glob, Skill, Agent, Bash(git diff:*), Bash(git log:*), Bash(git tag -l:*), Bash(git ls-files:*), Bash(git show:*), Bash(git rev-parse:*), Bash(git rev-list:*), Bash(git status:*), Bash(git merge-base:*), Bash(git grep:*), Bash(git archive:*), Bash(tar -x:*), Bash(ls:*), Bash(mkdir -p docs/security), Bash(mkdir -p .scratch), Bash(mkdir -p .scratch/vapt/*), Bash(python3 *skills/vapt-report/scripts/collect_findings.py*), AskUserQuestion
 ---

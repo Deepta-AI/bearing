@@ -1,6 +1,6 @@
 ---
 name: docs-drift
-description: 'Finds docs that no longer match the code (broken links and paths, gone make targets, unused env vars, stale pages) and fixes the stale side. Use when asked "are the docs up to date", "check the README" or "docs drift".'
+description: 'Finds docs that drifted from the code (dead links, paths, make targets, env vars) and fixes them. Use when asked to "check the docs" or "docs drift".'
 argument-hint: "[--root <dir>] [--strict] [--exclude <glob>]... [--stale-after N] [--report-only]"
 allowed-tools: Read, Edit, Grep, Glob, Skill, Bash(git log:*), Bash(git diff:*), Bash(git merge-base:*), Bash(python3 *skills/docs-drift/scripts/docs_drift.py*), AskUserQuestion
 ---

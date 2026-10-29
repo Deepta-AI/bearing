@@ -1,6 +1,6 @@
 ---
 name: performance
-description: 'Finds and fixes slowness by profiling first (pprof, py-spy, clinic, Lighthouse, Instruments), with before and after numbers. Use when something is slow: "this is slow", "profile this", "p95 is high".'
+description: 'Finds and fixes slowness by profiling first, with before and after numbers. Use when asked "this is slow", "profile this" or "p95 is high".'
 argument-hint: "<symptom or endpoint> [--metric p95|cpu|heap|peak|lcp|startup] [--runs 3]"
 allowed-tools: Read, Write, Edit, Grep, Glob, Bash(ls:*), Bash(mkdir -p:*), Bash(make check:*), Bash(make bench:*), Bash(git diff:*), Bash(git status:*), Bash(git log:*), Bash(git worktree add:*), Bash(git worktree remove:*), Bash(go test:*), Bash(go build:*), Bash(go run:*), Bash(go tool pprof:*), Bash(python3:*), Bash(python:*), Bash(uv run python:*), Bash(uv run py-spy:*), Bash(uv run python -m cProfile:*), Bash(node --cpu-prof:*), Bash(node --heap-prof:*), Bash(node:*), Bash(npx clinic@13.0.0:*), Bash(npx lighthouse@13.5.0:*), Bash(./gradlew :macrobenchmark:connectedCheck:*), Bash(xcrun xctrace:*), Bash(hyperfine:*), Bash(k6 run:*), Bash(curl:*), Bash(kill:*)
 ---

@@ -9,7 +9,6 @@
    "when": "you need to know whether an experiment worked and how long it must run",
    "phrases": [
     "A/B test this",
-    "how long should it run",
     "is it significant"
    ],
    "invocation": "auto",
@@ -22,11 +21,9 @@
    "what": "Audits screens against WCAG 2.2 AA, fixes what it can at the source and leaves a regression gate in CI",
    "when": "keyboard, screen-reader or low-vision users may not be able to finish a flow",
    "phrases": [
-    "accessibility",
     "a11y",
     "WCAG",
-    "screen reader",
-    "keyboard navigation"
+    "screen reader"
    ],
    "invocation": "auto",
    "args": "[path, route or screen to limit; default: every page or screen]"
@@ -39,8 +36,7 @@
    "when": "a choice has been made and future readers will ask why",
    "phrases": [
     "write an ADR",
-    "record this decision",
-    "document why we chose"
+    "record this decision"
    ],
    "invocation": "auto",
    "args": "<title in the imperative, e.g. Use ClickHouse for events>"
@@ -52,9 +48,7 @@
    "what": "Designs the analytics event sheet, wires events through one typed module and audits the code against the sheet",
    "when": "you are tracking a feature, or the numbers in the dashboard look wrong",
    "phrases": [
-    "track this feature",
     "add an event",
-    "set up analytics",
     "audit tracking"
    ],
    "invocation": "auto",
@@ -81,8 +75,7 @@
    "when": "an endpoint has to change or go away without stranding its consumers",
    "phrases": [
     "deprecate an endpoint",
-    "version the API",
-    "sunset"
+    "version the API"
    ],
    "invocation": "auto",
    "args": "strategy | deprecate <METHOD /path> [--sunset YYYY-MM-DD] | diff [<old spec>] | remove <METHOD /path> [--days 30] | contracts"
@@ -95,7 +88,6 @@
    "when": "a mobile build is going to TestFlight or the stores, or review rejected it",
    "phrases": [
     "submit to the App Store",
-    "TestFlight",
     "app rejected"
    ],
    "invocation": "auto",
@@ -109,8 +101,7 @@
    "when": "you need a picture of the system that matches the code, not the README",
    "phrases": [
     "draw the architecture",
-    "C4 diagram",
-    "sequence diagram"
+    "C4 diagram"
    ],
    "invocation": "auto",
    "args": "[system or container] [--flow <route or use case>]"
@@ -123,8 +114,7 @@
    "when": "you are adding login or roles, or need to know who can read whose data",
    "phrases": [
     "add login",
-    "roles and permissions",
-    "who can access"
+    "roles and permissions"
    ],
    "invocation": "auto",
    "args": "<feature or service> [--design-only] [--audit]"
@@ -137,8 +127,7 @@
    "when": "you want a requirement built end to end without answering questions on the way",
    "phrases": [
     "autopilot this",
-    "run it end to end",
-    "build this unattended"
+    "run it end to end"
    ],
    "invocation": "auto",
    "args": "\\\"<requirement statement>\\\" [--resume]"
@@ -150,11 +139,8 @@
    "what": "Builds queue, cron or outbox jobs that are safe to run twice, with bounded retries, dead letters and a runbook stub",
    "when": "work runs outside the request and must survive retries, crashes and duplicates",
    "phrases": [
-    "background job",
-    "queue",
-    "cron job",
     "worker",
-    "outbox"
+    "queue"
    ],
    "invocation": "auto",
    "args": "<job name or purpose> [--mechanism queue|cron|outbox] [--audit]"
@@ -166,7 +152,6 @@
    "what": "Turns PRD statements into epics and Given-When-Then stories, with a coverage matrix that a script checks",
    "when": "a PRD is ready and the team needs stories it can plan, build and test",
    "phrases": [
-    "write the user stories",
     "build the backlog",
     "break down the PRD"
    ],
@@ -180,7 +165,6 @@
    "what": "Reviews a branch, patch or path, has each Critical and High finding verified independently, and gives a merge verdict",
    "when": "a change needs a second pair of eyes before it is merged",
    "phrases": [
-    "review this",
     "review the MR",
     "look over my changes"
    ],
@@ -195,9 +179,7 @@
    "when": "a repository has no pipeline, or its pipeline has drifted from the template",
    "phrases": [
     "add CI",
-    "set up the pipeline",
-    "fix the pipeline",
-    "add a CI job"
+    "set up the pipeline"
    ],
    "invocation": "auto",
    "args": "[--stack <id>] [--host gitlab|github|both] [--refresh]"
@@ -223,7 +205,7 @@
    "when": "an engagement is ending and the client's next team must run the system",
    "phrases": [
     "prepare the handover",
-    "hand this over to the client"
+    "hand this over"
    ],
    "invocation": "auto",
    "args": "<client name> [delivering entity, default: the one in .bearing/company.json]"
@@ -235,10 +217,8 @@
    "what": "Reviews a month of the cloud bill read-only, works out cost per request and proposes cuts as commands to run",
    "when": "the cloud bill has grown and you need to know where the money goes",
    "phrases": [
-    "cloud bill",
     "cost review",
-    "FinOps",
-    "why is the bill so high"
+    "FinOps"
    ],
    "invocation": "auto",
    "args": "[--csv <billing export>] [--month YYYY-MM] [--provider aws|gcp|azure|other]"
@@ -251,7 +231,6 @@
    "when": "a repository needs a licence, an owner or the right company name on it",
    "phrases": [
     "add a licence",
-    "attribute this repo to",
     "who owns this code"
    ],
    "invocation": "auto",
@@ -265,7 +244,6 @@
    "when": "you need to classify images, spot defects or read fields from scanned documents",
    "phrases": [
     "classify images",
-    "detect defects",
     "extract from scans"
    ],
    "invocation": "auto",
@@ -279,7 +257,6 @@
    "when": "stories are agreed and you need to know which tables and columns to build",
    "phrases": [
     "design the data model",
-    "what tables do we need",
     "draw the ER diagram"
    ],
    "invocation": "auto",
@@ -305,9 +282,8 @@
    "what": "Applies its rules for schemas, indexes, slow queries and store choice on PostgreSQL, ClickHouse and MongoDB",
    "when": "a query is slow, an index is in doubt, or a feature needs a place to store data",
    "phrases": [
-    "choosing an index",
-    "a slow query",
-    "which database"
+    "an index",
+    "a slow query"
    ],
    "invocation": "auto",
    "args": ""
@@ -333,7 +309,6 @@
    "when": "you are changing a schema that live traffic and the previous release still use",
    "phrases": [
     "add a migration",
-    "add a column",
     "change the schema"
    ],
    "invocation": "auto",
@@ -347,7 +322,6 @@
    "when": "you think a task is finished and want proof before the merge request",
    "phrases": [
     "am I done",
-    "is this story complete",
     "ready to merge?"
    ],
    "invocation": "auto",
@@ -361,7 +335,6 @@
    "when": "packages are out of date, or an advisory names one you ship",
    "phrases": [
     "audit dependencies",
-    "update the packages",
     "bump deps"
    ],
    "invocation": "auto",
@@ -388,7 +361,6 @@
    "when": "a design or prototype is about to go to the client or into handoff",
    "phrases": [
     "critique this design",
-    "review the prototype",
     "score this"
    ],
    "invocation": "auto",
@@ -402,8 +374,7 @@
    "when": "the screens exist but nobody has chosen how the product should look",
    "phrases": [
     "design directions",
-    "three design options",
-    "which look should we go with"
+    "which look"
    ],
    "invocation": "auto",
    "args": "<feature> [--screens S-01,S-03] [--round 2] [--unattended]"
@@ -415,7 +386,6 @@
    "what": "Turns a chosen design direction into oklch tokens, per-stack themes and a lint that keeps new colour literals out",
    "when": "a look has been agreed and the code should be held to it",
    "phrases": [
-    "set up the design system",
     "make design tokens",
     "lint colours"
    ],
@@ -429,8 +399,7 @@
    "what": "Finds docs that no longer match the code and fixes the stale side, or reports code that has left its design",
    "when": "you inherit a codebase or suspect the README no longer tells the truth",
    "phrases": [
-    "are the docs up to date",
-    "check the README",
+    "check the docs",
     "docs drift"
    ],
    "invocation": "auto",
@@ -457,7 +426,6 @@
    "when": "someone asks how long the backlog will take or whether go-live still holds",
    "phrases": [
     "how long will this take",
-    "estimate the backlog",
     "size the stories"
    ],
    "invocation": "auto",
@@ -471,8 +439,7 @@
    "when": "you are new to the code or need to find where something is handled",
    "phrases": [
     "how does this work",
-    "where is X handled",
-    "trace this request"
+    "where is X handled"
    ],
    "invocation": "auto",
    "args": "[question, subsystem or path; default the whole repo]"
@@ -484,7 +451,6 @@
    "what": "Adds, uses or removes a feature flag through one typed module, with an owner, a removal date and tests for both states",
    "when": "a change must merge dark, or an old flag is ready to come out",
    "phrases": [
-    "put this behind a flag",
     "add a feature flag",
     "remove the flag"
    ],
@@ -499,8 +465,7 @@
    "when": "a feature needs a well-known mechanism that is easy to get wrong the first time",
    "phrases": [
     "add file uploads",
-    "add realtime",
-    "rate limiting"
+    "add realtime"
    ],
    "invocation": "auto",
    "args": "[uploads|search|realtime|cache|rate_limit|payments|notifications|multitenancy]"
@@ -512,9 +477,8 @@
    "what": "Holds Dart code to the Flutter house rules for Riverpod state, repositories and loading states, and reviews Dart diffs",
    "when": "you write, review or scaffold a Flutter app in Dart",
    "phrases": [
-    "Flutter",
-    "Dart",
-    "Riverpod"
+    "Flutter widgets",
+    "Dart code"
    ],
    "invocation": "auto",
    "args": ""
@@ -527,8 +491,7 @@
    "when": "you suspect a green check is not actually checking anything",
    "phrases": [
     "audit the gates",
-    "is this check real",
-    "check the CI checks"
+    "is this check real"
    ],
    "invocation": "auto",
    "args": "[path or job name to limit the audit]"
@@ -540,8 +503,8 @@
    "what": "Writes a solution document for a GenAI feature that names one metric, one approach and the cheaper option it rejected",
    "when": "you are deciding how to build a feature with an LLM, before any code exists",
    "phrases": [
-    "how should we build this with an LLM",
-    "RAG or agent"
+    "RAG or agent",
+    "design the LLM feature"
    ],
    "invocation": "auto",
    "args": "<title> [path to PRD, problem statement or notes]"
@@ -554,8 +517,7 @@
    "when": "a clone runs no hooks, or a commit was rejected and you need to know why",
    "phrases": [
     "install the git hooks",
-    "set up hooks",
-    "why was my commit rejected"
+    "set up hooks"
    ],
    "invocation": "auto",
    "args": "[--update to take the kit's copy over a differing hook]"
@@ -581,7 +543,7 @@
    "when": "part of the team works in a coding agent other than Claude Code",
    "phrases": [
     "set up Cursor",
-    "use this with Codex"
+    "add Codex"
    ],
    "invocation": "auto",
    "args": "<cursor|codex|gemini|copilot|opencode|windsurf|cline|zed|kiro|all> [--no-skills]"
@@ -594,7 +556,6 @@
    "when": "a service needs liveness and readiness, or an outage should page someone",
    "phrases": [
     "add health checks",
-    "readiness endpoint",
     "uptime monitoring"
    ],
    "invocation": "auto",
@@ -608,8 +569,7 @@
    "when": "a new system or large feature needs a design that reviewers can challenge",
    "phrases": [
     "HLD",
-    "system design",
-    "an architecture overview"
+    "system design"
    ],
    "invocation": "auto",
    "args": "<title> [path to PRD or notes] [--continue after the goal is agreed]"
@@ -622,8 +582,6 @@
    "when": "the app needs another language or has to work right to left",
    "phrases": [
     "add a language",
-    "translate the app",
-    "add i18n",
     "support RTL"
    ],
    "invocation": "auto",
@@ -637,8 +595,7 @@
    "when": "something is down in production and the response needs a record and a plan",
    "phrases": [
     "we have an outage",
-    "declare an incident",
-    "the alert is firing"
+    "declare an incident"
    ],
    "invocation": "auto",
    "args": "declare <alert or title> [--sev 1|2|3|4] | update \\\"<note>\\\" | comms | resolve"
@@ -677,8 +634,7 @@
    "when": "you want Bearing to remember a lesson or share recurring ones upstream",
    "phrases": [
     "what has Bearing learned",
-    "remember this for next time",
-    "send our learnings upstream"
+    "remember this for next time"
    ],
    "invocation": "auto",
    "args": "[add <text> | propose]"
@@ -691,9 +647,7 @@
    "when": "you must know whether you may ship what you depend on, and what you owe",
    "phrases": [
     "SBOM",
-    "licence check",
-    "third-party notices",
-    "which licences"
+    "licence check"
    ],
    "invocation": "auto",
    "args": "[sbom | licenses | notice | provenance | all] [--allow-unknown]"
@@ -706,7 +660,6 @@
    "when": "you want a model to take actions through tools, alone or as several agents",
    "phrases": [
     "build an agent",
-    "give the model tools",
     "multi-agent"
    ],
    "invocation": "auto",
@@ -719,9 +672,8 @@
    "what": "Turns an LLM feature's success metric into a person-labelled golden set, graders and a CI gate that fails on regression",
    "when": "you need to know whether a prompt or model change made a feature better or worse",
    "phrases": [
-    "evaluate the model",
     "build an eval set",
-    "is the new prompt better"
+    "evaluate the model"
    ],
    "invocation": "auto",
    "args": "<name> [--task classification|extraction|generation|agent|retrieval] [--unattended]"
@@ -734,8 +686,7 @@
    "when": "prompting, retrieval and a larger model still miss the target on your eval",
    "phrases": [
     "fine-tune a model",
-    "train on our data",
-    "distil a smaller model"
+    "train on our data"
    ],
    "invocation": "auto",
    "args": "<name> [sft|dpo|distil|cpt]"
@@ -747,8 +698,8 @@
    "what": "Finds every model call in the code and moves it behind one gateway module with routing, retries, cost and kill switches",
    "when": "model calls are scattered through the code or you cannot see what they cost",
    "phrases": [
-    "find every model call",
-    "track LLM cost"
+    "AI spend",
+    "LLM costs"
    ],
    "invocation": "auto",
    "args": "[audit] [--stack python|typescript]"
@@ -761,7 +712,7 @@
    "when": "an LLM feature takes untrusted text, handles personal data or acts through tools",
    "phrases": [
     "guardrails",
-    "prompt injection"
+    "LLM safety"
    ],
    "invocation": "auto",
    "args": "[feature name] [python|typescript] [--audit]"
@@ -773,7 +724,6 @@
    "what": "Writes k6 load tests from the SLOs with failing thresholds and a manual CI job, and refuses production hosts",
    "when": "you need to know whether a service meets its SLO at peak traffic",
    "phrases": [
-    "holds at peak",
     "load test",
     "soak test"
    ],
@@ -788,9 +738,7 @@
    "when": "your logs leak personal data or cannot be joined to the request that wrote them",
    "phrases": [
     "add logging",
-    "improve the logs",
-    "log the requests",
-    "fix the logs"
+    "improve the logs"
    ],
    "invocation": "auto",
    "args": "[path or package] [--http]"
@@ -803,7 +751,6 @@
    "when": "an agreed HLD component needs a detailed plan before anyone writes code",
    "phrases": [
     "LLD",
-    "low level design",
     "detailed design"
    ],
    "invocation": "auto",
@@ -830,7 +777,7 @@
    "when": "a branch is finished and you want the MR text and the push command ready",
    "phrases": [
     "prepare the MR",
-    "write the PR description"
+    "write the MR text"
    ],
    "invocation": "auto",
    "args": "[target branch, default develop]"
@@ -842,7 +789,7 @@
    "what": "Measures candidate models on a feature's eval and writes the cheapest route or cascade that still clears the threshold",
    "when": "you want to cut LLM spend without dropping below a feature's quality bar",
    "phrases": [
-    "which model should this feature use",
+    "which model should we use",
     "cut our LLM bill"
    ],
    "invocation": "auto",
@@ -856,8 +803,7 @@
    "when": "a screen needs animation that stays smooth and respects people who asked for less motion",
    "phrases": [
     "add animation",
-    "animate this",
-    "respect reduced motion"
+    "animate this"
    ],
    "invocation": "auto",
    "args": "[what to animate: hero | banner | page transition | <component> <interaction>] [--stack web|react-native|android|ios] [--doc-only]"
@@ -870,8 +816,7 @@
    "when": "you are starting a new service or app that should match the repositories beside it",
    "phrases": [
     "create a repo",
-    "scaffold a service",
-    "start a new project"
+    "scaffold a service"
    ],
    "invocation": "auto",
    "args": "<stack> <PascalName> [--dir path] [--module <path>] [--tracker <PREFIX>] [--lead @user] [--group @group]"
@@ -884,8 +829,7 @@
    "when": "a repeated checklist or job should become a skill other engineers can trigger",
    "phrases": [
     "add a skill",
-    "make this a skill",
-    "turn this checklist into a skill"
+    "make this a skill"
    ],
    "invocation": "auto",
    "args": "<name> [one-line purpose]"
@@ -924,9 +868,7 @@
    "when": "you cannot tell from production signals whether a service works or why it is slow",
    "phrases": [
     "add observability",
-    "set up tracing",
-    "add dashboards",
-    "define SLOs"
+    "set up tracing"
    ],
    "invocation": "auto",
    "args": "[service name] [--local-only]"
@@ -938,10 +880,8 @@
    "what": "Writes the on-call rotation, escalation and error budget policy, and checks that every paging alert has a runbook",
    "when": "you need to decide who gets paged, how a page escalates and what a burnt budget costs",
    "phrases": [
-    "on-call",
     "who gets paged",
-    "escalation",
-    "error budget"
+    "how do we escalate"
    ],
    "invocation": "auto",
    "args": "[setup|check|handover|review] [--service <name>]"
@@ -967,7 +907,6 @@
    "when": "an API needs a written contract, or the spec and the code may have drifted apart",
    "phrases": [
     "write the OpenAPI spec",
-    "design the API contract",
     "check the spec"
    ],
    "invocation": "auto",
@@ -996,7 +935,6 @@
    "phrases": [
     "postmortem",
     "RCA",
-    "incident report",
     "write up the outage"
    ],
    "invocation": "auto",
@@ -1010,7 +948,7 @@
    "when": "you have a brief or client notes and need requirements that everything can trace back to",
    "phrases": [
     "write the PRD",
-    "turn this brief into requirements"
+    "spec this out"
    ],
    "invocation": "auto",
    "args": "<attach the brief, give its path, or paste it in the message>"
@@ -1023,9 +961,7 @@
    "when": "you must show that delete really deletes and retention matches the published promise",
    "phrases": [
     "GDPR",
-    "DPDP",
     "personal data",
-    "retention",
     "delete my account"
    ],
    "invocation": "auto",
@@ -1039,7 +975,6 @@
    "when": "you are writing, improving or auditing the prompts a product sends to a model",
    "phrases": [
     "write the system prompt",
-    "improve this prompt",
     "version prompts"
    ],
    "invocation": "auto",
@@ -1053,8 +988,7 @@
    "when": "docs, MR text or UI copy read as machine-written or may promise more than the code does",
    "phrases": [
     "check the prose",
-    "lint the README",
-    "does this sound AI-written"
+    "lint the README"
    ],
    "invocation": "auto",
    "args": "[file or directory, default: changed .md files and UI strings]"
@@ -1080,7 +1014,7 @@
    "when": "answers must come from your own documents and show where each claim came from",
    "phrases": [
     "add RAG",
-    "cite the source"
+    "answer from our documents"
    ],
    "invocation": "auto",
    "args": "<naive|hybrid|reranked|hierarchical|graph|agentic|sql|multimodal|long-context> <name> [--corpus <path>]"
@@ -1118,10 +1052,8 @@
    "what": "Restructures code without changing behaviour, one mechanical transform per commit, tests green before and after each",
    "when": "code needs reshaping, renaming or splitting and nothing a test can see may change",
    "phrases": [
-    "refactor",
-    "clean this up",
-    "extract",
-    "rename across the codebase"
+    "refactor this",
+    "clean this up"
    ],
    "invocation": "auto",
    "args": "<path, symbol or module> [--max-diff 400]"
@@ -1134,8 +1066,7 @@
    "when": "a service or package is ready to version and you want the changelog and tag commands",
    "phrases": [
     "cut a release",
-    "bump the version",
-    "publish the package"
+    "bump the version"
    ],
    "invocation": "auto",
    "args": "[major|minor|patch|vX.Y.Z] [--package [path]]"
@@ -1148,9 +1079,7 @@
    "when": "you need to know whether the system survives a dead dependency or a lost database",
    "phrases": [
     "chaos testing",
-    "restore drill",
-    "DR test",
-    "what if the database dies"
+    "restore drill"
    ],
    "invocation": "auto",
    "args": "[plan|drill|dr|record <fault> \\\"<observed>\\\"] [--service <name>]"
@@ -1163,8 +1092,7 @@
    "when": "an alert can fire and whoever is paged needs to know what to check and do",
    "phrases": [
     "write a runbook",
-    "document this alert",
-    "what do we do when X fires"
+    "document this alert"
    ],
    "invocation": "auto",
    "args": "<alert name> [service] [--from-incident <incident doc>]"
@@ -1177,7 +1105,6 @@
    "when": "the flows are agreed and a reviewer needs screens to click through and approve",
    "phrases": [
     "design the screens",
-    "hi-fi mockups",
     "show every state"
    ],
    "invocation": "auto",
@@ -1191,8 +1118,7 @@
    "when": "a key was committed, a secret needs rotating or nobody knows which secrets exist",
    "phrases": [
     "a key was committed",
-    "rotate the secret",
-    "secret leaked"
+    "rotate the secret"
    ],
    "invocation": "auto",
    "args": "inventory | rotate <name> | leaked <name> [--commit sha] | scan | parity"
@@ -1204,7 +1130,6 @@
    "what": "Writes a handoff note for the next session on this branch: where work stopped, what is local only, what to do first",
    "when": "you are pausing, clearing context or handing the branch to someone else",
    "phrases": [
-    "save state",
     "write a handoff",
     "pause here"
    ],
@@ -1231,7 +1156,6 @@
    "what": "Builds transcription, text-to-speech or a real-time voice agent, measured by WER per language and latency per stage",
    "when": "you need to transcribe calls, speak replies aloud or run a voice agent",
    "phrases": [
-    "transcribe calls",
     "build a voice agent",
     "speech to text"
    ],
@@ -1246,8 +1170,7 @@
    "when": "a decision depends on something nobody knows yet and you want a bounded answer",
    "phrases": [
     "spike this",
-    "investigate whether",
-    "prototype to find out"
+    "investigate whether"
    ],
    "invocation": "auto",
    "args": "<name> \\\"<question>\\\" [--hours 4] [--branch]"
@@ -1259,9 +1182,8 @@
    "what": "Cuts a ticket's branch from the base it will ship from, runs a baseline and checks the criteria against the repository",
    "when": "you are picking up a ticket and want to start on the right branch",
    "phrases": [
-    "start TASK-142",
     "pick up this ticket",
-    "create a branch"
+    "start TASK-142"
    ],
    "invocation": "auto",
    "args": "<TASK-ID> [PascalName] [--type feature|bugfix|hotfix|chore|docs] [--repos Name,Name,...] [--flow site]"
@@ -1273,8 +1195,8 @@
    "what": "Builds a classical model on tables or events with a leak-checked split, a baseline it must beat and drift monitoring",
    "when": "you need to predict churn, score accounts, forecast demand or flag anomalies",
    "phrases": [
-    "predict churn",
-    "forecast demand"
+    "predict",
+    "forecast"
    ],
    "invocation": "auto",
    "args": "<classify|regress|forecast|anomaly|rank> <name> [--data <path>]"
@@ -1287,8 +1209,7 @@
    "when": "work is finished and someone who was not there needs a true account of it",
    "phrases": [
     "write up what you did",
-    "report back",
-    "give me the status"
+    "report back"
    ],
    "invocation": "auto",
    "args": "[task id or one-line task statement]"
@@ -1301,7 +1222,6 @@
    "when": "you want to choose what to clean up next by cost rather than by who complains",
    "phrases": [
     "tech debt",
-    "what should we clean up next",
     "the debt register"
    ],
    "invocation": "auto",
@@ -1314,7 +1234,6 @@
    "what": "Lays out the options for a technology choice, recommends one with reasons, lets you decide and records it as an ADR",
    "when": "you must choose between technologies, such as two message brokers or two clouds",
    "phrases": [
-    "Kafka or RabbitMQ",
     "which cloud",
     "what stack should we use"
    ],
@@ -1329,8 +1248,7 @@
    "when": "planned test cases need to become automated tests in the stack's own framework",
    "phrases": [
     "automate the test cases",
-    "set up Playwright",
-    "e2e tests"
+    "set up Playwright"
    ],
    "invocation": "auto",
    "args": "[suite|generate] [TC id or story id to limit]"
@@ -1369,8 +1287,7 @@
    "when": "you want to know what is failing and which tests actually ran",
    "phrases": [
     "run the tests",
-    "what is failing",
-    "run TC-0231"
+    "what is failing"
    ],
    "invocation": "auto",
    "args": "[--suite <s>[,<s>] | all[,matrix]] [--except <s>[,<s>]] [--tag @P1] [--tc TC-0231] [--changed] [--timeout 20m]"
@@ -1383,7 +1300,6 @@
    "when": "the product needs dark mode, a high contrast theme or a brand per tenant",
    "phrases": [
     "add dark mode",
-    "add a high contrast theme",
     "theme for a tenant"
    ],
    "invocation": "auto",
@@ -1397,8 +1313,7 @@
    "when": "a feature touches auth, payments, personal data or outside input and needs defences planned",
    "phrases": [
     "threat model this",
-    "STRIDE analysis",
-    "what could an attacker do"
+    "STRIDE analysis"
    ],
    "invocation": "auto",
    "args": "<feature or system> [path to HLD]"
@@ -1411,8 +1326,7 @@
    "when": "you need to know whether every requirement is tested and delivered before sign-off",
    "phrases": [
     "is everything traced",
-    "traceability matrix",
-    "untested"
+    "what is untested"
    ],
    "invocation": "auto",
    "args": "[base branch for a branch audit; omitted, the whole history]"
@@ -1425,8 +1339,7 @@
    "when": "backlog items need tickets, or a ticket's status and MR link need updating",
    "phrases": [
     "create the tickets",
-    "sync to Jira",
-    "move TASK-142"
+    "sync to Jira"
    ],
    "invocation": "auto",
    "args": "create <type> <title> | update <KEY> [--status s] [--assignee me] | sync [backlog] | docs | trace <KEY> [--mr url] | get <KEY> | list | config"
@@ -1439,8 +1352,7 @@
    "when": "your plugins or skill packs are behind and you want them updated with care",
    "phrases": [
     "update the plugins",
-    "upgrade the skills",
-    "update all"
+    "upgrade the skills"
    ],
    "invocation": "auto",
    "args": "[source to limit: Bearing | plugins | gstack | skills | gsd; default: all]"
@@ -1453,8 +1365,7 @@
    "when": "you need to know which screens a feature needs and what users see when it fails",
    "phrases": [
     "map the user flows",
-    "what screens do we need",
-    "user journey"
+    "what screens do we need"
    ],
    "invocation": "auto",
    "args": "<feature> [path to stories, PRD or ticket] [--feedback \\\"...\\\" to re-issue as the next version]"
@@ -1467,8 +1378,7 @@
    "when": "a release needs a written security position before it ships",
    "phrases": [
     "VAPT report",
-    "security sign-off",
-    "pentest report"
+    "security sign-off"
    ],
    "invocation": "auto",
    "args": "<version or tag> [scope notes] [--allow-stale]"
@@ -1481,7 +1391,7 @@
    "when": "you have just deployed and want evidence that the right version is up",
    "phrases": [
     "verify the deploy",
-    "check qa after deploying"
+    "check qa"
    ],
    "invocation": "auto",
    "args": "<env> [deployed commit or tag]"
@@ -1507,9 +1417,7 @@
    "when": "you are unsure what to do next, which skill fits or what the team has in flight",
    "phrases": [
     "what should I do next",
-    "which skill do I use",
-    "how do we work here",
-    "what is in flight"
+    "which skill do I use"
    ],
    "invocation": "auto",
    "args": ""

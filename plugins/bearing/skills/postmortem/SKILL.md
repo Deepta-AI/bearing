@@ -1,6 +1,6 @@
 ---
 name: postmortem
-description: 'Writes a blameless postmortem after an incident: impact in numbers, UTC timeline, root cause chain, owned follow-ups, lessons. Use when asked for a "postmortem", "RCA", "incident report" or "write up the outage".'
+description: 'Writes a blameless postmortem: impact, UTC timeline, root cause, owned follow-ups. Use when asked for a "postmortem", "RCA" or "write up the outage".'
 argument-hint: "<incident title> [path to notes]"
 context: fork
 agent: doc-writer

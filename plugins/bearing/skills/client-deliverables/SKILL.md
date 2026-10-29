@@ -1,6 +1,6 @@
 ---
 name: client-deliverables
-description: 'Builds the client documentation pack: numbered folders, each document as Markdown, CSV and versioned Word, and a delivery checklist. Use when asked to "build the client pack" or "export the docs to Word".'
+description: 'Builds the client documentation pack as Markdown, CSV and versioned Word. Use when asked to "build the client pack" or "export the docs to Word".'
 argument-hint: "[--customer <name>] [--summary <what changed>] [--import-checklist <filled.xlsx>] [--hold <file:line>]"
 allowed-tools: Read, Write, Edit, Grep, Glob, AskUserQuestion, Bash(ls:*), Bash(unzip -p:*), Bash(git status:*), Bash(git log:*), Bash(git check-ignore:*), Bash(git config user.name), Bash(uv run --quiet --with python-docx==1.2.0 --with openpyxl==3.1.5 python3 *skills/client-deliverables/scripts/pack.py*), Bash(uv run --quiet --with python-docx==1.2.0 python3 *skills/client-deliverables/scripts/md2docx.py*)
 ---

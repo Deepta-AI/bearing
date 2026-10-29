@@ -1,6 +1,6 @@
 ---
 name: resilience-testing
-description: 'Tests the failure modes the design claims: fault injection plan, backup restore drills, DR tests with measured RTO and RPO. Use when asked about "chaos testing", "restore drill", "DR test" or "what if the database dies".'
+description: 'Tests claimed failure modes: fault injection, restore drills, DR tests with RTO and RPO. Use when asked about "chaos testing" or "restore drill".'
 argument-hint: "[plan|drill|dr|record <fault> \"<observed>\"] [--service <name>]"
 allowed-tools: Read, Write, Edit, Grep, Glob, Bash(ls:*), Bash(mkdir -p:*), Bash(date:*), Bash(make -n:*), Bash(docker compose config:*), Bash(kubectl get:*), Bash(git log:*)
 ---

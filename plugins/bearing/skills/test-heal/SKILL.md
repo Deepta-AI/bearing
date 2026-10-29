@@ -1,6 +1,6 @@
 ---
 name: test-heal
-description: 'Fixes failing or flaky tests: classifies each failure with evidence, heals locator, timing and data drift, leaves regressions red, quarantines flakes. Use when asked to "fix the flaky tests" or "heal the tests".'
+description: 'Fixes failing or flaky tests: classifies each failure, heals drift, quarantines flakes. Use when asked to "fix the flaky tests" or "heal the tests".'
 argument-hint: "[report path, default the newest in docs/testing/reports/ or .scratch/test-run/] [--tc TC-0231 | --suite e2e]"
 allowed-tools: Read, Write, Edit, Grep, Glob, Bash(make db:*), Bash(make dev:*), Bash(make migrate:*), Bash(make test-repeat:*), Bash(make test-visual-update:*), Bash(make check:*), Bash(make test:*), Bash(git diff:*), Bash(git log:*), Bash(git show:*), Bash(git status:*), Bash(go test:*), Bash(go vet:*), Bash(pnpm exec:*), Bash(pytest:*), Bash(python3 -m pytest:*), Bash(uv run pytest:*), Bash(./gradlew:*), Bash(swift test:*), Bash(xcodebuild test:*), Bash(maestro test:*), Bash(curl -fsS http://localhost:*), Bash(bash *bin/brg-state-path*), Bash(curl -fsS http://localhost:3100/loki/api/v1/query_range*)
 ---

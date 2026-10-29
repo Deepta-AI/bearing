@@ -1,6 +1,6 @@
 ---
 name: ux-flows
-description: 'Maps UX flows: screen inventory tied to stories, every state with copy, storyboard, flow diagrams and a zero dead-end check. Use when asked to "map the user flows", "what screens do we need" or "user journey".'
+description: 'Maps UX flows: screens tied to stories, every state with copy, no dead ends. Use when asked to "map the user flows" or "what screens do we need".'
 argument-hint: "<feature> [path to stories, PRD or ticket] [--feedback \"...\" to re-issue as the next version]"
 allowed-tools: Read, Write, Edit, Grep, Glob, Skill, Bash(ls:*), Bash(mkdir:*), Bash(wc:*), Bash(grep:*), Bash(python3 *skills/ux-flows/scripts/flows_check.py*), Bash(bash *bin/brg-config*), AskUserQuestion
 ---

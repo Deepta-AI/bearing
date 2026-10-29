@@ -1,6 +1,6 @@
 ---
 name: background-jobs
-description: 'Builds background jobs that survive failure: queue, cron or outbox, idempotency keys, backoff retries, dead letters, graceful shutdown. Use when asked for a "background job", "queue", "cron job", "worker" or "outbox".'
+description: 'Jobs that must not be lost or run twice: cron jobs, queues, workers, retries, an outbox after a commit. Use when asked for a "worker" or a "queue".'
 argument-hint: "<job name or purpose> [--mechanism queue|cron|outbox] [--audit]"
 allowed-tools: Read, Write, Edit, Grep, Glob, Skill, Bash(ls:*), Bash(mkdir -p:*), Bash(make check:*), Bash(make test:*), Bash(git diff:*), Bash(git status:*), Bash(go test:*), Bash(pnpm exec vitest:*), Bash(uv run pytest:*)
 ---

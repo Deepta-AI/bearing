@@ -1,6 +1,6 @@
 ---
 name: accessibility
-description: 'Audits and fixes accessibility to WCAG 2.2 AA on web and mobile, findings at file:line, axe checks in Playwright. Use when asked about "accessibility", "a11y", "WCAG", "screen reader" or "keyboard navigation".'
+description: 'Audits and fixes accessibility to WCAG 2.2 AA on web and mobile. Use when asked about "a11y", "WCAG" or "screen reader" support.'
 argument-hint: "[path, route or screen to limit; default: every page or screen]"
 allowed-tools: Read, Write, Edit, Grep, Glob, Skill, Bash(ls:*), Bash(git status:*), Bash(git diff:*), Bash(make:*), Bash(node:*), Bash(pnpm exec playwright:*), Bash(uv run pytest:*), Bash(go test:*), Bash(python3 -m http.server:*), Bash(kill:*), Bash(python3 *skills/accessibility/scripts/contrast.py*)
 ---

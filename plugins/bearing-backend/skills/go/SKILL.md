@@ -1,6 +1,6 @@
 ---
 name: go
-description: 'Go house rules (net/http, pgx, sqlc, goose, slog, table-driven and httptest tests). Load before writing or changing any Go code. Use when asked for "a Go handler", "sqlc queries" or a new Go service.'
+description: 'Go house rules: net/http, pgx, sqlc, goose, slog, table-driven tests. Load before changing Go. Use when asked for "a Go handler" or "sqlc queries".'
 allowed-tools: Read, Grep, Glob, Edit, Write, Skill, Bash(go build:*), Bash(go test:*), Bash(go vet:*), Bash(gofmt:*), Bash(golangci-lint run:*), Bash(make:*)
 ---
 

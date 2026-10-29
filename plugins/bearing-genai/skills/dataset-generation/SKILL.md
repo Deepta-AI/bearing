@@ -1,6 +1,6 @@
 ---
 name: dataset-generation
-description: 'Generates eval, training or preference data from a real seed: taxonomy, generation, dedupe, contamination check, human audit, datasheet. Use when asked to "make synthetic data" or "we need more examples".'
+description: 'Generates eval, training or preference data from a real seed, deduped and audited. Use when asked to "make synthetic data" or "we need more examples".'
 argument-hint: "<eval|train|preference> <name> [--seed <path>] [--target N] [--unattended]"
 allowed-tools: Read, Write, Edit, Grep, Glob, Skill, AskUserQuestion, Bash(ls:*), Bash(wc -l:*), Bash(mkdir:*), Bash(uv run python datasets/*), Bash(python3 *skills/dataset-generation/scripts/dataset_check.py*), Bash(printenv BEARING_AUTOPILOT BEARING_NONINTERACTIVE)
 ---

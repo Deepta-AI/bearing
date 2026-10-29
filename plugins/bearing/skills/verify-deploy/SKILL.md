@@ -1,6 +1,6 @@
 ---
 name: verify-deploy
-description: 'Checks one environment after the engineer deploys: readiness, health, version, smoke pages, synthetic suite; read-only, never rolls back. Use when asked to "verify the deploy", "check qa after deploying".'
+description: 'Checks one environment after a deploy: readiness, health, version, smoke, synthetics. Use when asked to "verify the deploy" or "check qa".'
 argument-hint: "<env> [deployed commit or tag]"
 allowed-tools: Read, Write, Edit, Grep, Glob, Bash(ls:*), Bash(git describe:*), Bash(git tag -l:*), Bash(git log:*), Bash(git rev-parse:*), Bash(python3 *skills/verify-deploy/scripts/verify_deploy.py*), Bash(/usr/bin/python3 *skills/verify-deploy/scripts/verify_deploy.py*), Bash(make synthetic:*), Bash(make -n synthetic:*), AskUserQuestion
 ---

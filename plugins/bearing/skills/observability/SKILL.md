@@ -1,6 +1,6 @@
 ---
 name: observability
-description: 'Wires OpenTelemetry traces and metrics, trace ids in logs, a local Grafana stack, RED dashboards, SLOs and burn-rate alerts. Use when asked to "add observability", "set up tracing", "add dashboards" or "define SLOs".'
+description: 'Wires OpenTelemetry traces and metrics, trace ids in logs, dashboards, SLOs and alerts. Use when asked to "add observability" or "set up tracing".'
 argument-hint: "[service name] [--local-only]"
 allowed-tools: Read, Write, Edit, Grep, Glob, Skill, Bash(ls:*), Bash(make -n:*), Bash(docker compose config:*), Bash(python3 -c:*), Bash(promtool check:*), Bash(docker compose -f * config), Bash(make observability-up), Bash(make observability-down), Bash(make dev), Bash(curl -s:*), Bash(npm view:*), Bash(pip index versions:*), Bash(go list -m:*), Bash(bash *bin/brg-runbook-check*), AskUserQuestion
 ---

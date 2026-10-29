@@ -1,6 +1,6 @@
 ---
 name: git-hooks
-description: 'Installs or repairs the committed git hooks (commit-msg, pre-commit, pre-push), sets core.hooksPath and dry-runs each. Use when asked to "install the git hooks", "set up hooks" or "why was my commit rejected".'
+description: 'Installs or repairs the committed git hooks and sets core.hooksPath. Use when asked to "install the git hooks" or "set up hooks".'
 argument-hint: "[--update to take the kit's copy over a differing hook]"
 allowed-tools: Read, Grep, Glob, Edit, Bash(bash .githooks/install.sh:*), Bash(.githooks/commit-msg:*), Bash(.githooks/pre-commit:*), Bash(.githooks/pre-push:*), Bash(git rev-parse:*), Bash(git status:*), Bash(git diff:*), Bash(git show:*), Bash(git log:*), Bash(git ls-files:*), Bash(git cat-file:*), Bash(git check-attr:*), Bash(git clone:*), Bash(git add:*), Bash(git restore --staged:*), Bash(git hash-object:*), Bash(git update-index:*), Bash(git commit:*), Bash(gofmt:*), Bash(diff:*), Bash(mktemp:*), Bash(mkdir:*), Bash(cp:*), Bash(printf:*), Bash(make:*)
 ---

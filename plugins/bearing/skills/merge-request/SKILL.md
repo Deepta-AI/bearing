@@ -1,6 +1,6 @@
 ---
 name: merge-request
-description: 'Prepares the merge request for the current branch: gate run, commit audit, diff summary, description, ticket link; pushes only where opted in. Use when asked to "prepare the MR", "write the PR description".'
+description: 'Prepares the MR for the current branch: gate run, commit audit, diff summary, description. Use when asked to "prepare the MR" or "write the MR text".'
 argument-hint: "[target branch, default develop]"
 allowed-tools: Read, Write, Grep, Glob, Bash(bash *bin/brg-tracker *), Bash(make:*), Bash(git status:*), Bash(git diff:*), Bash(git log:*), Bash(git branch:*), Bash(git fetch:*), Bash(git remote:*), Bash(mkdir -p .scratch), Bash(tail -40), Bash(go test:*), Bash(pnpm test:*), Bash(uv run pytest:*), Bash(./gradlew test:*), Bash(swift test:*), Bash(bash *bin/brg-state-path*), Bash(python3 *skills/session-handoff/scripts/progress.py*), Bash(bash *bin/brg-push check*), Bash(bash *bin/brg-push request*), Bash(bash *bin/brg-push status*), AskUserQuestion
 ---

@@ -1,6 +1,6 @@
 ---
 name: traceability
-description: 'Builds the traceability matrix from requirements through stories, test cases, tests, commits and tickets, counting every gap; read-only. Use when asked "is everything traced", "traceability matrix" or "untested".'
+description: 'Builds the requirements traceability matrix to stories, tests and commits, counting gaps. Use when asked "is everything traced" or "what is untested".'
 argument-hint: "[base branch for a branch audit; omitted, the whole history]"
 allowed-tools: Read, Write, Grep, Glob, Bash(bash *bin/brg-tracker *), Bash(ls:*), Bash(mkdir:*), Bash(rm:*), Bash(git log:*), Bash(git rev-list:*), Bash(git branch:*), Bash(git merge-base:*), Bash(git diff:*), Bash(git show:*), Bash(git status:*), Bash(make check:*), Bash(make test:*), Bash(go test:*), Bash(pytest:*), Bash(npm test:*), Bash(python3 *skills/traceability/scripts/trace_check.py*)
 ---

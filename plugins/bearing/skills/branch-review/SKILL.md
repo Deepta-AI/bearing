@@ -1,6 +1,6 @@
 ---
 name: branch-review
-description: 'Code review of a branch, MR, patch or path with stack checklists, every Critical and High finding independently verified, and merge verdict. Use when asked to "review this", "review the MR" or "look over my changes".'
+description: 'Reviews a branch, MR or patch with stack checklists, verified findings and a verdict. Use when asked to "review the MR" or "look over my changes".'
 argument-hint: "[commit range, patch file or path; default origin/develop...HEAD] [--engine gstack|bearing] [--unattended]"
 allowed-tools: Read, Grep, Glob, Skill, Agent, Bash(git diff:*), Bash(git log:*), Bash(git show:*), Bash(git status:*), Bash(git rev-parse:*), Bash(git remote:*), Bash(git worktree list:*), Bash(git archive *), Bash(git apply --check *), Bash(git apply --directory=.scratch/review/*), Bash(tar -x -C .scratch/review/*), Bash(git init -q .scratch/review/*), Bash(ln -s * .scratch/review/*), Bash(make -C .scratch/review/*), Bash(rm -rf .scratch/review/*), Bash(ls:*), Bash(mkdir -p .scratch/review/*), Bash(python3 .scratch/review/*), Bash(bash *bin/brg-checklists *), Bash(printenv BEARING_AUTOPILOT BEARING_NONINTERACTIVE), Bash(bash *bin/brg-config get noninteractive --user), Write
 ---

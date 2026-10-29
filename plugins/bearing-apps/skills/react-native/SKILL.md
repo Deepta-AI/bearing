@@ -1,6 +1,6 @@
 ---
 name: react-native
-description: 'React Native house rules (Expo, expo-router, TanStack Query, Zustand, Zod, NativeWind, EAS). Load before writing or changing React Native or Expo code. Use when asked for "an Expo screen", "an EAS build".'
+description: 'React Native house rules (Expo, expo-router, NativeWind). Load before Expo code. Use when asked for "an Expo screen" or "an EAS build".'
 allowed-tools: Read, Grep, Glob, Skill, Bash(pnpm run:*), Bash(pnpm test:*), Bash(npx expo doctor:*), Bash(npx expo export:*), Bash(make:*)
 ---
 

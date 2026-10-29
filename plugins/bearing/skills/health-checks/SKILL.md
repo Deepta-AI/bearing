@@ -1,6 +1,6 @@
 ---
 name: health-checks
-description: 'Builds /healthz and /readyz endpoints with per-dependency checks, a scheduled synthetic journey suite, uptime probes and alerts. Use when asked to "add health checks", "readiness endpoint" or "uptime monitoring".'
+description: 'Builds /healthz and /readyz with dependency checks, synthetic journeys, uptime alerts. Use when asked to "add health checks" or "uptime monitoring".'
 argument-hint: "[service name] [--probe-only]"
 allowed-tools: Read, Write, Edit, Grep, Glob, Skill, Bash(ls:*), Bash(make -n:*), Bash(git diff:*), Bash(python3 -c:*), Bash(promtool check:*), Bash(bash *bin/brg-runbook-check*), AskUserQuestion
 ---

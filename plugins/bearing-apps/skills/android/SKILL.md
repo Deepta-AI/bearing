@@ -1,6 +1,6 @@
 ---
 name: android
-description: 'Android house rules (Kotlin, Jetpack Compose, Material 3, Hilt, coroutines, Room, Gradle). Load before writing or changing Android or Kotlin code. Use when asked for "a Room DAO", "a Hilt module" or an app.'
+description: 'Android house rules (Kotlin, Compose, Hilt, Room, Gradle); load before changing Android code. Use when asked for "a Room DAO" or "a Hilt module".'
 allowed-tools: Read, Grep, Glob, Skill, Bash(./gradlew test:*), Bash(./gradlew lint:*), Bash(./gradlew ktlintCheck:*), Bash(./gradlew detekt:*), Bash(./gradlew assembleDebug:*), Bash(make:*)
 ---
 

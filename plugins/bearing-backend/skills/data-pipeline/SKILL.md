@@ -1,6 +1,6 @@
 ---
 name: data-pipeline
-description: 'Data pipeline house rules (dbt models with tests, Airflow 3 DAGs, sqlfluff, partitioned backfills). Load before writing or changing dbt, Airflow or warehouse code. Use when asked for "dbt models", "a backfill".'
+description: 'Data pipeline house rules (dbt, Airflow, sqlfluff, backfills); load before changing warehouse code. Use when asked for "dbt models" or "a backfill".'
 allowed-tools: Read, Grep, Glob, Bash(uv run dbt:*), Bash(uv run sqlfluff:*), Bash(uv run ruff:*), Bash(uv run pytest:*), Bash(make:*)
 ---
 

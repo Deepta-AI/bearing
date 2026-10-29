@@ -1,6 +1,6 @@
 ---
 name: refactor
-description: 'Refactors without changing behaviour: tests green first, one mechanical change per commit, checks between, a diff size ceiling. Use when asked to "refactor", "clean this up", "extract" or "rename across the codebase".'
+description: 'Refactors without changing behaviour: tests green first, one mechanical change per commit. Use when asked to "refactor this" or "clean this up".'
 argument-hint: "<path, symbol or module> [--max-diff 400]"
 allowed-tools: Read, Write, Edit, Grep, Glob, Bash(ls:*), Bash(mkdir -p:*), Bash(make check:*), Bash(make test:*), Bash(make fmt:*), Bash(make -C:*), Bash(git status:*), Bash(git diff:*), Bash(git log:*), Bash(git branch:*), Bash(git switch -c:*), Bash(git rev-parse:*), Bash(git show:*), Bash(git add:*), Bash(git apply:*), Bash(git restore --staged:*), Bash(git commit -m:*), Bash(git checkout -- :*), Bash(git archive:*), Bash(tar -x:*), Bash(go test:*), Bash(gopls rename:*), Bash(pnpm exec vitest:*), Bash(pnpm exec tsc:*), Bash(uv run pytest:*), Bash(python3 -c:*), Bash(./gradlew test:*), Bash(swift test:*)
 ---

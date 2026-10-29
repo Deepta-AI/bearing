@@ -1,6 +1,6 @@
 ---
 name: data-model
-description: 'Designs the data model from the stories: data-model doc, runnable schema.sql, data dictionary and ERD, a reason per column. Use when asked to "design the data model", "what tables do we need" or "draw the ER diagram".'
+description: 'Designs the data model from the stories: schema.sql, data dictionary and ERD. Use when asked to "design the data model" or "draw the ER diagram".'
 argument-hint: "[feature or system] [--stores postgres,mongodb,clickhouse]"
 allowed-tools: Read, Write, Edit, Grep, Glob, Skill, Agent, Bash(ls:*), Bash(mkdir:*), Bash(python3 *skills/data-model/scripts/model_check.py*), Bash(bash *skills/data-model/scripts/apply_check.sh*)
 ---

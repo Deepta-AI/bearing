@@ -1,6 +1,6 @@
 ---
 name: auth
-description: 'Builds authentication and authorisation: sessions or tokens, passkeys, OAuth, RBAC, tenant isolation, IDOR checks, a permission matrix as tests. Use when asked to "add login", "roles and permissions" or "who can access".'
+description: 'Builds authentication and authorisation: sessions, passkeys, OAuth, roles, tenancy. Use when asked to "add login" or "roles and permissions".'
 argument-hint: "<feature or service> [--design-only] [--audit]"
 allowed-tools: Read, Write, Edit, Grep, Glob, Skill, Bash(ls:*), Bash(mkdir -p:*), Bash(make check:*), Bash(make test:*), Bash(git branch:*), Bash(git diff:*), Bash(go test:*), Bash(pnpm exec vitest:*), Bash(uv run pytest:*), Bash(./gradlew test:*), Bash(swift test:*)
 ---

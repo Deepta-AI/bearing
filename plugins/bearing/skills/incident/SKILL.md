@@ -1,6 +1,6 @@
 ---
 name: incident
-description: 'Runs a live incident as scribe: severity, UTC timeline, roles, runbook steps for a person, comms, postmortem hand-off; never remediates. Use when "we have an outage", "declare an incident" or "the alert is firing".'
+description: 'Runs a live incident as scribe: severity, UTC timeline, roles, comms; never remediates. Use when "we have an outage" or "declare an incident".'
 argument-hint: "declare <alert or title> [--sev 1|2|3|4] | update \"<note>\" | comms | resolve"
 allowed-tools: Read, Write, Edit, Grep, Glob, Bash(ls:*), Bash(mkdir:*), Bash(date -u:*), Bash(git log:*), Bash(git tag -l:*), AskUserQuestion
 ---

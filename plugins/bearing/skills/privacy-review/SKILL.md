@@ -1,6 +1,6 @@
 ---
 name: privacy-review
-description: 'Reviews personal data handling: a data map with purpose, basis and retention, deletion wired to it, data subject requests, a DPIA. Use when asked about "GDPR", "DPDP", "personal data", "retention" or "delete my account".'
+description: 'Reviews personal data handling: data map, retention, deletion, a DPIA. Use when asked about "GDPR", "personal data" or "delete my account".'
 argument-hint: "[feature or system] [--regime gdpr|dpdp|both] [--check-only]"
 allowed-tools: Read, Write, Edit, Grep, Glob, Bash(ls:*), Bash(mkdir -p:*), Bash(make check:*), Bash(make test:*), Bash(git diff:*), Bash(git status:*), Bash(git log:*), Bash(go test:*), Bash(go vet:*), Bash(pnpm exec vitest:*), Bash(uv run pytest:*), Bash(pytest:*), Bash(python3 -m pytest:*)
 ---

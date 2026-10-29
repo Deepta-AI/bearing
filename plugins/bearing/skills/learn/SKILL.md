@@ -1,6 +1,6 @@
 ---
 name: learn
-description: 'Lists, adds and proposes Bearing learnings kept on this machine (opt-in). Use when asked "what has Bearing learned", "remember this for next time" or "send our learnings upstream".'
+description: 'Lists, adds and proposes Bearing learnings kept on this machine (opt-in). Use when asked "what has Bearing learned" or "remember this for next time".'
 argument-hint: "[add <text> | propose]"
 allowed-tools: AskUserQuestion, Read, Bash(bash *bin/brg-learn*), Bash(bash *bin/brg-config*)
 ---

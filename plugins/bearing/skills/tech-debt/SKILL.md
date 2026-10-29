@@ -1,6 +1,6 @@
 ---
 name: tech-debt
-description: 'Keeps the tech debt register in docs/DEBT.md, seeded from TODOs, suppressed lints and skipped tests, ranked by cost of carrying it. Use when asked about "tech debt", "what should we clean up next" or "the debt register".'
+description: 'Keeps the debt register in docs/DEBT.md from TODOs, lints and skipped tests, ranked by cost. Use when asked about "tech debt" or "the debt register".'
 argument-hint: "[seed|add \"<description>\"|review|pay <DEBT-nnn>] [--path <dir>]"
 allowed-tools: Read, Write, Edit, Grep, Glob, Bash(ls:*), Bash(mkdir -p:*), Bash(date:*), Bash(git ls-files:*), Bash(git log:*), Bash(git blame:*), AskUserQuestion
 ---

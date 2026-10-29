@@ -1,6 +1,6 @@
 ---
 name: simplify-code
-description: 'Deletes code a change does not need (dead code, one-use abstractions, unused options, redundant checks), tests green after each cut; refactor only moves code. Use when asked to "simplify this code" or "cut the bloat".'
+description: 'Deletes code a change does not need (dead code, one-use abstractions), tests green. Use when asked to "simplify this code" or "cut the bloat".'
 argument-hint: "[<path or module> | --branch [<base>] | --repo]"
 allowed-tools: Read, Edit, Grep, Glob, Bash(ls:*), Bash(wc -l:*), Bash(make check:*), Bash(make test:*), Bash(make fmt:*), Bash(git status:*), Bash(git diff:*), Bash(git log:*), Bash(git show:*), Bash(git merge-base:*), Bash(git rev-parse:*), Bash(git symbolic-ref:*), Bash(git ls-files:*), Bash(git grep:*), Bash(git apply:*), Bash(git rm -q:*), Bash(go test:*), Bash(go vet:*), Bash(go build:*), Bash(staticcheck:*), Bash(deadcode:*), Bash(pnpm exec tsc:*), Bash(pnpm exec vitest:*), Bash(pnpm exec knip:*), Bash(uv run pytest:*), Bash(python3 -m pytest:*), Bash(ruff check:*), Bash(vulture:*), Bash(./gradlew test:*), Bash(swift test:*)
 ---

@@ -1,6 +1,6 @@
 ---
 name: app-store-release
-description: 'Prepares an App Store or Google Play submission: build numbers, listing, screenshots, privacy forms, phased rollout, rejection fixes. Use when asked to "submit to the App Store", "TestFlight" or "app rejected".'
+description: 'Prepares an App Store or Google Play submission: builds, listing, privacy, rollout. Use when asked to "submit to the App Store" or "app rejected".'
 argument-hint: "[ios|android|both] [vX.Y.Z] [--rejected]"
 allowed-tools: Read, Write, Edit, Grep, Glob, AskUserQuestion, Bash(bash *bin/brg-config*), Bash(ls:*), Bash(mkdir -p:*), Bash(git tag -l:*), Bash(git describe:*), Bash(git log:*), Bash(date:*), Bash(fastlane lanes:*), Bash(file:*)
 ---
