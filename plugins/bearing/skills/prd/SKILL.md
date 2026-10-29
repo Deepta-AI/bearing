@@ -1,6 +1,6 @@
 ---
 name: prd
-description: 'Normalises any brief, notes or ticket into a PRD of numbered testable REQ statements, objectives, personas and open questions; no stories. Use when asked to "write the PRD" or "turn this brief into requirements".'
+description: 'Turns a brief, notes or ticket into a PRD of numbered testable requirements and open questions. Use when asked to "write the PRD" or "spec this out".'
 argument-hint: "<attach the brief, give its path, or paste it in the message>"
 allowed-tools: Read, Write, Grep, Glob, Agent, AskUserQuestion, Bash(ls:*), Bash(mkdir:*), Bash(wc:*), Bash(git rev-parse:*), Bash(python3 *skills/prd/scripts/doc_to_text.py*), Bash(python3 *skills/prd/scripts/register_answers.py*)
 ---

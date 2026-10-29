@@ -1,6 +1,6 @@
 ---
 name: db-migration
-description: 'Writes a database migration with a tested down step and lock-safety notes (goose, Alembic, Prisma, Knex, Room, GRDB, ClickHouse, Mongo). Use when asked to "add a migration", "add a column" or "change the schema".'
+description: 'Writes a database migration with a tested down step and lock-safety notes. Use when asked to "add a migration" or "change the schema".'
 argument-hint: "<snake_case_name> [--store postgres|sqlite|clickhouse|mongo]"
 allowed-tools: Read, Write, Edit, Grep, Glob, Bash(ls:*), Bash(mkdir:*), Bash(goose create:*), Bash(goose fix:*), Bash(uv run alembic revision:*), Bash(pnpm exec prisma migrate:*), Bash(make:*)
 ---

@@ -1,6 +1,6 @@
 ---
 name: api-versioning
-description: 'Versions and retires API endpoints: Deprecation and Sunset headers, consumer inventory, breaking-change diff, contract tests, log-gated removal. Use when asked to "deprecate an endpoint", "version the API" or "sunset".'
+description: 'Versions and retires API endpoints with Deprecation and Sunset headers. Use when asked to "deprecate an endpoint" or "version the API".'
 argument-hint: "strategy | deprecate <METHOD /path> [--sunset YYYY-MM-DD] | diff [<old spec>] | remove <METHOD /path> [--days 30] | contracts"
 allowed-tools: Read, Write, Edit, Grep, Glob, Skill, Bash(ls:*), Bash(mkdir -p:*), Bash(git show:*), Bash(git tag -l:*), Bash(git log:*), Bash(git diff:*), Bash(oasdiff:*), Bash(grep -c:*), Bash(zgrep:*), Bash(make check:*), Bash(go test:*), Bash(pnpm exec vitest:*), Bash(uv run pytest:*)
 ---

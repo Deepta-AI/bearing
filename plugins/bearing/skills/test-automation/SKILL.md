@@ -1,6 +1,6 @@
 ---
 name: test-automation
-description: 'Sets up or extends the automated test suite (Playwright, Maestro, Espresso, pytest, Go httptest), one test per planned test case by TC id. Use when asked to "automate the test cases", "set up Playwright" or "e2e tests".'
+description: 'Sets up or extends automated tests (Playwright, Maestro, pytest), one per TC id. Use when asked to "automate the test cases" or "set up Playwright".'
 argument-hint: "[suite|generate] [TC id or story id to limit]"
 allowed-tools: Read, Write, Edit, Grep, Glob, Agent, Skill, Bash(ls:*), Bash(make:*), Bash(pnpm exec playwright:*), Bash(pnpm install:*), Bash(pnpm exec tsc --noEmit:*), Bash(maestro test:*), Bash(uv run pytest:*), Bash(uv run --offline:*), Bash(python -m pytest:*), Bash(python3 -m pytest:*), Bash(uv run ruff check:*), Bash(go test:*), Bash(go vet:*), Bash(./gradlew connectedDebugAndroidTest:*), Bash(./gradlew compileDebugAndroidTestKotlin:*), Bash(xcodebuild test:*), Bash(xcodebuild build-for-testing:*), Bash(git diff:*), Bash(python3 *skills/test-automation/scripts/ref_check.py*), Bash(bash *bin/brg-kit-paths*), AskUserQuestion
 ---

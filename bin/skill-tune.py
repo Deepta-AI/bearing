@@ -163,7 +163,7 @@ Read SKILL.md and the files it points to. The skill's last measurement failed th
 
 Make the smallest edit to the files in this folder that would make a run following the skill pass
 them, without making it worse at anything else. Keep the frontmatter name; keep the description
-under 220 characters; keep SKILL.md under 200 lines (put detail in references/); never use an em
+at most 150 characters with "Use when" and two quoted phrases; keep SKILL.md under 200 lines (put detail in references/); never use an em
 dash; never add a tool the frontmatter's allowed-tools does not grant. Edit nothing outside this
 folder. The evaluation cases are not yours to read. Then write {rationale} with what you changed
 and which failure each change answers.

@@ -1,6 +1,6 @@
 ---
 name: react
-description: 'React house rules (React 19, TypeScript, Vite, TanStack Query, Zustand, Zod, shadcn/ui, Tailwind). Load before writing or changing React or TSX code. Use when asked for "a React component", "a query hook".'
+description: 'React house rules (React 19, Vite, TanStack Query, shadcn/ui). Load before React code. Use when asked for "a React component" or "a query hook".'
 allowed-tools: Read, Grep, Glob, Bash(pnpm install:*), Bash(pnpm run:*), Bash(pnpm exec:*), Bash(pnpm audit:*), Bash(make:*), Bash(npm run:*)
 ---
 

@@ -1,6 +1,6 @@
 ---
 name: dependency-audit
-description: 'Audits dependencies for vulnerabilities and outdated versions, applies approved patch and minor upgrades with tests, keeps Renovate current. Use when asked to "audit dependencies", "update the packages" or "bump deps".'
+description: 'Audits dependencies for vulnerabilities and old versions, applies safe upgrades with tests. Use when asked to "audit dependencies" or "bump deps".'
 argument-hint: "[--audit-only] [--apply patch|minor] [--renovate]"
 allowed-tools: Read, Write, Edit, Grep, Glob, Skill, Bash(make check:*), Bash(make vuln:*), Bash(make go:*), Bash(git diff:*), Bash(git status:*), Bash(git ls-files:*), Bash(git branch:*), Bash(git symbolic-ref:*), Bash(mktemp -d:*), Bash(git checkout -- :*), Bash(pnpm:*), Bash(go:*), Bash(govulncheck:*), Bash(uv:*), Bash(./gradlew dependencyUpdates:*), Bash(./gradlew test:*), Bash(swift package:*), Bash(swift test:*), Bash(terraform:*), Bash(mkdir -p .scratch), Bash(gh auth status:*), Bash(python3 -c:*), Bash(python3 *skills/dependency-audit/scripts/supply-chain.py*)
 ---

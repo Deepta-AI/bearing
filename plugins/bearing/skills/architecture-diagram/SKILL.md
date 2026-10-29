@@ -1,6 +1,6 @@
 ---
 name: architecture-diagram
-description: 'Draws the architecture from the code as it is: C4 and sequence diagrams in mermaid, SVG and PNG, every box sourced. Use when asked to "draw the architecture", "C4 diagram" or "sequence diagram".'
+description: 'Draws the architecture from the code: C4 and sequence diagrams in mermaid. Use when asked to "draw the architecture" or "C4 diagram".'
 argument-hint: "[system or container] [--flow <route or use case>]"
 allowed-tools: Read, Write, Edit, Grep, Glob, Skill, Bash(ls:*), Bash(find:*), Bash(mkdir:*), Bash(git diff:*), Bash(git log:*), Bash(python3 *skills/architecture-diagram/scripts/render.py*), Bash(python3 *skills/architecture-diagram/scripts/diagram_check.py*)
 ---

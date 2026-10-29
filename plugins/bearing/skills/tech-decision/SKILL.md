@@ -1,6 +1,6 @@
 ---
 name: tech-decision
-description: 'Chooses between technology options: lays out options, recommends with reasons, lets the user decide, records each choice as an ADR. Use when asked "Kafka or RabbitMQ", "which cloud" or "what stack should we use".'
+description: 'Compares technology options, recommends, lets the user decide, records an ADR. Use when asked "which cloud" or "what stack should we use".'
 argument-hint: "[decision keys, e.g. cloud compute messaging] or a question in plain words"
 allowed-tools: Read, Write, Grep, Glob, Skill, Bash(ls:*), Bash(git log:*)
 ---

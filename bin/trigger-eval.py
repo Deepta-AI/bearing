@@ -18,7 +18,7 @@ plugins installed on this machine do not answer for the kit under test.
 installed skill competing for the listing budget).
 
 Usage: trigger-eval.py [--only name,...] [--kind should|near] [-j N]
-                       [--model M] [--sources S] [--repeat N]
+                       [--model M] [--sources S] [--settings JSON] [--repeat N]
                        [--min-recall R] [--max-false R] [--list]
 Prints one line per skill and "trigger-eval: N cases, ..."; exits 1 when no
 case ran, when any case errored, or when recall or the false-trigger rate
@@ -117,6 +117,8 @@ def run_case(cwd, prompt, args):
     ]
     if args.model:
         cmd += ["--model", args.model]
+    if args.settings:
+        cmd += ["--settings", args.settings]
     skills, others, tools, error, events, t0 = [], 0, [], "", 0, time.time()
     err = tempfile.TemporaryFile(mode="w+")  # a file, so a chatty stderr never blocks
     p = subprocess.Popen(cmd, cwd=cwd, stdout=subprocess.PIPE, stderr=err, text=True)
@@ -146,7 +148,7 @@ def run_case(cwd, prompt, args):
                     tools.append(f"{c.get('name')}: {str(inp.get('command') or inp.get('file_path') or inp.get('pattern') or '')[:60]}")
             if (
                 any(skill_name(s)[0] in PLUGIN_NAMES for s in skills)
-                or others >= MAX_OTHER_TOOLS
+                or others >= args.max_tools
             ):
                 break
     finally:
@@ -182,6 +184,9 @@ def main():
     ap.add_argument("-j", type=int, default=4, help="sessions at a time (default 4)")
     ap.add_argument("--model")
     ap.add_argument("--sources", default="project,local")
+    ap.add_argument("--max-tools", type=int, default=MAX_OTHER_TOOLS,
+                    help="other tool calls before a session that loaded no Bearing skill is stopped (default 3)")
+    ap.add_argument("--settings", help="a settings JSON (or file) for every session, e.g. '{\"skillListingBudgetFraction\": 0.03}'")
     ap.add_argument("--repeat", type=int, default=1)
     ap.add_argument("--min-recall", type=float, default=0.9)
     ap.add_argument("--max-false", type=float, default=0.1)

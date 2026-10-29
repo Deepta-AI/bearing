@@ -1,6 +1,6 @@
 ---
 name: model-routing
-description: 'Picks the cheapest model or cascade per LLM feature that still passes its eval, from measured scores and costs, any provider. Use when asked "which model should this feature use" or "cut our LLM bill".'
+description: 'Picks the cheapest LLM model or cascade per feature that still passes its eval. Use when asked "which model should we use" or "cut our LLM bill".'
 argument-hint: "<feature|all> [--threshold <x>] [--candidates <id,...>] [--unattended]"
 allowed-tools: Read, Write, Edit, Grep, Glob, Skill, AskUserQuestion, Bash(ls:*), Bash(make eval:*), Bash(uv run python evals/*), Bash(npx tsx@4.23.15 evals/*), Bash(python3 *skills/model-routing/scripts/route_frontier.py*), Bash(python3 *skills/llm-gateway/scripts/llm_callsites_check.py*), Bash(printenv BEARING_AUTOPILOT BEARING_NONINTERACTIVE)
 ---

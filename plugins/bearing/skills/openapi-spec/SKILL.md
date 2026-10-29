@@ -1,6 +1,6 @@
 ---
 name: openapi-spec
-description: 'Designs or audits the OpenAPI 3.1 contract in api/openapi.yaml, generates readable API docs and counts spec and route drift. Use when asked to "write the OpenAPI spec", "design the API contract" or "check the spec".'
+description: 'Designs or audits the OpenAPI 3.1 contract, generates API docs, counts route drift. Use when asked to "write the OpenAPI spec" or "check the spec".'
 argument-hint: "new <api name> | check [--against <tag>]"
 allowed-tools: Read, Write, Edit, Grep, Glob, Skill, Bash(ls:*), Bash(mkdir:*), Bash(command -v:*), Bash(npx @redocly/cli@2.54.3 lint:*), Bash(oasdiff:*), Bash(git tag:*), Bash(git show:*), Bash(head -1), Bash(make api-conformance:*), Bash(curl -fsS http://localhost:*), Bash(uv run --quiet --with pyyaml==6.0.3 python *skills/openapi-spec/scripts/api_doc.py*), Bash(python3 *skills/openapi-spec/scripts/api_doc.py*)
 ---

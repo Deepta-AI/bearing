@@ -1,6 +1,6 @@
 ---
 name: adr
-description: 'Records a decision already made as a numbered ADR (docs/adr/ or the repo''s own folder): context, options, decision, consequences. Use when asked to "write an ADR", "record this decision" or "document why we chose".'
+description: 'Records a decision already made as a numbered ADR: context, options, outcome. Use when asked to "write an ADR" or "record this decision".'
 argument-hint: "<title in the imperative, e.g. Use ClickHouse for events>"
 allowed-tools: Read, Write, Grep, Glob, Bash(ls:*), Bash(git log:*), Bash(git branch:*), AskUserQuestion
 ---

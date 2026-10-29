@@ -1,6 +1,6 @@
 ---
 name: load-test
-description: 'Writes k6 load tests from the SLOs with failing thresholds (smoke, load, stress, soak) and a manual CI job; refuses production. Use when asked whether it "holds at peak", to "load test" or "soak test".'
+description: 'Writes k6 load tests from the SLOs with failing thresholds; refuses production. Use when asked to "load test" or "soak test" a service.'
 argument-hint: "<local|qa|base URL> [smoke|load|stress|soak, default smoke]"
 allowed-tools: Read, Write, Edit, Grep, Glob, Skill, Bash(ls:*), Bash(make:*), Bash(k6 run:*), Bash(k6 inspect:*), Bash(k6 version:*), Bash(uv run locust:*), Bash(curl -fsS:*)
 ---

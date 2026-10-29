@@ -1,6 +1,6 @@
 ---
 name: flutter
-description: 'Conventions for Flutter: Dart 3, Riverpod, go_router, dio, freezed, ARB localisation, flavours, flutter_test, integration_test, fastlane. Use when writing, reviewing or scaffolding "Flutter", "Dart" or "Riverpod" code.'
+description: 'Flutter and Dart house rules: Riverpod, go_router, dio, freezed, flavours, flutter_test. Use when writing "Flutter widgets" or "Dart code".'
 allowed-tools: Read, Grep, Glob, Skill, Bash(flutter analyze:*), Bash(flutter test:*), Bash(flutter pub:*), Bash(dart format:*), Bash(dart run:*), Bash(make:*)
 ---
 

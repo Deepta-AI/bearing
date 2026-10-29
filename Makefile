@@ -4,12 +4,12 @@
 SHELL := /bin/bash
 KITP := plugins/bearing
 .DEFAULT_GOAL := help
-.PHONY: help hooks gate push ci-bash32 site devguide wiki check check-file validate lint-skills lint-tools lint-skill-size lint-questions lint-evals lint-triggers lint-neutral lint-docs lint-json lint-shell lint-portable lint-prose lint-version lint-budget lint-templates lint-plugin-size lint-model-ids test install doctor docs harness-eval trigger-eval evals-weekly evals-timer skill-tune claude-drift pin-refresh eval-audit
+.PHONY: help hooks gate push ci-bash32 site devguide wiki check check-file validate lint-skills lint-tools lint-skill-size lint-questions lint-evals lint-triggers lint-neutral lint-docs lint-json lint-shell lint-portable lint-prose lint-version lint-budget lint-templates lint-plugin-size lint-listing lint-model-ids test install doctor docs harness-eval trigger-eval evals-weekly evals-timer skill-tune claude-drift pin-refresh eval-audit
 
 help: ## List targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-14s %s\n", $$1, $$2}'
 
-check: validate lint-skills lint-skill-size lint-questions lint-tools lint-evals lint-triggers lint-json lint-shell lint-portable lint-prose lint-docs lint-neutral lint-version lint-budget lint-templates lint-plugin-size lint-model-ids test ## The gate for this repository
+check: validate lint-skills lint-skill-size lint-questions lint-tools lint-evals lint-triggers lint-json lint-shell lint-portable lint-prose lint-docs lint-neutral lint-version lint-budget lint-templates lint-plugin-size lint-listing lint-model-ids test ## The gate for this repository
 	@echo "check: passed"
 
 validate: ## claude plugin validate --strict: the marketplace, then each plugin, its skills and (bearing) its agents
@@ -22,7 +22,7 @@ validate: ## claude plugin validate --strict: the marketplace, then each plugin,
 	[ "$$p" -gt 0 ] || { echo "validate: 0 plugins under plugins/, nothing checked" >&2; exit 1; }; \
 	echo "validate: $$n targets passed (strict): the marketplace and $$p plugins with their skills and agents"
 
-lint-skills: ## Every skill in every plugin: hyphenated name (64 max) equal to its frontmatter name, sections, description 220 chars max, references exist, bearing:, bearing-backend:, bearing-apps: and bearing-genai: names resolve
+lint-skills: ## Every skill in every plugin: hyphenated name (64 max) equal to its frontmatter name, sections, description 150 chars max, references exist, bearing:, bearing-backend:, bearing-apps: and bearing-genai: names resolve
 	@n=0; bad=0; per=""; \
 	for pl in plugins/*/; do pl="$${pl%/}"; [ -f "$$pl/.claude-plugin/plugin.json" ] || continue; c=$$(ls -d "$$pl"/skills/*/ 2>/dev/null | wc -l | tr -d ' '); per="$$per $$(basename $$pl)=$$c"; done; \
 	for d in plugins/*/skills/*/; do \
@@ -34,7 +34,7 @@ lint-skills: ## Every skill in every plugin: hyphenated name (64 max) equal to i
 	  grep -q "^name: $$b$$" "$$f" || { echo "name mismatch: $$b"; bad=$$((bad+1)); }; \
 	  desc="$$(python3 bin/skill-desc.py "$$f")" || { echo "no description: $$b"; bad=$$((bad+1)); }; \
 	  case "$$desc" in *"Use when"*|*"use when"*) ;; *) echo "description lacks 'Use when': $$b"; bad=$$((bad+1));; esac; \
-	  len=$$(printf '%s' "$$desc" | wc -m | tr -d ' '); [ "$$len" -le 220 ] || { echo "description over 220 chars ($$len): $$b"; bad=$$((bad+1)); }; \
+	  len=$$(printf '%s' "$$desc" | wc -m | tr -d ' '); [ "$$len" -le 150 ] || { echo "description over 150 chars ($$len): $$b"; bad=$$((bad+1)); }; \
 	  q=$$(printf '%s' "$$desc" | grep -o '"[^"]*"' | wc -l | tr -d ' '); [ "$$q" -ge 2 ] || { echo "description has fewer than 2 quoted trigger phrases ($$q): $$b"; bad=$$((bad+1)); }; \
 	  grep -q '^## Gotchas$$' "$$f" || { echo "no '## Gotchas' heading: $$b"; bad=$$((bad+1)); }; \
 	  grep -q '^## Inputs$$' "$$f" || { echo "no '## Inputs' section (independence contract): $$b"; bad=$$((bad+1)); }; \
@@ -168,6 +168,9 @@ lint-version: ## VERSION matches every plugin.json, the marketplace metadata and
 
 lint-model-ids: ## Every Claude model id under plugins/ is listed in bin/model-ids.txt (the claude-api skill's ids); prints files scanned and ids found, fails on zero files
 	@python3 bin/lint-model-ids.py
+
+lint-listing: ## The whole skill listing (plugin:name and description, every skill) fits Claude Code's listing budget with a margin; prints the count
+	@python3 bin/lint-listing.py
 
 lint-plugin-size: ## Each plugin folder holds under 512 files and no non-image, non-font file of 256 KiB or more (the plugin directory's limits); prints the count per plugin
 	@python3 bin/lint-plugin-size.py

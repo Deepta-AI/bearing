@@ -1,6 +1,6 @@
 ---
 name: llm-fine-tuning
-description: 'Fine-tunes an open model when prompting and RAG fall short: eval-backed decision, dataset, LoRA, DPO or distillation, vLLM serving. Use when asked to "fine-tune a model", "train on our data" or "distil a smaller model".'
+description: 'Fine-tunes an open model when prompting and RAG fall short: LoRA, DPO, distillation. Use when asked to "fine-tune a model" or "train on our data".'
 argument-hint: "<name> [sft|dpo|distil|cpt]"
 allowed-tools: Read, Write, Edit, Grep, Glob, Bash(ls:*), Bash(wc -l:*), Bash(python3 -c:*), Bash(make eval:*), Bash(git log:*), Bash(uv run train_sft.py --smoke:*), Bash(nvidia-smi:*), Bash(python3 *skills/llm-fine-tuning/scripts/gpu_check.py*), Bash(python3 *skills/dataset-generation/scripts/dataset_check.py*)
 ---

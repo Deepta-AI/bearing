@@ -1,6 +1,6 @@
 ---
 name: license-compliance
-description: 'Checks open-source licences: a CycloneDX SBOM, a licence inventory against an allow and deny policy, third-party notices. Use when asked for an "SBOM", "licence check", "third-party notices" or "which licences".'
+description: 'Checks open-source licences: CycloneDX SBOM, licence inventory against policy, notices. Use when asked for an "SBOM" or a "licence check".'
 argument-hint: "[sbom | licenses | notice | provenance | all] [--allow-unknown]"
 allowed-tools: Read, Write, Edit, Grep, Glob, Bash(ls:*), Bash(mkdir -p:*), Bash(cp:*), Bash(syft:*), Bash(cyclonedx-npm:*), Bash(npx @cyclonedx/cyclonedx-npm@6.0.1:*), Bash(cyclonedx-gomod:*), Bash(cyclonedx-py:*), Bash(uv run cyclonedx-py:*), Bash(python3 scripts/license-gate.py:*), Bash(go version -m:*), Bash(go list:*), Bash(go env GOROOT:*), Bash(git log:*), Bash(git status:*), Bash(git verify-commit:*), Bash(git config --get:*), Bash(make check:*), Bash(make build:*)
 ---

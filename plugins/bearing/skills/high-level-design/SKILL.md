@@ -1,6 +1,6 @@
 ---
 name: high-level-design
-description: 'Writes a High Level Design (HLD): goals and non-goals agreed first, then architecture, data, interfaces, failure modes, rollout. Use when asked for an "HLD", "system design" or "an architecture overview".'
+description: 'Writes a High Level Design: goals and non-goals, architecture, data, failure modes, rollout. Use when asked for an "HLD" or "system design".'
 argument-hint: "<title> [path to PRD or notes] [--continue after the goal is agreed]"
 allowed-tools: Read, Write, Grep, Glob, Skill, Agent, AskUserQuestion, Bash(python3 *skills/high-level-design/scripts/arch_check.py*), Bash(bash *bin/brg-kit-paths*)
 ---

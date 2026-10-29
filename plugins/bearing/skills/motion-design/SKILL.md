@@ -1,6 +1,6 @@
 ---
 name: motion-design
-description: 'Writes the motion spec and tokens and builds a requested animation (hero, page transition, interaction) with a reduced-motion path. Use when asked to "add animation", "animate this" or "respect reduced motion".'
+description: 'Writes motion tokens and builds an animation with a reduced-motion path. Use when asked to "add animation" or "animate this".'
 argument-hint: "[what to animate: hero | banner | page transition | <component> <interaction>] [--stack web|react-native|android|ios] [--doc-only]"
 allowed-tools: Read, Write, Edit, Grep, Glob, Bash(ls:*), Bash(make:*), Bash(git diff:*), Bash(pnpm exec playwright:*), Bash(pnpm test:*), Bash(node --test:*), Bash(./gradlew test:*), Bash(swift test:*), Bash(python3 *skills/motion-design/scripts/motion_check.py*)
 ---

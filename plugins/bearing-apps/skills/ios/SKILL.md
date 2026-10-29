@@ -1,6 +1,6 @@
 ---
 name: ios
-description: 'iOS house rules (Swift 6, SwiftUI, Observation, Swift Concurrency, SwiftData, Swift Testing). Load before writing or changing Swift or iOS code. Use when asked for "an iPhone screen", "SwiftData models".'
+description: 'iOS house rules: Swift 6, SwiftUI, Observation, Concurrency, SwiftData, Swift Testing. Use when asked for "an iPhone screen" or "SwiftData models".'
 allowed-tools: Read, Grep, Glob, Edit, Write, Skill, Bash(git diff:*), Bash(git log:*), Bash(git show:*), Bash(swift build:*), Bash(swift test:*), Bash(swiftlint:*), Bash(swiftformat --lint:*), Bash(xcodebuild -list:*), Bash(xcodebuild test:*), Bash(make:*)
 ---
 

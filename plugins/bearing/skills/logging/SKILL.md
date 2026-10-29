@@ -1,6 +1,6 @@
 ---
 name: logging
-description: 'Adds structured logging: one logger, request id bound at the edge, shared field names, redaction, sampling, HTTP request logs. Use when asked to "add logging", "improve the logs", "log the requests" or "fix the logs".'
+description: 'Adds structured logging: one logger, request id at the edge, shared fields, redaction. Use when asked to "add logging" or "improve the logs".'
 argument-hint: "[path or package] [--http]"
 allowed-tools: Read, Write, Edit, Grep, Glob, Bash(ls:*), Bash(make:*), Bash(go test:*), Bash(pnpm test:*), Bash(uv run pytest:*), Bash(./gradlew test:*), Bash(swift test:*), AskUserQuestion, Bash(bash *bin/brg-config*)
 ---

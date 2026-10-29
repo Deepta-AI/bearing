@@ -1,6 +1,6 @@
 ---
 name: on-call
-description: 'Sets up on-call: rotation, escalation, alert routing by severity, error budget policy, handover notes, a runbook for every paging alert. Use when asked about "on-call", "who gets paged", "escalation" or "error budget".'
+description: 'Sets up on-call: rotation, escalation, alert routing by severity, error budget policy. Use when asked "who gets paged" or "how do we escalate".'
 argument-hint: "[setup|check|handover|review] [--service <name>]"
 allowed-tools: Read, Write, Edit, Grep, Glob, Bash(ls:*), Bash(mkdir -p:*), Bash(date:*), Bash(promtool check:*), Bash(amtool check-config:*), Bash(git log:*), Bash(bash *bin/brg-runbook-check*), AskUserQuestion
 ---

@@ -1,6 +1,6 @@
 ---
 name: infra
-description: 'Infrastructure house rules (Terraform modules, remote state, per-env dirs, tflint, Trivy, kustomize, plan-only CI). Load before changing Terraform or k8s. Use when asked about "remote state", "a kustomize overlay".'
+description: 'Infrastructure house rules: Terraform modules, remote state, tflint, Trivy, kustomize. Use when asked about "remote state" or "a kustomize overlay".'
 allowed-tools: Read, Grep, Glob, Skill, Bash(terraform fmt:*), Bash(terraform validate:*), Bash(terraform plan:*), Bash(tflint:*), Bash(trivy config:*), Bash(kustomize build:*), Bash(make:*)
 ---
 

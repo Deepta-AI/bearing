@@ -1,6 +1,6 @@
 ---
 name: runbook
-description: 'Writes or updates the runbook for one alert: meaning, impact, diagnosis commands, remediation, rollback, escalation. Use when asked to "write a runbook", "document this alert" or "what do we do when X fires".'
+description: 'Writes the runbook for one alert: meaning, diagnosis, remediation, rollback, escalation. Use when asked to "write a runbook" or "document this alert".'
 argument-hint: "<alert name> [service] [--from-incident <incident doc>]"
 context: fork
 agent: doc-writer

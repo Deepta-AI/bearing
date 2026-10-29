@@ -100,7 +100,7 @@ plugin directory's limits.
   sections, runs the lints and hands the skill to skill-creator for
   evals. The lint (`make lint-skills`) enforces: a directory name of
   lowercase words joined by hyphens, at most 64 characters, `name` equal
-  to the directory, a description of at most 220 characters that says
+  to the directory, a description of at most 150 characters that says
   "Use when" with at least two quoted phrases, the sections Inputs, Steps,
   Output contract and Gotchas (stack skills use their own set), every
   backticked `templates/` or `references/` path existing, every
@@ -108,9 +108,13 @@ plugin directory's limits.
   mentions resolving to a skill (or, for bearing, an agent), and `Skill`
   in `allowed-tools` for any skill that runs the decision protocol.
 - Lead the description with the job and the phrases a user says. Claude
-  Code may shorten the skill listing on a busy machine (see
-  [Keep the skill listing lean](docs/INSTALL.md#keep-the-skill-listing-lean)),
-  and the start of the description is what survives.
+  Code lists skills within a budget (1% of the context window); past it,
+  skills are shown by name only (see
+  [Keep the skill listing lean](docs/INSTALL.md#keep-the-skill-listing-lean)).
+  `make lint-listing` keeps Bearing's whole listing under 19,000
+  characters: on 28 Oct 2026 it was 25,800, and the 16 skills loaded last
+  (the app and GenAI ones) were shown by name only and loaded on 12 of 33
+  requests.
 - Do not set `disable-model-invocation: true` on a skill Claude should
   load from plain requests: it hides the skill from Claude entirely.
 - `make lint-tools` checks that every command a skill's Inputs, Steps or

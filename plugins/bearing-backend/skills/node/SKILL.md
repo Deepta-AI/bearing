@@ -1,6 +1,6 @@
 ---
 name: node
-description: 'Node house rules (Node 24, TypeScript, Fastify 5, Zod, Drizzle, pino, vitest, pnpm). Load before writing or changing Node or TypeScript backend code. Use when asked for "a Fastify route", "a Node API".'
+description: 'Node house rules (TypeScript, Fastify, Zod, Drizzle, vitest). Load before Node backend code. Use when asked for "a Fastify route" or "a Node API".'
 allowed-tools: Read, Grep, Glob, Bash(pnpm install:*), Bash(pnpm run:*), Bash(pnpm exec:*), Bash(pnpm audit:*), Bash(make:*), Bash(npm run:*)
 ---
 

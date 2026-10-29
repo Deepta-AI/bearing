@@ -55,7 +55,7 @@ kit:check:
     - apt-get update -qq && apt-get install -y -qq --no-install-recommends shellcheck jq make git curl ca-certificates >/dev/null
   script:
     # make check minus validate (needs the Claude CLI; see the header).
-    - make lint-skills lint-tools lint-evals lint-json lint-shell lint-prose lint-neutral lint-version lint-budget lint-templates lint-plugin-size lint-docs test
+    - make lint-skills lint-tools lint-evals lint-json lint-shell lint-prose lint-neutral lint-version lint-budget lint-templates lint-plugin-size lint-listing lint-docs test
 
 # One scaffold job per stack, every one blocking. node-api, next-app and
 # data-pipeline were allow_failure until they went green on 25 Sep 2026.

@@ -1,6 +1,6 @@
 ---
 name: backlog
-description: 'Turns PRD requirements into a backlog of epics and Given-When-Then user stories with a coverage matrix, combining statements. Use when asked to "write the user stories", "build the backlog" or "break down the PRD".'
+description: 'Turns PRD requirements into epics and Given-When-Then user stories. Use when asked to "build the backlog" or "break down the PRD".'
 argument-hint: "[path to the PRD, default docs/product/PRD.md]"
 allowed-tools: Read, Write, Edit, Grep, Glob, Bash(ls:*), Bash(mkdir:*), Bash(python3 *skills/backlog/scripts/coverage_check.py*)
 ---

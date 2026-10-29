@@ -1,6 +1,6 @@
 ---
 name: genai-design
-description: 'Designs a GenAI solution before code: success metric, approach with the cheaper option rejected, model tier, cost, latency, risks, eval plan. Use when asked "how should we build this with an LLM" or "RAG or agent".'
+description: 'Designs a GenAI solution before code: metric, cheaper option, model, cost, risks, evals. Use when asked "RAG or agent" or "design the LLM feature".'
 argument-hint: "<title> [path to PRD, problem statement or notes]"
 allowed-tools: Read, Write, Grep, Glob, Skill, Bash(ls:*), Bash(mkdir:*), Bash(git branch:*)
 ---

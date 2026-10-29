@@ -1,6 +1,6 @@
 ---
 name: tracker-sync
-description: 'Creates and updates tickets in the configured tracker (Jira, GitLab, GitHub, REST or none): create, sync the backlog, move status, link MRs. Use when asked to "create the tickets", "sync to Jira" or "move TASK-142".'
+description: 'Creates and updates tickets in Jira, GitLab or GitHub, moves status, links MRs. Use when asked to "create the tickets" or "sync to Jira".'
 argument-hint: "create <type> <title> | update <KEY> [--status s] [--assignee me] | sync [backlog] | docs | trace <KEY> [--mr url] | get <KEY> | list | config"
 allowed-tools: Read, Grep, Glob, Write, Edit, Bash(bash *bin/brg-tracker *), Bash(git status:*), Bash(git diff:*), Bash(git branch:*), Bash(git log:*), Bash(git remote:*), Bash(git rev-parse:*), Bash(git merge-base:*), Bash(git symbolic-ref:*), Bash(make check:*), Bash(ls:*)
 ---

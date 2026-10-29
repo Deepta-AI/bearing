@@ -1,6 +1,6 @@
 ---
 name: secrets
-description: 'Handles secrets without seeing values: inventory, rotation, leak response (revoke, rotate, scrub, audit), gitleaks, .env.example parity. Use when "a key was committed", "rotate the secret" or "secret leaked".'
+description: 'Handles secrets without seeing values: inventory, rotation, leak response, gitleaks. Use when "a key was committed" or asked to "rotate the secret".'
 argument-hint: "inventory | rotate <name> | leaked <name> [--commit sha] | scan | parity"
 allowed-tools: Read, Write, Edit, Grep, Glob, Bash(ls:*), Bash(mkdir -p:*), Bash(chmod +x:*), Bash(gitleaks:*), Bash(git ls-files:*), Bash(git log:*), Bash(git status:*), Bash(git diff:*), Bash(date -u:*), Bash(scripts/env-parity.sh:*), Bash(python3 *skills/secrets/scripts/ci-credentials.py*)
 ---

@@ -1,6 +1,6 @@
 ---
 name: ci-pipeline
-description: 'Generates or refreshes the CI pipeline for the stack (GitLab CI, GitHub Actions or both), every job a make target, deploys manual. Use when asked to "add CI", "set up the pipeline", "fix the pipeline" or "add a CI job".'
+description: 'Generates or fixes the CI pipeline (GitLab CI or GitHub Actions), every job a make target. Use when asked to "add CI" or "set up the pipeline".'
 argument-hint: "[--stack <id>] [--host gitlab|github|both] [--refresh]"
 allowed-tools: Read, Write, Edit, Grep, Glob, Skill, Bash(ls:*), Bash(git status:*), Bash(git diff:*), Bash(git remote:*), Bash(python3 -c:*), Bash(make -n:*), Bash(bash *bin/brg-kit-paths*), AskUserQuestion, Bash(bash *bin/brg-config*)
 ---

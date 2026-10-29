@@ -1,6 +1,6 @@
 ---
 name: tabular-ml
-description: 'Builds classical ML on tables or events (churn, scoring, demand forecasts, anomalies) with leak-proof splits, a baseline, calibration, drift checks. Use when asked to "predict churn", "forecast demand".'
+description: 'Predictive models on tables or event history: churn and risk scores, demand forecasts, anomalies. Use when asked to "predict" or "forecast" from data.'
 argument-hint: "<classify|regress|forecast|anomaly|rank> <name> [--data <path>]"
 allowed-tools: Read, Write, Edit, Grep, Glob, Skill, Bash(ls:*), Bash(wc -l:*), Bash(make:*), Bash(git status:*), Bash(uv run:*), Bash(python3 *skills/tabular-ml/scripts/split_check.py*), Bash(python3 *skills/tabular-ml/scripts/baseline_gate.py*)
 ---

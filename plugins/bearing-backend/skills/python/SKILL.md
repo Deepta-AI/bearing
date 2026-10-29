@@ -1,6 +1,6 @@
 ---
 name: python
-description: 'Python house rules (3.14, FastAPI, Pydantic v2, async SQLAlchemy, Alembic, uv, ruff, pytest). Load before writing or changing any Python code. Use when asked for "a Celery task", "a Python service".'
+description: 'Python house rules (FastAPI, Pydantic v2, SQLAlchemy, uv, pytest). Load before Python code. Use when asked for "a Celery task" or "a Python service".'
 allowed-tools: Read, Grep, Glob, Bash(uv run pytest:*), Bash(uv run ruff:*), Bash(uv run mypy:*), Bash(make:*), Bash(pytest:*), Bash(ruff:*), Bash(mypy:*), Bash(python3 -m pytest:*), Bash(poetry run:*), Bash(git diff:*), Bash(git log:*), Bash(git show:*)
 ---
 

@@ -1,6 +1,6 @@
 ---
 name: design-critique
-description: 'Scores a UI design (design gallery, running app or HTML prototype) at three widths, both themes, twelve categories, with an AI-slop check. Use when asked to "critique this design", "review the prototype" or "score this".'
+description: 'Scores a UI design or prototype at three widths and both themes, with an AI-slop check. Use when asked to "critique this design" or "score this".'
 argument-hint: "<folder, html file or URL> [--rounds N, default 3] [--report-only] [--unattended]"
 allowed-tools: Read, Write, Edit, Grep, Glob, Skill, Bash(ls:*), Bash(mkdir:*), Bash(test:*), Bash(printenv BEARING_AUTOPILOT BEARING_NONINTERACTIVE), Bash(bash *bin/brg-config get noninteractive --user), Bash(make:*), Bash(git status:*), Bash(git diff:*), Bash(~/.claude/skills/gstack/browse/dist/browse:*), Bash(python3 -m http.server:*), Bash(kill:*), Bash(python3 *skills/design-critique/scripts/*), Bash(node *skills/design-critique/scripts/*), Bash(python3 *skills/ux-flows/scripts/flows_check.py*)
 ---

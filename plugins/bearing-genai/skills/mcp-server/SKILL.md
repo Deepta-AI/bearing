@@ -1,6 +1,6 @@
 ---
 name: mcp-server
-description: 'Builds an MCP server in Python or TypeScript: schema-checked tools, both transports, auth, a test per tool, Claude Code registration. Use when asked to "build an MCP server" or "expose this as MCP tools".'
+description: 'Builds an MCP server in Python or TypeScript with tested tools and auth. Use when asked to "build an MCP server" or "expose this as MCP tools".'
 argument-hint: "server <name> [python|typescript] | client <agent name> [python|typescript]"
 allowed-tools: Read, Write, Edit, Grep, Glob, Skill, Bash(ls:*), Bash(mkdir:*), Bash(uv run pytest:*), Bash(npm test:*), Bash(make:*), Bash(claude mcp list:*), Bash(npx @modelcontextprotocol/inspector@2.8.0:*), AskUserQuestion
 ---

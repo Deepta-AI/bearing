@@ -1,6 +1,6 @@
 ---
 name: prompt-registry
-description: 'Keeps prompts in a versioned registry (prompts/<name>/vN.md) loaded by one module, with typed variables, fixture tests and scores. Use when asked to "write the system prompt", "improve this prompt" or "version prompts".'
+description: 'Keeps prompts as versioned files with typed variables, fixture tests and scores. Use when asked to "write the system prompt" or "version prompts".'
 argument-hint: "<name> [new | improve | version | audit] [python|typescript]"
 allowed-tools: Read, Write, Edit, Grep, Glob, Skill, Bash(ls:*), Bash(mkdir:*), Bash(uv run pytest:*), Bash(npm test:*), Bash(make:*)
 ---

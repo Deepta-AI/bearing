@@ -1,6 +1,6 @@
 ---
 name: new-skill
-description: 'Creates a new skill for this plugin in its git checkout with the house sections and lints, then evals it against a baseline. Use when asked to "add a skill", "make this a skill" or "turn this checklist into a skill".'
+description: 'Creates a new Bearing skill in the kit checkout with house sections, lints and an eval. Use when asked to "add a skill" or "make this a skill".'
 argument-hint: "<name> [one-line purpose]"
 allowed-tools: Read, Write, Edit, Grep, Glob, Skill, Bash(claude plugin validate:*), Bash(ls:*), Bash(make:*), Bash(mkdir -p .scratch/skill-evals:*), AskUserQuestion
 ---
@@ -103,7 +103,8 @@ skill and against a baseline without it. Neither replaces the other.
    pick the recommended option and record the question and the choice.
 6. Write `<plugin>/skills/<name>/SKILL.md` from the template. Description:
    what it does, naming the deliverable, then "Use when" with two to four
-   quoted phrases, most common first; 220 characters at most. Sections in
+   quoted phrases, most common first; 150 characters at most (make
+   lint-listing keeps the whole listing in Claude Code's budget). Sections in
    order: title, purpose paragraph, optional `Not this:` line naming the
    neighbour, Inputs (each with its fallback; never a prerequisite on
    another skill), Steps, Output contract (a fenced block with counts),
@@ -149,7 +150,7 @@ skill and against a baseline without it. Neither replaces the other.
    generic ones any skill would pass; workspace under
    `.scratch/skill-evals/<name>/`. Run with and without the skill, grade,
    benchmark; for an auto skill, run the description optimiser with near
-   misses from neighbouring skills and keep the result within 220
+   misses from neighbouring skills and keep the result within 150
    characters. A skill that does not beat the baseline is not added.
    Never add the skill to `evals/.pending`: that list only shrinks.
 10. Trigger cases in `evals/triggers.json`: three requests (terse, with

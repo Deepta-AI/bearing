@@ -1,6 +1,6 @@
 ---
 name: nextjs
-description: 'Next.js house rules (App Router, React 19, server components, server actions with Zod, Tailwind, shadcn/ui). Load before writing or changing Next.js code. Use when asked for "an App Router page", "a new route".'
+description: 'Next.js house rules (App Router, server components, actions). Load before Next.js code. Use when asked for "an App Router page" or "a new route".'
 allowed-tools: Read, Grep, Glob, Bash(pnpm install:*), Bash(pnpm run:*), Bash(pnpm exec:*), Bash(pnpm audit:*), Bash(make:*), Bash(npm run:*)
 ---
 

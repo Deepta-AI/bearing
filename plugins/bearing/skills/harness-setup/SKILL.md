@@ -1,6 +1,6 @@
 ---
 name: harness-setup
-description: 'Sets up a repository for another coding agent (Cursor, Codex, Gemini CLI, Copilot, OpenCode, Windsurf, Cline, Zed, Kiro): rules, hooks, skills. Use when asked to "set up Cursor" or "use this with Codex".'
+description: 'Sets up a repo for another coding agent (Cursor, Codex, Gemini CLI, Copilot): rules, hooks, skills. Use when asked to "set up Cursor" or "add Codex".'
 argument-hint: "<cursor|codex|gemini|copilot|opencode|windsurf|cline|zed|kiro|all> [--no-skills]"
 allowed-tools: Read, Grep, Glob, Edit, Write, AskUserQuestion, Bash(bash *bin/brg-harness *), Bash(python3 *scripts/harness_check.py *), Bash(ls:*), Bash(git remote:*), Bash(git status:*), Bash(git diff:*), Bash(git check-ignore:*), Bash(git config --get:*), Bash(git ls-files:*), Bash(chmod +x:*), Bash(make -n:*), Bash(make check:*), Bash(wc:*), Bash(diff:*)
 ---

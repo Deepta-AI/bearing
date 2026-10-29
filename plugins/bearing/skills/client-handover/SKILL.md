@@ -1,6 +1,6 @@
 ---
 name: client-handover
-description: 'Writes the client handover pack at the end of an engagement: environments, access list, deploy, runbooks, debt, licences, sign-off. Use when asked to "prepare the handover" or "hand this over to the client".'
+description: 'Writes the end-of-engagement client handover pack: access, deploy, runbooks, sign-off. Use when asked to "prepare the handover" or "hand this over".'
 argument-hint: "<client name> [delivering entity, default: the one in .bearing/company.json]"
 context: fork
 agent: doc-writer

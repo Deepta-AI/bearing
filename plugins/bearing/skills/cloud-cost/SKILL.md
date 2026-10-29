@@ -1,6 +1,6 @@
 ---
 name: cloud-cost
-description: 'Reviews the cloud bill read-only: spend by service and environment, top ten lines, cost per request, proposed cuts. Use when asked about the "cloud bill", "cost review", "FinOps" or "why is the bill so high".'
+description: 'Reviews the cloud bill read-only: spend by service, top lines, cost per request, proposed cuts. Use when asked for a "cost review" or about "FinOps".'
 argument-hint: "[--csv <billing export>] [--month YYYY-MM] [--provider aws|gcp|azure|other]"
 allowed-tools: Read, Write, Edit, Grep, Glob, AskUserQuestion, Bash(ls:*), Bash(mkdir -p:*), Bash(date:*), Bash(python3 -c:*), Bash(aws ce get-cost-and-usage:*), Bash(gcloud billing:*), Bash(az consumption usage list:*), Bash(kubectl top:*), Bash(kubectl get:*)
 ---

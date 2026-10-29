@@ -1,6 +1,6 @@
 ---
 name: themes
-description: 'Adds and manages themes on the design system (dark, high contrast, brand, tenant, seasonal) with contrast checks and a preview. Use when asked to "add dark mode", "add a high contrast theme" or "theme for a tenant".'
+description: 'Adds design system themes (dark, high contrast, brand, tenant) with contrast checks. Use when asked to "add dark mode" or "theme for a tenant".'
 argument-hint: "[add <name> --kind light|dark|high-contrast|brand|tenant|seasonal|campaign [--extends light|dark]] [tenant <name> --config <path>] [check] [preview]"
 allowed-tools: Read, Write, Edit, Grep, Glob, Bash(ls:*), Bash(make:*), Bash(python3:*), Bash(git diff:*), Bash(pnpm exec playwright:*)
 ---

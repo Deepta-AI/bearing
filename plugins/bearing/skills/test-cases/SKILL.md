@@ -1,6 +1,6 @@
 ---
 name: test-cases
-description: 'Writes manual test cases and a test plan from acceptance criteria: risk per story, scenarios, TC-numbered steps; no test code. Use when QA needs "the test cases", "the manual test plan" or scenarios.'
+description: 'Writes TC-numbered manual test cases and a test plan from acceptance criteria. Use when QA needs "the test cases" or "the manual test plan".'
 argument-hint: "[backlog path, default docs/product/backlog.md] [story id to limit, e.g. US-03-002]"
 allowed-tools: Read, Write, Edit, Grep, Glob, Bash(ls:*), Bash(wc:*), Bash(grep:*), Bash(git log:*), Bash(python3 *skills/test-cases/scripts/cases_check.py*)
 ---

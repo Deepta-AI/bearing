@@ -1,6 +1,6 @@
 ---
 name: gate-audit
-description: 'Audits every gate (CI jobs, git hooks, make check, hook scripts) for passing on empty input, printing no count or asserting a constant. Use when asked to "audit the gates", "is this check real" or "check the CI checks".'
+description: 'Audits every gate (CI jobs, git hooks, make check) for passing on empty input. Use when asked to "audit the gates" or "is this check real".'
 argument-hint: "[path or job name to limit the audit]"
 allowed-tools: Read, Grep, Glob, Bash(make -n:*), Bash(ls:*), Bash(bash -n:*), Bash(python3 *skills/gate-audit/scripts/probe_gates.py*), Bash(mktemp -d:*), Bash(cp -R:*), Bash(make -C:*), Bash(git config --get:*)
 ---

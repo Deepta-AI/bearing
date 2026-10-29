@@ -1,6 +1,6 @@
 ---
 name: doctor
-description: 'Checks this machine and repository are set up for this plugin: skill packs, hooks, CLAUDE.md import, rules, hooksPath, with a fix per miss. Use when asked to "check my setup", "is it installed" or a hook is missing.'
+description: 'Checks this machine and repo are set up for Bearing (packs, hooks, rules), with fixes. Use when asked to "check my setup" or "is it installed".'
 argument-hint: "[path to a repository, default: the current directory]"
 allowed-tools: Read, Grep, Glob, Bash(bash *bin/brg-doctor*), Bash(command -v:*), Bash(claude plugin list:*), Bash(claude --version:*), Bash(git config:*), Bash(git rev-parse:*), Bash(git ls-files:*), Bash(git check-ignore:*), Bash(git hook run:*), Bash(git status:*), Bash(git log:*), Bash(git branch:*), Bash(git remote:*), Bash(git clone:*), Bash(stat:*), Bash(ls:*), Bash(make -n:*), Bash(make check:*), Bash(node --test:*), Bash(node --check:*), Bash(python3 -m pytest:*), Bash(go test:*)
 ---

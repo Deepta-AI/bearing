@@ -1,6 +1,6 @@
 ---
 name: session-handoff
-description: 'Saves session state for the next session on this branch: next steps, done, blockers, questions, files, gate, and a progress note. Use when asked to "save state", "write a handoff", "pause here" or before /clear.'
+description: 'Saves session state for the next session on this branch: next steps, blockers, questions. Use when asked to "write a handoff" or "pause here".'
 argument-hint: "[note to put first under Next]"
 allowed-tools: Read, Write, Grep, Glob, Bash(git status:*), Bash(git diff:*), Bash(git branch:*), Bash(git log:*), Bash(git rev-parse:*), Bash(git rev-list:*), Bash(git stash list:*), Bash(git stash show:*), Bash(git show:*), Bash(git for-each-ref:*), Bash(git merge-base:*), Bash(git ls-files:*), Bash(git check-ignore:*), Bash(make check:*), Bash(make -n:*), Bash(date:*), Bash(mkdir -p .bearing/state), Bash(mkdir -p docs/handoff), Bash(bash *bin/brg-state-path*), Bash(python3 *skills/session-handoff/scripts/progress.py*)
 ---

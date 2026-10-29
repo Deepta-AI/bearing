@@ -1,6 +1,6 @@
 ---
 name: deployment-architecture
-description: 'Documents how and where the system is deployed, with a diagram: environments, topology, scaling, backups, rollback, DR, each claim sourced. Use when asked "what runs where", "how is it deployed".'
+description: 'Documents how and where the system is deployed: environments, topology, backups, DR. Use when asked "what runs where" or "how is it deployed".'
 argument-hint: "[--infra <path to infra repo or envs/ dir>]"
 allowed-tools: Read, Write, Edit, Grep, Glob, Skill, Bash(ls:*), Bash(find:*), Bash(mkdir:*), Bash(git log:*), Bash(python3 *skills/architecture-diagram/scripts/render.py*), Bash(python3 *skills/architecture-diagram/scripts/diagram_check.py*)
 ---

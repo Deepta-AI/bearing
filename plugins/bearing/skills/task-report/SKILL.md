@@ -1,6 +1,6 @@
 ---
 name: task-report
-description: 'Writes the end-of-task report: Changed, Verified, Not done, Noticed, with evidence. Use when work is finished or someone asks for a summary of it: "write up what you did", "report back", "give me the status".'
+description: 'Writes the end-of-task report: Changed, Verified, Not done, Noticed, with evidence. Use when asked to "write up what you did" or "report back".'
 argument-hint: "[task id or one-line task statement]"
 allowed-tools: Read, Write, Grep, Glob, Bash(git status:*), Bash(git diff:*), Bash(git log:*), Bash(git show:*), Bash(git rev-parse:*), Bash(git merge-base:*), Bash(git archive:*), Bash(git worktree:*), Bash(tar:*), Bash(mkdir:*), Bash(make:*), Bash(go test:*), Bash(go vet:*), Bash(pytest:*), Bash(python3 -m pytest:*), Bash(npm test:*), Bash(npm run:*), Bash(pnpm test:*), Bash(pnpm run:*)
 ---

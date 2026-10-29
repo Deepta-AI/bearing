@@ -1,6 +1,6 @@
 ---
 name: design-directions
-description: 'Produces the visual direction over the real screens (one impeccable pick, else three variants) and records the choice. Use when asked for "design directions", "three design options" or "which look should we go with".'
+description: 'Produces three different visual directions over the real screens and records the pick. Use when asked for "design directions" or "which look".'
 argument-hint: "<feature> [--screens S-01,S-03] [--round 2] [--unattended]"
 allowed-tools: Read, Write, Edit, Grep, Glob, Skill, Bash(printenv BEARING_AUTOPILOT BEARING_NONINTERACTIVE), Bash(bash *bin/brg-config*), Bash(readlink DESIGN.md), Bash(rm DESIGN.md), Bash(ln -s docs/design/DESIGN.md DESIGN.md), Bash(ls:*), Bash(mkdir:*), Bash(test:*), Bash(make:*), Bash(~/.claude/skills/gstack/browse/dist/browse:*), Bash(python3 -m http.server:*), Bash(python3 *skills/design-critique/scripts/evidence.py*), Bash(python3 *skills/design-critique/scripts/pairs.py*)
 ---

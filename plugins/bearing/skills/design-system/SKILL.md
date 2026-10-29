@@ -1,6 +1,6 @@
 ---
 name: design-system
-description: 'Turns a design direction into a design system: oklch tokens, per-stack themes, a component contract, an every-state page and a lint. Use when asked to "set up the design system", "make design tokens" or "lint colours".'
+description: 'Turns a design direction into oklch tokens, stack themes, a component contract and a lint. Use when asked to "make design tokens" or "lint colours".'
 argument-hint: "[DESIGN.md | variant dir | CSS file | brief text] [--stack web|react-native|android|ios] [--lint-only]"
 allowed-tools: Read, Write, Edit, Grep, Glob, AskUserQuestion, Bash(ls:*), Bash(make:*), Bash(python3:*), Bash(python3 *skills/design-system/scripts/contrast.py*), Bash(python3 *skills/design-system/scripts/system_page.py*), Bash(sh scripts/design-lint.sh:*), Bash(bash scripts/design-lint.sh:*), Bash(sh *skills/design-system/templates/design-lint.sh --hash *), Bash(test:*), Bash(ln -sf ../../DESIGN.md docs/design/DESIGN.md), Bash(ln -s docs/design/DESIGN.md DESIGN.md), Bash(git diff:*)
 ---

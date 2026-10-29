@@ -1,6 +1,6 @@
 ---
 name: explain-codebase
-description: 'Explains how a repo or feature works, read-only, path:line for every claim: entry points, module map, one request traced. Use when asked "how does this work", "where is X handled" or "trace this request".'
+description: 'Explains how a repo or feature works, read-only, citing path:line for each claim. Use when asked "how does this work" or "where is X handled".'
 argument-hint: "[question, subsystem or path; default the whole repo]"
 context: fork
 agent: explorer

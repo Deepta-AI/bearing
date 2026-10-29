@@ -1,6 +1,6 @@
 ---
 name: llm-guardrails
-description: 'Secures an LLM feature or agent: prompt injection and jailbreak defence, PII checks, a tool-call permission gate, output checks, adversarial tests. Use when asked for "guardrails" or about "prompt injection".'
+description: 'Secures LLM chatbots and agents: prompt injection, jailbreaks, PII in prompts, tool permissions. Use when asked for "guardrails" or "LLM safety".'
 argument-hint: "[feature name] [python|typescript] [--audit]"
 allowed-tools: Read, Write, Edit, Grep, Glob, Skill, AskUserQuestion, Bash(ls:*), Bash(mkdir:*), Bash(uv run pytest:*), Bash(npm test:*), Bash(make:*)
 ---

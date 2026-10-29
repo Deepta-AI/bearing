@@ -77,6 +77,14 @@ All notable changes to Bearing. Keep a Changelog format, semantic versions.
   the large packs stay where they were for the maintainer to decide.
 
 ### Fixed
+- Skills trigger from plain requests again. Bearing's skill listing (about
+  25,800 characters) overflowed Claude Code's listing budget (about 22,000
+  here), so the 16 skills loaded last were shown by name only. All 109
+  descriptions are 150 characters or fewer (average 143, from 210) and
+  `make lint-listing` keeps the whole listing under 19,000. On the 30
+  skills that missed requests, recall went from 59% to 79% (the GenAI and
+  app skills from 12/33 to 26/33); 15 strong skills held at 96%; no false
+  triggers in 92 near-miss cases.
 - The Next.js template pins `next` and `eslint-config-next` 16.4.1,
   clearing two critical advisories (GHSA-2464-fhr4-w9xw,
   GHSA-673q-mjm6-r5xr, unauthenticated remote code execution) and a high

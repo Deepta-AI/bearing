@@ -1,6 +1,6 @@
 ---
 name: company-attribution
-description: 'Sets who owns a repository: organisation profile, LICENSE and NOTICE, CODEOWNERS, SECURITY.md, package metadata. Use when asked to "add a licence", "attribute this repo to" or "who owns this code".'
+description: 'Sets who owns a repository: LICENSE, NOTICE, CODEOWNERS, SECURITY.md and package metadata. Use when asked to "add a licence" or "who owns this code".'
 argument-hint: "init | license <proprietary|apache-2.0|mit|custom> | apply | show"
 allowed-tools: Read, Write, Edit, Grep, Glob, Bash(ls:*), Bash(git remote:*), Bash(git log:*), Bash(date:*)
 ---

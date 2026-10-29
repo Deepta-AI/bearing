@@ -1,6 +1,6 @@
 ---
 name: start-task
-description: 'Starts work on a ticket: creates the branch from the right base with the task id, writes state and progress notes, restates the criteria. Use when asked to "start TASK-142", "pick up this ticket" or "create a branch".'
+description: 'Starts a ticket: branch from the right base with the task id, notes, criteria restated. Use when asked to "pick up this ticket" or "start TASK-142".'
 argument-hint: "<TASK-ID> [PascalName] [--type feature|bugfix|hotfix|chore|docs] [--repos Name,Name,...] [--flow site]"
 allowed-tools: Read, Write, Edit, Grep, Glob, AskUserQuestion, Bash(bash *bin/brg-tracker *), Bash(bash *bin/brg-config*), Bash(git status:*), Bash(git branch:*), Bash(git switch:*), Bash(git fetch:*), Bash(git remote:*), Bash(git rev-parse:*), Bash(git log:*), Bash(git tag:*), Bash(git describe:*), Bash(git show:*), Bash(git stash list:*), Bash(git worktree:*), Bash(git merge-base:*), Bash(git diff:*), Bash(git grep:*), Bash(git for-each-ref:*), Bash(git config --get:*), Bash(git check-ignore:*), Bash(make:*), Bash(mkdir -p .bearing/state), Bash(bash *bin/brg-state-path*), Bash(python3 *skills/session-handoff/scripts/progress.py*)
 ---

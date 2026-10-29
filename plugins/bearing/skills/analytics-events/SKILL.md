@@ -1,6 +1,6 @@
 ---
 name: analytics-events
-description: 'Designs the analytics event sheet, wires the analytics SDK behind one typed module and audits code against the sheet. Use when asked to "track this feature", "add an event", "set up analytics" or "audit tracking".'
+description: 'Designs the analytics event sheet, wires one tracking module, audits code against it. Use when asked to "add an event" or "audit tracking".'
 argument-hint: "app | feature <name> | event <object_verb> | audit [--platform web|rn|android|ios|backend]"
 allowed-tools: Read, Write, Edit, Grep, Glob, Skill, Bash(git diff:*), Bash(git status:*), Bash(git log:*), Bash(make:*), Bash(go test:*), Bash(node --test:*), Bash(node --no-warnings --test:*), Bash(npm test:*), Bash(pnpm test:*), Bash(uv run pytest:*), Bash(./gradlew test:*), Bash(swift test:*), AskUserQuestion
 ---

@@ -1,6 +1,6 @@
 ---
 name: llm-agent
-description: 'Builds an LLM agent on the Anthropic SDK: tiered tool registry, bounded loop, memory, call logging, guardrails, trajectory evals, kill switch. Use when asked to "build an agent", "give the model tools" or "multi-agent".'
+description: 'Builds an LLM agent on the Anthropic SDK: tools, bounded loop, memory, guardrails, kill switch. Use when asked to "build an agent" or "multi-agent".'
 argument-hint: "<type> <name> [python|typescript]"
 allowed-tools: Read, Write, Edit, Grep, Glob, Skill, Bash(ls:*), Bash(mkdir:*), Bash(uv run pytest:*), Bash(npm test:*), Bash(make:*)
 ---
