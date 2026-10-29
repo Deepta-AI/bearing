@@ -4,6 +4,8 @@ All notable changes to Bearing. Keep a Changelog format, semantic versions.
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-10-30
+
 ### Added
 - A planning run: `autopilot --plan` (`brg-autopilot start --until
   design`) writes the PRD, backlog, decisions, architecture and design from
@@ -57,11 +59,22 @@ All notable changes to Bearing. Keep a Changelog format, semantic versions.
   hook's plain stdout reaches the transcript, not Claude, so until now the
   agent learnt the rule only from the block: it wrote its report, was sent
   back, ran the check and wrote the report again.
-- An opt-in output style, `Bearing report`
-  (`plugins/bearing/output-styles/`): no narration of tool calls, counts
-  quoted from what ran, the check before the report, and the Changed,
-  Verified, Not done, Noticed report with "not run" for every skipped
-  check. See [docs/INSTALL.md](docs/INSTALL.md#shorter-replies-the-bearing-report-output-style).
+- An output style, `Bearing report` (`plugins/bearing/output-styles/`),
+  on by default in the repository template (`"outputStyle":
+  "bearing:Bearing report"`): the answer in the first line, one fact per
+  bullet, numbers instead of adjectives, tables for three or more items
+  compared on the same columns, a diagram only where words would be
+  longer, screenshots as file paths, no narration of tool calls, the check
+  before the report, and a Changed, Verified, Not done, Noticed report of
+  about 15 lines with "not run" for every skipped check. A repository with
+  its own `.claude/settings.json` adds the line itself. See
+  [docs/INSTALL.md](docs/INSTALL.md#shorter-replies-the-bearing-report-output-style).
+- `make sandbox-probe` (`bin/probe-sandbox-links`) runs Claude Code's
+  sandbox runtime against the plugin settings copy: write it, replace it,
+  and hard-link it into the repository, write through the link and delete
+  the link. CI runs it on macOS, where all four attempts are refused; on
+  Linux bubblewrap mounts the folder read-only and the link fails across
+  devices.
 - `effort` on five agents: `low` for prd-drafter (drafting statements from
   one section), `high` for reviewer, verifier, security-auditor and
   critic, where a missed finding costs most. doc-writer and test-writer
@@ -72,13 +85,6 @@ All notable changes to Bearing. Keep a Changelog format, semantic versions.
   `agent-skills` and `guardrails` for search.
 
 ### Changed
-- The `Bearing report` output style is sharper and on by default in the
-  repository template (`"outputStyle": "bearing:Bearing report"`): the
-  answer in the first line, one fact per bullet, numbers instead of
-  adjectives, tables for three or more items compared on the same columns,
-  a diagram only where words would be longer, screenshots as file paths,
-  and a final report of about 15 lines. A repository with its own
-  `.claude/settings.json` adds the line itself.
 - Every guard block says it is Bearing policy and not an error, so the
   agent stops retrying, and gives the reason for its kind of rule with a
   safe way on: history rewrites point at cherry-pick, revert or a new
@@ -101,13 +107,6 @@ All notable changes to Bearing. Keep a Changelog format, semantic versions.
   (`ignoredBuiltDependencies`) and its gate passes without them. The
   Dockerfiles copy the file in before installing.
 
-- `make sandbox-probe` (`bin/probe-sandbox-links`) runs Claude Code's
-  sandbox runtime against the plugin settings copy: write it, replace it,
-  and hard-link it into the repository, write through the link and delete
-  the link. CI runs it on macOS, where Seatbelt checks paths and a hard
-  link is the open question; on Linux bubblewrap mounts the folder
-  read-only and the link fails across devices.
-
 ### Fixed
 - The greenfield flow is reachable. `brg-session next-step` picked only
   bugfix, feature, site or genai, so a product started from an idea was
@@ -120,14 +119,13 @@ All notable changes to Bearing. Keep a Changelog format, semantic versions.
   skip backlog and the design steps. A ticket branch keeps the feature
   flow. The workflow menu on a repository with no product yet leads with
   `prd`.
-- The last test writes into the checkout's `gates.log` are gone (an
-  update-check case and one check-file call ran from the checkout).
 - Tests no longer write the developer's `gates.log`. They ran the guard
   from the Bearing checkout, which has `.bearing/`, so every decision a
   test provoked landed in that checkout's log (two guard tests added 605
   refusals, and `brg-guard stats` showed 2,801 refused `git push`).
   `tests/lib/assert.sh` sets `BEARING_NO_GATE_LOG=1`; the 11 tests that
-  read the log unset it and log into their own temporary repository.
+  read the log unset it and log into their own temporary repository, and
+  the calls among them that ran from the checkout log nothing.
 - INSTALL gives the output style's full name, `bearing:Bearing report`:
   a plain `Bearing report` in settings is not applied.
 - The hooks answer for the session's repository. SessionStart moves to the
@@ -149,6 +147,15 @@ All notable changes to Bearing. Keep a Changelog format, semantic versions.
   until removed. `jq -c 'select(.skill != "stop-gate")'` over the file
   keeps every other line; a real stop-gate block logs again from the next
   session.
+- The test entries stay in a Bearing checkout's
+  `.bearing/state/gates.log` and `gates.log.1` until removed; delete both
+  so the doctor's gate health reads only real sessions.
+- Update all four plugins together (`claude plugin update bearing@bearing`,
+  then `bearing-backend`, `bearing-apps` and `bearing-genai`), then set the
+  plugin settings once with `/plugin configure bearing@bearing`;
+  `bearing.env` keeps working beneath them.
+- An existing repository gets the output style by adding
+  `"outputStyle": "bearing:Bearing report"` to its `.claude/settings.json`.
 
 ## [0.10.0] - 2026-10-29
 

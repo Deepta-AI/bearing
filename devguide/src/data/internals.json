@@ -1,5 +1,5 @@
 {
- "version": "0.10.0",
+ "version": "0.11.0",
  "counts": {
   "skills": 109,
   "commandSkills": 0,
@@ -20596,13 +20596,20 @@
   {
    "version": "Unreleased",
    "date": "",
+   "groups": [],
+   "entries": 0,
+   "summary": ""
+  },
+  {
+   "version": "0.11.0",
+   "date": "2026-10-30",
    "groups": [
     "Added",
     "Changed",
     "Fixed",
     "Notes for existing installs"
    ],
-   "entries": 24,
+   "entries": 25,
    "summary": "- A planning run: `autopilot --plan` (`brg-autopilot start --until design`) writes the PRD, backlog, decisions, architecture and design from the user's notes or plan with no questions, stops there with the digest, and names the first build step. The report lists the build stages as not run; `brg-autopilot continue` carries the same run into the build with every decision kept. - A long PRD splits: past 60 live statements, section 5 moves per area to `docs/product/prd/<nn>-<area>.md` with ids unchanged, and PRD.md keeps an index. The backlog coverage check, the traceability check and the autopilot gate read the parts. - Every planning reply names the next step: `prd` ends with `Next: backlog`…"
   },
   {
