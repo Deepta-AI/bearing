@@ -18,7 +18,8 @@
 #   brg-jira transitions <KEY>              -> transitions available right now
 #   brg-jira types                          -> the effective issue type mapping
 #
-# Configuration: environment, then ~/.config/bearing/bearing.env (KEY=value):
+# Configuration: environment, then Claude Code plugin settings (brg-plugin-options),
+# then ~/.config/bearing/bearing.env (KEY=value); the token is never a plugin setting:
 #   BEARING_TRACKER_URL      https://you.atlassian.net
 #   BEARING_TRACKER_PROJECT  project key, e.g. PROJ
 #   BEARING_TRACKER_EMAIL    login email
@@ -41,8 +42,20 @@ need() { command -v "$1" >/dev/null || die "$1 is required"; }
 need curl; need jq
 
 load_env() {
-  [ -f "$ENV_FILE" ] || return 0
   local line key val
+  # Claude Code plugin settings (brg-plugin-options) come after the
+  # environment and before the file: a key already set is never overridden.
+  if [ -f "$(dirname "$0")/brg-plugin-options" ]; then
+    while IFS= read -r line; do
+      key="${line%%=*}"; val="${line#*=}"
+      printf '%s' "$key" | grep -Eq '^BEARING_[A-Z0-9_]+$' || continue
+      [ -n "${!key+x}" ] && continue
+      export "$key=$val"; BRG_PLUGIN_KEYS="${BRG_PLUGIN_KEYS:-} $key"
+    done <<EOF
+$(bash "$(dirname "$0")/brg-plugin-options" print 2>/dev/null)
+EOF
+  fi
+  [ -f "$ENV_FILE" ] || return 0
   while IFS= read -r line || [ -n "$line" ]; do
     case "${line#"${line%%[![:space:]]*}"}" in ''|'#'*) continue;; esac
     case "$line" in *=*) ;; *) continue;; esac

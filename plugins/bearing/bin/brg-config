@@ -11,6 +11,9 @@
 # get reads the value the way the other Bearing scripts do (quotes stripped,
 # a trailing " # comment" dropped from an unquoted value); the last line wins.
 # set refuses the auto-push key (exit 2): the engineer writes it by hand.
+# A user key set in Claude Code's plugin settings (brg-plugin-options) wins
+# over bearing.env for get; set still writes the file, and says the plugin
+# setting shadows it.
 set -u
 
 usage() { echo "usage: brg-config get|set <key> [value] [--user]" >&2; exit 2; }
@@ -46,7 +49,12 @@ if [ "$user" -eq 1 ]; then
   envf="${BEARING_ENV:-${XDG_CONFIG_HOME:-$HOME/.config}/bearing/bearing.env}"
   dir="$(dirname "$envf")"
   k="BEARING_$(printf '%s' "$key" | tr 'a-z.-' 'A-Z__')"
+  pv=""
+  if [ -f "$(dirname "$0")/brg-plugin-options" ]; then
+    pv="$(bash "$(dirname "$0")/brg-plugin-options" print 2>/dev/null | grep -E "^${k}=" | tail -1)"
+  fi
   if [ "$op" = get ]; then
+    [ -z "$pv" ] || { printf '%s\n' "${pv#*=}"; exit 0; }
     [ -f "$envf" ] || exit 0
     line="$(grep -E "^${k}[[:space:]]*=" "$envf" | tail -1)"
     [ -n "$line" ] || exit 0
@@ -71,6 +79,7 @@ if [ "$user" -eq 1 ]; then
   ( umask 077
     { [ ! -f "$envf" ] || grep -vE "^${k}[[:space:]]*=" "$envf"; printf '%s=%s\n' "$k" "$w"; } > "$tmp" ) \
     && chmod 600 "$tmp" && mv "$tmp" "$envf" || { rm -f "$tmp"; echo "brg-config: could not write $envf" >&2; exit 1; }
+  [ -z "$pv" ] || echo "brg-config: $k is also set in Claude Code's plugin settings (${pv#*=}), which wins; change it with /plugin configure bearing@bearing" >&2
   exit 0
 fi
 

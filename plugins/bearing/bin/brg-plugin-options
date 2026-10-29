@@ -1,0 +1,158 @@
+#!/usr/bin/env bash
+# brg-plugin-options: Bearing's Claude Code plugin settings (userConfig in
+# plugins/bearing/.claude-plugin/plugin.json) as the BEARING_* keys the other
+# scripts read. Precedence everywhere: the environment, then these settings,
+# then bearing.env, then each script's default.
+#
+#   brg-plugin-options print      one BEARING_KEY=value line per set option
+#   brg-plugin-options rejected   one "<option>: <why>" line per set option
+#                                 whose value its key does not allow
+#   brg-plugin-options write      write the copy (the SessionStart hook)
+#   brg-plugin-options path       print where the copy lives
+#
+# Claude Code hands the settings to hook processes only, as
+# CLAUDE_PLUGIN_OPTION_<KEY>; the agent's Bash tool and a skill's shell
+# injection get none of them (probed on 2.1.287). So the SessionStart hook,
+# outside the sandbox, writes the set options to a copy,
+# ${XDG_CONFIG_HOME:-$HOME/.config}/bearing-options/options.env, and print
+# reads that copy when no CLAUDE_PLUGIN_OPTION_ variable is present.
+#
+# The copy is something the agent can read but, where the repository settings
+# template is in force, not write (sandbox denyWrite and an Edit deny on the
+# folder): a tracker URL it could rewrite would send the token elsewhere. So
+# only the keys below are ever read from it, every value is checked again on
+# the way in, a copy that is a link or has a second hard link is not read,
+# and no secret is a plugin setting: BEARING_TRACKER_TOKEN,
+# BEARING_TRACKER_PASSWORD and BEARING_AUTO_PUSH stay in bearing.env.
+# A set value its key does not allow is never used and never silent: write
+# keeps its option name in the copy, rejected prints it, and brg-tracker
+# config and the session line name it. bash 3.2 safe.
+set -u
+
+dir="${XDG_CONFIG_HOME:-$HOME/.config}/bearing-options"
+copy="$dir/options.env"
+
+# option | BEARING key | kind
+MAP='TRACKER|BEARING_TRACKER|tracker
+TRACKER_URL|BEARING_TRACKER_URL|url
+TRACKER_PROJECT|BEARING_TRACKER_PROJECT|text
+TRACKER_EMAIL|BEARING_TRACKER_EMAIL|text
+TASK_ID_PREFIX|BEARING_TASK_ID_PREFIX|prefix
+LEARNING|BEARING_LEARNING|onoff
+NONINTERACTIVE|BEARING_NONINTERACTIVE|onoff01
+UPDATE_CHECK|BEARING_UPDATE_CHECK|onoff'
+
+trim() { local v="$1"; v="${v#"${v%%[![:space:]]*}"}"; printf '%s' "${v%"${v##*[![:space:]]}"}"; }
+
+# value <kind> <raw>: print the BEARING value, or nothing for a value the
+# kind does not allow. Surrounding spaces are dropped first.
+value() {
+  local kind="$1" v lower
+  v="$(trim "$2")"
+  case "$v" in (''|*[[:cntrl:]]*) return 0;; esac
+  [ "${#v}" -le 300 ] || return 0
+  lower="$(printf '%s' "$v" | tr '[:upper:]' '[:lower:]')"
+  case "$kind" in
+    tracker) case "$lower" in (none|jira|gitlab|github|rest) printf '%s' "$lower";; esac;;
+    url) case "$lower" in
+           (https://?*|http://?*) case "$v" in (*[[:space:]\"\'\`\$\\]*) ;; (*) printf '%s' "${lower%%://*}://${v#*://}";; esac;;
+         esac;;
+    text) case "$v" in (*[\"\'\`\$\\]*) ;; (*) printf '%s' "$v";; esac;;
+    prefix) printf '%s' "$v" | grep -Eq '^[A-Z][A-Z0-9]*$' && printf '%s' "$v";;
+    onoff) case "$lower" in (on|off) printf '%s' "$lower";; esac;;
+    onoff01) case "$lower" in (on) printf 1;; (off) printf 0;; esac;;
+  esac
+  return 0
+}
+
+why() { # why <kind>: the reason a value of that kind was not allowed
+  case "$1" in
+    tracker) printf 'not one of none, jira, gitlab, github, rest';;
+    url) printf 'not an http:// or https:// URL without spaces or quotes';;
+    text) printf 'holds a quote, $, backtick or backslash';;
+    prefix) printf 'not upper-case letters and digits';;
+    onoff|onoff01) printf 'not on or off';;
+  esac
+}
+
+# lines_env <print|rejected>: from CLAUDE_PLUGIN_OPTION_* (a hook process).
+lines_env() {
+  local opt key kind raw v
+  while IFS='|' read -r opt key kind; do
+    raw="$(printenv "CLAUDE_PLUGIN_OPTION_$opt" 2>/dev/null)" || continue
+    [ -n "$(trim "$raw")" ] || continue
+    v="$(value "$kind" "$raw")"
+    if [ "$1" = print ]; then [ -n "$v" ] && printf '%s=%s\n' "$key" "$v"
+    else [ -n "$v" ] || printf '%s: %s\n' "$(printf '%s' "$opt" | tr '[:upper:]' '[:lower:]')" "$(why "$kind")"; fi
+  done <<EOF
+$MAP
+EOF
+  return 0
+}
+
+in_env() {
+  local opt key kind
+  while IFS='|' read -r opt key kind; do
+    printenv "CLAUDE_PLUGIN_OPTION_$opt" >/dev/null 2>&1 && return 0
+  done <<EOF
+$MAP
+EOF
+  return 1
+}
+
+links() { stat -c %h "$1" 2>/dev/null || stat -f %l "$1" 2>/dev/null; }
+copy_ok() { # a regular file with one link, in a folder that is no link
+  [ -f "$copy" ] && [ ! -L "$copy" ] && [ ! -L "$dir" ] && [ "$(links "$copy")" = 1 ]
+}
+
+# lines_copy <print|rejected>: from the copy, each key on the list and each
+# value checked again; "# rejected: <option>: <why>" lines for rejected.
+lines_copy() {
+  copy_ok || return 0
+  local line k v opt key kind
+  while IFS= read -r line || [ -n "$line" ]; do
+    if [ "$1" = rejected ]; then
+      case "$line" in ('# rejected: '*) printf '%s\n' "${line#'# rejected: '}";; esac
+      continue
+    fi
+    k="${line%%=*}"; v="${line#*=}"
+    while IFS='|' read -r opt key kind; do
+      [ "$k" = "$key" ] || continue
+      [ "$kind" = onoff01 ] && case "$v" in (1) v=on;; (0) v=off;; (*) v="";; esac
+      v="$(value "$kind" "$v")"
+      [ -n "$v" ] && printf '%s=%s\n' "$key" "$v"
+    done <<EOF
+$MAP
+EOF
+  done < "$copy"
+  return 0
+}
+
+case "${1:-}" in
+  print|rejected)
+    if in_env; then lines_env "$1"; else lines_copy "$1"; fi
+    exit 0;;
+  write)
+    # Only a hook process carries the settings. Without any, an old copy goes,
+    # so a setting cleared in /plugin stops applying at the next session.
+    lines="$(lines_env print)"; bad="$(lines_env rejected)"
+    n="$(printf '%s' "$lines" | grep -c '=' || true)"
+    r="$(printf '%s' "$bad" | grep -c ':' || true)"
+    if [ "$n" -eq 0 ] && [ "$r" -eq 0 ]; then
+      if [ -f "$copy" ] && [ ! -L "$copy" ] && [ ! -L "$dir" ]; then rm -f "$copy"; fi
+      echo "brg-plugin-options: 0 plugin settings set, no copy"
+      exit 0
+    fi
+    if [ -L "$dir" ] || [ -L "$copy" ]; then
+      echo "brg-plugin-options: $dir or its copy is a link; not written" >&2; exit 1
+    fi
+    ( umask 077; mkdir -p "$dir" ) || exit 1
+    tmp="$(umask 077; mktemp "$dir/.options.env.XXXXXX")" || { echo "brg-plugin-options: could not write in $dir" >&2; exit 1; }
+    { [ -z "$lines" ] || printf '%s\n' "$lines"
+      [ -z "$bad" ] || printf '%s\n' "$bad" | sed 's/^/# rejected: /'
+    } > "$tmp" && mv -f "$tmp" "$copy" || { rm -f "$tmp"; echo "brg-plugin-options: could not write $copy" >&2; exit 1; }
+    echo "brg-plugin-options: $n plugin setting(s) copied to $copy, $r rejected"
+    exit 0;;
+  path) printf '%s\n' "$copy"; exit 0;;
+  *) echo "usage: brg-plugin-options print|rejected|write|path" >&2; exit 2;;
+esac

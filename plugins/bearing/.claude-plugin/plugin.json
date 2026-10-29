@@ -20,5 +20,47 @@
     "github",
     "gitlab",
     "scaffold"
-  ]
+  ],
+  "userConfig": {
+    "tracker": {
+      "type": "string",
+      "title": "Task tracker",
+      "description": "none, jira, gitlab, github or rest. Empty: bearing.env, else none. The token stays in bearing.env."
+    },
+    "tracker_url": {
+      "type": "string",
+      "title": "Tracker URL",
+      "description": "https:// base URL of the tracker, for example https://you.atlassian.net. Empty: bearing.env."
+    },
+    "tracker_project": {
+      "type": "string",
+      "title": "Tracker project",
+      "description": "Jira project key, GitLab group/project or GitHub owner/repo. Empty: bearing.env."
+    },
+    "tracker_email": {
+      "type": "string",
+      "title": "Tracker account email",
+      "description": "The email Jira signs the token with. Empty: bearing.env."
+    },
+    "task_id_prefix": {
+      "type": "string",
+      "title": "Task id prefix",
+      "description": "Upper-case prefix of task ids, for example PROJ in PROJ-142. Empty: bearing.env, else any id."
+    },
+    "learning": {
+      "type": "string",
+      "title": "Local learnings",
+      "description": "on or off: learn from gate blocks and reruns, on this machine only. Empty: ask once."
+    },
+    "noninteractive": {
+      "type": "string",
+      "title": "Never ask questions",
+      "description": "on for sessions nobody watches: hooks print no questions to ask the user. Empty: bearing.env, else off."
+    },
+    "update_check": {
+      "type": "string",
+      "title": "Check for Bearing updates",
+      "description": "off stops the once-a-day check for a newer release at session start. Empty: bearing.env, else on."
+    }
+  }
 }

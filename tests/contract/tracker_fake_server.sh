@@ -324,12 +324,12 @@ none=0
 for c in "me" "get X-1" "list" "resolve X-1"; do
   # shellcheck disable=SC2086
   assert_exit 0 tracker none $c; none=$((none+1))
-  assert_eq "tracker: none (set BEARING_TRACKER in ~/.config/bearing/bearing.env)" "$T_OUT" "none read: $c"
+  assert_eq "tracker: none (set it with /plugin configure bearing@bearing, or BEARING_TRACKER in ~/.config/bearing/bearing.env)" "$T_OUT" "none read: $c"
 done
 for c in "create --type story --title x" "update X-1 --status Done" "comment X-1 hi" "link X-1 relates X-2" "close X-1" "trace X-1 --branch b"; do
   # shellcheck disable=SC2086
   assert_exit 3 tracker none $c; none=$((none+1))
-  assert_eq "tracker: none (set BEARING_TRACKER in ~/.config/bearing/bearing.env)" "$T_OUT" "none write: $c"
+  assert_eq "tracker: none (set it with /plugin configure bearing@bearing, or BEARING_TRACKER in ~/.config/bearing/bearing.env)" "$T_OUT" "none write: $c"
 done
 assert_exit 0 tracker none config; none=$((none+1))
 assert_contains "$T_OUT" "tracker: none (from environment)"

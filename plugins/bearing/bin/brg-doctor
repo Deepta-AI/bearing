@@ -89,6 +89,13 @@ if [ -f "$envf" ]; then
   pass "bearing.env present (BEARING_TRACKER=${tr_val:-unset}; none is valid)"
   perms="$(stat -c '%a' "$envf" 2>/dev/null || stat -f '%Lp' "$envf" 2>/dev/null)"; [ "$perms" = "600" ] || optional "bearing.env mode is $perms; chmod 600 recommended"
 else optional "bearing.env missing (cp $KIT/templates/user/bearing.env ~/.config/bearing/bearing.env)"; fi
+if [ -f "$KIT/bin/brg-plugin-options" ]; then
+  po="$(bash "$KIT/bin/brg-plugin-options" print 2>/dev/null | cut -d= -f1 | tr '\n' ' ' | sed 's/ $//')"
+  pr="$(bash "$KIT/bin/brg-plugin-options" rejected 2>/dev/null | cut -d: -f1 | tr '\n' ' ' | sed 's/ $//')"
+  if [ -n "$pr" ]; then fail "plugin settings rejected: $pr (fix with /plugin configure bearing@bearing)"
+  elif [ -n "$po" ]; then pass "plugin settings in use: $po (they win over bearing.env)"
+  else optional "no plugin settings (set them with /plugin configure bearing@bearing)"; fi
+fi
 [ -f "$HOME/.claude/CLAUDE.md" ] && pass "~/.claude/CLAUDE.md present" || fail "~/.claude/CLAUDE.md missing (cp $KIT/templates/user/CLAUDE.md ~/.claude/CLAUDE.md, then edit)"
 for t in git make jq python3; do
   if command -v "$t" >/dev/null; then v="$(ver_of "$t")"; pass "$t ${v:-on PATH}"; else fail "$t not on PATH"; fi

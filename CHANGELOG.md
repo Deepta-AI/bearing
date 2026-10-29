@@ -5,6 +5,26 @@ All notable changes to Bearing. Keep a Changelog format, semantic versions.
 ## [Unreleased]
 
 ### Added
+- Claude Code plugin settings (`userConfig`) for the everyday keys:
+  tracker, tracker URL, project and email, task id prefix, learning,
+  non-interactive mode and the update check. `/plugin install` asks for
+  them and `/plugin configure bearing@bearing` changes them; an
+  environment variable still wins, then the plugin setting, then
+  `bearing.env`. Claude Code hands plugin settings to hooks only (the
+  agent's Bash gets none, probed on 2.1.287), so the SessionStart hook
+  copies them to `~/.config/bearing-options/options.env`. Every
+  `bearing.env` parser, `brg-config`, the update check and the doctor read
+  them through `bin/brg-plugin-options`: from the hook's environment, else
+  from the copy, key by key, each value checked again, never from a copy
+  that is a link or has a second hard link. The repository settings
+  template denies the agent writes to that folder, since a tracker URL it
+  could rewrite would send the token elsewhere. A value a setting does not
+  allow is never used and is named at session start, in `brg-tracker
+  config` and by the doctor; a rejected tracker URL stops every tracker
+  call rather than fall back to gitlab.com or github.com with a
+  self-hosted token. Every setting is text (`on` or `off` for the
+  switches), so an untouched one never overrides `bearing.env`. Tokens,
+  passwords and `BEARING_AUTO_PUSH` stay in `bearing.env`.
 - `brg-guard stop-hint`: on the first edit the Stop gate will count (a
   file in the repository, not ignored, not under `.bearing/` or
   `.scratch/`), the edit hook tells Claude once, as `additionalContext`, to run
@@ -29,6 +49,20 @@ All notable changes to Bearing. Keep a Changelog format, semantic versions.
 ### Changed
 - The README's first screen leads with what Bearing does, the two install
   lines and the four claims, each with its number.
+- The node, React and Next.js templates move to pnpm 10.17.1, as React
+  Native already had, and all four ship a `pnpm-workspace.yaml` with
+  `minimumReleaseAge: 4320`: a version published in the last three days is
+  not installed, the same wait Renovate keeps. pnpm 10 runs no dependency
+  install scripts; each template names the ones it skips
+  (`ignoredBuiltDependencies`) and its gate passes without them. The
+  Dockerfiles copy the file in before installing.
+
+- `make sandbox-probe` (`bin/probe-sandbox-links`) runs Claude Code's
+  sandbox runtime against the plugin settings copy: write it, replace it,
+  and hard-link it into the repository, write through the link and delete
+  the link. CI runs it on macOS, where Seatbelt checks paths and a hard
+  link is the open question; on Linux bubblewrap mounts the folder
+  read-only and the link fails across devices.
 
 ### Fixed
 - The hooks answer for the session's repository. SessionStart moves to the

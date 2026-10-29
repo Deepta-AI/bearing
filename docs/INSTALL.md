@@ -43,8 +43,9 @@ stack with the line to install it (`/plugin install bearing-backend@bearing`).
 The bearing plugin carries every workflow skill, the eight subagents (`bearing:reviewer`,
 `bearing:critic` and the rest), the hooks in `plugins/bearing/hooks/hooks.json` and the
 guard they call (`plugins/bearing/bin/brg-guard`). It does not write
-`~/.config/bearing/bearing.env` (without it the tracker is `none`; copy
-`plugins/bearing/templates/user/bearing.env` there, mode 600, to configure one), does not
+`~/.config/bearing/bearing.env` (without it or a plugin setting the tracker
+is `none`; set the tracker with `/plugin configure bearing@bearing`, and copy
+`plugins/bearing/templates/user/bearing.env` there, mode 600, for the token), does not
 install Superpowers, gstack, GSD Core or the other packs, does not copy a
 personal `CLAUDE.md`, and leaves no checkout at `~/bearing` for the
 `~/bearing/plugins/bearing/bin/...` commands on this page. Update each
@@ -101,6 +102,47 @@ lean](#keep-the-skill-listing-lean) below.
 
 ## 3. Configure
 
+Two places hold your settings. Claude Code's plugin settings take the
+everyday ones; `~/.config/bearing/bearing.env` takes those plus everything
+secret. Where both set a key, the order is: an environment variable of the
+same name, then the plugin setting, then `bearing.env`, then the default.
+
+### Plugin settings
+
+`/plugin install bearing@bearing` asks for them, and `/plugin configure
+bearing@bearing` (or Configure options in `/plugin`) changes them later.
+From a shell: `claude plugin configure bearing@bearing --values-stdin` with
+a JSON object such as `{"tracker": "github", "tracker_project": "acme/api"}`.
+Restart Claude Code after a change. Every one is text and may be left
+empty, and an empty one falls through to `bearing.env`. A value its setting
+does not allow is never used: the session start names it, and so do
+`brg-tracker config` and the doctor.
+
+| Setting | Key it sets | Values |
+| --- | --- | --- |
+| `tracker` | `BEARING_TRACKER` | none, jira, gitlab, github, rest |
+| `tracker_url` | `BEARING_TRACKER_URL` | an `https://` or `http://` base URL |
+| `tracker_project` | `BEARING_TRACKER_PROJECT` | as in the table below |
+| `tracker_email` | `BEARING_TRACKER_EMAIL` | as in the table below |
+| `task_id_prefix` | `BEARING_TASK_ID_PREFIX` | upper case letters and digits, such as `PROJ` |
+| `learning` | `BEARING_LEARNING` | on or off; empty asks once |
+| `noninteractive` | `BEARING_NONINTERACTIVE` | on or off (on sets 1) |
+| `update_check` | `BEARING_UPDATE_CHECK` | on or off; off stops the daily check |
+
+Tokens, passwords and `BEARING_AUTO_PUSH` are not plugin settings, on
+purpose. Claude Code hands plugin settings to hooks only: the agent's Bash
+tool, where the tracker scripts run, gets none of them (probed on Claude
+Code 2.1.287), and a sensitive setting is not even available to skill text.
+So the SessionStart hook copies the settings above to
+`~/.config/bearing-options/options.env` (mode 600), where the agent's
+scripts read them. The agent can read that copy but, in a repository on the
+settings template, cannot write it: a tracker URL it could rewrite would
+send your token to another host. The copy is read key by key, each value
+checked again, and a token line in it is ignored. A token stays in
+`bearing.env`, which the sandbox keeps the agent from reading at all.
+
+### bearing.env
+
 Edit `~/.config/bearing/bearing.env`. Every key, with its default:
 
 | Key | Meaning | Default |
@@ -121,8 +163,9 @@ Edit `~/.config/bearing/bearing.env`. Every key, with its default:
 
 `BEARING_TRACKER=none` is a valid, complete configuration: every ticket step
 is skipped with a note. Check the result with `~/bearing/plugins/bearing/bin/brg-tracker
-config`; its first line reads `tracker: <name> (from file)` and it never
-prints a credential. The adapters, key shapes and command surface are in
+config`; its first line reads `tracker: <name> (from <where>)` (the
+environment, plugin settings or the file), a `plugin settings:` line names
+the keys the plugin set, and it never prints a credential. The adapters, key shapes and command surface are in
 [TRACKERS.md](TRACKERS.md).
 
 ## 4. Verify

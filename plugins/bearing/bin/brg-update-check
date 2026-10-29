@@ -35,9 +35,9 @@ here="$(cd "$(dirname "$0")" && pwd)"
 dir="${XDG_CONFIG_HOME:-$HOME/.config}/bearing"; cache="$dir/update-check"
 envf="${BEARING_ENV:-$dir/bearing.env}"
 
-setting() { # setting <ENV_NAME> <brg-config key>: environment first, then bearing.env
+setting() { # setting <ENV_NAME> <brg-config key>: environment first, then plugin settings and bearing.env
   local v; eval "v=\${$1:-}"
-  if [ -z "$v" ] && [ -f "$envf" ]; then v="$(bash "$here/brg-config" get "$2" --user 2>/dev/null)"; fi
+  if [ -z "$v" ] && [ -f "$here/brg-config" ]; then v="$(bash "$here/brg-config" get "$2" --user 2>/dev/null)"; fi
   printf '%s' "$v"
 }
 [ "$(setting BEARING_UPDATE_CHECK update-check)" = off ] && exit 0

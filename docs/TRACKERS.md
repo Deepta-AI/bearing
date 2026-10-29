@@ -10,8 +10,11 @@ No tracker is assumed: the default is `none`.
 
 ## Configuration
 
-Everything lives in `~/.config/bearing/bearing.env` (`XDG_CONFIG_HOME`
-respected; mode 600; never inside a repository). The installer writes it
+The tracker's name, URL, project and email can also be Claude Code plugin
+settings (`/plugin configure bearing@bearing`; see
+[INSTALL.md](INSTALL.md#plugin-settings)), which win over the file. The
+token and password live only in `~/.config/bearing/bearing.env`
+(`XDG_CONFIG_HOME` respected; mode 600; never inside a repository). The installer writes it
 from `plugins/bearing/templates/user/bearing.env` with placeholders; edit the values by
 hand. Environment variables of the same name win over the file, so a CI
 job or a one-off shell can override without editing it.
@@ -89,7 +92,7 @@ because the tracker is `none` (write commands only).
 
 `BEARING_TRACKER=none` (or an absent file) means the workflow runs without a
 tracker. Every command prints
-`tracker: none (set BEARING_TRACKER in ~/.config/bearing/bearing.env)`; read
+`tracker: none (set it with /plugin configure bearing@bearing, or BEARING_TRACKER in ~/.config/bearing/bearing.env)`; read
 commands (`me`, `get`, `list`, `resolve`, `config`) exit 0 and write
 commands (`create`, `update`, `comment`, `link`, `trace`) exit 3 so a
 caller can treat the step as skipped. `start-task` still creates the branch

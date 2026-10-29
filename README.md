@@ -291,11 +291,15 @@ enforces is in
 
 ## Configuration
 
-One file, `~/.config/bearing/bearing.env` (mode 600, never inside a
-repository): the tracker and its credentials, the git host, the kit
-remote, the org id, and `BEARING_AUTO_PUSH`, the push URLs of the
+Claude Code's plugin settings, asked at `/plugin install` and changed with
+`/plugin configure bearing@bearing`, hold the everyday ones: the tracker,
+its URL, project and email, the task id prefix, learning, non-interactive
+mode and the update check. `~/.config/bearing/bearing.env` (mode 600, never
+inside a repository) holds those too, and everything secret: the tracker
+token or password, and `BEARING_AUTO_PUSH`, the push URLs of the
 repositories whose task branch the Stop hook may push (empty by default,
-so nothing is pushed). Every key is explained in
+so nothing is pushed). An environment variable wins over both, and a plugin
+setting over the file. Every key is explained in
 [docs/INSTALL.md](docs/INSTALL.md) and the adapters in
 [docs/TRACKERS.md](docs/TRACKERS.md).
 
