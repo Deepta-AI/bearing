@@ -19491,9 +19491,9 @@
   {
    "path": "tests/unit/update_check.sh",
    "kind": "unit",
-   "lines": 191,
+   "lines": 199,
    "header": "tests/unit/update_check.sh: brg-update-check and its place in brg-guard session. A local bare repo is the remote; HOME and XDG_CONFIG_HOME are temp dirs, so the network and the real ~/.claude are never touched.",
-   "asserts": 70
+   "asserts": 72
   },
   {
    "path": "tests/unit/ux_flows_check.sh",

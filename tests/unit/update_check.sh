@@ -23,7 +23,6 @@ assert_exit 0 run 0.9.0
 assert_contains "$T_OUT" "BEARING_UPDATE: 0.9.0 -> 0.10.0"
 assert_not_contains "$T_OUT" "rc1" "pre-release not offered"
 assert_not_contains "$T_OUT" "0.12.0" "pre-release not offered"
-assert_contains "$T_OUT" "See CHANGELOG.md at $remote" "no local section for 0.10.0"
 assert_file "$cfg/bearing/update-check"
 assert_contains "$(cat "$cfg/bearing/update-check")" "v0.10.0" "cache holds the newest"
 t_end
@@ -93,6 +92,15 @@ assert_contains "$(cat "$cfg/bearing/update-check")" "	-	timeout" "only a negati
 assert_eq 0 "$(ls "$cfg/bearing" 2>/dev/null | grep -c 'update-check\.')" "no cache temp file left"
 assert_contains "$(cat "$repo/.bearing/state/gates.log")" "update-check	not-run	0	timeout" "logged"
 assert_eq 1 "$(wc -l < "$calls" | tr -d ' ')" "the listener was reached once"
+t_end
+
+t_begin "a version with no section in the local CHANGELOG points at the remote's"
+# v99.0.0: a version the real CHANGELOG.md will never hold (0.10.0 used to
+# play this part until v0.10.0 was released with its own section).
+printf '%s\tv99.0.0\n' "$(date +%s)" > "$cfg/bearing/update-check"
+assert_exit 0 run 0.6.0
+assert_contains "$T_OUT" "BEARING_UPDATE: 0.6.0 -> 99.0.0"
+assert_contains "$T_OUT" "See CHANGELOG.md at $remote" "no local section for 99.0.0"
 t_end
 
 t_begin "a source checkout shows the changelog section, at most 8 lines"
