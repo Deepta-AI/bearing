@@ -19358,9 +19358,9 @@
   {
    "path": "tests/unit/session_headless.sh",
    "kind": "unit",
-   "lines": 46,
+   "lines": 48,
    "header": "tests/unit/session_headless.sh: a non-interactive session (brg-autopilot's claude -p child sets BEARING_AUTOPILOT=1; anyone sets BEARING_NONINTERACTIVE=1 in the environment or bearing.env) gets no \"Ask the user with AskUserQuestion\" line at startup: not for the update offer, the learning consent or the resume. An interactive session still gets all three.",
-   "asserts": 11
+   "asserts": 12
   },
   {
    "path": "tests/unit/session_resume.sh",
@@ -20483,7 +20483,7 @@
     "Fixed",
     "Notes for existing installs"
    ],
-   "entries": 9,
+   "entries": 8,
    "summary": "- `brg-guard stop-hint`: on the first edit the Stop gate will count (a file in the repository, not ignored, not under `.bearing/` or `.scratch/`), the edit hook tells Claude once, as `additionalContext`, to run `make check-changed` (or `make check`) before the final report. The hook's plain stdout reaches the transcript, not Claude, so until now the agent learnt the rule only from the block: it wrote its report, was sent back, ran the check and wrote the report again. - An opt-in output style, `Bearing report` (`plugins/bearing/output-styles/`): no narration of tool calls, counts quoted from what ran, the check before the report, and the Changed, Verified, Not done, Noticed report with \"not…"
   },
   {

@@ -44,9 +44,6 @@ All notable changes to Bearing. Keep a Changelog format, semantic versions.
   session in any repository opened with "stop gate blocked; make check
   needed (1130x)". `tests/lib/assert.sh` gives each test an empty
   `XDG_CONFIG_HOME` and unsets `BEARING_ENV`.
-- `tests/unit/update_check.sh` used `v0.10.0` as its newest fixture tag,
-  which became a real release, so it failed on main; its fixture tags
-  are now 0.100.0 and up.
 
 ### Notes for existing installs
 - Learnings the tests wrote stay in `~/.config/bearing/learnings.jsonl`
