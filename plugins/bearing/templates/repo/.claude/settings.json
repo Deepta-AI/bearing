@@ -403,6 +403,7 @@
     ],
     "defaultMode": "acceptEdits"
   },
+  "outputStyle": "bearing:Bearing report",
   "env": {
     "TZ": "UTC",
     "FORCE_COLOR": "1",

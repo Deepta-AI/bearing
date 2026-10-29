@@ -1,7 +1,7 @@
 ---
 name: autopilot
 description: 'Runs unattended from one requirement to a prepared merge request for review. Use when asked to "autopilot this" or "run it end to end".'
-argument-hint: "\"<requirement statement>\" [--resume]"
+argument-hint: "\"<requirement statement or plan path>\" [--plan] [--resume]"
 allowed-tools: Read, Write, Edit, Grep, Glob, Skill, Agent, Bash
 ---
 
@@ -24,7 +24,12 @@ what is on disk, never from what the model says it did.
 
 - statement: `$ARGUMENTS`; with `--resume`, the open run in
   `.bearing/state/autopilot.json`. Neither: stop with "give the
-  requirement as one statement".
+  requirement as one statement". A path to the user's own notes or plan
+  is the prd stage's input, its approach the decide stage's recommendation.
+- `--plan`: planning only, for a user who knows what to build: `start`
+  with `--until design`, so the run writes the PRD, backlog, decisions,
+  architecture and design with no questions and stops; `continue` later
+  carries the same run into the build with every decision kept.
 - directory: the working directory. Empty or not a repository: the
   repo stage creates one with `new-repo`. An existing repository
   gets only what the gates read, nothing of the standard it did not ask
@@ -32,7 +37,7 @@ what is on disk, never from what the model says it did.
   side effect of a feature request.
 - stages, gates and state: `python3 "${CLAUDE_PLUGIN_ROOT}/bin/brg-autopilot"`
   (start, next, done, fail, decision, profile, repos-request, report,
-  status, stages).
+  status, stages, continue).
 - the stage skills: loaded with the Skill tool, or read from
   `${CLAUDE_PLUGIN_ROOT}/skills/<name>/SKILL.md` when the Skill tool
   refuses. Every skill `next` names is run, each in turn. Detail:
@@ -46,7 +51,8 @@ what is on disk, never from what the model says it did.
 1. Start or resume: `python3 "${CLAUDE_PLUGIN_ROOT}/bin/brg-autopilot" start "<statement>"`,
    or `status` then `next` on `--resume`. Print the run id. Detail:
    references/repo-stage.md
-2. Loop until `next` says every stage is done or a stage is blocked:
+2. Loop until `next` says every stage is done (or, on `--plan`, planning
+   is done) or a stage is blocked:
    1. `next` names the stage, its skill and its gate.
    2. Run the stage's skill in auto mode (below).
    3. `done <stage>`. On "gate not met", fix what it names and run

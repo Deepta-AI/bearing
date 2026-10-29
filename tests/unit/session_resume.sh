@@ -232,4 +232,47 @@ sl="$(grep -n '^## Steps' "$wf" | head -1 | cut -d: -f1)"
 assert_eq 1 "$([ -n "$fl" ] && [ -n "$sl" ] && [ "$fl" -lt "$sl" ] && echo 1)" "brg-config get flow is read in Inputs, before the steps"
 assert_contains "$(sed -n 's/^allowed-tools: //p' "$wf")" "Bash(bash *bin/brg-config*)" "granted"
 t_end
+
+t_begin "from an idea: after prd on the default branch, next is the greenfield step after it"
+cfg_reset
+git -C "$repo" checkout -q main
+assert_exit 0 in_repo next-step
+assert_eq "$(step feature 1)" "$T_OUT" "nothing ran: the feature flow"
+ran "bearing:prd"
+assert_exit 0 in_repo next-step
+assert_eq "backlog" "$T_OUT" "prd, then backlog"
+assert_eq "backlog" "$(step greenfield 3)" "greenfield step 3"
+ran "bearing:backlog"
+assert_exit 0 in_repo next-step
+assert_eq "$(step greenfield 4)" "$T_OUT" "then step 4"
+t_end
+
+t_begin "genai-design straight after prd does not skip the main line"
+git -C "$repo" checkout -q -b product/Assistant main
+ran "bearing:prd"; ran "bearing-genai:genai-design"
+assert_exit 0 in_repo next-step
+assert_eq "backlog" "$T_OUT" "backlog is still next"
+ran "bearing:backlog"
+assert_exit 0 in_repo next-step
+assert_eq "$(step greenfield 4)" "$T_OUT" "then step 4"
+t_end
+
+t_begin "a ticket branch stays on the feature flow even after a prd"
+git -C "$repo" checkout -q -b feature/TASK-77-Offer
+ran "bearing:start-task"; ran "bearing:prd"
+assert_exit 0 in_repo next-step
+assert_eq 0 "$(awk -F'\t' -v s="$T_OUT" '$1=="feature" && $3==s' "$tsv" | wc -l | awk '{print ($1>0)?0:1}')" "a feature step"
+t_end
+
+t_begin "the project config can name the greenfield flow"
+git -C "$repo" checkout -q -b product/Start main
+mkdir -p "$repo/.bearing"; printf '{"flow": "greenfield"}\n' > "$cf"
+assert_exit 0 in_repo next-step
+assert_eq "$(step greenfield 1)" "$T_OUT"
+git -C "$repo" checkout -q -b feature/TASK-88-Slot main
+ran "bearing:start-task"
+assert_exit 0 in_repo next-step
+assert_eq "$(step feature 2)" "$T_OUT" "a ticket branch keeps the feature flow under a greenfield config"
+cfg_reset
+t_end
 t_summary

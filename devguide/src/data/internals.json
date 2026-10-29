@@ -5,12 +5,12 @@
   "commandSkills": 0,
   "stackSkills": 12,
   "scripts": 116,
-  "scriptLines": 36496,
+  "scriptLines": 36613,
   "hooks": 12,
   "agents": 8,
   "makeTargets": 41,
   "gates": 20,
-  "tests": 131,
+  "tests": 132,
   "fixtures": 25,
   "stacks": 13,
   "templates": 38,
@@ -18,7 +18,7 @@
   "ghJobs": 6,
   "ghWorkflows": 2,
   "evals": 109,
-  "skillFiles": 1068
+  "skillFiles": 1069
  },
  "plugins": [
   {
@@ -26,7 +26,7 @@
    "dir": "plugins/bearing",
    "description": "A developer workflow for coding agents: skills for every stage from brief to runbook, review subagents, one guard behind every hook, and repository templates. The stack conventions come in bearing-backend and bearing-apps, and the GenAI and ML skills in bearing-genai.",
    "required": true,
-   "files": 461,
+   "files": 462,
    "skills": [
     "ab-experiment",
     "accessibility",
@@ -1370,7 +1370,7 @@
    "description": "Runs unattended from one requirement to a prepared merge request for review. Use when asked to \"autopilot this\" or \"run it end to end\".",
    "invocation": "auto",
    "kind": "step",
-   "args": "\"<requirement statement>\" [--resume]",
+   "args": "\"<requirement statement or plan path>\" [--plan] [--resume]",
    "tools": [
     "Read",
     "Write",
@@ -1386,11 +1386,11 @@
    "sections": [
     {
      "title": "Inputs",
-     "lines": 18
+     "lines": 23
     },
     {
      "title": "Steps",
-     "lines": 48
+     "lines": 49
     },
     {
      "title": "Output contract",
@@ -1406,15 +1406,16 @@
     }
    ],
    "inputs": [
-    "statement: `$ARGUMENTS`; with `--resume`, the open run in `.bearing/state/autopilot.json`. Neither: stop with \"give the requirement as one statement\".",
+    "statement: `$ARGUMENTS`; with `--resume`, the open run in `.bearing/state/autopilot.json`. Neither: stop with \"give the requirement as one statement\". A path to the user's own notes or plan is the prd stage's input, its approach the decide stage's recommendation.",
+    "`--plan`: planning only, for a user who knows what to build: `start` with `--until design`, so the run writes the PRD, backlog, decisions, architecture and design with no questions and stops; `continue` later carries the same run into the build with every decision kept.",
     "directory: the working directory. Empty or not a repository: the repo stage creates one with `new-repo`. An existing repository gets only what the gates read, nothing of the standard it did not ask for (step 1a); `onboard-repo` is the engineer's own decision, never a side effect of a feature request.",
-    "stages, gates and state: `python3 \"${CLAUDE_PLUGIN_ROOT}/bin/brg-autopilot\"` (start, next, done, fail, decision, profile, repos-request, report, status, stages).",
+    "stages, gates and state: `python3 \"${CLAUDE_PLUGIN_ROOT}/bin/brg-autopilot\"` (start, next, done, fail, decision, profile, repos-request, report, status, stages, continue).",
     "the stage skills: loaded with the Skill tool, or read from `${CLAUDE_PLUGIN_ROOT}/skills/<name>/SKILL.md` when the Skill tool refuses. Every skill `next` names is run, each in turn. Detail: references/stage-skills-and-scope.md",
     "scope: `lean` or `full`, printed by `status` and by each gate. Lean writes only what a reviewer of this change reads. Detail: references/stage-skills-and-scope.md"
    ],
    "steps": [
     "Start or resume: `python3 \"${CLAUDE_PLUGIN_ROOT}/bin/brg-autopilot\" start \"<statement>\"`, or `status` then `next` on `--resume`. Print the run id. Detail: references/repo-stage.md",
-    "Loop until `next` says every stage is done or a stage is blocked: 1. `next` names the stage, its skill and its gate. 2. Run the stage's skill in auto mode (below). 3. `done <stage>`. On \"gate not met\", fix what it names and run `done` again; when the same stage cannot be fixed, `fail <stage> \"<why>\"`, which allows three attempts before the stage is blocked.",
+    "Loop until `next` says every stage is done (or, on `--plan`, planning is done) or a stage is blocked: 1. `next` names the stage, its skill and its gate. 2. Run the stage's skill in auto mode (below). 3. `done <stage>`. On \"gate not met\", fix what it names and run `done` again; when the same stage cannot be fixed, `fail <stage> \"<why>\"`, which allows three attempts before the stage is blocked.",
     "Auto mode, for every stage: wherever a skill says to ask a question, to stop and wait, or to confirm, take the option the skill recommends and go on, and record the choice with `decision`. Detail: references/auto-mode-and-profile.md",
     "The product profile, at the end of the decide stage: `profile --ui yes|no --data yes|no --api yes|no --deploy yes|no [--llm yes|no] [--ui-stack <stack>] [--scope lean|full] --why \"<reason>\"`. Detail: references/auto-mode-and-profile.md",
     "Tools go through the repository's make targets; never call a package manager directly. Detail: references/auto-mode-and-profile.md",
@@ -1436,11 +1437,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 136,
+   "lines": 142,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 136
+     "lines": 142
     },
     {
      "path": "references/auto-mode-and-profile.md",
@@ -1704,7 +1705,7 @@
     },
     {
      "path": "scripts/coverage_check.py",
-     "lines": 850
+     "lines": 864
     },
     {
      "path": "templates/coverage.md",
@@ -10135,15 +10136,15 @@
    "sections": [
     {
      "title": "Inputs",
-     "lines": 28
+     "lines": 24
     },
     {
      "title": "Steps",
-     "lines": 110
+     "lines": 111
     },
     {
      "title": "Output contract",
-     "lines": 16
+     "lines": 18
     },
     {
      "title": "Gotchas",
@@ -10152,25 +10153,25 @@
    ],
    "inputs": [
     "Product input: looks in `$1` as a file path, then a document attached to the message (the app hands over its path, or inlines a text file, which counts as pasted), then the text of the message, then `docs/product/PRD.md` to re-normalise; if absent, looks in `README.md` and `docs/**/*.md` for a brief or a feature list and, when none describes the product, asks one question with AskUserQuestion (as `${CLAUDE_PLUGIN_RO…",
-    "Existing PRD: looks in `docs/product/PRD.md` for ids to keep; if absent, numbering starts at `REQ-001`.",
+    "Existing PRD: `docs/product/PRD.md` and its parts `docs/product/prd/*.md` for ids to keep; if absent, numbering starts at `REQ-001`.",
     "Templates: `templates/PRD.md` and `templates/questions.md` in this skill; no repository copy is needed.",
     "Existing register: looks in `docs/product/questions.md` for Q ids and decisions to keep; if absent, numbering starts at `Q-001`.",
-    "Input format: text formats are read as they are; a `.pdf` with Read (20 pages per call); a `.docx` or `.odt` by `scripts/doc_to_text.py` in this skill. Only a legacy `.doc`, a Google Doc or a Notion link gets one AskUserQuestion, options \"enter an export path\" (`.docx`, PDF or text, via Other) and \"stop\". Detail: references/register-and-scope.md",
-    "Target repository: the git repository the session runs in (`git rev-parse --show-toplevel`). When the working directory is not one, or is a folder holding several repositories, ask one question with AskUserQuestion, options \"enter the repository path\" (via Other) and \"stop\" (no answer: stop); never write `docs/product` into a parent folder.",
+    "Input format: text as it is, `.pdf` with Read, `.docx` or `.odt` by `scripts/doc_to_text.py`; a legacy `.doc`, Google Doc or Notion link gets one export question. Detail: references/register-and-scope.md",
+    "Target repository: `git rev-parse --show-toplevel`; not one, or a folder of several: ask for the path (AskUserQuestion, or stop); never write `docs/product` into a parent folder.",
     "Repository decisions: `docs/adr/*.md` (or wherever the README keeps decisions) and the code that already handles the domain; if absent, the input is checked against itself only and the report says so.",
     "Existing stories: looks in `docs/product/stories.md` (or the tracker export the README names) for the story ids that carry each REQ; if absent, Affects stays on REQ ids."
    ],
    "steps": [
     "Locate the input in the order under Inputs and save its text as `docs/product/source/<input name>.txt` (`mkdir -p docs/product/source`), so every REQ's Source cites `L<n>` of a file in the repository: a `.docx` or `.odt` with `python3 \"${CLAUDE_PLUGIN_ROOT}/skills/prd/scripts/doc_to_text.py\" <input> docs/product/source/<input name>.txt` (it fails on a document with no text), a PDF, an attachment or a paste with Writ…",
-    "Read `templates/PRD.md` and `templates/questions.md`. If `docs/product/PRD.md` exists, read it and keep every existing `REQ-nnn` id and text; new statements append after the highest id in the whole file (ids are not always in order in the tables), withdrawn statements stay in the list marked `withdrawn:`. Never renumber. When the input changes an existing statement, apply step 7a.",
+    "Read `templates/PRD.md` and `templates/questions.md`. If `docs/product/PRD.md` exists, read it and its parts, keep every `REQ-nnn` id and text; new statements append after the highest id in all of them (ids are not always in order in the tables), withdrawn statements stay in the list marked `withdrawn:`. Never renumber. When the input changes an existing statement, apply step 7a.",
     "First pass, sections. Fill problem, business objectives, non-goals, personas, constraints, glossary from the input only. Objectives get ids `B1` upward, kept across runs; every story's \"Why it matters\" line cites one. An objective with no number in the input gets `target: unconfirmed`. A persona is a named role in the input; if none is named, derive at most one from the verbs and mark it `inferred:`. Any section the…",
     "Second pass, statements. Walk every sentence carrying must, should, shall, needs, can, will, allow, or an imperative, and every bullet. Each becomes one `REQ-nnn`: one testable statement, present tense, the system as subject. Split a sentence joining two capabilities with \"and\". Convert story form (\"As a user I want\") to a statement and keep the persona. Keep a solution only if the input names it, then move it to Co…",
     "Flag ambiguity. A statement with a vague word (fast, easy, simple, appropriate, etc., some, various) or with no observable outcome is kept and marked `ambiguous: acceptance set in design`, not a question. Only when the vague word leaves the scope itself unclear (what gets built, not how well) does it get a register entry, marked `ambiguous: Q-nnn`. Detail: references/register-and-scope.md",
     "Mark inference and conflict. Anything you add that the input does not state is prefixed `inferred:`; two passages that disagree are a contradiction; a capability the input needs but never states is a gap; each is one `Q-nnn` entry, never a REQ. Check every statement against the repository (read each ADR, grep the code for the statement's nouns): one an accepted ADR forbids, or that needs data or events the code show…",
     "Write the register from `templates/questions.md`: per entry the Kind (open-question, gap, contradiction), Where (the REQ id or section), Basis (stated, inferred, convention, assumption), every reading the input allows, the Decision taken so work is not blocked, Why, Affects (REQ ids, never empty; `backlog` replaces them with story ids) and Status `open`. Open assumptions go first and are listed again under \"Needs yo…",
-    "Write `docs/product/PRD.md` and `docs/product/questions.md` (`mkdir -p docs/product`); section 7 of the PRD states the register's counts. Print the counts. Zero statements extracted is a failed run, not an empty PRD.",
-    "Do not offer a critique. Only when the user asks for one, fork `critic` (Agent tool) with the document path and report its findings; a finding enters the register only when it meets the rule in step 7 (unclear about what gets built), never for business, delivery or legal doubts.",
-    "Resolve the register in this session; nothing is sent outside it. Run `python3 \"${CLAUDE_PLUGIN_ROOT}/skills/prd/scripts/register_answers.py\" rank` for the open entries, ranked (open assumptions first, then by how many statements each affects). Print the count and ask how to go through them with AskUserQuestion: highest impact first in rounds of four, only the assumptions, or none now (the default if unanswered); th…"
+    "Write `docs/product/PRD.md` and `docs/product/questions.md` (`mkdir -p docs/product`); section 7 of the PRD states the register's counts. Print the counts. Zero statements extracted is a failed run, not an empty PRD. Over 60 statements, section 5 moves per area to `docs/product/prd/<nn>-<area>.md` (same table, ids unchanged) and PRD.md keeps the other sections and an index of the parts. Then name the next step: `bac…",
+    "Do not offer a critique. Only on request fork `critic` (Agent tool) with the path; a finding enters the register only under step 7's rule, never for business, delivery or legal doubts.",
+    "Resolve the register in this session; nothing is sent outside it. Run `python3 \"${CLAUDE_PLUGIN_ROOT}/skills/prd/scripts/register_answers.py\" rank` for the open entries, ranked (open assumptions first, then by how many statements each affects). Print the count and ask the first round at once with AskUserQuestion, the three highest-impact entries, each a question in plain words (the register's text is for engineers):…"
    ],
    "output": "",
    "gotchas": [
@@ -10183,15 +10184,19 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 202,
+   "lines": 201,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 202
+     "lines": 201
     },
     {
      "path": "references/changes-to-an-existing-prd.md",
      "lines": 27
+    },
+    {
+     "path": "references/long-prd-and-next.md",
+     "lines": 52
     },
     {
      "path": "references/parallel-drafting.md",
@@ -10203,7 +10208,7 @@
     },
     {
      "path": "references/resolve-register.md",
-     "lines": 30
+     "lines": 31
     },
     {
      "path": "references/step-6-boundaries.md",
@@ -10219,7 +10224,7 @@
     },
     {
      "path": "templates/PRD.md",
-     "lines": 118
+     "lines": 123
     },
     {
      "path": "templates/questions.md",
@@ -10228,7 +10233,7 @@
    ],
    "groups": {
     ".": 1,
-    "references": 5,
+    "references": 6,
     "scripts": 2,
     "templates": 2
    },
@@ -12904,6 +12909,7 @@
     "Edit",
     "Grep",
     "Glob",
+    "AskUserQuestion",
     "Bash(ls:*)",
     "Bash(mkdir -p:*)",
     "Bash(date:*)",
@@ -12944,11 +12950,11 @@
     },
     {
      "title": "Steps",
-     "lines": 78
+     "lines": 84
     },
     {
      "title": "Output contract",
-     "lines": 16
+     "lines": 17
     },
     {
      "title": "Gotchas",
@@ -12972,7 +12978,8 @@
     "Check the clock at every finding. At 50 percent with no finding, decide without asking: continue only if the next step is already known, otherwise stop and write a narrower question. At 100 percent, stop whatever the state.",
     "Recommend from the findings. Name the change the measurement supports and the re-measurement that would confirm it; keep every invariant the current code enforces (masking, validation, a test that pins behaviour), never trade one away to hit the number; name the risks the recommended change brings (new failure modes, changed error behaviour, what a client or operator will now see differently). A decision written any…",
     "Write `docs/spikes/<date>-<name>.md` from `templates/spike.md`: question, answer (yes, no, the number, or \"not answered: <why>\"), operative inputs and where each came from, prior work and whether it held, findings with evidence, what was tried and discarded, where it was measured, not run or not measured, recommendation, the follow-up task (the `tracker-sync create --type task --title \"<title>\"` command, or `tracker…",
-    "Clean up and prove it: delete the throwaway (`rm -r .scratch/spike-<name>`) unless the doc says where it stays and it sits where the build and tests cannot pick it up (never a `*_test.go` in a package, a `*.test.js`, or `test_*.py` inside the repo's test globs). Run the repository's check again and `git status --porcelain`: only the doc is new, no tracked file differs, nothing is committed. Print the contract."
+    "Clean up and prove it: delete the throwaway (`rm -r .scratch/spike-<name>`) unless the doc says where it stays and it sits where the build and tests cannot pick it up (never a `*_test.go` in a package, a `*.test.js`, or `test_*.py` inside the repo's test globs). Run the repository's check again and `git status --porcelain`: only the doc is new, no tracked file differs, nothing is committed. Print the contract.",
+    "Ask what happens next, once, with AskUserQuestion as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says, so the answer is not lost under the findings: create the follow-up task (recommended when the answer supports a change), run the narrower spike the doc names, or leave the doc for review. This picks the next action; the recommendation itself stays Proposed. No answer: leave the doc for review."
    ],
    "output": "",
    "gotchas": [
@@ -12988,11 +12995,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 161,
+   "lines": 168,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 161
+     "lines": 168
     },
     {
      "path": "templates/spike.md",
@@ -14366,7 +14373,7 @@
     },
     {
      "path": "scripts/trace_check.py",
-     "lines": 777
+     "lines": 791
     },
     {
      "path": "templates/traceability.md",
@@ -15250,7 +15257,7 @@
    "name": "brg-autopilot",
    "lang": "python",
    "group": "workflow",
-   "lines": 1908,
+   "lines": 1952,
    "header": "brg-autopilot: the state, the gates and the report of an unattended run from\none requirement statement to a prepared merge request.\n\nThe autopilot skill drives the stages; this script is the part that cannot\nbe talked around: which stage is next, whether its gate holds (checked on\ndisk, never taken from the model's word), how many attempts are left, the\ndigest of every decision taken on the user's behalf, and the report. Nothing\nhere pushes, merges or deploys; a push, where the engineer opted the repository\nin, is brg-push's from the Stop hook. The run stops at a prepared merge request.\n\n  brg-autopilot start \"<statement>\" [--dir D]   begin a run (refuses when one is open)\n  brg-autopilot next [--dir D]                  the next stage, its skill and its gate\n  brg-autopilot done <stage> [--dir D]          check the gate; mark done or say what is missing\n  brg-autopilot fail <stage> \"<why>\" [--dir D]  count a failed attempt (3 and the stage is blocked)\n  brg-autopilot decision <key> <choice> <alternatives> <why> [--adr PATH] [--dir D]\n                                                one row of the decision digest\n  brg-autopilot report [--dir D]                write docs/autopilot/<run>.md (the MR carries it)\n  brg-autopilot status [--dir D]                the stages, attempts and decisions so far\n  brg-autopilot profile --ui|--data|--api|--deploy yes|no [--llm yes|no] [--scope lean|full] --why W [--dir D]\n                                                what the product has; decides which stages apply\n                                                and how much document each one needs\n  brg-autopilot stages                          the stage names, in order\n  brg-autopilot launch \"<statement>\" [--dir D] [--print]\n                                                run it headless: claude -p with autopilot,\n                                                then any smoke it asked for, outside the sandbox\n  brg-autopilot smoke-request [--id ID] [--dir D]\n                                                headless dod: ask the launcher to run the smoke\n  brg-autopilot repos-request [--dir D]         headless repos: ask the launcher to scaffold the\n                                                repo plan's missing repositories beside this one\n\nState lives in <dir>/.bearing/state/autopilot.json. Every command prints what it\nchecked and exits 1 when a gate fails or there is nothing to act on.",
    "functions": [
     "sh",
@@ -15322,9 +15329,11 @@
     "upstream_sha",
     "pushed_by_brg_push",
     "g_mr",
+    "run_names",
     "next_stage",
     "existing_repo",
     "cmd_start",
+    "cmd_continue",
     "cmd_next",
     "cmd_done",
     "cmd_fail",
@@ -15526,12 +15535,13 @@
    "name": "brg-guard",
    "lang": "bash",
    "group": "guard",
-   "lines": 2224,
+   "lines": 2242,
    "header": "Hooks run outside the sandbox with the harness's environment, so the first\nthing done is to drop what in it could run another program: PATH becomes\n/usr/bin:/bin plus the system tool directories (jq, git and python3 on\nmacOS live under /usr/local/bin or /opt/homebrew/bin; on Linux under\nLinuxbrew or a Nix profile), never a directory the environment put first\n(this line matches hooks/scripts/lib.sh, where brg-doctor reads it and\nthe tools the hooks need, and the settings template denies Edit and Write\non the user-owned ones); BASH_ENV and ENV (sourced by every bash started\nlater), CDPATH (redirects cd), PYTHON* (python3 also runs -I everywhere),\nLD_* and DYLD_* (preloaded libraries) are unset. BASH_ENV in the harness's\nown environment is sourced by bash before this line runs, which no script\ncan prevent; the settings template denies Edit and Write on the settings\nfiles whose env could set it.",
    "functions": [
     "git_lockdown",
     "verb_table",
     "verb_rows",
+    "deny_why",
     "deny",
     "refuse",
     "now_ms",
@@ -15984,7 +15994,7 @@
    "name": "brg-session",
    "lang": "bash",
    "group": "quality",
-   "lines": 162,
+   "lines": 179,
    "header": "brg-session: session memory for Bearing, all local and model-free.\n  timeline-start --id <sid> --skill <name>   record a skill start (ends the open one)\n  timeline-close --id <sid>                   end the open skill of this session\n  timeline-recent [--branch <b>] [--n <k>]    last k ended skills on the branch\n  not-run --skill <reason>                    log `timeline not-run <reason>` to gates.log\n  checkpoint                                  write .bearing/state/<branch>.checkpoint.md\n  next-step                                   the next flow step after the timeline\n  resume [--source startup|resume|compact]    the block SessionStart prints\nRuns on bash 3.2; needs git; uses jq when present. Exit 0 always.",
    "functions": [
     "glog",
@@ -16890,8 +16900,8 @@
    "name": "tool-failure.sh",
    "lang": "bash",
    "group": "hooks",
-   "lines": 21,
-   "header": "PostToolUseFailure and PermissionDenied: record in gates.log which tool\nfailed or was denied, so `brg-guard stats` shows where sessions lose time.\nThe event name comes from the hook input; only the tool name is logged,\nnever its input, error text or the denial reason (they can hold paths and\nsecrets). Never blocks: the tool already failed or was denied. Always exits 0.",
+   "lines": 31,
+   "header": "PostToolUseFailure and PermissionDenied: record in gates.log which tool\nfailed or was denied, so `brg-guard stats` shows where sessions lose time.\nThe event name comes from the hook input; only the tool name is logged,\nnever its input, error text or the denial reason (they can hold paths and\nsecrets). Never blocks: the tool already failed or was denied. Always exits 0.\nA Bash failure that reads like the Claude Code sandbox refusing a write or\na connection also gets one line of additionalContext, so the agent stops\nretrying variants of a command the sandbox will refuse every time. The\nerror text is matched here and never logged.",
    "functions": [],
    "env": [],
    "calls": [
@@ -16970,11 +16980,12 @@
    "lang": "python",
    "group": "skill",
    "skill": "backlog",
-   "lines": 850,
+   "lines": 864,
    "header": "coverage_check: prove every PRD statement is covered by an acceptance\ncriterion, and that the backlog, its tasks and its open-question register\nhold together. Computed from the files, never from what the model wrote\nabout them.\n\nId scheme:\n  - The backlog's own. A backlog committed at HEAD fixes the scheme (its\n    story headings, for example CLM-7 or PAY-112); otherwise the headings\n    in the working file do; with neither, the house scheme US-nn-nnn.\n    `--story-id REGEX` overrides. Every story id at HEAD must still be a\n    story heading now: a renumbered or dropped id is a problem.\n  - AC ids are `AC-<story>-k`, or `AC-k` inside the story's own block.\n  - House scheme (US-nn-nnn) is strict: every AC carries its own Covers\n    line and every story has the house blocks (below). An adopted scheme\n    keeps its own shape: a story whose AC carry no Covers lines is traced\n    by its story-level Covers line or its index row's Covers cell, and the\n    house blocks are not required.\n\nCoverage:\n  - REQ ids: the PRD's statement rows (`| REQ-nnn |`), skipping rows marked\n    `withdrawn:`; with no PRD, the \"Statements (inline\" table at the top of\n    coverage.md.\n  - A REQ is covered when a story that is not withdrawn names it on an AC\n    Covers line (or, adopted scheme, at story level as above). A REQ the\n    coverage matrix judges `out-of-scope`, citing a Q-nnn in its Why cell,\n    is counted apart and is not a gap.\n  - A story-level Covers REQ that none of the story's own AC names (when\n    its AC carry Covers lines), a Covers naming a REQ the PRD does not have\n    or has withdrawn, and a story with more than seven AC are problems.\n  - An epic with no journey in user-flows.md is a problem, when the file\n    exists.\n  - The coverage.md matrix, when present, holds one row per REQ; each\n    row's Judgement is one of story, criterion-of, platform-detail-of,\n    duplicate-of, split, non-functional or out-of-scope, and its Why cell\n    is not blank.\n\nWithdrawn stories:\n  - A story is withdrawn when its heading or a Status line says\n    `withdrawn:`, or its index row's Status cell says withdrawn. It stays in\n    the file; it covers nothing.\n  - Inside a git repository, every file outside docs/ that names a\n    withdrawn story (code, tests, config) is listed, and each such story\n    must be named in the open-question register (questions.md, or a Q row\n    in the backlog) so someone decides what happens to that work.\n\nStories (house scheme only):\n  - Each live story has a \"Why it matters\" line naming a business objective\n    (B1, B2 ...) from the PRD's objectives table, when the PRD has one; a\n    \"From the PRD\" block quoting every REQ the story covers; a \"Not in this\n    story\" list with at least one entry; and a Points value of 1, 2, 3, 5, 8\n    or TBD.\n  - The story index (the table headed `| Story |`) lists every live story\n    once, with the same Points as the story block. (Any scheme: every live\n    story has an index row when the backlog has an index.)\n\nTasks (tasks.md, the table headed `| Task |`), checked when --tasks is\ngiven or the default file exists:\n  - Ids are <story>-Dk (development) or <story>-Tk (test), unique, of a\n    live story named in the Story column. Discipline is backend, frontend,\n    mobile, qa, devops, design or content (deliverables that are not code:\n    brand, video, copy), and a test task is qa. Estimate is hours (above 0,\n    at most 8; more is a task to split) or TBD. Depends on names known task\n    ids or none. Done when is not blank. Verifies names AC ids of the same\n    story, or `none: <reason>` on a development task.\n  - Every live story has a development and a test task, and every live AC\n    is verified by a test task.\n\nQuestions (questions.md, the table headed `| Q |`), checked when\n--questions is given or the default file exists:\n  - Ids Q-nnn, unique. Status open or confirmed; Kind open-question, gap or\n    contradiction; Basis stated, inferred, convention or assumption. Where,\n    Question, Readings, Decision and Why are not blank. Affects names at\n    least one story of the backlog and no unknown one.\n  - The \"Needs your confirmation\" section lists exactly the open rows whose\n    Basis is assumption, and those rows come first in the table.\n\nUsage: coverage_check.py [--prd P] [--backlog B] [--coverage C] [--flows F]\n                         [--tasks T] [--questions Q] [--story-id REGEX]\nDefaults are the docs/product/ paths. Prints one line per gap or problem,\nthe ids, withdrawn-refs, tasks and questions lines, the counts and the\nverdict; exits 1 on any gap or problem, or when zero REQ or zero stories\nwere read, or a task or question file that was asked for is missing or\nempty.",
    "functions": [
     "strip_comments",
     "read",
+    "read_prd",
     "cells",
     "table",
     "col",
@@ -17895,10 +17906,11 @@
    "lang": "python",
    "group": "skill",
    "skill": "traceability",
-   "lines": 777,
+   "lines": 791,
    "header": "trace_check: walk the chain REQ, US, AC, TC, test, ticket, commit, ADR and\nevent with exact ids, and count every gap class, from the files and the git\nlog, never from the matrix the model wrote.\n\nSources (each read or missing; a missing one is a gap row of its own):\n  - REQ ids: the PRD's statement rows (`| REQ-nnn |`), rows marked\n    `withdrawn:` skipped.\n  - EP, US and AC ids: backlog.md headings and bodies; a story heading or\n    Status line marked `withdrawn:` is skipped. `Covers:` lines link REQ to\n    US, a `Ticket:` line links US to a ticket, an `Events:` line names the\n    story's events in backticks.\n  - Coverage claims: docs/product/coverage.md rows (`| REQ-nnn | US ids |`)\n    are checked against the backlog's Covers lines, and its \"every\n    acceptance criterion has a test case\" and \"every test case is\n    automated\" sentences against the gaps found.\n  - TC ids: the rows of docs/testing/test-cases.md (`| TC-nnnn |`), rows\n    marked `retired` skipped; the AC ids in a row link AC to TC.\n  - Tests: files named *_test.go, *.test.ts(x), *.spec.ts(x), test_*.py,\n    *_test.py, *Test.kt, *Tests.swift under --root, split into test\n    functions (the comment and decorator lines directly above a function\n    belong to it). A TC id in a function links TC to test; a US id is the\n    weaker link. A function that skips (t.Skip, pytest skip marks, it.skip,\n    xit, @Disabled, XCTSkip) links nothing: its ids are reported as skipped.\n    So does a test the default run never executes: a Go file behind a\n    `//go:build` tag that no Makefile or CI file passes with -tags, or a\n    pytest function carrying a marker the configured addopts deselect\n    (`-m \"not <marker>\"`).\n  - Commits: `git log <merge base>..HEAD` with --base, else `git log HEAD`\n    (every commit, the root included), run by this script; or a log given with\n    --log FILE|- in the format\n      git log --format='@@commit %h%n%s%n%b@@files' --name-only <base>..HEAD\n  - ADR ids from docs/adr/NNNN-*.md; US or ticket ids mentioned in\n    docs/adr, docs/design and docs/runbooks link a story to its docs.\n  - Events: backticked names in the first column of EVENT_SHEET.md.\n\nScope: with --base, the stories in scope are those named in the range's\ncommits, added to the backlog since the merge base, or named in a test file\nchanged since it. Gaps of other stories, REQ without story and missing\nsources print as \"outside scope:\" and do not decide the verdict. Without\n--base (full history) every active story is in scope.\n\nGap classes: REQ without story, story without AC, AC without TC, TC without\ntest, TC test skipped, story without test (only when there is no test-case\ndocument), unknown id (a US or TC id in a test or commit that the backlog or\nthe test cases do not hold), coverage claim contradicted, story without\nticket, ticket without commits (both n/a with --tracker none), commit without\nid (no ticket, story or epic id), boundary change without ADR (a commit\ntouching migrations/, an auth path or a dependency manifest whose ids no ADR\nmentions, counted only when an ADR requires a record for that kind of\nchange, otherwise a \"review:\" line), event not in sheet, missing source.\nThe root commit of a full audit is never a boundary change, and its missing\nid is a \"review:\" line, not a gap: it predates the work.\n\nUsage: trace_check.py [--base REF] [--log FILE|-] [--prd P] [--backlog B]\n       [--coverage C] [--cases C] [--root R] [--adr D] [--docs D ...]\n       [--events E] [--prefix KEY] [--tracker NAME]\nPrints one \"problem:\" line per gap in scope, \"outside scope:\", \"review:\" and\n\"not run by default:\" lines, a \"tests:\" line per story in scope naming its test functions, the\nScope, Ids, Links, Gaps and Unknown tickets lines, the counts line and the\nverdict; exits 1 on any gap in scope, or when no id of any class and no\ncommit was read.",
    "functions": [
     "read",
+    "read_prd",
     "git",
     "req_ids",
     "parse_backlog",
@@ -18095,7 +18107,7 @@
     "log",
     "stats"
    ],
-   "body": "#!/usr/bin/env bash\n# PostToolUseFailure and PermissionDenied: record in gates.log which tool\n# failed or was denied, so `brg-guard stats` shows where sessions lose time.\n# The event name comes from the hook input; only the tool name is logged,\n# never its input, error text or the denial reason (they can hold paths and\n# secrets). Never blocks: the tool already failed or was denied. Always exits 0.\nset -u\n# No program runs before lib.sh resets the environment, so no dirname here;\n# the next script starts with \"$BASH\" from ${0%/*}, never found on PATH.\n# shellcheck source=lib.sh\ncase \"$0\" in (*/*) . \"${0%/*}/lib.sh\" ;; (*) . ./lib.sh ;; esac\ncase \"$(json_field hook_event_name)\" in\n  (PermissionDenied) gate=permission-denied ;;\n  (*) gate=tool-failure ;;\nesac\nt=\"$(json_field tool_name)\"\n# A tool name is a word (Bash, Edit, mcp__server__tool); anything else is\n# logged as unknown.\ncase \"$t\" in (*[!A-Za-z0-9_-]*|'') t=unknown ;; esac\n\"$BASH\" \"${0%/*}/../../bin/brg-guard\" log \"$gate\" \"$t\" >/dev/null 2>&1\nexit 0"
+   "body": "#!/usr/bin/env bash\n# PostToolUseFailure and PermissionDenied: record in gates.log which tool\n# failed or was denied, so `brg-guard stats` shows where sessions lose time.\n# The event name comes from the hook input; only the tool name is logged,\n# never its input, error text or the denial reason (they can hold paths and\n# secrets). Never blocks: the tool already failed or was denied. Always exits 0.\n# A Bash failure that reads like the Claude Code sandbox refusing a write or\n# a connection also gets one line of additionalContext, so the agent stops\n# retrying variants of a command the sandbox will refuse every time. The\n# error text is matched here and never logged.\nset -u\n# No program runs before lib.sh resets the environment, so no dirname here;\n# the next script starts with \"$BASH\" from ${0%/*}, never found on PATH.\n# shellcheck source=lib.sh\ncase \"$0\" in (*/*) . \"${0%/*}/lib.sh\" ;; (*) . ./lib.sh ;; esac\ncase \"$(json_field hook_event_name)\" in\n  (PermissionDenied) gate=permission-denied ;;\n  (*) gate=tool-failure ;;\nesac\nt=\"$(json_field tool_name)\"\n# A tool name is a word (Bash, Edit, mcp__server__tool); anything else is\n# logged as unknown.\ncase \"$t\" in (*[!A-Za-z0-9_-]*|'') t=unknown ;; esac\n\"$BASH\" \"${0%/*}/../../bin/brg-guard\" log \"$gate\" \"$t\" >/dev/null 2>&1\nif [ \"$gate\" = tool-failure ] && [ \"$t\" = Bash ] && command -v jq >/dev/null 2>&1; then\n  case \"$(json_field error)\" in\n    (*'Operation not permitted'*|*'Read-only file system'*)\n      jq -n '{hookSpecificOutput: {hookEventName: \"PostToolUseFailure\", additionalContext: \"bearing: if this failure is the Claude Code sandbox refusing a write outside the allowed folders or a connection to a host it does not allow, it is a restriction, not a bug in the command: the same command fails again, so do not retry it or try variants. Tell the user which path or host it needed and ask them to run it or allow it; otherwise carry on with work inside the allowed folders.\"}}' ;;\n  esac\nfi\nexit 0"
   },
   {
    "event": "PermissionDenied",
@@ -18106,7 +18118,7 @@
     "log",
     "stats"
    ],
-   "body": "#!/usr/bin/env bash\n# PostToolUseFailure and PermissionDenied: record in gates.log which tool\n# failed or was denied, so `brg-guard stats` shows where sessions lose time.\n# The event name comes from the hook input; only the tool name is logged,\n# never its input, error text or the denial reason (they can hold paths and\n# secrets). Never blocks: the tool already failed or was denied. Always exits 0.\nset -u\n# No program runs before lib.sh resets the environment, so no dirname here;\n# the next script starts with \"$BASH\" from ${0%/*}, never found on PATH.\n# shellcheck source=lib.sh\ncase \"$0\" in (*/*) . \"${0%/*}/lib.sh\" ;; (*) . ./lib.sh ;; esac\ncase \"$(json_field hook_event_name)\" in\n  (PermissionDenied) gate=permission-denied ;;\n  (*) gate=tool-failure ;;\nesac\nt=\"$(json_field tool_name)\"\n# A tool name is a word (Bash, Edit, mcp__server__tool); anything else is\n# logged as unknown.\ncase \"$t\" in (*[!A-Za-z0-9_-]*|'') t=unknown ;; esac\n\"$BASH\" \"${0%/*}/../../bin/brg-guard\" log \"$gate\" \"$t\" >/dev/null 2>&1\nexit 0"
+   "body": "#!/usr/bin/env bash\n# PostToolUseFailure and PermissionDenied: record in gates.log which tool\n# failed or was denied, so `brg-guard stats` shows where sessions lose time.\n# The event name comes from the hook input; only the tool name is logged,\n# never its input, error text or the denial reason (they can hold paths and\n# secrets). Never blocks: the tool already failed or was denied. Always exits 0.\n# A Bash failure that reads like the Claude Code sandbox refusing a write or\n# a connection also gets one line of additionalContext, so the agent stops\n# retrying variants of a command the sandbox will refuse every time. The\n# error text is matched here and never logged.\nset -u\n# No program runs before lib.sh resets the environment, so no dirname here;\n# the next script starts with \"$BASH\" from ${0%/*}, never found on PATH.\n# shellcheck source=lib.sh\ncase \"$0\" in (*/*) . \"${0%/*}/lib.sh\" ;; (*) . ./lib.sh ;; esac\ncase \"$(json_field hook_event_name)\" in\n  (PermissionDenied) gate=permission-denied ;;\n  (*) gate=tool-failure ;;\nesac\nt=\"$(json_field tool_name)\"\n# A tool name is a word (Bash, Edit, mcp__server__tool); anything else is\n# logged as unknown.\ncase \"$t\" in (*[!A-Za-z0-9_-]*|'') t=unknown ;; esac\n\"$BASH\" \"${0%/*}/../../bin/brg-guard\" log \"$gate\" \"$t\" >/dev/null 2>&1\nif [ \"$gate\" = tool-failure ] && [ \"$t\" = Bash ] && command -v jq >/dev/null 2>&1; then\n  case \"$(json_field error)\" in\n    (*'Operation not permitted'*|*'Read-only file system'*)\n      jq -n '{hookSpecificOutput: {hookEventName: \"PostToolUseFailure\", additionalContext: \"bearing: if this failure is the Claude Code sandbox refusing a write outside the allowed folders or a connection to a host it does not allow, it is a restriction, not a bug in the command: the same command fails again, so do not retry it or try variants. Tell the user which path or host it needed and ask them to run it or allow it; otherwise carry on with work inside the allowed folders.\"}}' ;;\n  esac\nfi\nexit 0"
   },
   {
    "event": "SubagentStop",
@@ -18860,9 +18872,9 @@
   {
    "path": "tests/unit/autopilot_state.sh",
    "kind": "unit",
-   "lines": 367,
+   "lines": 400,
    "header": "tests/unit/autopilot_state.sh: plugins/bearing/bin/brg-autopilot keeps the order and checks every gate on disk. A new run starts at repo; done on a stage whose gate is not met fails and says what is missing; stages run in order; an ADR this run wrote as Accepted fails the decide gate; three failed attempts block a stage; an upstream on the branch fails the mr gate unless brg-push pushed it at HEAD (the run never pushes itself); the report carries the digest; a second start on an open run is refused.",
-   "asserts": 104
+   "asserts": 122
   },
   {
    "path": "tests/unit/changed_files.sh",
@@ -19091,9 +19103,9 @@
   {
    "path": "tests/unit/guard_deny_table.sh",
    "kind": "unit",
-   "lines": 559,
+   "lines": 578,
    "header": "tests/unit/guard_deny_table.sh: brg-guard command against a table of commands. Every proven bypass (wrappers, git options, chaining, quoting, substitution, empty input, the sentinel) must be denied; look-alike safe commands must be allowed. Blocked strings are assembled at run time so the file never holds a blocked command on one line.",
-   "asserts": 73
+   "asserts": 87
   },
   {
    "path": "tests/unit/guard_format.sh",
@@ -19161,9 +19173,9 @@
   {
    "path": "tests/unit/hook_events.sh",
    "kind": "unit",
-   "lines": 86,
+   "lines": 102,
    "header": "tests/unit/hook_events.sh: the hooks on StopFailure, PostToolUseFailure, PermissionDenied and SubagentStop. stop-failure.sh writes the checkpoint and logs the error type; tool-failure.sh logs the tool name only; agent-report.sh sends a Bearing review agent back once when its report misses its output contract, and never twice. bash 3.2 safe.",
-   "asserts": 25
+   "asserts": 33
   },
   {
    "path": "tests/unit/hook_hardening.sh",
@@ -19290,6 +19302,13 @@
    "lines": 53,
    "header": "tests/unit/next_smoke.sh: the Next.js template's scripts/smoke.mjs. A stand-in .next/standalone/server.js (a plain node http server) answers on the port the script gives it, so the whole loop runs without a Next build: no build is refused with 0 checked; the default checks pass; a plan's checks run and a wrong status fails with the evidence written; a render error the server logs fails though every status passed.",
    "asserts": 11
+  },
+  {
+   "path": "tests/unit/output_style.sh",
+   "kind": "unit",
+   "lines": 26,
+   "header": "tests/unit/output_style.sh: the Bearing report output style is the repository template's default, under the name Claude Code lists it by (\"bearing:\" + the style's frontmatter name). A plain name matches no style and is ignored without a warning, so a rename on one side must fail here.",
+   "asserts": 5
   },
   {
    "path": "tests/unit/pin_refresh.sh",
@@ -19462,9 +19481,9 @@
   {
    "path": "tests/unit/session_resume.sh",
    "kind": "unit",
-   "lines": 235,
+   "lines": 278,
    "header": "tests/unit/session_resume.sh: next step from the timeline and the resume block, with and without a task id; a Next: in the state file wins.",
-   "asserts": 68
+   "asserts": 85
   },
   {
    "path": "tests/unit/session_state_nofollow.sh",
@@ -19532,9 +19551,9 @@
   {
    "path": "tests/unit/stories_coverage.sh",
    "kind": "unit",
-   "lines": 340,
+   "lines": 353,
    "header": "tests/unit/stories_coverage.sh: plugins/bearing/skills/backlog/scripts/coverage_check.py passes a covered backlog and fails, with the reason, on an uncovered REQ, a Covers naming an unknown REQ, a story-level REQ no AC names, an epic without a journey, a missing matrix row or Why, a story missing its objective, quotes or exclusions, a bad task table, a bad question register, and on empty input. Coverage is computed from the AC Covers lines, so a matrix that claims \"covered\" does not rescue a gap. An adopted scheme (CLM-n) is kept and compared with HEAD: a renumbered or rewritten id fails, a w…",
-   "asserts": 85
+   "asserts": 90
   },
   {
    "path": "tests/unit/task_set_skills.sh",
@@ -19602,7 +19621,7 @@
   {
    "path": "tests/unit/update_check.sh",
    "kind": "unit",
-   "lines": 200,
+   "lines": 202,
    "header": "tests/unit/update_check.sh: brg-update-check and its place in brg-guard session. A local bare repo is the remote; HOME and XDG_CONFIG_HOME are temp dirs, so the network and the real ~/.claude are never touched.",
    "asserts": 72
   },
@@ -20446,7 +20465,7 @@
   },
   {
    "path": "repo/.claude/settings.json",
-   "lines": 491
+   "lines": 492
   },
   {
    "path": "repo/.editorconfig",
@@ -20583,8 +20602,8 @@
     "Fixed",
     "Notes for existing installs"
    ],
-   "entries": 15,
-   "summary": "- The doctor reports gate health from the last 14 days of the repository's `gates.log`: how many gate decisions it read, and how often the Stop gate blocked and passed. A Stop gate that blocked 10 times or more and more often than it passed is a MISSING line, since each block is a full extra turn; so is a compaction snapshot that failed to write. - After a compaction the session hook prints the branch's handoff note up to 40 lines, so its Criteria come back with the snapshot. Startup and resume keep the first 8 lines; a linked note is not read. - Claude Code plugin settings (`userConfig`) for the everyday keys: tracker, tracker URL, project and email, task id prefix, learning, non-interacti…"
+   "entries": 24,
+   "summary": "- A planning run: `autopilot --plan` (`brg-autopilot start --until design`) writes the PRD, backlog, decisions, architecture and design from the user's notes or plan with no questions, stops there with the digest, and names the first build step. The report lists the build stages as not run; `brg-autopilot continue` carries the same run into the build with every decision kept. - A long PRD splits: past 60 live statements, section 5 moves per area to `docs/product/prd/<nn>-<area>.md` with ids unchanged, and PRD.md keeps an index. The backlog coverage check, the traceability check and the autopilot gate read the parts. - Every planning reply names the next step: `prd` ends with `Next: backlog`…"
   },
   {
    "version": "0.10.0",

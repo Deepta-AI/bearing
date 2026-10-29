@@ -67,7 +67,12 @@ Owner: <name or unconfirmed:>   Tracker epic: <<PREFIX>-<n> or unconfirmed:>
      contradicts is marked blocked: Q-nnn. A missing capability is a
      question, never a new REQ.
      Example: "REQ-014 | The system matches an emailed lab report to a
-     patient by name and date of birth. | Receptionist | brief, para 3 | none" -->
+     patient by name and date of birth. | Receptionist | brief, para 3 | none"
+     Over 60 live statements: this table moves per area to
+     docs/product/prd/<nn>-<area>.md, same columns, ids unchanged, and this
+     section becomes an index, one row per part:
+     "| Booking | prd/01-booking.md | REQ-001 to REQ-034 | 34 |" -->
+
 
 One testable statement per id. Ids are never reused or renumbered.
 

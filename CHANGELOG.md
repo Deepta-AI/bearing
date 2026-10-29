@@ -5,6 +5,23 @@ All notable changes to Bearing. Keep a Changelog format, semantic versions.
 ## [Unreleased]
 
 ### Added
+- A planning run: `autopilot --plan` (`brg-autopilot start --until
+  design`) writes the PRD, backlog, decisions, architecture and design from
+  the user's notes or plan with no questions, stops there with the digest,
+  and names the first build step. The report lists the build stages as not
+  run; `brg-autopilot continue` carries the same run into the build with
+  every decision kept.
+- A long PRD splits: past 60 live statements, section 5 moves per area to
+  `docs/product/prd/<nn>-<area>.md` with ids unchanged, and PRD.md keeps an
+  index. The backlog coverage check, the traceability check and the
+  autopilot gate read the parts.
+- Every planning reply names the next step: `prd` ends with `Next: backlog`
+  (`genai-design` first when the product runs on a model), `backlog` with
+  estimate and high-level-design or start-task, and `spike` asks once what
+  happens next (follow-up task, narrower spike, or leave the doc).
+- A Bash failure that reads like the Claude Code sandbox ("Operation not
+  permitted", "Read-only file system") gets one line of context: it is a
+  restriction, do not retry variants, tell the user what it needed.
 - The doctor reports gate health from the last 14 days of the
   repository's `gates.log`: how many gate decisions it read, and how often
   the Stop gate blocked and passed. A Stop gate that blocked 10 times or
@@ -55,6 +72,25 @@ All notable changes to Bearing. Keep a Changelog format, semantic versions.
   `agent-skills` and `guardrails` for search.
 
 ### Changed
+- The `Bearing report` output style is sharper and on by default in the
+  repository template (`"outputStyle": "bearing:Bearing report"`): the
+  answer in the first line, one fact per bullet, numbers instead of
+  adjectives, tables for three or more items compared on the same columns,
+  a diagram only where words would be longer, screenshots as file paths,
+  and a final report of about 15 lines. A repository with its own
+  `.claude/settings.json` adds the line itself.
+- Every guard block says it is Bearing policy and not an error, so the
+  agent stops retrying, and gives the reason for its kind of rule with a
+  safe way on: history rewrites point at cherry-pick, revert or a new
+  commit; deletions of branches and stashes at the engineer (and `git merge
+  --ff-only` to move an empty branch); `rm -rf` outside the repository at a
+  path inside it. Before, every block said "the engineer pushes, merges and
+  deploys", which fits neither a branch delete nor an `rm`. A command the
+  guard cannot read says to spell its program and paths out.
+- `prd` asks the first three open questions at once, with the reply's first
+  line counting them, instead of first asking how to go through them (with
+  "none now" as the default, the register was easy to miss). Rounds are
+  three, as `references/console.md` says, not four.
 - The README's first screen leads with what Bearing does, the two install
   lines and the four claims, each with its number.
 - The node, React and Next.js templates move to pnpm 10.17.1, as React
@@ -73,6 +109,19 @@ All notable changes to Bearing. Keep a Changelog format, semantic versions.
   read-only and the link fails across devices.
 
 ### Fixed
+- The greenfield flow is reachable. `brg-session next-step` picked only
+  bugfix, feature, site or genai, so a product started from an idea was
+  shown feature steps after its PRD. A branch that ran planning skills
+  (office-hours, prd, backlog, high-level-design, new-repo) and no
+  start-task, or a repository whose config says `"flow": "greenfield"`, now
+  follows it: prd, then backlog, then estimate. In that flow only
+  main-line steps move the pointer, so `genai-design` run straight after
+  the PRD (as prd's Next line says for a model-driven product) does not
+  skip backlog and the design steps. A ticket branch keeps the feature
+  flow. The workflow menu on a repository with no product yet leads with
+  `prd`.
+- The last test writes into the checkout's `gates.log` are gone (an
+  update-check case and one check-file call ran from the checkout).
 - Tests no longer write the developer's `gates.log`. They ran the guard
   from the Bearing checkout, which has `.bearing/`, so every decision a
   test provoked landed in that checkout's log (two guard tests added 605

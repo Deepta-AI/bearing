@@ -56,7 +56,7 @@ for f in a.json a.py a.sh; do
   assert_contains "$T_OUT" "make check-file FILE=$f in the session" "$f: names the session command"
 done
 none_ran "make check-file from the edit hook"
-assert_exit 0 bash "$GUARD" check-file "$repo/a.json"
+assert_exit 0 env BEARING_NO_GATE_LOG=1 bash "$GUARD" check-file "$repo/a.json" # from this checkout: no log
 assert_exit 0 bash -c "cd '$repo' && bash '$GUARD' check-file a.py"
 none_ran "make check-file from brg-guard check-file"
 T_IN=''

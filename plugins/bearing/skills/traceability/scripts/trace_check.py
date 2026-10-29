@@ -136,6 +136,20 @@ def read(path):
     )
 
 
+def read_prd(path):
+    """PRD.md, then each part in prd/*.md beside it in name order: a long PRD
+    keeps its statements per area there, ids unchanged."""
+    text = read(path)
+    if not path:
+        return text
+    parts = os.path.join(os.path.dirname(path), "prd")
+    if os.path.isdir(parts):
+        for n in sorted(os.listdir(parts)):
+            if n.endswith(".md") and os.path.isfile(os.path.join(parts, n)):
+                text = (text or "") + "\n" + (read(os.path.join(parts, n)) or "")
+    return text
+
+
 def git(root, *args):
     try:
         r = subprocess.run(
@@ -337,7 +351,7 @@ def main():
 
     sources_read, missing = 0, []
     prd, backlog, cases_md, sheet, coverage = (
-        read(a.prd),
+        read_prd(a.prd),
         read(a.backlog),
         read(a.cases),
         read(a.events),
