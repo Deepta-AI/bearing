@@ -1,24 +1,24 @@
 {
  "version": "0.11.0",
  "counts": {
-  "skills": 109,
+  "skills": 110,
   "commandSkills": 0,
   "stackSkills": 12,
-  "scripts": 116,
-  "scriptLines": 36613,
+  "scripts": 117,
+  "scriptLines": 36794,
   "hooks": 12,
   "agents": 8,
   "makeTargets": 41,
   "gates": 20,
-  "tests": 132,
+  "tests": 133,
   "fixtures": 25,
   "stacks": 13,
   "templates": 38,
   "ciJobs": 16,
   "ghJobs": 6,
   "ghWorkflows": 2,
-  "evals": 109,
-  "skillFiles": 1069
+  "evals": 110,
+  "skillFiles": 1070
  },
  "plugins": [
   {
@@ -26,7 +26,7 @@
    "dir": "plugins/bearing",
    "description": "A developer workflow for coding agents: skills for every stage from brief to runbook, review subagents, one guard behind every hook, and repository templates. The stack conventions come in bearing-backend and bearing-apps, and the GenAI and ML skills in bearing-genai.",
    "required": true,
-   "files": 462,
+   "files": 464,
    "skills": [
     "ab-experiment",
     "accessibility",
@@ -73,6 +73,7 @@
     "logging",
     "low-level-design",
     "merge-request",
+    "modules",
     "motion-design",
     "new-repo",
     "new-skill",
@@ -1280,7 +1281,7 @@
    "sections": [
     {
      "title": "Inputs",
-     "lines": 17
+     "lines": 20
     },
     {
      "title": "Steps",
@@ -1302,7 +1303,8 @@
     "Roles and resources: `docs/product/backlog.md` and the stories' actors; if absent, from the existing role enum in code; if none, one question: \"which roles exist, and which resources do they act on?\".",
     "Tenancy: a `tenant_id` or `org_id` column in the schema; absent means single tenant and the matrix drops that column, said in the report.",
     "Stack pointers: `references/stack-pointers.md` in this skill.",
-    "Templates: `templates/AUTH.md` to `docs/security/AUTH.md`, `templates/permission-matrix.md` to `docs/security/permission-matrix.md`, written only when step 7 says so."
+    "Templates: `templates/AUTH.md` to `docs/security/AUTH.md`, `templates/permission-matrix.md` to `docs/security/permission-matrix.md`, written only when step 7 says so.",
+    "Module kit: when a module catalogue is configured and lists a module for this stack covering login, sessions or roles, install it with `bearing:modules` first, then design only what it does not cover."
    ],
    "steps": [
     "Decisions first, through `tech-decision`, one question at a time, skipped when an accepted ADR, the code, or the request with the backlog already settles it (cite which; roles the backlog names settle RBAC). Record by the repository's own practice: where it keeps ADRs (`docs/adr/` with an accepted \"record decisions\" ADR, or an ADR that says a case like this one needs its own decision), a decision this change builds…",
@@ -1329,11 +1331,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 160,
+   "lines": 163,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 160
+     "lines": 163
     },
     {
      "path": "references/stack-pointers.md",
@@ -1517,7 +1519,7 @@
    "sections": [
     {
      "title": "Inputs",
-     "lines": 24
+     "lines": 27
     },
     {
      "title": "Steps",
@@ -1538,7 +1540,8 @@
     "Existing jobs: grep for `cron`, `@scheduled`, `Every(`, `setInterval`, `celery`, `arq`, `dramatiq`, `river`, `asynq`, `BullMQ`, `pg-boss`, `SKIP LOCKED`, `Worker(`; zero hits is a valid answer for a new job. Also grep for claim, lock and idempotency helpers (`claim`, `job_claims`, `idempotency`, `advisory_lock`, `SETNX`) and list them: a new job reuses them.",
     "Store and broker: `compose.yaml` services and the config loader; if absent, Postgres is assumed (an outbox or `SKIP LOCKED` queue needs nothing else) and the report says so.",
     "Metrics module: `observability` output under `internal/telemetry/`, `app/telemetry/` or `src/telemetry/`, and whatever the deploy config scrapes. If the repository exposes no metrics and nothing scrapes, add no endpoint, server or alert file nobody loads: give the query that reads depth, oldest age and dead letters from the job table, and name the metrics as a follow-up in the report.",
-    "Templates: `templates/JOBS.md` and `templates/job-runbook.md`, written where the repository keeps operational docs (`docs/operations/JOBS.md`, `docs/runbooks/<job>-backlog.md`). A repository with no docs directory gets a jobs section in its README instead of a new docs tree."
+    "Templates: `templates/JOBS.md` and `templates/job-runbook.md`, written where the repository keeps operational docs (`docs/operations/JOBS.md`, `docs/runbooks/<job>-backlog.md`). A repository with no docs directory gets a jobs section in its README instead of a new docs tree.",
+    "Module kit: when a module catalogue is configured and lists a module for this stack covering jobs or scheduling, install it with `bearing:modules` first, then design only what it does not cover."
    ],
    "steps": [
     "Inventory: grep as in Inputs; print \"jobs found: N\" with trigger and file per job. With `--audit`, run steps 3 and 6 per job and stop; N=0 under `--audit`: stop with \"0 jobs found; nothing to audit\".",
@@ -1563,11 +1566,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 151,
+   "lines": 154,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 151
+     "lines": 154
     },
     {
      "path": "references/mechanisms.md",
@@ -4434,14 +4437,14 @@
    "inputs": [
     "mode and flag name: `$ARGUMENTS`; \"merge it dark\" or \"put it behind a flag\" is `add` then `use`; \"rip it out\" is `remove`.",
     "stack: from `go.mod`, `pyproject.toml`, `package.json` with `react` or `expo`, `build.gradle.kts`, `Package.swift` or `*.xcodeproj`.",
-    "flags module: the stack path in step 2 when it exists, else created from the shape: one typed enumeration (a string literal flag name anywhere else is a finding), only \"true\", \"1\" and \"on\" parse as on, and no network call inside `Enabled`. Detail: references/flags-module-shape.md",
+    "flags module: the stack path in step 2 when it exists; else, when a module catalogue is configured and lists a flags module for this stack, install it with `bearing:modules` first, then design only what it does not cover; else created from the shape: one typed enumeration (a string literal flag name anywhere else is a finding), only \"true\", \"1\" and \"on\" parse as on, and no network call inside `Enabled`. Detail: refe…",
     "register: `docs/operations/flags.md` (or the path an ADR names). When it exists, its columns, headings and conventions are the team's: add or move one row in its own shape and never restructure it. When absent, create it from this skill's `templates/flags.md`.",
     "the team's rules: every ADR (list the directory; a later one may amend an earlier one) and README section on flags. Where it is stricter than this skill (a 60 or 90 day limit, a ticket format), it wins.",
     "removal task id: `--task`; else the ticket id in the branch name; else `tbd`, written as the plain word. Never write a placeholder that looks like a real id (`REP-TBD`, `REP-000`) and never invent a number.",
     "owner: `--owner`; else the rotation the register or ADR already uses for the owning team; else a team named in CODEOWNERS. A person is never the owner, even when CODEOWNERS lists one.",
-    "base branch: `git merge-base HEAD origin/HEAD` (or `main`, `trunk`, `master`, whichever exists).",
+    "base branch: `git merge-base HEAD origin/HEAD`, else main, trunk or master.",
     "audit: `scripts/flags_check.py` in this skill, run from the repository root.",
-    "gate: `make check` when the Makefile has it, else the stack's native test command, and the report says which."
+    "gate: `make check` if the Makefile has it, else the stack's tests; say which."
    ],
    "steps": [
     "**Audit before touching anything.** Run `python3 \"${CLAUDE_PLUGIN_ROOT}/skills/feature-flags/scripts/flags_check.py\"` (`--module <path>` for a module elsewhere). Keep its output: `problem:` lines are the state you found; `values:`, `config names:` and `client read:` lines map where the flag is set and read. A `reads as ON` problem is the parser trap of step 2, already found. Detail: references/parser-and-values.md",
@@ -5713,7 +5716,7 @@
    "sections": [
     {
      "title": "Inputs",
-     "lines": 21
+     "lines": 24
     },
     {
      "title": "Steps",
@@ -5737,7 +5740,8 @@
     "CI when a scheduled job is in scope: `.gitlab-ci.yml` (`stages`, every job's `rules`), or the repo's other CI file.",
     "environment files (`deploy/env/*`, Helm values) for what differs between qa and prod, above all anything that moves money or emails customers.",
     "templates: `templates/readyz/go.md`, `templates/readyz/python.md`, `templates/synthetic-journey.md`, `templates/blackbox.yml`.",
-    "uptime monitor choice: an accepted ADR; else Decisions first below."
+    "uptime monitor choice: an accepted ADR; else Decisions first below.",
+    "module kit: when a module catalogue is configured and lists a module for this stack covering health endpoints, install it with `bearing:modules` first, then design only what it does not cover."
    ],
    "steps": [
     "**Scope.** Build what was asked. \"Liveness and readiness endpoints\" means the endpoints, their wiring, tests, the probe and load balancer manifests, and nothing else: no synthetic suite, blackbox config, alerts, runbooks or status docs, and no process lifecycle changes (SIGTERM drain, `terminationGracePeriodSeconds`, `preStop`), which change rollout behaviour. List those as one-line offers in the report. \"Uptime mon…",
@@ -5763,11 +5767,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 194,
+   "lines": 197,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 194
+     "lines": 197
     },
     {
      "path": "references/inventory-and-classification.md",
@@ -7708,7 +7712,7 @@
    "sections": [
     {
      "title": "Inputs",
-     "lines": 19
+     "lines": 22
     },
     {
      "title": "Steps",
@@ -7730,7 +7734,8 @@
     "field names and the request id rule: the shared telemetry conventions under `observability`'s references; the guide's table is a copy of that file and the conventions win when they differ.",
     "entry points: every `main` or process start (API, worker, CLI, cron) and every place work leaves the request (goroutine, thread, task, queue message).",
     "gate: `make check` when the Makefile has a `check` target; if absent, the stack's native command (`go test ./...`, `pnpm test`, `uv run pytest`, `./gradlew test`, `swift test`) and the report says the gate is improvised.",
-    "`.env.example` and README: the existing ones are extended in place; created only when absent."
+    "`.env.example` and README: the existing ones are extended in place; created only when absent.",
+    "module kit: when a module catalogue is configured and lists a module for this stack covering structured logging, install it with `bearing:modules` first, then design only what it does not cover."
    ],
    "steps": [
     "Resolve the stack and the path. Read `references/logging-guide.md` once, then the stack's section. Read every existing log call, every error constructor (`fmt.Errorf`, `raise ...(f\"...\")`, `new Error`) and every process entry point before changing anything: the leaks and the swallowed failures are found there, not in the handlers.",
@@ -7754,11 +7759,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 176,
+   "lines": 179,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 176
+     "lines": 179
     },
     {
      "path": "references/logging-guide.md",
@@ -8226,6 +8231,96 @@
     ".": 1,
     "references": 1,
     "scripts": 1
+   },
+   "evals": true,
+   "hasSections": [
+    "Inputs",
+    "Steps",
+    "Output contract",
+    "Gotchas"
+   ]
+  },
+  {
+   "name": "modules",
+   "plugin": "bearing",
+   "category": "platform",
+   "what": "Installs module kits (built, tested code for auth, health checks and the like) from a configured Copier catalogue, updates them and reports drift",
+   "when": "a team keeps a module catalogue and a product needs a part it covers, or installed modules may be behind",
+   "description": "Installs, updates and lists module kits from a configured catalogue, and reports drift. Use when asked to \"add the auth module\" or \"module drift\".",
+   "invocation": "auto",
+   "kind": "step",
+   "args": "add <module> --stack go|python | update [<module>] | list | drift",
+   "tools": [
+    "Read",
+    "Grep",
+    "Glob",
+    "Bash(bash *bin/brg-modules*)",
+    "Bash(uvx copier@9.19.1 copy:*)",
+    "Bash(uvx copier@9.19.1 update:*)",
+    "Bash(git status:*)",
+    "Bash(git diff:*)",
+    "Bash(git ls-remote:*)",
+    "Bash(ls:*)",
+    "Bash(make check:*)",
+    "Bash(make test:*)",
+    "Bash(go test:*)",
+    "Bash(uv run pytest:*)",
+    "AskUserQuestion"
+   ],
+   "extra": {},
+   "intro": "A module kit is built, tested code for a part every product rebuilds (authentication, IAM, notifications, health checks), kept as a Copier template in a catalogue repository. This skill copies a module into the product, where it becomes the product's own code, and pulls later fixes in with Copier's 3-way merge.",
+   "sections": [
+    {
+     "title": "Inputs",
+     "lines": 18
+    },
+    {
+     "title": "Steps",
+     "lines": 47
+    },
+    {
+     "title": "Output contract",
+     "lines": 10
+    },
+    {
+     "title": "Gotchas",
+     "lines": 15
+    }
+   ],
+   "inputs": [
+    "Action: `$1`, one of `add`, `update`, `list`, `drift`. Absent: `list`.",
+    "Module and stack, for `add`: `$2` and `--stack go|python`. No stack: infer it from the repository (`go.mod` is go, `pyproject.toml` with FastAPI is python); both or neither, ask once with AskUserQuestion as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says.",
+    "Catalogue url: `BEARING_MODULES_REPO`, read by the helper from the environment, then plugin settings (`modules_repo`), then `~/.config/bearing/bearing.env`. Empty by default. Any git url form works, ssh aliases included (`git@my-alias:group/catalogue.git`).",
+    "Helper: `bash \"${CLAUDE_PLUGIN_ROOT}/bin/brg-modules\" <command>`; commands `access`, `list`, `check <module> <stack>`, `installed`, `drift`. Exit 3 means no catalogue or no access; exit 4 means the catalogue does not list that module for that stack.",
+    "Installed modules: one Copier answers file per module under `.bearing/modules/<module>.yml`; its `_commit` is the catalogue version it was rendered from, `_src_path` the url it came from.",
+    "The product's gate: `make check` where a Makefile exists, else the stack's test command (`go test ./...`, `uv run pytest`)."
+   ],
+   "steps": [
+    "**Access first, every action.** Run `bash \"${CLAUDE_PLUGIN_ROOT}/bin/brg-modules\" access`. Exit 3: print its line, which starts \"module catalogue not available, building from guidance\", and stop this action with no error; a calling skill goes on with its own steps. Exit 2: the configured url was refused; quote it and stop. `drift` does its own check (step 5).",
+    "**add.** Run `bash \"${CLAUDE_PLUGIN_ROOT}/bin/brg-modules\" check <module> <stack>`. Exit 4: say the catalogue does not list it for that stack, print the helper's `list` so the user sees what is there, and stop. Status `next`: repeat the helper's warning in the report; the module works but has not met the catalogue's enterprise bar. An answers file for that module already present: this is an `update`, not a second co…",
+    "**update.** With a module: its answers file. Without: every file in `.bearing/modules/`; zero files stops with \"0 modules installed, nothing to update\". Copier refuses a dirty tree, so one module per pass: `uvx copier@9.19.1 update -a .bearing/modules/<module>.yml` (a question the new version adds goes in as `--data`, as in step 2). Copier merges the catalogue's change with local edits; a conflict leaves inline mark…",
+    "**list.** `bash \"${CLAUDE_PLUGIN_ROOT}/bin/brg-modules\" list`. It prints the catalogue's modules (name, stacks, status, version, and the tag read) and the modules installed here with their `_commit`. Print it as the helper wrote it.",
+    "**drift.** `bash \"${CLAUDE_PLUGIN_ROOT}/bin/brg-modules\" drift`. It compares each installed module's `_commit` with the newest catalogue tag and ends with \"drift: N modules checked against <tag>, B behind\". Exit 1 with \"0 modules installed\" is a failure, not a pass: nothing was checked. Without access it prints `skipped: no catalogue access (N modules not checked)` and exits 3; report that line as skipped, never as…"
+   ],
+   "output": "",
+   "gotchas": [
+    "Copier picks the newest git tag of the catalogue; with no tag yet it renders the default branch, and `_commit` is then a commit id. The helper says which it read.",
+    "`_src_path` in the answers file is the url used at install time. `copier update` reads it, not `BEARING_MODULES_REPO`, so an ssh alias that only exists on one laptop breaks updates in CI and on other machines. Install from a url every machine that updates can reach.",
+    "A local edit inside a module folder is what makes `copier update` conflict. Product logic calls the module through its interface and lives outside the folder; a fix to the module goes to the catalogue.",
+    "The catalogue lives behind access control; a product's CI needs read access (a deploy key or app) only to run `update` or `drift`, never to build, because the code is already in the product.",
+    "`-a` keeps one answers file per module. Without it Copier writes `.copier-answers.yml` and the second module overwrites the first."
+   ],
+   "layout": "",
+   "commands": [],
+   "lines": 125,
+   "files": [
+    {
+     "path": "SKILL.md",
+     "lines": 125
+    }
+   ],
+   "groups": {
+    ".": 1
    },
    "evals": true,
    "hasSections": [
@@ -9451,7 +9546,7 @@
    "sections": [
     {
      "title": "Inputs",
-     "lines": 28
+     "lines": 31
     },
     {
      "title": "Steps",
@@ -9475,7 +9570,8 @@
     "`.env.example`: created when absent.",
     "event sheet for business counter names: `docs/analytics/EVENT_SHEET.md`; if absent, names come from the code's domain nouns and the report says `analytics-events` is the fuller path.",
     "runbooks: `docs/runbooks/<Alert>.md`; a missing one gets a minimal stub (alert, meaning, first three checks) and the `runbook` command for the full version.",
-    "observability decision: an accepted ADR; else the Decisions first protocol below."
+    "observability decision: an accepted ADR; else the Decisions first protocol below.",
+    "module kit: when a module catalogue is configured and lists a module for this stack covering metrics, traces or logs, install it with `bearing:modules` first, then design only what it does not cover."
    ],
    "steps": [
     "Detect the services as in Inputs; each one is instrumented. Mobile and web apps count as services for crash and performance reporting, not for the collector. Before any code, per service, write the first two sections of `docs/observability/slos.md` from `templates/slos.md`: what working means (one or two sentences per user journey, what the user sees when it works) and the two to four questions on-call will ask, eac…",
@@ -9501,11 +9597,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 193,
+   "lines": 196,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 193
+     "lines": 196
     },
     {
      "path": "references/telemetry-conventions.md",
@@ -15008,7 +15104,7 @@
    "sections": [
     {
      "title": "Inputs",
-     "lines": 22
+     "lines": 25
     },
     {
      "title": "Steps",
@@ -15030,7 +15126,8 @@
     "Job mechanism for the async half: `docs/operations/JOBS.md`; if absent, an in-process queue with the note that `background-jobs` hardens it.",
     "Secret: the name only, from `docs/security/SECRETS.md` or the env read; the value never appears.",
     "Docs: the repository's own document for this integration when one exists (for example `docs/integrations/<provider>*.md` or a partner guide); update it in place. `templates/WEBHOOKS.md` becomes `docs/integrations/WEBHOOKS.md` only when nothing covers the integration yet; never a second document beside an existing one.",
-    "Test scenarios: `templates/webhook-test-cases.md` is a checklist for choosing tests. When the repository already keeps a test-case table (`docs/testing/test-cases.md`), each scenario kept becomes a row there in that table's own columns with the next free `TC-nnnn` id; when it does not, the tests themselves are the record and no table is created."
+    "Test scenarios: `templates/webhook-test-cases.md` is a checklist for choosing tests. When the repository already keeps a test-case table (`docs/testing/test-cases.md`), each scenario kept becomes a row there in that table's own columns with the next free `TC-nnnn` id; when it does not, the tests themselves are the record and no table is created.",
+    "Module kit: when a module catalogue is configured and lists a module for this stack covering webhook delivery or intake, install it with `bearing:modules` first, then design only what it does not cover."
    ],
    "steps": [
     "Inventory: grep for `webhook`, `X-Signature`, `X-Hub-Signature`, `Stripe-Signature`, `hmac`, `verify_signature`, `deliveries`. Print \"handlers: N, senders: M\". With `audit`, check each against the inbound and outbound lists below and report; nothing is changed.",
@@ -15053,11 +15150,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 145,
+   "lines": 148,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 145
+     "lines": 148
     },
     {
      "path": "templates/WEBHOOKS.md",
@@ -15792,11 +15889,36 @@
    ]
   },
   {
+   "path": "plugins/bearing/bin/brg-modules",
+   "name": "brg-modules",
+   "lang": "bash",
+   "group": "quality",
+   "lines": 173,
+   "header": "brg-modules: the module catalogue behind bearing:modules. The catalogue is a\ngit repository of Copier templates (catalog.yaml at its root, one answers\nfile per installed module under .bearing/modules/ in the product). Its url\nis configuration, never a default: BEARING_MODULES_REPO from the\nenvironment, then plugin settings (modules_repo), then bearing.env.\n\n  brg-modules repo                 print the configured catalogue url\n  brg-modules access               check read access (git ls-remote)\n  brg-modules latest               print the newest release tag (vX.Y.Z), or\n                                   \"none\" when the catalogue has no tag yet\n  brg-modules list [dir]           catalogue modules (name, stacks, status,\n                                   version) and those installed in dir\n  brg-modules check <module> <stack>  the catalogue lists it for that stack;\n                                   prints its status and version\n  brg-modules installed [dir]      one \"<module> <_commit>\" line per answers file\n  brg-modules drift [dir]          each installed module's _commit against\n                                   the newest tag; prints the count checked\n\nExit codes: 0 ok; 1 a finding (drift behind, nothing installed, bad answers\nfile); 2 usage or a catalogue url this script will not pass to git; 3 no\ncatalogue configured or no access: the caller builds from guidance, and\ndrift reports \"skipped\", never a pass; 4 the catalogue does not list the\nmodule for that stack. bash 3.2 safe.",
+   "functions": [
+    "dir_arg",
+    "repo_url",
+    "need_repo",
+    "tags",
+    "newest",
+    "fetch",
+    "catalog",
+    "answer",
+    "installed"
+   ],
+   "env": [
+    "BEARING_MODULES_REPO"
+   ],
+   "calls": [
+    "brg-config"
+   ]
+  },
+  {
    "path": "plugins/bearing/bin/brg-plugin-options",
    "name": "brg-plugin-options",
    "lang": "bash",
    "group": "quality",
-   "lines": 158,
+   "lines": 165,
    "header": "brg-plugin-options: Bearing's Claude Code plugin settings (userConfig in\nplugins/bearing/.claude-plugin/plugin.json) as the BEARING_* keys the other\nscripts read. Precedence everywhere: the environment, then these settings,\nthen bearing.env, then each script's default.\n\n  brg-plugin-options print      one BEARING_KEY=value line per set option\n  brg-plugin-options rejected   one \"<option>: <why>\" line per set option\n                                whose value its key does not allow\n  brg-plugin-options write      write the copy (the SessionStart hook)\n  brg-plugin-options path       print where the copy lives\n\nClaude Code hands the settings to hook processes only, as\nCLAUDE_PLUGIN_OPTION_<KEY>; the agent's Bash tool and a skill's shell\ninjection get none of them (probed on 2.1.287). So the SessionStart hook,\noutside the sandbox, writes the set options to a copy,\n${XDG_CONFIG_HOME:-$HOME/.config}/bearing-options/options.env, and print\nreads that copy when no CLAUDE_PLUGIN_OPTION_ variable is present.\n\nThe copy is something the agent can read but, where the repository settings\ntemplate is in force, not write (sandbox denyWrite and an Edit deny on the\nfolder): a tracker URL it could rewrite would send the token elsewhere. So\nonly the keys below are ever read from it, every value is checked again on\nthe way in, a copy that is a link or has a second hard link is not read,\nand no secret is a plugin setting: BEARING_TRACKER_TOKEN,\nBEARING_TRACKER_PASSWORD and BEARING_AUTO_PUSH stay in bearing.env.\nA set value its key does not allow is never used and never silent: write\nkeeps its option name in the copy, rejected prints it, and brg-tracker\nconfig and the session line name it. bash 3.2 safe.",
    "functions": [
     "trim",
@@ -15812,6 +15934,7 @@
     "BEARING_AUTO_PUSH",
     "BEARING_KEY",
     "BEARING_LEARNING",
+    "BEARING_MODULES_REPO",
     "BEARING_NONINTERACTIVE",
     "BEARING_TASK_ID_PREFIX",
     "BEARING_TRACKER",
@@ -16298,7 +16421,7 @@
    "name": "gen-guide.py",
    "lang": "python",
    "group": "generators",
-   "lines": 1424,
+   "lines": 1425,
    "header": "Generate the documents that derive from the skills in this repository:\n\n  site/src/data/handbook.json   everything the handbook site renders\n  docs/WORKFLOW.md              the stage tables between the markers\n\nEvery table comes from one source: the skill frontmatter (name,\ndescription, invocation), CATEGORY and STAGES below, plus two reviewed\nfiles: docs/flows.json (the six task flows) and docs/skill-summaries.json\n(what each skill does and when to use it, written for a reader; the\ndescription stays written for triggering and only supplies the search\nphrases). Fails when zero skills are found, when a skill has no category\nor no summary, when a summary names no skill, when a row names more than one skill,\nor when a row or a flow names a skill that is neither a Bearing skill nor\nlisted in docs/known-skills.txt.\n\n    gen-guide.py                        write every document\n    gen-guide.py --write-known-skills   rewrite docs/known-skills.txt from\n                                        the skills installed on this\n                                        machine, then continue\n    gen-guide.py --check-names          the default; kept as a flag so a\n                                        caller can name the intent",
    "functions": [
     "scan_installed",
@@ -19290,6 +19413,13 @@
    "asserts": 24
   },
   {
+   "path": "tests/unit/modules_catalogue.sh",
+   "kind": "unit",
+   "lines": 107,
+   "header": "tests/unit/modules_catalogue.sh: brg-modules, the helper behind bearing:modules. The catalogue url is configuration with no default; without it, or without access, every command says \"module catalogue not available\" and exits 3, and drift reports \"skipped\", never a pass. A local git repository stands in for the catalogue. bash 3.2 safe.",
+   "asserts": 40
+  },
+  {
    "path": "tests/unit/motion_check.sh",
    "kind": "unit",
    "lines": 171,
@@ -19334,9 +19464,9 @@
   {
    "path": "tests/unit/plugin_options.sh",
    "kind": "unit",
-   "lines": 164,
+   "lines": 177,
    "header": "tests/unit/plugin_options.sh: Bearing's Claude Code plugin settings (userConfig). Hooks get them as CLAUDE_PLUGIN_OPTION_<KEY>; the agent's Bash gets none, so the SessionStart hook writes a copy that brg-plugin-options print reads back. Precedence is the environment, then plugin settings, then bearing.env. Only the listed, non-secret keys pass, each value checked on the way out of the copy too. bash 3.2 safe.",
-   "asserts": 80
+   "asserts": 90
   },
   {
    "path": "tests/unit/prd_doc_to_text.sh",
@@ -20589,16 +20719,18 @@
   },
   {
    "path": "user/bearing.env",
-   "lines": 114
+   "lines": 121
   }
  ],
  "changelog": [
   {
    "version": "Unreleased",
    "date": "",
-   "groups": [],
-   "entries": 0,
-   "summary": ""
+   "groups": [
+    "Added"
+   ],
+   "entries": 2,
+   "summary": "- `bearing:modules` installs module kits (Copier templates) from a module catalogue: `add <module> --stack go|python`, `update [<module>]`, `list` and `drift`. The catalogue url is configuration with no default, the new `BEARING_MODULES_REPO` key (environment, the `modules_repo` plugin setting, or bearing.env), and any ssh alias works. Access is checked with `git ls-remote` first; without it the action says \"module catalogue not available, building from guidance\" and stops, and `drift` prints `skipped: no catalogue access (N modules not checked)`, never a pass. The helper is `bin/brg-modules`; Copier runs pinned, as `uvx copier@9.19.1`. - `auth`, `logging`, `observability`, `health-checks`,…"
   },
   {
    "version": "0.11.0",
@@ -20724,6 +20856,7 @@
   "mcp-server",
   "merge-request",
   "model-routing",
+  "modules",
   "motion-design",
   "new-repo",
   "new-skill",

@@ -43,6 +43,9 @@ conventions.md.
   is improvised.
 - `.env.example` and README: the existing ones are extended in place;
   created only when absent.
+- module kit: when a module catalogue is configured and lists a module for
+  this stack covering structured logging, install it with `bearing:modules`
+  first, then design only what it does not cover.
 
 ## Steps
 

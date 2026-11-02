@@ -47,6 +47,9 @@ are in `references/telemetry-conventions.md`.
   for the full version.
 - observability decision: an accepted ADR; else the Decisions first
   protocol below.
+- module kit: when a module catalogue is configured and lists a module for
+  this stack covering metrics, traces or logs, install it with
+  `bearing:modules` first, then design only what it does not cover.
 
 ## Steps
 

@@ -4,6 +4,20 @@ All notable changes to Bearing. Keep a Changelog format, semantic versions.
 
 ## [Unreleased]
 
+### Added
+- `bearing:modules` installs module kits (Copier templates) from a module
+  catalogue: `add <module> --stack go|python`, `update [<module>]`, `list`
+  and `drift`. The catalogue url is configuration with no default, the new
+  `BEARING_MODULES_REPO` key (environment, the `modules_repo` plugin
+  setting, or bearing.env), and any ssh alias works. Access is checked with
+  `git ls-remote` first; without it the action says "module catalogue not
+  available, building from guidance" and stops, and `drift` prints
+  `skipped: no catalogue access (N modules not checked)`, never a pass.
+  The helper is `bin/brg-modules`; Copier runs pinned, as `uvx copier@9.19.1`.
+- `auth`, `logging`, `observability`, `health-checks`, `background-jobs`,
+  `feature-flags` and `webhooks` install a catalogue module that covers
+  their area first, when one is configured, and design only the rest.
+
 ## [0.11.0] - 2026-10-30
 
 ### Added

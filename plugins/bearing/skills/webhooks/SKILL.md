@@ -41,6 +41,9 @@ and response API, not events.
   (`docs/testing/test-cases.md`), each scenario kept becomes a row there
   in that table's own columns with the next free `TC-nnnn` id; when it
   does not, the tests themselves are the record and no table is created.
+- Module kit: when a module catalogue is configured and lists a module for
+  this stack covering webhook delivery or intake, install it with
+  `bearing:modules` first, then design only what it does not cover.
 
 ## Steps
 

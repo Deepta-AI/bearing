@@ -40,7 +40,8 @@ TRACKER_EMAIL|BEARING_TRACKER_EMAIL|text
 TASK_ID_PREFIX|BEARING_TASK_ID_PREFIX|prefix
 LEARNING|BEARING_LEARNING|onoff
 NONINTERACTIVE|BEARING_NONINTERACTIVE|onoff01
-UPDATE_CHECK|BEARING_UPDATE_CHECK|onoff'
+UPDATE_CHECK|BEARING_UPDATE_CHECK|onoff
+MODULES_REPO|BEARING_MODULES_REPO|gitrepo'
 
 trim() { local v="$1"; v="${v#"${v%%[![:space:]]*}"}"; printf '%s' "${v%"${v##*[![:space:]]}"}"; }
 
@@ -61,6 +62,11 @@ value() {
     prefix) printf '%s' "$v" | grep -Eq '^[A-Z][A-Z0-9]*$' && printf '%s' "$v";;
     onoff) case "$lower" in (on|off) printf '%s' "$lower";; esac;;
     onoff01) case "$lower" in (on) printf 1;; (off) printf 0;; esac;;
+    gitrepo) case "$v" in
+               (-*|*::*|*[[:space:]\"\'\`\$\\\;\|\&\<\>]*) ;;
+               (https://?*|ssh://?*) printf '%s' "$v";;
+               (*@*:?*) case "${v%%:*}" in (*[!A-Za-z0-9._@-]*) ;; (*) printf '%s' "$v";; esac;;
+             esac;;
   esac
   return 0
 }
@@ -72,6 +78,7 @@ why() { # why <kind>: the reason a value of that kind was not allowed
     text) printf 'holds a quote, $, backtick or backslash';;
     prefix) printf 'not upper-case letters and digits';;
     onoff|onoff01) printf 'not on or off';;
+    gitrepo) printf 'not a git url (user@host:path, ssh:// or https://) without spaces, quotes or shell characters';;
   esac
 }
 

@@ -151,12 +151,25 @@ assert_contains "$(jq -r '.sandbox.filesystem.denyWrite[]' "$S")" "~/.config/bea
 assert_not_contains "$(jq -r '.sandbox.filesystem.denyRead[]' "$S")" "~/.config/bearing-options" "the agent's Bash can read it"
 t_end
 
+t_begin "the module catalogue url takes any ssh alias and refuses what git reads as an option"
+assert_exit 0 opts CLAUDE_PLUGIN_OPTION_MODULES_REPO=git@my-alias:group/catalogue.git
+assert_contains "$T_OUT" "BEARING_MODULES_REPO=git@my-alias:group/catalogue.git"
+assert_exit 0 opts CLAUDE_PLUGIN_OPTION_MODULES_REPO=ssh://git@host:2222/group/catalogue.git
+assert_contains "$T_OUT" "BEARING_MODULES_REPO=ssh://git@host:2222/group/catalogue.git"
+assert_exit 0 opts CLAUDE_PLUGIN_OPTION_MODULES_REPO=--upload-pack=touch
+assert_eq "" "$T_OUT" "a leading dash is dropped"
+assert_exit 0 opts "CLAUDE_PLUGIN_OPTION_MODULES_REPO=ext::sh -c id"
+assert_eq "" "$T_OUT" "a transport helper is dropped"
+assert_exit 0 env CLAUDE_PLUGIN_OPTION_MODULES_REPO='a$(id)@h:x' bash "$O" rejected
+assert_contains "$T_OUT" "modules_repo: not a git url"
+t_end
+
 t_begin "the manifest's options are the script's, and none is a secret"
 M="$KIT/plugins/bearing/.claude-plugin/plugin.json"
 manifest="$(jq -r '.userConfig | keys[] | ascii_upcase' "$M" | sort | tr '\n' ' ')"
 script="$(sed -n "/^MAP='/,/'\$/p" "$O" | sed -e "s/^MAP='//" -e "s/'\$//" | cut -d'|' -f1 | sort | tr '\n' ' ')"
 assert_eq "$script" "$manifest" "same options"
-assert_eq 8 "$(jq '.userConfig | length' "$M")" "eight options"
+assert_eq 9 "$(jq '.userConfig | length' "$M")" "nine options"
 assert_eq "" "$(jq -r '.userConfig | to_entries[] | select(.value.sensitive == true or (.key | test("token|password|push"))) | .key' "$M")" "no secret, no push"
 assert_eq "" "$(jq -r '.userConfig | to_entries[] | select(has("value") and (.value | has("default"))) | .key' "$M")" "no default overrides bearing.env"
 t_end

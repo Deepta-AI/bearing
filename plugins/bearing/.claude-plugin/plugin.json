@@ -61,6 +61,11 @@
       "type": "string",
       "title": "Check for Bearing updates",
       "description": "off stops the once-a-day check for a newer release at session start. Empty: bearing.env, else on."
+    },
+    "modules_repo": {
+      "type": "string",
+      "title": "Module catalogue",
+      "description": "Git url of a module catalogue for bearing:modules, such as git@host:group/repo.git. Empty: bearing.env, else none."
     }
   }
 }

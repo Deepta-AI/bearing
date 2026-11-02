@@ -1,0 +1,173 @@
+#!/usr/bin/env bash
+# brg-modules: the module catalogue behind bearing:modules. The catalogue is a
+# git repository of Copier templates (catalog.yaml at its root, one answers
+# file per installed module under .bearing/modules/ in the product). Its url
+# is configuration, never a default: BEARING_MODULES_REPO from the
+# environment, then plugin settings (modules_repo), then bearing.env.
+#
+#   brg-modules repo                 print the configured catalogue url
+#   brg-modules access               check read access (git ls-remote)
+#   brg-modules latest               print the newest release tag (vX.Y.Z), or
+#                                    "none" when the catalogue has no tag yet
+#   brg-modules list [dir]           catalogue modules (name, stacks, status,
+#                                    version) and those installed in dir
+#   brg-modules check <module> <stack>  the catalogue lists it for that stack;
+#                                    prints its status and version
+#   brg-modules installed [dir]      one "<module> <_commit>" line per answers file
+#   brg-modules drift [dir]          each installed module's _commit against
+#                                    the newest tag; prints the count checked
+#
+# Exit codes: 0 ok; 1 a finding (drift behind, nothing installed, bad answers
+# file); 2 usage or a catalogue url this script will not pass to git; 3 no
+# catalogue configured or no access: the caller builds from guidance, and
+# drift reports "skipped", never a pass; 4 the catalogue does not list the
+# module for that stack. bash 3.2 safe.
+set -u
+
+UNAVAILABLE="module catalogue not available, building from guidance"
+here="$(cd "$(dirname "$0")" && pwd)"
+dir_arg() { printf '%s' "${1:-.}"; }
+
+# repo_url: the configured url, checked. Anything git could read as an option
+# (a leading -) or a transport helper (::, ext::) is refused, as are spaces,
+# quotes and shell characters. Accepted: https:// and ssh:// urls, scp-style
+# user@host:path (any ssh alias, not only github.com), file:// and an
+# absolute path (a local mirror).
+repo_url() {
+  local v="${BEARING_MODULES_REPO:-}"
+  if [ -z "$v" ] && [ -f "$here/brg-config" ]; then v="$(bash "$here/brg-config" get modules-repo --user 2>/dev/null)"; fi
+  [ -n "$v" ] || return 3
+  case "$v" in
+    -*|*::*|*[[:space:]\"\'\`\$\\\;\|\&\<\>]*) echo "brg-modules: BEARING_MODULES_REPO is not a git url this script will use: $v" >&2; return 2;;
+    https://?*|ssh://?*|file:///*|/*) ;;
+    *@*:*) case "${v%%:*}" in *[!A-Za-z0-9._@-]*) echo "brg-modules: BEARING_MODULES_REPO is not a git url this script will use: $v" >&2; return 2;; esac;;
+    *) echo "brg-modules: BEARING_MODULES_REPO is not a git url this script will use: $v" >&2; return 2;;
+  esac
+  printf '%s' "$v"
+}
+
+# need_repo: set u to the url, or print the unavailable line and exit.
+need_repo() {
+  local rc
+  u="$(repo_url)"; rc=$?
+  [ "$rc" -eq 0 ] && return 0
+  [ "$rc" -eq 3 ] && echo "$UNAVAILABLE (BEARING_MODULES_REPO is not set)"
+  exit "$rc"
+}
+
+# tags <url>: release tag names, one per line, or exit 3 without access.
+tags() {
+  local out
+  out="$(GIT_TERMINAL_PROMPT=0 GIT_SSH_COMMAND="${GIT_SSH_COMMAND:-ssh -o BatchMode=yes}" git ls-remote --tags --refs -- "$1" 2>&1)" \
+    || { echo "$UNAVAILABLE (git ls-remote failed: $(printf '%s\n' "$out" | grep . | head -1))"; return 3; }
+  printf '%s\n' "$out" | awk '{sub("refs/tags/", "", $2); print $2}' | grep -E '^v?[0-9]+\.[0-9]+\.[0-9]+$' || true
+}
+
+# newest: the highest X.Y.Z among the tags on stdin, or "none".
+newest() {
+  awk -F. '{ t=$0; s=$0; sub(/^v/, "", s); split(s, p, ".");
+             k=sprintf("%09d%09d%09d", p[1], p[2], p[3]); if (k > best) { best=k; tag=t } }
+           END { print (tag == "" ? "none" : tag) }'
+}
+
+# fetch <url>: a shallow clone of the newest tag (or the default branch when
+# there is none) into a temporary folder; prints the folder.
+fetch() {
+  local url="$1" t d
+  t="$(tags "$url")" || return 3
+  t="$(printf '%s\n' "$t" | grep . | newest)"
+  d="$(mktemp -d "${TMPDIR:-/tmp}/brg-modules.XXXXXX")" || return 1
+  if [ "$t" = none ]; then
+    GIT_TERMINAL_PROMPT=0 git clone -q --depth 1 -- "$url" "$d/c" >/dev/null 2>&1 || { rm -rf "$d"; echo "$UNAVAILABLE (clone failed)"; return 3; }
+  else
+    GIT_TERMINAL_PROMPT=0 git clone -q --depth 1 --branch "$t" -- "$url" "$d/c" >/dev/null 2>&1 || { rm -rf "$d"; echo "$UNAVAILABLE (clone of $t failed)"; return 3; }
+  fi
+  printf '%s\t%s' "$d" "$t"
+}
+
+# catalog <file>: one "name|version|status|stacks" line per module, from the
+# flat shape catalog.yaml keeps (- name:, version:, status:, stacks: [a, b]).
+catalog() {
+  awk '
+    function flush() { if (n != "") print n "|" v "|" s "|" k; n=""; v=""; s=""; k="" }
+    /^[[:space:]]*- name:/ { flush(); n=$0; sub(/.*name:[[:space:]]*/, "", n); next }
+    /^[[:space:]]+version:/ { v=$0; sub(/.*version:[[:space:]]*/, "", v); next }
+    /^[[:space:]]+status:/  { s=$0; sub(/.*status:[[:space:]]*/, "", s); next }
+    /^[[:space:]]+stacks:/  { k=$0; sub(/.*stacks:[[:space:]]*/, "", k); gsub(/[][ ]/, "", k); next }
+    END { flush() }' "$1"
+}
+
+# answer <file> <key>: a top-level value from a Copier answers file.
+answer() { awk -v k="$2" -v q="'" -F': *' '$1 == k { v=$2; gsub("^[\"" q "]|[\"" q "]$", "", v); print v; exit }' "$1"; }
+
+installed() {
+  local d f m c n=0
+  d="$(dir_arg "${1:-}")/.bearing/modules"
+  for f in "$d"/*.yml "$d"/*.yaml; do
+    [ -f "$f" ] || continue
+    m="$(answer "$f" module)"; [ -n "$m" ] || m="$(basename "${f%.*}")"
+    c="$(answer "$f" _commit)"; [ -n "$c" ] || c="unknown"
+    printf '%s %s %s\n' "$m" "$c" "$f"; n=$((n+1))
+  done
+  return 0
+}
+
+cmd="${1:-}"; [ $# -gt 0 ] && shift
+case "$cmd" in
+  repo) need_repo; printf '%s\n' "$u";;
+  access)
+    need_repo
+    t="$(tags "$u")" || { printf '%s\n' "$t"; exit 3; }
+    echo "access: ok, $(printf '%s\n' "$t" | grep -c . | tr -d ' ') release tags at $u";;
+  latest)
+    need_repo
+    t="$(tags "$u")" || { printf '%s\n' "$t"; exit 3; }
+    printf '%s\n' "$t" | grep . | newest;;
+  installed) installed "${1:-}";;
+  list|check)
+    if [ "$cmd" = check ]; then [ $# -eq 2 ] || { echo "usage: brg-modules check <module> <stack>" >&2; exit 2; }; fi
+    need_repo
+    r="$(fetch "$u")" || { printf '%s\n' "$r"; exit 3; }
+    tmp="${r%%	*}"; tag="${r#*	}"; trap 'rm -rf "$tmp"' EXIT
+    [ "$tag" != none ] || tag="the default branch (no release tag yet)"
+    [ -f "$tmp/c/catalog.yaml" ] || { echo "brg-modules: the catalogue at $tag has no catalog.yaml" >&2; exit 1; }
+    rows="$(catalog "$tmp/c/catalog.yaml")"
+    n="$(printf '%s\n' "$rows" | grep -c . | tr -d ' ')"
+    [ "$n" -gt 0 ] || { echo "brg-modules: catalog.yaml at $tag lists 0 modules" >&2; exit 1; }
+    if [ "$cmd" = check ]; then
+      line="$(printf '%s\n' "$rows" | awk -F'|' -v m="$1" '$1 == m' | head -1)"
+      [ -n "$line" ] || { echo "check: $1 is not in the catalogue at $tag ($n modules)"; exit 4; }
+      case ",$(printf '%s' "$line" | cut -d'|' -f4)," in
+        *",$2,"*) ;;
+        *) echo "check: $1 is in the catalogue at $tag but not for stack $2 (stacks: $(printf '%s' "$line" | cut -d'|' -f4))"; exit 4;;
+      esac
+      st="$(printf '%s' "$line" | cut -d'|' -f3)"
+      echo "check: $1 for $2, version $(printf '%s' "$line" | cut -d'|' -f2), status $st, catalogue $tag"
+      [ "$st" != next ] || echo "warning: $1 is status next: usable, not yet past the enterprise bar"
+      exit 0
+    fi
+    echo "catalogue: $u at $tag, $n modules"
+    printf '%s\n' "$rows" | awk -F'|' '{ printf "  %-20s stacks %-14s status %-7s version %s\n", $1, $4, $3, $2 }'
+    inst="$(installed "${1:-}")"
+    echo "installed here: $(printf '%s\n' "$inst" | grep -c . | tr -d ' ')"
+    [ -z "$inst" ] || printf '%s\n' "$inst" | awk '{ printf "  %-20s _commit %s\n", $1, $2 }';;
+  drift)
+    inst="$(installed "${1:-}")"
+    n="$(printf '%s\n' "$inst" | grep -c . | tr -d ' ')"
+    [ "$n" -gt 0 ] || { echo "drift: 0 modules installed under $(dir_arg "${1:-}")/.bearing/modules, nothing checked"; exit 1; }
+    u="$(repo_url)"; rc=$?
+    [ "$rc" -eq 0 ] || { echo "skipped: no catalogue access ($n modules not checked)"; exit 3; }
+    t="$(tags "$u")" || { echo "skipped: no catalogue access ($n modules not checked)"; exit 3; }
+    latest="$(printf '%s\n' "$t" | grep . | newest)"
+    behind=0
+    while read -r m c f; do
+      if [ "$latest" = none ]; then echo "  $m: _commit $c, the catalogue has no release tag to compare with"; behind=$((behind+1))
+      elif [ "$c" = "$latest" ]; then echo "  $m: current ($c)"
+      else echo "  $m: behind ($c, newest $latest)"; behind=$((behind+1)); fi
+    done <<EOF
+$inst
+EOF
+    echo "drift: $n modules checked against $latest, $behind behind"
+    [ "$behind" -eq 0 ] || exit 1;;
+  *) echo "usage: brg-modules repo|access|latest|list [dir]|check <module> <stack>|installed [dir]|drift [dir]" >&2; exit 2;;
+esac

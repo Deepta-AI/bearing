@@ -43,6 +43,9 @@ conventions.md.
 - templates: `templates/readyz/go.md`, `templates/readyz/python.md`,
   `templates/synthetic-journey.md`, `templates/blackbox.yml`.
 - uptime monitor choice: an accepted ADR; else Decisions first below.
+- module kit: when a module catalogue is configured and lists a module for
+  this stack covering health endpoints, install it with `bearing:modules`
+  first, then design only what it does not cover.
 
 ## Steps
 
