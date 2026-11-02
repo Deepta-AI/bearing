@@ -3,14 +3,14 @@
 - Task: NOTASK-5
 - Title: ModuleKits
 - Branch: feat/ModuleKits
-- Status: started
+- Status: merged
 - Owner: Deepta-AI
 - Started: 2026-11-02
 - Updated: 2026-11-02
 - Acceptance criteria: 7
 
 ## Next
-- make check, then definition-of-done
+- none
 
 ## Done
 - none
