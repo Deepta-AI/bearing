@@ -83,6 +83,7 @@ CATEGORY = {
         "git-hooks",
     ],
     "platform": [
+        "modules",
         "observability",
         "logging",
         "health-checks",

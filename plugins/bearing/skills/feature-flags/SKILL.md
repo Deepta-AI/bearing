@@ -21,10 +21,12 @@ Detail: references/parser-and-values.md
   is `add` then `use`; "rip it out" is `remove`.
 - stack: from `go.mod`, `pyproject.toml`, `package.json` with `react` or
   `expo`, `build.gradle.kts`, `Package.swift` or `*.xcodeproj`.
-- flags module: the stack path in step 2 when it exists, else created from the
-  shape: one typed enumeration (a string literal flag name anywhere else is a
-  finding), only "true", "1" and "on" parse as on, and no network call inside
-  `Enabled`. Detail: references/flags-module-shape.md
+- flags module: the stack path in step 2 when it exists; else, when a module
+  catalogue is configured and lists a flags module for this stack, install it
+  with `bearing:modules` first, then design only what it does not cover; else
+  created from the shape: one typed enumeration (a string literal flag name
+  anywhere else is a finding), only "true", "1" and "on" parse as on, and no
+  network call inside `Enabled`. Detail: references/flags-module-shape.md
 - register: `docs/operations/flags.md` (or the path an ADR names). When it
   exists, its columns, headings and conventions are the team's: add or move one
   row in its own shape and never restructure it. When absent, create it from
@@ -38,11 +40,9 @@ Detail: references/parser-and-values.md
 - owner: `--owner`; else the rotation the register or ADR already uses for the
   owning team; else a team named in CODEOWNERS. A person is never the owner,
   even when CODEOWNERS lists one.
-- base branch: `git merge-base HEAD origin/HEAD` (or `main`, `trunk`, `master`,
-  whichever exists).
+- base branch: `git merge-base HEAD origin/HEAD`, else main, trunk or master.
 - audit: `scripts/flags_check.py` in this skill, run from the repository root.
-- gate: `make check` when the Makefile has it, else the stack's native test
-  command, and the report says which.
+- gate: `make check` if the Makefile has it, else the stack's tests; say which.
 
 ## Steps
 

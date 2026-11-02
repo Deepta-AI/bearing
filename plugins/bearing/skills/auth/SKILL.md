@@ -34,6 +34,9 @@ proves it did not. This skill builds the controls between the two.
 - Templates: `templates/AUTH.md` to `docs/security/AUTH.md`,
   `templates/permission-matrix.md` to `docs/security/permission-matrix.md`,
   written only when step 7 says so.
+- Module kit: when a module catalogue is configured and lists a module for
+  this stack covering login, sessions or roles, install it with
+  `bearing:modules` first, then design only what it does not cover.
 
 ## Steps
 

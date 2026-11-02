@@ -128,6 +128,7 @@ does not allow is never used: the session start names it, and so do
 | `learning` | `BEARING_LEARNING` | on or off; empty asks once |
 | `noninteractive` | `BEARING_NONINTERACTIVE` | on or off (on sets 1) |
 | `update_check` | `BEARING_UPDATE_CHECK` | on or off; off stops the daily check |
+| `modules_repo` | `BEARING_MODULES_REPO` | the module catalogue's git url (`git@host:path`, `ssh://`, `https://`) |
 
 Tokens, passwords and `BEARING_AUTO_PUSH` are not plugin settings, on
 purpose. Claude Code hands plugin settings to hooks only: the agent's Bash
@@ -159,6 +160,7 @@ Edit `~/.config/bearing/bearing.env`. Every key, with its default:
 | `BEARING_GIT_HOST` | which host's CI and change template a repository gets: gitlab, github or both | `both` |
 | `BEARING_KIT_REMOTE` | git url developers install Bearing from; set it when your team uses a fork | the checkout's own remote (the public repository for a plain clone) |
 | `BEARING_ORG_ID` | reverse-domain id for mobile bundle ids | `com.example` |
+| `BEARING_MODULES_REPO` | git url of a module catalogue (Copier templates with a `catalog.yaml`) that `bearing:modules` installs from; any ssh alias works (`git@my-alias:group/catalogue.git`); access is checked with `git ls-remote` | empty (skills build from guidance) |
 | `BEARING_AUTO_PUSH` | full push urls (`git@host:group/repo.git`, `ssh://git@host:2222/group/repo.git`, `https://host/group/repo.git`; http://, git:// and helper urls never count) of the repositories where merge-request and autopilot may have the current task branch pushed after the gate; Bearing pushes from a fresh clone to the entry whose host and path match origin's url, never to origin's configured url; read from `~/.config/bearing/bearing.env` under the passwd home only, never from the environment, `BEARING_ENV` or `XDG_CONFIG_HOME`; an `export BEARING_AUTO_PUSH=` line is ignored (write the key without `export`) | empty (Bearing never pushes) |
 
 `BEARING_TRACKER=none` is a valid, complete configuration: every ticket step

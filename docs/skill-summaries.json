@@ -243,6 +243,10 @@
     "what": "Measures candidate models on a feature's eval and writes the cheapest route or cascade that still clears the threshold",
     "when": "you want to cut LLM spend without dropping below a feature's quality bar"
   },
+  "modules": {
+    "what": "Installs module kits (built, tested code for auth, health checks and the like) from a configured Copier catalogue, updates them and reports drift",
+    "when": "a team keeps a module catalogue and a product needs a part it covers, or installed modules may be behind"
+  },
   "motion-design": {
     "what": "Builds a requested animation from the motion tokens with a reduced-motion path, then checks it with the motion gate",
     "when": "a screen needs animation that stays smooth and respects people who asked for less motion"

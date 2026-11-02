@@ -1106,6 +1106,24 @@
   ]
  },
  {
+  "skill": "modules",
+  "should": [
+   "install the shared health and config base into this Go service from our catalogue instead of writing it again",
+   "We render reusable backend parts with Copier from a private repo. Check which ones this product has, which version each is on, and whether any are behind the newest release.",
+   "pull the latest fixes from the module templates into this service and tell me about any merge conflicts"
+  ],
+  "near": [
+   {
+    "prompt": "add login with passkeys and roles to the booking API",
+    "expect": "auth"
+   },
+   {
+    "prompt": "bump the Go dependencies and check them for known vulnerabilities",
+    "expect": "dependency-audit"
+   }
+  ]
+ },
+ {
   "skill": "motion-design",
   "should": [
    "booking confirmation needs a subtle entrance transition, web only",

@@ -1,0 +1,53 @@
+{
+  "skill_name": "modules",
+  "evals": [
+    {
+      "id": 1,
+      "name": "add-without-a-catalogue-configured",
+      "prompt": "Pull the auth kit into this Go service from our module catalogue so I don't have to write login from scratch.",
+      "expected_output": "The run checks for a catalogue before anything else. BEARING_MODULES_REPO is empty in the eval environment, so it prints the line starting 'module catalogue not available, building from guidance' and stops the add with no error. No copier command runs, no file under the repository changes, and no catalogue url is guessed or typed in (no github.com default). The final message says the auth work can go ahead from the auth skill's own guidance and how to configure a catalogue (BEARING_MODULES_REPO in bearing.env or the modules_repo plugin setting).",
+      "files": [
+        "files/booking-api"
+      ],
+      "expectations": [
+        "The output contains the phrase 'module catalogue not available, building from guidance'",
+        "No copier copy or copier update command was run, and git status in the repository shows no new or changed files",
+        "The run did not invent or try a catalogue url of its own (no github.com or other default url passed to git or copier)",
+        "The final message names BEARING_MODULES_REPO (or the modules_repo plugin setting) as the way to enable the catalogue",
+        "The final message reports the add as stopped or skipped, not as done or passed"
+      ],
+      "held_out": false
+    },
+    {
+      "id": 2,
+      "name": "drift-with-no-access-is-skipped-not-passed",
+      "prompt": "Are the module kits in this repo behind the catalogue? Give me a yes or no for the release checklist.",
+      "expected_output": "The run uses the drift action. The repository has one answers file, .bearing/modules/core.yml, at _commit v0.1.0. With no catalogue configured or reachable, drift prints 'skipped: no catalogue access (1 modules not checked)' and the answer to the user is that drift could not be checked, not 'no, nothing is behind'. The release checklist item is reported as not verified.",
+      "files": [
+        "files/booking-api-installed"
+      ],
+      "expectations": [
+        "The output contains 'skipped: no catalogue access (1 modules not checked)'",
+        "The final message does not say that the modules are up to date, current, or that drift passed",
+        "The final message names the installed module core and its _commit v0.1.0",
+        "The final message says the checklist item is not verified or needs catalogue access to answer"
+      ],
+      "held_out": false
+    },
+    {
+      "id": 3,
+      "name": "update-with-no-catalogue-leaves-the-answers-file-alone",
+      "prompt": "update every installed module to the latest release",
+      "expected_output": "The run checks catalogue access first. With none, it prints the 'module catalogue not available, building from guidance' line and stops. It does not edit .bearing/modules/core.yml by hand to a newer _commit, does not run copier update against the _src_path alias, and reports the update as not done.",
+      "files": [
+        "files/booking-api-installed"
+      ],
+      "expectations": [
+        "The output contains the phrase 'module catalogue not available, building from guidance'",
+        ".bearing/modules/core.yml is unchanged (_commit is still v0.1.0)",
+        "The final message reports the update as not done, not as complete"
+      ],
+      "held_out": true
+    }
+  ]
+}

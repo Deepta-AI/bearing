@@ -41,6 +41,9 @@ fires; this skill leaves the stub. `analytics-events` is analytics, not jobs.
   where the repository keeps operational docs (`docs/operations/JOBS.md`,
   `docs/runbooks/<job>-backlog.md`). A repository with no docs directory
   gets a jobs section in its README instead of a new docs tree.
+- Module kit: when a module catalogue is configured and lists a module for
+  this stack covering jobs or scheduling, install it with `bearing:modules`
+  first, then design only what it does not cover.
 
 ## Steps
 

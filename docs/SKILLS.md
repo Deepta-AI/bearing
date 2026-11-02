@@ -84,6 +84,7 @@ The eight subagents are `bearing:reviewer`, `bearing:verifier`,
 | `mcp-server` | bearing-genai | Builds an MCP server in Python or TypeScript with tested tools and auth | asked to "build an MCP server" or "expose this as MCP tools" |
 | `merge-request` | bearing | Prepares the MR for the current branch: gate run, commit audit, diff summary, description | asked to "prepare the MR" or "write the MR text" |
 | `model-routing` | bearing-genai | Picks the cheapest LLM model or cascade per feature that still passes its eval | asked "which model should we use" or "cut our LLM bill" |
+| `modules` | bearing | Installs, updates and lists module kits from a configured catalogue, and reports drift | asked to "add the auth module" or "module drift" |
 | `motion-design` | bearing | Writes motion tokens and builds an animation with a reduced-motion path | asked to "add animation" or "animate this" |
 | `new-repo` | bearing | Creates a new repository for one stack with Makefile, CI, hooks, CLAUDE.md and AGENTS.md | asked to "create a repo" or "scaffold a service" |
 | `new-skill` | bearing | Creates a new Bearing skill in the kit checkout with house sections, lints and an eval | asked to "add a skill" or "make this a skill" |

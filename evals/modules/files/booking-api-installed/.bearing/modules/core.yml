@@ -1,0 +1,6 @@
+# Changes here will be overwritten by Copier; NEVER EDIT MANUALLY
+_commit: v0.1.0
+_src_path: git@catalogue-alias:example/modules.git
+module: core
+service_name: booking-api
+stack: go
