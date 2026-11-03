@@ -48,6 +48,26 @@ export type DefaultFile = {
   content?: string;
 };
 export type Scope = { id: string; title: string; summary: string; files: DefaultFile[] };
+export type EvalRun = {
+  date: string;
+  commit: string;
+  triggerCases: number;
+  recall: number | null;
+  falseRate: number | null;
+  harnessPassed: number;
+  harnessRuns: number;
+  skillsMeasured: number;
+  limited: boolean;
+};
+export type Evals = {
+  triggerSkills: number;
+  triggerRequests: number;
+  skillsWithEvals: number;
+  evalCases: number;
+  runs: EvalRun[];
+  triggerMeasured: Record<string, { date: string; loaded: number; should: number; false: number; near: number }>;
+  skillsMeasured: Record<string, { date: string; cases: number | null; arms: Record<string, number>; margin: number | null; result: string }>;
+};
 
 type Data = {
   version: string;
@@ -62,6 +82,7 @@ type Data = {
   stacks: string[];
   guardVerbs: number;
   walkthrough: string;
+  evals: Evals;
 };
 
 export const data = raw as unknown as Data;

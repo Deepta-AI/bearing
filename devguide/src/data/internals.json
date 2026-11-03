@@ -4,13 +4,13 @@
   "skills": 110,
   "commandSkills": 0,
   "stackSkills": 12,
-  "scripts": 117,
-  "scriptLines": 36794,
+  "scripts": 118,
+  "scriptLines": 36914,
   "hooks": 12,
   "agents": 8,
   "makeTargets": 41,
   "gates": 20,
-  "tests": 133,
+  "tests": 134,
   "fixtures": 25,
   "stacks": 13,
   "templates": 38,
@@ -16283,7 +16283,7 @@
    "lang": "python",
    "group": "quality",
    "lines": 276,
-   "header": "eval-scoreboard: one row of evals/scoreboard.jsonl from a trigger-eval and\na harness-eval run, compared with the row before it.\n\nThe row holds the date, the commit measured, trigger totals (cases, errored,\nrecall, false-trigger rate) and per skill, the harness pass rate per scenario,\nand skill_evals (from bin/skill-evals-run.py's summary.json, or null when\nit did not run). The file\nis tracked and read by no site: the numbers are for merge requests and the\nmaintainers, not the handbook.\n\nA regression is recall down, or the false-trigger rate up, by more than\n--max-drop (default 0.05), or any harness scenario's pass rate lower than in\nthe previous row. The row is written anyway, so the history stays honest.\nPer-skill moves are listed and never fail the run: a skill has too few\nrequests to gate on. A skill whose with_skill pass rate fell by more than\n--max-skill-drop (default 0.10) since its previous measurement in any row is a\nregression too.\n\nUsage: eval-scoreboard.py --trigger <results.json> --harness <results.json>\n                          [--board evals/scoreboard.jsonl] [--max-drop R]\n                          [--skill-evals <summary.json>] [--max-skill-drop R]\nPrints \"eval-scoreboard: N trigger cases, M harness runs checked\" and what\nmoved; exits 2 when a results file is missing or unreadable, 1 when zero cases\nwere checked (nothing written) or on a regression, else 0.",
+   "header": "eval-scoreboard: one row of evals/scoreboard.jsonl from a trigger-eval and\na harness-eval run, compared with the row before it.\n\nThe row holds the date, the commit measured, trigger totals (cases, errored,\nrecall, false-trigger rate) and per skill, the harness pass rate per scenario,\nand skill_evals (from bin/skill-evals-run.py's summary.json, or null when\nit did not run). The file is tracked, and bin/evals_data.py turns it into\nthe handbook's Evals page (reference/evals): every run, and the newest\nmeasurement of each skill.\n\nA regression is recall down, or the false-trigger rate up, by more than\n--max-drop (default 0.05), or any harness scenario's pass rate lower than in\nthe previous row. The row is written anyway, so the history stays honest.\nPer-skill moves are listed and never fail the run: a skill has too few\nrequests to gate on. A skill whose with_skill pass rate fell by more than\n--max-skill-drop (default 0.10) since its previous measurement in any row is a\nregression too.\n\nUsage: eval-scoreboard.py --trigger <results.json> --harness <results.json>\n                          [--board evals/scoreboard.jsonl] [--max-drop R]\n                          [--skill-evals <summary.json>] [--max-skill-drop R]\nPrints \"eval-scoreboard: N trigger cases, M harness runs checked\" and what\nmoved; exits 2 when a results file is missing or unreadable, 1 when zero cases\nwere checked (nothing written) or on a regression, else 0.",
    "functions": [
     "load",
     "commit",
@@ -16328,6 +16328,23 @@
    "env": [],
    "calls": [
     "harness-eval.py"
+   ]
+  },
+  {
+   "path": "bin/evals_data.py",
+   "name": "evals_data.py",
+   "lang": "python",
+   "group": "quality",
+   "lines": 118,
+   "header": "evals_data: what the handbook's Evals page shows, from what is on disk.\n\nReads evals/triggers.json and evals/<skill>/evals.json (what is defined) and\nevals/scoreboard.jsonl (what was measured, one row per `make evals-weekly`\nrun, written by bin/eval-scoreboard.py). Nothing is estimated: a skill with\nno measurement says so, and a page with no scoreboard rows says \"not\nmeasured yet\" rather than showing a number.\n\nbin/gen-guide.py imports evals() for site/src/data/handbook.json. Run alone\nit prints the counts it read:\n\n  evals_data.py [--kit <dir>] [--board <scoreboard.jsonl>]",
+   "functions": [
+    "_rows",
+    "evals",
+    "main"
+   ],
+   "env": [],
+   "calls": [
+    "gen-guide.py"
    ]
   },
   {
@@ -16421,7 +16438,7 @@
    "name": "gen-guide.py",
    "lang": "python",
    "group": "generators",
-   "lines": 1425,
+   "lines": 1427,
    "header": "Generate the documents that derive from the skills in this repository:\n\n  site/src/data/handbook.json   everything the handbook site renders\n  docs/WORKFLOW.md              the stage tables between the markers\n\nEvery table comes from one source: the skill frontmatter (name,\ndescription, invocation), CATEGORY and STAGES below, plus two reviewed\nfiles: docs/flows.json (the six task flows) and docs/skill-summaries.json\n(what each skill does and when to use it, written for a reader; the\ndescription stays written for triggering and only supplies the search\nphrases). Fails when zero skills are found, when a skill has no category\nor no summary, when a summary names no skill, when a row names more than one skill,\nor when a row or a flow names a skill that is neither a Bearing skill nor\nlisted in docs/known-skills.txt.\n\n    gen-guide.py                        write every document\n    gen-guide.py --write-known-skills   rewrite docs/known-skills.txt from\n                                        the skills installed on this\n                                        machine, then continue\n    gen-guide.py --check-names          the default; kept as a flag so a\n                                        caller can name the intent",
    "functions": [
     "scan_installed",
@@ -19175,6 +19192,13 @@
    "asserts": 74
   },
   {
+   "path": "tests/unit/evals_data.sh",
+   "kind": "unit",
+   "lines": 51,
+   "header": "tests/unit/evals_data.sh: bin/evals_data.py, what the handbook's Evals page shows. With no scoreboard it reports what is defined and 0 measured, never a number; with rows it keeps the newest measurement of each skill across rows (the weekly rotation measures a different set each time) and lists every run in order. An empty kit (no evals) exits 1.",
+   "asserts": 15
+  },
+  {
    "path": "tests/unit/feature_flags_check.sh",
    "kind": "unit",
    "lines": 166,
@@ -20727,9 +20751,10 @@
    "version": "Unreleased",
    "date": "",
    "groups": [
-    "Added"
+    "Added",
+    "Changed"
    ],
-   "entries": 2,
+   "entries": 4,
    "summary": "- `bearing:modules` installs module kits (Copier templates) from a module catalogue: `add <module> --stack go|python`, `update [<module>]`, `list` and `drift`. The catalogue url is configuration with no default, the new `BEARING_MODULES_REPO` key (environment, the `modules_repo` plugin setting, or bearing.env), and any ssh alias works. Access is checked with `git ls-remote` first; without it the action says \"module catalogue not available, building from guidance\" and stops, and `drift` prints `skipped: no catalogue access (N modules not checked)`, never a pass. The helper is `bin/brg-modules`; Copier runs pinned, as `uvx copier@9.19.1`. - `auth`, `logging`, `observability`, `health-checks`,…"
   },
   {

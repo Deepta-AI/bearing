@@ -25,13 +25,15 @@ brief", "review this branch", "am I done?".
   closed on a command it cannot read, and the Stop hook sends the agent
   back once when files it changed have not passed `make check`.
 - **Gates that cannot pass on nothing.** Every gate fails on empty input
-  and prints its count (`lint-listing: 109 skills, 18490 characters`), so
+  and prints its count (`lint-listing: 110 skills, 18657 characters`), so
   "0 checked, all passed" is never a pass.
-- **One skill per stage, measured.** 109 skills from the brief to the
-  runbook, each run with and without itself in weekly evals. Trimming the
-  descriptions to fit Claude Code's skill listing took recall on the 30
-  weakest skills from 59% to 79%, with no false triggers in 92 near-miss
-  requests.
+- **One skill per stage, with evals for each.** 110 skills from the brief
+  to the runbook, each with its own cases run with and without the skill
+  (238 in all) and five plain requests that should or should not load it
+  (552). Trimming the descriptions to fit Claude Code's skill listing took
+  recall on the 30 weakest skills from 59% to 79%, with no false triggers
+  in 92 near-miss requests. Every result, and every skill not yet
+  measured: [Evals and results](https://bearing-handbook.deeptaai.com/reference/evals).
 - **Review you can trust.** Every Critical and High finding from the
   reviewer goes to a verifier that never saw the reviewer's reasoning, and
   is confirmed, refuted or left uncertain with the lines that decide it.

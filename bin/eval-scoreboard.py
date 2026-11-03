@@ -5,9 +5,9 @@ a harness-eval run, compared with the row before it.
 The row holds the date, the commit measured, trigger totals (cases, errored,
 recall, false-trigger rate) and per skill, the harness pass rate per scenario,
 and skill_evals (from bin/skill-evals-run.py's summary.json, or null when
-it did not run). The file
-is tracked and read by no site: the numbers are for merge requests and the
-maintainers, not the handbook.
+it did not run). The file is tracked, and bin/evals_data.py turns it into
+the handbook's Evals page (reference/evals): every run, and the newest
+measurement of each skill.
 
 A regression is recall down, or the false-trigger rate up, by more than
 --max-drop (default 0.05), or any harness scenario's pass rate lower than in
