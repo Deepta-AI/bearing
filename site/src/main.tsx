@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { createBrowserRouter, Navigate, RouterProvider } from "react-router";
 import Layout from "./components/Layout";
 import Example from "./pages/Example";
+import { Evals } from "./pages/Evals";
 import Files from "./pages/Files";
 import FlowPage from "./pages/FlowPage";
 import { Concepts, Config, Faq, GetStarted, Harnesses, Packs, Rules, Security, Versioning } from "./pages/Guides";
@@ -37,6 +38,7 @@ const router = createBrowserRouter(
         { path: "reference/harnesses", element: <Harnesses /> },
         { path: "reference/repository", element: <Navigate to="/files?scope=repository" replace /> },
         { path: "reference/versioning", element: <Versioning /> },
+        { path: "reference/evals", element: <Evals /> },
         { path: "faq", element: <Faq /> },
         { path: "rules", element: <Rules /> },
         { path: "*", element: <Navigate to="/" replace /> },

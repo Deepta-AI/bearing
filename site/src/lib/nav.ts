@@ -44,6 +44,7 @@ export const NAV: NavGroup[] = [
       { to: "/reference/packs", label: "Packs and cost" },
       { to: "/reference/harnesses", label: "Other harnesses" },
       { to: "/reference/versioning", label: "Versioning" },
+      { to: "/reference/evals", label: "Evals and results" },
       { to: "/faq", label: "Troubleshooting" },
       { to: "/rules", label: "Rules" },
     ],

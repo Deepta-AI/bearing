@@ -17,6 +17,17 @@ All notable changes to Bearing. Keep a Changelog format, semantic versions.
 - `auth`, `logging`, `observability`, `health-checks`, `background-jobs`,
   `feature-flags` and `webhooks` install a catalogue module that covers
   their area first, when one is configured, and design only the rest.
+- The handbook has an Evals and results page (`reference/evals`): what is
+  defined (110 skills with 238 with-and-without cases, 552 trigger
+  requests, the harness scenarios), every `make evals-weekly` run, and the
+  newest measurement of each skill. `bin/evals_data.py` builds it from
+  `evals/scoreboard.jsonl`; a skill or suite with no recorded run says
+  "not measured yet" instead of showing a number.
+
+### Changed
+- The README no longer says every skill is run with and without itself
+  each week: no weekly run had been recorded. It says what is defined and
+  links the page that shows what was measured.
 
 ## [0.11.0] - 2026-10-30
 

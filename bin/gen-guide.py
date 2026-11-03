@@ -29,6 +29,7 @@ import sys
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "bin"))
 import kit_paths  # noqa: E402
+import evals_data  # noqa: E402
 
 BEARING = kit_paths.BEARING
 SKILL_DIRS = kit_paths.skill_dirs()
@@ -1416,6 +1417,7 @@ site_data = {
     "stacks": stack_ids,
     "guardVerbs": NVERBS,
     "walkthrough": WALKTHROUGH.read_text(encoding="utf-8") if WALKTHROUGH.exists() else "",
+    "evals": evals_data.evals(str(ROOT)),
 }
 SITE_DATA.parent.mkdir(parents=True, exist_ok=True)
 SITE_DATA.write_text(json.dumps(site_data, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
