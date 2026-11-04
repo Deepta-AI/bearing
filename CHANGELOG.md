@@ -4,6 +4,8 @@ All notable changes to Bearing. Keep a Changelog format, semantic versions.
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-11-04
+
 ### Added
 - `bearing:modules` installs module kits (Copier templates) from a module
   catalogue: `add <module> --stack go|python`, `update [<module>]`, `list`
@@ -60,6 +62,15 @@ All notable changes to Bearing. Keep a Changelog format, semantic versions.
   that the selector cannot show. Each CSS declaration now takes its
   selector from the innermost rule open before it, so a one-line
   `@font-face { ... } .x { ... }` no longer reads `.x` as `@font-face`.
+
+### Notes for existing installs
+- Update all four plugins together (`claude plugin update bearing@bearing`,
+  then `bearing-backend`, `bearing-apps` and `bearing-genai`).
+- A repository commits its own copy of the git hooks, so it keeps refusing
+  a branch without a task id until its hooks are refreshed: copy this
+  release's `.githooks/lib.sh` and `.githooks/pre-push` (from
+  `plugins/bearing/templates/repo/.githooks/`) over the repository's and
+  commit them.
 
 ## [0.11.0] - 2026-10-30
 
