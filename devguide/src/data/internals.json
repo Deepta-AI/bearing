@@ -3935,7 +3935,7 @@
     },
     {
      "path": "references/lint.md",
-     "lines": 72
+     "lines": 79
     },
     {
      "path": "references/read-the-repo.md",
@@ -3967,7 +3967,7 @@
     },
     {
      "path": "templates/design-lint.sh",
-     "lines": 489
+     "lines": 516
     },
     {
      "path": "templates/design-system.html",
@@ -19126,9 +19126,9 @@
   {
    "path": "tests/unit/design_lint.sh",
    "kind": "unit",
-   "lines": 163,
+   "lines": 222,
    "header": "tests/unit/design_lint.sh: plugins/bearing/skills/design-system/templates/design-lint.sh, the lint make check runs over a UI. A clean feature passes with its counts; a hardcoded colour, an arbitrary text size, a raw <table>/<button>/<input> where src/components/ui has the component, and a one-off font family each fail with the file and line; src/components/ui itself is exempt from the raw-element rule. Comments, issue references and anchors are not colours; px written as strings in style objects are checked. Debt lives in a baseline per file and literal: a second copy of a baselined literal f…",
-   "asserts": 51
+   "asserts": 70
   },
   {
    "path": "tests/unit/design_pairs.sh",
@@ -20782,7 +20782,8 @@
    "date": "",
    "groups": [
     "Added",
-    "Changed"
+    "Changed",
+    "Fixed"
    ],
    "entries": 8,
    "summary": "- `bearing:modules` installs module kits (Copier templates) from a module catalogue: `add <module> --stack go|python`, `update [<module>]`, `list` and `drift`. The catalogue url is configuration with no default, the new `BEARING_MODULES_REPO` key (environment, the `modules_repo` plugin setting, or bearing.env), and any ssh alias works. Access is checked with `git ls-remote` first; without it the action says \"module catalogue not available, building from guidance\" and stops, and `drift` prints `skipped: no catalogue access (N modules not checked)`, never a pass. The helper is `bin/brg-modules`; Copier runs pinned, as `uvx copier@9.19.1`. - `auth`, `logging`, `observability`, `health-checks`,…"
