@@ -3,7 +3,7 @@
 - Task: NOTASK-6
 - Title: DesignLintFalsePositives
 - Branch: fix/NOTASK-6-DesignLintFalsePositives
-- Status: in review
+- Status: merged
 - Owner: Deepta-AI
 - Started: 2026-11-04
 - Updated: 2026-11-04
@@ -22,5 +22,5 @@
 - none
 
 ## Links
-- MR: none
+- MR: https://github.com/Deepta-AI/bearing/pull/32
 - Ticket: none
