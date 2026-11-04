@@ -38,6 +38,17 @@ All notable changes to Bearing. Keep a Changelog format, semantic versions.
   each week: no weekly run had been recorded. It says what is defined and
   links the page that shows what was measured.
 
+### Fixed
+- `design-lint.sh` no longer flags a `font-family` whose value is an SCSS
+  variable (`$t-font-body`), the same token reference as `var(--x)`, or
+  one inside `@font-face`, which declares a face. A `box-shadow` on a
+  selector list whose every selector ends in an anchor (`a:hover`,
+  `.nav a`, `.x > a.active`) counts as pressable, and the new
+  `DESIGN_LINT_PRESSABLE` regex names card or button classes on `<a>`
+  that the selector cannot show. Each CSS declaration now takes its
+  selector from the innermost rule open before it, so a one-line
+  `@font-face { ... } .x { ... }` no longer reads `.x` as `@font-face`.
+
 ## [0.11.0] - 2026-10-30
 
 ### Added

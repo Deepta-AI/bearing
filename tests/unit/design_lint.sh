@@ -154,6 +154,65 @@ assert_exit 0 lint "$d"
 assert_contains "$T_OUT" "0 colours, 0 spacing"
 t_end
 
+t_begin "a font-family that is an SCSS variable is a token reference; a literal next to one still fails"
+d="$(repo)"
+cat > "$d/src/features/runs/theme.scss" <<'SCSS'
+body { font-family: $t-font-body; }
+h1 {
+  font-family: $heading_font, serif;
+}
+.x { font-family: "Comic Neue", cursive; }
+SCSS
+assert_exit 1 lint "$d"
+assert_contains "$T_OUT" "1 font families"
+assert_contains "$T_OUT" "theme.scss:5: \"Comic Neue\", cursive"
+assert_not_contains "$T_OUT" "\$t-font-body"
+t_end
+
+t_begin "font-family inside @font-face declares a face and is not flagged; the rule after it is"
+d="$(repo)"
+cat > "$d/src/features/runs/fonts.scss" <<'SCSS'
+@font-face {
+  font-family: "Bodoni Moda";
+  src: url("/fonts/bodoni.woff2") format("woff2");
+}
+@font-face { font-family: "Inter"; font-weight: 400; } .lede { font-family: "Inter"; }
+.quote {
+  font-family: "Bodoni Moda";
+}
+SCSS
+assert_exit 1 lint "$d"
+assert_contains "$T_OUT" "2 font families"
+assert_contains "$T_OUT" "fonts.scss:5: \"Inter\""
+assert_contains "$T_OUT" "fonts.scss:7: \"Bodoni Moda\""
+assert_not_contains "$T_OUT" "fonts.scss:2:"
+t_end
+
+t_begin "a shadow on a selector ending in an anchor is pressable; DESIGN_LINT_PRESSABLE names card classes"
+d="$(repo)"
+cat > "$d/src/features/runs/links.scss" <<'SCSS'
+a { box-shadow: 0 1px 2px #0003; }
+.nav-page a {
+  box-shadow: 0 1px 2px #0003;
+}
+.x > a.active { box-shadow: 0 1px 2px #0003; }
+.toc>a[href] { box-shadow: 0 1px 2px #0003; }
+.part-card { box-shadow: 0 2px 4px #0003; }
+.panel { box-shadow: 0 2px 4px #0003; }
+a .badge, .area { box-shadow: 0 2px 4px #0003; }
+SCSS
+assert_exit 1 lint "$d" DESIGN_LINT_RULES=shadow
+assert_contains "$T_OUT" "3 shadows"
+assert_contains "$T_OUT" "selector .part-card"
+assert_contains "$T_OUT" "selector .panel"
+assert_contains "$T_OUT" "selector a .badge, .area"
+assert_not_contains "$T_OUT" "links.scss:1:"
+assert_not_contains "$T_OUT" "links.scss:3:"
+assert_exit 1 lint "$d" DESIGN_LINT_RULES=shadow DESIGN_LINT_PRESSABLE='\.part-card$'
+assert_contains "$T_OUT" "2 shadows"
+assert_not_contains "$T_OUT" "selector .part-card"
+t_end
+
 t_begin "zero files fail"
 d="$(tmpdir)"; mkdir -p "$d/src"
 assert_exit 1 lint "$d"

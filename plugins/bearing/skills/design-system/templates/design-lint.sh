@@ -39,6 +39,9 @@
 #   DESIGN_LINT_LIMIT     findings printed per category (default 40)
 #   DESIGN_LINT_LIBRARY   regex of the component library folder, exempt from the raw-element
 #                         rule (default (^|/)components/ui/)
+#   DESIGN_LINT_PRESSABLE extended regex of selectors or lines whose shadow is on a pressable
+#                         element the lint cannot see as one, such as a card class on an <a>
+#                         ('\.part-card|\.btn-ink'). A selector ending in an anchor already is.
 #   DESIGN_LINT_RULES     the rules that gate, any of: colour spacing font-size shadow raw family
 #                         (default all six). Set it to what the team asked for; a rule nobody
 #                         agreed to fails their next merge request for a reason they never saw.
@@ -300,20 +303,43 @@ function lengths(val, cat, scale, prop,   v, t, n, p) {
     if (!onscale(n, scale)) emit(cat, t, prop " off scale")
   }
 }
-function pressable(txt) { return txt ~ PRESS }
-function cssdecls(s,   rest, d, k, prop, val) {
-  if (index(s, "{") > 0) { sel = s; sub(/[{].*$/, "", sel); sub(/^.*[}]/, "", sel); gsub(/^[ \t]+|[ \t]+$/, "", sel) }
-  rest = s
+function pressable(txt) { return txt ~ PRESS || (EXTRA != "" && txt ~ EXTRA) }
+# A CSS selector list whose every selector ends in an anchor (a, a:hover,
+# .nav a, .x > a.active) styles a link. A class on an <a> (.part-card) cannot
+# be told from the selector; DESIGN_LINT_PRESSABLE names those.
+function anchorsel(sel,   n, i, p, parts) {
+  n = split(sel, parts, ",")
+  for (i = 1; i <= n; i++) {
+    p = parts[i]; gsub(/^[ \t]+|[ \t]+$/, "", p); sub(/^.*[ \t>+~]/, "", p)
+    if (p !~ /^a([.:#]|\[|$)/) return 0
+  }
+  return n > 0
+}
+# The innermost selector open before a declaration: the text before the last {
+# in what precedes it, after the } ; or { before that.
+function selof(pre,   t) {
+  t = pre; sub(/[{][^{]*$/, "", t); sub(/^.*[{};]/, "", t); gsub(/^[ \t]+|[ \t]+$/, "", t)
+  return t
+}
+function cssdecls(s,   rest, off, pre, d, k, prop, val) {
+  rest = s; off = 0
   while (match(rest, /[A-Za-z-]+[ \t]*:[^;{}]*/)) {
-    d = substr(rest, RSTART, RLENGTH); rest = substr(rest, RSTART + RLENGTH)
+    pre = substr(s, 1, off + RSTART - 1)
+    if (index(pre, "{") > 0) sel = selof(pre)
+    d = substr(rest, RSTART, RLENGTH); off += RSTART + RLENGTH - 1; rest = substr(rest, RSTART + RLENGTH)
     k = index(d, ":"); prop = tolower(substr(d, 1, k - 1)); gsub(/[ \t]/, "", prop); val = substr(d, k + 1)
     if (prop ~ /^(padding|margin)(-(top|right|bottom|left|inline|block|inline-start|inline-end|block-start|block-end))?$/ \
         || prop ~ /^(gap|row-gap|column-gap|inset|inset-inline|inset-block|top|right|bottom|left)$/) lengths(val, "spacing", SPACE, prop)
     else if (prop == "font-size" || prop == "font") lengths(val, "font size", SIZES, prop)
-    else if (prop == "font-family") { if (val !~ /var\(--/ && val !~ /^[ \t]*(inherit|initial|unset)[ \t]*$/) emit("family", val, "") }
-    else if (prop == "box-shadow") { if (val !~ /^[ \t]*none/ && !pressable(sel)) emit("shadow", val, "selector " sel) }
+    else if (prop == "font-family") {
+      # var(--x) and an SCSS $variable are token references; @font-face declares a face.
+      if (val !~ /var\(--/ && val !~ /^[ \t]*\$[A-Za-z_]/ && val !~ /^[ \t]*(inherit|initial|unset)[ \t]*$/ \
+          && tolower(sel) !~ /^@font-face/) emit("family", val, "")
+    }
+    else if (prop == "box-shadow") { if (val !~ /^[ \t]*none/ && !pressable(sel) && !anchorsel(sel)) emit("shadow", val, "selector " sel) }
     if (prop ~ /^(color|background|background-color|border|border-(top|right|bottom|left|color)|outline|outline-color|fill|stroke|box-shadow|text-decoration-color|caret-color|accent-color)$/) named(val, prop)
   }
+  if (index(s, "{") > 0) sel = selof(s)
 }
 # Style objects: numbers are px, strings are parsed for px and rem.
 function jspairs(s,   rest, d, k, key, val, isnum) {
@@ -400,6 +426,7 @@ function native(s,   rest, t) {
   }
 }
 BEGIN {
+  EXTRA = ENVIRON["DESIGN_LINT_PRESSABLE"]
   PRESS = "button|<a[ \t>]|role=.?(button|link|dialog|menu|tooltip)|pressable|clickable|onClick|onPress|onTap|href=|Button|Dialog|Sheet|Popover|Popup|Menu|Dropdown|Toast|Snackbar|Tooltip|Overlay|Modal|Card\\(onClick|:hover|:focus|:active|elevation-[123]|shadow-[123]"
   while ((getline FILE < LIST) > 0) {
     ext = tolower(FILE); sub(/^.*\./, "", ext)

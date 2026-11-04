@@ -11,7 +11,14 @@ spacing and font sizes off the scale, including px inside style-object
 strings (`padding: "6px 12px"`), rem at 16 px, and Tailwind arbitrary
 values; shadows on non-pressable elements; raw `<button>`, `<input>`,
 `<table>` and friends outside `components/ui` (`DESIGN_LINT_LIBRARY` for
-another library folder); one-off font families. It is pattern-based: a
+another library folder); one-off font families. A token reference is
+`var(--x)` or an SCSS variable (`font-family: $t-font-body`, any
+`$name`), and a `font-family` inside `@font-face` declares a face, so
+neither is a finding. A selector list whose every selector ends in an
+anchor (`a:hover`, `.nav a`, `.x > a.active`) is pressable; a card or
+button class on an `<a>` (`.part-card`) cannot be seen from the
+selector, so name it in `DESIGN_LINT_PRESSABLE` (a regex) rather than
+baselining its shadow. It is pattern-based: a
 colour built in a variable named `brand`, or a value split across lines,
 is missed, so review the diff too. A Tailwind 3 config reading
 `hsl(var(--x))` with a hex in `--x` compiles and renders nothing; grep
