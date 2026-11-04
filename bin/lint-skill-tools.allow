@@ -64,3 +64,4 @@ test-run|DATABASE_URL=... uv run pytest|prompts: run by the skill; an env-prefix
 spike|rm -r .scratch/spike-|prompts: run by the skill to delete the throwaway; a glob grant on rm is too wide, so the harness asks
 screen-design|cp -p .scratch/impeccable-pass/|prompts: run by the skill to revert a target file; an overwriting cp under a glob is too wide to pre-approve, so the harness asks
 screen-design|cp -p|prompts: run by the skill to snapshot a target file; an overwriting cp under a glob is too wide to pre-approve, so the harness asks
+harness-setup|make harness-live|named for the engineer: run in a Bearing checkout on the harness CLI's own account, never by the skill

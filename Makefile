@@ -4,7 +4,7 @@
 SHELL := /bin/bash
 KITP := plugins/bearing
 .DEFAULT_GOAL := help
-.PHONY: help hooks gate push ci-bash32 site devguide wiki check check-file validate lint-skills lint-tools lint-skill-size lint-questions lint-evals lint-triggers lint-neutral lint-docs lint-json lint-shell lint-portable lint-prose lint-version lint-budget lint-templates lint-plugin-size lint-listing lint-model-ids test install doctor docs harness-eval trigger-eval evals-weekly evals-timer skill-tune claude-drift pin-refresh eval-audit sandbox-probe
+.PHONY: help hooks gate push ci-bash32 site devguide wiki check check-file validate lint-skills lint-tools lint-skill-size lint-questions lint-evals lint-triggers lint-neutral lint-docs lint-json lint-shell lint-portable lint-prose lint-version lint-budget lint-templates lint-plugin-size lint-listing lint-model-ids test install doctor docs harness-eval trigger-eval evals-weekly evals-timer skill-tune claude-drift pin-refresh eval-audit sandbox-probe harness-live
 
 help: ## List targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-14s %s\n", $$1, $$2}'
@@ -204,6 +204,9 @@ push: ## The gate on this commit (skipped when it already passed), then push the
 
 ci-bash32: ## The bash32 CI job, in the same bash:3.2 image (needs Docker): run before a push
 	docker run --rm -v "$$PWD:/kit" -w /kit bash:3.2 bash tests/ci-bash32.sh
+
+harness-live: ## Real Codex, Cursor and Gemini CLI sessions against the generated adapters: the guard fires, git push is refused, a harmless command runs (each installed CLI, on its own account; ONLY=codex,cursor,gemini; not part of check)
+	bash bin/harness-live.sh $(if $(ONLY),--only $(ONLY))
 
 sandbox-probe: ## Claude Code's sandbox (srt, from npm) against the plugin settings copy: write, replace, hard link and unlink; prints attempts and how many held (not part of check)
 	bash bin/probe-sandbox-links

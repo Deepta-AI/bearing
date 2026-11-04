@@ -23,6 +23,15 @@ All notable changes to Bearing. Keep a Changelog format, semantic versions.
   newest measurement of each skill. `bin/evals_data.py` builds it from
   `evals/scoreboard.jsonl`; a skill or suite with no recorded run says
   "not measured yet" instead of showing a number.
+- `make harness-live` (`bin/harness-live.sh`) checks the guard in the real
+  Codex, Cursor and Gemini CLIs, not only in their adapters: for each
+  installed CLI it generates the harness into a throwaway repository with
+  a local remote, asks the agent to run a harmless command and `git push`,
+  and reads the result from disk (guard lines in `gates.log`, a refused
+  push, an untouched remote, the command's file). A missing CLI is
+  skipped; none run is a failure. Not part of `make check`: it runs on the
+  harness's own account. The harness matrix says how to move a harness
+  from "unverified" to "exercised live".
 
 ### Changed
 - The README no longer says every skill is run with and without itself
