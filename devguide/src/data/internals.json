@@ -5242,7 +5242,7 @@
     },
     {
      "path": "templates/.githooks/lib.sh",
-     "lines": 74
+     "lines": 75
     },
     {
      "path": "templates/.githooks/pre-commit",
@@ -9820,7 +9820,7 @@
     "**Makefile and `make check`.** `make check` is CI's blocking jobs, run locally, in each job's directory, with each job's flags and variables. For each job, one target; `check` depends on the offline ones. - Keep every existing target and what it does; add prerequisites and targets, never replace a recipe wholesale. - Copy CI's variables into the targets (`TZ=UTC` in CI means the gate sets `TZ=UTC`; a suite that pass…",
     "**AGENTS.md and CLAUDE.md.** AGENTS.md is for this repository, not the template: what it is (each service, its language, its folder), the exact commands you proved in step 3, the commit format the team uses, the domain rules from existing notes, and the traps the survey found (append-only migrations, tracked secrets, the time-zone dependence). Take a rule from the template only when it holds for this stack (no TypeS…",
     "**Hooks: one mechanism, the team's.** Add the standard's checks into the mechanism already in use, never beside it. - `core.hooksPath` set (Husky's `.husky`, a `tools/githooks`): leave it; call the new hook from that directory's hook, or add the new hook file there. The `setup` target and the live value must agree. - Pre-commit framework in `.git/hooks`: leave `core.hooksPath` unset and `.pre-commit-config.yaml`'s e…",
-    "**The rest of scope.** CODEOWNERS only where the host reads it first and only with real handles (the team's existing file, or `--lead`/`--group` from the engineer); a placeholder owner blocks every approval, so no handles means no file and a line under Not done. `.claude/settings.json` only when not ignored (narrow the ignore to `.claude/settings.local.json` when the team wants shared settings) and with the reposito…",
+    "**The rest of scope.** CODEOWNERS only where the host reads it first and only with real handles (the team's existing file, or `--lead`/`--group` from the engineer); a placeholder owner blocks every approval, so no handles means no file and a line under Not done. `.claude/settings.json` only when not ignored (narrow the ignore to `.claude/settings.local.json` when the team wants shared settings), with the repository'…",
     "**Prove it.** Run `make check` for real with the dirty tree present and compare its counts with step 1's direct runs; run it once with CI's variables absent from your shell to show the Makefile sets them. Dry-run each hook (commit-msg on the history's subjects, pre-commit on a staged scratch file, then unstage). A hook run by hand is not a commit through git: say which you did. `git diff --stat` against the survey:…",
     "**Report** (Output contract). Leave the commit to the engineer: print the list of files to add and a commit command in the team's format."
    ],
@@ -13165,7 +13165,7 @@
     },
     {
      "title": "Steps",
-     "lines": 108
+     "lines": 109
     },
     {
      "title": "Output contract",
@@ -13179,7 +13179,7 @@
    "inputs": [
     "repository: `git rev-parse --show-toplevel`; not a git repository stops with \"run `git init` (or open the repository) and rerun\".",
     "task id: `$1`, or the id in the request; else the id in the current branch name when it matches the prefix (then report existing work, do not ask); else ask once with AskUserQuestion as `${CLAUDE_PLUGIN_ROOT}/references/console.md` says.",
-    "tracker and prefix: `bash \"${CLAUDE_PLUGIN_ROOT}/bin/brg-tracker\" config` (`tracker:` and `id prefix:` lines; `BEARING_TASK_ID_PREFIX` wins); else the CLAUDE.md `Task tracker:` line; else any id matching `[A-Z][A-Z0-9]*(-[0-9]+)+`, and say so. With `tracker: none` and no id, use `NOTASK-<n>` (one above the highest in `git branch -a`).",
+    "tracker and prefix: `bash \"${CLAUDE_PLUGIN_ROOT}/bin/brg-tracker\" config` (`tracker:` and `id prefix:` lines; `BEARING_TASK_ID_PREFIX` wins); else the CLAUDE.md `Task tracker:` line; else any id matching `[A-Z][A-Z0-9]*(-[0-9]+)+`, and say so. No task exists (no id given, or `tracker: none`): no id anywhere; never invent one such as `NOTASK-<n>`.",
     "repository conventions: CONTRIBUTING.md, RELEASING.md, README.md, a branching or release section in docs/, and the deploy configuration (deploy/, k8s/, helm values, a workflow that deploys on a tag). Their naming and base rules override the defaults below; where they contradict what the history shows, the history wins and the report says so.",
     "type: `--type`; else `hotfix` when the request is about production being wrong now, `bugfix` for other defects, else `feature`; say which.",
     "name: `$2`; else derive a two to four word PascalCase summary from the request and say so (ask only if the request gives nothing to name).",
@@ -13191,7 +13191,7 @@
     "**Validate the id** against the prefix or the generic shape.",
     "**Look for existing work on the ticket.** Branch names lie by omission: search commit messages too. `git branch -a --list`, `git worktree list` and `git log --all -i --grep=<ID> --format='%h %D %an %s'`, all case-insensitive (`abc-12` and `ABC-12` are one ticket; a branch named after the feature whose commits carry the id is work on it). If any exists, do not create a second silently: report the ref, author, last co…",
     "**Refresh and measure the base.** `git fetch origin` (all branches and tags). If it fails, say so in the report with the error, and that every `origin/*` ref is only as fresh as the last successful fetch. Never claim \"latest\" without a fetch that succeeded. - feature, bugfix, chore, docs: base is `origin/develop` when develop exists, else `origin/main`, else the remote HEAD branch. Never the local copy: compare them…",
-    "**Create the branch without touching the engineer's work.** Name: `<type>/<ID>-<PascalName>` unless the repository's convention differs. Always `--no-track`: a branch created from `origin/develop` otherwise tracks develop, and with `push.default=upstream` (check `git config --get push.default`) a bare push lands on develop. The upstream is set on the first push to `origin/<branch>`, which the engineer runs. - Clean…",
+    "**Create the branch without touching the engineer's work.** Name: `<type>/<ID>-<PascalName>`, or `<type>/<PascalName>` with no task, unless the repository's convention differs; without an id, `--task` below is the branch with / as _. Always `--no-track`: a branch created from `origin/develop` otherwise tracks develop, and with `push.default=upstream` (check `git config --get push.default`) a bare push lands on devel…",
     "**Baseline.** In the new branch's tree (the worktree when step 4 made one, never the dirty checkout), run the repository's gate (`make check` or the test command the README names) and record passed, failed, skipped and xfailed counts. A failure at the base is not the engineer's: name the failing tests and whether they touch the ticket's area. \"Green\" can hide the defect that matters: read the reason on every skip an…",
     "**Check the criteria against the repository.** Restate each criterion as given, none dropped, merged or added. Then grep the ADRs (docs/adr, docs/decisions), README and the code for rules the criteria touch (money and units, naming, formats, API contracts, rounding), **at the base** (`git grep <term> <base> -- docs`), not in a stale checkout that may lack the newest decision. Follow the chain: an ADR's own status li…",
     "**Notes**, all in the new branch's tree. Local session state: `bash \"${CLAUDE_PLUGIN_ROOT}/bin/brg-state-path\" <branch>`, run there, prints the path under `.bearing/state/`; `mkdir -p .bearing/state` and write the id, base (ref and commit), criteria, questions and next step. Keep it out of git through `.git/info/exclude`, not a `.gitignore` edit, so the branch starts with no unrelated diff. The shared progress file:…",
@@ -13209,11 +13209,11 @@
    ],
    "layout": "",
    "commands": [],
-   "lines": 194,
+   "lines": 195,
    "files": [
     {
      "path": "SKILL.md",
-     "lines": 194
+     "lines": 195
     }
    ],
    "groups": {
@@ -19266,9 +19266,9 @@
   {
    "path": "tests/unit/githooks_pre_push.sh",
    "kind": "unit",
-   "lines": 126,
+   "lines": 137,
    "header": "tests/unit/githooks_pre_push.sh: the committed pre-push hook refuses every coding agent's push, a BEARING_AUTO_PUSH entry or not, and refuses an agent's tag push or branch deletion even when no branch is updated; the engineer's push runs the gate and may delete a task branch; the hooks carry no opt-in code (Bearing's opt-in push runs from a fresh clone and never meets this hook). bash 3.2 safe.",
-   "asserts": 23
+   "asserts": 28
   },
   {
    "path": "tests/unit/guard_deny_table.sh",
@@ -20665,7 +20665,7 @@
   },
   {
    "path": "repo/.githooks/lib.sh",
-   "lines": 74
+   "lines": 75
   },
   {
    "path": "repo/.githooks/pre-commit",
@@ -20697,7 +20697,7 @@
   },
   {
    "path": "repo/AGENTS.md",
-   "lines": 57
+   "lines": 58
   },
   {
    "path": "repo/CLAUDE.md",
@@ -20709,7 +20709,7 @@
   },
   {
    "path": "repo/CONTRIBUTING.md",
-   "lines": 76
+   "lines": 77
   },
   {
    "path": "repo/SECURITY.md",
@@ -20785,7 +20785,7 @@
     "Changed",
     "Fixed"
    ],
-   "entries": 5,
+   "entries": 9,
    "summary": "- `bearing:modules` installs module kits (Copier templates) from a module catalogue: `add <module> --stack go|python`, `update [<module>]`, `list` and `drift`. The catalogue url is configuration with no default, the new `BEARING_MODULES_REPO` key (environment, the `modules_repo` plugin setting, or bearing.env), and any ssh alias works. Access is checked with `git ls-remote` first; without it the action says \"module catalogue not available, building from guidance\" and stops, and `drift` prints `skipped: no catalogue access (N modules not checked)`, never a pass. The helper is `bin/brg-modules`; Copier runs pinned, as `uvx copier@9.19.1`. - `auth`, `logging`, `observability`, `health-checks`,…"
   },
   {
@@ -21706,11 +21706,11 @@
    "security.md"
   ],
   "sessionBytes": {
-   "agents": 3029,
+   "agents": 3101,
    "claude": 1412,
    "unscopedRules": 840
   },
-  "sessionTokens": 1320
+  "sessionTokens": 1338
  },
  "autopilot": {
   "maxAttempts": 3,

@@ -82,7 +82,7 @@ export function Trackers() {
       <H2 id="keys">Key shapes</H2>
       <Defs
         rows={[
-          ["none", "any [A-Z][A-Z0-9]*(-[0-9]+)+, such as TASK-142 or NOTASK-3"],
+          ["none", "any [A-Z][A-Z0-9]*(-[0-9]+)+, such as TASK-142, or no id when no task exists"],
           ["jira", "PROJ-142"],
           ["gitlab", "GL-42 (the issue iid)"],
           ["github", "GH-9 (the issue number)"],

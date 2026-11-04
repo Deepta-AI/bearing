@@ -24,6 +24,6 @@ stage scaffolds the stack into it with `brg-scaffold`, which keeps
 every existing file, and the repo plan entry that lives here gets
 `"path": "."`.
 1c. The branch stage comes next, before any document: `start-task`
-names it (`feature/NOTASK-<n>-<Name>` without a tracker), so every
+names it (`feature/<Name>` without a task: no invented id), so every
 later stage commits on the task branch and the trunk is never
 written.

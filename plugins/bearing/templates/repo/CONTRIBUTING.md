@@ -47,8 +47,9 @@ How work moves through this repository. The standards themselves are in
 Trunk-based by default: `main` is the trunk and what is in production.
 
 - `feature|bugfix|chore|docs/<TASK-ID>-<PascalName>` from `main`, merged
-  back to `main`.
-- `hotfix/<TASK-ID>-<PascalName>` from `main`.
+  back to `main`. With no task in the tracker, leave the id out
+  (`feature/<PascalName>`); never make one up such as `NOTASK-3`.
+- `hotfix/<TASK-ID>-<PascalName>` from `main` (`hotfix/<PascalName>` without a task).
 - `release/vX.Y.Z` only when a release needs stabilising; `release`
   prepares the changelog and the tag command, a person tags.
 

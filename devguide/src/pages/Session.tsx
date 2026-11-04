@@ -108,7 +108,7 @@ const FILM: { frame: Omit<Frame, "visual">; rows: Row[] }[] = [
     },
     rows: [
       { who: "model", text: "Bash: go test ./... && git push -u origin feature/TASK-142-InvoiceExport" },
-      { who: "hook", tag: "PreToolUse", text: "Bearing blocked 'git push': the engineer pushes, merges and deploys; the agent prepares. Print the command for the engineer instead.", tone: "bad" },
+      { who: "hook", tag: "PreToolUse", text: "Bearing blocked 'git push': the engineer pushes, merges and deploys; the agent prepares. Print the command for the engineer instead. Bearing policy, not an error: it is blocked every time, so do not retry it or look for another way to run it.", tone: "bad" },
     ],
   },
   {

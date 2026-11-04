@@ -155,10 +155,10 @@ and the standard's rule is offered as a Proposed change in the report.
    only with real handles (the team's existing file, or `--lead`/`--group`
    from the engineer); a placeholder owner blocks every approval, so no
    handles means no file and a line under Not done. `.claude/settings.json`
-   only when not ignored (narrow the ignore to `.claude/settings.local.json`
-   when the team wants shared settings) and with the repository's package
-   manager. `.gitignore`: append, never reorder or drop lines. Never create
-   `.claude/settings.local.json`; add no dependency.
+   only when not ignored (narrow the ignore to `.claude/settings.local.json` when the team wants
+   shared settings), with the repository's package manager; an existing one keeps all it has and
+   gains `"outputStyle": "bearing:Bearing report"` only when it names no style. `.gitignore`: append,
+   never reorder or drop lines. Never create `.claude/settings.local.json`; add no dependency.
 7. **Prove it.** Run `make check` for real with the dirty tree present and
    compare its counts with step 1's direct runs; run it once with CI's
    variables absent from your shell to show the Makefile sets them. Dry-run

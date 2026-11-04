@@ -1170,7 +1170,7 @@ CONFIG_KEYS = [
     ),
     (
         "BEARING_TASK_ID_PREFIX",
-        "force the id prefix in branch names and commit subjects (PROJ, GH, GL); empty accepts any [A-Z][A-Z0-9]*-<n> id or NOTASK-<n>",
+        "force the id prefix in branch names and commit subjects (PROJ, GH, GL); empty accepts any [A-Z][A-Z0-9]*-<n> id, or no id when no task exists",
         "empty",
     ),
     (

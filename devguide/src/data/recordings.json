@@ -2,88 +2,88 @@
  "guard": {
   "title": "The guard reads a command before it runs",
   "cwd": "~/bearing",
-  "recorded": "2026-09-26",
+  "recorded": "2026-11-04",
   "steps": [
    {
     "cmd": "bash plugins/bearing/bin/brg-guard command \"git status --short\"",
     "code": 0,
-    "ms": 52,
+    "ms": 34,
     "out": []
    },
    {
     "cmd": "bash plugins/bearing/bin/brg-guard command \"git push origin main\"",
     "code": 2,
-    "ms": 59,
+    "ms": 26,
     "out": [
      [
-      0.05,
-      "Bearing blocked 'git push': the engineer pushes, merges and deploys; the agent prepares. Print the command for the engineer instead."
+      0.02,
+      "Bearing blocked 'git push': the engineer pushes, merges and deploys; the agent prepares. Print the command for the engineer instead. Bearing policy, not an error: it is blocked every time, so do not retry it or look for another way to run it."
      ]
     ]
    },
    {
     "cmd": "bash plugins/bearing/bin/brg-guard command 'env GIT_TRACE=1 git push origin main'",
     "code": 2,
-    "ms": 62,
+    "ms": 33,
     "out": [
      [
-      0.06,
-      "Bearing blocked 'git push': the engineer pushes, merges and deploys; the agent prepares. Print the command for the engineer instead."
+      0.03,
+      "Bearing blocked 'git push': the engineer pushes, merges and deploys; the agent prepares. Print the command for the engineer instead. Bearing policy, not an error: it is blocked every time, so do not retry it or look for another way to run it."
      ]
     ]
    },
    {
     "cmd": "bash plugins/bearing/bin/brg-guard command 'echo ok && git commit --amend --no-edit'",
     "code": 2,
-    "ms": 59,
+    "ms": 39,
     "out": [
      [
-      0.05,
-      "Bearing blocked 'git commit --amend': the engineer pushes, merges and deploys; the agent prepares. Print the command for the engineer instead."
+      0.04,
+      "Bearing blocked 'git commit --amend': it rewrites a commit the engineer may already have. Make a new commit instead. Bearing policy, not an error: it is blocked every time, so do not retry it or look for another way to run it."
      ]
     ]
    },
    {
     "cmd": "bash plugins/bearing/bin/brg-guard command \"rm -rf ../elsewhere\"",
     "code": 2,
-    "ms": 55,
+    "ms": 50,
     "out": [
      [
       0.05,
-      "Bearing blocked 'rm -rf outside the repository': the engineer pushes, merges and deploys; the agent prepares. Print the command for the engineer instead."
+      "Bearing blocked 'rm -rf outside the repository': it can destroy files or processes outside the repository. Work on paths inside the repository (a scratch folder there for throwaway files), or print the command for the engineer. Bearing policy, not an error: it is blocked every time, so do not retry it or look for another way to run it."
      ]
     ]
    },
    {
     "cmd": "bash plugins/bearing/bin/brg-guard command 'git $SUB origin'",
     "code": 2,
-    "ms": 54,
+    "ms": 40,
     "out": [
      [
-      0.05,
-      "brg-guard: the verb after git is a variable that cannot be read; refusing (fail closed)"
+      0.04,
+      "brg-guard: the verb after git is a variable that cannot be read; refusing (fail closed). Write the command with its program, verbs and paths spelled out, no variable or substitution in them, or print it for the engineer. Bearing policy, not an error: it is blocked every time, so do not retry it or look for another way to run it."
      ]
     ]
    },
    {
     "cmd": "bash plugins/bearing/bin/brg-guard command \"kubectl apply -f k8s/\"",
     "code": 2,
-    "ms": 64,
+    "ms": 43,
     "out": [
      [
-      0.06,
-      "Bearing blocked 'kubectl apply': the engineer pushes, merges and deploys; the agent prepares. Print the command for the engineer instead."
+      0.04,
+      "Bearing blocked 'kubectl apply': the engineer pushes, merges and deploys; the agent prepares. Print the command for the engineer instead. Bearing policy, not an error: it is blocked every time, so do not retry it or look for another way to run it."
      ]
     ]
    },
    {
     "cmd": "bash plugins/bearing/bin/brg-guard --verbs | wc -l",
     "code": 0,
-    "ms": 40,
+    "ms": 26,
     "out": [
      [
-      0.04,
-      "135"
+      0.03,
+      "136"
      ]
     ]
    }
@@ -92,46 +92,58 @@
  "hooks": {
   "title": "A hook is a six-line adapter over the guard",
   "cwd": "~/bearing",
-  "recorded": "2026-09-26",
+  "recorded": "2026-11-04",
   "steps": [
    {
     "cmd": "cat plugins/bearing/hooks/scripts/block-publish.sh",
     "code": 0,
-    "ms": 6,
+    "ms": 3,
     "out": [
      [
-      0.01,
+      0.0,
       "#!/usr/bin/env bash"
      ],
      [
-      0.01,
+      0.0,
       "# PreToolUse (Bash): adapter over bin/brg-guard command. Exit 2 blocks."
      ],
      [
-      0.01,
+      0.0,
       "set -u"
      ],
      [
-      0.01,
+      0.0,
+      "# No program runs before lib.sh resets the environment, so no dirname here;"
+     ],
+     [
+      0.0,
+      "# the next script starts with \"$BASH\" from ${0%/*}, never found on PATH."
+     ],
+     [
+      0.0,
       "# shellcheck source=lib.sh"
      ],
      [
-      0.01,
-      ". \"$(dirname \"$0\")/lib.sh\""
+      0.0,
+      "case \"$0\" in (*/*) . \"${0%/*}/lib.sh\" ;; (*) . ./lib.sh ;; esac"
      ],
      [
-      0.01,
-      "exec bash \"$(dirname \"$0\")/../../bin/brg-guard\" command \"$(json_field tool_input.command)\""
+      0.0,
+      "exec \"$BASH\" \"${0%/*}/../../bin/brg-guard\" command \"$(json_field tool_input.command)\""
+     ],
+     [
+      0.0,
+      "exit 2"
      ]
     ]
    },
    {
     "cmd": "printf '%s' '{\"tool_input\":{\"command\":\"make check\"}}' | bash plugins/bearing/hooks/scripts/block-publish.sh; echo \"exit $?\"",
     "code": 0,
-    "ms": 84,
+    "ms": 53,
     "out": [
      [
-      0.08,
+      0.05,
       "exit 0"
      ]
     ]
@@ -139,14 +151,14 @@
    {
     "cmd": "printf '%s' '{\"tool_input\":{\"command\":\"git push origin main\"}}' | bash plugins/bearing/hooks/scripts/block-publish.sh; echo \"exit $?\"",
     "code": 0,
-    "ms": 83,
+    "ms": 58,
     "out": [
      [
-      0.08,
-      "Bearing blocked 'git push': the engineer pushes, merges and deploys; the agent prepares. Print the command for the engineer instead."
+      0.06,
+      "Bearing blocked 'git push': the engineer pushes, merges and deploys; the agent prepares. Print the command for the engineer instead. Bearing policy, not an error: it is blocked every time, so do not retry it or look for another way to run it."
      ],
      [
-      0.08,
+      0.06,
       "exit 2"
      ]
     ]

@@ -111,7 +111,7 @@ shape_of() {
     jira) printf '%s-N' "${BEARING_TRACKER_PROJECT:-<BEARING_TRACKER_PROJECT>}";;
     gitlab) printf 'GL-N';;
     github) printf 'GH-N';;
-    *) printf 'any id matching [A-Z][A-Z0-9]*(-[0-9]+)+, or NOTASK-<n>';;
+    *) printf 'any id matching [A-Z][A-Z0-9]*(-[0-9]+)+, or none: the branch then carries no id';;
   esac
 }
 

@@ -29,8 +29,9 @@ EM_DASH="$(printf '\342\200\224')"
 # Task id: an upper-case prefix, then one or more dash-number groups, in
 # whatever shape the configured tracker uses: PREFIX-123, PREFIX-00-017.
 TASK_ID_RE='[A-Z][A-Z0-9]*(-[0-9]+)+'
-# feature/PREFIX-123-ShortName, release/v1.2.3
-BRANCH_RE="^(${BRANCH_PREFIXES})/(${TASK_ID_RE}-[A-Za-z0-9]+|v[0-9]+\.[0-9]+\.[0-9]+)$"
+# feature/PREFIX-123-ShortName, feature/ShortName when no task exists (an
+# id is never invented: no NOTASK-<n>), release/v1.2.3
+BRANCH_RE="^(${BRANCH_PREFIXES})/((${TASK_ID_RE}-)?[A-Za-z0-9]+|v[0-9]+\.[0-9]+\.[0-9]+)$"
 COMMIT_RE="^(${COMMIT_TYPES})(\([a-z0-9._/-]+\))?!?: .{1,72}( \[${TASK_ID_RE}\])?$"
 AI_TRAILER_RE='^(Co-Authored-By|Co-authored-by): .*(Claude|Anthropic|Copilot|ChatGPT|Gemini|Cursor|Devin)|^(Generated with|🤖 Generated)'
 

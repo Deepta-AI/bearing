@@ -86,6 +86,17 @@ assert_contains "$T_OUT" "gate passed"
 assert_eq "refs/heads/feature/ABC-1-Thing" "$(landed)"
 t_end
 
+t_begin "a branch with no task carries no id and is accepted; a malformed name is not"
+setup; printf "PUSH_CONFIRM='off'\n" >> "$repo/.githooks/lib.sh"
+t_run agent_push origin HEAD:refs/heads/feature/LoginLockout
+assert_contains "$T_OUT" "gate passed"
+assert_contains "$(landed)" "refs/heads/feature/LoginLockout" "landed without an id"
+t_run agent_push origin HEAD:refs/heads/feature/login-lockout
+assert_contains "$T_OUT" "does not match"
+assert_contains "$T_OUT" "<ShortName> when no task exists" "the message names the no-task form"
+assert_not_contains "$(landed)" "login-lockout" "the malformed name did not land"
+t_end
+
 t_begin "the engineer's push of a task branch runs the gate"
 setup; printf "PUSH_CONFIRM='agents'\n" >> "$repo/.githooks/lib.sh"
 t_run bash -c "cd '$repo' && env -u CLAUDECODE -u CLAUDE_CODE_ENTRYPOINT git push origin HEAD:refs/heads/feature/ABC-1-Thing 2>&1"
