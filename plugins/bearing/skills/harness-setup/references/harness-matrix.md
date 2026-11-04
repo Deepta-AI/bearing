@@ -73,6 +73,15 @@ survive compaction).
 | Cursor | stop, `followup_message`, `loop_count`, `loop_limit: 2` | postToolUse on Write, `additional_context` | none: preCompact output reaches only the user | from the docs; unverified |
 | Others | none | none | none | the shell guard only |
 
+"Unverified" means read from the harness's docs and tested only against
+recorded payloads (`tests/integration/harness_each.sh`). To turn it into
+"exercised live" on a machine where the CLI is installed and logged in:
+`make harness-live ONLY=codex` (or `cursor`, `gemini`). It generates the
+harness into a throwaway repository with a local remote, asks the agent to
+run a harmless command and `git push`, and reads the result from disk: the
+guard's lines in `gates.log`, a refused push, an untouched remote, the
+harmless command's file. Update the Status column only from a pass.
+
 ## Fail closed
 
 The adapters require `jq`. When the event JSON cannot be read (no `jq`,

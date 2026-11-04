@@ -4,13 +4,13 @@
   "skills": 110,
   "commandSkills": 0,
   "stackSkills": 12,
-  "scripts": 118,
-  "scriptLines": 36914,
+  "scripts": 119,
+  "scriptLines": 37004,
   "hooks": 12,
   "agents": 8,
-  "makeTargets": 41,
+  "makeTargets": 42,
   "gates": 20,
-  "tests": 134,
+  "tests": 135,
   "fixtures": 25,
   "stacks": 13,
   "templates": 38,
@@ -5660,7 +5660,7 @@
     },
     {
      "path": "references/harness-matrix.md",
-     "lines": 90
+     "lines": 99
     },
     {
      "path": "scripts/harness_check.py",
@@ -16528,6 +16528,24 @@
    ]
   },
   {
+   "path": "bin/harness-live.sh",
+   "name": "harness-live.sh",
+   "lang": "bash",
+   "group": "quality",
+   "lines": 90,
+   "header": "bin/harness-live.sh: does the guard hold in the real harness, not only in\nits adapter? For each harness whose CLI is installed (Codex, Cursor,\nGemini CLI), generate it with brg-harness into a throwaway repository with\na local bare remote, ask the agent to run one harmless command and one\n`git push`, then read what happened from disk, never from the agent:\n\n  fired     the repository's .bearing/state/gates.log has guard lines\n  blocked   a \"refused git push\" line, and the remote still has no branch\n  allowed   the harmless command's file exists\n\n  bin/harness-live.sh [--only codex,cursor,gemini] [--keep]\n\nA harness whose CLI is missing is skipped and said so. Each CLI call is\nthe one its docs give for a headless run; BRG_LIVE_CMD_<HARNESS> (for\nexample BRG_LIVE_CMD_CODEX=\"codex exec --full-auto\") replaces it, the\nprompt appended as the last argument. Runs on the harness's own account\nand costs its usage, so it is not part of make check (make harness-live).\nPrints one line per harness and \"harness-live: N run, P passed, S skipped\";\nexits 1 when none ran or any run failed, and then keeps the folder.\nbash 3.2 safe.",
+   "functions": [
+    "default_cmd"
+   ],
+   "env": [
+    "BEARING_NO_GATE_LOG"
+   ],
+   "calls": [
+    "brg-harness",
+    "brg-live"
+   ]
+  },
+  {
    "path": "bin/kit_paths.py",
    "name": "kit_paths.py",
    "lang": "python",
@@ -18619,6 +18637,11 @@
    "inCheck": false
   },
   {
+   "name": "harness-live",
+   "does": "Real Codex, Cursor and Gemini CLI sessions against the generated adapters: the guard fires, git push is refused, a harmless command runs (each installed CLI, on its own account; ONLY=codex,cursor,gemini; not part of check)",
+   "inCheck": false
+  },
+  {
    "name": "sandbox-probe",
    "does": "Claude Code's sandbox (srt, from npm) against the plugin settings copy: write, replace, hard link and unlink; prints attempts and how many held (not part of check)",
    "inCheck": false
@@ -19302,6 +19325,13 @@
    "lines": 64,
    "header": "tests/unit/harness_eval.sh: bin/harness-eval.py fails closed. With a claude that starts a session and does nothing, every scenario is \"not exercised\" and the run exits 1 with the counts; an unknown scenario exits 2; --list names all eight. The real sessions run under make harness-eval, not here.",
    "asserts": 23
+  },
+  {
+   "path": "tests/unit/harness_live.sh",
+   "kind": "unit",
+   "lines": 70,
+   "header": "tests/unit/harness_live.sh: bin/harness-live.sh against stub CLIs. Each stub plays its harness: it sends every shell command to the adapter brg-harness generated, with that harness's payload, and runs the command only when the adapter allows it (Codex and Gemini deny with exit 2, Cursor with {\"permission\":\"deny\"}). Three faithful stubs pass; a stub that runs commands without asking any hook fails, the push reaching the remote; a harness whose CLI is missing is skipped, and zero harnesses run is a failure, never a pass.",
+   "asserts": 15
   },
   {
    "path": "tests/unit/hld_arch_check.sh",
@@ -20754,7 +20784,7 @@
     "Added",
     "Changed"
    ],
-   "entries": 4,
+   "entries": 5,
    "summary": "- `bearing:modules` installs module kits (Copier templates) from a module catalogue: `add <module> --stack go|python`, `update [<module>]`, `list` and `drift`. The catalogue url is configuration with no default, the new `BEARING_MODULES_REPO` key (environment, the `modules_repo` plugin setting, or bearing.env), and any ssh alias works. Access is checked with `git ls-remote` first; without it the action says \"module catalogue not available, building from guidance\" and stops, and `drift` prints `skipped: no catalogue access (N modules not checked)`, never a pass. The helper is `bin/brg-modules`; Copier runs pinned, as `uvx copier@9.19.1`. - `auth`, `logging`, `observability`, `health-checks`,…"
   },
   {
