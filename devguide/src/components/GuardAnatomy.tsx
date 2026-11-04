@@ -23,7 +23,7 @@ const EXAMPLES: Example[] = [
     label: "Push behind env",
     cmd: "env GIT_TRACE=1 git push origin main",
     verdict: "refused",
-    message: "Bearing blocked 'git push': the engineer pushes, merges and deploys; the agent prepares. Print the command for the engineer instead.",
+    message: "Bearing blocked 'git push': the engineer pushes, merges and deploys; the agent prepares. Print the command for the engineer instead. Bearing policy, not an error: it is blocked every time, so do not retry it or look for another way to run it.",
     stages: [
       pre("env GIT_TRACE=1 git push origin main"),
       { name: "Heredocs and substitutions", fn: "strip_data_heredocs, extract_substitutions", say: "No << and no $( ) or backticks here, so nothing is lifted out. When there are, each $( ) is checked as a command of its own and replaced by a marker.", segs: [[{ t: "env" }, { t: "GIT_TRACE=1" }, { t: "git" }, { t: "push" }, { t: "origin" }, { t: "main" }]] },
@@ -37,7 +37,7 @@ const EXAMPLES: Example[] = [
     label: "Amend after echo",
     cmd: "echo ok && git commit --amend --no-edit",
     verdict: "refused",
-    message: "Bearing blocked 'git commit --amend': the engineer pushes, merges and deploys; the agent prepares. Print the command for the engineer instead.",
+    message: "Bearing blocked 'git commit --amend': it rewrites a commit the engineer may already have. Make a new commit instead. Bearing policy, not an error: it is blocked every time, so do not retry it or look for another way to run it.",
     stages: [
       pre("echo ok && git commit --amend --no-edit"),
       { name: "Split into segments", fn: "scan_segments", say: "&& ends a segment, so this is two commands. Every segment is checked; the first one being harmless proves nothing about the second.", segs: [[{ t: "echo" }, { t: "ok" }], [{ t: "git" }, { t: "commit" }, { t: "--amend" }, { t: "--no-edit" }]] },
@@ -50,7 +50,7 @@ const EXAMPLES: Example[] = [
     label: "Unreadable verb",
     cmd: "git $SUB origin",
     verdict: "refused",
-    message: "brg-guard: the verb after git is a variable that cannot be read; refusing (fail closed)",
+    message: "brg-guard: the verb after git is a variable that cannot be read; refusing (fail closed). Write the command with its program, verbs and paths spelled out, no variable or substitution in them, or print it for the engineer. Bearing policy, not an error: it is blocked every time, so do not retry it or look for another way to run it.",
     stages: [
       pre("git $SUB origin"),
       { name: "Split into segments", fn: "scan_segments", say: "One segment, three tokens. The second is a variable.", segs: [[{ t: "git" }, { t: "$SUB" }, { t: "origin" }]] },

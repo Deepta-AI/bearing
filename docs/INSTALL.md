@@ -156,7 +156,7 @@ Edit `~/.config/bearing/bearing.env`. Every key, with its default:
 | `BEARING_TRACKER_PASSWORD` | REST tracker password when no token is set | empty |
 | `BEARING_TRACKER_DONE_STATUS` | the status `brg-tracker close` moves a ticket to | `Done` |
 | `BEARING_TRACKER_MAX_PAGES` | the most pages `brg-tracker list` follows before it stops and says so | `20` |
-| `BEARING_TASK_ID_PREFIX` | force the id prefix in branch names (PROJ, GH, GL); empty accepts any `[A-Z][A-Z0-9]*-<n>` or `NOTASK-<n>` | empty |
+| `BEARING_TASK_ID_PREFIX` | force the id prefix in branch names (PROJ, GH, GL); empty accepts any `[A-Z][A-Z0-9]*-<n>`, or no id when no task exists | empty |
 | `BEARING_GIT_HOST` | which host's CI and change template a repository gets: gitlab, github or both | `both` |
 | `BEARING_KIT_REMOTE` | git url developers install Bearing from; set it when your team uses a fork | the checkout's own remote (the public repository for a plain clone) |
 | `BEARING_ORG_ID` | reverse-domain id for mobile bundle ids | `com.example` |
@@ -276,7 +276,8 @@ for each check that was skipped. Replies lead with the answer, use short
 bullets, put comparisons in tables and give screenshots as file paths.
 A repository whose `.claude/settings.json` came from the template
 (`new-repo`, or `onboard-repo` where there was none) has it on:
-`"outputStyle": "bearing:Bearing report"`; add that line to your own.
+`"outputStyle": "bearing:Bearing report"`. `onboard-repo` adds that line to
+an existing settings file that names no style; a team's own style stays.
 Elsewhere choose it under Output style in `/config` (or `/output-style
 bearing:Bearing report`); to turn it off in one repository, set another
 style in `.claude/settings.local.json`. The plugin prefix is part of the name: a

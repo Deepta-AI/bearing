@@ -45,7 +45,7 @@ their defaults, so `BEARING_KIT_REMOTE` becomes the default `--kit-remote`
 (falling back to the kit's own git remote, then `file://<kit>`),
 `BEARING_ORG_ID` the default `--org` (falling back to `com.example`) and
 `BEARING_TASK_ID_PREFIX` the default `--tracker` (no prefix when it is unset,
-so branches carry any `[A-Z][A-Z0-9]*-<n>` id or `NOTASK-<n>`).
+so branches carry any `[A-Z][A-Z0-9]*-<n>` id, or none when no task exists).
 Explicit flags always win.
 
 `plugins/bearing/bin/brg-tracker config` prints the effective tracker, where the value
@@ -57,7 +57,7 @@ never prints a token or password.
 
 | Tracker | Key | Example | Branch |
 | --- | --- | --- | --- |
-| none | any `[A-Z][A-Z0-9]*(-[0-9]+)+` | `TASK-142`, `NOTASK-3` | `feature/TASK-142-LoginLockout` |
+| none | any `[A-Z][A-Z0-9]*(-[0-9]+)+`, or no id | `TASK-142` | `feature/TASK-142-LoginLockout`, `feature/LoginLockout` |
 | jira | `<project>-N` | `PROJ-142` | `feature/PROJ-142-LoginLockout` |
 | gitlab | `GL-<iid>` | `GL-42` | `feature/GL-42-LoginLockout` |
 | github | `GH-<number>` | `GH-9` | `feature/GH-9-LoginLockout` |
@@ -66,7 +66,7 @@ never prints a token or password.
 The git hooks accept every shape above through one pattern
 (`TASK_ID_RE` in `.githooks/lib.sh`); a REST tracker whose keys do not
 match it still works for tickets, and branches then carry a
-`BEARING_TASK_ID_PREFIX` id or `NOTASK-<n>`. `BEARING_TASK_ID_PREFIX` narrows what
+`BEARING_TASK_ID_PREFIX` id or no id. `BEARING_TASK_ID_PREFIX` narrows what
 `start-task` accepts; `resolve <KEY>` turns a key into the id the tracker's
 API takes.
 
@@ -96,7 +96,8 @@ tracker. Every command prints
 commands (`me`, `get`, `list`, `resolve`, `config`) exit 0 and write
 commands (`create`, `update`, `comment`, `link`, `trace`) exit 3 so a
 caller can treat the step as skipped. `start-task` still creates the branch
-from a user-chosen id or `NOTASK-<n>`; `merge-request` and `traceability`
+from a user-chosen id, or with no id (`feature/<Name>`; no `NOTASK-<n>` is
+invented); `merge-request` and `traceability`
 report `tracker: none` rather than a gap; `tracker-sync` skips every
 ticket step with a note. Nothing asks for credentials.
 

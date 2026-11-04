@@ -27,8 +27,8 @@ own uncommitted work safe.
 - tracker and prefix: `bash "${CLAUDE_PLUGIN_ROOT}/bin/brg-tracker" config`
   (`tracker:` and `id prefix:` lines; `BEARING_TASK_ID_PREFIX` wins); else
   the CLAUDE.md `Task tracker:` line; else any id matching
-  `[A-Z][A-Z0-9]*(-[0-9]+)+`, and say so. With `tracker: none` and no id,
-  use `NOTASK-<n>` (one above the highest in `git branch -a`).
+  `[A-Z][A-Z0-9]*(-[0-9]+)+`, and say so. No task exists (no id given, or
+  `tracker: none`): no id anywhere; never invent one such as `NOTASK-<n>`.
 - repository conventions: CONTRIBUTING.md, RELEASING.md, README.md, a
   branching or release section in docs/, and the deploy configuration
   (deploy/, k8s/, helm values, a workflow that deploys on a tag). Their
@@ -98,7 +98,8 @@ own uncommitted work safe.
      collide.
    - A task that stacks on another task branch only when the user says so.
 4. **Create the branch without touching the engineer's work.** Name:
-   `<type>/<ID>-<PascalName>` unless the repository's convention differs.
+   `<type>/<ID>-<PascalName>`, or `<type>/<PascalName>` with no task, unless the
+   repository's convention differs; without an id, `--task` below is the branch with / as _.
    Always `--no-track`: a branch created from `origin/develop` otherwise
    tracks develop, and with `push.default=upstream` (check `git config --get push.default`)
    a bare push lands on develop. The upstream is set

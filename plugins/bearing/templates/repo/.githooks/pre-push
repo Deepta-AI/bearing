@@ -56,7 +56,7 @@ while read -r local_ref local_sha remote_ref remote_sha; do
     hook_note "delete $rbranch"; continue
   fi
   printf '%s' "$rbranch" | grep -Eq "$BRANCH_RE" \
-    || hook_fail "branch '$rbranch' does not match (${BRANCH_PREFIXES})/<TASK-ID>-<ShortName> or release/vX.Y.Z"
+    || hook_fail "branch '$rbranch' does not match (${BRANCH_PREFIXES})/<TASK-ID>-<ShortName>, (${BRANCH_PREFIXES})/<ShortName> when no task exists, or release/vX.Y.Z"
   if [ "$remote_sha" = "$zero" ] || ! git cat-file -e "$remote_sha^{commit}" 2>/dev/null; then
     range=("$local_sha" --not --remotes="$remote" ${known[@]+"${known[@]}"})
   else

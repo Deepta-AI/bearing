@@ -32,8 +32,9 @@ Breaking one gets the change rejected, whatever else it does.
 
 ## Working here
 
-- Every change has a task id and a branch: `start-task` creates
-  `feature|bugfix|chore|docs/<ID>-<PascalName>`. One task per session.
+- Every change has a branch: `start-task` creates
+  `feature|bugfix|chore|docs/<ID>-<PascalName>`, or `<type>/<PascalName>`
+  when no task exists; never invent an id (no `NOTASK-<n>`). One task per session.
 - Every command is a Makefile target; `make help` lists them and `make check`
   is the gate CI runs.
 - Search before reading, open only what you located, and copy the shape,

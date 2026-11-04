@@ -37,6 +37,18 @@ All notable changes to Bearing. Keep a Changelog format, semantic versions.
 - The README no longer says every skill is run with and without itself
   each week: no weekly run had been recorded. It says what is defined and
   links the page that shows what was measured.
+- No invented task ids. With no task in the tracker, `start-task` and
+  autopilot name the branch `<type>/<PascalName>` and put no id anywhere;
+  `NOTASK-<n>` is gone. The repository hooks accept a branch without an id
+  (`feature/LoginLockout`) next to `feature/<ID>-<Name>`, and the pre-push
+  message names both forms. AGENTS.md and CONTRIBUTING.md in the template
+  say so, and the progress file of a branch with no id takes the branch
+  name with / as _.
+- `onboard-repo` adds `"outputStyle": "bearing:Bearing report"` to an
+  existing `.claude/settings.json` that names no style; a team's own style
+  stays.
+- The developer guide's guard demos are re-recorded with the 0.11 block
+  messages (reason, way on, and "Bearing policy, not an error").
 
 ## [0.11.0] - 2026-10-30
 
